@@ -332,8 +332,3 @@ This project is proprietary software developed for AMORE Pacific.
 
 ---
 
-## Acknowledgments
-
-- AMORE Pacific Digital Innovation Team
-- OpenAI for GPT models
-- Anthropic for Claude (development assistance)
