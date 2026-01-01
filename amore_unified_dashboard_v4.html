@@ -1,0 +1,2759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMORE INSIGHT | AI-Powered Beauty Market Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+        /*
+         * AMOREPACIFIC DESIGN SYSTEM
+         * "Harmony of Contrast" - 대비의 조화
+         * Amore (부드러움, 감성, 전통) + Pacific (강함, 이성, 미래)
+         */
+        :root {
+            /* === AMOREPACIFIC CI COLORS === */
+            --amore-blue: #1F5795;        /* 부드럽고 온화한 - 달 그림자 */
+            --pacific-blue: #001C58;      /* 강하고 이지적인 - 깊은 바다 */
+            --ap-black: #000000;
+            --ap-gray: #7D7D7D;
+            --ap-white: #FFFFFF;
+
+            /* === FUNCTIONAL COLORS === */
+            --success: #1F5795;           /* Amore Blue로 통일 */
+            --warning: #C4A962;           /* 골드 톤 - 프리미엄 */
+            --danger: #8B2635;            /* 깊은 레드 - 세련된 경고 */
+            --info: #1F5795;
+
+            /* === BACKGROUND === */
+            --bg-main: #FAFAFA;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #F5F5F5;
+
+            /* === TEXT === */
+            --text-primary: #001C58;      /* Pacific Blue */
+            --text-secondary: #7D7D7D;    /* AP Gray */
+            --text-light: #FFFFFF;
+
+            /* === BORDERS & SHADOWS === */
+            --border-light: #E8E8E8;
+            --border-medium: #D0D0D0;
+            --shadow-sm: 0 1px 3px rgba(0, 28, 88, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 28, 88, 0.1);
+            --shadow-lg: 0 8px 24px rgba(0, 28, 88, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+        }
+
+        .app-container { display: flex; height: 100vh; overflow: hidden; }
+
+        /* === SIDEBAR - Pacific Blue (강함, 이성, 미래) === */
+        .sidebar {
+            width: 240px;
+            background: var(--pacific-blue);
+            display: flex; flex-direction: column; flex-shrink: 0;
+            z-index: 50;
+        }
+        .logo-section {
+            padding: 28px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .logo { display: flex; align-items: center; gap: 14px; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: var(--amore-blue);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .logo-text { color: var(--ap-white); }
+        .logo-text h1 {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .logo-text span {
+            font-size: 10px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 400;
+        }
+        .nav-section { padding: 24px 16px; flex: 1; overflow-y: auto; }
+        .nav-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            padding-left: 12px;
+            font-weight: 500;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            color: rgba(255,255,255,0.65);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 2px;
+            font-size: 13px;
+            font-weight: 400;
+        }
+        .nav-item:hover {
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.9);
+        }
+        .nav-item.active {
+            background: var(--amore-blue);
+            color: var(--ap-white);
+            font-weight: 500;
+        }
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+            margin: 20px 0;
+        }
+        .channel-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px;
+            border-radius: 6px;
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            background: rgba(255,255,255,0.04);
+        }
+        .channel-badge {
+            font-size: 10px;
+            background: var(--amore-blue);
+            padding: 3px 10px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* === MAIN - Clean & Professional === */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            background: var(--bg-main);
+        }
+        .header {
+            height: 64px;
+            background: var(--ap-white);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            flex-shrink: 0;
+        }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .page-info h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--pacific-blue);
+        }
+        .page-info .breadcrumb {
+            font-size: 11px;
+            color: var(--ap-gray);
+            margin-top: 2px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .platform-badge {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 14px;
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        .export-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 16px;
+            background: var(--amore-blue);
+            color: var(--ap-white);
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .export-btn:hover {
+            background: var(--pacific-blue);
+        }
+        .date-display {
+            font-size: 11px;
+            color: var(--ap-gray);
+            background: var(--bg-subtle);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 400;
+        }
+        .time-display-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+        .current-time {
+            background: rgba(31, 87, 149, 0.08);
+            color: var(--amore-blue);
+        }
+
+        /* === CRAWL STATUS - Minimal === */
+        .crawl-status {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            background: var(--bg-subtle);
+            color: var(--ap-gray);
+        }
+        .crawl-status.running {
+            background: rgba(196, 169, 98, 0.1);
+            color: var(--warning);
+        }
+        .crawl-status.completed {
+            background: rgba(31, 87, 149, 0.08);
+            color: var(--amore-blue);
+        }
+        .crawl-status.failed {
+            background: rgba(139, 38, 53, 0.08);
+            color: var(--danger);
+        }
+        .crawl-indicator {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--ap-gray);
+        }
+        .crawl-status.running .crawl-indicator {
+            background: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+        .crawl-status.completed .crawl-indicator { background: var(--amore-blue); }
+        .crawl-status.failed .crawl-indicator { background: var(--danger); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* === ANIMATIONS === */
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .content-wrapper { flex: 1; display: flex; overflow: hidden; }
+        .content-area {
+            flex: 1;
+            padding: 24px 32px;
+            overflow-y: auto;
+            background: var(--bg-main);
+        }
+        .page-view { display: none; animation: fadeSlideIn 0.3s ease; }
+        .page-view.active { display: block; }
+
+        /* === INSIGHT BANNER - Harmony of Contrast ===
+         * Pacific Blue (강함) + Amore Blue (부드러움) 그라데이션
+         */
+        .insight-banner {
+            background: linear-gradient(135deg, var(--pacific-blue) 0%, var(--amore-blue) 100%);
+            border-radius: 8px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .insight-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 100%);
+            pointer-events: none;
+        }
+        .insight-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .insight-icon {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .insight-text { flex: 1; }
+        .insight-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .insight-message {
+            color: var(--ap-white);
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+        .insight-message strong {
+            color: var(--ap-white);
+            font-weight: 600;
+        }
+
+        /* === STATUS CARDS - Clean & Professional === */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .status-card {
+            background: var(--ap-white);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+        .status-card:hover {
+            border-color: var(--amore-blue);
+            box-shadow: var(--shadow-md);
+        }
+        .status-label {
+            font-size: 10px;
+            color: var(--ap-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .status-value {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .status-value span {
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-card.success .status-value { color: var(--amore-blue); }
+        .status-card.info .status-value { color: var(--pacific-blue); }
+        .status-card.danger .status-value { color: var(--danger); }
+        .status-card.danger {
+            border-color: rgba(139, 38, 53, 0.2);
+            background: rgba(139, 38, 53, 0.03);
+        }
+
+        /* === TOOLTIP === */
+        .status-card.danger { position: relative; z-index: 1; }
+        .status-card.danger:hover { z-index: 9999; }
+        .warning-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.15s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 8px;
+        }
+        .warning-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--pacific-blue);
+        }
+        .warning-tooltip ul {
+            list-style: none;
+            text-align: left;
+            margin: 0;
+            padding: 0;
+        }
+        .warning-tooltip li {
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+        .warning-tooltip li::before {
+            content: '•';
+            color: var(--warning);
+        }
+        .status-card.danger:hover .warning-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* === GRID & CARDS - Clean Professional Style === */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .content-grid.single { grid-template-columns: 1fr; }
+        .card {
+            background: var(--ap-white);
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--amore-blue);
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-subtle);
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--pacific-blue);
+        }
+        .card-title-icon {
+            width: 28px; height: 28px;
+            background: var(--amore-blue);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-badge {
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .card-badge.danger {
+            background: rgba(139, 38, 53, 0.1);
+            color: var(--danger);
+        }
+        .card-body { padding: 20px; }
+
+        /* === ACTION TABLE - Data-focused === */
+        .action-table { width: 100%; border-collapse: collapse; }
+        .action-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ap-gray);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-subtle);
+        }
+        .action-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .action-table tr { transition: background 0.15s; }
+        .action-table tr:hover { background: var(--bg-subtle); }
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .priority-badge.p1 {
+            background: rgba(139, 38, 53, 0.1);
+            color: var(--danger);
+        }
+        .priority-badge.p2 {
+            background: rgba(196, 169, 98, 0.15);
+            color: #9A7D2E;
+        }
+        .action-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .action-tag.monitor {
+            background: rgba(31, 87, 149, 0.1);
+            color: var(--amore-blue);
+        }
+        .action-tag.risk {
+            background: rgba(139, 38, 53, 0.1);
+            color: var(--danger);
+        }
+        .action-tag.deep {
+            background: rgba(196, 169, 98, 0.15);
+            color: #9A7D2E;
+        }
+        .product-info { display: flex; align-items: center; gap: 12px; }
+        .product-avatar {
+            width: 32px; height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 11px;
+            color: var(--ap-white);
+            background: var(--amore-blue);
+        }
+        .product-name {
+            font-weight: 500;
+            color: var(--pacific-blue);
+        }
+        .product-brand {
+            font-size: 11px;
+            color: var(--ap-gray);
+        }
+        .link-action {
+            color: var(--amore-blue);
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.15s;
+        }
+        .link-action:hover { color: var(--pacific-blue); }
+
+        /* === KPI CARDS - Minimal Professional === */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--ap-white);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+        }
+        .kpi-card:hover {
+            border-color: var(--amore-blue);
+            box-shadow: var(--shadow-md);
+        }
+        .kpi-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--ap-gray);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--pacific-blue);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .kpi-value .unit {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--ap-gray);
+        }
+        .kpi-delta {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .kpi-delta.up {
+            background: rgba(31, 87, 149, 0.1);
+            color: var(--amore-blue);
+        }
+        .kpi-delta.down {
+            background: rgba(139, 38, 53, 0.1);
+            color: var(--danger);
+        }
+
+        /* === CHARTS === */
+        .chart-container { position: relative; height: 260px; }
+        .chart-guide {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: var(--bg-subtle);
+            border-left: 3px solid var(--amore-blue);
+            border-radius: 0 6px 6px 0;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--ap-gray);
+        }
+        .chart-guide strong { color: var(--pacific-blue); }
+
+        /* === QUICK ACTIONS === */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+        }
+        .quick-action-btn.primary {
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+        }
+        .quick-action-btn.primary:hover {
+            background: var(--amore-blue);
+        }
+        .quick-action-btn.secondary {
+            background: var(--ap-white);
+            color: var(--pacific-blue);
+            border: 1px solid var(--pacific-blue);
+        }
+        .quick-action-btn.secondary:hover {
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+        }
+        .quick-action-btn.accent {
+            background: var(--amore-blue);
+            color: var(--ap-white);
+        }
+        .quick-action-btn.accent:hover {
+            background: var(--pacific-blue);
+        }
+
+        /* === CATEGORY TABS - Minimal === */
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .category-tab {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid var(--border-light);
+            background: var(--ap-white);
+            color: var(--ap-gray);
+        }
+        .category-tab:hover {
+            border-color: var(--amore-blue);
+            color: var(--amore-blue);
+        }
+        .category-tab.active {
+            background: var(--pacific-blue);
+            border-color: var(--pacific-blue);
+            color: var(--ap-white);
+        }
+
+        /* === PRODUCT SELECTOR === */
+        .selector-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .selector-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--ap-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .selector-dropdown {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            font-size: 13px;
+            font-weight: 400;
+            cursor: pointer;
+            background: var(--ap-white);
+            min-width: 200px;
+            outline: none;
+            transition: border-color 0.15s;
+            color: var(--pacific-blue);
+        }
+        .selector-dropdown:focus {
+            border-color: var(--amore-blue);
+        }
+
+        /* === CHATBOT - Clean Professional with Resize === */
+        .chatbot-panel {
+            width: 0;
+            min-width: 0;
+            background: var(--ap-white);
+            border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.25s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        .chatbot-panel.open {
+            width: 420px;
+            min-width: 320px;
+            max-width: 600px;
+        }
+        .chatbot-panel.resizing {
+            transition: none;
+            user-select: none;
+        }
+        /* 드래그 핸들 (왼쪽 경계) */
+        .chat-resize-handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 6px;
+            height: 100%;
+            cursor: ew-resize;
+            background: transparent;
+            z-index: 10;
+            transition: background 0.15s;
+        }
+        .chat-resize-handle:hover,
+        .chat-resize-handle.active {
+            background: var(--amore-blue);
+        }
+        .chat-header {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, var(--pacific-blue) 0%, var(--amore-blue) 100%);
+            color: var(--ap-white);
+            flex-shrink: 0;
+        }
+        .chat-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        .chat-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .chat-close {
+            width: 28px;
+            height: 28px;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 6px;
+            color: var(--ap-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        .chat-close:hover { background: rgba(255,255,255,0.25); }
+        .chat-subtitle {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        .chat-body {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: var(--bg-subtle);
+        }
+        .chat-message { margin-bottom: 12px; }
+        .chat-message.bot .bubble {
+            background: var(--ap-white);
+            border: 1px solid var(--border-light);
+            border-radius: 12px 12px 12px 4px;
+            padding: 12px 16px;
+            font-size: 13px;
+            line-height: 1.7;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+        .chat-message.user .bubble {
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            border-radius: 12px 12px 4px 12px;
+            padding: 12px 16px;
+            font-size: 13px;
+            margin-left: auto;
+            max-width: 85%;
+        }
+        .chat-message.bot .bubble strong { color: var(--amore-blue); }
+
+        /* === 추천 질문 - 접기/펼치기 === */
+        .chat-suggestions {
+            border-top: 1px solid var(--border-light);
+            background: var(--ap-white);
+            flex-shrink: 0;
+        }
+        .suggestions-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .suggestions-header:hover {
+            background: var(--bg-subtle);
+        }
+        .suggestions-label {
+            font-size: 10px;
+            color: var(--ap-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin: 0;
+        }
+        .suggestions-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ap-gray);
+            transition: transform 0.2s;
+        }
+        .chat-suggestions.collapsed .suggestions-toggle {
+            transform: rotate(-90deg);
+        }
+        .suggestion-chips {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 0 16px 12px 16px;
+            max-height: 200px;
+            overflow: hidden;
+            transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+        }
+        .chat-suggestions.collapsed .suggestion-chips {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+        }
+        .suggestion-chip {
+            padding: 10px 14px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+            color: var(--pacific-blue);
+        }
+        .suggestion-chip:hover {
+            background: rgba(31, 87, 149, 0.08);
+            border-color: var(--amore-blue);
+            color: var(--amore-blue);
+        }
+        .chat-input-area {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 10px;
+            background: var(--ap-white);
+        }
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-subtle);
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+            color: var(--pacific-blue);
+        }
+        .chat-input:focus {
+            border-color: var(--amore-blue);
+            background: var(--ap-white);
+        }
+        .chat-send {
+            width: 42px;
+            height: 42px;
+            background: var(--amore-blue);
+            border: none;
+            border-radius: 6px;
+            color: var(--ap-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        .chat-send:hover { background: var(--pacific-blue); }
+
+        .chat-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: var(--pacific-blue);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            transition: all 0.2s;
+            border: none;
+        }
+        .chat-fab:hover {
+            background: var(--amore-blue);
+        }
+        .chat-fab.hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+
+        /* === AI DRAWER - Professional === */
+        .ai-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 480px;
+            height: 100vh;
+            background: var(--ap-white);
+            border-left: 1px solid var(--border-light);
+            box-shadow: var(--shadow-lg);
+            z-index: 200;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .ai-drawer.open { transform: translateX(0); }
+        .drawer-header {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, var(--pacific-blue) 0%, var(--amore-blue) 100%);
+            color: var(--ap-white);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .drawer-header-left { display: flex; align-items: center; gap: 12px; }
+        .drawer-icon {
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .drawer-header h3 { font-size: 15px; font-weight: 600; }
+        .drawer-header p { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+        .drawer-close {
+            width: 32px; height: 32px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 6px;
+            color: var(--ap-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        .drawer-close:hover { background: rgba(255,255,255,0.2); }
+        .drawer-content { flex: 1; padding: 24px; overflow-y: auto; }
+        .insight-section { margin-bottom: 24px; }
+        .insight-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-left: 12px;
+            border-left: 3px solid var(--amore-blue);
+        }
+        .insight-section-header h4 {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--amore-blue);
+        }
+        .insight-box {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--pacific-blue);
+        }
+        .insight-box strong { color: var(--amore-blue); }
+        .insight-box em { color: var(--pacific-blue); font-style: normal; font-weight: 600; }
+        .inference-path {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: var(--bg-subtle);
+            border-radius: 8px;
+        }
+        .path-node {
+            padding: 8px 14px;
+            background: var(--ap-white);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: var(--ap-gray);
+        }
+        .path-node.highlight {
+            border-color: var(--amore-blue);
+            color: var(--amore-blue);
+            background: rgba(31, 87, 149, 0.05);
+        }
+        .drawer-actions {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 10px;
+        }
+        .drawer-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .drawer-btn.primary {
+            background: var(--pacific-blue);
+            border: none;
+            color: var(--ap-white);
+        }
+        .drawer-btn.primary:hover { background: var(--amore-blue); }
+        .drawer-btn.secondary {
+            background: var(--ap-white);
+            border: 1px solid var(--border-light);
+            color: var(--pacific-blue);
+        }
+        .drawer-btn.secondary:hover { border-color: var(--amore-blue); }
+
+        /* === EXPORT MODAL - Clean Professional === */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 28, 88, 0.5);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-content {
+            background: var(--ap-white);
+            border-radius: 12px;
+            width: 400px;
+            padding: 28px;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .modal-icon {
+            width: 44px; height: 44px;
+            background: var(--amore-blue);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--pacific-blue);
+        }
+        .modal-header p {
+            font-size: 12px;
+            color: var(--ap-gray);
+            margin-top: 2px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ap-gray);
+            margin-bottom: 8px;
+        }
+        .date-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .date-input {
+            padding: 12px 14px;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            background: var(--ap-white);
+            color: var(--pacific-blue);
+        }
+        .date-input:focus { border-color: var(--amore-blue); }
+        .platform-fixed {
+            padding: 12px 16px;
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .modal-btn.cancel {
+            background: var(--bg-subtle);
+            border: none;
+            color: var(--ap-gray);
+        }
+        .modal-btn.cancel:hover { background: var(--border-light); }
+        .modal-btn.confirm {
+            background: var(--amore-blue);
+            border: none;
+            color: var(--ap-white);
+        }
+        .modal-btn.confirm:hover { background: var(--pacific-blue); }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: var(--ap-white);
+            border: 1px solid var(--border-light);
+            border-radius: 12px 12px 12px 4px;
+            width: fit-content;
+        }
+        .typing-indicator span {
+            width: 6px; height: 6px;
+            background: var(--amore-blue);
+            border-radius: 50%;
+            animation: typing 1s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo">
+                    <div class="logo-icon"><i data-lucide="sparkles" style="color: white; width: 22px; height: 22px;"></i></div>
+                    <div class="logo-text"><h1>AMORE INSIGHT</h1><span>AI Intelligence v2.0</span></div>
+                </div>
+            </div>
+            <nav class="nav-section">
+                <div class="nav-label">Main Views</div>
+                <div class="nav-item active" onclick="switchPage('home')" data-page="home"><i data-lucide="home" style="width: 18px; height: 18px;"></i>Home</div>
+                <div class="nav-item" onclick="switchPage('brand')" data-page="brand"><i data-lucide="building-2" style="width: 18px; height: 18px;"></i>Brand View (L1)</div>
+                <div class="nav-item" onclick="switchPage('category')" data-page="category"><i data-lucide="layers" style="width: 18px; height: 18px;"></i>Category View (L2)</div>
+                <div class="nav-item" onclick="switchPage('product')" data-page="product"><i data-lucide="box" style="width: 18px; height: 18px;"></i>Product View (L3)</div>
+                <div class="nav-divider"></div>
+                <div class="nav-label">Settings</div>
+                <div class="nav-item" onclick="openAlertSettings()"><i data-lucide="bell" style="width: 18px; height: 18px;"></i>Alert Settings</div>
+                <div class="nav-divider"></div>
+                <div class="nav-label">Market Channel</div>
+                <div class="channel-item"><span>🇺🇸 Amazon US</span><span class="channel-badge">Active</span></div>
+            </nav>
+        </aside>
+
+        <!-- MAIN -->
+        <div class="main-wrapper">
+            <header class="header">
+                <div class="header-left">
+                    <div class="page-info"><h2 id="page-title">Home</h2><div class="breadcrumb" id="breadcrumb">Daily Insight & Action Board</div></div>
+                </div>
+                <div class="header-right">
+                    <div class="time-display-group">
+                        <div class="date-display" id="date-display">📅 데이터: 로딩중...</div>
+                        <div class="date-display current-time" id="current-time">🕐 현재: --:--:--</div>
+                    </div>
+                    <div class="crawl-status" id="crawl-status" style="display: none;">
+                        <span class="crawl-indicator"></span>
+                        <span class="crawl-text">수집 중...</span>
+                    </div>
+                    <div class="platform-badge">🇺🇸 Amazon US</div>
+                    <button class="export-btn" onclick="openExportModal()"><i data-lucide="download" style="width: 16px; height: 16px;"></i>Export</button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <main class="content-area">
+                    <!-- HOME PAGE -->
+                    <div id="page-home" class="page-view active">
+                        <div class="insight-banner">
+                            <div class="insight-content">
+                                <div class="insight-icon"><i data-lucide="sparkles" style="color: white; width: 28px; height: 28px;"></i></div>
+                                <div class="insight-text">
+                                    <div class="insight-label">✨ Daily AI Insight - Laneige</div>
+                                    <div class="insight-message">Amazon US 내 Laneige 브랜드는 안정적인 상위권을 유지 중입니다. <strong>Lip Sleeping Mask</strong>가 2위로 상승했으며, Water Bank Cream의 평점 하락에 주의가 필요합니다.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="status-grid">
+                            <div class="status-card success"><div class="status-label">Laneige 노출 상태</div><div class="status-value"><i data-lucide="trending-up" style="width: 24px; height: 24px;"></i><span>Stable Up</span></div></div>
+                            <div class="status-card info"><div class="status-label">카테고리 포지션</div><div class="status-value"><i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i><span>Top 3</span></div></div>
+                            <div class="status-card danger" id="warningProductsCard">
+                                <div class="status-label">주의 제품</div>
+                                <div class="status-value"><i data-lucide="alert-octagon" style="width: 24px; height: 24px;"></i><span id="warningCount">2개</span></div>
+                                <div class="warning-tooltip" id="warningTooltip">
+                                    <div style="font-weight: 600; margin-bottom: 8px; color: #f59e0b;">⚠️ 주의 필요 제품</div>
+                                    <ul id="warningProductsList">
+                                        <li>Water Bank Cream - 평점 하락</li>
+                                        <li>Lip Glowy Balm - 순위 변동성</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="content-grid single">
+                            <div class="card">
+                                <div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="zap" style="color: white; width: 16px; height: 16px;"></i></div>Laneige 액션 보드</div><span class="card-badge danger">4건 대기</span></div>
+                                <div class="card-body" style="padding: 0;">
+                                    <table class="action-table">
+                                        <thead><tr><th>우선순위</th><th>제품</th><th>문제 신호</th><th>액션 태그</th><th>상세 분석</th></tr></thead>
+                                        <tbody>
+                                            <tr onclick="goToProductDetail('', 'Lip Sleeping Mask')"><td><span class="priority-badge p1">🔴 P1</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Lip Sleeping Mask</div><div class="product-brand">Berry</div></div></div></td><td>순위 3→2 (상향)</td><td><span class="action-tag monitor">MONITOR</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Lip Sleeping Mask');">상세 분석 →</a></td></tr>
+                                            <tr onclick="goToProductDetail('', 'Water Bank Cream')"><td><span class="priority-badge p1">🔴 P1</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Water Bank Cream</div><div class="product-brand">Blue Hyaluronic</div></div></div></td><td>평점 3.98 (하락)</td><td><span class="action-tag risk">CHECK</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Water Bank Cream');">상세 분석 →</a></td></tr>
+                                            <tr onclick="goToProductDetail('', 'Lip Glowy Balm')"><td><span class="priority-badge p2">🟠 P2</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Lip Glowy Balm</div><div class="product-brand">Berry</div></div></div></td><td>순위 변동성 높음</td><td><span class="action-tag deep">DEEP DIVE</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Lip Glowy Balm');">상세 분석 →</a></td></tr>
+                                            <tr onclick="goToProductDetail('', 'Cream Skin Toner')"><td><span class="priority-badge p2">🟠 P2</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Cream Skin Toner</div><div class="product-brand">Refiner</div></div></div></td><td>경쟁사 가격 하락</td><td><span class="action-tag monitor">MONITOR</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Cream Skin Toner');">상세 분석 →</a></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="pie-chart" style="color: white; width: 16px; height: 16px;"></i></div>Laneige 제품별 SoS</div></div><div class="card-body"><div class="chart-container"><canvas id="sosChart"></canvas></div></div></div>
+                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="trending-up" style="color: white; width: 16px; height: 16px;"></i></div>Laneige SoS 추이 (7일)</div></div><div class="card-body"><div class="chart-container"><canvas id="trendChart"></canvas></div></div></div>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="quick-action-btn secondary" onclick="switchPage('category')"><i data-lucide="layers" style="width: 18px; height: 18px;"></i>카테고리별 분석</button>
+                            <button class="quick-action-btn secondary" onclick="switchPage('product')"><i data-lucide="box" style="width: 18px; height: 18px;"></i>제품 상세 분석</button>
+                            <button class="quick-action-btn primary" onclick="toggleChatbot()"><i data-lucide="message-square" style="width: 18px; height: 18px;"></i>AI에게 질문하기</button>
+                        </div>
+                    </div>
+
+                    <!-- BRAND PAGE (L1) -->
+                    <div id="page-brand" class="page-view">
+                        <div class="kpi-grid">
+                            <div class="kpi-card"><div class="kpi-label">Laneige SoS</div><div class="kpi-value">44.0<span class="unit">%</span></div><span class="kpi-delta up">▲ 2.1%p</span></div>
+                            <div class="kpi-card"><div class="kpi-label">Top10 Products</div><div class="kpi-value">4<span class="unit">개</span></div><span class="kpi-delta up">+1 증가</span></div>
+                            <div class="kpi-card"><div class="kpi-label">Avg Rank</div><div class="kpi-value">53.6<span class="unit">위</span></div><span class="kpi-delta up">▼ 2.3위 개선</span></div>
+                            <div class="kpi-card"><div class="kpi-label">시장 HHI</div><div class="kpi-value">0.35</div><span class="kpi-delta">중간 집중도</span></div>
+                        </div>
+                        <div class="content-grid single">
+                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="scatter-chart" style="color: white; width: 16px; height: 16px;"></i></div>Laneige vs 경쟁사 SoS × Avg Rank</div></div><div class="card-body"><div class="chart-container"><canvas id="brandMatrixChart"></canvas></div><div class="chart-guide"><strong>해석 가이드:</strong> 우측 하단 = 물량 多 + 상위권 강함 (정상 성장) / 우측 상단 = 물량 多 + 상위권 약함 (효율 악화)</div></div></div>
+                        </div>
+                        <div class="quick-actions"><button class="quick-action-btn accent" onclick="openAIDrawer()"><i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>AI 전략 리포트 생성</button></div>
+                    </div>
+
+                    <!-- CATEGORY PAGE (L2) -->
+                    <div id="page-category" class="page-view">
+                        <div class="category-tabs">
+                            <div class="category-tab active" onclick="selectCategory('lip', this)">Lip Care</div>
+                            <div class="category-tab" onclick="selectCategory('skin', this)">Skin Care</div>
+                            <div class="category-tab" onclick="selectCategory('face', this)">Face Moisturizer</div>
+                            <div class="category-tab" onclick="selectCategory('toner', this)">Toner</div>
+                        </div>
+                        <div class="kpi-grid">
+                            <div class="kpi-card"><div class="kpi-label">Category SoS</div><div class="kpi-value" id="cat-sos">18.5<span class="unit">%</span></div><span class="kpi-delta up">Category Leader</span></div>
+                            <div class="kpi-card"><div class="kpi-label">Laneige Rank</div><div class="kpi-value" id="cat-rank">#2</div><span class="kpi-delta up">1위 근접</span></div>
+                            <div class="kpi-card"><div class="kpi-label">CPI Index</div><div class="kpi-value" id="cat-cpi">112<span class="unit">pt</span></div><span class="kpi-delta down">가격 경쟁력 하락</span></div>
+                            <div class="kpi-card"><div class="kpi-label">신규 경쟁자</div><div class="kpi-value" id="cat-new">18<span class="unit">개</span></div><span class="kpi-delta down">경쟁 심화</span></div>
+                        </div>
+                        <div class="content-grid single">
+                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="bar-chart" style="color: white; width: 16px; height: 16px;"></i></div>CPI 지수 추이</div></div><div class="card-body"><div class="chart-container"><canvas id="cpiChart"></canvas></div><div class="chart-guide"><strong>CPI (Competitive Price Index):</strong> 100 이상 = 경쟁사 대비 고가 / 100 미만 = 경쟁사 대비 저가. Laneige는 프리미엄 포지셔닝 유지 중</div></div></div>
+                        </div>
+                    </div>
+
+                    <!-- PRODUCT PAGE (L3) -->
+                    <div id="page-product" class="page-view">
+                        <div class="selector-group">
+                            <span class="selector-label">카테고리</span>
+                            <select class="selector-dropdown" id="productCategory" onchange="updateProductList()">
+                                <option value="lip">Lip Care</option>
+                                <option value="skin">Skin Care</option>
+                                <option value="face">Face Moisturizer</option>
+                                <option value="toner">Toner</option>
+                            </select>
+                            <span class="selector-label">제품</span>
+                            <select class="selector-dropdown" id="productSelect" onchange="updateProductView()">
+                                <option value="lip-mask-berry">Lip Sleeping Mask (Berry)</option>
+                                <option value="lip-mask-original">Lip Sleeping Mask (Original)</option>
+                                <option value="lip-glowy">Lip Glowy Balm</option>
+                            </select>
+                        </div>
+                        <div class="kpi-grid">
+                            <div class="kpi-card"><div class="kpi-label">Current Rank</div><div class="kpi-value" id="prod-rank">#2</div><span class="kpi-delta up" id="prod-rank-delta">▲ 1위 상승</span></div>
+                            <div class="kpi-card"><div class="kpi-label">Volatility</div><div class="kpi-value" id="prod-vol">12<span class="unit">pt</span></div><span class="kpi-delta" id="prod-vol-delta">안정적</span></div>
+                            <div class="kpi-card"><div class="kpi-label">Rating</div><div class="kpi-value" id="prod-rating">4.5<span class="unit">★</span></div><span class="kpi-delta up" id="prod-rating-delta">상위 10%</span></div>
+                            <div class="kpi-card"><div class="kpi-label">Stickiness</div><div class="kpi-value" id="prod-stick">92<span class="unit">pt</span></div><span class="kpi-delta up" id="prod-stick-delta">고착화 높음</span></div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="line-chart" style="color: white; width: 16px; height: 16px;"></i></div>순위 & 가격 추이 (vs 카테고리 1위)</div></div><div class="card-body"><div class="chart-container"><canvas id="rankTrendChart"></canvas></div><div class="chart-guide"><strong>비교 대상:</strong> Summer Fridays Lip Butter Balm (현재 카테고리 1위)</div></div></div>
+                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="grid-3x3" style="color: white; width: 16px; height: 16px;"></i></div>Laneige 제품 매트릭스</div></div><div class="card-body"><div class="chart-container"><canvas id="productMatrixChart"></canvas></div><div class="chart-guide"><strong>4분면 해석:</strong> 좌하단(King) = 안정적 상위권 / 좌상단(Rising) = 급부상 / 우하단(Lagging) = 정체 / 우상단(Risk) = 위험</div></div></div>
+                        </div>
+                    </div>
+                </main>
+
+                <!-- CHATBOT -->
+                <aside class="chatbot-panel" id="chatbotPanel">
+                    <!-- 드래그 핸들 (크기 조절용) -->
+                    <div class="chat-resize-handle" id="chatResizeHandle"></div>
+
+                    <div class="chat-header">
+                        <div class="chat-header-top"><h3><i data-lucide="bot" style="width: 20px; height: 20px;"></i>AI Insight Agent</h3><button class="chat-close" onclick="toggleChatbot()"><i data-lucide="x" style="width: 18px; height: 18px;"></i></button></div>
+                        <div class="chat-subtitle">Laneige 브랜드 맞춤 인사이트</div>
+                    </div>
+                    <div class="chat-body" id="chatBody">
+                        <div class="chat-message bot"><div class="bubble">안녕하세요!<br><br>오늘 <strong>Laneige Lip Sleeping Mask</strong>가 2위로 상승했습니다. 경쟁사 대비 가격 경쟁력이 좋은 상황이에요.<br><br>궁금한 점을 물어보세요!</div></div>
+                    </div>
+                    <div class="chat-suggestions" id="chatSuggestions">
+                        <div class="suggestions-header" onclick="toggleSuggestions()">
+                            <div class="suggestions-label">추천 질문</div>
+                            <div class="suggestions-toggle"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></div>
+                        </div>
+                        <div class="suggestion-chips">
+                            <div class="suggestion-chip" onclick="sendChatMessage('Lip Sleeping Mask 상승 원인 분석해줘')">Lip Mask 상승 원인</div>
+                            <div class="suggestion-chip" onclick="sendChatMessage('Water Bank Cream 평점 하락 대응 전략은?')">Water Bank 평점 대응</div>
+                            <div class="suggestion-chip" onclick="sendChatMessage('오늘 가장 시급한 액션은?')">시급한 액션</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="질문을 입력하세요..." onkeypress="handleChatKeypress(event)">
+                        <button class="chat-send" onclick="sendChatFromInput()"><i data-lucide="send" style="width: 18px; height: 18px;"></i></button>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <div class="chat-fab" id="chatFab" onclick="toggleChatbot()"><i data-lucide="message-square" style="color: white; width: 28px; height: 28px;"></i></div>
+
+        <!-- AI DRAWER -->
+        <div class="ai-drawer" id="aiDrawer">
+            <div class="drawer-header">
+                <div class="drawer-header-left"><div class="drawer-icon"><i data-lucide="brain" style="color: white; width: 24px; height: 24px;"></i></div><div><h3>AI Strategy Report</h3><p>Laneige Amazon US Analysis</p></div></div>
+                <button class="drawer-close" onclick="closeAIDrawer()"><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+            </div>
+            <div class="drawer-content">
+                <div class="insight-section">
+                    <div class="insight-section-header"><i data-lucide="chart-bar" style="width: 16px; height: 16px; color: var(--amore-primary);"></i><h4>Strategy Summary</h4></div>
+                    <div class="insight-box"><strong>Laneige</strong> 브랜드는 Amazon US Lip Care 카테고리에서 <em>"Price-Quality Leader"</em> 포지션을 확보하고 있습니다.<br><br>현재 Lip Sleeping Mask의 가격 경쟁력과 높은 평점(4.5)을 활용한 <strong>SKU 확장 전략</strong>이 권장됩니다.</div>
+                </div>
+                <div class="insight-section">
+                    <div class="insight-section-header"><i data-lucide="git-branch" style="width: 16px; height: 16px; color: var(--amore-secondary);"></i><h4>Inference Path</h4></div>
+                    <div class="inference-path"><div class="path-node highlight">Laneige</div><i data-lucide="arrow-right" style="width: 16px; height: 16px; color: var(--text-secondary);"></i><div class="path-node">Top2 Position</div><i data-lucide="arrow-right" style="width: 16px; height: 16px; color: var(--text-secondary);"></i><div class="path-node highlight">SKU Expansion</div></div>
+                </div>
+                <div class="insight-section">
+                    <div class="insight-section-header"><i data-lucide="target" style="width: 16px; height: 16px; color: var(--amore-warning);"></i><h4>Recommended Actions</h4></div>
+                    <div class="insight-box">1️⃣ Lip Sleeping Mask 신규 플레이버(Mango, Vanilla) 출시 검토<br>2️⃣ Water Bank Cream 리뷰 분석 → 부정 키워드 대응<br>3️⃣ 번들 프로모션으로 객단가 상승 유도</div>
+                </div>
+            </div>
+            <div class="drawer-actions">
+                <button class="drawer-btn secondary" onclick="copyStrategyReport()"><i data-lucide="copy" style="width: 16px; height: 16px;"></i>복사</button>
+                <button class="drawer-btn primary" onclick="shareStrategyReport()"><i data-lucide="mail" style="width: 16px; height: 16px;"></i>공유</button>
+            </div>
+        </div>
+
+        <!-- EXPORT MODAL -->
+        <div class="modal-overlay" id="exportModal">
+            <div class="modal-content">
+                <div class="modal-header"><div class="modal-icon"><i data-lucide="file-spreadsheet" style="color: white; width: 26px; height: 26px;"></i></div><div><h3>데이터 내보내기</h3><p>Amazon US 데이터 추출</p></div></div>
+                <div class="form-group"><label class="form-label">분석 기간</label><div class="date-inputs"><input type="date" class="date-input" value="2025-12-01"><input type="date" class="date-input" value="2025-12-26"></div></div>
+                <div class="form-group"><label class="form-label">대상 플랫폼</label><div class="platform-fixed">🇺🇸 Amazon US (고정)</div></div>
+                <div class="modal-actions"><button class="modal-btn cancel" onclick="closeExportModal()">취소</button><button class="modal-btn confirm" onclick="executeExport()">📥 리포트 다운로드</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let currentPage = 'home', chatbotOpen = false, charts = {};
+
+        // Dashboard Data (loaded from JSON)
+        let dashboardData = null;
+
+        // Default Product Data (fallback)
+        let productData = {
+            'lip-mask-berry': { rank: '#2', rankDelta: '▲ 1위 상승', vol: '12', volDelta: '안정적', rating: '4.5', ratingDelta: '상위 10%', stick: '92', stickDelta: '고착화 높음' },
+            'lip-mask-original': { rank: '#5', rankDelta: '유지', vol: '8', volDelta: '매우 안정', rating: '4.4', ratingDelta: '양호', stick: '88', stickDelta: '높음' },
+            'lip-glowy': { rank: '#12', rankDelta: '▼ 2위 하락', vol: '22', volDelta: '변동성 높음', rating: '4.2', ratingDelta: '평균', stick: '65', stickDelta: '중간' }
+        };
+
+        let categoryProducts = {
+            'lip': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['lip-mask-original', 'Lip Sleeping Mask (Original)'], ['lip-glowy', 'Lip Glowy Balm']],
+            'skin': [['water-bank', 'Water Bank Blue Cream'], ['cream-skin', 'Cream Skin Toner']],
+            'face': [['water-bank-moist', 'Water Bank Moisture Cream'], ['cica-sleep', 'Cica Sleeping Mask']],
+            'toner': [['cream-skin-ref', 'Cream Skin Refiner'], ['clear-c', 'Clear-C Peeling Serum']]
+        };
+
+        // 크롤링 상태 관리
+        let crawlStatusInterval = null;
+        let lastDataDate = null;  // 마지막 데이터 날짜 추적
+
+        // 토스트 알림 표시
+        function showToast(message, type = 'info') {
+            // 기존 토스트 제거
+            const existing = document.getElementById('toast-notification');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.style.cssText = `
+                position: fixed; bottom: 24px; right: 24px; z-index: 10000;
+                padding: 16px 24px; border-radius: 12px;
+                font-size: 14px; font-weight: 500;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease;
+                display: flex; align-items: center; gap: 10px;
+                ${type === 'success'
+                    ? 'background: linear-gradient(135deg, #10b981, #059669); color: white;'
+                    : type === 'error'
+                    ? 'background: linear-gradient(135deg, #ef4444, #dc2626); color: white;'
+                    : 'background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;'}
+            `;
+            toast.innerHTML = `
+                <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+
+            // 5초 후 제거
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // 크롤링 상태 체크 및 UI 업데이트
+        async function checkCrawlStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/crawl/status`);
+                if (!response.ok) return;
+
+                const data = await response.json();
+                const statusEl = document.getElementById('crawl-status');
+                const textEl = statusEl?.querySelector('.crawl-text');
+
+                if (!statusEl) return;
+
+                if (data.status === 'running') {
+                    statusEl.style.display = 'flex';
+                    statusEl.className = 'crawl-status running';
+                    textEl.textContent = `수집 중... ${data.progress}%`;
+                } else if (data.status === 'completed' && data.date === new Date().toISOString().split('T')[0]) {
+                    statusEl.style.display = 'flex';
+                    statusEl.className = 'crawl-status completed';
+                    textEl.textContent = '오늘 데이터 수집 완료';
+
+                    // 데이터 날짜가 변경됐으면 새로고침
+                    if (lastDataDate !== data.date) {
+                        showToast('📊 새 데이터 수집 완료! 모든 차트가 최신 데이터로 업데이트됩니다.', 'success');
+                        await refreshDashboardData();
+                        lastDataDate = data.date;
+
+                        // 데이터 시간 표시 업데이트
+                        updateDataTime();
+                    }
+
+                    // 5초 후 숨김
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+                } else if (data.status === 'failed') {
+                    statusEl.style.display = 'flex';
+                    statusEl.className = 'crawl-status failed';
+                    textEl.textContent = '수집 실패';
+                    showToast('데이터 수집에 실패했습니다.', 'error');
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+                } else {
+                    statusEl.style.display = 'none';
+                }
+
+                // 진행 중이 아니면 폴링 중단
+                if (data.status !== 'running' && crawlStatusInterval) {
+                    clearInterval(crawlStatusInterval);
+                    crawlStatusInterval = null;
+                }
+            } catch (error) {
+                console.warn('Failed to check crawl status:', error);
+            }
+        }
+
+        // 크롤링 상태 폴링 시작
+        function startCrawlStatusPolling() {
+            if (crawlStatusInterval) return;
+            crawlStatusInterval = setInterval(checkCrawlStatus, 3000);
+            checkCrawlStatus(); // 즉시 한 번 체크
+        }
+
+        // 대시보드 데이터 새로고침 (API에서 로드)
+        async function refreshDashboardData() {
+            try {
+                // API에서 최신 데이터 가져오기
+                const response = await fetch(`${API_BASE}/api/data`);
+                if (!response.ok) {
+                    console.warn('API data not available, falling back to JSON file');
+                    return await loadDashboardData();
+                }
+
+                dashboardData = await response.json();
+                console.log('Dashboard data refreshed from API:', dashboardData.metadata);
+
+                // UI 업데이트 (애니메이션 효과)
+                highlightUpdatedElements();
+                updateDashboardFromData();
+                initChartsForPage(currentPage);
+
+                return true;
+            } catch (error) {
+                console.warn('Failed to refresh from API:', error);
+                return await loadDashboardData();
+            }
+        }
+
+        // 업데이트된 요소 하이라이트 효과
+        function highlightUpdatedElements() {
+            const elements = document.querySelectorAll('.kpi-value, .insight-message, .metric-card');
+            elements.forEach(el => {
+                el.style.transition = 'background-color 0.5s ease';
+                el.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+                setTimeout(() => {
+                    el.style.backgroundColor = '';
+                }, 2000);
+            });
+
+            // 차트 컨테이너도 하이라이트
+            const chartContainers = document.querySelectorAll('.chart-container, canvas');
+            chartContainers.forEach(el => {
+                el.style.transition = 'box-shadow 0.5s ease';
+                el.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.4)';
+                setTimeout(() => {
+                    el.style.boxShadow = '';
+                }, 2000);
+            });
+        }
+
+        // Load Dashboard Data (API 우선, JSON fallback)
+        async function loadDashboardData() {
+            try {
+                // 1. 먼저 API에서 시도
+                let response = await fetch(`${API_BASE}/api/data`);
+
+                // API 실패 시 JSON 파일로 폴백
+                if (!response.ok) {
+                    console.warn('API not available, trying JSON file');
+                    response = await fetch('./data/dashboard_data.json');
+                }
+
+                if (!response.ok) {
+                    console.warn('Dashboard data not found');
+                    return false;
+                }
+
+                dashboardData = await response.json();
+                console.log('Dashboard data loaded:', dashboardData.metadata);
+
+                // 마지막 데이터 날짜 저장 (새로고침 감지용)
+                lastDataDate = dashboardData.metadata?.data_date;
+
+                // Update UI with loaded data
+                updateDashboardFromData();
+
+                // 오늘 데이터가 아니면 크롤링 상태 체크 시작
+                const dataDate = dashboardData.metadata?.data_date;
+                const today = new Date().toISOString().split('T')[0];
+                if (dataDate !== today) {
+                    startCrawlStatusPolling();
+                }
+
+                return true;
+            } catch (error) {
+                console.warn('Failed to load dashboard data:', error);
+                // 데이터 로드 실패 시 현재 날짜 표시
+                const dateDisplay = document.getElementById('date-display');
+                if (dateDisplay) {
+                    dateDisplay.textContent = '📅 ' + new Date().toISOString().split('T')[0];
+                }
+                return false;
+            }
+        }
+
+        // Update Dashboard UI from loaded data
+        function updateDashboardFromData() {
+            if (!dashboardData) return;
+
+            // Update date display - 데이터 날짜 또는 현재 날짜 표시
+            const dateDisplay = document.getElementById('date-display');
+            if (dateDisplay) {
+                const dataDate = dashboardData.metadata?.data_date;
+                const today = new Date().toISOString().split('T')[0];
+                dateDisplay.textContent = '📅 ' + (dataDate || today);
+            }
+
+            // Update Home page insight
+            if (dashboardData.home?.insight_message) {
+                const insightEl = document.querySelector('.insight-message');
+                if (insightEl) insightEl.innerHTML = dashboardData.home.insight_message;
+            }
+
+            // Update status cards
+            if (dashboardData.home?.status) {
+                const status = dashboardData.home.status;
+                const statusCards = document.querySelectorAll('.status-card');
+                if (statusCards[0]) {
+                    statusCards[0].querySelector('.status-value span').textContent = status.exposure || 'Stable';
+                }
+                if (statusCards[1]) {
+                    statusCards[1].querySelector('.status-value span').textContent = status.position || 'Top 5';
+                }
+                if (statusCards[2]) {
+                    statusCards[2].querySelector('.status-value span').textContent = (status.warning_count || 0) + '개';
+                }
+            }
+
+            // Update action items
+            if (dashboardData.home?.action_items) {
+                updateActionTable(dashboardData.home.action_items);
+            }
+
+            // Update Brand KPIs
+            if (dashboardData.brand?.kpis) {
+                const kpis = dashboardData.brand.kpis;
+                const kpiCards = document.querySelectorAll('#page-brand .kpi-card');
+                if (kpiCards[0]) kpiCards[0].querySelector('.kpi-value').innerHTML = kpis.sos + '<span class="unit">%</span>';
+                if (kpiCards[1]) kpiCards[1].querySelector('.kpi-value').innerHTML = kpis.top10_count + '<span class="unit">개</span>';
+                if (kpiCards[2]) kpiCards[2].querySelector('.kpi-value').innerHTML = kpis.avg_rank + '<span class="unit">위</span>';
+                if (kpiCards[3]) kpiCards[3].querySelector('.kpi-value').textContent = kpis.hhi;
+            }
+
+            // Update product data from loaded data
+            if (dashboardData.products) {
+                productData = {};
+                categoryProducts = { 'lip': [], 'skin': [], 'face': [], 'toner': [] };
+
+                for (const [asin, product] of Object.entries(dashboardData.products)) {
+                    const key = asin.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                    productData[key] = {
+                        rank: '#' + product.rank,
+                        rankDelta: product.rank_delta,
+                        vol: String(product.volatility),
+                        volDelta: product.volatility_status,
+                        rating: String(product.rating),
+                        ratingDelta: product.rating_delta,
+                        stick: '85',
+                        stickDelta: '높음'
+                    };
+
+                    // Add to category
+                    const cat = product.category?.replace('_', '') || 'lip';
+                    const catKey = cat.includes('lip') ? 'lip' : cat.includes('face') ? 'face' : cat.includes('toner') ? 'toner' : 'skin';
+                    if (categoryProducts[catKey]) {
+                        categoryProducts[catKey].push([key, product.name]);
+                    }
+                }
+            }
+
+            console.log('Dashboard UI updated from data');
+        }
+
+        // Update action table with dynamic data
+        function updateActionTable(items) {
+            const tbody = document.querySelector('.action-table tbody');
+            if (!tbody || !items.length) return;
+
+            tbody.innerHTML = items.map((item, idx) => `
+                <tr onclick="goToProductDetail('${item.asin || ''}', '${item.product_name || ''}')">
+                    <td><span class="priority-badge ${item.priority.toLowerCase()}">${item.priority === 'P1' ? '🔴' : '🟠'} ${item.priority}</span></td>
+                    <td>
+                        <div class="product-info">
+                            <div class="product-avatar">LN</div>
+                            <div>
+                                <div class="product-name">${item.product_name}</div>
+                                <div class="product-brand">${item.brand_variant || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${item.signal}</td>
+                    <td><span class="action-tag ${item.action_tag.toLowerCase()}">${item.action_tag}</span></td>
+                    <td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('${item.asin || ''}', '${item.product_name || ''}');">상세 분석 →</a></td>
+                </tr>
+            `).join('');
+
+            // 주의 제품 툴팁 업데이트
+            updateWarningTooltip(items);
+        }
+
+        // 주의 제품 툴팁 업데이트
+        function updateWarningTooltip(items) {
+            const warningItems = items.filter(item => item.priority === 'P1' || item.action_tag === 'CHECK' || item.action_tag === 'RISK');
+            const tooltipList = document.getElementById('warningProductsList');
+            const warningCount = document.getElementById('warningCount');
+
+            if (tooltipList && warningItems.length > 0) {
+                tooltipList.innerHTML = warningItems.map(item =>
+                    `<li>${item.product_name} - ${item.signal}</li>`
+                ).join('');
+                if (warningCount) warningCount.textContent = warningItems.length + '개';
+            }
+        }
+
+        // 제품 상세 페이지로 이동
+        function goToProductDetail(asin, productName) {
+            // 제품 페이지로 전환
+            switchPage('product');
+
+            // 제품 선택 드롭다운에서 해당 제품 찾기
+            const productSelect = document.getElementById('productSelect');
+            if (productSelect && productName) {
+                // 제품명으로 옵션 찾기
+                const options = productSelect.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].textContent.includes(productName.split(' ')[0])) {
+                        productSelect.selectedIndex = i;
+                        updateProductView();
+                        break;
+                    }
+                }
+            }
+
+            // 챗봇 열고 해당 제품 분석 요청
+            setTimeout(() => {
+                const chatInput = document.getElementById('chatInput');
+                if (chatInput && productName) {
+                    chatInput.value = `${productName} 제품의 상세 분석을 해주세요.`;
+                    chatInput.focus();
+                }
+            }, 300);
+        }
+
+        function switchPage(pageId) {
+            currentPage = pageId;
+            document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(item => { item.classList.remove('active'); if (item.dataset.page === pageId) item.classList.add('active'); });
+            const titles = { home: { title: 'Home', breadcrumb: 'Daily Insight & Action Board' }, brand: { title: 'Brand View (L1)', breadcrumb: 'Laneige 브랜드 분석' }, category: { title: 'Category View (L2)', breadcrumb: 'Amazon US 카테고리 분석' }, product: { title: 'Product View (L3)', breadcrumb: 'Laneige 제품 상세' } };
+            document.getElementById('page-title').textContent = titles[pageId].title;
+            document.getElementById('breadcrumb').textContent = titles[pageId].breadcrumb;
+            initChartsForPage(pageId);
+        }
+
+        function selectCategory(cat, el) {
+            document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            // 카테고리 ID 매핑
+            const catMap = { 'lip': 'lip_care', 'skin': 'facial_skin_care', 'face': 'face_moisturizer', 'toner': 'toner' };
+            const catId = catMap[cat] || cat;
+
+            // JSON 데이터에서 카테고리 KPI 로드
+            let data;
+            if (dashboardData?.charts?.category_kpis?.[catId]) {
+                const catKpi = dashboardData.charts.category_kpis[catId];
+                data = {
+                    sos: catKpi.sos || 0,
+                    rank: '#' + (catKpi.best_rank || 'N/A'),
+                    cpi: catKpi.cpi || 100,
+                    new: catKpi.new_competitors || 0
+                };
+            } else {
+                // Fallback 데이터
+                const fallback = { lip: { sos: '18.5', rank: '#2', cpi: '112', new: '18' }, skin: { sos: '12.3', rank: '#4', cpi: '108', new: '24' }, face: { sos: '15.1', rank: '#3', cpi: '115', new: '12' }, toner: { sos: '8.7', rank: '#6', cpi: '102', new: '31' } };
+                data = fallback[cat] || { sos: 0, rank: '#N/A', cpi: 100, new: 0 };
+            }
+
+            document.getElementById('cat-sos').innerHTML = data.sos + '<span class="unit">%</span>';
+            document.getElementById('cat-rank').textContent = data.rank;
+            document.getElementById('cat-cpi').innerHTML = data.cpi + '<span class="unit">pt</span>';
+            document.getElementById('cat-new').innerHTML = data.new + '<span class="unit">개</span>';
+        }
+
+        function updateProductList() {
+            const cat = document.getElementById('productCategory').value;
+            const select = document.getElementById('productSelect');
+            select.innerHTML = '';
+            categoryProducts[cat].forEach(p => { const opt = document.createElement('option'); opt.value = p[0]; opt.textContent = p[1]; select.appendChild(opt); });
+            updateProductView();
+        }
+
+        function updateProductView() {
+            const prod = document.getElementById('productSelect').value;
+            const d = productData[prod] || { rank: '#10', rankDelta: '-', vol: '15', volDelta: '-', rating: '4.0', ratingDelta: '-', stick: '70', stickDelta: '-' };
+            document.getElementById('prod-rank').textContent = d.rank;
+            document.getElementById('prod-rank-delta').textContent = d.rankDelta;
+            document.getElementById('prod-vol').innerHTML = d.vol + '<span class="unit">pt</span>';
+            document.getElementById('prod-vol-delta').textContent = d.volDelta;
+            document.getElementById('prod-rating').innerHTML = d.rating + '<span class="unit">★</span>';
+            document.getElementById('prod-rating-delta').textContent = d.ratingDelta;
+            document.getElementById('prod-stick').innerHTML = d.stick + '<span class="unit">pt</span>';
+            document.getElementById('prod-stick-delta').textContent = d.stickDelta;
+        }
+
+        // API 서버 주소
+        const API_BASE = 'http://localhost:8001';
+
+        function toggleChatbot() {
+            chatbotOpen = !chatbotOpen;
+            document.getElementById('chatbotPanel').classList.toggle('open', chatbotOpen);
+            document.getElementById('chatFab').classList.toggle('hidden', chatbotOpen);
+            if (chatbotOpen) {
+                lucide.createIcons();
+            }
+        }
+
+        // ===== 추천 질문 접기/펼치기 =====
+        function toggleSuggestions() {
+            const container = document.getElementById('chatSuggestions');
+            container.classList.toggle('collapsed');
+        }
+
+        // ===== 챗봇 패널 크기 조절 (드래그) =====
+        (function initChatResize() {
+            const panel = document.getElementById('chatbotPanel');
+            const handle = document.getElementById('chatResizeHandle');
+            let isResizing = false;
+            let startX, startWidth;
+
+            handle.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = panel.offsetWidth;
+                panel.classList.add('resizing');
+                handle.classList.add('active');
+                document.body.style.cursor = 'ew-resize';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                // 왼쪽으로 드래그 = 너비 증가
+                const diff = startX - e.clientX;
+                const newWidth = Math.min(600, Math.max(320, startWidth + diff));
+                panel.style.width = newWidth + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    panel.classList.remove('resizing');
+                    handle.classList.remove('active');
+                    document.body.style.cursor = '';
+                }
+            });
+        })();
+
+        // 챗봇 메시지 전송 - LLM Orchestrator v2 API 연동
+        async function sendChatMessage(msg) {
+            const chatBody = document.getElementById('chatBody');
+
+            // 사용자 메시지 표시
+            chatBody.innerHTML += `<div class="chat-message user"><div class="bubble">${msg}</div></div>`;
+            chatBody.innerHTML += `<div class="chat-message bot" id="typing"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            try {
+                // v3 API 호출 (Simple LLM Chat)
+                const response = await fetch(`${API_BASE}/api/v3/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+
+                // 타이핑 인디케이터 제거
+                const typingEl = document.getElementById('typing');
+                if (typingEl) typingEl.remove();
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // 크롤링 시작 감지 시 폴링 시작
+                    if (data.text.includes('백그라운드에서 오늘 데이터 수집')) {
+                        startCrawlStatusPolling();
+                    }
+
+                    // 응답 표시 (마크다운 변환)
+                    let formattedResponse = data.text
+                        .replace(/\n/g, '<br>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+                    // 사용된 도구 표시 (있으면)
+                    if (data.tools_used && data.tools_used.length > 0) {
+                        const toolBadges = data.tools_used.map(t =>
+                            `<span style="background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:9px;">🔧 ${t}</span>`
+                        ).join(' ');
+                        formattedResponse = toolBadges + '<br><br>' + formattedResponse;
+                    }
+
+                    chatBody.innerHTML += `<div class="chat-message bot"><div class="bubble">${formattedResponse}</div></div>`;
+
+                    // 후속 질문 제안 업데이트
+                    updateSuggestions(data.suggestions);
+                } else {
+                    throw new Error('API 응답 오류');
+                }
+            } catch (error) {
+                console.error('Chat API error:', error);
+
+                // 타이핑 인디케이터 제거
+                const typingEl = document.getElementById('typing');
+                if (typingEl) typingEl.remove();
+
+                // 폴백 응답 (API 연결 실패 시)
+                let res = `<strong>💡 안내:</strong><br><br>현재 API 서버에 연결할 수 없습니다.<br><br>서버 실행 명령:<br><code>python dashboard_api.py</code>`;
+
+                chatBody.innerHTML += `<div class="chat-message bot"><div class="bubble">${res}</div></div>`;
+            }
+
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // 후속 질문 제안 업데이트
+        function updateSuggestions(suggestions) {
+            const chipsContainer = document.querySelector('.suggestion-chips');
+            if (!chipsContainer || !suggestions) return;
+
+            chipsContainer.innerHTML = suggestions.map(s =>
+                `<div class="suggestion-chip" onclick="sendChatMessage('${s}')">${s}</div>`
+            ).join('');
+        }
+
+        function sendChatFromInput() { const input = document.getElementById('chatInput'); if (input.value.trim()) { sendChatMessage(input.value); input.value = ''; } }
+        function handleChatKeypress(e) { if (e.key === 'Enter') sendChatFromInput(); }
+        function openAIDrawer() { document.getElementById('aiDrawer').classList.add('open'); }
+        function closeAIDrawer() { document.getElementById('aiDrawer').classList.remove('open'); }
+
+        // AI Strategy Report 복사 기능
+        async function copyStrategyReport() {
+            const drawerContent = document.querySelector('.drawer-content');
+            if (!drawerContent) {
+                alert('❌ 복사할 내용이 없습니다.');
+                return;
+            }
+
+            // 리포트 텍스트 추출
+            const sections = drawerContent.querySelectorAll('.insight-section');
+            let reportText = '📊 AI Strategy Report - Laneige Amazon US Analysis\n';
+            reportText += '=' .repeat(50) + '\n\n';
+
+            sections.forEach(section => {
+                const header = section.querySelector('.insight-section-header h4');
+                const content = section.querySelector('.insight-box, .inference-path');
+
+                if (header) {
+                    reportText += `▶ ${header.textContent}\n`;
+                }
+
+                if (content) {
+                    // HTML을 텍스트로 변환 (br -> 줄바꿈, 태그 제거)
+                    let text = content.innerHTML
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+                        .replace(/<em>(.*?)<\/em>/gi, '"$1"')
+                        .replace(/<[^>]+>/g, '')
+                        .replace(/&nbsp;/g, ' ')
+                        .trim();
+                    reportText += text + '\n\n';
+                }
+            });
+
+            reportText += '-'.repeat(50) + '\n';
+            reportText += `📅 Generated: ${new Date().toLocaleString('ko-KR')}\n`;
+            reportText += '🤖 AMORE INSIGHT AI Intelligence v2.0';
+
+            try {
+                await navigator.clipboard.writeText(reportText);
+
+                // 버튼 피드백
+                const btn = document.querySelector('.drawer-btn.secondary');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i>복사됨!';
+                btn.style.background = '#10b981';
+                btn.style.color = 'white';
+
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    lucide.createIcons();
+                }, 2000);
+
+            } catch (err) {
+                // Fallback: 구형 브라우저 지원
+                const textArea = document.createElement('textarea');
+                textArea.value = reportText;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ 리포트가 클립보드에 복사되었습니다!');
+            }
+        }
+
+        // AI Strategy Report 공유 기능
+        async function shareStrategyReport() {
+            const drawerContent = document.querySelector('.drawer-content');
+            if (!drawerContent) {
+                alert('❌ 공유할 내용이 없습니다.');
+                return;
+            }
+
+            // 리포트 요약 텍스트 생성
+            const summaryBox = drawerContent.querySelector('.insight-box');
+            const summary = summaryBox ? summaryBox.textContent.trim() : 'Laneige Amazon US 전략 분석 리포트';
+
+            const reportTitle = 'AMORE INSIGHT - AI Strategy Report';
+            const reportDate = new Date().toLocaleDateString('ko-KR');
+
+            // Web Share API 지원 확인
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: reportTitle,
+                        text: `📊 ${reportTitle}\n\n${summary}\n\n📅 ${reportDate}`,
+                        url: window.location.href
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        // 사용자가 취소한 게 아니면 이메일 폴백
+                        openEmailShare(reportTitle, summary);
+                    }
+                }
+            } else {
+                // Web Share API 미지원 시 이메일로 공유
+                openEmailShare(reportTitle, summary);
+            }
+        }
+
+        // 이메일 공유 (폴백)
+        function openEmailShare(title, content) {
+            const subject = encodeURIComponent(title);
+            const body = encodeURIComponent(
+                `📊 AI Strategy Report - Laneige Amazon US Analysis\n\n` +
+                `${content}\n\n` +
+                `-`.repeat(40) + `\n` +
+                `📅 생성일: ${new Date().toLocaleString('ko-KR')}\n` +
+                `🔗 대시보드: ${window.location.href}\n\n` +
+                `🤖 AMORE INSIGHT AI Intelligence v2.0`
+            );
+
+            window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+
+            // 버튼 피드백
+            const btn = document.querySelector('.drawer-btn.primary');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i>메일 열림!';
+
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                lucide.createIcons();
+            }, 2000);
+        }
+        function openExportModal() { document.getElementById('exportModal').classList.add('open'); }
+        function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
+
+        // DOCX 내보내기 - 백엔드 API 연동
+        async function executeExport() {
+            const exportBtn = document.querySelector('.modal-btn.confirm');
+            const originalText = exportBtn.textContent;
+            exportBtn.textContent = '⏳ 생성 중...';
+            exportBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/export/docx`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        include_strategy: true
+                    })
+                });
+
+                if (response.ok) {
+                    // Blob으로 변환 후 다운로드
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+
+                    // Content-Disposition에서 파일명 추출
+                    const disposition = response.headers.get('Content-Disposition');
+                    const filename = disposition
+                        ? disposition.split('filename=')[1]?.replace(/"/g, '')
+                        : `AMORE_Insight_Report_${new Date().toISOString().slice(0,10)}.docx`;
+
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+
+                    closeExportModal();
+                    alert('✅ 인사이트 리포트가 다운로드되었습니다!');
+                } else {
+                    throw new Error('Export API 오류');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('❌ 리포트 생성 실패\n\nAPI 서버가 실행 중인지 확인해주세요.\n명령: python dashboard_api.py');
+            } finally {
+                exportBtn.textContent = originalText;
+                exportBtn.disabled = false;
+            }
+        }
+
+        function initChartsForPage(pageId) {
+            Object.values(charts).forEach(c => c.destroy()); charts = {};
+            // AMOREPACIFIC CI Colors - Harmony of Contrast
+            const colors = {
+                laneige: '#1F5795',      // Amore Blue - 부드러움
+                pacific: '#001C58',       // Pacific Blue - 강함
+                competitor: '#7D7D7D',    // AP Gray
+                others: '#D0D0D0',
+                grid: 'rgba(0, 28, 88, 0.06)',
+                warning: '#C4A962'        // Gold accent
+            };
+            // 차트 색상 - Amore Blue 기반 그라데이션
+            const chartColors = ['#001C58', '#1F5795', '#4A7DB8', '#7DA3CC', '#B0C9E0'];
+            // 브랜드 비교 색상 - Pacific Blue, Gray 톤
+            const brandColors = ['#1F5795', '#001C58', '#7D7D7D', '#4A7DB8', '#A0A0A0', '#2E4A6E', '#5C5C5C', '#3D6B99', '#8B8B8B', '#1A3D66'];
+
+            if (pageId === 'home') {
+                // SoS 도넛 차트 - JSON 데이터 사용
+                let sosLabels = ['Lip Sleeping Mask', 'Water Bank', 'Lip Glowy', 'Cream Skin', 'Others'];
+                let sosData = [35, 25, 18, 12, 10];
+
+                if (dashboardData?.charts?.product_sos) {
+                    sosLabels = dashboardData.charts.product_sos.labels || sosLabels;
+                    sosData = dashboardData.charts.product_sos.data || sosData;
+                }
+
+                charts.sos = new Chart(document.getElementById('sosChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: sosLabels,
+                        datasets: [{
+                            data: sosData,
+                            backgroundColor: chartColors.slice(0, sosLabels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { position: 'right', labels: { font: { size: 11 }, padding: 10, usePointStyle: true } }
+                        }
+                    }
+                });
+
+                // SoS 트렌드 차트 - JSON 데이터 사용
+                let trendLabels = ['12/20', '12/21', '12/22', '12/23', '12/24', '12/25', '12/26'];
+                let trendData = [40.5, 41.2, 39.8, 42.1, 43.5, 43.2, 44.0];
+
+                if (dashboardData?.charts?.sos_trend) {
+                    trendLabels = dashboardData.charts.sos_trend.labels || trendLabels;
+                    trendData = dashboardData.charts.sos_trend.data || trendData;
+                }
+
+                charts.trend = new Chart(document.getElementById('trendChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [{
+                            label: 'Laneige SoS',
+                            data: trendData,
+                            borderColor: colors.laneige,
+                            backgroundColor: 'rgba(32,128,128,0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { grid: { color: colors.grid } }, x: { grid: { display: false } } }
+                    }
+                });
+            }
+
+            if (pageId === 'brand') {
+                // 브랜드 매트릭스 버블 차트 - JSON 데이터 사용
+                let brandDatasets = [
+                    { label: 'Laneige', data: [{x: 44, y: 53.6, r: 18}], backgroundColor: colors.laneige },
+                    { label: 'Summer Fridays', data: [{x: 32, y: 42, r: 14}], backgroundColor: colors.competitor },
+                    { label: 'Burt\'s Bees', data: [{x: 22, y: 48, r: 12}], backgroundColor: '#ffd700' },
+                    { label: 'EOS', data: [{x: 18, y: 55, r: 10}], backgroundColor: '#ff69b4' }
+                ];
+
+                if (dashboardData?.charts?.brand_matrix && dashboardData.charts.brand_matrix.length > 0) {
+                    brandDatasets = dashboardData.charts.brand_matrix.map((brand, idx) => ({
+                        label: brand.brand,
+                        data: [{ x: brand.sos, y: brand.avg_rank, r: brand.bubble_size }],
+                        backgroundColor: brand.is_laneige ? colors.laneige : brandColors[idx % brandColors.length]
+                    }));
+                }
+
+                // 버블 크기에 따른 축 범위 계산 (버블이 영역을 벗어나지 않도록)
+                const maxBubbleR = Math.max(...brandDatasets.flatMap(d => d.data.map(p => p.r || 10)));
+                const allX = brandDatasets.flatMap(d => d.data.map(p => p.x));
+                const allY = brandDatasets.flatMap(d => d.data.map(p => p.y));
+                const xMin = Math.max(0, Math.min(...allX) - maxBubbleR * 0.3);
+                const xMax = Math.max(...allX) + maxBubbleR * 0.3;
+                const yMin = Math.max(1, Math.min(...allY) - maxBubbleR * 0.5);
+                const yMax = Math.max(...allY) + maxBubbleR * 0.5;
+
+                charts.brandMatrix = new Chart(document.getElementById('brandMatrixChart').getContext('2d'), {
+                    type: 'bubble',
+                    data: { datasets: brandDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        clip: false,  // 차트 영역 밖으로 버블이 잘리지 않도록
+                        layout: {
+                            padding: {
+                                top: maxBubbleR + 10,
+                                right: maxBubbleR + 10,
+                                bottom: maxBubbleR + 10,
+                                left: maxBubbleR + 10
+                            }
+                        },
+                        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+                        scales: {
+                            y: {
+                                reverse: true,
+                                title: { display: true, text: 'Avg Rank' },
+                                grid: { color: colors.grid },
+                                min: yMin,
+                                max: yMax
+                            },
+                            x: {
+                                title: { display: true, text: 'SoS (%)' },
+                                grid: { color: colors.grid },
+                                min: xMin,
+                                max: xMax
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (pageId === 'category') {
+                // CPI 추이 차트 - JSON 데이터 사용
+                let cpiLabels = ['12/20', '12/21', '12/22', '12/23', '12/24', '12/25', '12/26'];
+                let cpiData = [108, 110, 109, 111, 112, 112, 112];
+
+                if (dashboardData?.charts?.cpi_trend) {
+                    cpiLabels = dashboardData.charts.cpi_trend.labels || cpiLabels;
+                    cpiData = dashboardData.charts.cpi_trend.data || cpiData;
+                }
+
+                // 기준선 데이터 생성
+                const baselineData = cpiLabels.map(() => 100);
+
+                charts.cpi = new Chart(document.getElementById('cpiChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: cpiLabels,
+                        datasets: [
+                            {
+                                label: 'Laneige CPI',
+                                data: cpiData,
+                                borderColor: colors.laneige,
+                                backgroundColor: 'rgba(32,128,128,0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 3
+                            },
+                            {
+                                label: '기준선 (100)',
+                                data: baselineData,
+                                borderColor: '#94a3b8',
+                                borderDash: [5, 5],
+                                borderWidth: 2,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+                        scales: { y: { min: 90, max: 250, grid: { color: colors.grid } }, x: { grid: { display: false } } }
+                    }
+                });
+            }
+
+            if (pageId === 'product') {
+                // 제품 순위 추이 차트 - JSON 데이터 사용
+                let rankLabels = ['12/17', '12/18', '12/19', '12/20', '12/21', '12/22', '12/23', '12/24', '12/25', '12/26'];
+                let rankDatasets = [
+                    { label: 'Laneige Lip Mask', data: [5, 4, 4, 3, 3, 3, 2, 2, 2, 2], borderColor: colors.laneige, backgroundColor: 'rgba(32,128,128,0.1)', tension: 0.4, fill: true, borderWidth: 3 },
+                    { label: '1위 기준선', data: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], borderColor: colors.competitor, borderDash: [5, 5], tension: 0, borderWidth: 2 }
+                ];
+
+                if (dashboardData?.charts?.product_rank_trend) {
+                    const prt = dashboardData.charts.product_rank_trend;
+                    rankLabels = prt.labels || rankLabels;
+
+                    if (prt.products && Object.keys(prt.products).length > 0) {
+                        rankDatasets = Object.entries(prt.products).map(([asin, product], idx) => ({
+                            label: product.name,
+                            data: product.ranks.map(r => r || null),
+                            borderColor: chartColors[idx % chartColors.length],
+                            backgroundColor: idx === 0 ? 'rgba(32,128,128,0.1)' : 'transparent',
+                            tension: 0.4,
+                            fill: idx === 0,
+                            borderWidth: 3
+                        }));
+                        // 1위 기준선 추가
+                        rankDatasets.push({
+                            label: '1위 기준선',
+                            data: rankLabels.map(() => 1),
+                            borderColor: colors.competitor,
+                            borderDash: [5, 5],
+                            tension: 0,
+                            borderWidth: 2,
+                            pointRadius: 0
+                        });
+                    }
+                }
+
+                charts.rankTrend = new Chart(document.getElementById('rankTrendChart').getContext('2d'), {
+                    type: 'line',
+                    data: { labels: rankLabels, datasets: rankDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+                        scales: {
+                            y: { reverse: true, title: { display: true, text: 'Rank' }, min: 1, max: 20, grid: { color: colors.grid } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // 제품 매트릭스 버블 차트 - JSON 데이터 사용
+                let matrixDatasets = [
+                    { label: 'Lip Mask Berry', data: [{x: 2, y: 12, r: 16}], backgroundColor: 'rgba(16,185,129,0.7)' },
+                    { label: 'Lip Mask Original', data: [{x: 5, y: 8, r: 14}], backgroundColor: colors.laneige },
+                    { label: 'Lip Glowy Balm', data: [{x: 12, y: 22, r: 10}], backgroundColor: 'rgba(245,158,11,0.7)' },
+                    { label: 'Water Bank', data: [{x: 8, y: 18, r: 12}], backgroundColor: 'rgba(231,76,60,0.7)' }
+                ];
+
+                if (dashboardData?.charts?.product_matrix && dashboardData.charts.product_matrix.length > 0) {
+                    matrixDatasets = dashboardData.charts.product_matrix.map(product => ({
+                        label: product.name,
+                        data: [{ x: product.rank, y: product.volatility, r: product.bubble_size }],
+                        backgroundColor: product.color
+                    }));
+                }
+
+                charts.productMatrix = new Chart(document.getElementById('productMatrixChart').getContext('2d'), {
+                    type: 'bubble',
+                    data: { datasets: matrixDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12 } } },
+                        scales: {
+                            y: { title: { display: true, text: 'Volatility ↑' }, min: 0, max: 60, grid: { color: colors.grid } },
+                            x: { title: { display: true, text: 'Rank (← 우수)' }, min: 0, max: 30, grid: { color: colors.grid } }
+                        }
+                    }
+                });
+            }
+        }
+        // 시간 포맷 함수
+        function formatDateTime(isoString) {
+            if (!isoString) return '없음';
+            const date = new Date(isoString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function formatCurrentTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        // 실시간 시계 시작
+        function startClock() {
+            function updateClock() {
+                document.getElementById('current-time').textContent = `🕐 현재: ${formatCurrentTime()}`;
+            }
+            updateClock(); // 즉시 실행
+            setInterval(updateClock, 1000); // 1초마다 업데이트
+        }
+
+        // 데이터 업데이트 시간 표시
+        function updateDataTime() {
+            if (dashboardData && dashboardData.metadata) {
+                const generatedAt = dashboardData.metadata.generated_at;
+                document.getElementById('date-display').textContent = `📅 데이터: ${formatDateTime(generatedAt)}`;
+            } else {
+                document.getElementById('date-display').textContent = '📅 데이터: 없음';
+            }
+        }
+
+        window.onload = async function() {
+            startClock(); // 실시간 시계 시작
+            await loadDashboardData();
+            updateDataTime(); // 데이터 시간 업데이트
+            switchPage('home');
+            loadAlertSettings(); // 알림 설정 로드
+        };
+
+        // ============================
+        // Alert Settings (알림 설정)
+        // ============================
+        function openAlertSettings() {
+            const modal = document.getElementById('alert-settings-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                loadAlertSettings();
+            }
+        }
+
+        function closeAlertSettings() {
+            const modal = document.getElementById('alert-settings-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        async function loadAlertSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v3/alert-settings`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // 이메일 입력
+                    document.getElementById('alert-email').value = data.email || '';
+
+                    // 동의 체크박스
+                    document.getElementById('alert-consent').checked = data.consent || false;
+
+                    // 알림 유형 체크박스
+                    const alertTypes = data.alert_types || [];
+                    document.getElementById('alert-rank-change').checked = alertTypes.includes('rank_change');
+                    document.getElementById('alert-insight').checked = alertTypes.includes('important_insight');
+                    document.getElementById('alert-error').checked = alertTypes.includes('error');
+                    document.getElementById('alert-daily').checked = alertTypes.includes('daily_summary');
+
+                    // 동의 상태에 따라 체크박스 활성화/비활성화
+                    toggleAlertOptions();
+                }
+            } catch (error) {
+                console.error('Failed to load alert settings:', error);
+            }
+        }
+
+        function toggleAlertOptions() {
+            const consent = document.getElementById('alert-consent').checked;
+            const options = document.querySelectorAll('.alert-type-option input');
+            options.forEach(opt => {
+                opt.disabled = !consent;
+            });
+        }
+
+        async function saveAlertSettings() {
+            const email = document.getElementById('alert-email').value;
+            const consent = document.getElementById('alert-consent').checked;
+
+            // 이메일 형식 검증
+            if (consent && email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert('올바른 이메일 주소를 입력해주세요.');
+                    return;
+                }
+            }
+
+            // 알림 유형 수집
+            const alertTypes = [];
+            if (document.getElementById('alert-rank-change').checked) alertTypes.push('rank_change');
+            if (document.getElementById('alert-insight').checked) alertTypes.push('important_insight');
+            if (document.getElementById('alert-error').checked) alertTypes.push('error');
+            if (document.getElementById('alert-daily').checked) alertTypes.push('daily_summary');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v3/alert-settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        consent: consent,
+                        alert_types: alertTypes
+                    })
+                });
+
+                if (response.ok) {
+                    alert('알림 설정이 저장되었습니다.');
+                    closeAlertSettings();
+                } else {
+                    const error = await response.json();
+                    alert('저장 실패: ' + (error.detail || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('Failed to save alert settings:', error);
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function revokeConsent() {
+            if (!confirm('이메일 알림 수신 동의를 철회하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v3/alert-settings/revoke`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    alert('동의가 철회되었습니다.');
+                    loadAlertSettings();
+                }
+            } catch (error) {
+                console.error('Failed to revoke consent:', error);
+            }
+        }
+    </script>
+
+    <!-- Alert Settings Modal -->
+    <div id="alert-settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i data-lucide="bell" style="width: 20px; height: 20px; display: inline;"></i> 알림 설정</h3>
+                <button onclick="closeAlertSettings()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <!-- 이메일 입력 -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b;">
+                        이메일 주소
+                    </label>
+                    <input type="email" id="alert-email"
+                           placeholder="your-email@example.com"
+                           style="width: 100%; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px;">
+                </div>
+
+                <!-- 동의 체크박스 (중요!) -->
+                <div class="consent-box" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="alert-consent" onchange="toggleAlertOptions()"
+                               style="width: 20px; height: 20px; margin-top: 2px; accent-color: #0284c7;">
+                        <div>
+                            <span style="font-weight: 600; color: #0369a1;">이메일 알림 수신에 동의합니다</span>
+                            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                순위 변동, 중요 인사이트, 시스템 에러 등의 알림을 이메일로 받습니다.<br>
+                                언제든지 동의를 철회할 수 있습니다.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- 알림 유형 선택 -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #1e293b;">
+                        알림 유형 선택
+                    </label>
+                    <div class="alert-type-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="alert-rank-change" disabled>
+                            <span style="font-size: 13px;">순위 변동</span>
+                        </label>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="alert-insight" disabled>
+                            <span style="font-size: 13px;">중요 인사이트</span>
+                        </label>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="alert-error" disabled>
+                            <span style="font-size: 13px;">에러 알림</span>
+                        </label>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="alert-daily" disabled>
+                            <span style="font-size: 13px;">일일 요약</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="saveAlertSettings()"
+                            style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        저장
+                    </button>
+                    <button onclick="revokeConsent()"
+                            style="padding: 12px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        동의 철회
+                    </button>
+                    <button onclick="closeAlertSettings()"
+                            style="padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Alert Settings Modal - 별도 ID 선택자 사용 */
+        #alert-settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+        #alert-settings-modal .modal-content {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        #alert-settings-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        #alert-settings-modal .modal-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-close:hover {
+            background: #e2e8f0;
+        }
+    </style>
+</body>
+</html>

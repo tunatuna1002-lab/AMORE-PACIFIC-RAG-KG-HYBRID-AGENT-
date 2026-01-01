@@ -1,0 +1,51 @@
+{
+  "ranking": {
+    "top_n_tiers": [3, 5, 10, 20, 50, 100],
+    "significant_drop": 5,
+    "significant_rise": 10
+  },
+  "streak": {
+    "weekly_highlight": 5,
+    "monthly_highlight": 30
+  },
+  "monitoring": {
+    "new_product_watch_days": 60,
+    "trend_analysis_window": 7
+  },
+  "competition": {
+    "gap_alert": 3,
+    "laneige_market_share_warning": 0.1
+  },
+  "brand_health": {
+    "sos_change_up": 1.0,
+    "sos_change_down": -1.0,
+    "hhi_concentrated": 0.25
+  },
+  "price_quality": {
+    "cpi_premium": 100,
+    "rating_gap_warning": 0
+  },
+  "categories": {
+    "beauty": {
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty",
+      "name": "Beauty & Personal Care"
+    },
+    "skin_care": {
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451",
+      "name": "Skin Care"
+    },
+    "lip_care": {
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
+      "name": "Lip Care"
+    },
+    "lip_makeup": {
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Makeup/zgbs/beauty/11059031",
+      "name": "Lip Makeup"
+    },
+    "face_powder": {
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Face-Powder/zgbs/beauty/11058971",
+      "name": "Face Powder"
+    }
+  },
+  "target_brands": ["LANEIGE", "Laneige", "laneige"]
+}

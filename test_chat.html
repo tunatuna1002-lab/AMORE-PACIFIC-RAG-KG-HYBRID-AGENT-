@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Orchestrator Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #16213e;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.green { background: #00ff88; }
+        .status-dot.yellow { background: #ffc107; }
+        .status-dot.red { background: #ff4757; }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 16px;
+            max-width: 80%;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.assistant .message-content {
+            background: #0f3460;
+            text-align: left;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            padding: 15px;
+            background: #0f3460;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 24px;
+            background: #16213e;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-input::placeholder {
+            color: #666;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Suggestions */
+        .suggestions {
+            padding: 10px 15px;
+            background: #0f3460;
+            border-top: 1px solid #16213e;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-btn {
+            padding: 6px 12px;
+            border: 1px solid #667eea;
+            border-radius: 16px;
+            background: transparent;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .suggestion-btn:hover {
+            background: #667eea;
+            color: #fff;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .info-card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .info-card h3 {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 8px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 5px 0;
+        }
+
+        .info-item .label {
+            color: #888;
+        }
+
+        .info-item .value {
+            font-weight: 500;
+        }
+
+        .confidence-high { color: #00ff88; }
+        .confidence-medium { color: #ffc107; }
+        .confidence-low { color: #ff9f43; }
+        .confidence-unknown { color: #ff4757; }
+
+        /* Sources */
+        .sources-list {
+            list-style: none;
+            font-size: 12px;
+        }
+
+        .sources-list li {
+            padding: 4px 0;
+            color: #aaa;
+        }
+
+        .sources-list li::before {
+            content: "📄 ";
+        }
+
+        /* Entities */
+        .entity-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #0f3460;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 2px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* API Toggle */
+        .api-toggle {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            padding: 5px 12px;
+            border: 1px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .toggle-btn.active {
+            background: #667eea;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LLM Orchestrator Test</h1>
+        <p>AMORE-RAG-ONTOLOGY-HYBRID AGENT</p>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-dot green" id="apiStatus"></span>
+            <span id="apiStatusText">API 연결 확인 중...</span>
+        </div>
+        <div class="api-toggle">
+            <button class="toggle-btn active" id="btnV2">v2 (Orchestrator)</button>
+            <button class="toggle-btn" id="btnV1">v1 (Legacy)</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        안녕하세요! LANEIGE Amazon 분석 시스템입니다.<br>
+                        무엇을 도와드릴까요?
+                    </div>
+                </div>
+            </div>
+
+            <div class="suggestions" id="suggestions">
+                <button class="suggestion-btn" onclick="sendSuggestion('SoS가 뭐야?')">SoS가 뭐야?</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('라네즈 현재 순위 알려줘')">라네즈 현재 순위</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('경쟁사 분석해줘')">경쟁사 분석</button>
+            </div>
+
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chatInput"
+                       placeholder="질문을 입력하세요..."
+                       onkeypress="handleKeyPress(event)">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">전송</button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>응답 정보</h3>
+                <div class="info-item">
+                    <span class="label">질문 유형</span>
+                    <span class="value" id="queryType">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">신뢰도</span>
+                    <span class="value" id="confidence">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">처리 시간</span>
+                    <span class="value" id="processingTime">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">도구 호출</span>
+                    <span class="value" id="toolsCalled">-</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>출처</h3>
+                <ul class="sources-list" id="sourcesList">
+                    <li>응답 후 표시됩니다</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h3>추출된 엔티티</h3>
+                <div id="entitiesList">
+                    <span class="entity-tag">응답 후 표시</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>통계</h3>
+                <div class="info-item">
+                    <span class="label">총 질의</span>
+                    <span class="value" id="totalQueries">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">캐시 히트</span>
+                    <span class="value" id="cacheHits">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Rule 처리</span>
+                    <span class="value" id="ruleHandled">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">LLM 판단</span>
+                    <span class="value" id="llmDecisions">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+        let useV2 = true;
+
+        // API 상태 확인
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                const data = await response.json();
+                document.getElementById('apiStatus').className = 'status-dot green';
+                document.getElementById('apiStatusText').textContent = `API 연결됨 (${data.version || 'v2.0'})`;
+                return true;
+            } catch (e) {
+                document.getElementById('apiStatus').className = 'status-dot red';
+                document.getElementById('apiStatusText').textContent = 'API 연결 실패 - 서버를 시작하세요';
+                return false;
+            }
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 사용자 메시지 표시
+            addMessage(message, 'user');
+            input.value = '';
+
+            // 로딩 표시
+            const loadingId = showLoading();
+
+            try {
+                const endpoint = useV2 ? '/api/v2/chat' : '/api/chat';
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, session_id: 'test' })
+                });
+
+                const data = await response.json();
+
+                // 로딩 제거
+                removeLoading(loadingId);
+
+                // 응답 표시
+                if (useV2) {
+                    addMessage(data.text, 'assistant', data);
+                    updateInfoPanel(data);
+                    updateSuggestions(data.suggestions || []);
+                } else {
+                    addMessage(data.response, 'assistant', data);
+                    updateInfoPanelLegacy(data);
+                    updateSuggestions(data.suggestions || []);
+                }
+
+                // 통계 업데이트
+                if (useV2) {
+                    fetchStats();
+                }
+
+            } catch (e) {
+                removeLoading(loadingId);
+                addMessage(`오류: ${e.message}`, 'assistant');
+            }
+        }
+
+        // 메시지 추가
+        function addMessage(text, role, data = null) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            let meta = '';
+            if (data && role === 'assistant') {
+                const level = data.confidence_level || data.query_type || '';
+                meta = `<div class="message-meta">${level}</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="message-content">${text.replace(/\n/g, '<br>')}</div>
+                ${meta}
+            `;
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 로딩 표시
+        function showLoading() {
+            const container = document.getElementById('chatMessages');
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'loading';
+            div.innerHTML = `
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeLoading(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // 정보 패널 업데이트 (v2)
+        function updateInfoPanel(data) {
+            document.getElementById('queryType').textContent = data.query_type || '-';
+
+            const level = data.confidence_level || 'unknown';
+            const confidence = document.getElementById('confidence');
+            confidence.textContent = `${level.toUpperCase()} (${(data.confidence_score || 0).toFixed(2)})`;
+            confidence.className = `value confidence-${level}`;
+
+            document.getElementById('processingTime').textContent =
+                `${(data.processing_time_ms || 0).toFixed(0)}ms`;
+
+            document.getElementById('toolsCalled').textContent =
+                data.tools_called?.length > 0 ? data.tools_called.join(', ') : '없음';
+
+            // 출처
+            const sources = document.getElementById('sourcesList');
+            sources.innerHTML = data.sources?.length > 0
+                ? data.sources.map(s => `<li>${s}</li>`).join('')
+                : '<li>없음</li>';
+
+            // 엔티티
+            const entities = document.getElementById('entitiesList');
+            const entityData = data.entities || {};
+            let tags = [];
+            for (const [key, values] of Object.entries(entityData)) {
+                if (Array.isArray(values) && values.length > 0) {
+                    values.forEach(v => tags.push(`<span class="entity-tag">${key}: ${v}</span>`));
+                }
+            }
+            entities.innerHTML = tags.length > 0 ? tags.join('') : '<span class="entity-tag">없음</span>';
+        }
+
+        // 정보 패널 업데이트 (v1 legacy)
+        function updateInfoPanelLegacy(data) {
+            document.getElementById('queryType').textContent = data.query_type || '-';
+            document.getElementById('confidence').textContent =
+                `${((data.confidence || 0) * 100).toFixed(0)}%`;
+            document.getElementById('processingTime').textContent = '-';
+            document.getElementById('toolsCalled').textContent = '-';
+
+            const sources = document.getElementById('sourcesList');
+            sources.innerHTML = data.sources?.length > 0
+                ? data.sources.map(s => `<li>${s}</li>`).join('')
+                : '<li>없음</li>';
+        }
+
+        // 제안 질문 업데이트
+        function updateSuggestions(suggestions) {
+            const container = document.getElementById('suggestions');
+            if (suggestions.length > 0) {
+                container.innerHTML = suggestions.map(s =>
+                    `<button class="suggestion-btn" onclick="sendSuggestion('${s}')">${s}</button>`
+                ).join('');
+            }
+        }
+
+        // 제안 질문 클릭
+        function sendSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            sendMessage();
+        }
+
+        // 엔터 키 처리
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // 통계 조회
+        async function fetchStats() {
+            if (!useV2) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/v2/stats`);
+                const data = await response.json();
+                document.getElementById('totalQueries').textContent = data.total_queries || 0;
+                document.getElementById('cacheHits').textContent = data.cache_hits || 0;
+                document.getElementById('ruleHandled').textContent = data.rule_handled || 0;
+                document.getElementById('llmDecisions').textContent = data.llm_decisions || 0;
+            } catch (e) {
+                console.log('Stats fetch failed:', e);
+            }
+        }
+
+        // API 버전 토글
+        document.getElementById('btnV2').addEventListener('click', function() {
+            useV2 = true;
+            this.classList.add('active');
+            document.getElementById('btnV1').classList.remove('active');
+        });
+
+        document.getElementById('btnV1').addEventListener('click', function() {
+            useV2 = false;
+            this.classList.add('active');
+            document.getElementById('btnV2').classList.remove('active');
+        });
+
+        // 초기화
+        checkApiStatus();
+        setInterval(checkApiStatus, 30000);
+    </script>
+</body>
+</html>

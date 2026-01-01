@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2025-01-01T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram name="Decision Flow" id="decision-flow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Level 4 Agent 의사결정 흐름도" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1e3a5f;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Rules + LLM Hybrid Decision Making" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="55" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Start -->
+        <mxCell id="start" value="🚀 요청/이벤트 수신" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#4caf50;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="90" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Permission Check -->
+        <mxCell id="step1-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ff9800;" vertex="1" parent="1">
+          <mxGeometry x="480" y="170" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-label" value="1️⃣ 권한 확인" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=14;fontStyle=1;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="480" y="175" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-detail" value="RulesEngine.is_action_allowed()&#xa;forbidden 목록 확인" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="480" y="200" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision 1: Forbidden? -->
+        <mxCell id="decision1" value="금지된&#xa;액션?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#e53935;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="280" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Forbidden Result -->
+        <mxCell id="forbidden" value="🚫 거부&#xa;(에러 반환)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="290" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Consent Check -->
+        <mxCell id="step2-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#2196f3;" vertex="1" parent="1">
+          <mxGeometry x="480" y="380" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-label" value="2️⃣ 동의 확인" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=14;fontStyle=1;fontColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="385" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-detail" value="RulesEngine.requires_consent()&#xa;이메일 발송 등 동의 필요 액션" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="480" y="410" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision 2: Needs Consent? -->
+        <mxCell id="decision2" value="동의&#xa;필요?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1976d2;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="490" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Consent Check -->
+        <mxCell id="consent-check" value="StateManager에서&#xa;동의 여부 확인" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1976d2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="495" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Decision 2b: Has Consent? -->
+        <mxCell id="decision2b" value="동의&#xa;있음?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#43a047;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="490" width="80" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- No Consent -->
+        <mxCell id="no-consent" value="동의 없음&#xa;스킵" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="495" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Rule Matching -->
+        <mxCell id="step3-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#9c27b0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="590" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-label" value="3️⃣ 규칙 기반 판단 (Fast Path)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=14;fontStyle=1;fontColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="480" y="595" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-detail" value="DecisionMaker._try_rule_based()&#xa;- 키워드 매칭 (크롤링, 분석 등)&#xa;- 컨텍스트 충분 여부&#xa;- 데이터 상태 확인" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666;spacingLeft=20;" vertex="1" parent="1">
+          <mxGeometry x="480" y="618" width="240" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Decision 3: Rule Match? -->
+        <mxCell id="decision3" value="규칙&#xa;매칭?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#8e24aa;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="720" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Rule Match Result -->
+        <mxCell id="rule-result" value="⚡ 즉시 실행&#xa;(LLM 호출 없음)&#xa;비용: $0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#43a047;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="715" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: LLM Decision -->
+        <mxCell id="step4-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3f51b5;" vertex="1" parent="1">
+          <mxGeometry x="200" y="590" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step4-label" value="4️⃣ LLM 기반 판단 (Slow Path)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=14;fontStyle=1;fontColor=#283593;" vertex="1" parent="1">
+          <mxGeometry x="200" y="595" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="step4-detail" value="DecisionMaker._llm_decide()&#xa;- 시스템 상태 분석&#xa;- 컨텍스트 분석&#xa;- 도구 선택 + 신뢰도 평가" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666;spacingLeft=20;" vertex="1" parent="1">
+          <mxGeometry x="200" y="618" width="240" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- LLM Result -->
+        <mxCell id="llm-result" value="🤖 LLM 판단 결과&#xa;도구 선택 + 실행&#xa;비용: ~$0.01" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c5cae9;strokeColor=#3f51b5;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="720" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- End: Execute -->
+        <mxCell id="execute" value="✅ 실행 완료" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#4caf50;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="820" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#4caf50;" edge="1" parent="1" source="start" target="step1-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ff9800;" edge="1" parent="1" source="step1-box" target="decision1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-yes" value="Yes" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#e53935;" edge="1" parent="1" source="decision1" target="forbidden">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-no" value="No" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#43a047;" edge="1" parent="1" source="decision1" target="step2-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow4" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2196f3;" edge="1" parent="1" source="step2-box" target="decision2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5-yes" value="Yes" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#1976d2;" edge="1" parent="1" source="decision2" target="consent-check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5b" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#1976d2;" edge="1" parent="1" source="consent-check" target="decision2b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5b-no" value="No" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#f9a825;" edge="1" parent="1" source="decision2b" target="no-consent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5b-yes" value="Yes" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#43a047;" edge="1" parent="1" source="decision2b" target="step3-box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="590" />
+              <mxPoint x="760" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow5-no" value="No" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#43a047;" edge="1" parent="1" source="decision2" target="step3-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow6" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9c27b0;" edge="1" parent="1" source="step3-box" target="decision3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow7-yes" value="Yes" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#43a047;" edge="1" parent="1" source="decision3" target="rule-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow7-no" value="No" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#3f51b5;" edge="1" parent="1" source="decision3" target="step4-box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="755" />
+              <mxPoint x="480" y="640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow8" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#3f51b5;" edge="1" parent="1" source="step4-box" target="llm-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow9a" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#43a047;" edge="1" parent="1" source="rule-result" target="execute">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="845" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow9b" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#3f51b5;" edge="1" parent="1" source="llm-result" target="execute">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="845" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Statistics Box -->
+        <mxCell id="stats-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#9e9e9e;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stats-title" value="📊 의사결정 통계" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;fontColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="40" y="205" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="stats-content" value="• Rule-based: ~90%&#xa;  (빠름, 비용 $0)&#xa;&#xa;• LLM-based: ~10%&#xa;  (유연, 비용 ~$0.01)&#xa;&#xa;• 평균 응답 시간:&#xa;  규칙: 5ms&#xa;  LLM: 500ms&#xa;&#xa;• 권한 거부: &lt;1%" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="180" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Priority Box -->
+        <mxCell id="priority-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ffc107;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="priority-title" value="⚡ 우선순위" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;fontColor=#f57f17;" vertex="1" parent="1">
+          <mxGeometry x="40" y="435" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="priority-content" value="0: 사용자 요청 (최우선)&#xa;1: 중요 알림&#xa;2: 예약 작업&#xa;3: 백그라운드 작업&#xa;&#xa;※ 사용자 요청 시&#xa;   자율 작업 일시 중단" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#666666;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="180" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Forbidden Actions -->
+        <mxCell id="forbidden-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#e53935;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="forbidden-title" value="🚫 금지된 액션" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;fontColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="585" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="forbidden-content" value="• delete_data&#xa;• modify_system_config&#xa;• access_credentials&#xa;• infinite_loop" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#c62828;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="608" width="180" height="65" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

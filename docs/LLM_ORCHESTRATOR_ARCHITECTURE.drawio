@@ -1,0 +1,710 @@
+<mxfile host="app.diagrams.net" modified="2025-12-31T00:00:00.000Z" agent="Claude AI" version="21.0.0" type="device">
+  <diagram name="LLM Orchestrator Architecture" id="llm-orchestrator-main">
+    <mxGraphModel dx="1434" dy="836" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="LLM Orchestrator Architecture (TO-BE)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- User Input Layer -->
+        <mxCell id="user-input-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="800" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="user-input-label" value="사용자 입력 계층" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="410" y="85" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cli-input" value="CLI&#xa;(main.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="110" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="api-input" value="REST API&#xa;(dashboard_api.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="110" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard-input" value="Dashboard&#xa;(HTML)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="790" y="110" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow from inputs to orchestrator -->
+        <mxCell id="input-arrow" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#4CAF50;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="160" as="sourcePoint" />
+            <mxPoint x="800" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- LLM Orchestrator Main Box -->
+        <mxCell id="orchestrator-main" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="200" y="200" width="1200" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="orchestrator-label" value="LLMOrchestrator (core/llm_orchestrator.py)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="220" y="210" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Rule-based Classification -->
+        <mxCell id="step1-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="240" y="260" width="350" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-label" value="1. Rule-based 1차 분류" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="250" y="265" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rag-router" value="RAGRouter&#xa;(rag/router.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;" vertex="1" parent="1">
+          <mxGeometry x="260" y="300" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-extract" value="Entity&#xa;Extraction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;" vertex="1" parent="1">
+          <mxGeometry x="400" y="300" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-output" value="query_type&#xa;score&#xa;entities" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="510" y="300" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Context Gathering -->
+        <mxCell id="step2-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="260" width="350" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-label" value="2. 컨텍스트 수집 (ContextGatherer)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="630" y="265" width="280" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rag-search" value="RAG 검색&#xa;(문서)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;" vertex="1" parent="1">
+          <mxGeometry x="640" y="300" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="kg-query" value="KG 조회&#xa;(엔티티/관계)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;" vertex="1" parent="1">
+          <mxGeometry x="750" y="300" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="state-check" value="State 확인&#xa;(신선도)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;" vertex="1" parent="1">
+          <mxGeometry x="870" y="300" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Confidence Assessment -->
+        <mxCell id="step3-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="260" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-label" value="3. 신뢰도 평가" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="265" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="confidence-high" value="HIGH&#xa;(5.0+)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="295" width="70" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="confidence-medium" value="MEDIUM&#xa;(3.0~4.9)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="295" width="80" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="confidence-low" value="LOW&#xa;(1.5~2.9)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="335" width="70" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="confidence-unknown" value="UNKNOWN&#xa;(&lt;1.5)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="335" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows between steps 1-2-3 -->
+        <mxCell id="arrow-1-2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="590" y="320" as="sourcePoint" />
+            <mxPoint x="620" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-2-3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="970" y="320" as="sourcePoint" />
+            <mxPoint x="1000" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 4: LLM Decision (for MEDIUM/LOW) -->
+        <mxCell id="step4-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="240" y="410" width="400" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step4-label" value="4. LLM 판단 (MEDIUM/LOW 신뢰도일 때)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#303F9F;" vertex="1" parent="1">
+          <mxGeometry x="250" y="415" width="350" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-decision" value="LLM (GPT-4.1-mini)&#xa;&#xa;컨텍스트 기반 도구 선택 판단&#xa;{tool, reason, key_points}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C5CAE9;strokeColor=#3F51B5;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="445" width="360" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow from confidence to LLM decision -->
+        <mxCell id="arrow-3-4" value="MEDIUM/LOW" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#3F51B5;curved=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1000" y="360" as="sourcePoint" />
+            <mxPoint x="640" y="450" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="800" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 5: Tool Execution -->
+        <mxCell id="step5-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#00BCD4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="680" y="410" width="500" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step5-label" value="5. 도구 실행 (필요시)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#00838F;" vertex="1" parent="1">
+          <mxGeometry x="690" y="415" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-crawl" value="crawl_amazon&#xa;→ CrawlerAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="450" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-store" value="store_data&#xa;→ StorageAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="810" y="450" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-calc" value="calculate_metrics&#xa;→ MetricsAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="450" width="110" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-query" value="query_data&#xa;→ Sheets/KG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="450" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow from LLM decision to tools -->
+        <mxCell id="arrow-4-5" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="640" y="470" as="sourcePoint" />
+            <mxPoint x="680" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Caching Layer -->
+        <mxCell id="cache-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFC107;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="540" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cache-label" value="ResponseCache (캐싱)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#F57F17;" vertex="1" parent="1">
+          <mxGeometry x="250" y="545" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cache-details" value="• Query Cache (24h TTL)&#xa;• KG Cache (1h TTL)&#xa;• 동일 질문 즉시 반환" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="250" y="565" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- State Management -->
+        <mxCell id="state-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#607D8B;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="540" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="state-label" value="OrchestratorState (상태관리)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="520" y="545" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="state-details" value="• last_crawl_time&#xa;• data_freshness (fresh/stale)&#xa;• kg_initialized" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="520" y="565" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow from orchestrator to response pipeline -->
+        <mxCell id="arrow-to-response" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#1976D2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="700" as="sourcePoint" />
+            <mxPoint x="800" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Response Pipeline -->
+        <mxCell id="response-pipeline" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="300" y="750" width="1000" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="response-label" value="ResponsePipeline (core/response_pipeline.py) - 모든 응답에 적용" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="320" y="760" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="response-rag" value="RAG&#xa;Context" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="800" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="response-plus1" value="+" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#4CAF50;" vertex="1" parent="1">
+          <mxGeometry x="440" y="810" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="response-kg" value="KG&#xa;Facts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="800" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="response-plus2" value="+" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#4CAF50;" vertex="1" parent="1">
+          <mxGeometry x="570" y="810" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="response-infer" value="KG&#xa;Inferences" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="800" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="response-plus3" value="+" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#4CAF50;" vertex="1" parent="1">
+          <mxGeometry x="700" y="810" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="response-tools" value="Tool&#xa;Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="800" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="response-arrow" value="→" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=32;fontStyle=1;fontColor=#4CAF50;" vertex="1" parent="1">
+          <mxGeometry x="840" y="805" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="response-llm" value="LLM&#xa;(GPT-4.1-mini)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="800" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="response-arrow2" value="→" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=32;fontStyle=1;fontColor=#4CAF50;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="805" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="response-output" value="최종&#xa;응답" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#66BB6A;strokeColor=#4CAF50;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="800" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow to user -->
+        <mxCell id="arrow-to-user" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#4CAF50;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="870" as="sourcePoint" />
+            <mxPoint x="800" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User Response -->
+        <mxCell id="user-response" value="사용자 응답" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;strokeWidth=2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="700" y="920" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- External Components Box -->
+        <mxCell id="external-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#9E9E9E;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="140" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="external-label" value="기존 컴포넌트" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="50" y="270" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-hybrid-retriever" value="HybridRetriever&#xa;(rag/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#9E9E9E;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="300" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-kg" value="KnowledgeGraph&#xa;(ontology/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#9E9E9E;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="350" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-reasoner" value="OntologyReasoner&#xa;(ontology/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#9E9E9E;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="400" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-crawler" value="CrawlerAgent&#xa;(agents/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#9E9E9E;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="450" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-storage" value="StorageAgent&#xa;(agents/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#9E9E9E;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="500" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-metrics" value="MetricsAgent&#xa;(agents/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#9E9E9E;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="550" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#9E9E9E;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="750" width="230" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="범례 (Legend)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="760" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;" vertex="1" parent="1">
+          <mxGeometry x="60" y="795" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1-text" value="Rule-based 분류" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="795" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="825" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2-text" value="컨텍스트 수집" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="825" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;" vertex="1" parent="1">
+          <mxGeometry x="60" y="855" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3-text" value="신뢰도 평가" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="855" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;" vertex="1" parent="1">
+          <mxGeometry x="60" y="885" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4-text" value="LLM 판단" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="885" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#00BCD4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="915" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5-text" value="도구 실행" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="915" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;" vertex="1" parent="1">
+          <mxGeometry x="60" y="945" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-6-text" value="응답 파이프라인" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="945" width="120" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- Second Page: Data Flow Diagram -->
+  <diagram name="Data Flow" id="data-flow">
+    <mxGraphModel dx="1434" dy="836" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="df-title" value="데이터 흐름도 (Data Flow Diagram)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Scenario 1: Simple Query -->
+        <mxCell id="scenario1-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="640" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="scenario1-title" value="시나리오 1: 단순 질문 (HIGH 신뢰도)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="50" y="90" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="s1-input" value="&quot;SoS 정의 알려줘&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1-arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="180" y="150" as="sourcePoint" />
+            <mxPoint x="220" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1-rule" value="Rule 분류&#xa;score=5.5&#xa;→ HIGH" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="125" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s1-arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="150" as="sourcePoint" />
+            <mxPoint x="340" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1-context" value="Context 수집&#xa;RAG: 문서 검색&#xa;KG: 없음" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s1-arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="440" y="150" as="sourcePoint" />
+            <mxPoint x="480" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1-skip" value="LLM 판단&#xa;스킵" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#9E9E9E;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1-arrow4" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1976D2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="550" y="150" as="sourcePoint" />
+            <mxPoint x="590" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1-response" value="응답 생성" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="130" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1-output" value="&quot;SoS(Share of Shelf)는 Top 100 내 브랜드 제품 비율...&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Scenario 2: Analysis Query -->
+        <mxCell id="scenario2-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="640" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="scenario2-title" value="시나리오 2: 분석 질문 (MEDIUM 신뢰도)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="730" y="90" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="s2-input" value="&quot;LANEIGE 경쟁 상황?&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="740" y="130" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2-arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9C27B0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="870" y="150" as="sourcePoint" />
+            <mxPoint x="900" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2-rule" value="Rule 분류&#xa;score=3.5&#xa;→ MEDIUM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="125" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s2-arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9C27B0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="980" y="150" as="sourcePoint" />
+            <mxPoint x="1010" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2-context" value="Context 수집&#xa;RAG: 가이드&#xa;KG: 경쟁사" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="120" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s2-arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9C27B0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1100" y="150" as="sourcePoint" />
+            <mxPoint x="1130" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2-llm" value="LLM 판단&#xa;→ direct" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C5CAE9;strokeColor=#3F51B5;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="125" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s2-arrow4" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9C27B0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="150" as="sourcePoint" />
+            <mxPoint x="1230" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2-response" value="응답 생성" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="130" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s2-output" value="&quot;LANEIGE는 SoS 12%로 COSRX(18%) 대비 열위...&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="740" y="200" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Scenario 3: Crawl Request -->
+        <mxCell id="scenario3-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#00BCD4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="640" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="scenario3-title" value="시나리오 3: 크롤링 요청 (도구 실행)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#00838F;" vertex="1" parent="1">
+          <mxGeometry x="50" y="300" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-input" value="&quot;크롤링 해줘&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#00BCD4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="160" y="360" as="sourcePoint" />
+            <mxPoint x="190" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3-context" value="Context&#xa;freshness=stale" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="190" y="340" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#00BCD4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="280" y="360" as="sourcePoint" />
+            <mxPoint x="310" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3-llm" value="LLM 판단&#xa;→ crawl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C5CAE9;strokeColor=#3F51B5;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="340" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#00BCD4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="380" y="360" as="sourcePoint" />
+            <mxPoint x="410" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3-tool" value="CrawlerAgent&#xa;실행" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#80DEEA;strokeColor=#00BCD4;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="335" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-arrow4" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#00BCD4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="360" as="sourcePoint" />
+            <mxPoint x="530" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3-state" value="State 업데이트&#xa;→ fresh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="340" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-output" value="&quot;크롤링 완료. 5개 카테고리에서 500개 제품 수집...&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Scenario 4: Unknown Query -->
+        <mxCell id="scenario4-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="290" width="640" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="scenario4-title" value="시나리오 4: 불명확한 질문 (UNKNOWN)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="730" y="300" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="s4-input" value="&quot;어떻게 생각해?&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="740" y="340" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s4-arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#F44336;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="850" y="360" as="sourcePoint" />
+            <mxPoint x="890" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4-rule" value="Rule 분류&#xa;score=0.5&#xa;→ UNKNOWN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="335" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s4-arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#F44336;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="980" y="360" as="sourcePoint" />
+            <mxPoint x="1020" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4-clarify" value="명확화 요청&#xa;반환" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="340" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s4-output" value="&quot;무엇에 대해 분석해 드릴까요? 예: LANEIGE 순위, SoS 해석...&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="740" y="420" width="450" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Confidence Level Guide -->
+        <mxCell id="confidence-guide" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#9E9E9E;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="1320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="confidence-title" value="신뢰도 레벨별 처리 전략" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="530" width="300" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conf-high-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="570" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-high-title" value="HIGH (5.0+)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="70" y="575" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-high-desc" value="• LLM 판단 스킵&#xa;• Rule 결과 신뢰&#xa;• 컨텍스트로 바로 응답" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="70" y="600" width="200" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conf-medium-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="390" y="570" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-medium-title" value="MEDIUM (3.0~4.9)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="575" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-medium-desc" value="• LLM에게 도구 선택 위임&#xa;• 컨텍스트 기반 판단&#xa;• 필요시 도구 실행" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="600" width="200" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conf-low-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="570" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-low-title" value="LOW (1.5~2.9)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="730" y="575" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-low-desc" value="• LLM에게 전체 판단 위임&#xa;• 의도 파악부터 시작&#xa;• 컨텍스트 풍부하게 제공" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="730" y="600" width="200" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conf-unknown-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#F44336;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="570" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-unknown-title" value="UNKNOWN (&lt;1.5)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="575" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="conf-unknown-desc" value="• 명확화 요청 반환&#xa;• 예시 질문 제안&#xa;• 사용자 재입력 유도" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="600" width="200" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Score Calculation -->
+        <mxCell id="score-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#9E9E9E;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="1320" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="score-title" value="점수 계산 기준" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="710" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="score-keyword" value="키워드 매칭: +2.0&#xa;(&quot;뭐야&quot;, &quot;해석&quot;, &quot;분석&quot;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="750" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="score-indicator" value="지표명 매칭: +1.5&#xa;(&quot;sos&quot;, &quot;hhi&quot;, &quot;cpi&quot;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="250" y="750" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="score-entity" value="엔티티 매칭: +1.5&#xa;(&quot;라네즈&quot;, &quot;laneige&quot;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#00BCD4;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="750" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="score-pattern" value="패턴 매칭: +1.0&#xa;(&quot;높으면&quot;, &quot;낮으면&quot;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="630" y="750" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="score-example" value="예시: &quot;SoS 정의와 해석 알려줘&quot;&#xa;= 키워드(정의) 2.0 + 키워드(해석) 2.0 + 지표(sos) 1.5 = 5.5점 → HIGH" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#333333;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="850" y="755" width="500" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- Third Page: File Structure -->
+  <diagram name="File Structure" id="file-structure">
+    <mxGraphModel dx="1434" dy="836" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="fs-title" value="파일 구조 (File Structure)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- New Files (core/) -->
+        <mxCell id="new-files-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="350" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="new-files-title" value="신규 생성 파일 (core/)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="50" y="90" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="new-file-1" value="core/__init__.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="new-file-2" value="core/llm_orchestrator.py&#xa;메인 LLM 오케스트레이터" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="new-file-3" value="core/context_gatherer.py&#xa;RAG+KG 컨텍스트 수집" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="new-file-4" value="core/confidence.py&#xa;신뢰도 평가 로직" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="270" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="new-file-5" value="core/tools.py&#xa;에이전트 도구 정의 (Function Calling)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="new-file-6" value="core/response_pipeline.py&#xa;응답 생성 파이프라인" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="new-file-7" value="core/state.py&#xa;오케스트레이터 상태 관리" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="310" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Modified Files -->
+        <mxCell id="mod-files-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="350" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-files-title" value="수정 파일" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="430" y="90" width="150" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mod-file-1" value="orchestrator.py → LegacyOrchestrator&#xa;기존 파이프라인 보존 (Tool로 호출)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="130" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-file-2" value="main.py&#xa;LLMOrchestrator 사용으로 변경" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="180" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-file-3" value="dashboard_api.py&#xa;LLMOrchestrator 연동" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="230" width="310" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Test Files -->
+        <mxCell id="test-files-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="350" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="test-files-title" value="신규 테스트 파일" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="810" y="90" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="test-file-1" value="tests/test_llm_orchestrator.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="130" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="test-file-2" value="tests/test_context_gatherer.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="170" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="test-file-3" value="tests/test_confidence.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="210" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="test-file-4" value="tests/test_response_pipeline.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="250" width="310" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Existing Files (Unchanged) -->
+        <mxCell id="existing-files-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#607D8B;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="420" y="310" width="730" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="existing-files-title" value="기존 파일 (변경 없음)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="430" y="320" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="existing-agents" value="agents/&#xa;├── crawler_agent.py&#xa;├── storage_agent.py&#xa;├── metrics_agent.py&#xa;├── hybrid_chatbot_agent.py&#xa;└── hybrid_insight_agent.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;align=left;spacingLeft=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="360" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="existing-rag" value="rag/&#xa;├── router.py&#xa;├── retriever.py&#xa;├── hybrid_retriever.py&#xa;└── context_builder.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;align=left;spacingLeft=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="360" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="existing-ontology" value="ontology/&#xa;├── schema.py&#xa;├── knowledge_graph.py&#xa;├── reasoner.py&#xa;└── business_rules.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;align=left;spacingLeft=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="860" y="360" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="existing-others" value="tools/, memory/, monitoring/, config/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;align=left;spacingLeft=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="480" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Document Files Move -->
+        <mxCell id="docs-move-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="350" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="docs-move-title" value="문서 파일 이동" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="500" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="docs-from" value="루트 →" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="docs-to" value="docs/guides/&#xa;├── Strategic Indicators Definition.md&#xa;├── Metric Interpretation Guide.md&#xa;├── Indicator Combination Playbook.md&#xa;└── Home Page Insight Rules.md&#xa;&#xa;docs/reference/&#xa;└── *.docx 파일들" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;align=left;spacingLeft=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="540" width="260" height="120" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

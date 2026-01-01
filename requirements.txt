@@ -1,0 +1,40 @@
+# Google ADK
+google-adk>=0.1.0
+
+# LiteLLM for OpenAI integration
+litellm>=1.40.0
+
+# OpenAI
+openai>=1.30.0
+
+# Web Scraping
+playwright>=1.40.0
+
+# Google Sheets API
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# RAG / Vector Search
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Async Support
+aiohttp>=3.9.0
+asyncio>=3.4.3
+
+# Date/Time
+python-dateutil>=2.8.2
+
+# Logging
+structlog>=23.1.0
+
+# Type Hints
+pydantic>=2.0.0

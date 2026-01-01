@@ -1,0 +1,151 @@
+{
+  "version": "1.0.0",
+  "description": "Level 4 Autonomous Agent 규칙 정의",
+
+  "schedule_rules": [
+    {
+      "id": "daily_crawl",
+      "name": "일일 크롤링",
+      "condition": {
+        "type": "schedule",
+        "time": "09:00",
+        "check": "no_today_data"
+      },
+      "action": "crawl_workflow",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "update_dashboard_after_crawl",
+      "name": "크롤링 후 대시보드 업데이트",
+      "condition": {
+        "type": "event",
+        "event": "crawl_complete"
+      },
+      "action": "update_dashboard",
+      "priority": 1,
+      "enabled": true
+    }
+  ],
+
+  "alert_rules": [
+    {
+      "id": "rank_drop_alert",
+      "name": "순위 급락 알림",
+      "condition": {
+        "type": "threshold",
+        "metric": "rank_change",
+        "operator": ">=",
+        "value": 10
+      },
+      "action": "send_alert",
+      "alert_type": "rank_change",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "rank_rise_alert",
+      "name": "순위 급등 알림",
+      "condition": {
+        "type": "threshold",
+        "metric": "rank_change",
+        "operator": "<=",
+        "value": -10
+      },
+      "action": "send_alert",
+      "alert_type": "rank_change",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "new_top10_alert",
+      "name": "신규 Top 10 진입 알림",
+      "condition": {
+        "type": "event",
+        "event": "new_top10_entry"
+      },
+      "action": "send_alert",
+      "alert_type": "important_insight",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "crawl_complete_alert",
+      "name": "크롤링 완료 알림",
+      "condition": {
+        "type": "event",
+        "event": "crawl_complete"
+      },
+      "action": "send_alert",
+      "alert_type": "crawl_complete",
+      "priority": 3,
+      "enabled": true
+    },
+    {
+      "id": "crawl_failed_alert",
+      "name": "크롤링 실패 알림",
+      "condition": {
+        "type": "event",
+        "event": "crawl_failed"
+      },
+      "action": "send_alert",
+      "alert_type": "error",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "error_alert",
+      "name": "에러 발생 알림",
+      "condition": {
+        "type": "event",
+        "event": "error_occurred"
+      },
+      "action": "send_alert",
+      "alert_type": "error",
+      "priority": 1,
+      "enabled": true
+    }
+  ],
+
+  "priority_rules": [
+    {
+      "id": "user_request_priority",
+      "name": "사용자 요청 최우선",
+      "condition": {
+        "type": "event",
+        "event": "user_request"
+      },
+      "action": "respond_immediately",
+      "priority": 0,
+      "enabled": true
+    }
+  ],
+
+  "thresholds": {
+    "rank_significant_change": 10,
+    "sos_significant_change": 2.0,
+    "rating_warning": 4.0,
+    "volatility_high": 5.0,
+    "streak_highlight": 7
+  },
+
+  "permissions": {
+    "allowed": [
+      "crawl_workflow",
+      "analyze_data",
+      "generate_insight",
+      "update_knowledge_graph",
+      "update_dashboard",
+      "send_alert"
+    ],
+    "requires_consent": [
+      "send_email"
+    ],
+    "forbidden": [
+      "delete_data",
+      "modify_system_config",
+      "access_credentials",
+      "infinite_loop"
+    ]
+  }
+}
