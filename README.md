@@ -228,9 +228,9 @@ cp .env.example .env
 ### Environment Variables
 
 ```env
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=...
 GOOGLE_SHEETS_SPREADSHEET_ID=...
-GOOGLE_APPLICATION_CREDENTIALS=./credentials.json
+GOOGLE_APPLICATION_CREDENTIALS=./....json
 ```
 
 ---
