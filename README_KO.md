@@ -330,8 +330,3 @@ python export_dashboard.py
 
 ---
 
-## 감사의 글
-
-- AMORE Pacific 디지털 혁신팀
-- GPT 모델을 위한 OpenAI
-- Claude를 통한 개발 지원을 위한 Anthropic
