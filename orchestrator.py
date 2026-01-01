@@ -20,33 +20,33 @@ from typing import Dict, Any, List, Optional, Callable
 from enum import Enum
 from dataclasses import dataclass, field
 
-from agents.crawler_agent import CrawlerAgent
-from agents.storage_agent import StorageAgent
-from agents.metrics_agent import MetricsAgent
-from agents.insight_agent import InsightAgent
-from agents.chatbot_agent import ChatbotAgent
+from src.agents.crawler_agent import CrawlerAgent
+from src.agents.storage_agent import StorageAgent
+from src.agents.metrics_agent import MetricsAgent
+from src.agents.insight_agent import InsightAgent
+from src.agents.chatbot_agent import ChatbotAgent
 
 # Hybrid Agents (신규)
-from agents.hybrid_insight_agent import HybridInsightAgent
-from agents.hybrid_chatbot_agent import HybridChatbotAgent
+from src.agents.hybrid_insight_agent import HybridInsightAgent
+from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
 # Ontology Components (신규)
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
-from ontology.business_rules import register_all_rules
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+from src.ontology.business_rules import register_all_rules
 
-from tools.dashboard_exporter import DashboardExporter
+from src.tools.dashboard_exporter import DashboardExporter
 
-from memory.session import SessionManager
-from memory.history import HistoryManager
-from memory.context import ContextManager
+from src.memory.session import SessionManager
+from src.memory.history import HistoryManager
+from src.memory.context import ContextManager
 
-from monitoring.logger import AgentLogger
-from monitoring.tracer import ExecutionTracer
-from monitoring.metrics import QualityMetrics
+from src.monitoring.logger import AgentLogger
+from src.monitoring.tracer import ExecutionTracer
+from src.monitoring.metrics import QualityMetrics
 
 # 통합 오케스트레이터 (챗봇용)
-from core.unified_orchestrator import get_unified_orchestrator
+from src.core.unified_orchestrator import get_unified_orchestrator
 
 
 class WorkflowStep(Enum):

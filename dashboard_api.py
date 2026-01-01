@@ -31,15 +31,15 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 
 # RAG 시스템 연동
-from rag.router import RAGRouter, QueryType
-from rag.retriever import DocumentRetriever
+from src.rag.router import RAGRouter, QueryType
+from src.rag.retriever import DocumentRetriever
 
 # Ontology 스키마
-from ontology.schema import ProductMetrics, BrandMetrics, MarketMetrics
+from src.ontology.schema import ProductMetrics, BrandMetrics, MarketMetrics
 
 # 통합 오케스트레이터 (신규)
-from core.unified_orchestrator import UnifiedOrchestrator, get_unified_orchestrator
-from core.crawl_manager import get_crawl_manager, CrawlStatus
+from src.core.unified_orchestrator import UnifiedOrchestrator, get_unified_orchestrator
+from src.core.crawl_manager import get_crawl_manager, CrawlStatus
 
 # 환경 변수 로드
 load_dotenv()
@@ -605,7 +605,7 @@ async def clear_memory(session_id: str):
 
 # ============= Simple Chat API (v3 - 단순화) =============
 
-from core.simple_chat import get_chat_service
+from src.core.simple_chat import get_chat_service
 
 
 class SimpleChatRequest(BaseModel):
@@ -1083,7 +1083,7 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
 
 # ============= Alert Settings API =============
 
-from core.state_manager import StateManager, get_state_manager
+from src.core.state_manager import StateManager, get_state_manager
 
 # 싱글톤 State Manager
 _state_manager: Optional[StateManager] = None
@@ -1202,7 +1202,7 @@ async def get_alerts(limit: int = 50, alert_type: Optional[str] = None):
         limit: 최대 개수
         alert_type: 필터할 알림 유형
     """
-    from agents.alert_agent import AlertAgent
+    from src.agents.alert_agent import AlertAgent
 
     state_manager = get_app_state_manager()
     alert_agent = AlertAgent(state_manager)

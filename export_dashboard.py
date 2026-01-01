@@ -10,7 +10,7 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from tools.dashboard_exporter import DashboardExporter
+from src.tools.dashboard_exporter import DashboardExporter
 
 # 환경 변수 로드
 load_dotenv()

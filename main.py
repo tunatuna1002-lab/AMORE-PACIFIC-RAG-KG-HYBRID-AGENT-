@@ -15,8 +15,8 @@ from typing import Optional
 from dotenv import load_dotenv
 
 from orchestrator import Orchestrator  # 워크플로우용
-from core.unified_orchestrator import get_unified_orchestrator  # 챗봇용
-from monitoring.logger import AgentLogger
+from src.core.unified_orchestrator import get_unified_orchestrator  # 챗봇용
+from src.monitoring.logger import AgentLogger
 
 
 # 환경 변수 로드
