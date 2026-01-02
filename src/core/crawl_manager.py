@@ -292,9 +292,17 @@ class CrawlManager:
                 logger.info(f"Saved {storage_result.get('raw_records', 0)} records to Google Sheets")
 
             # 3. Dashboard 데이터 생성 (Google Sheets에서 읽어옴)
-            exporter = DashboardExporter()
-            await exporter.initialize()
-            await exporter.export_dashboard_data(self.DATA_FILE)
+            logger.info("Starting Dashboard data export...")
+            try:
+                exporter = DashboardExporter()
+                logger.info("DashboardExporter created")
+                await exporter.initialize()
+                logger.info("DashboardExporter initialized")
+                await exporter.export_dashboard_data(self.DATA_FILE)
+                logger.info(f"Dashboard data exported to {self.DATA_FILE}")
+            except Exception as export_error:
+                logger.error(f"Dashboard export failed: {export_error}")
+                raise
 
             self.state.progress = 100
             self.state.status = CrawlStatus.COMPLETED
