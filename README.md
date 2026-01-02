@@ -146,7 +146,12 @@ uvicorn dashboard_api:app --host 0.0.0.0 --port 8001
 ### Railway
 
 1. https://railway.app 에서 GitHub 연결
-2. 환경 변수: `OPENAI_API_KEY`, `API_KEY`, `AUTO_START_SCHEDULER=true`
+2. 환경 변수 설정:
+   - `OPENAI_API_KEY`: OpenAI API 키 (sk-proj-...)
+   - `API_KEY`: API 인증 키
+   - `AUTO_START_SCHEDULER`: `true`
+   - `GOOGLE_SHEETS_SPREADSHEET_ID`: Google Sheets 스프레드시트 ID
+   - `GOOGLE_SHEETS_CREDENTIALS_JSON`: Google 서비스 계정 JSON (전체 내용)
 3. 도메인 생성
 
 ### Docker
@@ -242,6 +247,48 @@ from src.core.crawl_manager import get_crawl_manager
 ```
 
 **해결:** 모든 import 경로를 `src.` 접두사로 통일
+
+---
+
+### 문제 5: Google Sheets Credentials 파일 없음 (2026-01-03 해결)
+
+**증상:** Railway 배포 후 크롤링은 성공하지만 데이터 저장 실패
+```
+Google Sheets 초기화 실패: [Errno 2] No such file or directory: './config/google_credentials.json'
+ERROR:storage:Failed to save raw data: 'NoneType' object has no attribute 'spreadsheets'
+```
+
+**원인:**
+- `config/google_credentials.json` 파일이 `.gitignore`에 포함되어 Railway에 배포되지 않음
+- Google 서비스 계정 credentials 파일에는 민감한 정보가 포함되어 Git에 커밋하면 안 됨
+
+**해결:** 환경 변수에서 credentials JSON 문자열을 직접 로드하도록 수정
+
+```python
+# src/tools/sheets_writer.py 수정
+def _get_credentials(self) -> Credentials:
+    if self.credentials_json:  # 환경 변수 우선
+        credentials_info = json.loads(self.credentials_json)
+        return Credentials.from_service_account_info(credentials_info, scopes=self.SCOPES)
+    else:  # 파일에서 로드
+        return Credentials.from_service_account_file(self.credentials_path, scopes=self.SCOPES)
+```
+
+**Railway 설정 방법:**
+
+1. Google Cloud Console에서 서비스 계정 JSON 파일 내용 복사
+2. Railway Variables에 `GOOGLE_SHEETS_CREDENTIALS_JSON` 추가
+3. 값으로 JSON 전체 내용을 붙여넣기 (한 줄로)
+
+```
+# Railway Variables에 추가할 환경 변수
+GOOGLE_SHEETS_CREDENTIALS_JSON={"type":"service_account","project_id":"...","private_key":"...","client_email":"...",...}
+GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id
+```
+
+**로컬 개발 환경:**
+- 기존처럼 `./config/google_credentials.json` 파일 사용
+- `.env` 파일에 `GOOGLE_SHEETS_SPREADSHEET_ID` 설정
 
 ---
 
@@ -410,7 +457,12 @@ uvicorn dashboard_api:app --host 0.0.0.0 --port 8001
 ### Railway
 
 1. Connect GitHub at https://railway.app
-2. Environment variables: `OPENAI_API_KEY`, `API_KEY`, `AUTO_START_SCHEDULER=true`
+2. Set environment variables:
+   - `OPENAI_API_KEY`: OpenAI API key (sk-proj-...)
+   - `API_KEY`: API authentication key
+   - `AUTO_START_SCHEDULER`: `true`
+   - `GOOGLE_SHEETS_SPREADSHEET_ID`: Google Sheets spreadsheet ID
+   - `GOOGLE_SHEETS_CREDENTIALS_JSON`: Google service account JSON (full content)
 3. Generate domain
 
 ### Docker

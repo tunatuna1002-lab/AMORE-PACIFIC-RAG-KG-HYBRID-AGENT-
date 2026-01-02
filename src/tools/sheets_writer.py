@@ -6,10 +6,16 @@ Google Sheets API를 통한 데이터 저장/조회
     writer = SheetsWriter()
     await writer.initialize()
     await writer.append_rank_records(records)
+
+환경 변수:
+    GOOGLE_SHEETS_CREDENTIALS_JSON: Google 서비스 계정 credentials JSON 문자열 (Railway 배포용)
+    GOOGLE_SHEETS_CREDENTIALS_PATH: Google 서비스 계정 credentials 파일 경로 (로컬 개발용)
+    GOOGLE_SHEETS_SPREADSHEET_ID: Google Sheets 스프레드시트 ID
 """
 
 import os
 import json
+import logging
 from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 from google.oauth2.service_account import Credentials
@@ -17,6 +23,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from src.ontology.schema import RankRecord
+
+logger = logging.getLogger(__name__)
 
 
 class SheetsWriter:
@@ -72,9 +80,42 @@ class SheetsWriter:
             "GOOGLE_SHEETS_CREDENTIALS_PATH",
             "./config/google_credentials.json"
         )
+        # 환경 변수에서 credentials JSON 문자열 (Railway 배포용)
+        self.credentials_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON")
         self.spreadsheet_id = spreadsheet_id or os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID")
         self.service = None
         self._initialized = False
+
+    def _get_credentials(self) -> Credentials:
+        """
+        Credentials 객체 생성
+
+        우선순위:
+        1. GOOGLE_SHEETS_CREDENTIALS_JSON 환경 변수 (Railway 배포용)
+        2. credentials_path 파일 (로컬 개발용)
+
+        Returns:
+            Google Credentials 객체
+        """
+        if self.credentials_json:
+            # 환경 변수에서 JSON 문자열로 로드 (Railway 배포용)
+            logger.info("Loading credentials from GOOGLE_SHEETS_CREDENTIALS_JSON environment variable")
+            try:
+                credentials_info = json.loads(self.credentials_json)
+                return Credentials.from_service_account_info(
+                    credentials_info,
+                    scopes=self.SCOPES
+                )
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse GOOGLE_SHEETS_CREDENTIALS_JSON: {e}")
+                raise ValueError(f"Invalid JSON in GOOGLE_SHEETS_CREDENTIALS_JSON: {e}")
+        else:
+            # 파일에서 로드 (로컬 개발용)
+            logger.info(f"Loading credentials from file: {self.credentials_path}")
+            return Credentials.from_service_account_file(
+                self.credentials_path,
+                scopes=self.SCOPES
+            )
 
     async def initialize(self) -> bool:
         """
@@ -84,18 +125,17 @@ class SheetsWriter:
             초기화 성공 여부
         """
         try:
-            creds = Credentials.from_service_account_file(
-                self.credentials_path,
-                scopes=self.SCOPES
-            )
+            creds = self._get_credentials()
             self.service = build("sheets", "v4", credentials=creds)
             self._initialized = True
 
             # 시트 구조 확인 및 생성
             await self._ensure_sheets_exist()
 
+            logger.info("Google Sheets API initialized successfully")
             return True
         except Exception as e:
+            logger.error(f"Google Sheets 초기화 실패: {e}")
             print(f"Google Sheets 초기화 실패: {e}")
             return False
 
