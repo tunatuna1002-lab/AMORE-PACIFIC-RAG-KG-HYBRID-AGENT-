@@ -18,10 +18,11 @@ from io import BytesIO
 from collections import defaultdict
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from litellm import acompletion
@@ -67,6 +68,31 @@ app.add_middleware(
 DATA_PATH = "./data/dashboard_data.json"
 DOCS_PATH = "./"  # MD 파일들이 루트에 있음
 AUDIT_LOG_DIR = "./logs"
+
+# ============= API Key 인증 설정 =============
+
+API_KEY = os.getenv("API_KEY", "amore-secret-key-2024")  # 환경변수에서 로드
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(api_key: str = Security(api_key_header)):
+    """
+    API Key 검증 (민감한 엔드포인트용)
+
+    사용법: 엔드포인트에 dependencies=[Depends(verify_api_key)] 추가
+    """
+    if api_key is None:
+        raise HTTPException(
+            status_code=401,
+            detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요."
+        )
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="유효하지 않은 API Key입니다."
+        )
+    return api_key
+
 
 # ============= Audit Trail Logger 설정 =============
 
@@ -867,10 +893,10 @@ async def get_crawl_status():
     }
 
 
-@app.post("/api/crawl/start")
+@app.post("/api/crawl/start", dependencies=[Depends(verify_api_key)])
 async def start_crawl():
     """
-    수동으로 크롤링 시작
+    수동으로 크롤링 시작 (API Key 필요)
 
     Returns:
         - started: 크롤링 시작 여부
@@ -1143,10 +1169,10 @@ async def get_alert_settings():
     }
 
 
-@app.post("/api/v3/alert-settings")
+@app.post("/api/v3/alert-settings", dependencies=[Depends(verify_api_key)])
 async def save_alert_settings(request: AlertSettingsRequest):
     """
-    알림 설정 저장
+    알림 설정 저장 (API Key 필요)
 
     중요: consent가 True일 때만 이메일 등록
     """
@@ -1177,10 +1203,10 @@ async def save_alert_settings(request: AlertSettingsRequest):
         return {"status": "ok", "message": "설정이 업데이트되었습니다."}
 
 
-@app.post("/api/v3/alert-settings/revoke")
+@app.post("/api/v3/alert-settings/revoke", dependencies=[Depends(verify_api_key)])
 async def revoke_alert_consent():
     """
-    알림 동의 철회
+    알림 동의 철회 (API Key 필요)
 
     첫 번째 등록된 이메일의 동의를 철회합니다.
     """
@@ -1351,10 +1377,10 @@ async def get_brain_status():
         }
 
 
-@app.post("/api/v4/brain/scheduler/start")
+@app.post("/api/v4/brain/scheduler/start", dependencies=[Depends(verify_api_key)])
 async def start_brain_scheduler():
     """
-    자율 스케줄러 시작
+    자율 스케줄러 시작 (API Key 필요)
 
     - 일일 크롤링 (09:00)
     - 주기적 알림 체크 (30분)
@@ -1385,9 +1411,9 @@ async def start_brain_scheduler():
         }
 
 
-@app.post("/api/v4/brain/scheduler/stop")
+@app.post("/api/v4/brain/scheduler/stop", dependencies=[Depends(verify_api_key)])
 async def stop_brain_scheduler():
-    """자율 스케줄러 중지"""
+    """자율 스케줄러 중지 (API Key 필요)"""
     try:
         brain = await get_initialized_brain()
 
@@ -1407,10 +1433,10 @@ async def stop_brain_scheduler():
         }
 
 
-@app.post("/api/v4/brain/autonomous-cycle")
+@app.post("/api/v4/brain/autonomous-cycle", dependencies=[Depends(verify_api_key)])
 async def run_autonomous_cycle():
     """
-    자율 사이클 수동 실행
+    자율 사이클 수동 실행 (API Key 필요)
 
     1. 데이터 신선도 확인
     2. 필요시 크롤링
@@ -1474,10 +1500,10 @@ async def get_brain_stats():
         return {"error": str(e)}
 
 
-@app.post("/api/v4/brain/mode")
+@app.post("/api/v4/brain/mode", dependencies=[Depends(verify_api_key)])
 async def set_brain_mode(mode: str):
     """
-    Brain 모드 변경
+    Brain 모드 변경 (API Key 필요)
 
     Args:
         mode: reactive, proactive, autonomous
