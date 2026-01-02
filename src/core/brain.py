@@ -34,11 +34,14 @@ Usage:
 import logging
 import json
 import asyncio
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import Dict, List, Any, Optional, Callable, TYPE_CHECKING
 from enum import Enum
 from dataclasses import dataclass, field
 import heapq
+
+# 한국 시간대 (UTC+9)
+KST = timezone(timedelta(hours=9))
 
 from litellm import acompletion
 
@@ -197,7 +200,7 @@ class AutonomousScheduler:
                 "name": "일일 크롤링",
                 "action": "crawl_workflow",
                 "schedule_type": "daily",
-                "hour": 21,  # UTC 21:00 = 한국시간 06:00
+                "hour": 6,  # 한국시간 06:00 (KST 기준)
                 "minute": 0,
                 "enabled": True
             },
@@ -211,9 +214,17 @@ class AutonomousScheduler:
             }
         ]
 
+    def get_kst_now(self) -> datetime:
+        """한국 시간 기준 현재 시각 반환"""
+        return datetime.now(KST)
+
     def get_due_tasks(self, current_time: datetime) -> List[Dict[str, Any]]:
-        """실행해야 할 작업 목록 반환"""
+        """실행해야 할 작업 목록 반환 (한국시간 기준)"""
         due_tasks = []
+
+        # 한국 시간 기준으로 체크
+        kst_now = self.get_kst_now()
+        kst_today = kst_now.date()
 
         for schedule in self.schedules:
             if not schedule.get("enabled", True):
@@ -223,31 +234,34 @@ class AutonomousScheduler:
             last_run = self._last_run.get(schedule_id)
 
             if schedule["schedule_type"] == "daily":
-                # 매일 특정 시간에 실행
-                scheduled_time = current_time.replace(
+                # 매일 특정 시간에 실행 (한국시간 기준)
+                scheduled_time = kst_now.replace(
                     hour=schedule["hour"],
                     minute=schedule["minute"],
                     second=0,
                     microsecond=0
                 )
 
-                # 오늘 아직 실행 안 했고, 시간이 됐으면
-                if (last_run is None or last_run.date() < current_time.date()) and \
-                   current_time >= scheduled_time:
+                # 오늘(KST) 아직 실행 안 했고, 시간이 됐으면
+                last_run_date = last_run.date() if last_run else None
+                if (last_run_date is None or last_run_date < kst_today) and \
+                   kst_now >= scheduled_time:
+                    logger.info(f"Task {schedule_id} is due: last_run={last_run_date}, kst_today={kst_today}, kst_now={kst_now.strftime('%H:%M')}")
                     due_tasks.append(schedule)
 
             elif schedule["schedule_type"] == "interval":
                 # 일정 간격으로 실행
                 interval = timedelta(hours=schedule.get("interval_hours", 1))
-                if last_run is None or (current_time - last_run) >= interval:
+                if last_run is None or (kst_now - last_run.replace(tzinfo=KST)) >= interval:
                     due_tasks.append(schedule)
 
         return due_tasks
 
     def mark_completed(self, schedule_id: str):
-        """작업 완료 마킹 및 상태 저장"""
-        self._last_run[schedule_id] = datetime.now()
+        """작업 완료 마킹 및 상태 저장 (한국시간 기준)"""
+        self._last_run[schedule_id] = self.get_kst_now()
         self._save_state()  # 파일에 저장
+        logger.info(f"Marked {schedule_id} as completed at {self._last_run[schedule_id]}")
 
     def add_schedule(self, schedule: Dict[str, Any]):
         """스케줄 추가"""
@@ -259,7 +273,7 @@ class AutonomousScheduler:
 
     def get_pending_count(self) -> int:
         """대기 중인 작업 수 반환"""
-        return len(self.get_due_tasks(datetime.now()))
+        return len(self.get_due_tasks(self.get_kst_now()))
 
     def stop(self):
         """스케줄러 중지"""

@@ -12,13 +12,16 @@ Crawl Manager
 import asyncio
 import json
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, Callable
 from enum import Enum
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
+
+# 한국 시간대 (UTC+9)
+KST = timezone(timedelta(hours=9))
 
 
 class CrawlStatus(Enum):
@@ -100,6 +103,10 @@ class CrawlManager:
         except Exception as e:
             logger.error(f"Failed to save crawl state: {e}")
 
+    def get_kst_today(self) -> str:
+        """한국 시간 기준 오늘 날짜 반환"""
+        return datetime.now(KST).date().isoformat()
+
     def get_data_date(self) -> Optional[str]:
         """현재 데이터의 날짜 반환"""
         try:
@@ -112,28 +119,94 @@ class CrawlManager:
         return None
 
     def is_today_data_available(self) -> bool:
-        """오늘 데이터가 있는지 확인"""
+        """오늘(한국시간 기준) 데이터가 있는지 확인"""
         data_date = self.get_data_date()
-        today = date.today().isoformat()
-        return data_date == today
+        kst_today = self.get_kst_today()
+        logger.info(f"Data date check: data={data_date}, kst_today={kst_today}")
+        return data_date == kst_today
+
+    async def check_sheets_data_exists(self, target_date: str) -> bool:
+        """
+        Google Sheets에서 해당 날짜의 데이터가 있는지 확인
+
+        Args:
+            target_date: 확인할 날짜 (YYYY-MM-DD)
+
+        Returns:
+            해당 날짜 데이터 존재 여부
+        """
+        try:
+            from src.tools.sheets_writer import SheetsWriter
+            sheets = SheetsWriter()
+            await sheets.initialize()
+
+            # 최근 1일 데이터만 가져와서 확인
+            records = await sheets.get_rank_history(days=1)
+
+            # 해당 날짜 데이터가 있는지 확인
+            for record in records:
+                if record.get("snapshot_date") == target_date:
+                    logger.info(f"Found data for {target_date} in Google Sheets")
+                    return True
+
+            logger.info(f"No data found for {target_date} in Google Sheets")
+            return False
+
+        except Exception as e:
+            logger.warning(f"Failed to check Sheets data: {e}")
+            return False
 
     def is_crawling(self) -> bool:
         """크롤링 진행 중인지 확인"""
         return self.state.status == CrawlStatus.RUNNING
 
     def needs_crawl(self) -> bool:
-        """크롤링이 필요한지 확인"""
+        """크롤링이 필요한지 확인 (한국시간 기준)"""
+        kst_today = self.get_kst_today()
+
+        # 이미 진행 중이면 필요 없음
+        if self.is_crawling():
+            logger.info("Crawl not needed: already running")
+            return False
+
+        # 오늘(KST) 데이터가 있으면 필요 없음
+        if self.is_today_data_available():
+            logger.info("Crawl not needed: today's data available")
+            return False
+
+        # 오늘(KST) 이미 완료했으면 필요 없음
+        if (self.state.status == CrawlStatus.COMPLETED and
+            self.state.date == kst_today):
+            logger.info("Crawl not needed: already completed today")
+            return False
+
+        logger.info(f"Crawl needed: no data for {kst_today}")
+        return True
+
+    async def needs_crawl_with_sheets_check(self) -> bool:
+        """
+        크롤링이 필요한지 확인 (Google Sheets까지 확인)
+
+        로컬 파일 체크 후, 확실하지 않으면 Sheets까지 확인
+        """
+        kst_today = self.get_kst_today()
+
         # 이미 진행 중이면 필요 없음
         if self.is_crawling():
             return False
 
-        # 오늘 데이터가 있으면 필요 없음
+        # 로컬 파일에 오늘 데이터가 있으면 필요 없음
         if self.is_today_data_available():
             return False
 
         # 오늘 이미 완료했으면 필요 없음
         if (self.state.status == CrawlStatus.COMPLETED and
-            self.state.date == date.today().isoformat()):
+            self.state.date == kst_today):
+            return False
+
+        # Google Sheets에서 최종 확인
+        if await self.check_sheets_data_exists(kst_today):
+            logger.info(f"Data exists in Sheets for {kst_today}, skipping crawl")
             return False
 
         return True
@@ -142,7 +215,7 @@ class CrawlManager:
         """해당 세션에 크롤링 완료 알림이 필요한지 확인"""
         if self.state.status != CrawlStatus.COMPLETED:
             return False
-        if self.state.date != date.today().isoformat():
+        if self.state.date != self.get_kst_today():
             return False
         if session_id in self.state.notified_sessions:
             return False
@@ -169,22 +242,22 @@ class CrawlManager:
 
     async def _run_crawl(self):
         """실제 크롤링 실행"""
-        from agents.crawler_agent import CrawlerAgent
-        from agents.storage_agent import StorageAgent
-        from tools.dashboard_exporter import DashboardExporter
+        from src.agents.crawler_agent import CrawlerAgent
+        from src.agents.storage_agent import StorageAgent
+        from src.tools.dashboard_exporter import DashboardExporter
 
-        today = date.today().isoformat()
+        kst_today = self.get_kst_today()
 
         # 상태 초기화
         self.state = CrawlState(
             status=CrawlStatus.RUNNING,
-            date=today,
-            started_at=datetime.now().isoformat(),
+            date=kst_today,
+            started_at=datetime.now(KST).isoformat(),
             categories_total=5  # config에서 가져오면 더 좋음
         )
         self._save_state()
 
-        logger.info(f"Starting daily crawl for {today}")
+        logger.info(f"Starting daily crawl for {kst_today} (KST)")
 
         try:
             # 1. 크롤링 실행
@@ -225,15 +298,15 @@ class CrawlManager:
 
             self.state.progress = 100
             self.state.status = CrawlStatus.COMPLETED
-            self.state.completed_at = datetime.now().isoformat()
+            self.state.completed_at = datetime.now(KST).isoformat()
             self.state.notified_sessions = set()  # 알림 초기화
             self._save_state()
 
-            logger.info(f"Dashboard data exported for {today}")
+            logger.info(f"Dashboard data exported for {kst_today}")
 
             # SimpleChatService 캐시 무효화
             try:
-                from core.simple_chat import get_chat_service
+                from src.core.simple_chat import get_chat_service
                 chat_service = get_chat_service()
                 chat_service.invalidate_cache()
                 logger.info("Chat service cache invalidated")
@@ -251,7 +324,7 @@ class CrawlManager:
             logger.error(f"Crawl failed: {e}")
             self.state.status = CrawlStatus.FAILED
             self.state.error = str(e)
-            self.state.completed_at = datetime.now().isoformat()
+            self.state.completed_at = datetime.now(KST).isoformat()
             self._save_state()
 
     def get_status_message(self) -> str:
