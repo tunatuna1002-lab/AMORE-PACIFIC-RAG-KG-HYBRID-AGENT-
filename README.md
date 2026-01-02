@@ -104,7 +104,7 @@ AMORE Pacific LANEIGE 브랜드의 Amazon US 시장 경쟁력 분석을 위한 *
 | 분류 | 기술 |
 |------|------|
 | **Backend** | Python 3.11+, FastAPI, Uvicorn, LiteLLM, Pydantic |
-| **AI/ML** | OpenAI GPT-4o-mini, ChromaDB, Sentence Transformers |
+| **AI/ML** | OpenAI GPT-4.1-mini, ChromaDB, Sentence Transformers |
 | **Crawling** | Playwright (Chromium headless) |
 | **Data** | Pandas, NumPy, Google Sheets API, python-docx |
 | **Infra** | Docker, Railway |
