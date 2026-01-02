@@ -151,6 +151,8 @@ class AutonomousScheduler:
     def __init__(self):
         self.schedules: List[Dict[str, Any]] = []
         self._last_run: Dict[str, datetime] = {}
+        self.running: bool = False
+        self._task: Optional[asyncio.Task] = None
         self._load_default_schedules()
 
     def _load_default_schedules(self):
@@ -219,6 +221,49 @@ class AutonomousScheduler:
     def remove_schedule(self, schedule_id: str):
         """스케줄 제거"""
         self.schedules = [s for s in self.schedules if s["id"] != schedule_id]
+
+    def get_pending_count(self) -> int:
+        """대기 중인 작업 수 반환"""
+        return len(self.get_due_tasks(datetime.now()))
+
+    def stop(self):
+        """스케줄러 중지"""
+        self.running = False
+        if self._task and not self._task.done():
+            self._task.cancel()
+            self._task = None
+
+    async def start(self, callback: Callable):
+        """
+        스케줄러 시작
+
+        Args:
+            callback: 작업 실행 시 호출할 콜백 함수
+        """
+        if self.running:
+            return
+
+        self.running = True
+
+        async def _run_loop():
+            while self.running:
+                try:
+                    due_tasks = self.get_due_tasks(datetime.now())
+                    for task in due_tasks:
+                        try:
+                            await callback(task)
+                            self.mark_completed(task["id"])
+                        except Exception as e:
+                            logging.error(f"Scheduler task error: {task['id']} - {e}")
+                    # 1분마다 체크
+                    await asyncio.sleep(60)
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logging.error(f"Scheduler loop error: {e}")
+                    await asyncio.sleep(60)
+
+        self._task = asyncio.create_task(_run_loop())
 
 
 # =============================================================================
