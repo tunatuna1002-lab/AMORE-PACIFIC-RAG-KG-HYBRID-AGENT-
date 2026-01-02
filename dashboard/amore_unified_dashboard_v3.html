@@ -780,7 +780,7 @@
                 // API 실패 시 JSON 파일로 폴백
                 if (!response.ok) {
                     console.warn('API not available, trying JSON file');
-                    response = await fetch('./data/dashboard_data.json');
+                    response = await fetch('../data/dashboard_data.json');
                 }
 
                 if (!response.ok) {
@@ -1026,8 +1026,10 @@
             document.getElementById('prod-stick-delta').textContent = d.stickDelta;
         }
 
-        // API 서버 주소
-        const API_BASE = 'http://localhost:8001';
+        // API 서버 주소 (배포 환경에서는 현재 호스트 사용, 로컬에서는 localhost:8001)
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8001'
+            : window.location.origin;
 
         function toggleChatbot() { chatbotOpen = !chatbotOpen; document.getElementById('chatbotPanel').classList.toggle('open', chatbotOpen); document.getElementById('chatFab').classList.toggle('hidden', chatbotOpen); }
 
@@ -1329,8 +1331,18 @@
                 });
 
                 // SoS 트렌드 차트 - JSON 데이터 사용
-                let trendLabels = ['12/20', '12/21', '12/22', '12/23', '12/24', '12/25', '12/26'];
-                let trendData = [40.5, 41.2, 39.8, 42.1, 43.5, 43.2, 44.0];
+                // 동적 fallback 날짜 생성 (최근 7일)
+                const generateRecentDates = (days = 7) => {
+                    const dates = [];
+                    for (let i = days - 1; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        dates.push((d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getDate().toString().padStart(2, '0'));
+                    }
+                    return dates;
+                };
+                let trendLabels = generateRecentDates(7);
+                let trendData = [0, 0, 0, 0, 0, 0, 0]; // 데이터 없을 시 0으로 표시
 
                 if (dashboardData?.charts?.sos_trend) {
                     trendLabels = dashboardData.charts.sos_trend.labels || trendLabels;
@@ -1423,8 +1435,18 @@
 
             if (pageId === 'category') {
                 // CPI 추이 차트 - JSON 데이터 사용
-                let cpiLabels = ['12/20', '12/21', '12/22', '12/23', '12/24', '12/25', '12/26'];
-                let cpiData = [108, 110, 109, 111, 112, 112, 112];
+                // 동적 fallback 날짜 생성 (최근 7일)
+                const generateRecentDatesForCPI = (days = 7) => {
+                    const dates = [];
+                    for (let i = days - 1; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        dates.push((d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getDate().toString().padStart(2, '0'));
+                    }
+                    return dates;
+                };
+                let cpiLabels = generateRecentDatesForCPI(7);
+                let cpiData = [100, 100, 100, 100, 100, 100, 100]; // 기준선 100으로 초기화
 
                 if (dashboardData?.charts?.cpi_trend) {
                     cpiLabels = dashboardData.charts.cpi_trend.labels || cpiLabels;
@@ -1469,10 +1491,20 @@
 
             if (pageId === 'product') {
                 // 제품 순위 추이 차트 - JSON 데이터 사용
-                let rankLabels = ['12/17', '12/18', '12/19', '12/20', '12/21', '12/22', '12/23', '12/24', '12/25', '12/26'];
+                // 동적 fallback 날짜 생성 (최근 7일)
+                const generateRecentDatesForRank = (days = 7) => {
+                    const dates = [];
+                    for (let i = days - 1; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        dates.push((d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getDate().toString().padStart(2, '0'));
+                    }
+                    return dates;
+                };
+                let rankLabels = generateRecentDatesForRank(7);
                 let rankDatasets = [
-                    { label: 'Laneige Lip Mask', data: [5, 4, 4, 3, 3, 3, 2, 2, 2, 2], borderColor: colors.laneige, backgroundColor: 'rgba(32,128,128,0.1)', tension: 0.4, fill: true, borderWidth: 3 },
-                    { label: '1위 기준선', data: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], borderColor: colors.competitor, borderDash: [5, 5], tension: 0, borderWidth: 2 }
+                    { label: '데이터 로딩 중...', data: rankLabels.map(() => null), borderColor: colors.laneige, backgroundColor: 'rgba(32,128,128,0.1)', tension: 0.4, fill: true, borderWidth: 3 },
+                    { label: '1위 기준선', data: rankLabels.map(() => 1), borderColor: colors.competitor, borderDash: [5, 5], tension: 0, borderWidth: 2 }
                 ];
 
                 if (dashboardData?.charts?.product_rank_trend) {

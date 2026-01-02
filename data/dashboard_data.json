@@ -1,0 +1,582 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-02T23:49:42.256876",
+    "data_date": "2026-01-02",
+    "total_products": 6127,
+    "laneige_products": 63,
+    "ontology_enabled": false
+  },
+  "home": {
+    "insight_message": "Amazon US 내 Laneige 브랜드는 안정적인 상위권을 유지 중입니다. <strong>Laneige Skincare & Lip Care Ho</strong>가 3위를 기록했습니다.",
+    "status": {
+      "exposure": "Stable Up",
+      "exposure_type": "success",
+      "position": "Top 3",
+      "warning_count": 15
+    },
+    "action_items": [
+      {
+        "priority": "P1",
+        "product_name": "Laneige Skincare & Lip Ca",
+        "brand_variant": "",
+        "signal": "순위 58→29 (상향)",
+        "action_tag": "MONITOR",
+        "asin": "B0F24ZZN95"
+      },
+      {
+        "priority": "P1",
+        "product_name": "LANEIGE Lip Glowy Balm: S",
+        "brand_variant": "",
+        "signal": "순위 64→55 (상향)",
+        "action_tag": "MONITOR",
+        "asin": "B07DY2QRF6"
+      },
+      {
+        "priority": "P1",
+        "product_name": "LANEIGE Lip Sleeping Mask",
+        "brand_variant": "",
+        "signal": "순위 53→59 (하락)",
+        "action_tag": "CHECK",
+        "asin": "B07XXPHQZK"
+      },
+      {
+        "priority": "P1",
+        "product_name": "Laneige Skincare & Lip Ca",
+        "brand_variant": "",
+        "signal": "순위 58→3 (상향)",
+        "action_tag": "MONITOR",
+        "asin": "B0F24ZZN95"
+      }
+    ]
+  },
+  "brand": {
+    "kpis": {
+      "sos": 2.4,
+      "sos_delta": "+2.1%p",
+      "top10_count": 7,
+      "avg_rank": 28.4,
+      "hhi": 0.02
+    },
+    "competitors": [
+      {
+        "brand": "e.l.f.",
+        "sos": 6.0,
+        "avg_rank": 43.7,
+        "product_count": 45
+      },
+      {
+        "brand": "eos",
+        "sos": 3.7,
+        "avg_rank": 14.0,
+        "product_count": 28
+      },
+      {
+        "brand": "Neutrogena",
+        "sos": 3.6,
+        "avg_rank": 54.9,
+        "product_count": 27
+      },
+      {
+        "brand": "Maybelline",
+        "sos": 3.3,
+        "avg_rank": 27.5,
+        "product_count": 25
+      },
+      {
+        "brand": "medicube",
+        "sos": 2.8,
+        "avg_rank": 22.6,
+        "product_count": 21
+      },
+      {
+        "brand": "Aquaphor",
+        "sos": 2.8,
+        "avg_rank": 41.3,
+        "product_count": 21
+      },
+      {
+        "brand": "CeraVe",
+        "sos": 2.7,
+        "avg_rank": 35.6,
+        "product_count": 20
+      },
+      {
+        "brand": "Burt's",
+        "sos": 2.7,
+        "avg_rank": 44.4,
+        "product_count": 20
+      },
+      {
+        "brand": "Tree",
+        "sos": 2.4,
+        "avg_rank": 35.1,
+        "product_count": 18
+      },
+      {
+        "brand": "LANEIGE",
+        "sos": 2.4,
+        "avg_rank": 28.4,
+        "product_count": 18
+      }
+    ]
+  },
+  "categories": {
+    "lip_care": {
+      "name": "Lip Care",
+      "sos": 4.0,
+      "best_rank": 3,
+      "cpi": 195.0,
+      "product_count": 150,
+      "laneige_count": 6
+    }
+  },
+  "products": {
+    "B0F24ZZN95": {
+      "asin": "B0F24ZZN95",
+      "name": "Laneige Skincare & Lip Care Holiday Gift Sets – Lip Mask, Water Bank, Lip Glowy Balm – Beauty Essentials for Gifting & Self-Care",
+      "category": "skin_care",
+      "rank": 29,
+      "rank_delta": "▲ 29위 상승",
+      "rating": 4.6,
+      "rating_delta": "상위 10%",
+      "volatility": 71,
+      "volatility_status": "변동성 높음",
+      "price": "21250.0",
+      "reviews_count": ""
+    },
+    "B07DY2QRF6": {
+      "asin": "B07DY2QRF6",
+      "name": "LANEIGE Lip Glowy Balm: Sheer Tinted Lip Moisturizer with Shea Butter, for Hydrating Shine & Soft Lips",
+      "category": "skin_care",
+      "rank": 55,
+      "rank_delta": "▲ 9위 상승",
+      "rating": 4.7,
+      "rating_delta": "상위 10%",
+      "volatility": 39,
+      "volatility_status": "변동성 높음",
+      "price": "21972.0",
+      "reviews_count": ""
+    },
+    "B07XXPHQZK": {
+      "asin": "B07XXPHQZK",
+      "name": "LANEIGE Lip Sleeping Mask: Nourish, Hydrate, Vitamin C, Murumuru & Shea Butter, Antioxidants, Flaky, Dry Lips",
+      "category": "skin_care",
+      "rank": 59,
+      "rank_delta": "▼ 6위 하락",
+      "rating": 4.6,
+      "rating_delta": "상위 10%",
+      "volatility": 30,
+      "volatility_status": "변동성 높음",
+      "price": "34693.0",
+      "reviews_count": ""
+    },
+    "B0DSLXS4G9": {
+      "asin": "B0DSLXS4G9",
+      "name": "LANEIGE Glaze Craze Tinted Lip Serum: Hydrating Lip Serum for Glossy, Nourished Lips with Plumping Polypeptides",
+      "category": "lip_makeup",
+      "rank": 22,
+      "rank_delta": "유지",
+      "rating": 4.6,
+      "rating_delta": "상위 10%",
+      "volatility": 6,
+      "volatility_status": "안정적",
+      "price": "31802.0",
+      "reviews_count": ""
+    },
+    "B0DHWFT182": {
+      "asin": "B0DHWFT182",
+      "name": "LANEIGE Neo Blurring Powder: Korean Oil-Control Compact with Pore Blurring, Smoothing Finish & Travel-Friendly, No-Spill Packaging",
+      "category": "face_powder",
+      "rank": 8,
+      "rank_delta": "▲ 1위 상승",
+      "rating": 4.3,
+      "rating_delta": "상위 10%",
+      "volatility": 2,
+      "volatility_status": "안정적",
+      "price": "30718.0",
+      "reviews_count": ""
+    }
+  },
+  "charts": {
+    "sos_trend": {
+      "labels": [
+        "12-21",
+        "12-24",
+        "12-25",
+        "12-28",
+        "12-30",
+        "01-01",
+        "01-02"
+      ],
+      "data": [
+        0.0,
+        0.1,
+        0.1,
+        2.8,
+        2.6,
+        1.3,
+        2.4
+      ]
+    },
+    "product_sos": {
+      "labels": [
+        "Laneige Skincare & L",
+        "Laneige Skincare & L",
+        "LANEIGE Lip Glowy Ba",
+        "LANEIGE Lip Glowy Ba",
+        "LANEIGE Lip Sleeping",
+        "Others"
+      ],
+      "data": [
+        20.3,
+        20.3,
+        19.9,
+        19.9,
+        19.5,
+        0.1
+      ]
+    },
+    "brand_matrix": [
+      {
+        "brand": "e.l.f.",
+        "sos": 6.0,
+        "avg_rank": 43.7,
+        "bubble_size": 20,
+        "product_count": 45,
+        "is_laneige": false
+      },
+      {
+        "brand": "eos",
+        "sos": 3.7,
+        "avg_rank": 14.0,
+        "bubble_size": 20,
+        "product_count": 28,
+        "is_laneige": false
+      },
+      {
+        "brand": "Neutrogena",
+        "sos": 3.6,
+        "avg_rank": 54.9,
+        "bubble_size": 20,
+        "product_count": 27,
+        "is_laneige": false
+      },
+      {
+        "brand": "Maybelline",
+        "sos": 3.3,
+        "avg_rank": 27.5,
+        "bubble_size": 20,
+        "product_count": 25,
+        "is_laneige": false
+      },
+      {
+        "brand": "medicube",
+        "sos": 2.8,
+        "avg_rank": 22.6,
+        "bubble_size": 20,
+        "product_count": 21,
+        "is_laneige": false
+      },
+      {
+        "brand": "Aquaphor",
+        "sos": 2.8,
+        "avg_rank": 41.3,
+        "bubble_size": 20,
+        "product_count": 21,
+        "is_laneige": false
+      },
+      {
+        "brand": "CeraVe",
+        "sos": 2.7,
+        "avg_rank": 35.6,
+        "bubble_size": 20,
+        "product_count": 20,
+        "is_laneige": false
+      },
+      {
+        "brand": "Burt's",
+        "sos": 2.7,
+        "avg_rank": 44.4,
+        "bubble_size": 20,
+        "product_count": 20,
+        "is_laneige": false
+      },
+      {
+        "brand": "Tree",
+        "sos": 2.4,
+        "avg_rank": 35.1,
+        "bubble_size": 20,
+        "product_count": 18,
+        "is_laneige": false
+      },
+      {
+        "brand": "LANEIGE",
+        "sos": 2.4,
+        "avg_rank": 28.4,
+        "bubble_size": 20,
+        "product_count": 18,
+        "is_laneige": true
+      }
+    ],
+    "category_kpis": {
+      "lip_care": {
+        "name": "Lip Care",
+        "sos": 4.0,
+        "best_rank": 3,
+        "cpi": 195.0,
+        "new_competitors": 32
+      }
+    },
+    "cpi_trend": {
+      "labels": [
+        "12-21",
+        "12-24",
+        "12-25",
+        "12-28",
+        "12-30",
+        "01-01",
+        "01-02"
+      ],
+      "data": [
+        100.0,
+        100.0,
+        100.0,
+        199.0,
+        192.0,
+        100.0,
+        195.0
+      ]
+    },
+    "product_rank_trend": {
+      "labels": [
+        "12-21",
+        "12-24",
+        "12-25",
+        "12-28",
+        "12-30",
+        "01-01",
+        "01-02"
+      ],
+      "products": {
+        "B0F24ZZN95": {
+          "name": "Laneige Skincare & Lip Ca",
+          "ranks": [
+            58,
+            96,
+            92,
+            11,
+            58,
+            null,
+            29
+          ]
+        },
+        "B07DY2QRF6": {
+          "name": "LANEIGE Lip Glowy Balm: S",
+          "ranks": [
+            44,
+            27,
+            26,
+            23,
+            64,
+            null,
+            55
+          ]
+        },
+        "B07XXPHQZK": {
+          "name": "LANEIGE Lip Sleeping Mask",
+          "ranks": [
+            35,
+            31,
+            37,
+            53,
+            77,
+            53,
+            59
+          ]
+        }
+      }
+    },
+    "product_matrix": [
+      {
+        "asin": "B0F24ZZN95",
+        "name": "Laneige Skincare & L",
+        "rank": 29,
+        "volatility": 71,
+        "rating": 4.6,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B07DY2QRF6",
+        "name": "LANEIGE Lip Glowy Ba",
+        "rank": 55,
+        "volatility": 39,
+        "rating": 4.7,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B07XXPHQZK",
+        "name": "LANEIGE Lip Sleeping",
+        "rank": 59,
+        "volatility": 30,
+        "rating": 4.6,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B0F24ZZN95",
+        "name": "Laneige Skincare & L",
+        "rank": 3,
+        "volatility": 71,
+        "rating": 4.6,
+        "quadrant": "rising",
+        "color": "rgba(32,128,128,0.7)",
+        "bubble_size": 17
+      },
+      {
+        "asin": "B07DY2QRF6",
+        "name": "LANEIGE Lip Glowy Ba",
+        "rank": 5,
+        "volatility": 39,
+        "rating": 4.7,
+        "quadrant": "rising",
+        "color": "rgba(32,128,128,0.7)",
+        "bubble_size": 15
+      },
+      {
+        "asin": "B07XXPHQZK",
+        "name": "LANEIGE Lip Sleeping",
+        "rank": 7,
+        "volatility": 30,
+        "rating": 4.6,
+        "quadrant": "rising",
+        "color": "rgba(32,128,128,0.7)",
+        "bubble_size": 13
+      },
+      {
+        "asin": "B0DSLXS4G9",
+        "name": "LANEIGE Glaze Craze ",
+        "rank": 22,
+        "volatility": 6,
+        "rating": 4.6,
+        "quadrant": "lagging",
+        "color": "rgba(245,158,11,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B0DHWFT182",
+        "name": "LANEIGE Neo Blurring",
+        "rank": 8,
+        "volatility": 2,
+        "rating": 4.3,
+        "quadrant": "king",
+        "color": "rgba(16,185,129,0.7)",
+        "bubble_size": 12
+      },
+      {
+        "asin": "B0F24ZZN95",
+        "name": "Laneige Skincare & L",
+        "rank": 29,
+        "volatility": 71,
+        "rating": 4.6,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B07DY2QRF6",
+        "name": "LANEIGE Lip Glowy Ba",
+        "rank": 55,
+        "volatility": 39,
+        "rating": 4.7,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B07XXPHQZK",
+        "name": "LANEIGE Lip Sleeping",
+        "rank": 59,
+        "volatility": 30,
+        "rating": 4.6,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B0F24ZZN95",
+        "name": "Laneige Skincare & L",
+        "rank": 3,
+        "volatility": 71,
+        "rating": 4.6,
+        "quadrant": "rising",
+        "color": "rgba(32,128,128,0.7)",
+        "bubble_size": 17
+      },
+      {
+        "asin": "B07DY2QRF6",
+        "name": "LANEIGE Lip Glowy Ba",
+        "rank": 5,
+        "volatility": 39,
+        "rating": 4.7,
+        "quadrant": "rising",
+        "color": "rgba(32,128,128,0.7)",
+        "bubble_size": 15
+      },
+      {
+        "asin": "B07XXPHQZK",
+        "name": "LANEIGE Lip Sleeping",
+        "rank": 7,
+        "volatility": 30,
+        "rating": 4.6,
+        "quadrant": "rising",
+        "color": "rgba(32,128,128,0.7)",
+        "bubble_size": 13
+      },
+      {
+        "asin": "B0F24ZZN95",
+        "name": "Laneige Skincare & L",
+        "rank": 29,
+        "volatility": 71,
+        "rating": 4.6,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B07DY2QRF6",
+        "name": "LANEIGE Lip Glowy Ba",
+        "rank": 55,
+        "volatility": 39,
+        "rating": 4.7,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B07XXPHQZK",
+        "name": "LANEIGE Lip Sleeping",
+        "rank": 59,
+        "volatility": 30,
+        "rating": 4.6,
+        "quadrant": "risk",
+        "color": "rgba(231,76,60,0.7)",
+        "bubble_size": 8
+      },
+      {
+        "asin": "B0DSLXS4G9",
+        "name": "LANEIGE Glaze Craze ",
+        "rank": 22,
+        "volatility": 6,
+        "rating": 4.6,
+        "quadrant": "lagging",
+        "color": "rgba(245,158,11,0.7)",
+        "bubble_size": 8
+      }
+    ]
+  }
+}
