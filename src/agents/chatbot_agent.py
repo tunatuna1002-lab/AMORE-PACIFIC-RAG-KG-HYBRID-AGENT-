@@ -1,7 +1,22 @@
 """
 Chatbot Agent
 대시보드 챗봇 에이전트 (RAG 기반 질의응답)
+
+.. deprecated::
+    이 모듈은 `HybridChatbotAgent`로 대체되었습니다.
+    새 코드에서는 `from src.agents import HybridChatbotAgent`를 사용하세요.
+
+    HybridChatbotAgent는 Knowledge Graph + Ontology + RAG를 결합하여
+    더 정확하고 맥락에 맞는 응답을 생성합니다.
 """
+import warnings
+
+warnings.warn(
+    "ChatbotAgent is deprecated. Use HybridChatbotAgent instead. "
+    "See: from src.agents import HybridChatbotAgent",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import json
 from datetime import datetime

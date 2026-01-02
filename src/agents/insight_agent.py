@@ -1,7 +1,22 @@
 """
 Insight Agent
 인사이트 생성 에이전트 (LLM 기반)
+
+.. deprecated::
+    이 모듈은 `HybridInsightAgent`로 대체되었습니다.
+    새 코드에서는 `from src.agents import HybridInsightAgent`를 사용하세요.
+
+    HybridInsightAgent는 Ontology 기반 추론과 RAG를 결합하여
+    더 정확하고 맥락에 맞는 인사이트를 생성합니다.
 """
+import warnings
+
+warnings.warn(
+    "InsightAgent is deprecated. Use HybridInsightAgent instead. "
+    "See: from src.agents import HybridInsightAgent",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import json
 import os
