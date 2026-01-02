@@ -26,4 +26,4 @@ ENV PORT=8001
 ENV PYTHONUNBUFFERED=1
 
 # 서버 실행
-CMD uvicorn dashboard_api:app --host 0.0.0.0 --port ${PORT:-8001}
+CMD ["/bin/sh", "-c", "uvicorn dashboard_api:app --host 0.0.0.0 --port $PORT"]
