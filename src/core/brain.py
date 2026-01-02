@@ -163,7 +163,7 @@ class AutonomousScheduler:
                 "name": "일일 크롤링",
                 "action": "crawl_workflow",
                 "schedule_type": "daily",
-                "hour": 9,
+                "hour": 21,  # UTC 21:00 = 한국시간 06:00
                 "minute": 0,
                 "enabled": True
             },
@@ -1064,6 +1064,67 @@ class UnifiedBrain:
         """실패한 에이전트 목록 초기화"""
         self._failed_agents.clear()
         logger.info("Failed agents list cleared")
+
+    # =========================================================================
+    # 스케줄러 관리
+    # =========================================================================
+
+    async def start_scheduler(self) -> None:
+        """
+        자율 스케줄러 시작
+
+        스케줄러가 시작되면:
+        - 매일 UTC 21:00 (한국 06:00)에 크롤링 실행
+        - 1시간마다 데이터 신선도 체크
+        """
+        if self.scheduler.running:
+            logger.info("Scheduler already running")
+            return
+
+        async def _handle_scheduled_task(task: Dict[str, Any]):
+            """스케줄된 작업 처리"""
+            action = task.get("action")
+            logger.info(f"Executing scheduled task: {task['name']} ({action})")
+
+            try:
+                if action == "crawl_workflow":
+                    # 크롤링 실행
+                    from src.core.crawl_manager import get_crawl_manager
+                    crawl_manager = get_crawl_manager()
+
+                    if not crawl_manager.is_crawling():
+                        await crawl_manager.run_full_crawl()
+                        logger.info("Scheduled crawl completed")
+                    else:
+                        logger.info("Crawl already in progress, skipping")
+
+                elif action == "check_data":
+                    # 데이터 신선도 체크
+                    from src.core.crawl_manager import get_crawl_manager
+                    crawl_manager = get_crawl_manager()
+
+                    if crawl_manager.needs_crawl():
+                        logger.info("Data is stale, triggering crawl")
+                        if not crawl_manager.is_crawling():
+                            await crawl_manager.run_full_crawl()
+                    else:
+                        logger.info("Data is fresh")
+
+                self._stats["autonomous_tasks"] += 1
+
+            except Exception as e:
+                logger.error(f"Scheduled task error: {action} - {e}")
+                self._stats["errors"] += 1
+
+        await self.scheduler.start(_handle_scheduled_task)
+        self.mode = BrainMode.AUTONOMOUS
+        logger.info("Autonomous scheduler started (KST 06:00 daily crawl)")
+
+    def stop_scheduler(self) -> None:
+        """자율 스케줄러 중지"""
+        self.scheduler.stop()
+        self.mode = BrainMode.IDLE
+        logger.info("Autonomous scheduler stopped")
 
 
 # =============================================================================

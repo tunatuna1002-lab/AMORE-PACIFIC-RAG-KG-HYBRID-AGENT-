@@ -64,6 +64,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ============= 서버 시작 시 자동 스케줄러 =============
+
+AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "true").lower() == "true"
+
+
+@app.on_event("startup")
+async def startup_event():
+    """서버 시작 시 자동 스케줄러 시작"""
+    if AUTO_START_SCHEDULER:
+        try:
+            brain = await get_initialized_brain()
+            await brain.start_scheduler()
+            logging.info("자율 스케줄러 자동 시작 완료 (매일 한국시간 06:00 크롤링)")
+        except Exception as e:
+            logging.error(f"자율 스케줄러 자동 시작 실패: {e}")
+
 # 데이터 경로
 DATA_PATH = "./data/dashboard_data.json"
 DOCS_PATH = "./"  # MD 파일들이 루트에 있음
