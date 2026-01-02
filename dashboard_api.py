@@ -42,6 +42,9 @@ from src.ontology.schema import ProductMetrics, BrandMetrics, MarketMetrics
 from src.core.unified_orchestrator import UnifiedOrchestrator, get_unified_orchestrator
 from src.core.crawl_manager import get_crawl_manager, CrawlStatus
 
+# Level 4 Brain (LLM-First Autonomous Agent)
+from src.core.brain import UnifiedBrain, get_brain, get_initialized_brain, BrainMode, TaskPriority
+
 # 환경 변수 로드
 load_dotenv()
 
@@ -1230,6 +1233,280 @@ async def serve_dashboard():
 async def health_check():
     """헬스 체크 엔드포인트"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+
+# ============= Level 4 Brain API (v4) =============
+
+class BrainChatRequest(BaseModel):
+    """Brain 챗봇 요청"""
+    message: str
+    session_id: Optional[str] = "default"
+    skip_cache: bool = False
+
+
+class BrainChatResponse(BaseModel):
+    """Brain 챗봇 응답"""
+    text: str
+    confidence: float
+    sources: List[str]
+    reasoning: Optional[str] = None
+    tools_used: List[str]
+    processing_time_ms: float
+    from_cache: bool
+    brain_mode: str
+
+
+@app.post("/api/v4/chat", response_model=BrainChatResponse)
+async def chat_v4(request: BrainChatRequest):
+    """
+    Level 4 Brain 기반 챗봇 API (v4)
+
+    LLM-First 접근:
+    - 모든 판단을 LLM이 수행
+    - 규칙 기반 빠른 경로 없음
+    - RAG + KG 하이브리드 검색
+    - 자율 스케줄러와 통합
+    """
+    import time
+    start_time = time.time()
+
+    message = request.message.strip()
+    session_id = request.session_id or "default"
+
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    try:
+        # Brain 인스턴스 획득
+        brain = await get_initialized_brain()
+
+        # 현재 메트릭 데이터 로드
+        data = load_dashboard_data()
+        current_metrics = data if data else None
+
+        # Brain으로 처리 (LLM-First)
+        response = await brain.process_query(
+            query=message,
+            session_id=session_id,
+            current_metrics=current_metrics,
+            skip_cache=request.skip_cache
+        )
+
+        processing_time = (time.time() - start_time) * 1000
+
+        return BrainChatResponse(
+            text=response.content,
+            confidence=response.confidence,
+            sources=response.sources,
+            reasoning=response.reasoning,
+            tools_used=response.tools_called if hasattr(response, 'tools_called') else [],
+            processing_time_ms=processing_time,
+            from_cache=response.from_cache if hasattr(response, 'from_cache') else False,
+            brain_mode=brain.mode.value
+        )
+
+    except Exception as e:
+        logging.error(f"Brain error: {e}")
+        return BrainChatResponse(
+            text=f"처리 중 오류가 발생했습니다: {str(e)}",
+            confidence=0.0,
+            sources=[],
+            reasoning=None,
+            tools_used=[],
+            processing_time_ms=(time.time() - start_time) * 1000,
+            from_cache=False,
+            brain_mode="error"
+        )
+
+
+@app.get("/api/v4/brain/status")
+async def get_brain_status():
+    """
+    Brain 상태 조회
+
+    Returns:
+        - mode: 현재 Brain 모드
+        - scheduler: 스케줄러 상태
+        - pending_tasks: 대기 중 태스크
+        - stats: 통계
+    """
+    try:
+        brain = await get_initialized_brain()
+
+        return {
+            "mode": brain.mode.value,
+            "scheduler_running": brain.scheduler.running if brain.scheduler else False,
+            "pending_tasks": brain.scheduler.get_pending_count() if brain.scheduler else 0,
+            "stats": brain.get_stats(),
+            "initialized": True
+        }
+    except Exception as e:
+        return {
+            "mode": "uninitialized",
+            "scheduler_running": False,
+            "pending_tasks": 0,
+            "stats": {},
+            "initialized": False,
+            "error": str(e)
+        }
+
+
+@app.post("/api/v4/brain/scheduler/start")
+async def start_brain_scheduler():
+    """
+    자율 스케줄러 시작
+
+    - 일일 크롤링 (09:00)
+    - 주기적 알림 체크 (30분)
+    - 백그라운드 분석
+    """
+    try:
+        brain = await get_initialized_brain()
+
+        if brain.scheduler and brain.scheduler.running:
+            return {
+                "started": False,
+                "message": "스케줄러가 이미 실행 중입니다.",
+                "status": "running"
+            }
+
+        await brain.start_scheduler()
+
+        return {
+            "started": True,
+            "message": "자율 스케줄러가 시작되었습니다.",
+            "status": "running"
+        }
+    except Exception as e:
+        return {
+            "started": False,
+            "message": f"스케줄러 시작 실패: {str(e)}",
+            "status": "error"
+        }
+
+
+@app.post("/api/v4/brain/scheduler/stop")
+async def stop_brain_scheduler():
+    """자율 스케줄러 중지"""
+    try:
+        brain = await get_initialized_brain()
+
+        if brain.scheduler:
+            brain.scheduler.stop()
+
+        return {
+            "stopped": True,
+            "message": "스케줄러가 중지되었습니다.",
+            "status": "stopped"
+        }
+    except Exception as e:
+        return {
+            "stopped": False,
+            "message": f"스케줄러 중지 실패: {str(e)}",
+            "status": "error"
+        }
+
+
+@app.post("/api/v4/brain/autonomous-cycle")
+async def run_autonomous_cycle():
+    """
+    자율 사이클 수동 실행
+
+    1. 데이터 신선도 확인
+    2. 필요시 크롤링
+    3. 지표 계산
+    4. 알림 조건 체크
+    5. 인사이트 생성
+    """
+    try:
+        brain = await get_initialized_brain()
+        result = await brain.run_autonomous_cycle()
+
+        return {
+            "success": True,
+            "result": result
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.post("/api/v4/brain/check-alerts")
+async def check_brain_alerts():
+    """
+    알림 조건 수동 체크
+
+    현재 메트릭 데이터를 기반으로 알림 조건을 체크합니다.
+    """
+    try:
+        brain = await get_initialized_brain()
+        data = load_dashboard_data()
+
+        if not data:
+            return {
+                "alerts": [],
+                "message": "데이터가 없습니다."
+            }
+
+        alerts = await brain.check_alerts(data)
+
+        return {
+            "alerts": alerts,
+            "count": len(alerts),
+            "checked_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "alerts": [],
+            "error": str(e)
+        }
+
+
+@app.get("/api/v4/brain/stats")
+async def get_brain_stats():
+    """Brain 통계 조회"""
+    try:
+        brain = await get_initialized_brain()
+        return brain.get_stats()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/v4/brain/mode")
+async def set_brain_mode(mode: str):
+    """
+    Brain 모드 변경
+
+    Args:
+        mode: reactive, proactive, autonomous
+    """
+    try:
+        brain = await get_initialized_brain()
+
+        mode_map = {
+            "reactive": BrainMode.REACTIVE,
+            "proactive": BrainMode.PROACTIVE,
+            "autonomous": BrainMode.AUTONOMOUS
+        }
+
+        if mode not in mode_map:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid mode. Valid modes: {list(mode_map.keys())}"
+            )
+
+        brain.mode = mode_map[mode]
+
+        return {
+            "mode": brain.mode.value,
+            "message": f"Brain 모드가 {mode}(으)로 변경되었습니다."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ============= 서버 실행 =============

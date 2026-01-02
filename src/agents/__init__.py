@@ -4,6 +4,9 @@ Agent modules for Amazon bestseller tracking and analysis
 Includes Hybrid Agents with Ontology reasoning capabilities
 
 Recommended Usage:
+    # Level 4 Agents (Brain에서 호출)
+    from src.agents import QueryAgent, WorkflowAgent
+
     # Hybrid agents (recommended)
     from src.agents import HybridChatbotAgent, HybridInsightAgent
 
@@ -20,9 +23,16 @@ from .crawler_agent import CrawlerAgent
 from .storage_agent import StorageAgent
 from .metrics_agent import MetricsAgent
 
+# Level 4 Agents (Brain에서 호출)
+from .query_agent import QueryAgent
+from .workflow_agent import WorkflowAgent
+
 # Hybrid agents (recommended)
 from .hybrid_insight_agent import HybridInsightAgent
 from .hybrid_chatbot_agent import HybridChatbotAgent, HybridChatbotSession
+
+# Alert agent
+from .alert_agent import AlertAgent
 
 # Legacy agents (deprecated - lazy import to avoid warnings on module load)
 def __getattr__(name):
@@ -41,10 +51,15 @@ __all__ = [
     "CrawlerAgent",
     "StorageAgent",
     "MetricsAgent",
+    # Level 4 Agents
+    "QueryAgent",
+    "WorkflowAgent",
     # Hybrid Agents (Recommended)
     "HybridInsightAgent",
     "HybridChatbotAgent",
     "HybridChatbotSession",
+    # Alert Agent
+    "AlertAgent",
     # Legacy (Deprecated)
     "InsightAgent",
     "ChatbotAgent",
