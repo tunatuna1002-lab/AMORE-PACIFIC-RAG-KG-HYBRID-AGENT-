@@ -100,12 +100,13 @@ class StorageAgent:
                 if self.tracer:
                     self.tracer.end_span("failed", str(e))
 
-            # 2. 제품 정보 업서트
+            # 2. 제품 정보 업서트 (배치 처리로 API 호출 최소화)
             if self.tracer:
                 self.tracer.start_span("upsert_products")
 
             try:
                 products_data = crawl_data.get("all_products", [])
+                products_list = []
                 for p in products_data:
                     product_dict = {
                         "asin": p.get("asin", ""),
@@ -115,10 +116,13 @@ class StorageAgent:
                         "first_seen_date": datetime.now().date().isoformat(),
                         "launch_date": ""
                     }
-                    await self.sheets.upsert_product(product_dict)
-                    results["products_upserted"] += 1
+                    products_list.append(product_dict)
 
-                self.logger.info(f"Upserted {results['products_upserted']} products")
+                # 배치 처리로 API 호출 횟수 최소화 (기존: 제품마다 API 호출 → 변경: 2번만 호출)
+                if products_list:
+                    batch_result = await self.sheets.upsert_products_batch(products_list)
+                    results["products_upserted"] = batch_result.get("created", 0) + batch_result.get("updated", 0)
+                    self.logger.info(f"Batch upserted products: created={batch_result.get('created', 0)}, updated={batch_result.get('updated', 0)}")
 
                 if self.tracer:
                     self.tracer.end_span("completed")

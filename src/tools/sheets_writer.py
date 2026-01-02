@@ -82,9 +82,13 @@ class SheetsWriter:
         )
         # 환경 변수에서 credentials JSON 문자열 (Railway 배포용)
         self.credentials_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON")
-        self.spreadsheet_id = spreadsheet_id or os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID")
+        # Spreadsheet ID에서 줄바꿈/공백 제거 (환경변수 입력 오류 방지)
+        raw_spreadsheet_id = spreadsheet_id or os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID") or ""
+        self.spreadsheet_id = raw_spreadsheet_id.strip()
         self.service = None
         self._initialized = False
+        # 제품 목록 캐시 (API 호출 최소화)
+        self._products_cache: Optional[Dict[str, Dict[str, Any]]] = None
 
     def _get_credentials(self) -> Credentials:
         """
@@ -397,10 +401,15 @@ class SheetsWriter:
         records = await self.get_rank_history(category_id=category_id, days=1)
         return records
 
-    async def get_product_info(self, asin: str) -> Optional[Dict[str, Any]]:
-        """제품 정보 조회"""
+    async def _load_products_cache(self) -> Dict[str, Dict[str, Any]]:
+        """제품 목록을 캐시로 로드 (한 번만 API 호출)"""
+        if self._products_cache is not None:
+            return self._products_cache
+
         if not self._initialized:
             await self.initialize()
+
+        self._products_cache = {}
 
         try:
             sheet_config = self.SHEETS_CONFIG["products"]
@@ -413,32 +422,40 @@ class SheetsWriter:
 
             values = result.get("values", [])
             if not values:
-                return None
+                return self._products_cache
 
             headers = values[0]
             for row in values[1:]:
                 record = dict(zip(headers, row + [""] * (len(headers) - len(row))))
-                if record.get("asin") == asin:
-                    return record
+                asin = record.get("asin", "")
+                if asin:
+                    self._products_cache[asin] = record
 
-            return None
+            logger.info(f"Loaded {len(self._products_cache)} products into cache")
+            return self._products_cache
 
         except HttpError as e:
-            print(f"제품 조회 오류: {e}")
-            return None
+            logger.error(f"제품 목록 로드 오류: {e}")
+            return self._products_cache
+
+    async def get_product_info(self, asin: str) -> Optional[Dict[str, Any]]:
+        """제품 정보 조회 (캐시 활용)"""
+        cache = await self._load_products_cache()
+        return cache.get(asin)
 
     async def upsert_product(self, product: Dict[str, Any]) -> Dict[str, Any]:
-        """제품 정보 추가/업데이트 (first_seen_date 관리)"""
+        """제품 정보 추가/업데이트 (first_seen_date 관리) - 캐시 활용"""
         if not self._initialized:
             await self.initialize()
 
-        existing = await self.get_product_info(product["asin"])
+        cache = await self._load_products_cache()
+        asin = product.get("asin", "")
+        existing = cache.get(asin)
 
         if existing:
             # 기존 제품 - first_seen_date 유지
             product["first_seen_date"] = existing.get("first_seen_date", "")
-            # TODO: 행 업데이트 로직
-            return {"success": True, "action": "updated", "asin": product["asin"]}
+            return {"success": True, "action": "updated", "asin": asin}
         else:
             # 신규 제품 - first_seen_date 설정
             product["first_seen_date"] = date.today().isoformat()
@@ -457,9 +474,77 @@ class SheetsWriter:
                     body={"values": [row]}
                 ).execute()
 
-                return {"success": True, "action": "created", "asin": product["asin"]}
+                # 캐시 업데이트
+                self._products_cache[asin] = product
+
+                return {"success": True, "action": "created", "asin": asin}
             except HttpError as e:
                 return {"success": False, "error": str(e)}
+
+    async def upsert_products_batch(self, products: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        제품 정보 일괄 추가 (API 호출 최소화)
+
+        Args:
+            products: 제품 정보 리스트
+
+        Returns:
+            {"success": True, "created": 10, "updated": 50}
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        cache = await self._load_products_cache()
+
+        new_products = []
+        updated_count = 0
+
+        for product in products:
+            asin = product.get("asin", "")
+            if not asin:
+                continue
+
+            existing = cache.get(asin)
+            if existing:
+                # 기존 제품
+                updated_count += 1
+            else:
+                # 신규 제품
+                product["first_seen_date"] = date.today().isoformat()
+                new_products.append(product)
+                # 캐시 업데이트
+                cache[asin] = product
+
+        # 신규 제품만 일괄 추가 (한 번의 API 호출)
+        created_count = 0
+        if new_products:
+            sheet_config = self.SHEETS_CONFIG["products"]
+            headers = sheet_config["headers"]
+            rows = []
+            for product in new_products:
+                row = [product.get(h, "") for h in headers]
+                rows.append(row)
+
+            try:
+                range_name = f"{sheet_config['name']}!A:F"
+                self.service.spreadsheets().values().append(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=range_name,
+                    valueInputOption="RAW",
+                    insertDataOption="INSERT_ROWS",
+                    body={"values": rows}
+                ).execute()
+                created_count = len(new_products)
+                logger.info(f"Batch created {created_count} new products")
+            except HttpError as e:
+                logger.error(f"제품 일괄 추가 오류: {e}")
+                return {"success": False, "error": str(e)}
+
+        return {
+            "success": True,
+            "created": created_count,
+            "updated": updated_count
+        }
 
 
 # 임포트 추가
