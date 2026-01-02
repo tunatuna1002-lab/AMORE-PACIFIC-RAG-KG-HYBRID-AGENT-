@@ -1579,15 +1579,28 @@
                 });
             }
         }
-        // 시간 포맷 함수
+        // 시간 포맷 함수 (KST 기준)
         function formatDateTime(isoString) {
             if (!isoString) return '없음';
-            const date = new Date(isoString);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            // 타임존 정보가 없으면 KST(+09:00)로 간주
+            let dateStr = isoString;
+            if (!isoString.includes('+') && !isoString.includes('Z')) {
+                dateStr = isoString + '+09:00';
+            }
+
+            const date = new Date(dateStr);
+
+            // KST로 표시 (UTC+9)
+            const kstOffset = 9 * 60; // 분 단위
+            const localOffset = date.getTimezoneOffset(); // 분 단위 (UTC - 로컬)
+            const kstDate = new Date(date.getTime() + (kstOffset + localOffset) * 60 * 1000);
+
+            const year = kstDate.getFullYear();
+            const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+            const day = String(kstDate.getDate()).padStart(2, '0');
+            const hours = String(kstDate.getHours()).padStart(2, '0');
+            const minutes = String(kstDate.getMinutes()).padStart(2, '0');
             return `${year}-${month}-${day} ${hours}:${minutes}`;
         }
 
