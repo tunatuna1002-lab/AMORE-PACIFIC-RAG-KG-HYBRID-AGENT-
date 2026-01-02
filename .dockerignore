@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# 로그 및 임시 파일
+*.log
+logs/
+*.tmp
+
+# 테스트
+tests/
+.pytest_cache/
+.coverage
+
+# 문서
+docs/
+*.md
+!README.md
+
+# 민감 정보 (Railway 환경변수로 설정)
+.env
+.env.local
+credentials.json
+token.json
+service_account.json
+
+# 맥OS
+.DS_Store
+
+# 불필요한 데이터 (배포 후 생성됨)
+data/traces/
+data/metrics/
+data/history/

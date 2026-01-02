@@ -9,14 +9,14 @@ import asyncio
 from datetime import datetime, timedelta
 
 # 테스트 대상 모듈
-from core.models import (
+from src.core.models import (
     Context, Response, Decision, ToolResult,
     ConfidenceLevel, KGFact, SystemState
 )
-from core.confidence import ConfidenceAssessor
-from core.cache import ResponseCache
-from core.state import OrchestratorState
-from core.tools import (
+from src.core.confidence import ConfidenceAssessor
+from src.core.cache import ResponseCache
+from src.core.state import OrchestratorState
+from src.core.tools import (
     AgentTool, ToolParameter, ToolExecutor,
     AGENT_TOOLS, get_all_tool_schemas
 )

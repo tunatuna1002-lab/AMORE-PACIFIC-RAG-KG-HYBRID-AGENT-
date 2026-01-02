@@ -17,7 +17,7 @@ import json
 import os
 import random
 
-from ontology.schema import RankRecord
+from src.ontology.schema import RankRecord
 
 
 class AmazonScraper:

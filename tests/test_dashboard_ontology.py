@@ -12,10 +12,10 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
-from ontology.business_rules import register_all_rules
-from ontology.relations import Relation, RelationType
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+from src.ontology.business_rules import register_all_rules
+from src.ontology.relations import Relation, RelationType
 
 
 def load_dashboard_data() -> dict:

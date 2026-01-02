@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#0f3460"/>
+    </linearGradient>
+
+    <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff"/>
+      <stop offset="100%" style="stop-color:#0099cc"/>
+    </linearGradient>
+
+    <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#5b21b6"/>
+    </linearGradient>
+
+    <linearGradient id="pinkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f472b6"/>
+      <stop offset="100%" style="stop-color:#db2777"/>
+    </linearGradient>
+
+    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00d4ff"/>
+      <stop offset="50%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#f472b6"/>
+    </linearGradient>
+
+    <!-- Drop Shadow -->
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+
+    <filter id="glowCyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="url(#bgGradient)"/>
+
+  <!-- Header Section -->
+  <g transform="translate(600, 60)">
+    <text x="0" y="0" text-anchor="middle" fill="#00d4ff" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">
+      AMORE-RAG-ONTOLOGY-HYBRID AGENT
+    </text>
+    <text x="0" y="35" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="20" font-weight="500">
+      통합 관제 대시보드 (4): 전략 챗봇 및 실행 요약물
+    </text>
+
+    <!-- Subtitle Box -->
+    <rect x="-320" y="50" width="640" height="40" rx="8" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1" stroke-opacity="0.3"/>
+    <line x1="-320" y1="50" x2="-320" y2="90" stroke="#00d4ff" stroke-width="3"/>
+    <text x="0" y="76" text-anchor="middle" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="14" font-style="italic">
+      "지식 기반의 맞춤형 전략 컨설팅과 즉각 실행 중심의 리포트 자율 발행"
+    </text>
+  </g>
+
+  <!-- Connector Lines -->
+  <g>
+    <!-- Vertical line from header -->
+    <line x1="600" y1="160" x2="600" y2="200" stroke="url(#lineGradient)" stroke-width="3"/>
+
+    <!-- Horizontal connector -->
+    <line x1="200" y1="220" x2="1000" y2="220" stroke="url(#lineGradient)" stroke-width="3"/>
+
+    <!-- Vertical lines to cards -->
+    <line x1="200" y1="220" x2="200" y2="260" stroke="#00d4ff" stroke-width="3"/>
+    <line x1="600" y1="220" x2="600" y2="260" stroke="#7c3aed" stroke-width="3"/>
+    <line x1="1000" y1="220" x2="1000" y2="260" stroke="#f472b6" stroke-width="3"/>
+
+    <!-- Connection dots -->
+    <circle cx="200" cy="220" r="8" fill="#00d4ff" filter="url(#glowCyan)"/>
+    <circle cx="600" cy="220" r="8" fill="#7c3aed" filter="url(#glowCyan)"/>
+    <circle cx="1000" cy="220" r="8" fill="#f472b6" filter="url(#glowCyan)"/>
+  </g>
+
+  <!-- Card 1: RAG-KG 하이브리드 전략 챗봇 -->
+  <g transform="translate(50, 260)" filter="url(#cardShadow)">
+    <rect width="300" height="480" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <!-- Card Header -->
+    <rect width="300" height="90" rx="16" fill="url(#cyanGradient)"/>
+    <rect y="70" width="300" height="20" fill="url(#cyanGradient)"/>
+
+    <text x="150" y="35" text-anchor="middle" fill="#ffffff" font-size="28">💬</text>
+    <text x="150" y="58" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700">
+      RAG-KG 하이브리드 전략 챗봇
+    </text>
+    <text x="150" y="78" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="Segoe UI, sans-serif" font-size="11">
+      Strategic Chatbot
+    </text>
+
+    <!-- Feature 1 -->
+    <g transform="translate(15, 110)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)" stroke="#00d4ff" stroke-width="0 0 0 3"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#00d4ff" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(0,212,255,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">🤖</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">Chatbot Agent</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">대화 메모리를 활용하여 경쟁사</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">대비 성과 분석, SKU 순위 하락</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">원인 등 복합 질의에 실시간 답변</text>
+    </g>
+
+    <!-- Feature 2 -->
+    <g transform="translate(15, 225)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#00d4ff" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(0,212,255,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">🔍</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">Hybrid Retriever</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">정형 데이터(KG)와 비정형 전략</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">문서(RAG) 동시 탐색으로 전문</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">컨설턴트급 인사이트 제공</text>
+    </g>
+
+    <!-- Feature 3 -->
+    <g transform="translate(15, 340)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#00d4ff" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(0,212,255,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">📋</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">Audit Trail</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">모든 대화 상호작용 기록,</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">데이터 기반 답변 신뢰성</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">지속 검증 및 관리</text>
+    </g>
+  </g>
+
+  <!-- Card 2: 실무 대응형 실행 요약 리포트 -->
+  <g transform="translate(450, 260)" filter="url(#cardShadow)">
+    <rect width="300" height="480" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <!-- Card Header -->
+    <rect width="300" height="90" rx="16" fill="url(#purpleGradient)"/>
+    <rect y="70" width="300" height="20" fill="url(#purpleGradient)"/>
+
+    <text x="150" y="35" text-anchor="middle" fill="#ffffff" font-size="28">📊</text>
+    <text x="150" y="58" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700">
+      실무 대응형 실행 요약 리포트
+    </text>
+    <text x="150" y="78" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="Segoe UI, sans-serif" font-size="11">
+      Executive Summary
+    </text>
+
+    <!-- Feature 1 -->
+    <g transform="translate(15, 110)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#7c3aed" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(124,58,237,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">📝</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">Insight Agent</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">핵심 판단 근거 기반 전문가급</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">DOCX 전략 리포트 자율 생성</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">및 발행</text>
+    </g>
+
+    <!-- Feature 2 -->
+    <g transform="translate(15, 225)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#7c3aed" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(124,58,237,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">🎯</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">Actionable Insight</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">전략 플레이북 대조, 실무자가</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">즉시 실행 가능한 인사이트</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">중심 리포트 제공</text>
+    </g>
+
+    <!-- Feature 3 -->
+    <g transform="translate(15, 340)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#7c3aed" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(124,58,237,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">📧</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">EmailSender 연동</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">분석 완료 즉시 담당자에게</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">일일 보고서 자동 전송,</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">보고 업무 효율성 극대화</text>
+    </g>
+  </g>
+
+  <!-- Card 3: 추론 경로의 투명성 확보 -->
+  <g transform="translate(850, 260)" filter="url(#cardShadow)">
+    <rect width="300" height="480" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <!-- Card Header -->
+    <rect width="300" height="90" rx="16" fill="url(#pinkGradient)"/>
+    <rect y="70" width="300" height="20" fill="url(#pinkGradient)"/>
+
+    <text x="150" y="35" text-anchor="middle" fill="#ffffff" font-size="28">🔬</text>
+    <text x="150" y="58" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700">
+      추론 경로의 투명성 확보
+    </text>
+    <text x="150" y="78" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="Segoe UI, sans-serif" font-size="11">
+      Inference Path
+    </text>
+
+    <!-- Feature 1 -->
+    <g transform="translate(15, 110)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#f472b6" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(244,114,182,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">📌</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">데이터 소스 명시</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">AI 판단 근거 데이터 소스 및</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">참조 문서 명시, 실무자의</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">비판적 검토 및 승인 지원</text>
+    </g>
+
+    <!-- Feature 2 -->
+    <g transform="translate(15, 225)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#f472b6" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(244,114,182,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">🧩</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">Context Builder</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">질문 유형별 최적 컨텍스트</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">조립, 답변 정확도 향상</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10"></text>
+    </g>
+
+    <!-- Feature 3 -->
+    <g transform="translate(15, 340)">
+      <rect width="270" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#f472b6" stroke-width="3"/>
+      <rect x="10" y="10" width="32" height="32" rx="6" fill="rgba(244,114,182,0.2)"/>
+      <text x="26" y="32" text-anchor="middle" font-size="14">✅</text>
+      <text x="52" y="28" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600">할루시네이션 최소화</text>
+      <text x="52" y="48" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">체계적 컨텍스트 관리로</text>
+      <text x="52" y="63" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">AI 환각 현상 방지 및</text>
+      <text x="52" y="78" fill="#a0aec0" font-family="Segoe UI, sans-serif" font-size="10">신뢰도 확보</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(600, 780)">
+    <line x1="-400" y1="0" x2="400" y2="0" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <text x="0" y="30" text-anchor="middle" fill="#64748b" font-family="Segoe UI, sans-serif" font-size="12">
+      AMORE PACIFIC × AI-Powered Strategic Intelligence Platform
+    </text>
+    <rect x="-100" y="45" width="200" height="28" rx="14" fill="rgba(0,212,255,0.2)"/>
+    <text x="0" y="64" text-anchor="middle" fill="#00d4ff" font-family="Segoe UI, sans-serif" font-size="11">
+      RAG + Knowledge Graph Hybrid System
+    </text>
+  </g>
+</svg>

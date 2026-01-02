@@ -15,22 +15,22 @@ from typing import Dict, Any, List, Optional
 
 from litellm import acompletion
 
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
-from ontology.business_rules import register_all_rules
-from ontology.relations import InferenceResult
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+from src.ontology.business_rules import register_all_rules
+from src.ontology.relations import InferenceResult
 
-from rag.hybrid_retriever import HybridRetriever, HybridContext, EntityExtractor
-from rag.context_builder import ContextBuilder, CompactContextBuilder
-from rag.router import RAGRouter, QueryType
-from rag.retriever import DocumentRetriever
-from rag.templates import ResponseTemplates
+from src.rag.hybrid_retriever import HybridRetriever, HybridContext, EntityExtractor
+from src.rag.context_builder import ContextBuilder, CompactContextBuilder
+from src.rag.router import RAGRouter, QueryType
+from src.rag.retriever import DocumentRetriever
+from src.rag.templates import ResponseTemplates
 
-from memory.context import ContextManager
+from src.memory.context import ContextManager
 
-from monitoring.logger import AgentLogger
-from monitoring.tracer import ExecutionTracer
-from monitoring.metrics import QualityMetrics
+from src.monitoring.logger import AgentLogger
+from src.monitoring.tracer import ExecutionTracer
+from src.monitoring.metrics import QualityMetrics
 
 
 class HybridChatbotAgent:

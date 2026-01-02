@@ -1880,6 +1880,93 @@
         // API 서버 주소
         const API_BASE = 'http://localhost:8001';
 
+        // 서버 연결 상태 관리
+        let serverConnected = false;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 30;
+
+        // 서버 상태 체크 및 자동 재연결
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(2000)
+                });
+                if (response.ok) {
+                    if (!serverConnected) {
+                        serverConnected = true;
+                        reconnectAttempts = 0;
+                        showServerStatus('connected');
+                        console.log('✅ 서버 연결됨');
+                    }
+                    return true;
+                }
+            } catch (e) {
+                if (serverConnected) {
+                    serverConnected = false;
+                    showServerStatus('disconnected');
+                }
+            }
+            return false;
+        }
+
+        // 서버 연결 상태 UI 표시
+        function showServerStatus(status) {
+            let statusEl = document.getElementById('serverStatus');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'serverStatus';
+                statusEl.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:500;z-index:9999;transition:all 0.3s;display:flex;align-items:center;gap:8px;';
+                document.body.appendChild(statusEl);
+            }
+
+            if (status === 'connected') {
+                statusEl.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                statusEl.style.color = 'white';
+                statusEl.innerHTML = '<span style="width:8px;height:8px;background:#fff;border-radius:50%;animation:pulse 1s infinite;"></span> API 서버 연결됨';
+                setTimeout(() => { statusEl.style.opacity = '0'; }, 3000);
+            } else if (status === 'disconnected') {
+                statusEl.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                statusEl.style.color = 'white';
+                statusEl.style.opacity = '1';
+                statusEl.innerHTML = '<span style="width:8px;height:8px;background:#fff;border-radius:50%;"></span> 서버 연결 중... (자동 재연결)';
+            } else if (status === 'failed') {
+                statusEl.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                statusEl.style.color = 'white';
+                statusEl.style.opacity = '1';
+                statusEl.innerHTML = '❌ 서버 연결 실패 - 수동 시작 필요';
+            }
+        }
+
+        // 자동 재연결 루프
+        async function autoReconnect() {
+            if (serverConnected) return;
+
+            reconnectAttempts++;
+            const connected = await checkServerStatus();
+
+            if (!connected && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                // 2초마다 재시도
+                setTimeout(autoReconnect, 2000);
+            } else if (!connected) {
+                showServerStatus('failed');
+            }
+        }
+
+        // 페이지 로드 시 서버 연결 확인
+        document.addEventListener('DOMContentLoaded', async () => {
+            const connected = await checkServerStatus();
+            if (!connected) {
+                showServerStatus('disconnected');
+                autoReconnect();
+            }
+        });
+
+        // CSS 애니메이션 추가
+        const pulseStyle = document.createElement('style');
+        pulseStyle.textContent = '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }';
+        document.head.appendChild(pulseStyle);
+
         function toggleChatbot() {
             chatbotOpen = !chatbotOpen;
             document.getElementById('chatbotPanel').classList.toggle('open', chatbotOpen);
@@ -1987,8 +2074,18 @@
                 const typingEl = document.getElementById('typing');
                 if (typingEl) typingEl.remove();
 
-                // 폴백 응답 (API 연결 실패 시)
-                let res = `<strong>💡 안내:</strong><br><br>현재 API 서버에 연결할 수 없습니다.<br><br>서버 실행 명령:<br><code>python dashboard_api.py</code>`;
+                // 폴백 응답 (API 연결 실패 시) - 자동 재연결 시도
+                let res = `<strong>💡 안내:</strong><br><br>현재 API 서버에 연결할 수 없습니다.<br><br>`;
+
+                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    res += `<span style="color:#f59e0b;">🔄 자동 재연결 시도 중... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})</span><br><br>`;
+                    res += `<button onclick="retryLastMessage('${msg.replace(/'/g, "\\'")}')" style="background:#3b82f6;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-right:8px;">🔁 재시도</button>`;
+                    // 재연결 시도
+                    if (!serverConnected) autoReconnect();
+                } else {
+                    res += `서버 실행 명령:<br><code>python dashboard_api.py</code><br><br>`;
+                    res += `<button onclick="location.reload()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">🔄 페이지 새로고침</button>`;
+                }
 
                 chatBody.innerHTML += `<div class="chat-message bot"><div class="bubble">${res}</div></div>`;
             }
@@ -2004,6 +2101,16 @@
             chipsContainer.innerHTML = suggestions.map(s =>
                 `<div class="suggestion-chip" onclick="sendChatMessage('${s}')">${s}</div>`
             ).join('');
+        }
+
+        // 마지막 메시지 재시도
+        function retryLastMessage(msg) {
+            // 마지막 에러 메시지 제거
+            const chatBody = document.getElementById('chatBody');
+            const lastBotMsg = chatBody.querySelector('.chat-message.bot:last-child');
+            if (lastBotMsg) lastBotMsg.remove();
+            // 재전송
+            sendChatMessage(msg);
         }
 
         function sendChatFromInput() { const input = document.getElementById('chatInput'); if (input.value.trim()) { sendChatMessage(input.value); input.value = ''; } }

@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 
-from ontology.schema import BrandMetrics, ProductMetrics, MarketMetrics
+from src.ontology.schema import BrandMetrics, ProductMetrics, MarketMetrics
 
 
 class MetricCalculator:

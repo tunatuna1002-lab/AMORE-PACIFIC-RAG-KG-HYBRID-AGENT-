@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMORE-RAG-ONTOLOGY-HYBRID AGENT - 통합 관제 대시보드 (4)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 1200px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #00d4ff;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .header h2 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .header .subtitle {
+            color: #a0aec0;
+            font-size: 14px;
+            font-style: italic;
+            padding: 12px 24px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            display: inline-block;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .connector-line {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0 20px;
+        }
+
+        .vertical-line {
+            width: 3px;
+            height: 40px;
+            background: linear-gradient(to bottom, #00d4ff, #7c3aed);
+        }
+
+        .horizontal-connector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .h-line {
+            height: 3px;
+            background: linear-gradient(to right, #00d4ff, #7c3aed, #f472b6);
+            width: 70%;
+            position: relative;
+        }
+
+        .h-line::before,
+        .h-line::after,
+        .h-line .center-dot {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #00d4ff;
+            border-radius: 50%;
+            top: -4.5px;
+            box-shadow: 0 0 10px #00d4ff;
+        }
+
+        .h-line::before { left: 0; background: #00d4ff; box-shadow: 0 0 10px #00d4ff; }
+        .h-line::after { right: 0; background: #f472b6; box-shadow: 0 0 10px #f472b6; }
+        .h-line .center-dot { left: 50%; transform: translateX(-50%); background: #7c3aed; box-shadow: 0 0 10px #7c3aed; }
+
+        .cards-container {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .card {
+            flex: 1;
+            max-width: 360px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card:nth-child(1) .card-header { background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%); }
+        .card:nth-child(2) .card-header { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
+        .card:nth-child(3) .card-header { background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); }
+
+        .card-header {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card-header .icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .card-header h3 {
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .card-header .subtitle-en {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+
+        .card:nth-child(1) .feature-item { border-left-color: #00d4ff; }
+        .card:nth-child(2) .feature-item { border-left-color: #7c3aed; }
+        .card:nth-child(3) .feature-item { border-left-color: #f472b6; }
+
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .feature-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .card:nth-child(1) .feature-icon { background: rgba(0, 212, 255, 0.2); }
+        .card:nth-child(2) .feature-icon { background: rgba(124, 58, 237, 0.2); }
+        .card:nth-child(3) .feature-icon { background: rgba(244, 114, 182, 0.2); }
+
+        .feature-content h4 {
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-content p {
+            color: #a0aec0;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer p {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AMORE-RAG-ONTOLOGY-HYBRID AGENT</h1>
+            <h2>통합 관제 대시보드 (4): 전략 챗봇 및 실행 요약물</h2>
+            <p class="subtitle">"지식 기반의 맞춤형 전략 컨설팅과 즉각 실행 중심의 리포트 자율 발행"</p>
+        </div>
+
+        <div class="connector-line">
+            <div class="vertical-line"></div>
+        </div>
+
+        <div class="horizontal-connector">
+            <div class="h-line">
+                <span class="center-dot"></span>
+            </div>
+        </div>
+
+        <div class="cards-container">
+            <!-- Card 1: RAG-KG 하이브리드 전략 챗봇 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon">💬</div>
+                    <h3>RAG-KG 하이브리드 전략 챗봇</h3>
+                    <p class="subtitle-en">Strategic Chatbot</p>
+                </div>
+                <div class="card-body">
+                    <div class="feature-item">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-content">
+                            <h4>Chatbot Agent</h4>
+                            <p>대화 메모리를 활용하여 경쟁사 대비 성과 분석, SKU 순위 하락 원인 등 복합 질의에 실시간 답변</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔍</div>
+                        <div class="feature-content">
+                            <h4>Hybrid Retriever</h4>
+                            <p>정형 데이터(KG)와 비정형 전략 문서(RAG) 동시 탐색으로 전문 컨설턴트급 인사이트 제공</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-content">
+                            <h4>Audit Trail</h4>
+                            <p>모든 대화 상호작용 기록, 데이터 기반 답변 신뢰성 지속 검증 및 관리</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: 실무 대응형 실행 요약 리포트 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon">📊</div>
+                    <h3>실무 대응형 실행 요약 리포트</h3>
+                    <p class="subtitle-en">Executive Summary</p>
+                </div>
+                <div class="card-body">
+                    <div class="feature-item">
+                        <div class="feature-icon">📝</div>
+                        <div class="feature-content">
+                            <h4>Insight Agent</h4>
+                            <p>핵심 판단 근거 기반 전문가급 DOCX 전략 리포트 자율 생성 및 발행</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-content">
+                            <h4>Actionable Insight</h4>
+                            <p>전략 플레이북 대조, 실무자가 즉시 실행 가능한 인사이트 중심 리포트 제공</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📧</div>
+                        <div class="feature-content">
+                            <h4>EmailSender 연동</h4>
+                            <p>분석 완료 즉시 담당자에게 일일 보고서 자동 전송, 보고 업무 효율성 극대화</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: 추론 경로의 투명성 확보 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon">🔬</div>
+                    <h3>추론 경로의 투명성 확보</h3>
+                    <p class="subtitle-en">Inference Path</p>
+                </div>
+                <div class="card-body">
+                    <div class="feature-item">
+                        <div class="feature-icon">📌</div>
+                        <div class="feature-content">
+                            <h4>데이터 소스 명시</h4>
+                            <p>AI 판단 근거 데이터 소스 및 참조 문서 명시, 실무자의 비판적 검토 및 승인 지원</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🧩</div>
+                        <div class="feature-content">
+                            <h4>Context Builder</h4>
+                            <p>질문 유형별 최적 컨텍스트 조립, 답변 정확도 향상</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-content">
+                            <h4>할루시네이션 최소화</h4>
+                            <p>체계적 컨텍스트 관리로 AI 환각 현상 방지 및 신뢰도 확보</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>AMORE PACIFIC × AI-Powered Strategic Intelligence Platform</p>
+            <span class="badge">RAG + Knowledge Graph Hybrid System</span>
+        </div>
+    </div>
+</body>
+</html>

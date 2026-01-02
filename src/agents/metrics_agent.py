@@ -7,11 +7,11 @@ import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from tools.metric_calculator import MetricCalculator
-from ontology.schema import BrandMetrics, ProductMetrics, MarketMetrics
-from monitoring.logger import AgentLogger
-from monitoring.tracer import ExecutionTracer
-from monitoring.metrics import QualityMetrics
+from src.tools.metric_calculator import MetricCalculator
+from src.ontology.schema import BrandMetrics, ProductMetrics, MarketMetrics
+from src.monitoring.logger import AgentLogger
+from src.monitoring.tracer import ExecutionTracer
+from src.monitoring.metrics import QualityMetrics
 
 
 class MetricsAgent:

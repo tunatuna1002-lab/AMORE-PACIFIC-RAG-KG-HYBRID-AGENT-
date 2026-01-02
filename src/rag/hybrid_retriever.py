@@ -16,10 +16,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import logging
 
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
-from ontology.relations import InsightType, InferenceResult, RelationType
-from ontology.business_rules import register_all_rules
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+from src.ontology.relations import InsightType, InferenceResult, RelationType
+from src.ontology.business_rules import register_all_rules
 
 from .retriever import DocumentRetriever
 

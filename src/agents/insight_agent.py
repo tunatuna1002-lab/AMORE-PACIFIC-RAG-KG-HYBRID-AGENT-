@@ -9,11 +9,11 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from litellm import acompletion
-from rag.retriever import DocumentRetriever
-from rag.templates import ResponseTemplates
-from monitoring.logger import AgentLogger
-from monitoring.tracer import ExecutionTracer
-from monitoring.metrics import QualityMetrics
+from src.rag.retriever import DocumentRetriever
+from src.rag.templates import ResponseTemplates
+from src.monitoring.logger import AgentLogger
+from src.monitoring.tracer import ExecutionTracer
+from src.monitoring.metrics import QualityMetrics
 
 
 class InsightAgent:

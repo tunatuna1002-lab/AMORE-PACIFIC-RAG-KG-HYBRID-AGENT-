@@ -1,3 +1,7 @@
+# FastAPI & Server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
 # Google ADK
 google-adk>=0.1.0
 
@@ -38,3 +42,12 @@ structlog>=23.1.0
 
 # Type Hints
 pydantic>=2.0.0
+
+# DOCX Export
+python-docx>=1.1.0
+
+# Excel
+openpyxl>=3.1.0
+
+# HTTP Client
+httpx>=0.25.0

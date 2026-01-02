@@ -23,21 +23,21 @@ from enum import Enum
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agents.crawler_agent import CrawlerAgent
-from agents.storage_agent import StorageAgent
-from agents.metrics_agent import MetricsAgent
-from agents.insight_agent import InsightAgent
-from agents.hybrid_insight_agent import HybridInsightAgent
+from src.agents.crawler_agent import CrawlerAgent
+from src.agents.storage_agent import StorageAgent
+from src.agents.metrics_agent import MetricsAgent
+from src.agents.insight_agent import InsightAgent
+from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
-from ontology.business_rules import register_all_rules
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+from src.ontology.business_rules import register_all_rules
 
-from tools.dashboard_exporter import DashboardExporter
+from src.tools.dashboard_exporter import DashboardExporter
 
-from monitoring.logger import AgentLogger
-from monitoring.tracer import ExecutionTracer
-from monitoring.metrics import QualityMetrics
+from src.monitoring.logger import AgentLogger
+from src.monitoring.tracer import ExecutionTracer
+from src.monitoring.metrics import QualityMetrics
 
 import logging
 

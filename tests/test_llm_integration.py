@@ -18,15 +18,15 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from dotenv import load_dotenv
 load_dotenv(PROJECT_ROOT / ".env")
 
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
-from ontology.business_rules import register_all_rules
-from ontology.relations import Relation, RelationType
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+from src.ontology.business_rules import register_all_rules
+from src.ontology.relations import Relation, RelationType
 
-from rag.hybrid_retriever import HybridRetriever, HybridContext
-from rag.context_builder import ContextBuilder
+from src.rag.hybrid_retriever import HybridRetriever, HybridContext
+from src.rag.context_builder import ContextBuilder
 
-from agents.hybrid_insight_agent import HybridInsightAgent
+from src.agents.hybrid_insight_agent import HybridInsightAgent
 
 
 def load_dashboard_data() -> dict:

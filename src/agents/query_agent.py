@@ -22,19 +22,19 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
-from core.context_gatherer import ContextGatherer
-from core.response_pipeline import ResponsePipeline
-from core.cache import ResponseCache
-from core.models import Context, Response, Decision
-from core.confidence import ConfidenceAssessor
+from src.core.context_gatherer import ContextGatherer
+from src.core.response_pipeline import ResponsePipeline
+from src.core.cache import ResponseCache
+from src.core.models import Context, Response, Decision
+from src.core.confidence import ConfidenceAssessor
 
-from rag.router import RAGRouter
-from rag.hybrid_retriever import HybridRetriever
+from src.rag.router import RAGRouter
+from src.rag.hybrid_retriever import HybridRetriever
 
-from ontology.knowledge_graph import KnowledgeGraph
-from ontology.reasoner import OntologyReasoner
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
 
-from memory.context import ContextManager
+from src.memory.context import ContextManager
 
 logger = logging.getLogger(__name__)
 

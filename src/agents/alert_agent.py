@@ -25,9 +25,9 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
-from core.rules_engine import RulesEngine
-from core.state_manager import StateManager, AlertType
-from tools.email_sender import EmailSender, SendResult
+from src.core.rules_engine import RulesEngine
+from src.core.state_manager import StateManager, AlertType
+from src.tools.email_sender import EmailSender, SendResult
 
 logger = logging.getLogger(__name__)
 

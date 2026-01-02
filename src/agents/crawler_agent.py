@@ -9,11 +9,11 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from tools.amazon_scraper import AmazonScraper
-from ontology.schema import RankRecord, Product, Category
-from monitoring.logger import AgentLogger
-from monitoring.tracer import ExecutionTracer
-from monitoring.metrics import QualityMetrics
+from src.tools.amazon_scraper import AmazonScraper
+from src.ontology.schema import RankRecord, Product, Category
+from src.monitoring.logger import AgentLogger
+from src.monitoring.tracer import ExecutionTracer
+from src.monitoring.metrics import QualityMetrics
 
 
 class CrawlerAgent:

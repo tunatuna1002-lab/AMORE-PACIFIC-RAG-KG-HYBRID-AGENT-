@@ -20,7 +20,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from litellm import acompletion
@@ -1212,6 +1213,23 @@ async def get_alerts(limit: int = 50, alert_type: Optional[str] = None):
         "pending_count": alert_agent.get_pending_count(),
         "stats": alert_agent.get_stats()
     }
+
+
+# ============= 대시보드 HTML 서빙 =============
+
+@app.get("/dashboard")
+async def serve_dashboard():
+    """대시보드 HTML 페이지 서빙"""
+    dashboard_path = Path("./dashboard/amore_unified_dashboard_v4.html")
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return FileResponse(dashboard_path, media_type="text/html")
+
+
+@app.get("/api/health")
+async def health_check():
+    """헬스 체크 엔드포인트"""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
 # ============= 서버 실행 =============
