@@ -10,12 +10,15 @@ Errors:
 
 import asyncio
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
 from typing import List, Dict, Optional, Any
 from playwright.async_api import async_playwright, Page, Browser, TimeoutError as PlaywrightTimeout
 import json
 import os
 import random
+
+# 한국 시간대 (UTC+9)
+KST = timezone(timedelta(hours=9))
 
 from src.ontology.schema import RankRecord
 
@@ -87,7 +90,7 @@ class AmazonScraper:
             "count": 0,
             "category_id": category_id,
             "category": category_id,
-            "snapshot_date": date.today().isoformat(),
+            "snapshot_date": datetime.now(KST).date().isoformat(),
             "success": False,
             "error": None
         }
@@ -159,7 +162,7 @@ class AmazonScraper:
         results = {
             "categories": {},
             "total_products": 0,
-            "snapshot_date": date.today().isoformat(),
+            "snapshot_date": datetime.now(KST).date().isoformat(),
             "success_count": 0,
             "error_count": 0
         }
@@ -184,7 +187,7 @@ class AmazonScraper:
     async def _parse_bestseller_page(self, page: Page, category_id: str, start_rank: int = 1) -> List[Dict]:
         """베스트셀러 페이지 파싱"""
         products = []
-        snapshot_date = date.today().isoformat()
+        snapshot_date = datetime.now(KST).date().isoformat()
 
         # 제품 카드 선택자들 (Amazon 구조에 따라 조정 필요)
         product_cards = await page.query_selector_all('[data-asin]:not([data-asin=""])')

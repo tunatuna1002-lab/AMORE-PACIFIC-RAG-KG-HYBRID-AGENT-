@@ -5,9 +5,12 @@ Amazon 베스트셀러 크롤링 에이전트
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+
+# 한국 시간대 (UTC+9)
+KST = timezone(timedelta(hours=9))
 
 from src.tools.amazon_scraper import AmazonScraper
 from src.ontology.schema import RankRecord, Product, Category
@@ -115,7 +118,7 @@ class CrawlerAgent:
                     rank_records = []
                     for product in products:
                         record = RankRecord(
-                            snapshot_date=datetime.now().date(),
+                            snapshot_date=datetime.now(KST).date(),
                             category_id=cat_key,
                             asin=product.get("asin", ""),
                             product_name=product.get("title", product.get("product_name", "")),
