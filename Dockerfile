@@ -26,5 +26,5 @@ EXPOSE 8001
 # 환경 변수 설정
 ENV PYTHONUNBUFFERED=1
 
-# 서버 실행
-CMD ["python", "-c", "import os; import uvicorn; uvicorn.run('dashboard_api:app', host='0.0.0.0', port=int(os.environ.get('PORT', 8001)))"]
+# 서버 실행 (start.py 스크립트 사용)
+CMD ["python", "start.py"]

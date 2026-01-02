@@ -3,8 +3,8 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "uvicorn dashboard_api:app --host 0.0.0.0 --port $PORT"
+# startCommand를 제거하고 Dockerfile의 CMD 사용 (start.py가 PORT 환경변수 처리)
 healthcheckPath = "/api/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
