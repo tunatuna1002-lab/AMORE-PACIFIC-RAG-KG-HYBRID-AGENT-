@@ -41,16 +41,25 @@ AMORE Pacific LANEIGE 브랜드의 Amazon US 시장 경쟁력 분석을 위한 A
 |------|------|
 | **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
-| **RAG** | 키워드 기반 문서 검색 (4개 MD 가이드 문서) |
+| **Hybrid RAG** | HybridRetriever (KnowledgeGraph + OntologyReasoner + DocumentRetriever) |
 | **크롤링** | Playwright (Chromium headless) |
 | **데이터** | Pandas, Google Sheets API |
 | **배포** | Docker, Railway |
 
-### RAG 시스템 상세
+### Hybrid RAG 시스템 상세
 
-현재 RAG는 **키워드 매칭 기반 검색**을 사용합니다:
-- 4개 가이드 문서 (Strategic Indicators, Metric Interpretation, Indicator Combination, Home Insight Rules)
-- ChromaDB 벡터 검색은 코드에 존재하나 **비활성화** 상태
+`HybridRetriever`는 3개 컴포넌트를 통합:
+1. **KnowledgeGraph** - Triple Store 기반 지식 그래프 (브랜드/제품/카테고리 관계)
+2. **OntologyReasoner** - 비즈니스 규칙 기반 추론 엔진
+3. **DocumentRetriever** - 키워드 기반 가이드 문서 검색 (4개 MD 파일)
+
+**참조 문서** (`docs/guides/`):
+- Strategic Indicators Definition.md
+- Metric Interpretation Guide.md
+- Indicator Combination Playbook.md
+- Home Page Insight Rules.md
+
+> ChromaDB 벡터 검색은 코드에 존재하나 현재 **비활성화** 상태
 
 ---
 
@@ -59,10 +68,10 @@ AMORE Pacific LANEIGE 브랜드의 Amazon US 시장 경쟁력 분석을 위한 A
 | 모듈 | 파일 | 설명 |
 |------|------|------|
 | **UnifiedBrain** | `src/core/brain.py` | 자율 스케줄러, 에이전트 조율 |
-| **SimpleChat** | `src/core/simple_chat.py` | v3 챗봇 (GPT-4.1-mini) |
+| **HybridRetriever** | `src/rag/hybrid_retriever.py` | KG + Ontology + RAG 통합 검색 |
 | **KnowledgeGraph** | `src/ontology/knowledge_graph.py` | Triple Store 지식 그래프 |
+| **OntologyReasoner** | `src/ontology/reasoner.py` | 비즈니스 규칙 추론 엔진 |
 | **AmazonScraper** | `src/tools/amazon_scraper.py` | Playwright 크롤러 |
-| **DocumentRetriever** | `src/rag/retriever.py` | 키워드 기반 문서 검색 |
 
 ### 자동 스케줄러
 
@@ -181,16 +190,25 @@ AI agent system for analyzing AMORE Pacific LANEIGE brand competitiveness in Ama
 |----------|--------------|
 | **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
-| **RAG** | Keyword-based document search (4 MD guide docs) |
+| **Hybrid RAG** | HybridRetriever (KnowledgeGraph + OntologyReasoner + DocumentRetriever) |
 | **Crawling** | Playwright (Chromium headless) |
 | **Data** | Pandas, Google Sheets API |
 | **Deploy** | Docker, Railway |
 
-### RAG System Details
+### Hybrid RAG System Details
 
-Current RAG uses **keyword matching based search**:
-- 4 guide documents (Strategic Indicators, Metric Interpretation, Indicator Combination, Home Insight Rules)
-- ChromaDB vector search exists in code but is **disabled**
+`HybridRetriever` integrates 3 components:
+1. **KnowledgeGraph** - Triple Store based knowledge graph (brand/product/category relations)
+2. **OntologyReasoner** - Business rules based inference engine
+3. **DocumentRetriever** - Keyword-based guide document search (4 MD files)
+
+**Reference Documents** (`docs/guides/`):
+- Strategic Indicators Definition.md
+- Metric Interpretation Guide.md
+- Indicator Combination Playbook.md
+- Home Page Insight Rules.md
+
+> ChromaDB vector search exists in code but is currently **disabled**
 
 ---
 
@@ -199,10 +217,10 @@ Current RAG uses **keyword matching based search**:
 | Module | File | Description |
 |--------|------|-------------|
 | **UnifiedBrain** | `src/core/brain.py` | Autonomous scheduler, agent orchestration |
-| **SimpleChat** | `src/core/simple_chat.py` | v3 chatbot (GPT-4.1-mini) |
+| **HybridRetriever** | `src/rag/hybrid_retriever.py` | KG + Ontology + RAG integrated search |
 | **KnowledgeGraph** | `src/ontology/knowledge_graph.py` | Triple Store knowledge graph |
+| **OntologyReasoner** | `src/ontology/reasoner.py` | Business rules inference engine |
 | **AmazonScraper** | `src/tools/amazon_scraper.py` | Playwright crawler |
-| **DocumentRetriever** | `src/rag/retriever.py` | Keyword-based document search |
 
 ### Auto Scheduler
 
