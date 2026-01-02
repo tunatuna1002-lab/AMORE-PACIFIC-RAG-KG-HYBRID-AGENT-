@@ -489,7 +489,7 @@ class SimpleChatService:
     async def _tool_start_crawling(self) -> str:
         """크롤링 시작"""
         try:
-            from core.crawl_manager import get_crawl_manager
+            from src.core.crawl_manager import get_crawl_manager
 
             manager = get_crawl_manager()
 

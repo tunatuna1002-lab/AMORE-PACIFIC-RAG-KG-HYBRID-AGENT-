@@ -77,11 +77,16 @@ AMORE Pacific LANEIGE 브랜드의 Amazon US 시장 경쟁력 분석을 위한 A
 
 ```python
 # src/core/brain.py - AutonomousScheduler
+# 한국시간(KST) 기준으로 동작
+KST = timezone(timedelta(hours=9))
+
 schedules = [
-    {"id": "daily_crawl", "hour": 21, "minute": 0},  # UTC 21:00 = KST 06:00
-    {"id": "check_data_freshness", "interval_hours": 1}
+    {"id": "daily_crawl", "hour": 6, "minute": 0},  # KST 06:00 자동 크롤링
+    {"id": "check_data_freshness", "interval_hours": 1}  # 1시간마다 데이터 신선도 체크
 ]
 ```
+
+**상태 파일:** `data/scheduler_state.json` (서버 재시작 시에도 상태 유지)
 
 ---
 
@@ -159,6 +164,116 @@ docker run -p 8001:8001 -e OPENAI_API_KEY=sk-... amore-agent
 
 ---
 
+## 트러블슈팅: 자동 크롤링 스케줄러
+
+### 문제 1: 메서드명 불일치 (2026-01-03 해결)
+
+**증상:** 서버 로그에 에러 발생
+```
+ERROR:src.core.brain:Scheduled task error: crawl_workflow - 'CrawlManager' object has no attribute 'run_full_crawl'
+```
+
+**원인:** `brain.py` 스케줄러에서 `crawl_manager.run_full_crawl()` 호출하지만, 실제 메서드는 `start_crawl()`
+
+**해결:** `brain.py:1096, 1109`에서 `run_full_crawl()` → `start_crawl()`로 수정
+
+---
+
+### 문제 2: 시간대 불일치 (2026-01-03 해결)
+
+**증상:** 한국시간 06:00 이후에도 크롤링이 실행되지 않음
+
+**원인:**
+- Railway 서버는 UTC 기준 동작
+- `is_today_data_available()`이 서버 시간(UTC) 기준으로 "오늘" 판단
+- UTC 1월 2일 22:00 = KST 1월 3일 07:00인데, 데이터 날짜가 1월 2일이면 "오늘 데이터 있음"으로 판단
+
+**해결:**
+1. `crawl_manager.py`에 `KST = timezone(timedelta(hours=9))` 추가
+2. 모든 날짜 체크를 한국시간 기준으로 변경 (`get_kst_today()`)
+3. 스케줄러도 KST 기준으로 작업 시간 판단
+
+```python
+# 변경 전 (UTC 기준)
+today = date.today().isoformat()
+
+# 변경 후 (KST 기준)
+kst_today = datetime.now(KST).date().isoformat()
+```
+
+---
+
+### 문제 3: 스케줄러 상태 초기화 (2026-01-03 해결)
+
+**증상:** 서버 재시작 시 크롤링이 중복 실행되거나, 반대로 실행되지 않음
+
+**원인:** `AutonomousScheduler._last_run`이 메모리에만 저장되어 서버 재시작 시 초기화
+
+**해결:** 스케줄러 상태를 `data/scheduler_state.json`에 저장
+
+```python
+# brain.py - AutonomousScheduler
+STATE_FILE = "./data/scheduler_state.json"
+
+def _load_state(self):
+    # 서버 시작 시 파일에서 last_run 복원
+
+def _save_state(self):
+    # 작업 완료 시 파일에 저장
+
+def mark_completed(self, schedule_id: str):
+    self._last_run[schedule_id] = self.get_kst_now()
+    self._save_state()  # 즉시 저장
+```
+
+---
+
+### 문제 4: Import 경로 오류 (2026-01-03 해결)
+
+**증상:** 챗봇에서 크롤링 시작 기능이 작동하지 않음
+
+**원인:** `simple_chat.py:492`에서 잘못된 import 경로 사용
+```python
+# 잘못됨
+from core.crawl_manager import get_crawl_manager
+
+# 올바름
+from src.core.crawl_manager import get_crawl_manager
+```
+
+**해결:** 모든 import 경로를 `src.` 접두사로 통일
+
+---
+
+### 코드 연결 구조
+
+```
+dashboard_api.py (FastAPI 서버)
+    ├── startup_event()
+    │   └── brain.start_scheduler()  ← 서버 시작 시 스케줄러 시작
+    │
+    ├── /api/v3/chat
+    │   └── SimpleChatService.chat()
+    │       └── _tool_start_crawling()
+    │           └── crawl_manager.start_crawl()  ← 챗봇에서 크롤링
+    │
+    └── /api/crawl/start
+        └── crawl_manager.start_crawl()  ← API로 수동 크롤링
+
+src/core/brain.py (자율 스케줄러)
+    └── AutonomousScheduler
+        └── _handle_scheduled_task()
+            └── crawl_manager.start_crawl()  ← 매일 KST 06:00 자동 크롤링
+
+src/core/crawl_manager.py (크롤링 관리)
+    └── start_crawl() → _run_crawl()
+        ├── CrawlerAgent.execute()  ← Amazon 크롤링
+        ├── StorageAgent.execute()  ← Google Sheets 저장
+        └── DashboardExporter.export_dashboard_data()  ← JSON 생성
+```
+
+---
+
 # English
 
 ## Project Overview
@@ -226,11 +341,16 @@ AI agent system for analyzing AMORE Pacific LANEIGE brand competitiveness in Ama
 
 ```python
 # src/core/brain.py - AutonomousScheduler
+# Operates on Korean Standard Time (KST)
+KST = timezone(timedelta(hours=9))
+
 schedules = [
-    {"id": "daily_crawl", "hour": 21, "minute": 0},  # UTC 21:00 = KST 06:00
-    {"id": "check_data_freshness", "interval_hours": 1}
+    {"id": "daily_crawl", "hour": 6, "minute": 0},  # KST 06:00 auto crawl
+    {"id": "check_data_freshness", "interval_hours": 1}  # Check data freshness hourly
 ]
 ```
+
+**State file:** `data/scheduler_state.json` (persists across server restarts)
 
 ---
 
