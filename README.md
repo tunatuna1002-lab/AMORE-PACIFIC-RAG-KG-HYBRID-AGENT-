@@ -292,6 +292,101 @@ GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id
 
 ---
 
+### 문제 6: Google Sheets API 할당량 초과 (2026-01-02 해결)
+
+**증상:** 크롤링 중 Google Sheets 저장 단계에서 오류 발생
+```
+googleapiclient.errors.HttpError: Quota exceeded for quota metric 'Write requests'
+and limit 'Write requests per minute per user'
+```
+
+**원인:** 매 제품마다 개별 API 호출 → 60개 제품 = 60회 API 호출 → 할당량 초과
+
+**해결:** 배치 처리로 API 호출 최소화 (`sheets_writer.py`)
+
+```python
+# 변경 전: 제품마다 API 호출
+for product in products:
+    await self.sheets.upsert_product(product)  # 60회 API 호출
+
+# 변경 후: 일괄 처리 (2회 API 호출로 축소)
+await self.sheets.upsert_products_batch(products)  # 1. 기존 제품 조회, 2. 신규 제품 일괄 추가
+```
+
+**관련 파일:**
+- `src/tools/sheets_writer.py`: `upsert_products_batch()` 메서드 추가
+- `src/agents/storage_agent.py`: 배치 처리 호출로 변경
+
+---
+
+### 문제 7: Spreadsheet ID 파싱 오류 (2026-01-02 해결)
+
+**증상:** Google Sheets 저장 실패, 스프레드시트를 찾을 수 없음
+```
+HttpError 404: Requested entity was not found.
+```
+
+**원인:**
+1. 환경 변수에 전체 URL이 입력됨 (ID만 필요)
+2. 환경 변수에 줄바꿈/공백이 포함됨
+
+**해결:** URL에서 ID 추출 및 `.strip()` 처리
+
+```python
+# src/tools/sheets_writer.py
+raw_spreadsheet_id = spreadsheet_id or os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID") or ""
+self.spreadsheet_id = raw_spreadsheet_id.strip()  # 공백/줄바꿈 제거
+```
+
+**올바른 환경 변수 설정:**
+```
+# 잘못됨 (전체 URL)
+GOOGLE_SHEETS_SPREADSHEET_ID=https://docs.google.com/spreadsheets/d/1cNr3E2WSSbO83XXh_9V92jwc6nfsxjAogcswlHcjV9w/edit
+
+# 올바름 (ID만)
+GOOGLE_SHEETS_SPREADSHEET_ID=1cNr3E2WSSbO83XXh_9V92jwc6nfsxjAogcswlHcjV9w
+```
+
+---
+
+### 문제 8: 크롤링 데이터 날짜가 하루 전으로 저장됨 (2026-01-03 해결)
+
+**증상:** 한국 시간 1월 3일에 크롤링했는데 Google Sheets에 1월 2일로 저장됨
+
+**원인:** Railway 서버는 UTC 시간대, `date.today()`가 UTC 기준 날짜 반환
+
+```
+한국 시간: 2026-01-03 08:18 (KST)
+서버 시간: 2026-01-02 23:18 (UTC)
+→ date.today() = 2026-01-02 ❌
+```
+
+**영향받은 파일:**
+- `src/tools/amazon_scraper.py` - `snapshot_date` 생성
+- `src/agents/crawler_agent.py` - `RankRecord.snapshot_date` 생성
+- `src/tools/dashboard_exporter.py` - `generated_at` 타임스탬프
+
+**해결:** 모든 날짜/시간 생성에 KST 시간대 적용
+
+```python
+# 변경 전 (UTC)
+snapshot_date = date.today().isoformat()
+generated_at = datetime.now().isoformat()
+
+# 변경 후 (KST)
+from datetime import timezone, timedelta
+KST = timezone(timedelta(hours=9))
+
+snapshot_date = datetime.now(KST).date().isoformat()
+generated_at = datetime.now(KST).isoformat()
+```
+
+**관련 커밋:**
+- `838be10`: fix: use KST timezone for snapshot_date instead of UTC
+- `4cb10f0`: fix: use KST timezone for dashboard generated_at timestamp
+
+---
+
 ### 코드 연결 구조
 
 ```
