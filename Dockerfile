@@ -22,8 +22,7 @@ COPY . .
 EXPOSE 8001
 
 # 환경 변수 설정
-ENV PORT=8001
 ENV PYTHONUNBUFFERED=1
 
-# 서버 실행
-CMD ["/bin/sh", "-c", "uvicorn dashboard_api:app --host 0.0.0.0 --port $PORT"]
+# 서버 실행 (Railway가 PORT 환경변수 자동 설정)
+CMD ["sh", "-c", "exec uvicorn dashboard_api:app --host 0.0.0.0 --port ${PORT:-8001}"]
