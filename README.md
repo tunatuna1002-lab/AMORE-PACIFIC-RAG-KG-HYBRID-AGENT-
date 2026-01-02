@@ -1027,6 +1027,118 @@ EXPOSE 8001
 CMD ["python", "start.py"]
 ```
 
+### 환경 변수 상세
+
+| 변수명 | 필수 | 기본값 | 설명 |
+|--------|------|--------|------|
+| `OPENAI_API_KEY` | ✅ | - | OpenAI API 키 |
+| `PORT` | ❌ | 8001 | 서버 포트 |
+| `API_KEY` | ❌ | `amore-secret-key-2024` | API 인증 키 (민감한 엔드포인트 보호) |
+| `AUTO_START_SCHEDULER` | ❌ | `true` | 서버 시작 시 자율 스케줄러 자동 시작 |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` | ❌ | - | Google Sheets ID |
+| `GOOGLE_APPLICATION_CREDENTIALS` | ❌ | - | Google 서비스 계정 JSON 경로 |
+
+### API Key 인증
+
+민감한 엔드포인트는 API Key 인증이 필요합니다:
+
+**보호되는 엔드포인트:**
+- `POST /api/crawl/start` - 크롤링 시작
+- `POST /api/v3/alert-settings` - 알림 설정 저장
+- `POST /api/v3/alert-settings/revoke` - 동의 철회
+- `POST /api/v4/brain/scheduler/start` - 스케줄러 시작
+- `POST /api/v4/brain/scheduler/stop` - 스케줄러 중지
+- `POST /api/v4/brain/autonomous-cycle` - 자율 사이클 실행
+- `POST /api/v4/brain/mode` - 모드 변경
+
+**공개 엔드포인트 (인증 불필요):**
+- `GET /dashboard` - 대시보드 UI
+- `GET /api/health` - 헬스 체크
+- `GET /api/data` - 데이터 조회
+- `GET /api/v4/brain/status` - 상태 조회
+- `POST /api/chat`, `/api/v4/chat` - 채팅 API
+
+**사용 방법:**
+```bash
+# curl 예시
+curl -X POST "https://your-app.railway.app/api/crawl/start" \
+  -H "X-API-Key: your-api-key"
+
+# Python 예시
+import requests
+response = requests.post(
+    "https://your-app.railway.app/api/crawl/start",
+    headers={"X-API-Key": "your-api-key"}
+)
+```
+
+**Railway에서 API_KEY 설정:**
+1. Railway Dashboard → 프로젝트 선택
+2. Settings → Variables
+3. `API_KEY` 추가 (안전한 값으로 변경 권장)
+
+### 자동 크롤링 스케줄러
+
+서버 시작 시 자율 스케줄러가 자동으로 시작됩니다:
+
+**스케줄 (KST 기준):**
+- **매일 06:00** - 전체 카테고리 크롤링
+- **30분마다** - 데이터 신선도 체크
+
+**설정 변경:**
+```bash
+# 자동 시작 비활성화
+AUTO_START_SCHEDULER=false
+```
+
+### Railway Hobby 플랜 주의사항
+
+Railway Hobby 플랜에서는 서버가 **비활성 시 Sleep 모드**로 전환됩니다.
+
+**문제점:**
+- Sleep 상태에서는 스케줄러가 동작하지 않음
+- 새벽 6시 크롤링이 실행되지 않을 수 있음
+
+**해결 방법 - 외부 Cron 서비스 사용:**
+
+[cron-job.org](https://cron-job.org) 등을 사용하여 서버를 깨워줍니다:
+
+1. **cron-job.org 가입** (무료)
+2. **새 Cron Job 생성:**
+   - URL: `https://your-app.railway.app/api/health`
+   - 실행 시간: `55 5 * * *` (매일 05:55 KST)
+   - HTTP Method: GET
+3. **동작 원리:**
+   - 05:55에 헬스 체크 요청 → 서버 깨어남
+   - 06:00에 예정된 크롤링 정상 실행
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Hobby 플랜 스케줄링 전략                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   05:55 KST                    06:00 KST                        │
+│      │                            │                              │
+│      ▼                            ▼                              │
+│   ┌──────────────┐            ┌──────────────┐                  │
+│   │ cron-job.org │            │ 자율 스케줄러 │                  │
+│   │ GET /api/    │            │ 크롤링 실행   │                  │
+│   │ health       │            │              │                  │
+│   └──────┬───────┘            └──────────────┘                  │
+│          │                                                       │
+│          ▼                                                       │
+│   ┌──────────────┐                                              │
+│   │ 서버 Wake Up │──────────▶ 서버가 깨어난 상태로               │
+│   │ (Sleep 해제) │            크롤링 정상 실행                    │
+│   └──────────────┘                                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Pro/Team 플랜:**
+- Sleep 모드 없음
+- 외부 Cron 서비스 불필요
+
 ---
 
 ## 개발 히스토리

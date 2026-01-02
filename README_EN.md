@@ -687,6 +687,118 @@ docker run -p 8001:8001 \
   amore-agent
 ```
 
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENAI_API_KEY` | ✅ | - | OpenAI API key |
+| `PORT` | ❌ | 8001 | Server port |
+| `API_KEY` | ❌ | `amore-secret-key-2024` | API authentication key (protects sensitive endpoints) |
+| `AUTO_START_SCHEDULER` | ❌ | `true` | Auto-start autonomous scheduler on server boot |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` | ❌ | - | Google Sheets ID |
+| `GOOGLE_APPLICATION_CREDENTIALS` | ❌ | - | Google service account JSON path |
+
+### API Key Authentication
+
+Sensitive endpoints require API Key authentication:
+
+**Protected Endpoints:**
+- `POST /api/crawl/start` - Start crawling
+- `POST /api/v3/alert-settings` - Save alert settings
+- `POST /api/v3/alert-settings/revoke` - Revoke consent
+- `POST /api/v4/brain/scheduler/start` - Start scheduler
+- `POST /api/v4/brain/scheduler/stop` - Stop scheduler
+- `POST /api/v4/brain/autonomous-cycle` - Run autonomous cycle
+- `POST /api/v4/brain/mode` - Change mode
+
+**Public Endpoints (No auth required):**
+- `GET /dashboard` - Dashboard UI
+- `GET /api/health` - Health check
+- `GET /api/data` - Data query
+- `GET /api/v4/brain/status` - Status check
+- `POST /api/chat`, `/api/v4/chat` - Chat API
+
+**Usage:**
+```bash
+# curl example
+curl -X POST "https://your-app.railway.app/api/crawl/start" \
+  -H "X-API-Key: your-api-key"
+
+# Python example
+import requests
+response = requests.post(
+    "https://your-app.railway.app/api/crawl/start",
+    headers={"X-API-Key": "your-api-key"}
+)
+```
+
+**Setting API_KEY in Railway:**
+1. Railway Dashboard → Select project
+2. Settings → Variables
+3. Add `API_KEY` (recommended to change to a secure value)
+
+### Automatic Crawling Scheduler
+
+The autonomous scheduler starts automatically when the server boots:
+
+**Schedule (KST):**
+- **Daily 06:00** - Full category crawling
+- **Every 30 minutes** - Data freshness check
+
+**Configuration:**
+```bash
+# Disable auto-start
+AUTO_START_SCHEDULER=false
+```
+
+### Railway Hobby Plan Considerations
+
+On Railway Hobby plan, the server enters **Sleep mode** when inactive.
+
+**Issues:**
+- Scheduler doesn't run in Sleep state
+- 6 AM crawling may not execute
+
+**Solution - External Cron Service:**
+
+Use [cron-job.org](https://cron-job.org) or similar to wake the server:
+
+1. **Sign up for cron-job.org** (free)
+2. **Create new Cron Job:**
+   - URL: `https://your-app.railway.app/api/health`
+   - Schedule: `55 5 * * *` (daily 05:55 KST)
+   - HTTP Method: GET
+3. **How it works:**
+   - 05:55 health check request → Server wakes up
+   - 06:00 scheduled crawling runs normally
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Hobby Plan Scheduling Strategy                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   05:55 KST                    06:00 KST                        │
+│      │                            │                              │
+│      ▼                            ▼                              │
+│   ┌──────────────┐            ┌──────────────┐                  │
+│   │ cron-job.org │            │  Autonomous  │                  │
+│   │ GET /api/    │            │  Scheduler   │                  │
+│   │ health       │            │  Run Crawl   │                  │
+│   └──────┬───────┘            └──────────────┘                  │
+│          │                                                       │
+│          ▼                                                       │
+│   ┌──────────────┐                                              │
+│   │ Server Wake  │──────────▶ Server is awake when              │
+│   │ (Sleep off)  │            crawling executes                  │
+│   └──────────────┘                                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Pro/Team Plan:**
+- No Sleep mode
+- External Cron service not required
+
 ---
 
 ## Development History
