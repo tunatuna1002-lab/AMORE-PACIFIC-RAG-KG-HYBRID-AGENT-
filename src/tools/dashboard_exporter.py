@@ -15,9 +15,12 @@ Ontology-RAG Hybrid Integration:
 
 import os
 import json
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from collections import defaultdict
+
+# 한국 시간대 (UTC+9)
+KST = timezone(timedelta(hours=9))
 
 from src.tools.sheets_writer import SheetsWriter
 
@@ -105,7 +108,7 @@ class DashboardExporter:
         # Dashboard 데이터 구조 생성
         dashboard_data = {
             "metadata": {
-                "generated_at": datetime.now().isoformat(),
+                "generated_at": datetime.now(KST).isoformat(),
                 "data_date": self._get_latest_date(raw_data),
                 "total_products": len(raw_data),
                 "laneige_products": len([r for r in raw_data if self._is_laneige(r)]),
@@ -137,7 +140,7 @@ class DashboardExporter:
     def _get_latest_date(self, data: List[Dict]) -> str:
         """최신 데이터 날짜 반환"""
         dates = [r.get("snapshot_date", "") for r in data if r.get("snapshot_date")]
-        return max(dates) if dates else datetime.now().strftime("%Y-%m-%d")
+        return max(dates) if dates else datetime.now(KST).strftime("%Y-%m-%d")
 
     def _is_laneige(self, record: Dict) -> bool:
         """LANEIGE 제품 여부 확인"""
