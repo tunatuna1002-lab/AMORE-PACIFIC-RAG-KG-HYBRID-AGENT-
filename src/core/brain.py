@@ -146,14 +146,48 @@ class AutonomousScheduler:
     자율 작업 스케줄러
 
     설정된 스케줄에 따라 자동 작업을 트리거합니다.
+    last_run 상태는 파일에 저장되어 서버 재시작 후에도 유지됩니다.
     """
+
+    STATE_FILE = "./data/scheduler_state.json"
 
     def __init__(self):
         self.schedules: List[Dict[str, Any]] = []
         self._last_run: Dict[str, datetime] = {}
         self.running: bool = False
         self._task: Optional[asyncio.Task] = None
+        self._load_state()  # 파일에서 상태 복원
         self._load_default_schedules()
+
+    def _load_state(self):
+        """파일에서 last_run 상태 복원"""
+        try:
+            import os
+            if os.path.exists(self.STATE_FILE):
+                with open(self.STATE_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    for schedule_id, timestamp in data.get("last_run", {}).items():
+                        self._last_run[schedule_id] = datetime.fromisoformat(timestamp)
+                    logger.info(f"Scheduler state loaded: {list(self._last_run.keys())}")
+        except Exception as e:
+            logger.warning(f"Failed to load scheduler state: {e}")
+
+    def _save_state(self):
+        """last_run 상태를 파일에 저장"""
+        try:
+            import os
+            os.makedirs(os.path.dirname(self.STATE_FILE), exist_ok=True)
+            data = {
+                "last_run": {
+                    schedule_id: dt.isoformat()
+                    for schedule_id, dt in self._last_run.items()
+                },
+                "saved_at": datetime.now().isoformat()
+            }
+            with open(self.STATE_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save scheduler state: {e}")
 
     def _load_default_schedules(self):
         """기본 스케줄 로드"""
@@ -211,8 +245,9 @@ class AutonomousScheduler:
         return due_tasks
 
     def mark_completed(self, schedule_id: str):
-        """작업 완료 마킹"""
+        """작업 완료 마킹 및 상태 저장"""
         self._last_run[schedule_id] = datetime.now()
+        self._save_state()  # 파일에 저장
 
     def add_schedule(self, schedule: Dict[str, Any]):
         """스케줄 추가"""
