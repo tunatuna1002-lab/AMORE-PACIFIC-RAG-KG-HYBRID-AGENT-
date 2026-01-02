@@ -1093,8 +1093,8 @@ class UnifiedBrain:
                     crawl_manager = get_crawl_manager()
 
                     if not crawl_manager.is_crawling():
-                        await crawl_manager.run_full_crawl()
-                        logger.info("Scheduled crawl completed")
+                        await crawl_manager.start_crawl()
+                        logger.info("Scheduled crawl started")
                     else:
                         logger.info("Crawl already in progress, skipping")
 
@@ -1106,7 +1106,7 @@ class UnifiedBrain:
                     if crawl_manager.needs_crawl():
                         logger.info("Data is stale, triggering crawl")
                         if not crawl_manager.is_crawling():
-                            await crawl_manager.run_full_crawl()
+                            await crawl_manager.start_crawl()
                     else:
                         logger.info("Data is fresh")
 
