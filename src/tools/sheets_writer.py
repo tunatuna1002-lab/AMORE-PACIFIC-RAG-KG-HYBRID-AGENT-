@@ -229,6 +229,7 @@ class SheetsWriter:
 
         try:
             range_name = f"{sheet_config['name']}!A:K"
+            logger.info(f"Appending {len(rows)} rows to {range_name} in spreadsheet {self.spreadsheet_id[:20]}...")
             result = self.service.spreadsheets().values().append(
                 spreadsheetId=self.spreadsheet_id,
                 range=range_name,
@@ -237,13 +238,23 @@ class SheetsWriter:
                 body={"values": rows}
             ).execute()
 
+            updates = result.get("updates", {})
+            logger.info(f"Successfully appended rows: {updates}")
             return {
                 "success": True,
                 "rows_added": len(rows),
                 "sheet": sheet_config["name"],
-                "updates": result.get("updates", {})
+                "updates": updates
             }
         except HttpError as e:
+            logger.error(f"Google Sheets API error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "sheet": sheet_config["name"]
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error appending to sheets: {e}")
             return {
                 "success": False,
                 "error": str(e),

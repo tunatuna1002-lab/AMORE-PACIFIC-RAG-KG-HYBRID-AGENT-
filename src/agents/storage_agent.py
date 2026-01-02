@@ -87,9 +87,14 @@ class StorageAgent:
                             all_records.append(record.model_dump() if hasattr(record, 'model_dump') else record)
 
                 if all_records:
-                    await self.sheets.append_rank_records(all_records)
-                    results["raw_records"] = len(all_records)
-                    self.logger.info(f"Saved {len(all_records)} rank records")
+                    append_result = await self.sheets.append_rank_records(all_records)
+                    if append_result.get("success"):
+                        results["raw_records"] = len(all_records)
+                        self.logger.info(f"Saved {len(all_records)} rank records to Google Sheets")
+                    else:
+                        error_msg = append_result.get("error", "Unknown error")
+                        results["errors"].append({"step": "raw_data", "error": error_msg})
+                        self.logger.error(f"Failed to save rank records: {error_msg}")
 
                 if self.tracer:
                     self.tracer.end_span("completed")
