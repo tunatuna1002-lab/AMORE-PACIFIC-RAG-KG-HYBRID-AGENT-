@@ -71,7 +71,19 @@ AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "true").lower() == "tru
 
 @app.on_event("startup")
 async def startup_event():
-    """서버 시작 시 자동 스케줄러 시작"""
+    """서버 시작 시 자동 스케줄러 시작 및 즉시 크롤링 체크"""
+    # 1. 즉시 크롤링 필요 여부 체크 (서버 재시작 후 오늘 데이터가 없으면 바로 크롤링)
+    try:
+        crawl_manager = get_crawl_manager()
+        if crawl_manager.needs_crawl():
+            logging.info(f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 시작")
+            await crawl_manager.start_crawl()
+        else:
+            logging.info(f"서버 시작: 오늘 데이터 있음 또는 크롤링 중 (data_date={crawl_manager.get_data_date()})")
+    except Exception as e:
+        logging.error(f"서버 시작 크롤링 체크 실패: {e}")
+
+    # 2. 자율 스케줄러 시작 (매일 06:00 정기 크롤링용)
     if AUTO_START_SCHEDULER:
         try:
             brain = await get_initialized_brain()
