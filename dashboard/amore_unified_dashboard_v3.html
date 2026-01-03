@@ -1507,11 +1507,20 @@
                     { label: '1위 기준선', data: rankLabels.map(() => 1), borderColor: colors.competitor, borderDash: [5, 5], tension: 0, borderWidth: 2 }
                 ];
 
+                let rankYMax = 20; // 기본값
                 if (dashboardData?.charts?.product_rank_trend) {
                     const prt = dashboardData.charts.product_rank_trend;
                     rankLabels = prt.labels || rankLabels;
 
                     if (prt.products && Object.keys(prt.products).length > 0) {
+                        // 모든 순위 데이터에서 최대값 계산
+                        const allRanks = Object.values(prt.products)
+                            .flatMap(p => p.ranks)
+                            .filter(r => r !== null && r !== undefined);
+                        if (allRanks.length > 0) {
+                            rankYMax = Math.max(...allRanks, 20) + 10; // 여유 공간 추가
+                        }
+
                         rankDatasets = Object.entries(prt.products).map(([asin, product], idx) => ({
                             label: product.name,
                             data: product.ranks.map(r => r || null),
@@ -1542,7 +1551,7 @@
                         maintainAspectRatio: false,
                         plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
                         scales: {
-                            y: { reverse: true, title: { display: true, text: 'Rank' }, min: 1, max: 20, grid: { color: colors.grid } },
+                            y: { reverse: true, title: { display: true, text: 'Rank' }, min: 1, max: rankYMax, grid: { color: colors.grid } },
                             x: { grid: { display: false } }
                         }
                     }

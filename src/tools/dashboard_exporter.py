@@ -492,7 +492,17 @@ class DashboardExporter:
         latest_date = sorted_dates[-1] if sorted_dates else ""
         latest_data = date_groups.get(latest_date, [])
 
-        laneige_products = [r for r in latest_data if self._is_laneige(r)]
+        # ASIN 기준 중복 제거 (순위가 가장 좋은 것 유지)
+        laneige_raw = [r for r in latest_data if self._is_laneige(r)]
+        seen_asins = {}
+        for r in laneige_raw:
+            asin = r.get("asin", "")
+            if not asin:
+                continue
+            rank = self._safe_int(r.get("rank", 999))
+            if asin not in seen_asins or rank < self._safe_int(seen_asins[asin].get("rank", 999)):
+                seen_asins[asin] = r
+        laneige_products = list(seen_asins.values())
 
         # 제품별 SoS 도넛 차트 데이터
         product_sos = []
