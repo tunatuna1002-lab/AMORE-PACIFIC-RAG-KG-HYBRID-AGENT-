@@ -104,6 +104,59 @@
         .time-display-group { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
         .current-time { background: #e0f2fe; color: #0369a1; }
 
+        /* === DATE RANGE SELECTOR === */
+        .date-range-selector { position: relative; display: inline-flex; align-items: center; }
+        .date-range-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px; background: white;
+            border: 1px solid var(--border-color); border-radius: 10px;
+            font-size: 12px; color: var(--text-primary); cursor: pointer;
+            transition: all 0.2s ease; font-weight: 500;
+        }
+        .date-range-btn:hover { border-color: var(--amore-primary); background: #f8fafc; }
+        .date-range-btn.active { border-color: var(--amore-primary); background: #eff6ff; }
+        .date-range-dropdown {
+            position: absolute; top: 100%; right: 0; margin-top: 6px;
+            background: white; border: 1px solid var(--border-color);
+            border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 1000; min-width: 180px;
+            opacity: 0; visibility: hidden; transform: translateY(-8px);
+            transition: all 0.2s ease;
+        }
+        .date-range-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .date-range-option {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; font-size: 13px; color: var(--text-primary);
+            cursor: pointer; transition: background 0.1s ease;
+        }
+        .date-range-option:first-child { border-radius: 12px 12px 0 0; }
+        .date-range-option:last-child { border-radius: 0 0 12px 12px; }
+        .date-range-option:hover { background: #f8fafc; }
+        .date-range-option.selected { background: #eff6ff; color: var(--amore-primary); font-weight: 600; }
+        .date-range-option .check-icon { width: 14px; height: 14px; opacity: 0; }
+        .date-range-option.selected .check-icon { opacity: 1; }
+        .date-range-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+        /* === LOADING STATES === */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 9999; opacity: 0; visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .loading-overlay.show { opacity: 1; visibility: visible; }
+        .loading-spinner {
+            width: 48px; height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--amore-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 16px; font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+
         /* === CRAWL STATUS === */
         .crawl-status {
             display: flex; align-items: center; gap: 8px;
@@ -245,6 +298,16 @@
         .action-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
         .action-table tr { transition: all 0.2s; cursor: pointer; }
         .action-table tr:hover { background: #f8fafc; }
+        .action-table tr.highlight-row { background: rgba(0, 70, 145, 0.05); }
+        .action-table tr.highlight-row:hover { background: rgba(0, 70, 145, 0.08); }
+
+        /* Competitor Table Styles */
+        .rank-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #f8fafc; color: var(--text-primary); }
+        .vs-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; }
+        .vs-badge.baseline { background: rgba(0, 70, 145, 0.1); color: var(--amore-primary); }
+        .vs-badge.ahead { background: rgba(16, 185, 129, 0.1); color: #059669; }
+        .vs-badge.behind { background: rgba(231, 76, 60, 0.1); color: #dc2626; }
+
         .priority-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; }
         .priority-badge.p1 { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); color: #dc2626; }
         .priority-badge.p2 { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); color: #d97706; }
@@ -382,6 +445,12 @@
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">데이터를 불러오는 중...</div>
+    </div>
+
     <div class="app-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
@@ -410,6 +479,38 @@
                     <div class="page-info"><h2 id="page-title">Home</h2><div class="breadcrumb" id="breadcrumb">Daily Insight & Action Board</div></div>
                 </div>
                 <div class="header-right">
+                    <!-- Date Range Selector -->
+                    <div class="date-range-selector" id="date-range-selector">
+                        <button class="date-range-btn" id="date-range-btn" onclick="toggleDateRangeDropdown()">
+                            <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
+                            <span id="date-range-label">오늘</span>
+                            <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                        </button>
+                        <div class="date-range-dropdown" id="date-range-dropdown">
+                            <div class="date-range-option selected" data-range="today" onclick="selectDateRange('today')">
+                                <span>오늘</span>
+                                <i data-lucide="check" class="check-icon"></i>
+                            </div>
+                            <div class="date-range-option" data-range="yesterday" onclick="selectDateRange('yesterday')">
+                                <span>어제</span>
+                                <i data-lucide="check" class="check-icon"></i>
+                            </div>
+                            <div class="date-range-divider"></div>
+                            <div class="date-range-option" data-range="7days" onclick="selectDateRange('7days')">
+                                <span>최근 7일</span>
+                                <i data-lucide="check" class="check-icon"></i>
+                            </div>
+                            <div class="date-range-option" data-range="14days" onclick="selectDateRange('14days')">
+                                <span>최근 14일</span>
+                                <i data-lucide="check" class="check-icon"></i>
+                            </div>
+                            <div class="date-range-option" data-range="30days" onclick="selectDateRange('30days')">
+                                <span>최근 30일</span>
+                                <i data-lucide="check" class="check-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="time-display-group">
                         <div class="date-display" id="date-display">📅 데이터: 로딩중...</div>
                         <div class="date-display current-time" id="current-time">🕐 현재: --:--:--</div>
@@ -486,8 +587,27 @@
                             <div class="kpi-card"><div class="kpi-label">Avg Rank</div><div class="kpi-value">53.6<span class="unit">위</span></div><span class="kpi-delta up">▼ 2.3위 개선</span></div>
                             <div class="kpi-card"><div class="kpi-label">시장 HHI</div><div class="kpi-value">0.35</div><span class="kpi-delta">중간 집중도</span></div>
                         </div>
-                        <div class="content-grid single">
+                        <div class="content-grid">
                             <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="scatter-chart" style="color: white; width: 16px; height: 16px;"></i></div>Laneige vs 경쟁사 SoS × Avg Rank</div></div><div class="card-body"><div class="chart-container"><canvas id="brandMatrixChart"></canvas></div><div class="chart-guide"><strong>해석 가이드:</strong> 우측 하단 = 물량 多 + 상위권 강함 (정상 성장) / 우측 상단 = 물량 多 + 상위권 약함 (효율 악화)</div></div></div>
+                            <!-- 경쟁사 비교 테이블 -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title"><div class="card-title-icon"><i data-lucide="users" style="color: white; width: 16px; height: 16px;"></i></div>경쟁사 비교 분석</div>
+                                    <span class="card-badge" style="background: rgba(0, 70, 145, 0.1); color: var(--amore-primary);">Top 5 브랜드</span>
+                                </div>
+                                <div class="card-body" style="padding: 0;">
+                                    <table class="action-table" id="competitor-table">
+                                        <thead><tr><th>순위</th><th>브랜드</th><th>SoS</th><th>제품수</th><th>평균순위</th><th>vs Laneige</th></tr></thead>
+                                        <tbody id="competitor-tbody">
+                                            <tr class="highlight-row"><td><span class="rank-badge">#1</span></td><td><strong>LANEIGE</strong></td><td>4.0%</td><td>8개</td><td>25.3위</td><td><span class="vs-badge baseline">기준</span></td></tr>
+                                            <tr><td><span class="rank-badge">#2</span></td><td>COSRX</td><td>3.8%</td><td>12개</td><td>32.1위</td><td><span class="vs-badge behind">-0.2%p</span></td></tr>
+                                            <tr><td><span class="rank-badge">#3</span></td><td>Summer Fridays</td><td>3.2%</td><td>4개</td><td>15.8위</td><td><span class="vs-badge behind">-0.8%p</span></td></tr>
+                                            <tr><td><span class="rank-badge">#4</span></td><td>e.l.f.</td><td>2.9%</td><td>18개</td><td>45.2위</td><td><span class="vs-badge behind">-1.1%p</span></td></tr>
+                                            <tr><td><span class="rank-badge">#5</span></td><td>Rare Beauty</td><td>2.5%</td><td>6개</td><td>28.4위</td><td><span class="vs-badge behind">-1.5%p</span></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                         <div class="quick-actions"><button class="quick-action-btn accent" onclick="openAIDrawer()"><i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>AI 전략 리포트 생성</button></div>
                     </div>
@@ -537,6 +657,25 @@
                         <div class="content-grid">
                             <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="line-chart" style="color: white; width: 16px; height: 16px;"></i></div>순위 & 가격 추이 (vs 카테고리 1위)</div></div><div class="card-body"><div class="chart-container"><canvas id="rankTrendChart"></canvas></div><div class="chart-guide"><strong>비교 대상:</strong> Summer Fridays Lip Butter Balm (현재 카테고리 1위)</div></div></div>
                             <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="grid-3x3" style="color: white; width: 16px; height: 16px;"></i></div>Laneige 제품 매트릭스</div></div><div class="card-body"><div class="chart-container"><canvas id="productMatrixChart"></canvas></div><div class="chart-guide"><strong>4분면 해석:</strong> 좌하단(King) = 안정적 상위권 / 좌상단(Rising) = 급부상 / 우하단(Lagging) = 정체 / 우상단(Risk) = 위험</div></div></div>
+                        </div>
+                        <!-- 할인율 추이 그래프 -->
+                        <div class="content-grid single">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="percent" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        가격 & 할인율 추이 (7일)
+                                    </div>
+                                    <span class="card-badge" id="discount-badge" style="background: rgba(0, 70, 145, 0.1); color: var(--amore-primary);">현재 할인율: --%</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container"><canvas id="discountTrendChart"></canvas></div>
+                                    <div class="chart-guide">
+                                        <strong>해석 가이드:</strong> 할인율 상승 = 프로모션 강화 / 가격 하락 = 가격 경쟁력 확보
+                                        <span id="discount-insight" style="color: var(--amore-primary); margin-left: 12px;"></span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
@@ -629,6 +768,106 @@
         // 크롤링 상태 관리
         let crawlStatusInterval = null;
         let lastDataDate = null;  // 마지막 데이터 날짜 추적
+
+        // 기간 선택 상태 관리
+        let currentDateRange = 'today';
+        let historicalData = {};
+
+        // 기간 선택 드롭다운 토글
+        function toggleDateRangeDropdown() {
+            const dropdown = document.getElementById('date-range-dropdown');
+            const btn = document.getElementById('date-range-btn');
+            const isOpen = dropdown.classList.contains('show');
+            if (isOpen) {
+                dropdown.classList.remove('show');
+                btn.classList.remove('active');
+            } else {
+                dropdown.classList.add('show');
+                btn.classList.add('active');
+            }
+        }
+
+        // 드롭다운 외부 클릭 시 닫기
+        document.addEventListener('click', function(e) {
+            const selector = document.getElementById('date-range-selector');
+            if (selector && !selector.contains(e.target)) {
+                const dropdown = document.getElementById('date-range-dropdown');
+                const btn = document.getElementById('date-range-btn');
+                if (dropdown) dropdown.classList.remove('show');
+                if (btn) btn.classList.remove('active');
+            }
+        });
+
+        // 기간 선택
+        async function selectDateRange(range) {
+            currentDateRange = range;
+            const options = document.querySelectorAll('.date-range-option');
+            options.forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.range === range) opt.classList.add('selected');
+            });
+            const labels = { 'today': '오늘', 'yesterday': '어제', '7days': '최근 7일', '14days': '최근 14일', '30days': '최근 30일' };
+            document.getElementById('date-range-label').textContent = labels[range] || range;
+            toggleDateRangeDropdown();
+            await loadDataForRange(range);
+        }
+
+        // 선택된 기간에 맞는 데이터 로드
+        async function loadDataForRange(range) {
+            showToast(`${range === 'today' ? '오늘' : range === 'yesterday' ? '어제' : '최근 ' + range.replace('days', '일')} 데이터 로딩 중...`, 'info');
+            try {
+                const days = getDaysFromRange(range);
+                const endDate = range === 'yesterday' ? getYesterdayDate() : getTodayDate();
+                const startDate = getStartDate(days, range === 'yesterday');
+                let response = await fetch(`${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}`);
+                if (response.ok) {
+                    const histData = await response.json();
+                    if (histData && histData.data) {
+                        updateChartsWithHistoricalData(histData.data, range);
+                        showToast('데이터 로드 완료', 'success');
+                        return;
+                    }
+                }
+                console.warn('Historical API not available, using current data');
+                if (range === 'today') updateDashboardFromData();
+                else showToast('히스토리컬 데이터를 가져올 수 없습니다.', 'info');
+            } catch (error) {
+                console.error('Failed to load historical data:', error);
+                showToast('데이터 로드 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        function getDaysFromRange(range) {
+            const daysMap = { 'today': 1, 'yesterday': 1, '7days': 7, '14days': 14, '30days': 30 };
+            return daysMap[range] || 7;
+        }
+
+        function getTodayDate() { return new Date().toISOString().split('T')[0]; }
+        function getYesterdayDate() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; }
+        function getStartDate(days, fromYesterday = false) {
+            const d = new Date();
+            if (fromYesterday) d.setDate(d.getDate() - 1);
+            d.setDate(d.getDate() - days + 1);
+            return d.toISOString().split('T')[0];
+        }
+
+        function updateChartsWithHistoricalData(data, range) {
+            if (charts.trend && data.sos_history) {
+                const labels = data.sos_history.map(d => d.date);
+                const values = data.sos_history.map(d => d.sos);
+                charts.trend.data.labels = labels;
+                charts.trend.data.datasets[0].data = values;
+                charts.trend.update();
+            }
+            if (charts.rankTrend && data.rank_history) {
+                const labels = data.rank_history.map(d => d.date);
+                const values = data.rank_history.map(d => d.rank);
+                charts.rankTrend.data.labels = labels;
+                charts.rankTrend.data.datasets[0].data = values;
+                charts.rankTrend.update();
+            }
+            console.log('Charts updated with historical data for range:', range);
+        }
 
         // 토스트 알림 표시
         function showToast(message, type = 'info') {
@@ -771,8 +1010,20 @@
             });
         }
 
+        // Loading State Management
+        function showLoading(show = true, message = '데이터를 불러오는 중...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const textEl = overlay?.querySelector('.loading-text');
+            if (overlay) {
+                if (show) { overlay.classList.add('show'); if (textEl) textEl.textContent = message; }
+                else { overlay.classList.remove('show'); }
+            }
+        }
+        function hideLoading() { showLoading(false); }
+
         // Load Dashboard Data (API 우선, JSON fallback)
         async function loadDashboardData() {
+            showLoading(true, '대시보드 데이터 로딩 중...');
             try {
                 // 1. 먼저 API에서 시도
                 let response = await fetch(`${API_BASE}/api/data`);
@@ -804,14 +1055,17 @@
                     startCrawlStatusPolling();
                 }
 
+                hideLoading();
                 return true;
             } catch (error) {
                 console.warn('Failed to load dashboard data:', error);
+                hideLoading();
                 // 데이터 로드 실패 시 현재 날짜 표시
                 const dateDisplay = document.getElementById('date-display');
                 if (dateDisplay) {
                     dateDisplay.textContent = '📅 ' + new Date().toISOString().split('T')[0];
                 }
+                showToast('데이터 로드에 실패했습니다. 페이지를 새로고침해주세요.', 'error');
                 return false;
             }
         }
@@ -862,6 +1116,11 @@
                 if (kpiCards[1]) kpiCards[1].querySelector('.kpi-value').innerHTML = kpis.top10_count + '<span class="unit">개</span>';
                 if (kpiCards[2]) kpiCards[2].querySelector('.kpi-value').innerHTML = kpis.avg_rank + '<span class="unit">위</span>';
                 if (kpiCards[3]) kpiCards[3].querySelector('.kpi-value').textContent = kpis.hhi;
+            }
+
+            // Update Competitor Table
+            if (dashboardData.brand?.competitors) {
+                updateCompetitorTable(dashboardData.brand.competitors);
             }
 
             // Update product data from loaded data
@@ -933,6 +1192,22 @@
                 ).join('');
                 if (warningCount) warningCount.textContent = warningItems.length + '개';
             }
+        }
+
+        // 경쟁사 테이블 업데이트
+        function updateCompetitorTable(competitors) {
+            const tbody = document.getElementById('competitor-tbody');
+            if (!tbody || !competitors || !competitors.length) return;
+            const laneige = competitors.find(c => c.brand.toUpperCase().includes('LANEIGE'));
+            const laneigeSos = laneige ? laneige.sos : 0;
+            const top5 = competitors.slice(0, 5);
+            tbody.innerHTML = top5.map((comp, idx) => {
+                const isLaneige = comp.brand.toUpperCase().includes('LANEIGE');
+                const sosDiff = (comp.sos - laneigeSos).toFixed(1);
+                const vsBadgeClass = isLaneige ? 'baseline' : (parseFloat(sosDiff) > 0 ? 'ahead' : 'behind');
+                const vsBadgeText = isLaneige ? '기준' : (parseFloat(sosDiff) > 0 ? `+${sosDiff}%p` : `${sosDiff}%p`);
+                return `<tr class="${isLaneige ? 'highlight-row' : ''}"><td><span class="rank-badge">#${idx + 1}</span></td><td>${isLaneige ? '<strong>' + comp.brand + '</strong>' : comp.brand}</td><td>${comp.sos}%</td><td>${comp.product_count || comp.count || '-'}개</td><td>${comp.avg_rank ? comp.avg_rank.toFixed(1) + '위' : '-'}</td><td><span class="vs-badge ${vsBadgeClass}">${vsBadgeText}</span></td></tr>`;
+            }).join('');
         }
 
         // 제품 상세 페이지로 이동
@@ -1586,8 +1861,78 @@
                         }
                     }
                 });
+
+                // 할인율 추이 차트 초기화
+                initDiscountTrendChart();
             }
         }
+
+        // 할인율 추이 차트 초기화
+        function initDiscountTrendChart() {
+            const ctx = document.getElementById('discountTrendChart');
+            if (!ctx) return;
+            if (charts.discountTrend) charts.discountTrend.destroy();
+
+            let discountLabels = ['D-6', 'D-5', 'D-4', 'D-3', 'D-2', 'D-1', '오늘'];
+            let priceData = [24.00, 24.00, 22.00, 22.00, 22.00, 22.00, 22.00];
+            let discountData = [0, 0, 8.3, 8.3, 8.3, 8.3, 8.3];
+            let currentDiscount = 8.3;
+
+            if (dashboardData?.charts?.discount_trend) {
+                const trend = dashboardData.charts.discount_trend;
+                discountLabels = trend.labels || discountLabels;
+                priceData = trend.prices || priceData;
+                discountData = trend.discounts || discountData;
+                currentDiscount = discountData[discountData.length - 1] || 0;
+            }
+
+            const discountBadge = document.getElementById('discount-badge');
+            if (discountBadge) {
+                discountBadge.textContent = `현재 할인율: ${currentDiscount}%`;
+                if (currentDiscount > 10) {
+                    discountBadge.style.background = 'rgba(231, 76, 60, 0.1)';
+                    discountBadge.style.color = '#e74c3c';
+                } else if (currentDiscount > 0) {
+                    discountBadge.style.background = 'rgba(245, 158, 11, 0.1)';
+                    discountBadge.style.color = '#f59e0b';
+                }
+            }
+
+            const insightEl = document.getElementById('discount-insight');
+            if (insightEl) {
+                if (currentDiscount > 10) insightEl.textContent = '⚠️ 높은 할인율 - 마진 압박 주의';
+                else if (currentDiscount > 0) insightEl.textContent = '✓ 적정 할인율 유지 중';
+                else insightEl.textContent = '📍 정가 판매 중';
+            }
+
+            charts.discountTrend = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: discountLabels,
+                    datasets: [
+                        { label: '판매가 ($)', data: priceData, borderColor: '#004691', backgroundColor: 'rgba(0, 70, 145, 0.1)', fill: true, tension: 0.3, yAxisID: 'y' },
+                        { label: '할인율 (%)', data: discountData, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderDash: [5, 5], fill: false, tension: 0.3, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 11 } } },
+                        tooltip: { callbacks: { label: function(context) {
+                            if (context.dataset.label.includes('가격') || context.dataset.label.includes('판매가')) return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                            return `${context.dataset.label}: ${context.parsed.y}%`;
+                        }}}
+                    },
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '판매가 ($)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '할인율 (%)' }, min: 0, max: 50, grid: { drawOnChartArea: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
         // 시간 포맷 함수 (KST 기준)
         function formatDateTime(isoString) {
             if (!isoString) return '없음';

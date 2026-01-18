@@ -223,12 +223,24 @@ class AmazonScraper:
             # 브랜드 추출 (제품명에서 추출 시도)
             brand = self._extract_brand(product_name)
 
-            # 가격
+            # 가격 (현재 판매가)
             price = None
             price_elem = await card.query_selector(".p13n-sc-price, ._cDEzb_p13n-sc-price_3mJ9Z, .a-price .a-offscreen")
             if price_elem:
                 price_text = await price_elem.inner_text()
                 price = self._parse_price(price_text)
+
+            # 원가 (정가, 할인 전 가격)
+            list_price = None
+            list_price_elem = await card.query_selector(".a-text-price .a-offscreen, .a-price[data-a-strike='true'] .a-offscreen")
+            if list_price_elem:
+                list_price_text = await list_price_elem.inner_text()
+                list_price = self._parse_price(list_price_text)
+
+            # 할인율 계산
+            discount_percent = None
+            if price and list_price and list_price > price:
+                discount_percent = round((1 - price / list_price) * 100, 1)
 
             # 평점
             rating = None
@@ -263,6 +275,8 @@ class AmazonScraper:
                 "brand": brand,
                 "rank": rank,
                 "price": price,
+                "list_price": list_price,
+                "discount_percent": discount_percent,
                 "rating": rating,
                 "reviews_count": reviews_count,
                 "badge": badge,
