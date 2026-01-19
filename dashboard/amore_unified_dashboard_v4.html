@@ -2132,9 +2132,18 @@
                             <!-- 경쟁사 비교 테이블 -->
                             <div class="card">
                                 <div class="card-header">
-                                    <div class="card-title">
+                                    <div class="card-title has-tooltip">
                                         <div class="card-title-icon"><i data-lucide="users" style="color: white; width: 16px; height: 16px;"></i></div>
                                         경쟁사 비교 분석
+                                        <i data-lucide="help-circle" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6;"></i>
+                                        <div class="chart-title-tooltip">
+                                            <div class="tooltip-header">📊 경쟁사 선정 기준</div>
+                                            <div class="tooltip-content">
+                                                <p><strong>선정 기준</strong><br>모니터링 중인 5개 카테고리 Top 100 내 제품 보유 브랜드</p>
+                                                <p><strong>SoS 기준 정렬</strong><br>Share of Shelf(진열 점유율) 높은 순서로 Top 5 표시</p>
+                                                <p><strong>모니터링 카테고리</strong><br>• Beauty & Personal Care<br>• Skin Care<br>• Lip Care<br>• Lip Makeup<br>• Face Powder</p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <span class="card-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);">Top 5 브랜드</span>
                                 </div>
@@ -2209,13 +2218,8 @@
                                         <span class="competitor-label">비교 대상:</span>
                                         <select id="competitor-select" class="competitor-dropdown" onchange="updateCompetitorComparison()">
                                             <option value="">선택하세요</option>
-                                            <option value="Summer Fridays">Summer Fridays</option>
-                                            <option value="COSRX">COSRX</option>
-                                            <option value="Tatcha">Tatcha</option>
-                                            <option value="Drunk Elephant">Drunk Elephant</option>
-                                            <option value="Glow Recipe">Glow Recipe</option>
-                                            <option value="e.l.f.">e.l.f.</option>
-                                            <option value="Rare Beauty">Rare Beauty</option>
+                                            <option value="Summer Fridays">Summer Fridays (프리미엄 경쟁사)</option>
+                                            <!-- 나머지 옵션은 동적으로 추가됨 -->
                                         </select>
                                     </div>
                                 </div>
@@ -2746,6 +2750,9 @@
             // Update exposure status tooltip
             updateExposureStatusTooltip(dashboardData.home, dashboardData.home?.action_items);
 
+            // 경쟁사 드롭다운 동적 생성
+            populateCompetitorDropdown();
+
             // Update Brand KPIs
             if (dashboardData.brand?.kpis) {
                 const kpis = dashboardData.brand.kpis;
@@ -3243,6 +3250,28 @@
             return priceHtml;
         }
 
+        // 경쟁사 드롭다운 동적 생성
+        function populateCompetitorDropdown() {
+            const select = document.getElementById('competitor-select');
+            if (!select) return;
+
+            const competitors = dashboardData?.brand?.competitors || [];
+
+            // 기존 동적 옵션 제거 (Summer Fridays는 유지)
+            const options = select.querySelectorAll('option:not([value=""]):not([value="Summer Fridays"])');
+            options.forEach(opt => opt.remove());
+
+            // 경쟁사 데이터에서 옵션 추가 (Summer Fridays 제외)
+            competitors.forEach(comp => {
+                if (comp.brand && comp.brand !== 'Summer Fridays') {
+                    const option = document.createElement('option');
+                    option.value = comp.brand;
+                    option.textContent = comp.brand;
+                    select.appendChild(option);
+                }
+            });
+        }
+
         // Enhanced Competitor Comparison
         function updateCompetitorComparison() {
             const select = document.getElementById('competitor-select');
@@ -3263,16 +3292,20 @@
                 return;
             }
 
-            // Find competitor data
+            // LANEIGE 데이터: brand.kpis에서 우선 가져오기 (competitors에 없을 수 있음)
+            const kpis = dashboardData?.brand?.kpis || {};
             const competitors = dashboardData?.brand?.competitors || [];
-            const laneige = competitors.find(c => c.brand.toUpperCase().includes('LANEIGE')) || {
+
+            // LANEIGE 데이터 구성
+            const laneige = {
                 brand: 'LANEIGE',
-                sos: 0,
-                product_count: 0,
-                avg_rank: 0,
-                avg_price: 0
+                sos: kpis.sos || 0,
+                product_count: kpis.top10_count || kpis.product_count || 0,
+                avg_rank: kpis.avg_rank || 0,
+                avg_price: kpis.avg_price || 0
             };
 
+            // 경쟁사 데이터 찾기
             const competitor = competitors.find(c => c.brand === competitorName) || {
                 brand: competitorName,
                 sos: 0,
