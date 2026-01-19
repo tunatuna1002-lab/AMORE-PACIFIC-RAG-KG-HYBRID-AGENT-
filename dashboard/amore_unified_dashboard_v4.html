@@ -622,6 +622,139 @@
             visibility: visible;
         }
 
+        /* === KPI CARD TOOLTIP === */
+        .kpi-card.has-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .kpi-card .kpi-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kpi-card .help-icon {
+            width: 12px;
+            height: 12px;
+            opacity: 0.5;
+            cursor: help;
+            transition: opacity 0.2s;
+        }
+        .kpi-card:hover .help-icon {
+            opacity: 1;
+        }
+        .kpi-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 8px;
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            min-width: 220px;
+            max-width: 280px;
+            white-space: normal;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .kpi-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-bottom-color: var(--pacific-blue);
+        }
+        .kpi-tooltip .tooltip-header {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .kpi-tooltip .tooltip-content {
+            font-size: 11px;
+        }
+        .kpi-tooltip .tooltip-content p {
+            margin: 0 0 6px 0;
+        }
+        .kpi-tooltip .tooltip-content p:last-child {
+            margin-bottom: 0;
+        }
+        .kpi-tooltip .tooltip-content strong {
+            color: #60a5fa;
+        }
+        .kpi-card.has-tooltip:hover .kpi-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* === TABLE HEADER TOOLTIP === */
+        th.has-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        th.has-tooltip .th-content {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: inherit;
+        }
+        th .help-icon {
+            width: 12px;
+            height: 12px;
+            opacity: 0.4;
+            cursor: help;
+            transition: opacity 0.2s;
+        }
+        th:hover .help-icon {
+            opacity: 1;
+        }
+        .th-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 8px;
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 400;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            max-width: 240px;
+            white-space: normal;
+            line-height: 1.4;
+            text-align: left;
+        }
+        .th-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: var(--pacific-blue);
+        }
+        th.has-tooltip:hover .th-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* === CHART DATE RANGE PICKER === */
         .chart-date-range {
             display: flex;
@@ -2088,10 +2221,58 @@
                     <!-- BRAND PAGE (L1) -->
                     <div id="page-brand" class="page-view">
                         <div class="kpi-grid">
-                            <div class="kpi-card"><div class="kpi-label">Laneige SoS</div><div class="kpi-value">44.0<span class="unit">%</span></div><span class="kpi-delta up">▲ 2.1%p</span></div>
-                            <div class="kpi-card"><div class="kpi-label">Top10 Products</div><div class="kpi-value">4<span class="unit">개</span></div><span class="kpi-delta up">+1 증가</span></div>
-                            <div class="kpi-card"><div class="kpi-label">Avg Rank</div><div class="kpi-value">53.6<span class="unit">위</span></div><span class="kpi-delta up">▼ 2.3위 개선</span></div>
-                            <div class="kpi-card"><div class="kpi-label">시장 HHI</div><div class="kpi-value">0.35</div><span class="kpi-delta">중간 집중도</span></div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">Laneige SoS <i data-lucide="help-circle" class="help-icon"></i></div>
+                                <div class="kpi-value">44.0<span class="unit">%</span></div>
+                                <span class="kpi-delta up">▲ 2.1%p</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">📊 Laneige SoS (Share of Shelf)</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>전체 Top 100 중 LANEIGE 제품이 차지하는 비율</p>
+                                        <p><strong>계산</strong><br>LANEIGE 제품 수 ÷ 100 × 100%</p>
+                                        <p><strong>해석</strong><br>• 높을수록 진열 점유율 우수<br>• %p 변화는 전일 대비 변동</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">Top10 Products <i data-lucide="help-circle" class="help-icon"></i></div>
+                                <div class="kpi-value">4<span class="unit">개</span></div>
+                                <span class="kpi-delta up">+1 증가</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">🏆 Top 10 Products</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>베스트셀러 Top 10 내 LANEIGE 제품 수</p>
+                                        <p><strong>중요성</strong><br>상위권 노출이 브랜드 인지도와 매출에 직결</p>
+                                        <p><strong>해석</strong><br>• 숫자가 높을수록 상위권 장악력 우수<br>• 증감은 전일 대비 변화</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">Avg Rank <i data-lucide="help-circle" class="help-icon"></i></div>
+                                <div class="kpi-value">53.6<span class="unit">위</span></div>
+                                <span class="kpi-delta up">▼ 2.3위 개선</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">📈 Average Rank (평균 순위)</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>LANEIGE 모든 제품의 평균 베스트셀러 순위</p>
+                                        <p><strong>계산</strong><br>각 제품 순위의 합 ÷ 제품 수</p>
+                                        <p><strong>해석</strong><br>• 숫자가 낮을수록 상위권<br>• ▼ 는 순위 상승 (개선)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">시장 HHI <i data-lucide="help-circle" class="help-icon"></i></div>
+                                <div class="kpi-value">0.35</div>
+                                <span class="kpi-delta">중간 집중도</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">📉 HHI (Herfindahl-Hirschman Index)</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>시장 집중도를 측정하는 경제학 지표</p>
+                                        <p><strong>계산</strong><br>각 브랜드 SoS(%)² 의 합</p>
+                                        <p><strong>해석</strong><br>• 0.25 이상: 고집중 시장<br>• 0.15~0.25: 중간 집중<br>• 0.15 미만: 분산 시장<br>• 높을수록 소수 브랜드 독점</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="content-grid">
                             <div class="card">
@@ -2151,12 +2332,30 @@
                                     <table class="action-table" id="competitor-table">
                                         <thead>
                                             <tr>
-                                                <th>순위</th>
-                                                <th>브랜드</th>
-                                                <th>SoS</th>
-                                                <th>제품수</th>
-                                                <th>평균순위</th>
-                                                <th>vs Laneige</th>
+                                                <th class="has-tooltip">
+                                                    <span class="th-content">순위 <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip">SoS(진열 점유율) 기준 순위입니다. 1위가 가장 높은 점유율을 보유합니다.</div>
+                                                </th>
+                                                <th class="has-tooltip">
+                                                    <span class="th-content">브랜드 <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip">Top 100 내 제품을 보유한 브랜드입니다. LANEIGE가 기준점으로 표시됩니다.</div>
+                                                </th>
+                                                <th class="has-tooltip">
+                                                    <span class="th-content">SoS <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip"><strong>Share of Shelf</strong><br>Top 100 중 해당 브랜드 제품 비율(%). 예: 5% = 100개 중 5개 제품 보유</div>
+                                                </th>
+                                                <th class="has-tooltip">
+                                                    <span class="th-content">제품수 <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip">해당 브랜드가 Top 100 내에 보유한 제품 개수입니다.</div>
+                                                </th>
+                                                <th class="has-tooltip">
+                                                    <span class="th-content">평균순위 <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip">해당 브랜드 모든 제품의 평균 베스트셀러 순위입니다. 숫자가 낮을수록 상위권입니다.</div>
+                                                </th>
+                                                <th class="has-tooltip">
+                                                    <span class="th-content">vs Laneige <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip">LANEIGE 대비 SoS 차이(%p)입니다.<br>• 양수(+): LANEIGE보다 높음<br>• 음수(-): LANEIGE보다 낮음</div>
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody id="competitor-tbody">
@@ -2210,9 +2409,18 @@
                         <div class="content-grid single">
                             <div class="card">
                                 <div class="card-header">
-                                    <div class="card-title">
+                                    <div class="card-title has-tooltip">
                                         <div class="card-title-icon"><i data-lucide="target" style="color: white; width: 16px; height: 16px;"></i></div>
                                         상세 경쟁사 비교
+                                        <i data-lucide="help-circle" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6;"></i>
+                                        <div class="chart-title-tooltip">
+                                            <div class="tooltip-header">🎯 상세 경쟁사 비교</div>
+                                            <div class="tooltip-content">
+                                                <p><strong>기능</strong><br>선택한 경쟁사와 LANEIGE의 핵심 지표를 1:1 비교 분석합니다.</p>
+                                                <p><strong>비교 항목</strong><br>• 진열 점유율(SoS) 차이<br>• 평균 순위 비교<br>• 제품 수량 대비<br>• 평균 가격 비교</p>
+                                                <p><strong>활용법</strong><br>드롭다운에서 경쟁사를 선택하면 상세 비교 정보가 표시됩니다.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="competitor-selector">
                                         <span class="competitor-label">비교 대상:</span>
