@@ -775,6 +775,70 @@
             transform: translateX(0);
         }
 
+        /* === INFO POPUP TOOLTIP (아이콘 호버 시 팝업) === */
+        .info-tooltip-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .info-trigger {
+            transition: opacity 0.2s;
+        }
+        .info-trigger:hover {
+            opacity: 1 !important;
+        }
+        .info-popup-tooltip {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 400;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 10001;
+            box-shadow: var(--shadow-lg);
+            min-width: 260px;
+            max-width: 320px;
+            white-space: normal;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .info-popup-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            right: 12px;
+            border: 6px solid transparent;
+            border-bottom-color: var(--pacific-blue);
+        }
+        .info-tooltip-wrapper:hover .info-popup-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .info-popup-tooltip .tooltip-header {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .info-popup-tooltip .tooltip-content p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        .info-popup-tooltip .tooltip-content p:last-child {
+            margin-bottom: 0;
+        }
+        .info-popup-tooltip .tooltip-content strong {
+            color: #60a5fa;
+        }
+
         /* === CHART DATE RANGE PICKER === */
         .chart-date-range {
             display: flex;
@@ -2373,6 +2437,10 @@
                                                     <div class="th-tooltip">해당 브랜드 모든 제품의 평균 베스트셀러 순위입니다. 숫자가 낮을수록 상위권입니다.</div>
                                                 </th>
                                                 <th class="has-tooltip">
+                                                    <span class="th-content">평균가격 <i data-lucide="help-circle" class="help-icon"></i></span>
+                                                    <div class="th-tooltip"><strong>평균 판매가</strong><br>해당 브랜드 Top 100 제품들의 평균 판매 가격(USD)입니다.</div>
+                                                </th>
+                                                <th class="has-tooltip">
                                                     <span class="th-content">vs Laneige <i data-lucide="help-circle" class="help-icon"></i></span>
                                                     <div class="th-tooltip">LANEIGE 대비 SoS 차이(%p)입니다.<br>• 양수(+): LANEIGE보다 높음<br>• 음수(-): LANEIGE보다 낮음</div>
                                                 </th>
@@ -2385,6 +2453,7 @@
                                                 <td>4.0%</td>
                                                 <td>8개</td>
                                                 <td>25.3위</td>
+                                                <td>$26.89</td>
                                                 <td><span class="vs-badge baseline">기준</span></td>
                                             </tr>
                                             <tr>
@@ -2393,6 +2462,7 @@
                                                 <td>3.8%</td>
                                                 <td>12개</td>
                                                 <td>32.1위</td>
+                                                <td>$19.85</td>
                                                 <td><span class="vs-badge behind">-0.2%p</span></td>
                                             </tr>
                                             <tr>
@@ -2401,6 +2471,7 @@
                                                 <td>3.2%</td>
                                                 <td>4개</td>
                                                 <td>15.8위</td>
+                                                <td>$41.99</td>
                                                 <td><span class="vs-badge behind">-0.8%p</span></td>
                                             </tr>
                                             <tr>
@@ -2409,6 +2480,7 @@
                                                 <td>2.9%</td>
                                                 <td>18개</td>
                                                 <td>45.2위</td>
+                                                <td>$8.50</td>
                                                 <td><span class="vs-badge behind">-1.1%p</span></td>
                                             </tr>
                                             <tr>
@@ -2417,6 +2489,7 @@
                                                 <td>2.5%</td>
                                                 <td>6개</td>
                                                 <td>28.4위</td>
+                                                <td>$24.00</td>
                                                 <td><span class="vs-badge behind">-1.5%p</span></td>
                                             </tr>
                                         </tbody>
@@ -2473,39 +2546,90 @@
                             <div class="category-tab" onclick="selectCategory('face_powder', this)" title="Amazon Best Sellers in Face Powder (Node ID: 11058971, Face 하위)">Face Powder</div>
                         </div>
                         <div class="kpi-grid">
-                            <div class="kpi-card" title="Share of Shelf (SoS): 해당 카테고리 Top 100 중 Laneige 제품이 차지하는 비율. 높을수록 카테고리 내 존재감이 큼.">
-                                <div class="kpi-label">Category SoS</div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">Category SoS <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
                                 <div class="kpi-value" id="cat-sos">18.5<span class="unit">%</span></div>
-                                <span class="kpi-delta up" id="cat-sos-badge" title="SoS 15% 이상이면 Category Leader로 분류">Category Leader</span>
+                                <span class="kpi-delta up" id="cat-sos-badge">Category Leader</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">📊 Category SoS (Share of Shelf)</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>해당 카테고리 Top 100 중 Laneige 제품이 차지하는 비율</p>
+                                        <p><strong>해석 기준</strong><br>• 15% 이상: Category Leader<br>• 10~15%: 점유율 확대 필요<br>• 10% 미만: 점유율 확대 시급</p>
+                                        <p><strong>의미</strong><br>높을수록 카테고리 내 존재감이 크며, 소비자 선택 가능성이 높음</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="kpi-card" title="Laneige 제품 중 해당 카테고리에서 가장 높은 순위. 낮을수록 좋음.">
-                                <div class="kpi-label">Laneige Rank</div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">Laneige Rank <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
                                 <div class="kpi-value" id="cat-rank">#2</div>
-                                <span class="kpi-delta up" id="cat-rank-badge" title="1~3위면 '1위 근접', 4~10위면 'Top 10', 10위 이하면 '순위 개선 필요'">1위 근접</span>
+                                <span class="kpi-delta up" id="cat-rank-badge">1위 근접</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">🏆 Laneige Rank</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>Laneige 제품 중 해당 카테고리에서 가장 높은 순위</p>
+                                        <p><strong>해석 기준</strong><br>• 1~3위: 1위 근접 (우수)<br>• 4~10위: Top 10 (양호)<br>• 11위 이하: 순위 개선 필요</p>
+                                        <p><strong>의미</strong><br>숫자가 낮을수록 좋으며, 카테고리 내 경쟁력을 나타냄</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="kpi-card" title="Competitive Price Index (CPI): 경쟁사 대비 가격 수준. 100 = 동일, 100 이상 = 고가, 100 미만 = 저가. 현재 비교 대상: Summer Fridays">
-                                <div class="kpi-label">CPI Index</div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">CPI Index <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
                                 <div class="kpi-value" id="cat-cpi">112<span class="unit">pt</span></div>
-                                <span class="kpi-delta down" id="cat-cpi-badge" title="CPI 110 이상이면 '가격 경쟁력 하락', 90~110이면 '적정 가격', 90 미만이면 '가격 경쟁력 우위'">가격 경쟁력 하락</span>
+                                <span class="kpi-delta down" id="cat-cpi-badge">가격 경쟁력 하락</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">💰 CPI (Competitive Price Index)</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>경쟁사 대비 Laneige 가격 수준 지수</p>
+                                        <p><strong>해석 기준</strong><br>• 100 = 경쟁사와 동일<br>• 100 초과 = 경쟁사보다 고가<br>• 100 미만 = 경쟁사보다 저가</p>
+                                        <p><strong>상태 분류</strong><br>• 110 이상: 가격 경쟁력 하락<br>• 90~110: 적정 가격<br>• 90 미만: 가격 경쟁력 우위</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="kpi-card" title="최근 7일 내 Top 100에 새로 진입한 경쟁 브랜드/제품 수. 많을수록 시장 경쟁이 치열함.">
-                                <div class="kpi-label">신규 경쟁자</div>
+                            <div class="kpi-card has-tooltip">
+                                <div class="kpi-label">신규 경쟁자 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
                                 <div class="kpi-value" id="cat-new">18<span class="unit">개</span></div>
-                                <span class="kpi-delta down" id="cat-new-badge" title="15개 이상이면 '경쟁 심화', 5~15개면 '보통', 5개 미만이면 '안정적'">경쟁 심화</span>
+                                <span class="kpi-delta down" id="cat-new-badge">경쟁 심화</span>
+                                <div class="kpi-tooltip">
+                                    <div class="tooltip-header">🆕 신규 경쟁자</div>
+                                    <div class="tooltip-content">
+                                        <p><strong>정의</strong><br>최근 7일 내 Top 100에 새로 진입한 경쟁 브랜드/제품 수</p>
+                                        <p><strong>해석 기준</strong><br>• 15개 이상: 경쟁 심화<br>• 5~15개: 보통<br>• 5개 미만: 안정적</p>
+                                        <p><strong>의미</strong><br>많을수록 시장 경쟁이 치열하며, 순위 변동 가능성 높음</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="content-grid single">
                             <div class="card">
                                 <div class="card-header">
-                                    <div class="card-title">
+                                    <div class="card-title has-tooltip">
                                         <div class="card-title-icon"><i data-lucide="bar-chart" style="color: white; width: 16px; height: 16px;"></i></div>
                                         CPI 지수 추이
+                                        <i data-lucide="help-circle" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6;"></i>
+                                        <div class="chart-title-tooltip">
+                                            <div class="tooltip-header">📈 CPI 지수 추이</div>
+                                            <div class="tooltip-content">
+                                                <p><strong>차트 설명</strong><br>경쟁사 대비 Laneige의 가격 경쟁력 지수(CPI)를 일별로 추적합니다.</p>
+                                                <p><strong>기준선 해석</strong><br>• 파란 실선: Laneige CPI<br>• 점선 (100): 경쟁사 동일 가격 기준</p>
+                                                <p><strong>활용법</strong><br>CPI가 100 위면 프리미엄 포지셔닝, 100 아래면 가격 경쟁력 우위</p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="competitor-info" style="display: flex; align-items: center; gap: 8px;">
-                                        <span class="card-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);" title="현재 CPI 계산에 사용되는 비교 경쟁사">
-                                            vs Summer Fridays
+                                        <span class="card-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);">
+                                            vs <span id="cat-cpi-competitor">Summer Fridays</span>
                                         </span>
-                                        <span class="info-icon" title="경쟁사 선정 기준: 해당 카테고리 Top 10 내 브랜드 중 Laneige와 유사한 가격대/포지셔닝을 가진 브랜드. Summer Fridays는 Lip Care 카테고리 1위로 프리미엄 립케어 시장의 핵심 경쟁사입니다." style="cursor: help; font-size: 14px;">ℹ️</span>
+                                        <div class="info-tooltip-wrapper" style="position: relative; display: inline-block;">
+                                            <i data-lucide="info" class="info-trigger" style="width: 14px; height: 14px; cursor: help; color: var(--amore-blue); opacity: 0.7;"></i>
+                                            <div class="info-popup-tooltip">
+                                                <div class="tooltip-header">🎯 경쟁사 선정 기준</div>
+                                                <div class="tooltip-content">
+                                                    <p><strong>선정 기준</strong><br>모니터링 중인 5개 카테고리 Top 100 내 제품 보유 브랜드</p>
+                                                    <p><strong>SoS 기준 정렬</strong><br>Share of Shelf(진열 점유율) 높은 순서로 Top 5 표시</p>
+                                                    <p><strong>모니터링 카테고리</strong><br>• Beauty & Personal Care<br>• Skin Care<br>• Lip Care<br>• Lip Makeup<br>• Face Powder</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -3458,6 +3582,8 @@
                 const sosDiff = (comp.sos - laneigeSos).toFixed(1);
                 const vsBadgeClass = isLaneige ? 'baseline' : (parseFloat(sosDiff) > 0 ? 'ahead' : 'behind');
                 const vsBadgeText = isLaneige ? '기준' : (parseFloat(sosDiff) > 0 ? `+${sosDiff}%p` : `${sosDiff}%p`);
+                // 평균 가격 표시 (avg_price 필드 사용)
+                const avgPriceDisplay = comp.avg_price ? `$${comp.avg_price.toFixed(2)}` : '-';
 
                 return `
                     <tr class="${isLaneige ? 'highlight-row' : ''}">
@@ -3466,6 +3592,7 @@
                         <td>${comp.sos}%</td>
                         <td>${comp.product_count || comp.count || '-'}개</td>
                         <td>${comp.avg_rank ? comp.avg_rank.toFixed(1) + '위' : '-'}</td>
+                        <td>${avgPriceDisplay}</td>
                         <td><span class="vs-badge ${vsBadgeClass}">${vsBadgeText}</span></td>
                     </tr>
                 `;
