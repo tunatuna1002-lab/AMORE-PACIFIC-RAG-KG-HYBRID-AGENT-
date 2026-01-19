@@ -27,11 +27,34 @@ AMORE Pacific LANEIGE 브랜드의 Amazon US 시장 경쟁력 분석을 위한 A
 
 ### 모니터링 카테고리
 
-- Beauty & Personal Care
-- Skin Care
-- Lip Care
-- Lip Makeup
-- Face Powder
+| 카테고리 | Amazon Node ID | Level | 부모 카테고리 | URL |
+|----------|----------------|-------|---------------|-----|
+| Beauty & Personal Care | beauty | 0 | - | [zgbs/beauty](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty/) |
+| Skin Care | 11060451 | 1 | beauty | [zgbs/beauty/11060451](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451/) |
+| Lip Care | 3761351 | 2 | 11060451 | [zgbs/beauty/3761351](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351/) |
+| Lip Makeup | 11059031 | 2 | 11058281 | [zgbs/beauty/11059031](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Makeup/zgbs/beauty/11059031/) |
+| Face Powder | 11058971 | 2 | 11058691 | [zgbs/beauty/11058971](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Face-Powder/zgbs/beauty/11058971/) |
+
+#### 카테고리 계층 구조
+
+```
+Beauty & Personal Care (beauty) ← Level 0, 최상위
+├── Skin Care (11060451) ← Level 1
+│   └── Lip Care (3761351) ← Level 2
+├── Makeup (11058281) ← Level 1 (직접 크롤링 안함)
+│   └── Lip Makeup (11059031) ← Level 2
+└── Face (11058691) ← Level 1 (직접 크롤링 안함)
+    └── Face Powder (11058971) ← Level 2
+```
+
+#### 왜 Makeup, Face 카테고리는 직접 크롤링하지 않나요?
+
+**Makeup (11058281)**, **Face (11058691)** 카테고리는 직접 크롤링하지 않습니다:
+
+1. **LANEIGE 핵심 제품이 없음**: Makeup, Face는 상위 카테고리로, LANEIGE가 실제로 경쟁하는 제품군은 하위 세부 카테고리(Lip Makeup, Face Powder)에 집중
+2. **데이터 중복 방지**: 상위 카테고리를 크롤링하면 하위 카테고리 제품들이 중복으로 포함될 수 있음
+3. **분석 목적에 부합**: 너무 넓은 카테고리(예: Makeup 전체)는 LANEIGE의 경쟁 포지션 분석에 의미 있는 인사이트를 제공하기 어려움
+4. **API 효율성**: 크롤링 대상을 핵심 카테고리로 한정하여 리소스 최적화
 
 ---
 
@@ -433,11 +456,34 @@ AI agent system for analyzing AMORE Pacific LANEIGE brand competitiveness in Ama
 
 ### Monitored Categories
 
-- Beauty & Personal Care
-- Skin Care
-- Lip Care
-- Lip Makeup
-- Face Powder
+| Category | Amazon Node ID | Level | Parent | URL |
+|----------|----------------|-------|--------|-----|
+| Beauty & Personal Care | beauty | 0 | - | [zgbs/beauty](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty/) |
+| Skin Care | 11060451 | 1 | beauty | [zgbs/beauty/11060451](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451/) |
+| Lip Care | 3761351 | 2 | 11060451 | [zgbs/beauty/3761351](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351/) |
+| Lip Makeup | 11059031 | 2 | 11058281 | [zgbs/beauty/11059031](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Makeup/zgbs/beauty/11059031/) |
+| Face Powder | 11058971 | 2 | 11058691 | [zgbs/beauty/11058971](https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Face-Powder/zgbs/beauty/11058971/) |
+
+#### Category Hierarchy
+
+```
+Beauty & Personal Care (beauty) ← Level 0, Root
+├── Skin Care (11060451) ← Level 1
+│   └── Lip Care (3761351) ← Level 2
+├── Makeup (11058281) ← Level 1 (Not directly crawled)
+│   └── Lip Makeup (11059031) ← Level 2
+└── Face (11058691) ← Level 1 (Not directly crawled)
+    └── Face Powder (11058971) ← Level 2
+```
+
+#### Why are Makeup and Face categories not directly crawled?
+
+**Makeup (11058281)** and **Face (11058691)** categories are not directly crawled:
+
+1. **No core LANEIGE products**: Makeup and Face are broad parent categories; LANEIGE competes in specific sub-categories (Lip Makeup, Face Powder)
+2. **Avoid data duplication**: Crawling parent categories would include duplicate products from child categories
+3. **Analysis relevance**: Overly broad categories don't provide meaningful competitive insights for LANEIGE positioning
+4. **API efficiency**: Limiting crawl targets to core categories optimizes resource usage
 
 ---
 

@@ -2446,19 +2446,59 @@
                     <!-- CATEGORY PAGE (L2) -->
                     <div id="page-category" class="page-view">
                         <div class="category-tabs">
-                            <div class="category-tab active" onclick="selectCategory('lip', this)">Lip Care</div>
-                            <div class="category-tab" onclick="selectCategory('skin', this)">Skin Care</div>
-                            <div class="category-tab" onclick="selectCategory('face', this)">Face Moisturizer</div>
-                            <div class="category-tab" onclick="selectCategory('toner', this)">Toner</div>
+                            <div class="category-tab active" onclick="selectCategory('beauty', this)" title="Amazon Best Sellers in Beauty & Personal Care (최상위 카테고리)">Beauty & Personal Care</div>
+                            <div class="category-tab" onclick="selectCategory('skin', this)" title="Amazon Best Sellers in Skin Care (Node ID: 11060451)">Skin Care</div>
+                            <div class="category-tab" onclick="selectCategory('lip', this)" title="Amazon Best Sellers in Lip Care (Node ID: 3761351, Skin Care 하위)">Lip Care</div>
+                            <div class="category-tab" onclick="selectCategory('lip_makeup', this)" title="Amazon Best Sellers in Lip Makeup (Node ID: 11059031, Makeup 하위)">Lip Makeup</div>
+                            <div class="category-tab" onclick="selectCategory('face_powder', this)" title="Amazon Best Sellers in Face Powder (Node ID: 11058971, Face 하위)">Face Powder</div>
                         </div>
                         <div class="kpi-grid">
-                            <div class="kpi-card"><div class="kpi-label">Category SoS</div><div class="kpi-value" id="cat-sos">18.5<span class="unit">%</span></div><span class="kpi-delta up">Category Leader</span></div>
-                            <div class="kpi-card"><div class="kpi-label">Laneige Rank</div><div class="kpi-value" id="cat-rank">#2</div><span class="kpi-delta up">1위 근접</span></div>
-                            <div class="kpi-card"><div class="kpi-label">CPI Index</div><div class="kpi-value" id="cat-cpi">112<span class="unit">pt</span></div><span class="kpi-delta down">가격 경쟁력 하락</span></div>
-                            <div class="kpi-card"><div class="kpi-label">신규 경쟁자</div><div class="kpi-value" id="cat-new">18<span class="unit">개</span></div><span class="kpi-delta down">경쟁 심화</span></div>
+                            <div class="kpi-card" title="Share of Shelf (SoS): 해당 카테고리 Top 100 중 Laneige 제품이 차지하는 비율. 높을수록 카테고리 내 존재감이 큼.">
+                                <div class="kpi-label">Category SoS</div>
+                                <div class="kpi-value" id="cat-sos">18.5<span class="unit">%</span></div>
+                                <span class="kpi-delta up" id="cat-sos-badge" title="SoS 15% 이상이면 Category Leader로 분류">Category Leader</span>
+                            </div>
+                            <div class="kpi-card" title="Laneige 제품 중 해당 카테고리에서 가장 높은 순위. 낮을수록 좋음.">
+                                <div class="kpi-label">Laneige Rank</div>
+                                <div class="kpi-value" id="cat-rank">#2</div>
+                                <span class="kpi-delta up" id="cat-rank-badge" title="1~3위면 '1위 근접', 4~10위면 'Top 10', 10위 이하면 '순위 개선 필요'">1위 근접</span>
+                            </div>
+                            <div class="kpi-card" title="Competitive Price Index (CPI): 경쟁사 대비 가격 수준. 100 = 동일, 100 이상 = 고가, 100 미만 = 저가. 현재 비교 대상: Summer Fridays">
+                                <div class="kpi-label">CPI Index</div>
+                                <div class="kpi-value" id="cat-cpi">112<span class="unit">pt</span></div>
+                                <span class="kpi-delta down" id="cat-cpi-badge" title="CPI 110 이상이면 '가격 경쟁력 하락', 90~110이면 '적정 가격', 90 미만이면 '가격 경쟁력 우위'">가격 경쟁력 하락</span>
+                            </div>
+                            <div class="kpi-card" title="최근 7일 내 Top 100에 새로 진입한 경쟁 브랜드/제품 수. 많을수록 시장 경쟁이 치열함.">
+                                <div class="kpi-label">신규 경쟁자</div>
+                                <div class="kpi-value" id="cat-new">18<span class="unit">개</span></div>
+                                <span class="kpi-delta down" id="cat-new-badge" title="15개 이상이면 '경쟁 심화', 5~15개면 '보통', 5개 미만이면 '안정적'">경쟁 심화</span>
+                            </div>
                         </div>
                         <div class="content-grid single">
-                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="bar-chart" style="color: white; width: 16px; height: 16px;"></i></div>CPI 지수 추이</div></div><div class="card-body"><div class="chart-container"><canvas id="cpiChart"></canvas></div><div class="chart-guide"><strong>CPI (Competitive Price Index):</strong> 100 이상 = 경쟁사 대비 고가 / 100 미만 = 경쟁사 대비 저가. Laneige는 프리미엄 포지셔닝 유지 중</div></div></div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="bar-chart" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        CPI 지수 추이
+                                    </div>
+                                    <div class="competitor-info" style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="card-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);" title="현재 CPI 계산에 사용되는 비교 경쟁사">
+                                            vs Summer Fridays
+                                        </span>
+                                        <span class="info-icon" title="경쟁사 선정 기준: 해당 카테고리 Top 10 내 브랜드 중 Laneige와 유사한 가격대/포지셔닝을 가진 브랜드. Summer Fridays는 Lip Care 카테고리 1위로 프리미엄 립케어 시장의 핵심 경쟁사입니다." style="cursor: help; font-size: 14px;">ℹ️</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container"><canvas id="cpiChart"></canvas></div>
+                                    <div class="chart-guide">
+                                        <strong>CPI (Competitive Price Index):</strong> 100 이상 = 경쟁사 대비 고가 / 100 미만 = 경쟁사 대비 저가. Laneige는 프리미엄 포지셔닝 유지 중<br>
+                                        <span style="color: var(--text-secondary); font-size: 11px; margin-top: 4px; display: inline-block;">
+                                            📊 <strong>비교 경쟁사:</strong> Summer Fridays (Lip Butter Balm) |
+                                            <strong>선정 기준:</strong> 카테고리 1위 + 프리미엄 포지셔닝 + 유사 타겟층
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2467,10 +2507,11 @@
                         <div class="selector-group">
                             <span class="selector-label">카테고리</span>
                             <select class="selector-dropdown" id="productCategory" onchange="updateProductList()">
-                                <option value="lip">Lip Care</option>
+                                <option value="beauty">Beauty & Personal Care</option>
                                 <option value="skin">Skin Care</option>
-                                <option value="face">Face Moisturizer</option>
-                                <option value="toner">Toner</option>
+                                <option value="lip">Lip Care</option>
+                                <option value="lip_makeup">Lip Makeup</option>
+                                <option value="face_powder">Face Powder</option>
                             </select>
                             <span class="selector-label">제품</span>
                             <select class="selector-dropdown" id="productSelect" onchange="updateProductView()">
@@ -2701,10 +2742,11 @@
         };
 
         let categoryProducts = {
-            'lip': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['lip-mask-original', 'Lip Sleeping Mask (Original)'], ['lip-glowy', 'Lip Glowy Balm']],
+            'beauty': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['water-bank', 'Water Bank Blue Cream']],
             'skin': [['water-bank', 'Water Bank Blue Cream'], ['cream-skin', 'Cream Skin Toner']],
-            'face': [['water-bank-moist', 'Water Bank Moisture Cream'], ['cica-sleep', 'Cica Sleeping Mask']],
-            'toner': [['cream-skin-ref', 'Cream Skin Refiner'], ['clear-c', 'Clear-C Peeling Serum']]
+            'lip': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['lip-mask-original', 'Lip Sleeping Mask (Original)'], ['lip-glowy', 'Lip Glowy Balm']],
+            'lip_makeup': [['lip-glowy', 'Lip Glowy Balm'], ['lip-tint', 'Lip Tint']],
+            'face_powder': [['neo-cushion', 'Neo Cushion'], ['skin-veil', 'Skin Veil Base']]
         };
 
         // 크롤링 상태 관리
@@ -3631,8 +3673,14 @@
             document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
 
-            // 카테고리 ID 매핑
-            const catMap = { 'lip': 'lip_care', 'skin': 'facial_skin_care', 'face': 'face_moisturizer', 'toner': 'toner' };
+            // 카테고리 ID 매핑 (새로운 5개 카테고리)
+            const catMap = {
+                'beauty': 'beauty_personal_care',
+                'skin': 'skin_care',
+                'lip': 'lip_care',
+                'lip_makeup': 'lip_makeup',
+                'face_powder': 'face_powder'
+            };
             const catId = catMap[cat] || cat;
 
             // JSON 데이터에서 카테고리 KPI 로드
@@ -3646,8 +3694,14 @@
                     new: catKpi.new_competitors || 0
                 };
             } else {
-                // Fallback 데이터
-                const fallback = { lip: { sos: '18.5', rank: '#2', cpi: '112', new: '18' }, skin: { sos: '12.3', rank: '#4', cpi: '108', new: '24' }, face: { sos: '15.1', rank: '#3', cpi: '115', new: '12' }, toner: { sos: '8.7', rank: '#6', cpi: '102', new: '31' } };
+                // Fallback 데이터 (새로운 5개 카테고리)
+                const fallback = {
+                    beauty: { sos: '5.2', rank: '#8', cpi: '105', new: '45' },
+                    skin: { sos: '12.3', rank: '#4', cpi: '108', new: '24' },
+                    lip: { sos: '18.5', rank: '#2', cpi: '112', new: '18' },
+                    lip_makeup: { sos: '8.1', rank: '#6', cpi: '98', new: '22' },
+                    face_powder: { sos: '6.7', rank: '#9', cpi: '115', new: '15' }
+                };
                 data = fallback[cat] || { sos: 0, rank: '#N/A', cpi: 100, new: 0 };
             }
 
@@ -3655,6 +3709,69 @@
             document.getElementById('cat-rank').textContent = data.rank;
             document.getElementById('cat-cpi').innerHTML = data.cpi + '<span class="unit">pt</span>';
             document.getElementById('cat-new').innerHTML = data.new + '<span class="unit">개</span>';
+
+            // KPI 배지 업데이트
+            updateCategoryBadges(data);
+        }
+
+        // 카테고리 KPI 배지 동적 업데이트
+        function updateCategoryBadges(data) {
+            const sos = parseFloat(data.sos);
+            const rank = parseInt(data.rank.replace('#', ''));
+            const cpi = parseFloat(data.cpi);
+            const newComp = parseInt(data.new);
+
+            // SoS 배지
+            const sosBadge = document.getElementById('cat-sos-badge');
+            if (sos >= 15) {
+                sosBadge.textContent = 'Category Leader';
+                sosBadge.className = 'kpi-delta up';
+            } else if (sos >= 8) {
+                sosBadge.textContent = 'Strong Presence';
+                sosBadge.className = 'kpi-delta up';
+            } else {
+                sosBadge.textContent = '점유율 확대 필요';
+                sosBadge.className = 'kpi-delta down';
+            }
+
+            // Rank 배지
+            const rankBadge = document.getElementById('cat-rank-badge');
+            if (rank <= 3) {
+                rankBadge.textContent = '1위 근접';
+                rankBadge.className = 'kpi-delta up';
+            } else if (rank <= 10) {
+                rankBadge.textContent = 'Top 10';
+                rankBadge.className = 'kpi-delta up';
+            } else {
+                rankBadge.textContent = '순위 개선 필요';
+                rankBadge.className = 'kpi-delta down';
+            }
+
+            // CPI 배지
+            const cpiBadge = document.getElementById('cat-cpi-badge');
+            if (cpi >= 110) {
+                cpiBadge.textContent = '가격 경쟁력 하락';
+                cpiBadge.className = 'kpi-delta down';
+            } else if (cpi >= 90) {
+                cpiBadge.textContent = '적정 가격';
+                cpiBadge.className = 'kpi-delta up';
+            } else {
+                cpiBadge.textContent = '가격 경쟁력 우위';
+                cpiBadge.className = 'kpi-delta up';
+            }
+
+            // 신규 경쟁자 배지
+            const newBadge = document.getElementById('cat-new-badge');
+            if (newComp >= 15) {
+                newBadge.textContent = '경쟁 심화';
+                newBadge.className = 'kpi-delta down';
+            } else if (newComp >= 5) {
+                newBadge.textContent = '보통';
+                newBadge.className = 'kpi-delta';
+            } else {
+                newBadge.textContent = '안정적';
+                newBadge.className = 'kpi-delta up';
+            }
         }
 
         function updateProductList() {
