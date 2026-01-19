@@ -731,7 +731,18 @@ class HybridChatbotAgent:
         if not sources:
             return ""
 
-        lines = ["\n\n---", "**📚 출처 및 참고자료:**", ""]
+        lines = ["\n\n---"]
+
+        # 데이터 출처 시점을 명확히 표시 (사용자 요청)
+        crawled_source = next((s for s in sources if s["type"] == "crawled_data"), None)
+        if crawled_source:
+            collected_at = crawled_source.get("collected_at", "")
+            if collected_at:
+                lines.append(f"📅 **데이터 기준: Amazon US Best Sellers {collected_at} 수집**")
+                lines.append("*(Amazon은 Best Sellers 순위를 매 시간 업데이트합니다)*")
+                lines.append("")
+
+        lines.extend(["**📚 출처 및 참고자료:**", ""])
 
         for i, source in enumerate(sources, 1):
             icon = source.get("icon", "•")

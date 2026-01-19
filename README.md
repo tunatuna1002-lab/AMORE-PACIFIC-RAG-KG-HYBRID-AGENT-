@@ -578,3 +578,98 @@ Chatbot conversations are logged to `./logs/chatbot_audit_YYYY-MM-DD.log`.
 ## License
 
 MIT License
+
+---
+
+## Changelog (개선 타임라인)
+
+### 2026-01-19: 카테고리 온톨로지 & 대시보드 UX 개선
+
+#### 🏗️ 카테고리 계층 구조 온톨로지
+- **Amazon 카테고리 node_id 추가**: `config/category_hierarchy.json`에 각 카테고리별 `amazon_node_id`, `level`, `parent_id` 추가
+- **크롤러 개선**: `amazon_scraper.py`에서 제품별 `category_id`, `amazon_node_id`, `category_name`, `category_level` 수집
+- **동일 ASIN 다중 카테고리 인식**: 하나의 제품이 여러 카테고리에서 다른 순위를 가질 수 있음을 시스템이 인식
+
+#### 🐛 버그 수정
+- **순위 비교 로직 수정** (`dashboard_exporter.py`):
+  - `_calculate_rank_change()`에 `category_id` 필터 추가
+  - 이전: ASIN만으로 비교 → "73위→4위 급상승" 오류 발생
+  - 이후: 동일 카테고리 내에서만 순위 변동 비교
+- **ASIN 중복 표시 제거**: `_generate_action_items()`에서 ASIN별 가장 좋은 순위 카테고리만 표시
+- **평점 0.00 처리**: `rating > 0` 조건 추가로 데이터 없음을 "평점 하락"으로 오인하지 않음
+
+#### 📊 데이터 출처 인용 (Data Provenance)
+- **챗봇 응답**: 응답 상단에 `📅 데이터 기준: Amazon US Best Sellers {날짜} 수집` 표시
+- **인사이트**: `data_source` 필드 추가 (platform, collected_at, snapshot_date, disclaimer)
+- **대시보드 JSON**: `dashboard_data.json`에 `data_source` 섹션 추가
+
+#### 🎨 대시보드 UX 개선
+- **카테고리 포지션 툴팁**: "TOP 4" 카드에 마우스 hover 시 각 제품의 카테고리별 순위 표시
+- **차트 날짜 범위 선택**: 순위 추이, 제품 매트릭스, 할인 추이 차트에 1일/7일/14일/30일 선택 버튼 추가
+
+#### 📁 변경된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `config/category_hierarchy.json` | 카테고리 계층 구조 v1.1 |
+| `config/thresholds.json` | 카테고리별 amazon_node_id, level 추가 |
+| `src/tools/amazon_scraper.py` | 카테고리 메타데이터 수집 |
+| `src/tools/dashboard_exporter.py` | 카테고리 인식 순위 비교, 데이터 출처 |
+| `src/agents/hybrid_chatbot_agent.py` | 데이터 출처 인용 |
+| `src/agents/hybrid_insight_agent.py` | 데이터 출처 정보 |
+| `dashboard/amore_unified_dashboard_v4.html` | 툴팁, 날짜 선택기 |
+
+---
+
+### 2026-01-18: AI 인사이트 & 할인 분석 강화
+
+#### 🧠 AI 인사이트 개선
+- 인사이트에 데이터 출처 명시
+- 카테고리 계층 인식 프롬프트 추가
+- 순위 언급 시 카테고리 명시 유도
+
+#### 💰 할인/프로모션 분석
+- 제품별 할인율, 쿠폰, Deal 정보 수집
+- 경쟁사 할인 전략 비교 분석
+- 할인 추이 차트 추가
+
+---
+
+### 2026-01-03: 자동 크롤링 스케줄러 안정화
+
+#### 🔧 핵심 수정
+- KST 시간대 적용 (UTC → KST)
+- 스케줄러 상태 파일 저장 (`scheduler_state.json`)
+- Google Sheets 환경변수 credentials 지원
+- API 할당량 초과 방지 (배치 처리)
+
+#### 📁 변경된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/core/brain.py` | KST 시간대, 상태 저장 |
+| `src/core/crawl_manager.py` | KST 날짜 체크 |
+| `src/tools/sheets_writer.py` | 환경변수 credentials, 배치 처리 |
+| `src/tools/amazon_scraper.py` | KST snapshot_date |
+
+---
+
+### 2026-01-02: Google Sheets 통합 개선
+
+#### 🔧 핵심 수정
+- 배치 upsert로 API 호출 최소화
+- Spreadsheet ID 파싱 오류 수정
+- 환경변수 줄바꿈/공백 처리
+
+---
+
+### 초기 릴리스: Hybrid RAG 시스템
+
+#### 🏗️ 핵심 아키텍처
+- Knowledge Graph (Triple Store)
+- Ontology Reasoner (비즈니스 규칙)
+- Document Retriever (키워드 기반)
+- LLM 통합 (GPT-4.1-mini)
+
+#### 📊 대시보드
+- 실시간 순위 모니터링
+- SoS, HHI, CPI 지표
+- AI 챗봇 통합

@@ -507,6 +507,59 @@
             visibility: visible;
         }
 
+        /* === CATEGORY POSITION TOOLTIP === */
+        .status-card.info { position: relative; z-index: 1; }
+        .status-card.info:hover { z-index: 9999; }
+        .category-position-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.15s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 8px;
+            min-width: 220px;
+        }
+        .category-position-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--pacific-blue);
+        }
+        .category-position-tooltip ul {
+            list-style: none;
+            text-align: left;
+            margin: 0;
+            padding: 0;
+        }
+        .category-position-tooltip li {
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+        .category-position-tooltip li::before {
+            content: '•';
+            color: #60a5fa;
+        }
+        .status-card.info:hover .category-position-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* === GRID & CARDS - Clean Professional Style === */
         .content-grid {
             display: grid;
@@ -1777,7 +1830,17 @@
                         </div>
                         <div class="status-grid">
                             <div class="status-card success"><div class="status-label">Laneige 노출 상태</div><div class="status-value"><i data-lucide="trending-up" style="width: 24px; height: 24px;"></i><span>Stable Up</span></div></div>
-                            <div class="status-card info"><div class="status-label">카테고리 포지션</div><div class="status-value"><i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i><span>Top 3</span></div></div>
+                            <div class="status-card info" id="categoryPositionCard">
+                                <div class="status-label">카테고리 포지션</div>
+                                <div class="status-value"><i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i><span id="categoryPositionValue">Top 3</span></div>
+                                <div class="category-position-tooltip" id="categoryPositionTooltip">
+                                    <div style="font-weight: 600; margin-bottom: 8px; color: #3b82f6;">📊 카테고리별 Top 순위</div>
+                                    <ul id="categoryPositionList">
+                                        <li>Lip Sleeping Mask - Lip Care 4위</li>
+                                        <li>Lip Glowy Balm - Lip Makeup 12위</li>
+                                    </ul>
+                                </div>
+                            </div>
                             <div class="status-card danger" id="warningProductsCard">
                                 <div class="status-label">주의 제품</div>
                                 <div class="status-value"><i data-lucide="alert-octagon" style="width: 24px; height: 24px;"></i><span id="warningCount">2개</span></div>
@@ -2520,6 +2583,9 @@
 
             // 주의 제품 툴팁 업데이트
             updateWarningTooltip(items);
+
+            // 카테고리 포지션 툴팁 업데이트
+            updateCategoryPositionTooltip(items);
         }
 
         // 주의 제품 툴팁 업데이트
@@ -2533,6 +2599,51 @@
                     `<li>${item.product_name} - ${item.signal}</li>`
                 ).join('');
                 if (warningCount) warningCount.textContent = warningItems.length + '개';
+            }
+        }
+
+        // 카테고리 포지션 툴팁 업데이트
+        function updateCategoryPositionTooltip(items) {
+            const tooltipList = document.getElementById('categoryPositionList');
+            const positionValue = document.getElementById('categoryPositionValue');
+
+            if (!tooltipList || !items || items.length === 0) return;
+
+            // ASIN별로 가장 좋은 순위만 선택 (중복 제거)
+            const asinBest = {};
+            items.forEach(item => {
+                const asin = item.asin;
+                if (!asin) return;
+
+                // rank를 숫자로 추출
+                const rankMatch = item.signal?.match(/(\d+)위/) || item.signal?.match(/Top (\d+)/);
+                const rank = rankMatch ? parseInt(rankMatch[1]) : 999;
+
+                if (!asinBest[asin] || rank < asinBest[asin].rank) {
+                    asinBest[asin] = {
+                        name: item.product_name,
+                        rank: rank,
+                        category: item.category_name || '카테고리'
+                    };
+                }
+            });
+
+            // 순위순으로 정렬
+            const sortedProducts = Object.values(asinBest)
+                .filter(p => p.rank <= 50)  // Top 50 이내만 표시
+                .sort((a, b) => a.rank - b.rank)
+                .slice(0, 6);  // 최대 6개
+
+            if (sortedProducts.length > 0) {
+                tooltipList.innerHTML = sortedProducts.map(p =>
+                    `<li>${p.name} - ${p.category} ${p.rank}위</li>`
+                ).join('');
+
+                // 가장 좋은 순위로 표시 업데이트
+                const bestRank = sortedProducts[0].rank;
+                if (positionValue) {
+                    positionValue.textContent = `Top ${bestRank}`;
+                }
             }
         }
 

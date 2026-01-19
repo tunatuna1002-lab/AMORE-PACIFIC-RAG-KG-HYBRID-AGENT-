@@ -134,9 +134,13 @@ class HybridInsightAgent:
             self.tracer.start_span("hybrid_insight_agent")
 
         try:
+            # 데이터 출처 정보 추출
+            data_source = self._extract_data_source_info(metrics_data, crawl_data)
+
             results = {
                 "status": "completed",
                 "generated_at": datetime.now().isoformat(),
+                "data_source": data_source,  # 데이터 출처 정보 추가
                 "daily_insight": "",
                 "action_items": [],
                 "highlights": [],
@@ -557,3 +561,64 @@ class HybridInsightAgent:
     def get_reasoner(self) -> OntologyReasoner:
         """추론기 반환"""
         return self.reasoner
+
+    def _extract_data_source_info(
+        self,
+        metrics_data: Optional[Dict],
+        crawl_data: Optional[Dict]
+    ) -> Dict[str, Any]:
+        """
+        데이터 출처 정보 추출
+
+        Args:
+            metrics_data: 지표 데이터
+            crawl_data: 크롤링 데이터
+
+        Returns:
+            데이터 출처 정보 딕셔너리
+        """
+        source_info = {
+            "platform": "Amazon US Best Sellers",
+            "collected_at": None,
+            "snapshot_date": None,
+            "categories": [],
+            "total_products": 0,
+            "disclaimer": "Amazon은 Best Sellers 순위를 매 시간 업데이트합니다. 표시된 데이터는 수집 시점의 스냅샷입니다."
+        }
+
+        # 크롤링 데이터에서 수집 시점 추출
+        if crawl_data:
+            collected_at = crawl_data.get("collected_at")
+            if collected_at:
+                source_info["collected_at"] = collected_at
+
+            # 크롤링 요약에서 정보 추출
+            if "summary" in crawl_data:
+                summary = crawl_data["summary"]
+                source_info["total_products"] = summary.get("total_products", 0)
+                source_info["categories"] = summary.get("categories", [])
+
+        # 지표 데이터에서 날짜 정보 추출
+        if metrics_data:
+            metadata = metrics_data.get("metadata", {})
+            if metadata:
+                data_date = metadata.get("data_date")
+                if data_date:
+                    source_info["snapshot_date"] = data_date
+                if not source_info["collected_at"]:
+                    source_info["collected_at"] = metadata.get("generated_at")
+
+            # 카테고리 정보
+            categories = metrics_data.get("categories", {})
+            if categories and not source_info["categories"]:
+                source_info["categories"] = list(categories.keys())
+
+            # 제품 수
+            if not source_info["total_products"]:
+                total = sum(
+                    len(cat_data.get("rank_records", []))
+                    for cat_data in categories.values()
+                ) if categories else 0
+                source_info["total_products"] = total
+
+        return source_info

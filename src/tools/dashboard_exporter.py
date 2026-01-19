@@ -106,13 +106,21 @@ class DashboardExporter:
             return {"error": "No data found"}
 
         # Dashboard 데이터 구조 생성
+        latest_date = self._get_latest_date(raw_data)
         dashboard_data = {
             "metadata": {
                 "generated_at": datetime.now(KST).isoformat(),
-                "data_date": self._get_latest_date(raw_data),
+                "data_date": latest_date,
                 "total_products": len(raw_data),
                 "laneige_products": len([r for r in raw_data if self._is_laneige(r)]),
                 "ontology_enabled": self.enable_ontology
+            },
+            "data_source": {
+                "platform": "Amazon US Best Sellers",
+                "collected_at": datetime.now(KST).isoformat(),
+                "snapshot_date": latest_date,
+                "disclaimer": "Amazon은 Best Sellers 순위를 매 시간 업데이트합니다. 표시된 데이터는 수집 시점의 스냅샷입니다.",
+                "url": "https://www.amazon.com/gp/bestsellers/beauty"
             },
             "home": self._generate_home_data(raw_data),
             "brand": self._generate_brand_data(raw_data),
@@ -199,15 +207,27 @@ class DashboardExporter:
         )
 
     def _generate_action_items(self, laneige_products: List[Dict], all_data: List[Dict]) -> List[Dict]:
-        """액션 아이템 생성"""
+        """액션 아이템 생성 - ASIN 중복 제거, 가장 좋은 순위 카테고리 표시"""
         items = []
+        seen_asins = set()  # ASIN 중복 방지
 
+        # ASIN별로 가장 좋은 순위의 제품만 선택
+        asin_best = {}
         for product in laneige_products:
+            asin = product.get("asin", "")
+            if not asin:
+                continue
+            rank = self._safe_int(product.get("rank", 999))
+            if asin not in asin_best or rank < self._safe_int(asin_best[asin].get("rank", 999)):
+                asin_best[asin] = product
+
+        for asin, product in asin_best.items():
             rank = self._safe_int(product.get("rank", 999))
             rating = self._safe_float(product.get("rating", 0))
             name = product.get("product_name", "Unknown")[:25]
+            category_name = product.get("category_name", "")
 
-            # 순위 상승/하락 체크
+            # 순위 상승/하락 체크 (동일 카테고리 내에서만)
             rank_change = self._calculate_rank_change(product, all_data)
 
             priority = "P2"
@@ -216,21 +236,29 @@ class DashboardExporter:
 
             if rank_change < -2:  # 순위 상승 (숫자가 작아짐)
                 signal = f"순위 {rank+abs(rank_change)}→{rank} (상향)"
+                if category_name:
+                    signal += f" [{category_name}]"
                 priority = "P1"
                 action_tag = "MONITOR"
             elif rank_change > 2:  # 순위 하락
                 signal = f"순위 {rank-rank_change}→{rank} (하락)"
+                if category_name:
+                    signal += f" [{category_name}]"
                 priority = "P1"
                 action_tag = "CHECK"
-            elif rating < 4.0:  # 평점 낮음
-                signal = f"평점 {rating:.2f} (하락)"
+            elif rating > 0 and rating < 4.0:  # 평점 낮음 (0은 데이터 없음으로 처리)
+                signal = f"평점 {rating:.2f} (주의)"
                 priority = "P1"
                 action_tag = "CHECK"
             elif rank <= 5:  # 상위권 유지
                 signal = f"Top {rank} 유지 중"
+                if category_name:
+                    signal += f" [{category_name}]"
                 action_tag = "MONITOR"
             else:
                 signal = f"순위 {rank}위"
+                if category_name:
+                    signal += f" [{category_name}]"
                 action_tag = "DEEP DIVE"
 
             items.append({
@@ -239,7 +267,9 @@ class DashboardExporter:
                 "brand_variant": product.get("badge", ""),
                 "signal": signal,
                 "action_tag": action_tag,
-                "asin": product.get("asin", "")
+                "asin": asin,
+                "category_id": product.get("category_id", ""),
+                "category_name": category_name
             })
 
         # 우선순위로 정렬
@@ -247,17 +277,19 @@ class DashboardExporter:
         return items
 
     def _calculate_rank_change(self, product: Dict, all_data: List[Dict]) -> int:
-        """순위 변동 계산 (어제 대비)"""
+        """순위 변동 계산 (어제 대비) - 동일 카테고리 내에서만 비교"""
         asin = product.get("asin")
         current_date = product.get("snapshot_date")
+        category_id = product.get("category_id")
 
         if not asin or not current_date:
             return 0
 
-        # 이전 데이터 찾기
+        # 이전 데이터 찾기 - 동일 ASIN + 동일 카테고리 내에서만 비교
         prev_records = [
             r for r in all_data
             if r.get("asin") == asin
+            and r.get("category_id") == category_id  # 동일 카테고리 필터
             and r.get("snapshot_date", "") < current_date
         ]
 
