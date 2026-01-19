@@ -41,13 +41,13 @@ class DashboardExporter:
     # LANEIGE 브랜드 식별
     LANEIGE_BRAND = "laneige"
 
-    # 카테고리 매핑
+    # 카테고리 매핑 (config/thresholds.json의 categories와 일치해야 함)
     CATEGORY_MAP = {
+        "beauty": "Beauty & Personal Care",
+        "skin_care": "Skin Care",
         "lip_care": "Lip Care",
-        "face_moisturizer": "Face Moisturizer",
-        "facial_skin_care": "Skin Care",
-        "toner": "Toner",
-        "beauty_skincare": "Beauty & Skin Care"
+        "lip_makeup": "Lip Makeup",
+        "face_powder": "Face Powder"
     }
 
     def __init__(
@@ -225,7 +225,9 @@ class DashboardExporter:
             rank = self._safe_int(product.get("rank", 999))
             rating = self._safe_float(product.get("rating", 0))
             name = product.get("product_name", "Unknown")[:25]
-            category_name = product.get("category_name", "")
+            category_id = product.get("category_id", "")
+            # category_name이 없으면 CATEGORY_MAP에서 가져옴
+            category_name = product.get("category_name") or self.CATEGORY_MAP.get(category_id, "")
 
             # 순위 상승/하락 체크 (동일 카테고리 내에서만)
             rank_change = self._calculate_rank_change(product, all_data)
@@ -268,7 +270,7 @@ class DashboardExporter:
                 "signal": signal,
                 "action_tag": action_tag,
                 "asin": asin,
-                "category_id": product.get("category_id", ""),
+                "category_id": category_id,
                 "category_name": category_name
             })
 
