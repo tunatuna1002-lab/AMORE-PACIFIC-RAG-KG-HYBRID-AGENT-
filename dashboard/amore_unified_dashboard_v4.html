@@ -507,6 +507,201 @@
             visibility: visible;
         }
 
+        /* === EXPOSURE STATUS TOOLTIP === */
+        .status-card.success { position: relative; z-index: 1; }
+        .status-card.success:hover { z-index: 9999; }
+        .exposure-status-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.15s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 8px;
+            min-width: 200px;
+        }
+        .exposure-status-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--pacific-blue);
+        }
+        .exposure-status-tooltip ul {
+            list-style: none;
+            text-align: left;
+            margin: 0;
+            padding: 0;
+        }
+        .exposure-status-tooltip li {
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+        .exposure-status-tooltip li::before {
+            content: '•';
+            color: #22c55e;
+        }
+        .status-card.success:hover .exposure-status-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* === CHART TITLE TOOLTIP === */
+        .card-title.has-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .card-title .help-icon {
+            cursor: help;
+            transition: opacity 0.2s;
+        }
+        .card-title:hover .help-icon {
+            opacity: 1 !important;
+        }
+        .chart-title-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 8px;
+            background: var(--pacific-blue);
+            color: var(--ap-white);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            min-width: 280px;
+            max-width: 320px;
+            white-space: normal;
+            line-height: 1.5;
+        }
+        .chart-title-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 20px;
+            border: 8px solid transparent;
+            border-bottom-color: var(--pacific-blue);
+        }
+        .chart-title-tooltip .tooltip-header {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .chart-title-tooltip .tooltip-content p {
+            margin: 0 0 10px 0;
+            font-size: 11px;
+        }
+        .chart-title-tooltip .tooltip-content p:last-child {
+            margin-bottom: 0;
+        }
+        .chart-title-tooltip .tooltip-content strong {
+            color: #60a5fa;
+        }
+        .card-title.has-tooltip:hover .chart-title-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* === CHART DATE RANGE PICKER === */
+        .chart-date-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .chart-date-range label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .chart-date-range input[type="date"] {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            background: var(--ap-white);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .chart-date-range input[type="date"]:hover {
+            border-color: var(--pacific-blue);
+        }
+        .chart-date-range input[type="date"]:focus {
+            outline: none;
+            border-color: var(--pacific-blue);
+            box-shadow: 0 0 0 3px rgba(0, 112, 184, 0.1);
+        }
+        .chart-date-range .date-separator {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        .chart-date-range .apply-btn {
+            padding: 6px 12px;
+            background: var(--pacific-blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .chart-date-range .apply-btn:hover {
+            background: var(--amore-blue);
+        }
+        .data-period-info {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: rgba(0, 112, 184, 0.05);
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .data-gap-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .data-gap-warning i {
+            width: 14px;
+            height: 14px;
+        }
+        .tooltip-period-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 10px;
+            color: rgba(255,255,255,0.8);
+        }
+
         /* === CATEGORY POSITION TOOLTIP === */
         .status-card.info { position: relative; z-index: 1; }
         .status-card.info:hover { z-index: 9999; }
@@ -1829,7 +2024,17 @@
                             </div>
                         </div>
                         <div class="status-grid">
-                            <div class="status-card success"><div class="status-label">Laneige 노출 상태</div><div class="status-value"><i data-lucide="trending-up" style="width: 24px; height: 24px;"></i><span>Stable Up</span></div></div>
+                            <div class="status-card success" id="exposureStatusCard">
+                                <div class="status-label">Laneige 노출 상태</div>
+                                <div class="status-value"><i data-lucide="trending-up" style="width: 24px; height: 24px;"></i><span id="exposureStatusValue">Stable Up</span></div>
+                                <div class="exposure-status-tooltip" id="exposureStatusTooltip">
+                                    <div style="font-weight: 600; margin-bottom: 8px; color: #22c55e;">📈 상태 판단 근거</div>
+                                    <ul id="exposureStatusList">
+                                        <li>Top 10 내 LANEIGE 제품: 3개</li>
+                                        <li>전일 대비: 순위 상승</li>
+                                    </ul>
+                                </div>
+                            </div>
                             <div class="status-card info" id="categoryPositionCard">
                                 <div class="status-label">카테고리 포지션</div>
                                 <div class="status-value"><i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i><span id="categoryPositionValue">Top 3</span></div>
@@ -1889,7 +2094,41 @@
                             <div class="kpi-card"><div class="kpi-label">시장 HHI</div><div class="kpi-value">0.35</div><span class="kpi-delta">중간 집중도</span></div>
                         </div>
                         <div class="content-grid">
-                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="scatter-chart" style="color: white; width: 16px; height: 16px;"></i></div>Laneige vs 경쟁사 SoS × Avg Rank</div></div><div class="card-body"><div class="chart-container"><canvas id="brandMatrixChart"></canvas></div><div class="chart-guide"><strong>해석 가이드:</strong> 우측 하단 = 물량 多 + 상위권 강함 (정상 성장) / 우측 상단 = 물량 多 + 상위권 약함 (효율 악화)</div></div></div>
+                            <div class="card">
+                                <div class="card-header" style="flex-wrap: wrap; gap: 8px;">
+                                    <div class="card-title has-tooltip">
+                                        <div class="card-title-icon"><i data-lucide="scatter-chart" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        <span>Laneige vs 경쟁사 SoS × Avg Rank</span>
+                                        <i data-lucide="help-circle" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6;"></i>
+                                        <div class="chart-title-tooltip">
+                                            <div class="tooltip-header">📊 지표 설명</div>
+                                            <div class="tooltip-content">
+                                                <p><strong>SoS (Share of Shelf)</strong><br>Top 100 중 해당 브랜드 제품 비율 (%)<br>예: 5% = Top 100 중 5개 제품 보유</p>
+                                                <p><strong>Avg Rank (평균 순위)</strong><br>해당 브랜드 제품들의 평균 순위<br>숫자가 낮을수록 상위권</p>
+                                                <p><strong>해석</strong><br>• 우측 하단: SoS 高 + 순위 高 (이상적)<br>• 좌측 상단: SoS 低 + 순위 低 (개선 필요)</p>
+                                            </div>
+                                            <div class="tooltip-period-info" id="brandMatrixPeriodInfo">
+                                                📅 분석 기간: 로딩 중...
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="chart-date-range" id="brandMatrixDateRange">
+                                        <label>기간:</label>
+                                        <input type="date" id="brandMatrixStartDate" />
+                                        <span class="date-separator">~</span>
+                                        <input type="date" id="brandMatrixEndDate" />
+                                        <button class="apply-btn" onclick="applyBrandMatrixDateRange()">적용</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container"><canvas id="brandMatrixChart"></canvas></div>
+                                    <div class="chart-guide"><strong>해석 가이드:</strong> 우측 하단 = 물량 多 + 상위권 강함 (정상 성장) / 우측 상단 = 물량 多 + 상위권 약함 (효율 악화)</div>
+                                    <div class="data-gap-warning" id="brandMatrixDataGap" style="display: none;">
+                                        <i data-lucide="alert-triangle"></i>
+                                        <span id="brandMatrixDataGapText">데이터 없는 기간이 있습니다.</span>
+                                    </div>
+                                </div>
+                            </div>
                             <!-- 경쟁사 비교 테이블 -->
                             <div class="card">
                                 <div class="card-header">
@@ -2504,6 +2743,9 @@
                 updateActionTable(dashboardData.home.action_items);
             }
 
+            // Update exposure status tooltip
+            updateExposureStatusTooltip(dashboardData.home, dashboardData.home?.action_items);
+
             // Update Brand KPIs
             if (dashboardData.brand?.kpis) {
                 const kpis = dashboardData.brand.kpis;
@@ -2547,7 +2789,227 @@
             }
 
             console.log('Dashboard UI updated from data');
+
+            // Initialize date range pickers
+            initDateRangePickers();
         }
+
+        // ============== DATE RANGE PICKER FUNCTIONS ==============
+
+        // Date range state
+        let chartDateRanges = {
+            brandMatrix: { startDate: null, endDate: null, availableDates: [] }
+        };
+
+        // Initialize date range pickers with current data
+        function initDateRangePickers() {
+            const today = new Date();
+            const defaultEndDate = today.toISOString().split('T')[0];
+            const defaultStartDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+
+            // Brand Matrix chart date picker
+            const brandMatrixStart = document.getElementById('brandMatrixStartDate');
+            const brandMatrixEnd = document.getElementById('brandMatrixEndDate');
+
+            if (brandMatrixStart && brandMatrixEnd) {
+                // Set default values
+                brandMatrixStart.value = defaultStartDate;
+                brandMatrixEnd.value = defaultEndDate;
+                brandMatrixStart.max = defaultEndDate;
+                brandMatrixEnd.max = defaultEndDate;
+
+                // Store initial range
+                chartDateRanges.brandMatrix.startDate = defaultStartDate;
+                chartDateRanges.brandMatrix.endDate = defaultEndDate;
+
+                // Update tooltip with period info
+                updateChartPeriodTooltip('brandMatrix', defaultStartDate, defaultEndDate);
+            }
+        }
+
+        // Update chart tooltip with period info
+        function updateChartPeriodTooltip(chartId, startDate, endDate, missingDates = []) {
+            const periodInfoEl = document.getElementById(`${chartId}PeriodInfo`);
+            if (periodInfoEl) {
+                let periodText = `📅 분석 기간: ${startDate} ~ ${endDate}`;
+                if (missingDates.length > 0) {
+                    periodText += `<br>⚠️ 데이터 없는 날짜: ${missingDates.length}일`;
+                }
+                periodInfoEl.innerHTML = periodText;
+            }
+        }
+
+        // Apply date range for Brand Matrix chart
+        async function applyBrandMatrixDateRange() {
+            const startDate = document.getElementById('brandMatrixStartDate').value;
+            const endDate = document.getElementById('brandMatrixEndDate').value;
+
+            if (!startDate || !endDate) {
+                showToast('시작일과 종료일을 모두 선택해주세요.', 'error');
+                return;
+            }
+
+            if (startDate > endDate) {
+                showToast('시작일은 종료일보다 이전이어야 합니다.', 'error');
+                return;
+            }
+
+            showToast('데이터 로딩 중...', 'info');
+
+            try {
+                // Fetch historical data for the selected range
+                const response = await fetch(`${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}`);
+
+                if (!response.ok) {
+                    throw new Error('Historical data fetch failed');
+                }
+
+                const histData = await response.json();
+
+                // Find missing dates in the range
+                const missingDates = findMissingDates(startDate, endDate, histData.available_dates || []);
+
+                // Update chart date range state
+                chartDateRanges.brandMatrix.startDate = startDate;
+                chartDateRanges.brandMatrix.endDate = endDate;
+                chartDateRanges.brandMatrix.availableDates = histData.available_dates || [];
+
+                // Update tooltip with period info
+                updateChartPeriodTooltip('brandMatrix', startDate, endDate, missingDates);
+
+                // Show data gap warning if there are missing dates
+                showDataGapWarning('brandMatrix', missingDates);
+
+                // Update the chart with new data
+                if (histData.brand_metrics) {
+                    updateBrandMatrixChart(histData.brand_metrics);
+                }
+
+                showToast(`${startDate} ~ ${endDate} 기간 데이터 적용됨`, 'success');
+
+            } catch (error) {
+                console.error('Date range apply error:', error);
+                showToast('데이터를 불러오는데 실패했습니다.', 'error');
+            }
+        }
+
+        // Find missing dates in a range
+        function findMissingDates(startDate, endDate, availableDates) {
+            const missing = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const availableSet = new Set(availableDates);
+
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                if (!availableSet.has(dateStr)) {
+                    missing.push(dateStr);
+                }
+            }
+
+            return missing;
+        }
+
+        // Show data gap warning
+        function showDataGapWarning(chartId, missingDates) {
+            const warningEl = document.getElementById(`${chartId}DataGap`);
+            const textEl = document.getElementById(`${chartId}DataGapText`);
+
+            if (!warningEl || !textEl) return;
+
+            if (missingDates.length === 0) {
+                warningEl.style.display = 'none';
+                return;
+            }
+
+            // Group consecutive missing dates into ranges
+            const ranges = groupConsecutiveDates(missingDates);
+            let warningText = '';
+
+            if (ranges.length === 1 && ranges[0].start === ranges[0].end) {
+                warningText = `${ranges[0].start}: 데이터 없음`;
+            } else if (ranges.length === 1) {
+                warningText = `${ranges[0].start} ~ ${ranges[0].end}: 데이터 없음`;
+            } else {
+                const rangeStrs = ranges.slice(0, 3).map(r =>
+                    r.start === r.end ? r.start : `${r.start}~${r.end}`
+                );
+                warningText = `데이터 없는 기간: ${rangeStrs.join(', ')}`;
+                if (ranges.length > 3) {
+                    warningText += ` 외 ${ranges.length - 3}개 구간`;
+                }
+            }
+
+            textEl.textContent = warningText;
+            warningEl.style.display = 'flex';
+
+            // Refresh lucide icons for the warning icon
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Group consecutive dates into ranges
+        function groupConsecutiveDates(dates) {
+            if (dates.length === 0) return [];
+
+            const sorted = dates.sort();
+            const ranges = [];
+            let rangeStart = sorted[0];
+            let rangeEnd = sorted[0];
+
+            for (let i = 1; i < sorted.length; i++) {
+                const prevDate = new Date(rangeEnd);
+                const currDate = new Date(sorted[i]);
+                const diffDays = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+
+                if (diffDays === 1) {
+                    rangeEnd = sorted[i];
+                } else {
+                    ranges.push({ start: rangeStart, end: rangeEnd });
+                    rangeStart = sorted[i];
+                    rangeEnd = sorted[i];
+                }
+            }
+
+            ranges.push({ start: rangeStart, end: rangeEnd });
+            return ranges;
+        }
+
+        // Update Brand Matrix chart with new data
+        function updateBrandMatrixChart(brandMetrics) {
+            if (!charts.brandMatrix || !brandMetrics) return;
+
+            const colors = {
+                laneige: '#1F5795',
+                competitor: '#7D7D7D'
+            };
+            const brandColors = ['#1F5795', '#001C58', '#7D7D7D', '#4A7DB8', '#A0A0A0', '#2E4A6E', '#5C5C5C', '#3D6B99', '#8B8B8B', '#1A3D66'];
+
+            // Convert metrics to chart datasets
+            const brandDatasets = brandMetrics.map((brand, idx) => ({
+                label: brand.brand,
+                data: [{ x: brand.sos, y: brand.avg_rank, r: brand.bubble_size || Math.max(5, brand.product_count * 2) }],
+                backgroundColor: brand.is_laneige ? colors.laneige : brandColors[idx % brandColors.length]
+            }));
+
+            // Update chart data
+            charts.brandMatrix.data.datasets = brandDatasets;
+
+            // Recalculate axis ranges
+            const maxBubbleR = Math.max(...brandDatasets.flatMap(d => d.data.map(p => p.r || 10)));
+            const allX = brandDatasets.flatMap(d => d.data.map(p => p.x));
+            const allY = brandDatasets.flatMap(d => d.data.map(p => p.y));
+
+            charts.brandMatrix.options.scales.x.min = Math.max(0, Math.min(...allX) - maxBubbleR * 0.3);
+            charts.brandMatrix.options.scales.x.max = Math.max(...allX) + maxBubbleR * 0.3;
+            charts.brandMatrix.options.scales.y.min = Math.max(1, Math.min(...allY) - maxBubbleR * 0.5);
+            charts.brandMatrix.options.scales.y.max = Math.max(...allY) + maxBubbleR * 0.5;
+
+            charts.brandMatrix.update();
+        }
+
+        // ============== END DATE RANGE PICKER FUNCTIONS ==============
 
         // Update action table with dynamic data
         function updateActionTable(items) {
@@ -2645,6 +3107,61 @@
                     positionValue.textContent = `Top ${bestRank}`;
                 }
             }
+        }
+
+        // 노출 상태 툴팁 업데이트
+        function updateExposureStatusTooltip(homeData, items) {
+            const tooltipList = document.getElementById('exposureStatusList');
+            const statusValue = document.getElementById('exposureStatusValue');
+            const statusCard = document.getElementById('exposureStatusCard');
+
+            if (!tooltipList || !homeData) return;
+
+            const status = homeData.status || {};
+            const exposure = status.exposure || 'Stable';
+            const top10Count = status.top10_count || 0;
+
+            // 상태 값 업데이트
+            if (statusValue) {
+                statusValue.textContent = exposure;
+            }
+
+            // 카드 클래스 업데이트 (상태에 따라 색상 변경)
+            if (statusCard) {
+                statusCard.classList.remove('success', 'info', 'danger');
+                if (exposure.includes('Up') || exposure.includes('Stable')) {
+                    statusCard.classList.add('success');
+                } else if (exposure.includes('Moderate')) {
+                    statusCard.classList.add('info');
+                } else {
+                    statusCard.classList.add('danger');
+                }
+            }
+
+            // 툴팁 내용 생성
+            const tooltipItems = [];
+
+            // Top 10 내 제품 수
+            tooltipItems.push(`Top 10 내 LANEIGE 제품: ${top10Count}개`);
+
+            // 상태 판단 기준 설명
+            if (top10Count >= 3) {
+                tooltipItems.push('판단: 3개 이상 → Stable Up');
+            } else if (top10Count >= 1) {
+                tooltipItems.push('판단: 1~2개 → Moderate');
+            } else {
+                tooltipItems.push('판단: 0개 → Needs Attention');
+            }
+
+            // 순위 변동 요약 (items에서 추출)
+            if (items && items.length > 0) {
+                const upItems = items.filter(i => i.signal?.includes('상향')).length;
+                const downItems = items.filter(i => i.signal?.includes('하락') && i.signal?.includes('순위')).length;
+                if (upItems > 0) tooltipItems.push(`순위 상승 제품: ${upItems}개`);
+                if (downItems > 0) tooltipItems.push(`순위 하락 제품: ${downItems}개`);
+            }
+
+            tooltipList.innerHTML = tooltipItems.map(item => `<li>${item}</li>`).join('');
         }
 
         // 경쟁사 테이블 업데이트

@@ -1070,8 +1070,16 @@ async def get_historical_data(
                     "worst_rank": max(p["rank"] for p in products)
                 })
 
+        # available_dates 계산
+        available_dates = sorted(daily_data.keys())
+
+        # brand_metrics 계산 (전체 기간 통합 - 모든 브랜드 포함)
+        brand_metrics = await _calculate_brand_metrics_for_period(records, daily_data, brand)
+
         return {
             "success": True,
+            "available_dates": available_dates,
+            "brand_metrics": brand_metrics,
             "data": {
                 "sos_history": sos_history,
                 "rank_history": rank_history,
@@ -1089,6 +1097,100 @@ async def get_historical_data(
         logging.error(f"Historical data error: {e}")
         # 폴백: 로컬 데이터에서 시도
         return await _get_historical_from_local(start_date, end_date, brand)
+
+
+async def _calculate_brand_metrics_for_period(
+    records: List[Dict],
+    daily_data: Dict,
+    target_brand: str
+) -> List[Dict]:
+    """
+    기간 내 모든 브랜드의 메트릭 계산 (SoS × Avg Rank 차트용)
+
+    Returns:
+        브랜드별 SoS, 평균 순위, 제품 수 등
+    """
+    # 전체 제품 데이터 집계 (모든 브랜드)
+    brand_data = {}
+
+    for record in records:
+        brand_name = record.get("brand", "Unknown")
+        rank = int(record.get("rank", 0)) if record.get("rank") else 0
+
+        if not brand_name or rank == 0:
+            continue
+
+        if brand_name not in brand_data:
+            brand_data[brand_name] = {
+                "brand": brand_name,
+                "ranks": [],
+                "product_count": 0
+            }
+
+        brand_data[brand_name]["ranks"].append(rank)
+        brand_data[brand_name]["product_count"] += 1
+
+    # 총 제품 수 (모든 브랜드)
+    total_products = sum(b["product_count"] for b in brand_data.values())
+
+    # 메트릭 계산
+    brand_metrics = []
+    for brand_name, data in brand_data.items():
+        if not data["ranks"]:
+            continue
+
+        sos = round(data["product_count"] / max(total_products, 100) * 100, 2)
+        avg_rank = round(sum(data["ranks"]) / len(data["ranks"]), 1)
+
+        # 버블 크기: 제품 수 기반 (최소 5, 최대 25)
+        bubble_size = max(5, min(25, data["product_count"] * 2))
+
+        brand_metrics.append({
+            "brand": brand_name,
+            "sos": sos,
+            "avg_rank": avg_rank,
+            "product_count": data["product_count"],
+            "bubble_size": bubble_size,
+            "is_laneige": target_brand.upper() in brand_name.upper()
+        })
+
+    # SoS 기준 내림차순 정렬, 상위 10개만
+    brand_metrics.sort(key=lambda x: x["sos"], reverse=True)
+    return brand_metrics[:10]
+
+
+def _get_brand_metrics_from_dashboard(
+    dashboard_data: Optional[Dict],
+    target_brand: str
+) -> List[Dict]:
+    """
+    대시보드 데이터에서 브랜드 메트릭 추출 (로컬 폴백용)
+    """
+    if not dashboard_data:
+        return []
+
+    # 대시보드의 brand_matrix 데이터 사용
+    brand_matrix = dashboard_data.get("charts", {}).get("brand_matrix", [])
+    if brand_matrix:
+        return brand_matrix
+
+    # 경쟁사 데이터에서 생성
+    competitors = dashboard_data.get("brand", {}).get("competitors", [])
+    if not competitors:
+        return []
+
+    brand_metrics = []
+    for comp in competitors:
+        brand_metrics.append({
+            "brand": comp.get("brand", "Unknown"),
+            "sos": comp.get("sos", 0),
+            "avg_rank": comp.get("avg_rank", 50),
+            "product_count": comp.get("product_count", 0),
+            "bubble_size": max(5, min(25, comp.get("product_count", 0) * 2)),
+            "is_laneige": target_brand.upper() in comp.get("brand", "").upper()
+        })
+
+    return brand_metrics
 
 
 async def _get_historical_from_local(
@@ -1222,15 +1324,25 @@ async def _get_historical_from_local(
         sos_history.sort(key=lambda x: x["date"])
         rank_history.sort(key=lambda x: x["date"])
 
+        # available_dates 계산
+        available_dates = [h["date"] for h in sos_history]
+
+        # brand_metrics 계산 (현재 대시보드 데이터에서)
+        brand_metrics = _get_brand_metrics_from_dashboard(data, brand)
+
         if not sos_history:
             return {
                 "success": False,
                 "error": "No historical data found for the specified period",
+                "available_dates": [],
+                "brand_metrics": [],
                 "data": None
             }
 
         return {
             "success": True,
+            "available_dates": available_dates,
+            "brand_metrics": brand_metrics,
             "data": {
                 "sos_history": sos_history,
                 "rank_history": rank_history,
@@ -1248,6 +1360,8 @@ async def _get_historical_from_local(
         return {
             "success": False,
             "error": str(e),
+            "available_dates": [],
+            "brand_metrics": [],
             "data": None
         }
 

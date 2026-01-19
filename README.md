@@ -605,7 +605,16 @@ MIT License
 
 #### 🎨 대시보드 UX 개선
 - **카테고리 포지션 툴팁**: "TOP 4" 카드에 마우스 hover 시 각 제품의 카테고리별 순위 표시
+- **노출 상태 툴팁**: "Laneige 노출 상태" 카드에 hover 시 상태 판단 근거 (Top 10 제품 수, 순위 변동) 표시
+- **차트 지표 설명 툴팁**: "SoS × Avg Rank" 차트 제목 hover 시 지표 의미 설명
 - **차트 날짜 범위 선택**: 순위 추이, 제품 매트릭스, 할인 추이 차트에 1일/7일/14일/30일 선택 버튼 추가
+
+#### 📅 차트 기간 선택 기능 (신규)
+- **캘린더 Date Range Picker**: "SoS × Avg Rank" 차트에 시작일/종료일 캘린더 선택기 추가
+- **분석 기간 표시**: 차트 툴팁에 현재 분석 기간 (예: "2026-01-12 ~ 2026-01-19") 표시
+- **데이터 미존재 구간 알림**: 선택한 기간 내 데이터가 없는 날짜를 자동 감지하여 경고 표시
+  - 연속된 날짜는 범위로 그룹화 (예: "2026-01-15 ~ 2026-01-17: 데이터 없음")
+- **Historical API 개선**: `/api/historical` 응답에 `available_dates`, `brand_metrics` 필드 추가
 
 #### 📁 변경된 파일
 | 파일 | 변경 내용 |
@@ -616,7 +625,8 @@ MIT License
 | `src/tools/dashboard_exporter.py` | 카테고리 인식 순위 비교, 데이터 출처 |
 | `src/agents/hybrid_chatbot_agent.py` | 데이터 출처 인용 |
 | `src/agents/hybrid_insight_agent.py` | 데이터 출처 정보 |
-| `dashboard/amore_unified_dashboard_v4.html` | 툴팁, 날짜 선택기 |
+| `dashboard/amore_unified_dashboard_v4.html` | 툴팁, 날짜 선택기, 기간 선택 UI, 데이터 갭 알림 |
+| `dashboard_api.py` | Historical API에 brand_metrics, available_dates 추가 |
 
 ---
 
