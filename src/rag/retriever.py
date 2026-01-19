@@ -10,6 +10,7 @@ RAG를 위한 문서 검색 모듈
 """
 
 import os
+import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -18,7 +19,12 @@ VECTOR_SEARCH_AVAILABLE = None
 
 
 class DocumentRetriever:
-    """문서 검색 클래스"""
+    """문서 검색 클래스 (TTL 캐싱 지원)"""
+
+    # 검색 결과 캐시 (maxsize=100, TTL=5분)
+    _search_cache: Dict[str, Any] = {}
+    _cache_timestamps: Dict[str, float] = {}
+    _CACHE_TTL = 300  # 5분
 
     # 문서 메타데이터
     DOCUMENTS = {
@@ -217,6 +223,28 @@ class DocumentRetriever:
                 metadatas=metadatas
             )
 
+    def _get_cache_key(self, query: str, top_k: int, doc_filter: Optional[str]) -> str:
+        """캐시 키 생성"""
+        return f"{query}:{top_k}:{doc_filter or 'all'}"
+
+    def _is_cache_valid(self, cache_key: str) -> bool:
+        """캐시 유효성 확인 (TTL 체크)"""
+        if cache_key not in self._cache_timestamps:
+            return False
+        elapsed = time.time() - self._cache_timestamps[cache_key]
+        return elapsed < self._CACHE_TTL
+
+    def _clean_expired_cache(self) -> None:
+        """만료된 캐시 항목 정리"""
+        current_time = time.time()
+        expired_keys = [
+            key for key, timestamp in self._cache_timestamps.items()
+            if current_time - timestamp >= self._CACHE_TTL
+        ]
+        for key in expired_keys:
+            self._search_cache.pop(key, None)
+            self._cache_timestamps.pop(key, None)
+
     async def search(
         self,
         query: str,
@@ -224,7 +252,7 @@ class DocumentRetriever:
         doc_filter: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
-        쿼리 기반 문서 검색
+        쿼리 기반 문서 검색 (TTL 캐싱 적용)
 
         Args:
             query: 검색 쿼리
@@ -237,8 +265,24 @@ class DocumentRetriever:
         if not self._initialized:
             await self.initialize()
 
-        # 키워드 기반 검색 사용 (벡터 검색은 비활성화)
-        return await self._keyword_search(query, top_k, doc_filter)
+        # 캐시 키 생성 및 확인
+        cache_key = self._get_cache_key(query, top_k, doc_filter)
+
+        if self._is_cache_valid(cache_key):
+            return self._search_cache[cache_key]
+
+        # 만료된 캐시 정리 (주기적으로)
+        if len(self._cache_timestamps) > 50:
+            self._clean_expired_cache()
+
+        # 키워드 기반 검색 실행
+        result = await self._keyword_search(query, top_k, doc_filter)
+
+        # 결과 캐싱
+        self._search_cache[cache_key] = result
+        self._cache_timestamps[cache_key] = time.time()
+
+        return result
 
     async def _vector_search(
         self,

@@ -2316,10 +2316,13 @@
 
                 if (response.ok) {
                     const histData = await response.json();
-                    if (histData && histData.data) {
+                    if (histData && histData.success && histData.data) {
                         updateChartsWithHistoricalData(histData.data, range);
-                        showToast('데이터 로드 완료', 'success');
+                        const source = histData.data.source === 'local' ? ' (로컬 데이터)' : '';
+                        showToast(`데이터 로드 완료${source}`, 'success');
                         return;
+                    } else if (histData && histData.error) {
+                        console.warn('Historical API returned error:', histData.error);
                     }
                 }
 
@@ -2328,7 +2331,7 @@
                 if (range === 'today') {
                     updateDashboardFromData();
                 } else {
-                    showToast('히스토리컬 데이터를 가져올 수 없습니다. 현재 데이터를 표시합니다.', 'info');
+                    showToast('해당 기간의 히스토리컬 데이터가 없습니다. 현재 데이터를 표시합니다.', 'info');
                 }
 
             } catch (error) {
@@ -3108,6 +3111,14 @@
             ? 'http://localhost:8001'
             : window.location.origin;
 
+        // XSS 방지를 위한 HTML 이스케이프 함수
+        function escapeHtml(text) {
+            if (typeof text !== 'string') return text;
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // 서버 연결 상태 관리
         let serverConnected = false;
         let reconnectAttempts = 0;
@@ -3249,8 +3260,8 @@
         async function sendChatMessage(msg) {
             const chatBody = document.getElementById('chatBody');
 
-            // 사용자 메시지 표시
-            chatBody.innerHTML += `<div class="chat-message user"><div class="bubble">${msg}</div></div>`;
+            // 사용자 메시지 표시 (XSS 방지)
+            chatBody.innerHTML += `<div class="chat-message user"><div class="bubble">${escapeHtml(msg)}</div></div>`;
             chatBody.innerHTML += `<div class="chat-message bot" id="typing"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
             chatBody.scrollTop = chatBody.scrollHeight;
 
@@ -3370,14 +3381,22 @@
             </div>`;
         }
 
-        // 후속 질문 제안 업데이트
+        // 후속 질문 제안 업데이트 (XSS 방지)
         function updateSuggestions(suggestions) {
             const chipsContainer = document.querySelector('.suggestion-chips');
             if (!chipsContainer || !suggestions) return;
 
-            chipsContainer.innerHTML = suggestions.map(s =>
-                `<div class="suggestion-chip" onclick="sendChatMessage('${s}')">${s}</div>`
-            ).join('');
+            // 기존 칩 제거
+            chipsContainer.innerHTML = '';
+
+            // 안전하게 이벤트 리스너 방식으로 추가
+            suggestions.forEach(s => {
+                const chip = document.createElement('div');
+                chip.className = 'suggestion-chip';
+                chip.textContent = s;  // textContent 사용으로 XSS 방지
+                chip.addEventListener('click', () => sendChatMessage(s));
+                chipsContainer.appendChild(chip);
+            });
         }
 
         // 마지막 메시지 재시도

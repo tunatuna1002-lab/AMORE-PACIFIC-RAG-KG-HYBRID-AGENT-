@@ -55,13 +55,15 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS 설정 (로컬 개발용)
+# CORS 설정 (환경변수로 허용 도메인 설정 가능)
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key", "Authorization"],
 )
 
 # ============= 서버 시작 시 자동 스케줄러 =============
@@ -677,6 +679,7 @@ class SimpleChatResponse(BaseModel):
     text: str
     suggestions: List[str]
     tools_used: List[str]
+    sources: List[Dict[str, Any]] = []  # AI 출처 정보 추가
     data_date: str
     processing_time_ms: float
 
@@ -729,6 +732,7 @@ async def chat_v3(request: SimpleChatRequest):
         text=response_text,
         suggestions=result.get("suggestions", []),
         tools_used=result.get("tools_used", []),
+        sources=result.get("sources", []),  # AI 출처 정보 전달
         data_date=result.get("data_date", "N/A"),
         processing_time_ms=result.get("processing_time_ms", 0)
     )
@@ -952,6 +956,300 @@ async def start_crawl():
         "message": "크롤링을 시작했습니다." if started else "크롤링 시작 실패",
         "status": crawl_manager.state.to_dict()
     }
+
+
+# ============= Historical Data API =============
+
+from src.tools.sheets_writer import SheetsWriter
+from datetime import timedelta
+
+# SheetsWriter 싱글톤 인스턴스
+_sheets_writer: Optional[SheetsWriter] = None
+
+
+def get_sheets_writer() -> SheetsWriter:
+    """SheetsWriter 싱글톤 인스턴스 반환"""
+    global _sheets_writer
+    if _sheets_writer is None:
+        _sheets_writer = SheetsWriter()
+    return _sheets_writer
+
+
+@app.get("/api/historical")
+async def get_historical_data(
+    start_date: str,
+    end_date: str,
+    category_id: Optional[str] = None,
+    brand: Optional[str] = "LANEIGE"
+):
+    """
+    히스토리컬 데이터 조회 (Google Sheets에서)
+
+    Args:
+        start_date: 시작 날짜 (YYYY-MM-DD)
+        end_date: 종료 날짜 (YYYY-MM-DD)
+        category_id: 카테고리 필터 (선택)
+        brand: 브랜드 필터 (기본값: LANEIGE)
+
+    Returns:
+        - data: 날짜별 지표 데이터
+        - sos_history: SoS 추이 데이터
+        - rank_history: 순위 추이 데이터
+    """
+    try:
+        sheets_writer = get_sheets_writer()
+        if not sheets_writer._initialized:
+            await sheets_writer.initialize()
+
+        # 날짜 범위 계산
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        days = (end_dt - start_dt).days + 1
+
+        # Google Sheets에서 히스토리컬 데이터 조회
+        records = await sheets_writer.get_rank_history(
+            category_id=category_id,
+            brand=brand,
+            days=days
+        )
+
+        if not records:
+            # Google Sheets에 데이터가 없으면 로컬 JSON 파일에서 시도
+            return await _get_historical_from_local(start_date, end_date, brand)
+
+        # 날짜별 데이터 집계
+        daily_data = {}
+        for record in records:
+            snapshot_date = record.get("snapshot_date", "")
+            if not snapshot_date or snapshot_date < start_date or snapshot_date > end_date:
+                continue
+
+            if snapshot_date not in daily_data:
+                daily_data[snapshot_date] = {
+                    "date": snapshot_date,
+                    "products": [],
+                    "total_count": 0,
+                    "top10_count": 0
+                }
+
+            rank = int(record.get("rank", 0)) if record.get("rank") else 0
+            daily_data[snapshot_date]["products"].append({
+                "asin": record.get("asin", ""),
+                "product_name": record.get("product_name", ""),
+                "rank": rank,
+                "price": record.get("price", ""),
+                "rating": record.get("rating", "")
+            })
+            daily_data[snapshot_date]["total_count"] += 1
+            if rank <= 10:
+                daily_data[snapshot_date]["top10_count"] += 1
+
+        # SoS 추이 계산 (Top 100 기준)
+        sos_history = []
+        rank_history = []
+        for date_str in sorted(daily_data.keys()):
+            day_data = daily_data[date_str]
+            products = day_data["products"]
+
+            # SoS = (LANEIGE 제품 수 / 100) * 100
+            sos = round(len(products) / 100 * 100, 1) if products else 0
+            sos_history.append({
+                "date": date_str,
+                "sos": sos,
+                "product_count": len(products),
+                "top10_count": day_data["top10_count"]
+            })
+
+            # 평균 순위 (있는 경우)
+            if products:
+                avg_rank = round(sum(p["rank"] for p in products) / len(products), 1)
+                rank_history.append({
+                    "date": date_str,
+                    "rank": avg_rank,
+                    "best_rank": min(p["rank"] for p in products),
+                    "worst_rank": max(p["rank"] for p in products)
+                })
+
+        return {
+            "success": True,
+            "data": {
+                "sos_history": sos_history,
+                "rank_history": rank_history,
+                "daily_data": list(daily_data.values()),
+                "period": {
+                    "start": start_date,
+                    "end": end_date,
+                    "days": days
+                },
+                "brand": brand
+            }
+        }
+
+    except Exception as e:
+        logging.error(f"Historical data error: {e}")
+        # 폴백: 로컬 데이터에서 시도
+        return await _get_historical_from_local(start_date, end_date, brand)
+
+
+async def _get_historical_from_local(
+    start_date: str,
+    end_date: str,
+    brand: str = "LANEIGE"
+) -> Dict[str, Any]:
+    """
+    로컬 JSON 파일에서 히스토리컬 데이터 조회 (폴백)
+
+    data/ 폴더의 날짜별 JSON 파일이나 dashboard_data.json의 히스토리 데이터 활용
+    """
+    try:
+        # 메인 대시보드 데이터 로드
+        data = load_dashboard_data()
+        sos_history = []
+        rank_history = []
+
+        # 1. 대시보드 데이터에서 현재 SoS/순위 정보 추출
+        if data:
+            brand_kpis = data.get("brand", {}).get("kpis", {})
+            current_sos = brand_kpis.get("sos", 0)
+            data_date = data.get("metadata", {}).get("data_date", datetime.now().strftime("%Y-%m-%d"))
+
+            # 현재 날짜가 요청 범위에 포함되면 추가
+            if start_date <= data_date <= end_date:
+                sos_history.append({
+                    "date": data_date,
+                    "sos": current_sos,
+                    "product_count": brand_kpis.get("product_count", 0),
+                    "top10_count": brand_kpis.get("top10_count", 0)
+                })
+
+                avg_rank = brand_kpis.get("avg_rank", 0)
+                if avg_rank:
+                    rank_history.append({
+                        "date": data_date,
+                        "rank": avg_rank,
+                        "best_rank": brand_kpis.get("best_rank", avg_rank),
+                        "worst_rank": brand_kpis.get("worst_rank", avg_rank)
+                    })
+
+        # 2. latest_crawl_result.json에서 데이터 추출
+        latest_crawl_path = Path("./data/latest_crawl_result.json")
+        if latest_crawl_path.exists():
+            try:
+                with open(latest_crawl_path, "r", encoding="utf-8") as f:
+                    crawl_data = json.load(f)
+
+                # 모든 카테고리에서 브랜드 제품 찾기
+                brand_products = []
+                crawl_date = None
+
+                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    for product in cat_data.get("products", []):
+                        product_brand = product.get("brand", "")
+                        product_name = product.get("product_name", "")
+
+                        # 브랜드 매칭 (대소문자 무시, 부분 매칭)
+                        if brand.upper() in product_brand.upper() or brand.upper() in product_name.upper():
+                            brand_products.append(product)
+                            if not crawl_date:
+                                crawl_date = product.get("snapshot_date")
+
+                if brand_products and crawl_date and start_date <= crawl_date <= end_date:
+                    # 중복 제거 확인
+                    if not any(h["date"] == crawl_date for h in sos_history):
+                        # 카테고리별 총 제품 수 (Top 100 기준)
+                        total_products = sum(
+                            len(cat.get("products", []))
+                            for cat in crawl_data.get("categories", {}).values()
+                        )
+
+                        sos = round(len(brand_products) / max(total_products, 100) * 100, 2)
+                        avg_rank = round(sum(p.get("rank", 0) for p in brand_products) / len(brand_products), 1)
+
+                        sos_history.append({
+                            "date": crawl_date,
+                            "sos": sos,
+                            "product_count": len(brand_products),
+                            "top10_count": sum(1 for p in brand_products if p.get("rank", 100) <= 10)
+                        })
+                        rank_history.append({
+                            "date": crawl_date,
+                            "rank": avg_rank,
+                            "best_rank": min(p.get("rank", 100) for p in brand_products),
+                            "worst_rank": max(p.get("rank", 100) for p in brand_products)
+                        })
+
+            except (json.JSONDecodeError, ValueError) as e:
+                logging.warning(f"Failed to parse latest_crawl_result.json: {e}")
+
+        # 3. raw_products 폴더에서 날짜별 데이터 검색 (기존 로직)
+        raw_data_dir = Path("./data/raw_products")
+        if raw_data_dir.exists():
+            for json_file in raw_data_dir.glob("*.json"):
+                try:
+                    file_date = json_file.stem  # 파일명이 YYYY-MM-DD 형식이라고 가정
+                    if start_date <= file_date <= end_date:
+                        with open(json_file, "r", encoding="utf-8") as f:
+                            daily_raw = json.load(f)
+
+                        # 브랜드 제품만 필터링
+                        brand_products = [
+                            p for p in daily_raw
+                            if brand.upper() in p.get("brand", "").upper() or brand.upper() in p.get("product_name", "").upper()
+                        ]
+
+                        if brand_products:
+                            sos = round(len(brand_products) / 100 * 100, 1)
+                            avg_rank = round(sum(p.get("rank", 0) for p in brand_products) / len(brand_products), 1)
+
+                            # 중복 제거
+                            if not any(h["date"] == file_date for h in sos_history):
+                                sos_history.append({
+                                    "date": file_date,
+                                    "sos": sos,
+                                    "product_count": len(brand_products),
+                                    "top10_count": sum(1 for p in brand_products if p.get("rank", 100) <= 10)
+                                })
+                                rank_history.append({
+                                    "date": file_date,
+                                    "rank": avg_rank,
+                                    "best_rank": min(p.get("rank", 100) for p in brand_products),
+                                    "worst_rank": max(p.get("rank", 100) for p in brand_products)
+                                })
+                except (json.JSONDecodeError, ValueError):
+                    continue
+
+        # 날짜순 정렬
+        sos_history.sort(key=lambda x: x["date"])
+        rank_history.sort(key=lambda x: x["date"])
+
+        if not sos_history:
+            return {
+                "success": False,
+                "error": "No historical data found for the specified period",
+                "data": None
+            }
+
+        return {
+            "success": True,
+            "data": {
+                "sos_history": sos_history,
+                "rank_history": rank_history,
+                "period": {
+                    "start": start_date,
+                    "end": end_date
+                },
+                "brand": brand,
+                "source": "local"
+            }
+        }
+
+    except Exception as e:
+        logging.error(f"Local historical data error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None
+        }
 
 
 @app.post("/api/export/docx")

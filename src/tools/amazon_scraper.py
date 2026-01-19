@@ -361,8 +361,8 @@ class AmazonScraper:
             match = re.search(r'\$?([\d,]+\.?\d*)', price_text.replace(",", ""))
             if match:
                 return float(match.group(1))
-        except:
-            pass
+        except (ValueError, TypeError, AttributeError) as e:
+            self.logger.debug(f"Price parsing failed for '{price_text}': {e}")
         return None
 
     def _parse_rating(self, rating_text: str) -> Optional[float]:
@@ -376,8 +376,8 @@ class AmazonScraper:
             match = re.search(r'^([\d.]+)$', rating_text.strip())
             if match:
                 return float(match.group(1))
-        except:
-            pass
+        except (ValueError, TypeError, AttributeError) as e:
+            self.logger.debug(f"Rating parsing failed for '{rating_text}': {e}")
         return None
 
     def _parse_reviews_count(self, reviews_text: str) -> Optional[int]:
@@ -388,8 +388,8 @@ class AmazonScraper:
             match = re.search(r'(\d+)', clean_text)
             if match:
                 return int(match.group(1))
-        except:
-            pass
+        except (ValueError, TypeError, AttributeError) as e:
+            self.logger.debug(f"Reviews count parsing failed for '{reviews_text}': {e}")
         return None
 
     def _get_page2_url(self, url: str) -> Optional[str]:
