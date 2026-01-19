@@ -419,6 +419,17 @@ class DashboardExporter:
             # 변동성 계산
             volatility = self._calculate_volatility(asin, raw_data)
 
+            # 프로모션 정보
+            price = self._safe_float(product.get("price", 0))
+            list_price = self._safe_float(product.get("list_price", 0))
+            discount_percent = self._safe_float(product.get("discount_percent", 0))
+            coupon_text = product.get("coupon_text", "")
+            is_subscribe_save = product.get("is_subscribe_save", False)
+            promo_badges = product.get("promo_badges", "")
+
+            # 성장 유형 분류 (할인 기반 vs 오가닉)
+            growth_type = self._classify_growth_type(discount_percent, coupon_text, promo_badges)
+
             products[asin] = {
                 "asin": asin,
                 "name": product.get("product_name", "Unknown"),
@@ -429,11 +440,27 @@ class DashboardExporter:
                 "rating_delta": "상위 10%" if rating >= 4.3 else "양호" if rating >= 4.0 else "주의",
                 "volatility": volatility,
                 "volatility_status": "안정적" if volatility < 10 else "변동성 높음" if volatility > 20 else "보통",
-                "price": product.get("price", ""),
+                "price": price,
+                "list_price": list_price,
+                "discount_percent": discount_percent,
+                "coupon_text": coupon_text,
+                "is_subscribe_save": is_subscribe_save,
+                "promo_badges": promo_badges,
+                "growth_type": growth_type,
                 "reviews_count": product.get("reviews_count", "")
             }
 
         return products
+
+    def _classify_growth_type(self, discount_percent: float, coupon_text: str, promo_badges: str) -> str:
+        """성장 유형 분류: 할인 기반 vs 오가닉"""
+        has_significant_discount = discount_percent > 15
+        has_coupon = bool(coupon_text)
+        has_deal = "Deal" in promo_badges or "Lightning" in promo_badges
+
+        if has_significant_discount or has_coupon or has_deal:
+            return "discount_based"
+        return "organic"
 
     def _calculate_volatility(self, asin: str, all_data: List[Dict]) -> int:
         """순위 변동성 계산 (7일 표준편차 기반)"""
@@ -660,6 +687,69 @@ class DashboardExporter:
                 "bubble_size": max(8, min(18, 20 - rank))
             })
 
+        # 할인율 추이 차트 (LANEIGE 제품 평균 할인율)
+        discount_trend = []
+        for date_str in sorted_dates:
+            day_data = date_groups[date_str]
+            laneige_in_day = [r for r in day_data if self._is_laneige(r)]
+            discounts = [self._safe_float(r.get("discount_percent", 0)) for r in laneige_in_day if r.get("discount_percent")]
+            avg_discount = sum(discounts) / len(discounts) if discounts else 0
+            discount_trend.append({
+                "date": date_str[-5:],
+                "discount": round(avg_discount, 1)
+            })
+
+        # 순위 x 할인율 이중축 차트 (LANEIGE 대표 제품)
+        rank_discount_dual = []
+        for date_str in sorted_dates:
+            day_data = date_groups[date_str]
+            laneige_in_day = [r for r in day_data if self._is_laneige(r)]
+            if laneige_in_day:
+                best_product = min(laneige_in_day, key=lambda x: self._safe_int(x.get("rank", 999)))
+                rank_discount_dual.append({
+                    "date": date_str[-5:],
+                    "rank": self._safe_int(best_product.get("rank", 0)),
+                    "discount": self._safe_float(best_product.get("discount_percent", 0))
+                })
+
+        # 경쟁사 프로모션 비교 테이블
+        competitor_promo = []
+        for brand, stats in brand_stats.items():
+            products = stats["products"]
+            if not products:
+                continue
+
+            # 브랜드별 프로모션 현황
+            discount_products = [p for p in products if self._safe_float(p.get("discount_percent", 0)) > 0]
+            coupon_products = [p for p in products if p.get("coupon_text")]
+            deal_products = [p for p in products if "Deal" in p.get("promo_badges", "")]
+            sns_products = [p for p in products if p.get("is_subscribe_save")]
+
+            avg_discount = sum(self._safe_float(p.get("discount_percent", 0)) for p in products) / len(products) if products else 0
+
+            competitor_promo.append({
+                "brand": brand,
+                "product_count": len(products),
+                "avg_discount": round(avg_discount, 1),
+                "discount_count": len(discount_products),
+                "coupon_count": len(coupon_products),
+                "deal_count": len(deal_products),
+                "sns_count": len(sns_products),
+                "is_laneige": self.LANEIGE_BRAND in brand.lower()
+            })
+
+        competitor_promo.sort(key=lambda x: x["product_count"], reverse=True)
+        competitor_promo = competitor_promo[:15]
+
+        # 성장 유형 분류 요약 (LANEIGE)
+        growth_type_summary = {"organic": 0, "discount_based": 0}
+        for product in laneige_products:
+            discount = self._safe_float(product.get("discount_percent", 0))
+            coupon = product.get("coupon_text", "")
+            promo = product.get("promo_badges", "")
+            growth_type = self._classify_growth_type(discount, coupon, promo)
+            growth_type_summary[growth_type] += 1
+
         return {
             "sos_trend": {
                 "labels": [d["date"] for d in sos_trend],
@@ -679,7 +769,19 @@ class DashboardExporter:
                 "labels": [d[-5:] for d in sorted_dates],
                 "products": product_rank_trend
             },
-            "product_matrix": product_matrix
+            "product_matrix": product_matrix,
+            # 프로모션 관련 차트 데이터
+            "discount_trend": {
+                "labels": [d["date"] for d in discount_trend],
+                "data": [d["discount"] for d in discount_trend]
+            },
+            "rank_discount_dual": {
+                "labels": [d["date"] for d in rank_discount_dual],
+                "ranks": [d["rank"] for d in rank_discount_dual],
+                "discounts": [d["discount"] for d in rank_discount_dual]
+            },
+            "competitor_promo": competitor_promo,
+            "growth_type_summary": growth_type_summary
         }
 
     def _safe_int(self, value: Any) -> int:

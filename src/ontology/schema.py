@@ -37,6 +37,10 @@ class Category(BaseModel):
     name: str = Field(..., description="카테고리명 (예: Lip Care)")
     url: str = Field(..., description="Amazon 베스트셀러 URL")
     parent_id: Optional[str] = Field(default=None, description="상위 카테고리 ID")
+    amazon_node_id: str = Field(default="", description="Amazon 노드 ID")
+    level: int = Field(default=0, description="계층 레벨 (0=root, 1=중분류, 2=소분류)")
+    path: List[str] = Field(default_factory=list, description="전체 경로 (예: ['beauty', 'skin_care', 'lip_care'])")
+    children: List[str] = Field(default_factory=list, description="자식 카테고리 ID 목록")
 
     class Config:
         json_schema_extra = {
@@ -44,7 +48,11 @@ class Category(BaseModel):
                 "id": "lip_care",
                 "name": "Lip Care",
                 "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
-                "parent_id": "beauty"
+                "parent_id": "beauty",
+                "amazon_node_id": "3761351",
+                "level": 2,
+                "path": ["beauty", "skin_care", "lip_care"],
+                "children": []
             }
         }
 
@@ -93,18 +101,29 @@ class Snapshot(BaseModel):
 
 
 class RankRecord(BaseModel):
-    """순위 기록 엔티티 - 특정 시점의 제품 순위 정보"""
+    """순위 기록 엔티티 - 특정 시점의 제품 순위 정보 (프로모션 정보 포함)"""
     snapshot_date: date = Field(..., description="스냅샷 날짜")
     category_id: str = Field(..., description="카테고리 ID")
     asin: str = Field(..., description="제품 ASIN")
     product_name: str = Field(..., description="제품명")
     brand: str = Field(..., description="브랜드명")
     rank: int = Field(..., ge=1, le=100, description="순위 (1-100)")
-    price: Optional[float] = Field(default=None, description="가격 (USD)")
+    price: Optional[float] = Field(default=None, description="현재 판매가 (USD)")
+    list_price: Optional[float] = Field(default=None, description="정가/원가 (USD)")
+    discount_percent: Optional[float] = Field(default=None, description="할인율 (%)")
     rating: Optional[float] = Field(default=None, ge=0, le=5, description="평점 (0-5)")
     reviews_count: Optional[int] = Field(default=None, ge=0, description="리뷰 수")
     badge: str = Field(default="", description="뱃지 (Best Seller, Amazon's Choice 등)")
+    coupon_text: str = Field(default="", description="쿠폰 정보 (예: Save 5% with coupon)")
+    is_subscribe_save: bool = Field(default=False, description="Subscribe & Save 여부")
+    promo_badges: str = Field(default="", description="프로모션 배지 (Limited Time Deal, Lightning Deal 등)")
     product_url: str = Field(..., description="제품 URL")
+
+    # 신규 필드 (할인 추적 및 정확한 수집 시간)
+    collected_at: Optional[datetime] = Field(default=None, description="정확한 수집 시간 (날짜+시간)")
+    discount_trend: Optional[str] = Field(default=None, description="할인율 추세 (up, down, stable, None)")
+    previous_price: Optional[float] = Field(default=None, description="이전 가격 (할인 추적용, USD)")
+    previous_discount: Optional[float] = Field(default=None, description="이전 할인율 (%)")
 
     class Config:
         json_schema_extra = {
@@ -116,10 +135,19 @@ class RankRecord(BaseModel):
                 "brand": "LANEIGE",
                 "rank": 1,
                 "price": 24.00,
+                "list_price": 30.00,
+                "discount_percent": 20.0,
                 "rating": 4.7,
                 "reviews_count": 89234,
                 "badge": "Best Seller",
-                "product_url": "https://www.amazon.com/dp/B08XYZ1234"
+                "coupon_text": "Save 5% with coupon",
+                "is_subscribe_save": True,
+                "promo_badges": "Limited Time Deal, Climate Pledge Friendly",
+                "product_url": "https://www.amazon.com/dp/B08XYZ1234",
+                "collected_at": "2025-01-15T09:30:00",
+                "discount_trend": "down",
+                "previous_price": 26.00,
+                "previous_discount": 13.3
             }
         }
 

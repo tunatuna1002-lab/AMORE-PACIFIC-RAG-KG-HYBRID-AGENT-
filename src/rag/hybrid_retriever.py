@@ -131,28 +131,32 @@ class EntityExtractor:
         "1개월": "30days"
     }
 
-    def extract(self, query: str) -> Dict[str, List[str]]:
+    def extract(self, query: str, knowledge_graph=None) -> Dict[str, List[str]]:
         """
         쿼리에서 엔티티 추출
 
         Args:
             query: 사용자 쿼리
+            knowledge_graph: 지식 그래프 (제품 검색용, optional)
 
         Returns:
             {
                 "brands": [...],
                 "categories": [...],
                 "indicators": [...],
-                "time_range": [...]
+                "time_range": [...],
+                "products": [...]
             }
         """
+        import re
         query_lower = query.lower()
 
         entities = {
             "brands": [],
             "categories": [],
             "indicators": [],
-            "time_range": []
+            "time_range": [],
+            "products": []
         }
 
         # 브랜드 추출
@@ -180,6 +184,41 @@ class EntityExtractor:
             if time_name in query_lower:
                 if time_id not in entities["time_range"]:
                     entities["time_range"].append(time_id)
+
+        # 제품 ASIN 추출 (B0로 시작하는 10자리 형식)
+        asin_pattern = r'\bB0[A-Z0-9]{8}\b'
+        asins = re.findall(asin_pattern, query)
+        if asins:
+            entities["products"].extend(asins)
+
+        # 순위 기반 제품 추출 (지식 그래프 활용)
+        if knowledge_graph:
+            # "1위 제품", "top 1 product" 같은 패턴 감지
+            rank_patterns = [
+                (r'(\d+)위\s*제품', 'ko'),
+                (r'top\s*(\d+)\s*product', 'en'),
+                (r'(\d+)위', 'ko'),
+                (r'rank\s*(\d+)', 'en')
+            ]
+
+            for pattern, lang in rank_patterns:
+                matches = re.findall(pattern, query_lower)
+                if matches and entities.get("categories"):
+                    # 해당 카테고리의 특정 순위 제품 찾기
+                    for rank_str in matches:
+                        rank = int(rank_str)
+                        for category in entities["categories"]:
+                            # 해당 카테고리+순위의 제품 찾기
+                            products = knowledge_graph.query(
+                                predicate=None,
+                                object_=category
+                            )
+                            for rel in products:
+                                if rel.properties.get("rank") == rank:
+                                    asin = rel.subject
+                                    if asin not in entities["products"]:
+                                        entities["products"].append(asin)
+                                    break
 
         return entities
 
@@ -263,8 +302,8 @@ class HybridRetriever:
         context = HybridContext(query=query)
 
         try:
-            # 1. 엔티티 추출
-            entities = self.entity_extractor.extract(query)
+            # 1. 엔티티 추출 (지식 그래프 전달로 제품 ASIN도 추출 가능)
+            entities = self.entity_extractor.extract(query, knowledge_graph=self.kg)
             context.entities = entities
             logger.debug(f"Extracted entities: {entities}")
 

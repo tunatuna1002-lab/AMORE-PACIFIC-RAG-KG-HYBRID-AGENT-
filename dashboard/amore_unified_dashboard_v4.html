@@ -847,6 +847,280 @@
         }
         .chart-guide strong { color: var(--pacific-blue); }
 
+        /* === GROWTH TYPE CLASSIFICATION === */
+        .growth-type-container {
+            display: flex;
+            gap: 16px;
+        }
+        .growth-type-box {
+            flex: 1;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .growth-type-box:hover {
+            transform: translateY(-2px);
+        }
+        .growth-type-box.organic {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .growth-type-box.discount {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .growth-type-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .growth-type-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .growth-type-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--pacific-blue);
+            margin-bottom: 4px;
+        }
+        .growth-type-box.organic .growth-type-value {
+            color: #10b981;
+        }
+        .growth-type-box.discount .growth-type-value {
+            color: #f59e0b;
+        }
+        .growth-type-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* === ENHANCED COMPETITOR COMPARISON === */
+        .competitor-section {
+            margin-top: 20px;
+        }
+
+        .competitor-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .competitor-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .competitor-dropdown {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            min-width: 180px;
+        }
+
+        .competitor-dropdown:hover {
+            border-color: var(--amore-blue);
+        }
+
+        .competitor-dropdown:focus {
+            outline: none;
+            border-color: var(--amore-blue);
+            box-shadow: 0 0 0 3px rgba(31, 87, 149, 0.1);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .comparison-table thead {
+            background: var(--bg-subtle);
+        }
+
+        .comparison-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-light);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .comparison-table th:first-child {
+            border-radius: 6px 0 0 0;
+        }
+
+        .comparison-table th:last-child {
+            border-radius: 0 6px 0 0;
+        }
+
+        .comparison-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }
+
+        .comparison-table tbody tr:hover {
+            background: var(--bg-subtle);
+        }
+
+        .comparison-table .metric-label {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .comparison-table .better {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .comparison-table .worse {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .comparison-table .same {
+            color: var(--text-secondary);
+        }
+
+        .comparison-table .value-cell {
+            text-align: center;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 13px;
+        }
+
+        /* === PROMO COMPARISON TABLE === */
+        .promo-table-container {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .promo-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .promo-table thead {
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 1;
+        }
+        .promo-table th {
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-light);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .promo-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }
+        .promo-table tr:hover {
+            background: var(--bg-subtle);
+        }
+        .promo-table tr.is-laneige {
+            background: rgba(31, 87, 149, 0.08);
+        }
+        .promo-table tr.is-laneige:hover {
+            background: rgba(31, 87, 149, 0.12);
+        }
+        .promo-table .brand-name {
+            font-weight: 500;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .promo-table .brand-name.laneige {
+            color: var(--amore-blue);
+            font-weight: 600;
+        }
+        .promo-table .num-cell {
+            text-align: center;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        .promo-table .discount-cell {
+            color: #ef4444;
+            font-weight: 500;
+        }
+
+        /* === DISCOUNT & PRICE BADGES === */
+        .discount-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(255, 107, 107, 0.2);
+        }
+
+        .coupon-badge {
+            display: inline-block;
+            background: #fff3cd;
+            color: #856404;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-left: 6px;
+            vertical-align: middle;
+            border: 1px solid #ffeeba;
+        }
+
+        .deal-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .price-original {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 11px;
+            margin-right: 6px;
+        }
+
+        .price-current {
+            color: #e74c3c;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .price-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
         /* === QUICK ACTIONS === */
         .quick-actions {
             display: grid;
@@ -1051,6 +1325,70 @@
             max-width: 85%;
         }
         .chat-message.bot .bubble strong { color: var(--amore-blue); }
+
+        /* === AI 출처 표기 === */
+        .ai-source-citation {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-light);
+            font-size: 11px;
+        }
+        .ai-source-citation .source-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 4px 0;
+            color: var(--text-secondary);
+            transition: color 0.15s;
+        }
+        .ai-source-citation .source-header:hover {
+            color: var(--amore-blue);
+        }
+        .ai-source-citation .source-toggle {
+            font-size: 8px;
+            transition: transform 0.2s;
+        }
+        .ai-source-citation.expanded .source-toggle {
+            transform: rotate(90deg);
+        }
+        .ai-source-citation .source-label {
+            font-weight: 500;
+        }
+        .ai-source-citation .source-details {
+            display: none;
+            margin-top: 8px;
+            padding: 10px;
+            background: var(--bg-subtle);
+            border-radius: 6px;
+        }
+        .ai-source-citation.expanded .source-details {
+            display: block;
+        }
+        .ai-source-citation .source-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+        .ai-source-citation .source-icon {
+            flex-shrink: 0;
+        }
+        .ai-source-citation .source-text {
+            color: var(--text-primary);
+        }
+        .ai-source-citation .source-text strong {
+            color: var(--pacific-blue);
+        }
+        .ai-source-citation .source-disclaimer {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-light);
+            color: var(--ap-gray);
+            font-style: italic;
+            font-size: 10px;
+        }
 
         /* === 추천 질문 - 접기/펼치기 === */
         .chat-suggestions {
@@ -1642,6 +1980,38 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Enhanced Competitor Comparison Section -->
+                        <div class="content-grid single">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="target" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        상세 경쟁사 비교
+                                    </div>
+                                    <div class="competitor-selector">
+                                        <span class="competitor-label">비교 대상:</span>
+                                        <select id="competitor-select" class="competitor-dropdown" onchange="updateCompetitorComparison()">
+                                            <option value="">선택하세요</option>
+                                            <option value="Summer Fridays">Summer Fridays</option>
+                                            <option value="COSRX">COSRX</option>
+                                            <option value="Tatcha">Tatcha</option>
+                                            <option value="Drunk Elephant">Drunk Elephant</option>
+                                            <option value="Glow Recipe">Glow Recipe</option>
+                                            <option value="e.l.f.">e.l.f.</option>
+                                            <option value="Rare Beauty">Rare Beauty</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="card-body" id="detailed-comparison-body">
+                                    <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+                                        <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3;"></i>
+                                        <p>비교할 경쟁사를 선택하세요</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="quick-actions"><button class="quick-action-btn accent" onclick="openAIDrawer()"><i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>AI 전략 리포트 생성</button></div>
                     </div>
 
@@ -1706,6 +2076,69 @@
                                     <div class="chart-guide">
                                         <strong>해석 가이드:</strong> 할인율 상승 = 프로모션 강화 / 가격 하락 = 가격 경쟁력 확보
                                         <span id="discount-insight" style="color: var(--amore-blue); margin-left: 12px;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 성장 유형 분류 & 경쟁사 프로모션 비교 -->
+                        <div class="content-grid">
+                            <!-- 성장 유형 분류 -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="trending-up" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        Laneige 성장 유형 분류
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="growth-type-container" id="growth-type-container">
+                                        <div class="growth-type-box organic">
+                                            <div class="growth-type-icon">✅</div>
+                                            <div class="growth-type-label">오가닉 성장</div>
+                                            <div class="growth-type-value" id="organic-count">-</div>
+                                            <div class="growth-type-desc">할인/프로모션 없이 순위 상승</div>
+                                        </div>
+                                        <div class="growth-type-box discount">
+                                            <div class="growth-type-icon">⚠️</div>
+                                            <div class="growth-type-label">할인 기반 성장</div>
+                                            <div class="growth-type-value" id="discount-count">-</div>
+                                            <div class="growth-type-desc">15%↑ 할인 또는 쿠폰/딜 활용</div>
+                                        </div>
+                                    </div>
+                                    <div class="chart-guide" style="margin-top: 16px;">
+                                        <strong>분류 기준:</strong> 할인율 15% 초과, 쿠폰 적용, Lightning/Limited Deal 중 하나라도 해당 시 "할인 기반"으로 분류
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 경쟁사 프로모션 비교 -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="users" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        경쟁사 프로모션 비교
+                                    </div>
+                                    <span class="card-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);">Top 10 브랜드</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="promo-table-container">
+                                        <table class="promo-table" id="competitor-promo-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>브랜드</th>
+                                                    <th>제품수</th>
+                                                    <th>평균할인</th>
+                                                    <th>쿠폰</th>
+                                                    <th>딜</th>
+                                                    <th>S&S</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="competitor-promo-tbody">
+                                                <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">데이터 로딩 중...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="chart-guide" style="margin-top: 12px;">
+                                        <strong>S&S:</strong> Subscribe & Save 제품 수 | <strong>딜:</strong> Lightning/Limited Time Deal
                                     </div>
                                 </div>
                             </div>
@@ -2247,14 +2680,22 @@
             const tbody = document.querySelector('.action-table tbody');
             if (!tbody || !items.length) return;
 
-            tbody.innerHTML = items.map((item, idx) => `
+            tbody.innerHTML = items.map((item, idx) => {
+                // Generate discount badges if available
+                const discountInfo = item.discount_percent || item.has_coupon || item.is_deal ?
+                    generateDiscountBadges(item) : '';
+
+                return `
                 <tr onclick="goToProductDetail('${item.asin || ''}', '${item.product_name || ''}')">
                     <td><span class="priority-badge ${item.priority.toLowerCase()}">${item.priority === 'P1' ? '🔴' : '🟠'} ${item.priority}</span></td>
                     <td>
                         <div class="product-info">
                             <div class="product-avatar">LN</div>
                             <div>
-                                <div class="product-name">${item.product_name}</div>
+                                <div class="product-name">
+                                    ${item.product_name}
+                                    ${discountInfo}
+                                </div>
                                 <div class="product-brand">${item.brand_variant || ''}</div>
                             </div>
                         </div>
@@ -2263,7 +2704,8 @@
                     <td><span class="action-tag ${item.action_tag.toLowerCase()}">${item.action_tag}</span></td>
                     <td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('${item.asin || ''}', '${item.product_name || ''}');">상세 분석 →</a></td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
 
             // 주의 제품 툴팁 업데이트
             updateWarningTooltip(items);
@@ -2312,6 +2754,157 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        // Utility function to generate discount badges HTML
+        function generateDiscountBadges(product) {
+            let badges = '';
+
+            // Discount percentage badge
+            if (product.discount_percent && product.discount_percent > 0) {
+                badges += `<span class="discount-badge">-${product.discount_percent}%</span>`;
+            }
+
+            // Coupon badge
+            if (product.coupon_text || product.has_coupon) {
+                const couponText = product.coupon_text || 'Coupon';
+                badges += `<span class="coupon-badge">🎟️ ${couponText}</span>`;
+            }
+
+            // Deal badge (Lightning Deal, Limited Time Deal, etc.)
+            if (product.deal_type || product.is_deal) {
+                const dealText = product.deal_type || 'Deal';
+                badges += `<span class="deal-badge">⚡ ${dealText}</span>`;
+            }
+
+            return badges;
+        }
+
+        // Utility function to generate price display HTML
+        function generatePriceDisplay(product) {
+            if (!product.price && !product.current_price) {
+                return '<span style="color: var(--text-secondary);">가격 정보 없음</span>';
+            }
+
+            const currentPrice = product.current_price || product.price;
+            const originalPrice = product.original_price;
+
+            let priceHtml = '<div class="price-container">';
+
+            // Show original price if there's a discount
+            if (originalPrice && originalPrice > currentPrice) {
+                priceHtml += `<span class="price-original">$${originalPrice.toFixed(2)}</span>`;
+            }
+
+            // Current price
+            priceHtml += `<span class="price-current">$${currentPrice.toFixed(2)}</span>`;
+
+            priceHtml += '</div>';
+
+            return priceHtml;
+        }
+
+        // Enhanced Competitor Comparison
+        function updateCompetitorComparison() {
+            const select = document.getElementById('competitor-select');
+            const bodyDiv = document.getElementById('detailed-comparison-body');
+
+            if (!select || !bodyDiv) return;
+
+            const competitorName = select.value;
+
+            if (!competitorName) {
+                bodyDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+                        <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3;"></i>
+                        <p>비교할 경쟁사를 선택하세요</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // Find competitor data
+            const competitors = dashboardData?.brand?.competitors || [];
+            const laneige = competitors.find(c => c.brand.toUpperCase().includes('LANEIGE')) || {
+                brand: 'LANEIGE',
+                sos: 0,
+                product_count: 0,
+                avg_rank: 0,
+                avg_price: 0
+            };
+
+            const competitor = competitors.find(c => c.brand === competitorName) || {
+                brand: competitorName,
+                sos: 0,
+                product_count: 0,
+                avg_rank: 0,
+                avg_price: 0
+            };
+
+            // Helper function to compare values
+            function compareValues(val1, val2, lowerIsBetter = false) {
+                if (!val1 || !val2) return 'same';
+                if (lowerIsBetter) {
+                    return val1 < val2 ? 'better' : val1 > val2 ? 'worse' : 'same';
+                }
+                return val1 > val2 ? 'better' : val1 < val2 ? 'worse' : 'same';
+            }
+
+            // Generate comparison table
+            bodyDiv.innerHTML = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th class="metric-label">지표</th>
+                            <th class="value-cell">LANEIGE</th>
+                            <th class="value-cell">${competitorName}</th>
+                            <th class="value-cell">우위</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="metric-label">Share of Shelf (SoS)</td>
+                            <td class="value-cell">${laneige.sos ? laneige.sos.toFixed(1) + '%' : '-'}</td>
+                            <td class="value-cell">${competitor.sos ? competitor.sos.toFixed(1) + '%' : '-'}</td>
+                            <td class="value-cell ${compareValues(laneige.sos, competitor.sos)}">
+                                ${laneige.sos > competitor.sos ? '✓ LANEIGE' : laneige.sos < competitor.sos ? competitorName : '동일'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="metric-label">제품 수</td>
+                            <td class="value-cell">${laneige.product_count || laneige.count || '-'}개</td>
+                            <td class="value-cell">${competitor.product_count || competitor.count || '-'}개</td>
+                            <td class="value-cell ${compareValues(laneige.product_count, competitor.product_count)}">
+                                ${(laneige.product_count || 0) > (competitor.product_count || 0) ? '✓ LANEIGE' :
+                                  (laneige.product_count || 0) < (competitor.product_count || 0) ? competitorName : '동일'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="metric-label">평균 순위</td>
+                            <td class="value-cell">${laneige.avg_rank ? laneige.avg_rank.toFixed(1) + '위' : '-'}</td>
+                            <td class="value-cell">${competitor.avg_rank ? competitor.avg_rank.toFixed(1) + '위' : '-'}</td>
+                            <td class="value-cell ${compareValues(laneige.avg_rank, competitor.avg_rank, true)}">
+                                ${(laneige.avg_rank || 999) < (competitor.avg_rank || 999) ? '✓ LANEIGE' :
+                                  (laneige.avg_rank || 999) > (competitor.avg_rank || 999) ? competitorName : '동일'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="metric-label">평균 가격</td>
+                            <td class="value-cell">${laneige.avg_price ? '$' + laneige.avg_price.toFixed(2) : '-'}</td>
+                            <td class="value-cell">${competitor.avg_price ? '$' + competitor.avg_price.toFixed(2) : '-'}</td>
+                            <td class="value-cell same">
+                                ${Math.abs((laneige.avg_price || 0) - (competitor.avg_price || 0)) < 1 ? '비슷함' :
+                                  (laneige.avg_price || 0) > (competitor.avg_price || 0) ? 'LANEIGE 고가' : competitorName + ' 고가'}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="chart-guide" style="margin-top: 16px;">
+                    <strong>분석:</strong> ${competitorName}과(와) LANEIGE의 핵심 지표 비교.
+                    <span class="better" style="display: inline;">✓</span> 표시는 우위를 나타냅니다.
+                </div>
+            `;
         }
 
         // 제품 상세 페이지로 이동
@@ -2403,6 +2996,111 @@
             document.getElementById('prod-rating-delta').textContent = d.ratingDelta;
             document.getElementById('prod-stick').innerHTML = d.stick + '<span class="unit">pt</span>';
             document.getElementById('prod-stick-delta').textContent = d.stickDelta;
+
+            // 프로모션 관련 데이터 업데이트
+            updatePromoViews();
+        }
+
+        // 프로모션 데이터 뷰 업데이트
+        function updatePromoViews() {
+            if (!dashboardData || !dashboardData.charts) return;
+
+            const charts = dashboardData.charts;
+
+            // 성장 유형 분류 업데이트
+            if (charts.growth_type_summary) {
+                const organic = charts.growth_type_summary.organic || 0;
+                const discountBased = charts.growth_type_summary.discount_based || 0;
+                document.getElementById('organic-count').textContent = organic + '개';
+                document.getElementById('discount-count').textContent = discountBased + '개';
+            }
+
+            // 경쟁사 프로모션 비교 테이블 업데이트
+            if (charts.competitor_promo && charts.competitor_promo.length > 0) {
+                const tbody = document.getElementById('competitor-promo-tbody');
+                tbody.innerHTML = '';
+
+                charts.competitor_promo.forEach(comp => {
+                    const row = document.createElement('tr');
+                    if (comp.is_laneige) row.classList.add('is-laneige');
+
+                    const brandClass = comp.is_laneige ? 'brand-name laneige' : 'brand-name';
+                    const discountDisplay = comp.avg_discount > 0 ? comp.avg_discount + '%' : '-';
+
+                    // Add discount badge if significant discount
+                    const discountBadge = comp.avg_discount > 15 ?
+                        `<span class="discount-badge" style="font-size: 9px; padding: 2px 6px; margin-left: 4px;">🔥</span>` : '';
+
+                    row.innerHTML = `
+                        <td class="${brandClass}" title="${comp.brand}">${comp.brand.substring(0, 12)}</td>
+                        <td class="num-cell">${comp.product_count}</td>
+                        <td class="num-cell discount-cell">${discountDisplay}${discountBadge}</td>
+                        <td class="num-cell">${comp.coupon_count}${comp.coupon_count > 0 ? ' 🎟️' : ''}</td>
+                        <td class="num-cell">${comp.deal_count}${comp.deal_count > 0 ? ' ⚡' : ''}</td>
+                        <td class="num-cell">${comp.sns_count}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // 할인율 추이 차트 업데이트
+            if (charts.discount_trend && charts.discount_trend.labels) {
+                updateDiscountTrendChart(charts.discount_trend);
+            }
+        }
+
+        // 할인율 추이 차트 업데이트
+        function updateDiscountTrendChart(discountData) {
+            const ctx = document.getElementById('discountTrendChart');
+            if (!ctx) return;
+
+            // 기존 차트 제거
+            if (window.discountChart) {
+                window.discountChart.destroy();
+            }
+
+            // 현재 할인율 배지 업데이트
+            const latestDiscount = discountData.data[discountData.data.length - 1] || 0;
+            document.getElementById('discount-badge').textContent = `현재 할인율: ${latestDiscount}%`;
+
+            window.discountChart = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: discountData.labels,
+                    datasets: [{
+                        label: '평균 할인율',
+                        data: discountData.data,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#ef4444',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 50,
+                            title: {
+                                display: true,
+                                text: '할인율 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 인사이트 업데이트
+            const trend = latestDiscount > discountData.data[0] ? '상승' : latestDiscount < discountData.data[0] ? '하락' : '유지';
+            document.getElementById('discount-insight').textContent = `추세: ${trend}`;
         }
 
         // API 서버 주소 (배포 환경에서는 현재 호스트 사용, 로컬에서는 localhost:8001)
@@ -2590,6 +3288,10 @@
                         formattedResponse = toolBadges + '<br><br>' + formattedResponse;
                     }
 
+                    // AI 출처 표기 추가
+                    const sourceCitation = renderSourceCitation(data.sources);
+                    formattedResponse += sourceCitation;
+
                     chatBody.innerHTML += `<div class="chat-message bot"><div class="bubble">${formattedResponse}</div></div>`;
 
                     // 후속 질문 제안 업데이트
@@ -2621,6 +3323,51 @@
             }
 
             chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // AI 출처 표기 렌더링
+        function renderSourceCitation(sources) {
+            if (!sources || sources.length === 0) {
+                // 기본 AI 출처 표기
+                return `<div class="ai-source-citation">
+                    <div class="source-header" onclick="this.parentElement.classList.toggle('expanded')">
+                        <span class="source-toggle">▶</span>
+                        <span class="source-label">🤖 AI 분석 결과</span>
+                    </div>
+                    <div class="source-details">
+                        <div class="source-item">
+                            <span class="source-icon">🤖</span>
+                            <span class="source-text">AI 모델: GPT-4.1-mini</span>
+                        </div>
+                        <div class="source-disclaimer">※ AI가 생성한 분석 결과입니다. 중요한 의사결정 시 추가 검증을 권장합니다.</div>
+                    </div>
+                </div>`;
+            }
+
+            let sourceItems = sources.map(src => {
+                const icon = src.icon || '📄';
+                const name = src.name || 'Unknown';
+                const desc = src.description || '';
+                return `<div class="source-item">
+                    <span class="source-icon">${icon}</span>
+                    <span class="source-text"><strong>${name}</strong>${desc ? ' - ' + desc : ''}</span>
+                </div>`;
+            }).join('');
+
+            // 면책조항 찾기
+            const aiSource = sources.find(s => s.type === 'ai_model');
+            const disclaimer = aiSource?.disclaimer || 'AI가 생성한 분석 결과입니다.';
+
+            return `<div class="ai-source-citation">
+                <div class="source-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="source-toggle">▶</span>
+                    <span class="source-label">📋 출처 (${sources.length}개)</span>
+                </div>
+                <div class="source-details">
+                    ${sourceItems}
+                    <div class="source-disclaimer">※ ${disclaimer}</div>
+                </div>
+            </div>`;
         }
 
         // 후속 질문 제안 업데이트

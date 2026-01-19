@@ -1,0 +1,140 @@
+{
+  "version": "1.0",
+  "updated_at": "2025-01-19",
+  "source": "Amazon US Best Sellers",
+  "categories": {
+    "beauty": {
+      "name": "Beauty & Personal Care",
+      "amazon_node_id": "beauty",
+      "level": 0,
+      "parent_id": null,
+      "path": ["beauty"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty/zgbs/beauty",
+      "children": ["skin_care", "makeup", "hair_care", "fragrance", "personal_care", "foot_hand_nail", "shave_hair_removal", "salon_spa", "gift_sets", "tools_accessories"]
+    },
+    "skin_care": {
+      "name": "Skin Care",
+      "amazon_node_id": "11060451",
+      "level": 1,
+      "parent_id": "beauty",
+      "path": ["beauty", "skin_care"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451",
+      "children": ["body_skincare", "eyes_skincare", "face_skincare", "lip_care", "maternity_skincare", "sets_kits_skincare", "sunscreens"]
+    },
+    "lip_care": {
+      "name": "Lip Care",
+      "amazon_node_id": "3761351",
+      "level": 2,
+      "parent_id": "skin_care",
+      "path": ["beauty", "skin_care", "lip_care"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
+      "children": []
+    },
+    "face_skincare": {
+      "name": "Face",
+      "amazon_node_id": "11060711",
+      "level": 2,
+      "parent_id": "skin_care",
+      "path": ["beauty", "skin_care", "face_skincare"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Facial-Skin-Care-Products/zgbs/beauty/11060711",
+      "children": []
+    },
+    "body_skincare": {
+      "name": "Body",
+      "amazon_node_id": "11060521",
+      "level": 2,
+      "parent_id": "skin_care",
+      "path": ["beauty", "skin_care", "body_skincare"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Body-Skin-Care-Products/zgbs/beauty/11060521",
+      "children": []
+    },
+    "eyes_skincare": {
+      "name": "Eyes",
+      "amazon_node_id": "11061941",
+      "level": 2,
+      "parent_id": "skin_care",
+      "path": ["beauty", "skin_care", "eyes_skincare"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Eye-Treatment-Products/zgbs/beauty/11061941",
+      "children": []
+    },
+    "makeup": {
+      "name": "Makeup",
+      "amazon_node_id": "11058281",
+      "level": 1,
+      "parent_id": "beauty",
+      "path": ["beauty", "makeup"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Makeup/zgbs/beauty/11058281",
+      "children": ["eyes_makeup", "face_makeup", "lip_makeup", "makeup_palettes", "makeup_remover", "makeup_sets"]
+    },
+    "lip_makeup": {
+      "name": "Lips",
+      "amazon_node_id": "11058071",
+      "level": 2,
+      "parent_id": "makeup",
+      "path": ["beauty", "makeup", "lip_makeup"],
+      "url": "https://www.amazon.com/Best-Sellers-Lip-Makeup/zgbs/beauty/11058071",
+      "children": []
+    },
+    "face_makeup": {
+      "name": "Face",
+      "amazon_node_id": "11058011",
+      "level": 2,
+      "parent_id": "makeup",
+      "path": ["beauty", "makeup", "face_makeup"],
+      "url": "https://www.amazon.com/Best-Sellers-Face-Makeup/zgbs/beauty/11058011",
+      "children": ["face_powder"]
+    },
+    "face_powder": {
+      "name": "Face Powder",
+      "amazon_node_id": "11058031",
+      "level": 3,
+      "parent_id": "face_makeup",
+      "path": ["beauty", "makeup", "face_makeup", "face_powder"],
+      "url": "https://www.amazon.com/Best-Sellers-Face-Powder/zgbs/beauty/11058031",
+      "children": []
+    },
+    "eyes_makeup": {
+      "name": "Eyes",
+      "amazon_node_id": "11057961",
+      "level": 2,
+      "parent_id": "makeup",
+      "path": ["beauty", "makeup", "eyes_makeup"],
+      "url": "https://www.amazon.com/Best-Sellers-Eye-Makeup/zgbs/beauty/11057961",
+      "children": []
+    },
+    "hair_care": {
+      "name": "Hair Care",
+      "amazon_node_id": "11057241",
+      "level": 1,
+      "parent_id": "beauty",
+      "path": ["beauty", "hair_care"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Hair-Care-Products/zgbs/beauty/11057241",
+      "children": []
+    },
+    "fragrance": {
+      "name": "Fragrance",
+      "amazon_node_id": "11056591",
+      "level": 1,
+      "parent_id": "beauty",
+      "path": ["beauty", "fragrance"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Perfumes-Fragrances/zgbs/beauty/11056591",
+      "children": []
+    },
+    "personal_care": {
+      "name": "Personal Care",
+      "amazon_node_id": "3777891",
+      "level": 1,
+      "parent_id": "beauty",
+      "path": ["beauty", "personal_care"],
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Personal-Care-Products/zgbs/beauty/3777891",
+      "children": []
+    }
+  },
+  "monitored_categories": [
+    "beauty",
+    "skin_care",
+    "lip_care",
+    "lip_makeup",
+    "face_powder"
+  ]
+}

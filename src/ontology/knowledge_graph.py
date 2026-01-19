@@ -340,7 +340,12 @@ class KnowledgeGraph:
                     predicate_filter=predicate_filter
                 )
 
-                for _, neighbor in neighbors.get(direction, []):
+                if direction == "both":
+                    neighbor_list = neighbors.get("outgoing", []) + neighbors.get("incoming", [])
+                else:
+                    neighbor_list = neighbors.get(direction, [])
+
+                for _, neighbor in neighbor_list:
                     if neighbor not in visited:
                         queue.append((neighbor, depth + 1))
 
@@ -830,6 +835,195 @@ class KnowledgeGraph:
                     added += 1
 
         return added
+
+    def load_category_hierarchy(
+        self,
+        hierarchy_path: str = "config/category_hierarchy.json"
+    ) -> int:
+        """
+        카테고리 계층 구조 로드
+
+        Args:
+            hierarchy_path: 카테고리 계층 JSON 파일 경로
+
+        Returns:
+            추가된 관계 수
+        """
+        import json
+        from pathlib import Path
+
+        path = Path(hierarchy_path)
+        if not path.exists():
+            # 상대 경로로 시도
+            base_path = Path(__file__).parent.parent.parent
+            path = base_path / hierarchy_path
+
+        if not path.exists():
+            print(f"Warning: Category hierarchy file not found: {hierarchy_path}")
+            return 0
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        added = 0
+        categories = data.get("categories", {})
+
+        for cat_id, cat_data in categories.items():
+            # 카테고리 메타데이터 설정
+            self.set_entity_metadata(cat_id, {
+                "type": "category",
+                "name": cat_data.get("name", ""),
+                "amazon_node_id": cat_data.get("amazon_node_id", ""),
+                "level": cat_data.get("level", 0),
+                "parent_id": cat_data.get("parent_id"),
+                "path": cat_data.get("path", []),
+                "url": cat_data.get("url", ""),
+                "children": cat_data.get("children", [])
+            })
+
+            # 부모-자식 관계 추가
+            parent_id = cat_data.get("parent_id")
+            if parent_id:
+                # 자식 → 부모 관계
+                rel_parent = Relation(
+                    subject=cat_id,
+                    predicate=RelationType.PARENT_CATEGORY,
+                    object=parent_id,
+                    properties={
+                        "child_name": cat_data.get("name", ""),
+                        "child_level": cat_data.get("level", 0)
+                    },
+                    source="config"
+                )
+                if self.add_relation(rel_parent):
+                    added += 1
+
+                # 부모 → 자식 관계
+                rel_child = Relation(
+                    subject=parent_id,
+                    predicate=RelationType.HAS_SUBCATEGORY,
+                    object=cat_id,
+                    properties={
+                        "child_name": cat_data.get("name", ""),
+                        "child_level": cat_data.get("level", 0)
+                    },
+                    source="config"
+                )
+                if self.add_relation(rel_child):
+                    added += 1
+
+        return added
+
+    def get_category_hierarchy(
+        self,
+        category_id: str
+    ) -> Dict[str, Any]:
+        """
+        카테고리의 전체 계층 정보 조회
+
+        Args:
+            category_id: 카테고리 ID
+
+        Returns:
+            {
+                "category": category_id,
+                "name": str,
+                "level": int,
+                "path": List[str],
+                "ancestors": List[Dict],  # 상위 카테고리들
+                "descendants": List[Dict]  # 하위 카테고리들
+            }
+        """
+        metadata = self.get_entity_metadata(category_id)
+        if not metadata or metadata.get("type") != "category":
+            return {"category": category_id, "error": "Category not found"}
+
+        result = {
+            "category": category_id,
+            "name": metadata.get("name", ""),
+            "level": metadata.get("level", 0),
+            "path": metadata.get("path", []),
+            "ancestors": [],
+            "descendants": []
+        }
+
+        # 상위 카테고리 탐색
+        current = category_id
+        while True:
+            parent_rels = self.query(
+                subject=current,
+                predicate=RelationType.PARENT_CATEGORY
+            )
+            if not parent_rels:
+                break
+            parent_id = parent_rels[0].object
+            parent_meta = self.get_entity_metadata(parent_id)
+            result["ancestors"].append({
+                "id": parent_id,
+                "name": parent_meta.get("name", ""),
+                "level": parent_meta.get("level", 0)
+            })
+            current = parent_id
+
+        # 하위 카테고리 탐색 (1단계만)
+        child_rels = self.query(
+            subject=category_id,
+            predicate=RelationType.HAS_SUBCATEGORY
+        )
+        for rel in child_rels:
+            child_id = rel.object
+            child_meta = self.get_entity_metadata(child_id)
+            result["descendants"].append({
+                "id": child_id,
+                "name": child_meta.get("name", ""),
+                "level": child_meta.get("level", 0)
+            })
+
+        return result
+
+    def get_product_category_context(
+        self,
+        product_asin: str
+    ) -> Dict[str, Any]:
+        """
+        제품의 카테고리 컨텍스트 조회 (계층 포함)
+
+        Args:
+            product_asin: 제품 ASIN
+
+        Returns:
+            {
+                "product": asin,
+                "categories": [
+                    {
+                        "category_id": str,
+                        "rank": int,
+                        "hierarchy": {...}
+                    }
+                ]
+            }
+        """
+        result = {
+            "product": product_asin,
+            "categories": []
+        }
+
+        # 제품이 속한 카테고리 조회
+        cat_rels = self.query(
+            subject=product_asin,
+            predicate=RelationType.BELONGS_TO_CATEGORY
+        )
+
+        for rel in cat_rels:
+            cat_id = rel.object
+            cat_info = {
+                "category_id": cat_id,
+                "rank": rel.properties.get("rank"),
+                "hierarchy": self.get_category_hierarchy(cat_id)
+            }
+            result["categories"].append(cat_info)
+
+        return result
 
     def __repr__(self):
         stats = self.get_stats()

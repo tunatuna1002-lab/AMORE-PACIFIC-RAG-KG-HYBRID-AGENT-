@@ -213,7 +213,7 @@ class AmazonScraper:
         return products
 
     async def _extract_product_data(self, card, asin: str, rank: int, category_id: str, snapshot_date: str) -> Optional[Dict]:
-        """개별 제품 데이터 추출"""
+        """개별 제품 데이터 추출 (프로모션 정보 포함)"""
         try:
             # 제품명
             name_elem = await card.query_selector(".p13n-sc-truncate, ._cDEzb_p13n-sc-css-line-clamp-3_g3dy1, .a-link-normal span")
@@ -256,11 +256,60 @@ class AmazonScraper:
                 reviews_text = await reviews_elem.inner_text()
                 reviews_count = self._parse_reviews_count(reviews_text)
 
-            # 뱃지
+            # 뱃지 (Best Seller, Amazon's Choice 등)
             badge = ""
             badge_elem = await card.query_selector(".a-badge-text, .p13n-best-seller-badge")
             if badge_elem:
                 badge = await badge_elem.inner_text()
+
+            # === 프로모션 정보 추출 ===
+
+            # 쿠폰 정보 (예: "Save 5% with coupon", "Save $2.00 with coupon")
+            coupon_text = ""
+            coupon_elem = await card.query_selector(".s-coupon-highlight-color, .couponBadge, [data-component-type='s-coupon-component']")
+            if coupon_elem:
+                coupon_text = (await coupon_elem.inner_text()).strip()
+
+            # Subscribe & Save 여부
+            is_subscribe_save = False
+            sns_elem = await card.query_selector(".s-subscriptions-terms, [data-component-type='s-subscribe-and-save']")
+            if sns_elem:
+                is_subscribe_save = True
+            # 텍스트로도 확인
+            card_html = await card.inner_html()
+            if "Subscribe & Save" in card_html or "Subscribe &amp; Save" in card_html:
+                is_subscribe_save = True
+
+            # 프로모션 배지들 (Limited Time Deal, Lightning Deal 등)
+            promo_badges = []
+
+            # Limited Time Deal
+            ltd_elem = await card.query_selector(".a-badge-limited-time-deal, [data-badge='limited-time-deal']")
+            if ltd_elem or "Limited time deal" in card_html:
+                promo_badges.append("Limited Time Deal")
+
+            # Lightning Deal
+            if "Lightning Deal" in card_html:
+                promo_badges.append("Lightning Deal")
+
+            # Prime Day Deal / Holiday Deal 등
+            deal_badge = await card.query_selector(".dealBadge, .a-badge-deal")
+            if deal_badge:
+                deal_text = await deal_badge.inner_text()
+                if deal_text and deal_text.strip():
+                    promo_badges.append(deal_text.strip())
+
+            # Climate Pledge Friendly
+            if "Climate Pledge" in card_html:
+                promo_badges.append("Climate Pledge Friendly")
+
+            # Amazon's Choice (badge와 별도로 저장)
+            if "Amazon's Choice" in card_html or "Amazons Choice" in card_html:
+                if "Amazon's Choice" not in promo_badges:
+                    promo_badges.append("Amazon's Choice")
+
+            # 프로모션 배지를 콤마로 연결
+            promo_badges_str = ", ".join(promo_badges) if promo_badges else ""
 
             # URL
             link_elem = await card.query_selector("a.a-link-normal")
@@ -269,6 +318,7 @@ class AmazonScraper:
 
             return {
                 "snapshot_date": snapshot_date,
+                "collected_at": datetime.now(KST).isoformat(),  # 정확한 수집 시간 (ISO 8601 형식)
                 "category_id": category_id,
                 "asin": asin,
                 "product_name": product_name,
@@ -280,6 +330,9 @@ class AmazonScraper:
                 "rating": rating,
                 "reviews_count": reviews_count,
                 "badge": badge,
+                "coupon_text": coupon_text,
+                "is_subscribe_save": is_subscribe_save,
+                "promo_badges": promo_badges_str,
                 "product_url": product_url or f"{self.base_url}/dp/{asin}"
             }
 

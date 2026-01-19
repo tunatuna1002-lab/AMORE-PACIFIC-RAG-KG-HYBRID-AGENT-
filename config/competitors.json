@@ -1,0 +1,103 @@
+{
+  "version": "1.0",
+  "updated_at": "2025-01-19",
+  "description": "LANEIGE 브랜드 경쟁사 설정",
+
+  "target_brand": {
+    "name": "LANEIGE",
+    "aliases": ["Laneige", "라네즈"],
+    "parent_company": "AMORE PACIFIC"
+  },
+
+  "fixed_competitors": {
+    "description": "담당자가 직접 지정한 고정 경쟁사",
+    "brands": [
+      {
+        "name": "Summer Fridays",
+        "aliases": ["SummerFridays"],
+        "categories": ["lip_care", "skin_care"],
+        "priority": 1,
+        "notes": "멘토링에서 지정된 주요 경쟁사"
+      },
+      {
+        "name": "COSRX",
+        "aliases": ["Cosrx", "코스알엑스"],
+        "categories": ["skin_care", "lip_care"],
+        "priority": 2,
+        "notes": "K-뷰티 경쟁 브랜드"
+      },
+      {
+        "name": "Tatcha",
+        "aliases": [],
+        "categories": ["skin_care", "lip_care"],
+        "priority": 3,
+        "notes": "프리미엄 스킨케어"
+      },
+      {
+        "name": "Drunk Elephant",
+        "aliases": ["DrunkElephant"],
+        "categories": ["skin_care"],
+        "priority": 3,
+        "notes": "클린 뷰티 경쟁"
+      },
+      {
+        "name": "Glow Recipe",
+        "aliases": ["GlowRecipe"],
+        "categories": ["skin_care"],
+        "priority": 3,
+        "notes": "K-뷰티 인스파이어드"
+      }
+    ]
+  },
+
+  "dynamic_competitors": {
+    "description": "AI가 자동 감지하는 유동적 위협",
+    "detection_rules": {
+      "rank_surge": {
+        "description": "3일간 순위 급상승",
+        "threshold_rank_change": 20,
+        "period_days": 3
+      },
+      "frequent_top": {
+        "description": "빈번한 순위권 진입",
+        "threshold_appearances": 5,
+        "period_days": 7,
+        "max_rank": 20
+      },
+      "price_aggressive": {
+        "description": "공격적 가격 정책",
+        "threshold_discount_percent": 30,
+        "min_rank_improvement": 10
+      }
+    }
+  },
+
+  "category_mapping": {
+    "description": "카테고리별 1:1 제품 매칭 테이블",
+    "lip_care": {
+      "LANEIGE": "Lip Sleeping Mask",
+      "Summer Fridays": "Jet Lag Mask",
+      "COSRX": "Balancium Ceramide Lip Butter"
+    },
+    "skin_care": {
+      "LANEIGE": "Water Bank Collection",
+      "Summer Fridays": "Jet Lag Collection",
+      "COSRX": "Snail Mucin Collection"
+    }
+  },
+
+  "analysis_config": {
+    "comparison_metrics": [
+      "rank",
+      "price",
+      "discount_percent",
+      "rating",
+      "reviews_count"
+    ],
+    "alert_thresholds": {
+      "competitor_overtake": true,
+      "price_undercut_percent": 10,
+      "rank_gap_change": 5
+    }
+  }
+}

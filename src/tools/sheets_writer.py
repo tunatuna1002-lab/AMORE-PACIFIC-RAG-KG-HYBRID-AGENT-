@@ -38,7 +38,9 @@ class SheetsWriter:
             "name": "RawData",
             "headers": [
                 "snapshot_date", "category_id", "rank", "asin", "product_name",
-                "brand", "price", "rating", "reviews_count", "badge", "product_url"
+                "brand", "price", "list_price", "discount_percent", "rating",
+                "reviews_count", "badge", "coupon_text", "is_subscribe_save",
+                "promo_badges", "product_url"
             ]
         },
         "products": {
@@ -228,7 +230,7 @@ class SheetsWriter:
             rows.append(row)
 
         try:
-            range_name = f"{sheet_config['name']}!A:K"
+            range_name = f"{sheet_config['name']}!A:P"
             logger.info(f"Appending {len(rows)} rows to {range_name} in spreadsheet {self.spreadsheet_id[:20]}...")
             result = self.service.spreadsheets().values().append(
                 spreadsheetId=self.spreadsheet_id,
@@ -366,7 +368,7 @@ class SheetsWriter:
 
         try:
             sheet_config = self.SHEETS_CONFIG["raw_data"]
-            range_name = f"{sheet_config['name']}!A:K"
+            range_name = f"{sheet_config['name']}!A:P"
 
             result = self.service.spreadsheets().values().get(
                 spreadsheetId=self.spreadsheet_id,

@@ -99,7 +99,8 @@ class ContextBuilder:
         self,
         hybrid_context: Any,  # HybridContext
         current_metrics: Optional[Dict[str, Any]] = None,
-        query: Optional[str] = None
+        query: Optional[str] = None,
+        knowledge_graph: Any = None
     ) -> str:
         """
         통합 컨텍스트 구성
@@ -108,46 +109,135 @@ class ContextBuilder:
             hybrid_context: HybridRetriever 결과
             current_metrics: 현재 지표 데이터
             query: 원본 쿼리
+            knowledge_graph: KnowledgeGraph 인스턴스 (카테고리 계층 조회용)
 
         Returns:
             LLM 프롬프트용 컨텍스트 문자열
         """
         sections: List[ContextSection] = []
 
-        # 1. 온톨로지 추론 결과 섹션
+        # 1. 카테고리 계층 섹션 (순위 관련 질문 시 우선 배치)
+        entities = hybrid_context.entities if hasattr(hybrid_context, 'entities') else {}
+        if knowledge_graph and (entities.get("categories") or entities.get("products")):
+            # 순위 관련 키워드 감지
+            is_ranking_query = False
+            if query:
+                ranking_keywords = ["순위", "rank", "위", "ranking", "등수"]
+                is_ranking_query = any(kw in query.lower() for kw in ranking_keywords)
+
+            if is_ranking_query:
+                hierarchy_section = self._build_category_hierarchy_section(
+                    entities,
+                    knowledge_graph
+                )
+                if hierarchy_section.content.strip():
+                    sections.append(hierarchy_section)
+
+        # 2. 온톨로지 추론 결과 섹션
         if hasattr(hybrid_context, 'inferences') and hybrid_context.inferences:
             inference_section = self._build_inference_section(
                 hybrid_context.inferences
             )
             sections.append(inference_section)
 
-        # 2. 현재 데이터 섹션
+        # 3. 현재 데이터 섹션
         if current_metrics:
             data_section = self._build_data_section(
                 current_metrics,
-                hybrid_context.entities if hasattr(hybrid_context, 'entities') else {}
+                entities
             )
             sections.append(data_section)
 
-        # 3. 지식 그래프 사실 섹션
+        # 4. 지식 그래프 사실 섹션
         if hasattr(hybrid_context, 'ontology_facts') and hybrid_context.ontology_facts:
             facts_section = self._build_facts_section(
                 hybrid_context.ontology_facts
             )
             sections.append(facts_section)
 
-        # 4. RAG 가이드라인 섹션
+        # 5. RAG 가이드라인 섹션
         if hasattr(hybrid_context, 'rag_chunks') and hybrid_context.rag_chunks:
             rag_section = self._build_rag_section(
                 hybrid_context.rag_chunks
             )
             sections.append(rag_section)
 
-        # 5. 토큰 제한 내 조합
+        # 6. 토큰 제한 내 조합
         selected_sections = self._select_within_limit(sections)
 
-        # 6. 최종 조립
+        # 7. 최종 조립
         return self._assemble(selected_sections, query)
+
+    def _build_category_hierarchy_section(
+        self,
+        entities: Dict[str, List[str]],
+        knowledge_graph: Any
+    ) -> ContextSection:
+        """카테고리 계층 구조 섹션 구성"""
+        lines = []
+
+        # 카테고리 계층 정보
+        categories = entities.get("categories", [])
+        for category in categories:
+            hierarchy = knowledge_graph.get_category_hierarchy(category)
+            if "error" in hierarchy:
+                continue
+
+            lines.append(f"### {hierarchy.get('name', category)}")
+            lines.append(f"- **레벨**: {hierarchy.get('level', 0)}")
+
+            # 상위 카테고리 경로
+            if hierarchy.get('ancestors'):
+                path_names = [a['name'] for a in reversed(hierarchy['ancestors'])]
+                path_names.append(hierarchy['name'])
+                lines.append(f"- **전체 경로**: {' > '.join(path_names)}")
+
+            # 하위 카테고리
+            if hierarchy.get('descendants'):
+                children = ", ".join([d['name'] for d in hierarchy['descendants'][:5]])
+                if len(hierarchy['descendants']) > 5:
+                    children += f" 외 {len(hierarchy['descendants']) - 5}개"
+                lines.append(f"- **하위 카테고리**: {children}")
+
+            lines.append("")
+
+        # 제품별 카테고리 순위 컨텍스트
+        products = entities.get("products", [])
+        if products:
+            lines.append("### 제품별 카테고리 순위")
+
+            for product_asin in products[:5]:  # 최대 5개 제품
+                product_ctx = knowledge_graph.get_product_category_context(product_asin)
+                if product_ctx.get("categories"):
+                    # 제품 메타데이터 조회
+                    product_meta = knowledge_graph.get_entity_metadata(product_asin)
+                    product_name = product_meta.get("product_name", product_asin)
+
+                    lines.append(f"\n**{product_name}** (ASIN: {product_asin}):")
+
+                    # 카테고리별 순위 정렬 (계층 레벨 순)
+                    cat_infos = sorted(
+                        product_ctx["categories"],
+                        key=lambda x: x.get("hierarchy", {}).get("level", 99)
+                    )
+
+                    for cat_info in cat_infos:
+                        hierarchy = cat_info.get("hierarchy", {})
+                        cat_name = hierarchy.get("name", cat_info.get("category_id"))
+                        rank = cat_info.get("rank", "N/A")
+                        level = hierarchy.get("level", 0)
+                        lines.append(f"  - [{cat_name}] {rank}위 (Level {level})")
+
+                    lines.append("")
+
+        content = "\n".join(lines)
+
+        return ContextSection(
+            title="카테고리 계층 구조",
+            content=content,
+            priority=ContextPriority.HIGH,
+            source="category_hierarchy"
+        )
 
     def _build_inference_section(
         self,
@@ -489,20 +579,40 @@ class CompactContextBuilder(ContextBuilder):
         self,
         hybrid_context: Any,
         current_metrics: Optional[Dict[str, Any]] = None,
-        query: Optional[str] = None
+        query: Optional[str] = None,
+        knowledge_graph: Any = None
     ) -> str:
         """컴팩트 컨텍스트 구성"""
         parts = []
 
-        # 1. 핵심 추론 결과만
+        # 1. 카테고리 계층 정보 (순위 관련 질문 시)
+        entities = hybrid_context.entities if hasattr(hybrid_context, 'entities') else {}
+        if knowledge_graph and query:
+            ranking_keywords = ["순위", "rank", "위", "ranking", "등수"]
+            if any(kw in query.lower() for kw in ranking_keywords):
+                # 제품별 카테고리 순위
+                products = entities.get("products", [])
+                if products:
+                    parts.append("[카테고리별 순위]")
+                    for product_asin in products[:3]:
+                        product_ctx = knowledge_graph.get_product_category_context(product_asin)
+                        if product_ctx.get("categories"):
+                            for cat_info in product_ctx["categories"][:2]:
+                                hierarchy = cat_info.get("hierarchy", {})
+                                cat_name = hierarchy.get("name", "")
+                                rank = cat_info.get("rank", "N/A")
+                                if cat_name:
+                                    parts.append(f"- {cat_name}: {rank}위")
+
+        # 2. 핵심 추론 결과만
         if hasattr(hybrid_context, 'inferences') and hybrid_context.inferences:
-            parts.append("[추론 결과]")
+            parts.append("\n[추론 결과]")
             for inf in hybrid_context.inferences[:3]:
                 parts.append(f"- {inf.insight}")
                 if inf.recommendation:
                     parts.append(f"  → {inf.recommendation}")
 
-        # 2. 핵심 데이터만
+        # 3. 핵심 데이터만
         if current_metrics:
             summary = current_metrics.get("summary", {})
             parts.append("\n[현재 데이터]")
@@ -513,7 +623,7 @@ class CompactContextBuilder(ContextBuilder):
                 sos_str = ", ".join(f"{k}: {v*100:.1f}%" for k, v in list(sos.items())[:2])
                 parts.append(f"- SoS: {sos_str}")
 
-        # 3. RAG는 제목만
+        # 4. RAG는 제목만
         if hasattr(hybrid_context, 'rag_chunks') and hybrid_context.rag_chunks:
             parts.append("\n[참고 문서]")
             for chunk in hybrid_context.rag_chunks[:2]:

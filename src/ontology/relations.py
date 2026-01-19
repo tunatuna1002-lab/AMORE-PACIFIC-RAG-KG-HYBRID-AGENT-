@@ -140,6 +140,10 @@ class InsightType(str, Enum):
     # 가격 관련
     PRICE_POSITION = "price_position"
     PRICE_QUALITY_GAP = "price_quality_gap"
+    PRICE_DEPENDENCY = "price_dependency"  # 가격 의존도 (할인 의존형)
+
+    # 브랜드 파워 관련
+    BRAND_STRENGTH = "brand_strength"  # 브랜드력/바이럴 효과
 
     # 안정성 관련
     STABILITY = "stability"
