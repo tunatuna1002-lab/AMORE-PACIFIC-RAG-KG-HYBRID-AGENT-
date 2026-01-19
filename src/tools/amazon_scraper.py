@@ -85,11 +85,19 @@ class AmazonScraper:
             - "TIMEOUT": 응답 없음 - 재시도 권장
             - "PARSE_ERROR": HTML 구조 변경 - 파서 업데이트 필요
         """
+        # 카테고리 설정에서 정보 가져오기
+        cat_config = self.config.get("categories", {}).get(category_id, {})
+        category_name = cat_config.get("name", category_id)
+        amazon_node_id = cat_config.get("amazon_node_id", category_id)
+        category_level = cat_config.get("level", 0)
+
         result = {
             "products": [],
             "count": 0,
             "category_id": category_id,
-            "category": category_id,
+            "category": category_name,
+            "amazon_node_id": amazon_node_id,
+            "category_level": category_level,
             "snapshot_date": datetime.now(KST).date().isoformat(),
             "success": False,
             "error": None
@@ -316,10 +324,19 @@ class AmazonScraper:
             href = await link_elem.get_attribute("href") if link_elem else ""
             product_url = f"{self.base_url}{href}" if href and not href.startswith("http") else href
 
+            # 카테고리 설정에서 amazon_node_id 가져오기
+            cat_config = self.config.get("categories", {}).get(category_id, {})
+            amazon_node_id = cat_config.get("amazon_node_id", category_id)
+            category_level = cat_config.get("level", 0)
+            category_name = cat_config.get("name", category_id)
+
             return {
                 "snapshot_date": snapshot_date,
                 "collected_at": datetime.now(KST).isoformat(),  # 정확한 수집 시간 (ISO 8601 형식)
                 "category_id": category_id,
+                "amazon_node_id": amazon_node_id,
+                "category_name": category_name,
+                "category_level": category_level,
                 "asin": asin,
                 "product_name": product_name,
                 "brand": brand,

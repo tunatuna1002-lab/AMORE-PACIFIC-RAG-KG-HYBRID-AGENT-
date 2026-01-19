@@ -221,92 +221,6 @@
             color: var(--amore-blue);
         }
 
-        /* === DATE RANGE SELECTOR === */
-        .date-range-selector {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-        }
-        .date-range-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: var(--bg-subtle);
-            border: 1px solid var(--border-light);
-            border-radius: 4px;
-            font-size: 11px;
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .date-range-btn:hover {
-            border-color: var(--amore-blue);
-            background: var(--ap-white);
-        }
-        .date-range-btn.active {
-            border-color: var(--amore-blue);
-            background: rgba(31, 87, 149, 0.08);
-        }
-        .date-range-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 4px;
-            background: var(--ap-white);
-            border: 1px solid var(--border-light);
-            border-radius: 6px;
-            box-shadow: var(--shadow-lg);
-            z-index: 1000;
-            min-width: 180px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-8px);
-            transition: all 0.2s ease;
-        }
-        .date-range-dropdown.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-        .date-range-option {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 14px;
-            font-size: 12px;
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: background 0.1s ease;
-        }
-        .date-range-option:first-child {
-            border-radius: 6px 6px 0 0;
-        }
-        .date-range-option:last-child {
-            border-radius: 0 0 6px 6px;
-        }
-        .date-range-option:hover {
-            background: var(--bg-subtle);
-        }
-        .date-range-option.selected {
-            background: rgba(31, 87, 149, 0.08);
-            color: var(--amore-blue);
-            font-weight: 500;
-        }
-        .date-range-option .check-icon {
-            width: 14px;
-            height: 14px;
-            opacity: 0;
-        }
-        .date-range-option.selected .check-icon {
-            opacity: 1;
-        }
-        .date-range-divider {
-            height: 1px;
-            background: var(--border-light);
-            margin: 4px 0;
-        }
-
         /* === LOADING STATES === */
         .loading-overlay {
             position: fixed;
@@ -647,6 +561,38 @@
             color: var(--danger);
         }
         .card-body { padding: 20px; }
+
+        /* === DATE RANGE SELECTOR === */
+        .date-range-selector {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-subtle);
+            padding: 3px;
+            border-radius: 6px;
+        }
+        .date-range-selector .date-btn {
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            color: var(--ap-gray);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .date-range-selector .date-btn:hover {
+            color: var(--pacific-blue);
+            background: rgba(31, 87, 149, 0.05);
+        }
+        .date-range-selector .date-btn.active {
+            background: var(--amore-blue);
+            color: white;
+        }
+        .date-range-selector .date-btn.loading {
+            opacity: 0.6;
+            cursor: wait;
+        }
 
         /* === ACTION TABLE - Data-focused === */
         .action-table { width: 100%; border-collapse: collapse; }
@@ -1803,38 +1749,6 @@
                     <div class="page-info"><h2 id="page-title">Home</h2><div class="breadcrumb" id="breadcrumb">Daily Insight & Action Board</div></div>
                 </div>
                 <div class="header-right">
-                    <!-- Date Range Selector -->
-                    <div class="date-range-selector" id="date-range-selector">
-                        <button class="date-range-btn" id="date-range-btn" onclick="toggleDateRangeDropdown()">
-                            <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
-                            <span id="date-range-label">오늘</span>
-                            <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
-                        </button>
-                        <div class="date-range-dropdown" id="date-range-dropdown">
-                            <div class="date-range-option selected" data-range="today" onclick="selectDateRange('today')">
-                                <span>오늘</span>
-                                <i data-lucide="check" class="check-icon"></i>
-                            </div>
-                            <div class="date-range-option" data-range="yesterday" onclick="selectDateRange('yesterday')">
-                                <span>어제</span>
-                                <i data-lucide="check" class="check-icon"></i>
-                            </div>
-                            <div class="date-range-divider"></div>
-                            <div class="date-range-option" data-range="7days" onclick="selectDateRange('7days')">
-                                <span>최근 7일</span>
-                                <i data-lucide="check" class="check-icon"></i>
-                            </div>
-                            <div class="date-range-option" data-range="14days" onclick="selectDateRange('14days')">
-                                <span>최근 14일</span>
-                                <i data-lucide="check" class="check-icon"></i>
-                            </div>
-                            <div class="date-range-option" data-range="30days" onclick="selectDateRange('30days')">
-                                <span>최근 30일</span>
-                                <i data-lucide="check" class="check-icon"></i>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="time-display-group">
                         <div class="date-display" id="date-display">📅 데이터: 로딩중...</div>
                         <div class="date-display current-time" id="current-time">🕐 현재: --:--:--</div>
@@ -2058,8 +1972,42 @@
                             <div class="kpi-card"><div class="kpi-label">Stickiness</div><div class="kpi-value" id="prod-stick">92<span class="unit">pt</span></div><span class="kpi-delta up" id="prod-stick-delta">고착화 높음</span></div>
                         </div>
                         <div class="content-grid">
-                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="line-chart" style="color: white; width: 16px; height: 16px;"></i></div>순위 & 가격 추이 (vs 카테고리 1위)</div></div><div class="card-body"><div class="chart-container"><canvas id="rankTrendChart"></canvas></div><div class="chart-guide"><strong>비교 대상:</strong> Summer Fridays Lip Butter Balm (현재 카테고리 1위)</div></div></div>
-                            <div class="card"><div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="grid-3x3" style="color: white; width: 16px; height: 16px;"></i></div>Laneige 제품 매트릭스</div></div><div class="card-body"><div class="chart-container"><canvas id="productMatrixChart"></canvas></div><div class="chart-guide"><strong>4분면 해석:</strong> 좌하단(King) = 안정적 상위권 / 좌상단(Rising) = 급부상 / 우하단(Lagging) = 정체 / 우상단(Risk) = 위험</div></div></div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="line-chart" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        순위 & 가격 추이 (vs 카테고리 1위)
+                                    </div>
+                                    <div class="date-range-selector" data-chart="rankTrend">
+                                        <button class="date-btn" data-days="1">오늘</button>
+                                        <button class="date-btn" data-days="7" class="active">7일</button>
+                                        <button class="date-btn" data-days="14">14일</button>
+                                        <button class="date-btn" data-days="30">30일</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container"><canvas id="rankTrendChart"></canvas></div>
+                                    <div class="chart-guide"><strong>비교 대상:</strong> Summer Fridays Lip Butter Balm (현재 카테고리 1위)</div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="card-title-icon"><i data-lucide="grid-3x3" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        Laneige 제품 매트릭스
+                                    </div>
+                                    <div class="date-range-selector" data-chart="productMatrix">
+                                        <button class="date-btn" data-days="1">오늘</button>
+                                        <button class="date-btn active" data-days="7">7일</button>
+                                        <button class="date-btn" data-days="14">14일</button>
+                                        <button class="date-btn" data-days="30">30일</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container"><canvas id="productMatrixChart"></canvas></div>
+                                    <div class="chart-guide"><strong>4분면 해석:</strong> 좌하단(King) = 안정적 상위권 / 좌상단(Rising) = 급부상 / 우하단(Lagging) = 정체 / 우상단(Risk) = 위험</div>
+                                </div>
+                            </div>
                         </div>
                         <!-- 할인율 추이 그래프 -->
                         <div class="content-grid single">
@@ -2067,9 +2015,17 @@
                                 <div class="card-header">
                                     <div class="card-title">
                                         <div class="card-title-icon"><i data-lucide="percent" style="color: white; width: 16px; height: 16px;"></i></div>
-                                        가격 & 할인율 추이 (7일)
+                                        가격 & 할인율 추이
                                     </div>
-                                    <span class="card-badge" id="discount-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);">현재 할인율: --%</span>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div class="date-range-selector" data-chart="discountTrend">
+                                            <button class="date-btn" data-days="1">오늘</button>
+                                            <button class="date-btn active" data-days="7">7일</button>
+                                            <button class="date-btn" data-days="14">14일</button>
+                                            <button class="date-btn" data-days="30">30일</button>
+                                        </div>
+                                        <span class="card-badge" id="discount-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);">현재 할인율: --%</span>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container"><canvas id="discountTrendChart"></canvas></div>
@@ -2240,154 +2196,6 @@
         // 크롤링 상태 관리
         let crawlStatusInterval = null;
         let lastDataDate = null;  // 마지막 데이터 날짜 추적
-
-        // 기간 선택 상태 관리
-        let currentDateRange = 'today';
-        let historicalData = {}; // 날짜별 히스토리컬 데이터 캐시
-
-        // 기간 선택 드롭다운 토글
-        function toggleDateRangeDropdown() {
-            const dropdown = document.getElementById('date-range-dropdown');
-            const btn = document.getElementById('date-range-btn');
-            const isOpen = dropdown.classList.contains('show');
-
-            if (isOpen) {
-                dropdown.classList.remove('show');
-                btn.classList.remove('active');
-            } else {
-                dropdown.classList.add('show');
-                btn.classList.add('active');
-            }
-        }
-
-        // 드롭다운 외부 클릭 시 닫기
-        document.addEventListener('click', function(e) {
-            const selector = document.getElementById('date-range-selector');
-            if (selector && !selector.contains(e.target)) {
-                const dropdown = document.getElementById('date-range-dropdown');
-                const btn = document.getElementById('date-range-btn');
-                if (dropdown) dropdown.classList.remove('show');
-                if (btn) btn.classList.remove('active');
-            }
-        });
-
-        // 기간 선택
-        async function selectDateRange(range) {
-            currentDateRange = range;
-
-            // UI 업데이트
-            const options = document.querySelectorAll('.date-range-option');
-            options.forEach(opt => {
-                opt.classList.remove('selected');
-                if (opt.dataset.range === range) {
-                    opt.classList.add('selected');
-                }
-            });
-
-            // 라벨 업데이트
-            const labels = {
-                'today': '오늘',
-                'yesterday': '어제',
-                '7days': '최근 7일',
-                '14days': '최근 14일',
-                '30days': '최근 30일'
-            };
-            document.getElementById('date-range-label').textContent = labels[range] || range;
-
-            // 드롭다운 닫기
-            toggleDateRangeDropdown();
-
-            // 데이터 로드 및 차트 업데이트
-            await loadDataForRange(range);
-        }
-
-        // 선택된 기간에 맞는 데이터 로드
-        async function loadDataForRange(range) {
-            showToast(`${range === 'today' ? '오늘' : range === 'yesterday' ? '어제' : '최근 ' + range.replace('days', '일')} 데이터 로딩 중...`, 'info');
-
-            try {
-                // API에서 히스토리컬 데이터 로드 시도
-                const days = getDaysFromRange(range);
-                const endDate = range === 'yesterday' ? getYesterdayDate() : getTodayDate();
-                const startDate = getStartDate(days, range === 'yesterday');
-
-                // Google Sheets에서 히스토리컬 데이터 요청
-                let response = await fetch(`${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}`);
-
-                if (response.ok) {
-                    const histData = await response.json();
-                    if (histData && histData.success && histData.data) {
-                        updateChartsWithHistoricalData(histData.data, range);
-                        const source = histData.data.source === 'local' ? ' (로컬 데이터)' : '';
-                        showToast(`데이터 로드 완료${source}`, 'success');
-                        return;
-                    } else if (histData && histData.error) {
-                        console.warn('Historical API returned error:', histData.error);
-                    }
-                }
-
-                // API 실패 시 현재 데이터로 표시 (추이 데이터 제한적)
-                console.warn('Historical API not available, using current data');
-                if (range === 'today') {
-                    updateDashboardFromData();
-                } else {
-                    showToast('해당 기간의 히스토리컬 데이터가 없습니다. 현재 데이터를 표시합니다.', 'info');
-                }
-
-            } catch (error) {
-                console.error('Failed to load historical data:', error);
-                showToast('데이터 로드 중 오류가 발생했습니다.', 'error');
-            }
-        }
-
-        // 기간에서 일수 계산
-        function getDaysFromRange(range) {
-            const daysMap = { 'today': 1, 'yesterday': 1, '7days': 7, '14days': 14, '30days': 30 };
-            return daysMap[range] || 7;
-        }
-
-        // 날짜 유틸리티
-        function getTodayDate() {
-            return new Date().toISOString().split('T')[0];
-        }
-
-        function getYesterdayDate() {
-            const d = new Date();
-            d.setDate(d.getDate() - 1);
-            return d.toISOString().split('T')[0];
-        }
-
-        function getStartDate(days, fromYesterday = false) {
-            const d = new Date();
-            if (fromYesterday) d.setDate(d.getDate() - 1);
-            d.setDate(d.getDate() - days + 1);
-            return d.toISOString().split('T')[0];
-        }
-
-        // 히스토리컬 데이터로 차트 업데이트
-        function updateChartsWithHistoricalData(data, range) {
-            // SoS 추이 차트 업데이트
-            if (charts.trend && data.sos_history) {
-                const labels = data.sos_history.map(d => d.date);
-                const values = data.sos_history.map(d => d.sos);
-
-                charts.trend.data.labels = labels;
-                charts.trend.data.datasets[0].data = values;
-                charts.trend.update();
-            }
-
-            // 순위 추이 차트 업데이트 (제품 페이지)
-            if (charts.rankTrend && data.rank_history) {
-                const labels = data.rank_history.map(d => d.date);
-                const values = data.rank_history.map(d => d.rank);
-
-                charts.rankTrend.data.labels = labels;
-                charts.rankTrend.data.datasets[0].data = values;
-                charts.rankTrend.update();
-            }
-
-            console.log('Charts updated with historical data for range:', range);
-        }
 
         // 토스트 알림 표시
         function showToast(message, type = 'info') {
@@ -4017,6 +3825,315 @@
                 }
             });
         }
+
+        // ============================================
+        // 날짜 범위 선택 기능
+        // ============================================
+
+        // 날짜 범위 선택 버튼 이벤트 리스너 초기화
+        function initDateRangeSelectors() {
+            document.querySelectorAll('.date-range-selector').forEach(selector => {
+                const chartType = selector.dataset.chart;
+                selector.querySelectorAll('.date-btn').forEach(btn => {
+                    btn.addEventListener('click', async function(e) {
+                        e.preventDefault();
+                        const days = parseInt(this.dataset.days);
+
+                        // 로딩 상태 표시
+                        selector.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active', 'loading');
+
+                        try {
+                            await updateChartWithDateRange(chartType, days);
+                        } catch (error) {
+                            console.error(`Failed to update ${chartType} chart:`, error);
+                            showToast(`차트 업데이트 실패: ${error.message}`, 'error');
+                        } finally {
+                            this.classList.remove('loading');
+                        }
+                    });
+                });
+            });
+        }
+
+        // 날짜 범위 계산 (YYYY-MM-DD 형식)
+        function getDateRange(days) {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(start.getDate() - days + 1);
+
+            const formatDate = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            return {
+                start_date: formatDate(start),
+                end_date: formatDate(end)
+            };
+        }
+
+        // Historical API 호출
+        async function fetchHistoricalData(startDate, endDate, brand = 'LANEIGE') {
+            const url = `${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}&brand=${brand}`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Unknown error');
+            }
+
+            return data.data;
+        }
+
+        // 차트별 업데이트 함수
+        async function updateChartWithDateRange(chartType, days) {
+            const { start_date, end_date } = getDateRange(days);
+
+            switch (chartType) {
+                case 'rankTrend':
+                    await updateRankTrendChart(start_date, end_date, days);
+                    break;
+                case 'productMatrix':
+                    await updateProductMatrixChart(start_date, end_date, days);
+                    break;
+                case 'discountTrend':
+                    await updateDiscountTrendChartWithRange(start_date, end_date, days);
+                    break;
+                default:
+                    console.warn(`Unknown chart type: ${chartType}`);
+            }
+        }
+
+        // 순위 추이 차트 업데이트
+        async function updateRankTrendChart(startDate, endDate, days) {
+            try {
+                const historicalData = await fetchHistoricalData(startDate, endDate);
+
+                if (!historicalData || !historicalData.rank_history) {
+                    showToast('해당 기간의 순위 데이터가 없습니다.', 'info');
+                    return;
+                }
+
+                const rankHistory = historicalData.rank_history;
+                const labels = Object.keys(rankHistory).sort();
+
+                // 제품별 데이터 구성
+                const productRanks = {};
+                labels.forEach(date => {
+                    const dayData = rankHistory[date];
+                    if (dayData && dayData.products) {
+                        dayData.products.forEach(product => {
+                            const name = product.name || product.product_name;
+                            if (!productRanks[name]) {
+                                productRanks[name] = [];
+                            }
+                            productRanks[name].push({ date, rank: product.rank });
+                        });
+                    }
+                });
+
+                // 날짜 레이블 포맷팅
+                const formattedLabels = labels.map(d => {
+                    const date = new Date(d);
+                    return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                });
+
+                // 데이터셋 생성
+                const datasets = Object.entries(productRanks).map(([name, data], idx) => {
+                    const ranks = labels.map(date => {
+                        const found = data.find(d => d.date === date);
+                        return found ? found.rank : null;
+                    });
+
+                    return {
+                        label: name,
+                        data: ranks,
+                        borderColor: chartColors[idx % chartColors.length],
+                        backgroundColor: idx === 0 ? 'rgba(32,128,128,0.1)' : 'transparent',
+                        tension: 0.4,
+                        fill: idx === 0,
+                        borderWidth: 3
+                    };
+                });
+
+                // 기준선 추가
+                datasets.push({
+                    label: '1위 기준선',
+                    data: formattedLabels.map(() => 1),
+                    borderColor: 'rgba(100, 100, 100, 0.5)',
+                    borderDash: [5, 5],
+                    tension: 0,
+                    borderWidth: 2,
+                    pointRadius: 0
+                });
+
+                // Y축 최대값 계산
+                const allRanks = Object.values(productRanks)
+                    .flat()
+                    .map(d => d.rank)
+                    .filter(r => r !== null);
+                const rankYMax = allRanks.length > 0 ? Math.max(...allRanks, 20) + 10 : 100;
+
+                // 차트 업데이트
+                if (charts.rankTrend) {
+                    charts.rankTrend.data.labels = formattedLabels;
+                    charts.rankTrend.data.datasets = datasets;
+                    charts.rankTrend.options.scales.y.max = rankYMax;
+                    charts.rankTrend.update('none');
+                }
+
+            } catch (error) {
+                console.error('Error updating rank trend chart:', error);
+                throw error;
+            }
+        }
+
+        // 제품 매트릭스 차트 업데이트
+        async function updateProductMatrixChart(startDate, endDate, days) {
+            try {
+                const historicalData = await fetchHistoricalData(startDate, endDate);
+
+                if (!historicalData || !historicalData.rank_history) {
+                    showToast('해당 기간의 데이터가 없습니다.', 'info');
+                    return;
+                }
+
+                // 제품별 평균 순위와 변동성 계산
+                const rankHistory = historicalData.rank_history;
+                const productStats = {};
+
+                Object.values(rankHistory).forEach(dayData => {
+                    if (dayData && dayData.products) {
+                        dayData.products.forEach(product => {
+                            const name = product.name || product.product_name;
+                            if (!productStats[name]) {
+                                productStats[name] = { ranks: [], name };
+                            }
+                            if (product.rank) {
+                                productStats[name].ranks.push(product.rank);
+                            }
+                        });
+                    }
+                });
+
+                // 버블 차트 데이터셋 생성
+                const matrixDatasets = Object.values(productStats)
+                    .filter(p => p.ranks.length > 0)
+                    .map((product, idx) => {
+                        const avgRank = product.ranks.reduce((a, b) => a + b, 0) / product.ranks.length;
+                        const volatility = product.ranks.length > 1
+                            ? Math.sqrt(product.ranks.map(r => Math.pow(r - avgRank, 2)).reduce((a, b) => a + b, 0) / product.ranks.length)
+                            : 0;
+                        const bubbleSize = Math.max(8, Math.min(20, 15 - avgRank / 10));
+
+                        return {
+                            label: product.name,
+                            data: [{ x: Math.round(avgRank), y: Math.round(volatility), r: bubbleSize }],
+                            backgroundColor: chartColors[idx % chartColors.length] + 'B3' // 70% 불투명도
+                        };
+                    });
+
+                // 차트 업데이트
+                if (charts.productMatrix && matrixDatasets.length > 0) {
+                    charts.productMatrix.data.datasets = matrixDatasets;
+                    charts.productMatrix.update('none');
+                }
+
+            } catch (error) {
+                console.error('Error updating product matrix chart:', error);
+                throw error;
+            }
+        }
+
+        // 할인율 추이 차트 업데이트
+        async function updateDiscountTrendChartWithRange(startDate, endDate, days) {
+            try {
+                const historicalData = await fetchHistoricalData(startDate, endDate);
+
+                if (!historicalData) {
+                    showToast('해당 기간의 데이터가 없습니다.', 'info');
+                    return;
+                }
+
+                // 날짜별 평균 할인율과 가격 추출
+                const rankHistory = historicalData.rank_history || {};
+                const dates = Object.keys(rankHistory).sort();
+
+                const priceData = [];
+                const discountData = [];
+                const formattedLabels = [];
+
+                dates.forEach(date => {
+                    const dayData = rankHistory[date];
+                    if (dayData && dayData.products && dayData.products.length > 0) {
+                        // LANEIGE 제품의 평균 가격과 할인율
+                        const products = dayData.products;
+                        const prices = products.map(p => p.price).filter(p => p !== null && p !== undefined);
+                        const discounts = products.map(p => p.discount_percent || 0);
+
+                        const avgPrice = prices.length > 0
+                            ? prices.reduce((a, b) => a + b, 0) / prices.length
+                            : null;
+                        const avgDiscount = discounts.length > 0
+                            ? discounts.reduce((a, b) => a + b, 0) / discounts.length
+                            : 0;
+
+                        priceData.push(avgPrice);
+                        discountData.push(Math.round(avgDiscount * 10) / 10);
+
+                        const d = new Date(date);
+                        formattedLabels.push(`${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`);
+                    }
+                });
+
+                // 차트 업데이트
+                if (charts.discountTrend && formattedLabels.length > 0) {
+                    charts.discountTrend.data.labels = formattedLabels;
+                    charts.discountTrend.data.datasets[0].data = priceData;
+                    charts.discountTrend.data.datasets[1].data = discountData;
+                    charts.discountTrend.update('none');
+
+                    // 현재 할인율 배지 업데이트
+                    const latestDiscount = discountData[discountData.length - 1] || 0;
+                    const discountBadge = document.getElementById('discount-badge');
+                    if (discountBadge) {
+                        discountBadge.textContent = `현재 할인율: ${latestDiscount}%`;
+                    }
+
+                    // 인사이트 업데이트
+                    const insightEl = document.getElementById('discount-insight');
+                    if (insightEl && discountData.length > 1) {
+                        const trend = discountData[discountData.length - 1] > discountData[0] ? '상승' :
+                                      discountData[discountData.length - 1] < discountData[0] ? '하락' : '유지';
+                        insightEl.textContent = `추세: ${trend}`;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error updating discount trend chart:', error);
+                throw error;
+            }
+        }
+
+        // 차트 색상 정의
+        const chartColors = [
+            'rgba(32, 128, 128, 0.9)',   // LANEIGE teal
+            'rgba(31, 87, 149, 0.9)',    // Amore blue
+            'rgba(196, 169, 98, 0.9)',   // Gold
+            'rgba(139, 38, 53, 0.9)',    // Deep red
+            'rgba(75, 192, 192, 0.9)',   // Teal light
+            'rgba(54, 162, 235, 0.9)',   // Blue
+            'rgba(255, 159, 64, 0.9)',   // Orange
+            'rgba(153, 102, 255, 0.9)'   // Purple
+        ];
+
         // 시간 포맷 함수 (KST 기준)
         function formatDateTime(isoString) {
             if (!isoString) return '없음';
@@ -4078,6 +4195,7 @@
             updateDataTime(); // 데이터 시간 업데이트
             switchPage('home');
             loadAlertSettings(); // 알림 설정 로드
+            initDateRangeSelectors(); // 날짜 범위 선택 초기화
         };
 
         // ============================

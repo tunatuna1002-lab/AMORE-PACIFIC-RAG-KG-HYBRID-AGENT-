@@ -28,23 +28,33 @@
   "categories": {
     "beauty": {
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty",
-      "name": "Beauty & Personal Care"
+      "name": "Beauty & Personal Care",
+      "amazon_node_id": "beauty",
+      "level": 0
     },
     "skin_care": {
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451",
-      "name": "Skin Care"
+      "name": "Skin Care",
+      "amazon_node_id": "11060451",
+      "level": 1
     },
     "lip_care": {
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
-      "name": "Lip Care"
+      "name": "Lip Care",
+      "amazon_node_id": "3761351",
+      "level": 2
     },
     "lip_makeup": {
-      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Makeup/zgbs/beauty/11059031",
-      "name": "Lip Makeup"
+      "url": "https://www.amazon.com/Best-Sellers-Lip-Makeup/zgbs/beauty/11059031",
+      "name": "Lip Makeup",
+      "amazon_node_id": "11059031",
+      "level": 2
     },
     "face_powder": {
-      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Face-Powder/zgbs/beauty/11058971",
-      "name": "Face Powder"
+      "url": "https://www.amazon.com/Best-Sellers-Face-Powder/zgbs/beauty/11058971",
+      "name": "Face Powder",
+      "amazon_node_id": "11058971",
+      "level": 3
     }
   },
   "target_brands": ["LANEIGE", "Laneige", "laneige"]

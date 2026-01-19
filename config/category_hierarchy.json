@@ -1,7 +1,8 @@
 {
-  "version": "1.0",
-  "updated_at": "2025-01-19",
+  "version": "1.1",
+  "updated_at": "2026-01-19",
   "source": "Amazon US Best Sellers",
+  "description": "Amazon 카테고리 계층 구조 - 동일 ASIN이 여러 카테고리에서 다른 순위를 가질 수 있음",
   "categories": {
     "beauty": {
       "name": "Beauty & Personal Care",
@@ -9,8 +10,9 @@
       "level": 0,
       "parent_id": null,
       "path": ["beauty"],
-      "url": "https://www.amazon.com/Best-Sellers-Beauty/zgbs/beauty",
-      "children": ["skin_care", "makeup", "hair_care", "fragrance", "personal_care", "foot_hand_nail", "shave_hair_removal", "salon_spa", "gift_sets", "tools_accessories"]
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty",
+      "children": ["skin_care", "makeup", "hair_care", "fragrance", "personal_care"],
+      "is_monitored": true
     },
     "skin_care": {
       "name": "Skin Care",
@@ -19,7 +21,8 @@
       "parent_id": "beauty",
       "path": ["beauty", "skin_care"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451",
-      "children": ["body_skincare", "eyes_skincare", "face_skincare", "lip_care", "maternity_skincare", "sets_kits_skincare", "sunscreens"]
+      "children": ["lip_care", "face_skincare", "body_skincare", "eyes_skincare"],
+      "is_monitored": true
     },
     "lip_care": {
       "name": "Lip Care",
@@ -28,7 +31,8 @@
       "parent_id": "skin_care",
       "path": ["beauty", "skin_care", "lip_care"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
-      "children": []
+      "children": [],
+      "is_monitored": true
     },
     "face_skincare": {
       "name": "Face",
@@ -37,7 +41,8 @@
       "parent_id": "skin_care",
       "path": ["beauty", "skin_care", "face_skincare"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Facial-Skin-Care-Products/zgbs/beauty/11060711",
-      "children": []
+      "children": [],
+      "is_monitored": false
     },
     "body_skincare": {
       "name": "Body",
@@ -46,7 +51,8 @@
       "parent_id": "skin_care",
       "path": ["beauty", "skin_care", "body_skincare"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Body-Skin-Care-Products/zgbs/beauty/11060521",
-      "children": []
+      "children": [],
+      "is_monitored": false
     },
     "eyes_skincare": {
       "name": "Eyes",
@@ -55,7 +61,8 @@
       "parent_id": "skin_care",
       "path": ["beauty", "skin_care", "eyes_skincare"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Eye-Treatment-Products/zgbs/beauty/11061941",
-      "children": []
+      "children": [],
+      "is_monitored": false
     },
     "makeup": {
       "name": "Makeup",
@@ -64,43 +71,48 @@
       "parent_id": "beauty",
       "path": ["beauty", "makeup"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Makeup/zgbs/beauty/11058281",
-      "children": ["eyes_makeup", "face_makeup", "lip_makeup", "makeup_palettes", "makeup_remover", "makeup_sets"]
+      "children": ["lip_makeup", "face_makeup", "eyes_makeup"],
+      "is_monitored": false
     },
     "lip_makeup": {
-      "name": "Lips",
-      "amazon_node_id": "11058071",
+      "name": "Lip Makeup",
+      "amazon_node_id": "11059031",
       "level": 2,
       "parent_id": "makeup",
       "path": ["beauty", "makeup", "lip_makeup"],
-      "url": "https://www.amazon.com/Best-Sellers-Lip-Makeup/zgbs/beauty/11058071",
-      "children": []
+      "url": "https://www.amazon.com/Best-Sellers-Lip-Makeup/zgbs/beauty/11059031",
+      "children": [],
+      "is_monitored": true
     },
     "face_makeup": {
-      "name": "Face",
-      "amazon_node_id": "11058011",
+      "name": "Face Makeup",
+      "amazon_node_id": "11058691",
       "level": 2,
       "parent_id": "makeup",
       "path": ["beauty", "makeup", "face_makeup"],
-      "url": "https://www.amazon.com/Best-Sellers-Face-Makeup/zgbs/beauty/11058011",
-      "children": ["face_powder"]
+      "url": "https://www.amazon.com/Best-Sellers-Face-Makeup/zgbs/beauty/11058691",
+      "children": ["face_powder"],
+      "is_monitored": false
     },
     "face_powder": {
       "name": "Face Powder",
-      "amazon_node_id": "11058031",
+      "amazon_node_id": "11058971",
       "level": 3,
       "parent_id": "face_makeup",
       "path": ["beauty", "makeup", "face_makeup", "face_powder"],
-      "url": "https://www.amazon.com/Best-Sellers-Face-Powder/zgbs/beauty/11058031",
-      "children": []
+      "url": "https://www.amazon.com/Best-Sellers-Face-Powder/zgbs/beauty/11058971",
+      "children": [],
+      "is_monitored": true
     },
     "eyes_makeup": {
-      "name": "Eyes",
+      "name": "Eye Makeup",
       "amazon_node_id": "11057961",
       "level": 2,
       "parent_id": "makeup",
       "path": ["beauty", "makeup", "eyes_makeup"],
       "url": "https://www.amazon.com/Best-Sellers-Eye-Makeup/zgbs/beauty/11057961",
-      "children": []
+      "children": [],
+      "is_monitored": false
     },
     "hair_care": {
       "name": "Hair Care",
@@ -109,7 +121,8 @@
       "parent_id": "beauty",
       "path": ["beauty", "hair_care"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Hair-Care-Products/zgbs/beauty/11057241",
-      "children": []
+      "children": [],
+      "is_monitored": false
     },
     "fragrance": {
       "name": "Fragrance",
@@ -118,7 +131,8 @@
       "parent_id": "beauty",
       "path": ["beauty", "fragrance"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Perfumes-Fragrances/zgbs/beauty/11056591",
-      "children": []
+      "children": [],
+      "is_monitored": false
     },
     "personal_care": {
       "name": "Personal Care",
@@ -127,7 +141,8 @@
       "parent_id": "beauty",
       "path": ["beauty", "personal_care"],
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Personal-Care-Products/zgbs/beauty/3777891",
-      "children": []
+      "children": [],
+      "is_monitored": false
     }
   },
   "monitored_categories": [
@@ -136,5 +151,13 @@
     "lip_care",
     "lip_makeup",
     "face_powder"
-  ]
+  ],
+  "category_rank_context": {
+    "description": "동일 제품(ASIN)이 여러 카테고리에서 다른 순위를 가질 수 있습니다. 예: Lip Sleeping Mask가 'Lip Care'에서 4위, 'Beauty & Personal Care'에서 73위일 수 있음.",
+    "interpretation_rules": [
+      "순위 비교 시 반드시 같은 카테고리 내에서만 비교",
+      "하위 카테고리일수록 경쟁 범위가 좁아 순위가 높게 나타남",
+      "상위 카테고리에서의 순위는 전체 시장에서의 위치를 나타냄"
+    ]
+  }
 }
