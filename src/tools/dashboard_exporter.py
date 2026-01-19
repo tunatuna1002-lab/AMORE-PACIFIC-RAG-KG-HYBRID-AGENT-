@@ -329,8 +329,9 @@ class DashboardExporter:
         laneige_ranks = laneige_stats["ranks"] if laneige_stats["ranks"] else [999]
         avg_rank = sum(laneige_ranks) / len(laneige_ranks) if laneige_ranks else 0
 
-        # LANEIGE 평균 가격 계산
-        laneige_prices = [p.get("price") for p in laneige_stats.get("products", []) if p.get("price")]
+        # LANEIGE 평균 가격 계산 (문자열 → float 변환)
+        laneige_prices = [self._safe_float(p.get("price")) for p in laneige_stats.get("products", []) if p.get("price")]
+        laneige_prices = [p for p in laneige_prices if p > 0]  # 유효한 가격만
         laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else None
 
         # SoS 계산 (Share of Shelf = LANEIGE 제품 수 / 전체 Top 100)
@@ -380,8 +381,9 @@ class DashboardExporter:
             avg_rank = sum(stats["ranks"]) / len(stats["ranks"])
             product_count = len(stats["products"])
 
-            # 평균 가격 계산 (price가 있는 제품만)
-            prices = [p.get("price") for p in stats["products"] if p.get("price")]
+            # 평균 가격 계산 (문자열 → float 변환)
+            prices = [self._safe_float(p.get("price")) for p in stats["products"] if p.get("price")]
+            prices = [p for p in prices if p > 0]  # 유효한 가격만
             avg_price = sum(prices) / len(prices) if prices else None
 
             competitors.append({
