@@ -231,38 +231,74 @@ class AmazonScraper:
             # 브랜드 추출 (제품명에서 추출 시도)
             brand = self._extract_brand(product_name)
 
-            # 가격 (현재 판매가)
+            # 가격 (현재 판매가) - 더 구체적인 선택자 사용
             price = None
-            price_elem = await card.query_selector(".p13n-sc-price, ._cDEzb_p13n-sc-price_3mJ9Z, .a-price .a-offscreen")
-            if price_elem:
-                price_text = await price_elem.inner_text()
-                price = self._parse_price(price_text)
+            # Amazon 베스트셀러 페이지의 가격 선택자들 (우선순위 순)
+            price_selectors = [
+                ".p13n-sc-price",  # 베스트셀러 페이지 기본
+                "._cDEzb_p13n-sc-price_3mJ9Z",  # 대체 클래스
+                ".a-price:not([data-a-strike]) .a-offscreen",  # 할인가 (취소선 없는 가격)
+                ".a-color-price"  # 가격 색상 클래스
+            ]
+            for selector in price_selectors:
+                price_elem = await card.query_selector(selector)
+                if price_elem:
+                    price_text = await price_elem.inner_text()
+                    price = self._parse_price(price_text)
+                    if price:  # 유효한 가격을 찾으면 중단
+                        break
 
             # 원가 (정가, 할인 전 가격)
             list_price = None
-            list_price_elem = await card.query_selector(".a-text-price .a-offscreen, .a-price[data-a-strike='true'] .a-offscreen")
-            if list_price_elem:
-                list_price_text = await list_price_elem.inner_text()
-                list_price = self._parse_price(list_price_text)
+            list_price_selectors = [
+                ".a-text-price .a-offscreen",  # 취소선 가격
+                ".a-price[data-a-strike='true'] .a-offscreen",
+                "span.a-text-price span.a-offscreen"
+            ]
+            for selector in list_price_selectors:
+                list_price_elem = await card.query_selector(selector)
+                if list_price_elem:
+                    list_price_text = await list_price_elem.inner_text()
+                    list_price = self._parse_price(list_price_text)
+                    if list_price:
+                        break
 
             # 할인율 계산
             discount_percent = None
             if price and list_price and list_price > price:
                 discount_percent = round((1 - price / list_price) * 100, 1)
 
-            # 평점
+            # 평점 - aria-label에서 "X out of 5 stars" 패턴 찾기
             rating = None
-            rating_elem = await card.query_selector(".a-icon-star-small, .a-icon-alt")
-            if rating_elem:
-                rating_text = await rating_elem.get_attribute("aria-label") or await rating_elem.inner_text()
-                rating = self._parse_rating(rating_text)
+            rating_selectors = [
+                ".a-icon-star-small",
+                ".a-icon-star-mini",
+                "i.a-icon-star"
+            ]
+            for selector in rating_selectors:
+                rating_elem = await card.query_selector(selector)
+                if rating_elem:
+                    rating_text = await rating_elem.get_attribute("aria-label")
+                    if rating_text:
+                        rating = self._parse_rating(rating_text)
+                        if rating:
+                            break
 
-            # 리뷰 수
+            # 리뷰 수 - 더 구체적인 선택자
             reviews_count = None
-            reviews_elem = await card.query_selector(".a-size-small a span")
-            if reviews_elem:
-                reviews_text = await reviews_elem.inner_text()
-                reviews_count = self._parse_reviews_count(reviews_text)
+            # 베스트셀러 페이지에서 리뷰 수는 보통 링크 안에 있음
+            reviews_selectors = [
+                ".a-size-small .a-link-normal",  # 리뷰 링크
+                "a.a-size-small",
+                ".a-size-small span"
+            ]
+            for selector in reviews_selectors:
+                reviews_elem = await card.query_selector(selector)
+                if reviews_elem:
+                    reviews_text = await reviews_elem.inner_text()
+                    reviews_count = self._parse_reviews_count(reviews_text)
+                    if reviews_count:
+                        break
 
             # 뱃지 (Best Seller, Amazon's Choice 등)
             badge = ""
@@ -372,41 +408,67 @@ class AmazonScraper:
         return words[0] if words else "Unknown"
 
     def _parse_price(self, price_text: str) -> Optional[float]:
-        """가격 문자열 파싱"""
+        """가격 문자열 파싱 - $ 기호가 있는 가격만 인식"""
         try:
-            # "$24.00" -> 24.00
-            match = re.search(r'\$?([\d,]+\.?\d*)', price_text.replace(",", ""))
+            if not price_text:
+                return None
+
+            # $ 기호가 반드시 있어야 함 (리뷰 수 등 다른 숫자와 구분)
+            if '$' not in price_text:
+                return None
+
+            # "$24.00" -> 24.00, "$1,234.56" -> 1234.56
+            match = re.search(r'\$([\d,]+\.?\d*)', price_text)
             if match:
-                return float(match.group(1))
-        except (ValueError, TypeError, AttributeError) as e:
-            self.logger.debug(f"Price parsing failed for '{price_text}': {e}")
+                price = float(match.group(1).replace(",", ""))
+                # 합리적인 가격 범위 검증 (뷰티 제품: $0.50 ~ $500)
+                if 0.50 <= price <= 500:
+                    return price
+        except (ValueError, TypeError, AttributeError):
+            pass
         return None
 
     def _parse_rating(self, rating_text: str) -> Optional[float]:
-        """평점 문자열 파싱"""
+        """평점 문자열 파싱 - 5점 만점 평점만 인식"""
         try:
-            # "4.7 out of 5 stars" -> 4.7
-            match = re.search(r'([\d.]+)\s*(?:out of|\/)', rating_text)
+            if not rating_text:
+                return None
+
+            # "4.7 out of 5 stars" 또는 "4.7 out of 5" 패턴
+            match = re.search(r'([\d.]+)\s*out of\s*5', rating_text, re.IGNORECASE)
             if match:
-                return float(match.group(1))
-            # "4.7" -> 4.7
-            match = re.search(r'^([\d.]+)$', rating_text.strip())
+                rating = float(match.group(1))
+                # 평점 범위 검증 (0.0 ~ 5.0)
+                if 0.0 <= rating <= 5.0:
+                    return round(rating, 1)
+
+            # "4.7/5" 패턴
+            match = re.search(r'([\d.]+)\s*/\s*5', rating_text)
             if match:
-                return float(match.group(1))
-        except (ValueError, TypeError, AttributeError) as e:
-            self.logger.debug(f"Rating parsing failed for '{rating_text}': {e}")
+                rating = float(match.group(1))
+                if 0.0 <= rating <= 5.0:
+                    return round(rating, 1)
+
+        except (ValueError, TypeError, AttributeError):
+            pass
         return None
 
     def _parse_reviews_count(self, reviews_text: str) -> Optional[int]:
-        """리뷰 수 문자열 파싱"""
+        """리뷰 수 문자열 파싱 - 합리적인 범위 검증"""
         try:
-            # "89,234" -> 89234
-            clean_text = reviews_text.replace(",", "").replace("+", "")
-            match = re.search(r'(\d+)', clean_text)
+            if not reviews_text:
+                return None
+
+            # 콤마 제거하고 숫자 추출: "89,234" -> 89234
+            clean_text = reviews_text.replace(",", "").replace("+", "").strip()
+            match = re.search(r'^(\d+)$', clean_text)
             if match:
-                return int(match.group(1))
-        except (ValueError, TypeError, AttributeError) as e:
-            self.logger.debug(f"Reviews count parsing failed for '{reviews_text}': {e}")
+                count = int(match.group(1))
+                # 합리적인 리뷰 수 범위 (0 ~ 1,000,000)
+                if 0 <= count <= 1000000:
+                    return count
+        except (ValueError, TypeError, AttributeError):
+            pass
         return None
 
     def _get_page2_url(self, url: str) -> Optional[str]:
