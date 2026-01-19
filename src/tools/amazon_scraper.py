@@ -268,37 +268,58 @@ class AmazonScraper:
             if price and list_price and list_price > price:
                 discount_percent = round((1 - price / list_price) * 100, 1)
 
-            # 평점 - aria-label에서 "X out of 5 stars" 패턴 찾기
+            # 평점 - span.a-icon-alt에서 "X out of 5 stars" 텍스트 찾기
             rating = None
-            rating_selectors = [
-                ".a-icon-star-small",
-                ".a-icon-star-mini",
-                "i.a-icon-star"
-            ]
-            for selector in rating_selectors:
-                rating_elem = await card.query_selector(selector)
-                if rating_elem:
-                    rating_text = await rating_elem.get_attribute("aria-label")
-                    if rating_text:
-                        rating = self._parse_rating(rating_text)
-                        if rating:
-                            break
+            # 방법 1: span.a-icon-alt (베스트셀러 페이지 주요 패턴)
+            rating_alt = await card.query_selector("span.a-icon-alt")
+            if rating_alt:
+                rating_text = await rating_alt.text_content()  # aria-hidden 대응
+                rating = self._parse_rating(rating_text)
 
-            # 리뷰 수 - 더 구체적인 선택자
+            # 방법 2: i 태그의 aria-label (대체 패턴)
+            if not rating:
+                rating_selectors = [
+                    ".a-icon-star-small",
+                    ".a-icon-star-mini",
+                    "i.a-icon-star"
+                ]
+                for selector in rating_selectors:
+                    rating_elem = await card.query_selector(selector)
+                    if rating_elem:
+                        rating_text = await rating_elem.get_attribute("aria-label")
+                        if rating_text:
+                            rating = self._parse_rating(rating_text)
+                            if rating:
+                                break
+
+            # 리뷰 수 - span.a-size-small에서 숫자만 있는 텍스트 찾기
             reviews_count = None
-            # 베스트셀러 페이지에서 리뷰 수는 보통 링크 안에 있음
-            reviews_selectors = [
-                ".a-size-small .a-link-normal",  # 리뷰 링크
-                "a.a-size-small",
-                ".a-size-small span"
-            ]
-            for selector in reviews_selectors:
-                reviews_elem = await card.query_selector(selector)
-                if reviews_elem:
-                    reviews_text = await reviews_elem.inner_text()
+            # 방법 1: 직접 span.a-size-small 선택 (베스트셀러 페이지 주요 패턴)
+            # aria-hidden="true" 속성이 있으므로 text_content() 사용
+            review_spans = await card.query_selector_all("span.a-size-small")
+            for review_span in review_spans:
+                reviews_text = await review_span.text_content()  # aria-hidden 대응
+                reviews_text = reviews_text.strip() if reviews_text else ""
+                # 숫자와 콤마만 있는지 확인 (리뷰 수 패턴: "13,265")
+                # [0-9,]+ 패턴 사용 (일부 환경에서 \d가 다르게 동작할 수 있음)
+                if reviews_text and re.match(r'^[0-9,]+$', reviews_text):
                     reviews_count = self._parse_reviews_count(reviews_text)
                     if reviews_count:
                         break
+
+            # 방법 2: 링크 안에 있는 경우 (대체 패턴)
+            if not reviews_count:
+                reviews_selectors = [
+                    ".a-size-small .a-link-normal",
+                    "a.a-size-small"
+                ]
+                for selector in reviews_selectors:
+                    reviews_elem = await card.query_selector(selector)
+                    if reviews_elem:
+                        reviews_text = await reviews_elem.text_content()
+                        reviews_count = self._parse_reviews_count(reviews_text)
+                        if reviews_count:
+                            break
 
             # 뱃지 (Best Seller, Amazon's Choice 등)
             badge = ""
@@ -435,7 +456,7 @@ class AmazonScraper:
                 return None
 
             # "4.7 out of 5 stars" 또는 "4.7 out of 5" 패턴
-            match = re.search(r'([\d.]+)\s*out of\s*5', rating_text, re.IGNORECASE)
+            match = re.search(r'([0-9.]+)\s*out of\s*5', rating_text, re.IGNORECASE)
             if match:
                 rating = float(match.group(1))
                 # 평점 범위 검증 (0.0 ~ 5.0)
@@ -443,9 +464,17 @@ class AmazonScraper:
                     return round(rating, 1)
 
             # "4.7/5" 패턴
-            match = re.search(r'([\d.]+)\s*/\s*5', rating_text)
+            match = re.search(r'([0-9.]+)\s*/\s*5', rating_text)
             if match:
                 rating = float(match.group(1))
+                if 0.0 <= rating <= 5.0:
+                    return round(rating, 1)
+
+            # Fallback: 문자열 시작 부분에서 숫자 추출 (예: "4.8 out of 5 stars")
+            # parseFloat 스타일 파싱
+            first_word = rating_text.strip().split()[0] if rating_text.strip() else ""
+            if first_word and re.match(r'^[0-9.]+$', first_word):
+                rating = float(first_word)
                 if 0.0 <= rating <= 5.0:
                     return round(rating, 1)
 

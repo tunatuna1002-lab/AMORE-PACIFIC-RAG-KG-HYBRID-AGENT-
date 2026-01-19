@@ -113,6 +113,25 @@ class RelationType(str, Enum):
     # Brand → Position: 시장 포지션
     HAS_POSITION = "hasPosition"
 
+    # =========================================================================
+    # 7. 감성/리뷰 관계 (Sentiment Relations)
+    # =========================================================================
+
+    # Product → AI Summary: AI 리뷰 요약 (Amazon AI Customers Say)
+    HAS_AI_SUMMARY = "hasAISummary"
+
+    # Product → Sentiment Tag: 고객 감성 태그 (예: Moisturizing, Value for money)
+    HAS_SENTIMENT = "hasSentiment"
+
+    # Sentiment → Sentiment Cluster: 감성 클러스터 (예: Hydration, Pricing)
+    BELONGS_TO_CLUSTER = "belongsToCluster"
+
+    # Product ↔ Product: 유사 감성 프로필
+    SIMILAR_SENTIMENT = "similarSentiment"
+
+    # Brand → Sentiment Profile: 브랜드 전체 감성 프로필
+    BRAND_SENTIMENT = "brandSentiment"
+
 
 class InsightType(str, Enum):
     """추론된 인사이트 유형"""
@@ -148,6 +167,13 @@ class InsightType(str, Enum):
     # 안정성 관련
     STABILITY = "stability"
     VOLATILITY = "volatility"
+
+    # 감성/리뷰 관련
+    SENTIMENT_STRENGTH = "sentiment_strength"      # 감성 강점 (특정 속성에서 강함)
+    SENTIMENT_WEAKNESS = "sentiment_weakness"      # 감성 약점 (특정 속성에서 약함)
+    SENTIMENT_ADVANTAGE = "sentiment_advantage"    # 경쟁사 대비 감성 우위
+    SENTIMENT_GAP = "sentiment_gap"                # 경쟁사 대비 감성 격차
+    CUSTOMER_PERCEPTION = "customer_perception"    # 고객 인식 인사이트
 
 
 class MarketPosition(str, Enum):
@@ -396,3 +422,174 @@ def create_metric_insight_relation(
         properties=props,
         source="inference"
     )
+
+
+# =========================================================================
+# 감성/리뷰 관계 생성 헬퍼 함수
+# =========================================================================
+
+def create_ai_summary_relation(
+    product_asin: str,
+    ai_summary: str,
+    collected_at: str = None,
+    **properties
+) -> Relation:
+    """
+    제품-AI 요약 관계 생성
+
+    Args:
+        product_asin: 제품 ASIN
+        ai_summary: Amazon AI Customers Say 텍스트
+        collected_at: 수집 시점
+
+    Returns:
+        Relation
+    """
+    props = {
+        "summary_text": ai_summary,
+        "collected_at": collected_at or datetime.now().isoformat(),
+        "source_type": "amazon_ai_customers_say",
+        **properties
+    }
+    return Relation(
+        subject=product_asin,
+        predicate=RelationType.HAS_AI_SUMMARY,
+        object=f"ai_summary_{product_asin}",
+        properties=props,
+        source="crawl"
+    )
+
+
+def create_sentiment_relation(
+    product_asin: str,
+    sentiment_tag: str,
+    sentiment_cluster: str = None,
+    frequency: int = 1,
+    **properties
+) -> Relation:
+    """
+    제품-감성태그 관계 생성
+
+    Args:
+        product_asin: 제품 ASIN
+        sentiment_tag: 감성 태그 (예: "Moisturizing", "Value for money")
+        sentiment_cluster: 감성 클러스터 (예: "Hydration", "Pricing")
+        frequency: 언급 빈도
+
+    Returns:
+        Relation
+    """
+    props = {
+        "tag": sentiment_tag,
+        "cluster": sentiment_cluster,
+        "frequency": frequency,
+        **properties
+    }
+    return Relation(
+        subject=product_asin,
+        predicate=RelationType.HAS_SENTIMENT,
+        object=sentiment_tag,
+        properties=props,
+        source="crawl"
+    )
+
+
+def create_brand_sentiment_profile(
+    brand: str,
+    sentiment_tags: List[str],
+    dominant_sentiment: str = None,
+    sentiment_score: float = None,
+    **properties
+) -> Relation:
+    """
+    브랜드 감성 프로필 관계 생성
+
+    Args:
+        brand: 브랜드명
+        sentiment_tags: 브랜드 전체 감성 태그 목록
+        dominant_sentiment: 가장 강한 감성
+        sentiment_score: 감성 점수 (0-100)
+
+    Returns:
+        Relation
+    """
+    props = {
+        "all_tags": sentiment_tags,
+        "dominant": dominant_sentiment,
+        "score": sentiment_score,
+        "tag_count": len(sentiment_tags),
+        **properties
+    }
+    return Relation(
+        subject=brand,
+        predicate=RelationType.BRAND_SENTIMENT,
+        object=dominant_sentiment or "sentiment_profile",
+        properties=props,
+        source="inference"
+    )
+
+
+def create_sentiment_cluster_relation(
+    sentiment_tag: str,
+    cluster_name: str,
+    **properties
+) -> Relation:
+    """
+    감성태그-클러스터 관계 생성
+
+    감성 클러스터 예시:
+    - Hydration: Moisturizing, Hydrating, Nourishing
+    - Pricing: Value for money, Affordable, Expensive
+    - Usability: Easy to use, Convenient, Travel-friendly
+    - Effectiveness: Works well, Long-lasting, Quick results
+    - Sensory: Nice scent, Good texture, Lightweight
+
+    Args:
+        sentiment_tag: 개별 감성 태그
+        cluster_name: 클러스터명
+
+    Returns:
+        Relation
+    """
+    props = {
+        "tag": sentiment_tag,
+        "cluster": cluster_name,
+        **properties
+    }
+    return Relation(
+        subject=sentiment_tag,
+        predicate=RelationType.BELONGS_TO_CLUSTER,
+        object=cluster_name,
+        properties=props,
+        source="system"
+    )
+
+
+# 기본 감성 클러스터 매핑
+SENTIMENT_CLUSTERS = {
+    "Hydration": ["moisturizing", "hydrating", "nourishing", "hydration", "moisture"],
+    "Pricing": ["value for money", "affordable", "expensive", "worth the price", "good value"],
+    "Usability": ["easy to use", "convenient", "travel-friendly", "user-friendly", "simple"],
+    "Effectiveness": ["works well", "long-lasting", "effective", "quick results", "noticeable difference"],
+    "Sensory": ["nice scent", "good texture", "lightweight", "smooth", "pleasant smell"],
+    "Packaging": ["good packaging", "nice design", "travel size", "sturdy", "leak-proof"],
+    "Skin_Compatibility": ["gentle", "non-irritating", "sensitive skin", "hypoallergenic", "dermatologist tested"],
+}
+
+
+def get_cluster_for_sentiment(sentiment_tag: str) -> Optional[str]:
+    """
+    감성 태그에 해당하는 클러스터 찾기
+
+    Args:
+        sentiment_tag: 감성 태그
+
+    Returns:
+        클러스터명 또는 None
+    """
+    tag_lower = sentiment_tag.lower()
+    for cluster, tags in SENTIMENT_CLUSTERS.items():
+        for tag in tags:
+            if tag in tag_lower or tag_lower in tag:
+                return cluster
+    return None

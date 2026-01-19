@@ -629,6 +629,84 @@ MIT License
 
 ## Changelog (개선 타임라인)
 
+### 2026-01-20: AI Customers Say 감성 분석 통합
+
+#### 🎯 Amazon AI Customers Say 크롤러
+- **신규 모듈**: `src/tools/amazon_product_scraper.py` - 상품 상세 페이지 전용 크롤러
+- **수집 데이터**:
+  - AI Customers Say (Amazon의 AI 리뷰 요약)
+  - Sentiment Tags (고객 감성 태그: Moisturizing, Value for money 등)
+  - 상세 제품 정보 (About this item, Product Details)
+- **API 함수**:
+  - `scrape_ai_customers_say(asin)` - 단일 제품 수집
+  - `scrape_laneige_ai_summaries(category_products, top_n)` - LANEIGE 제품 일괄 수집
+
+#### 🧠 Knowledge Graph 감성 관계 확장
+- **신규 관계 타입** (`src/ontology/relations.py`):
+  - `HAS_AI_SUMMARY`: 제품 → AI 리뷰 요약
+  - `HAS_SENTIMENT`: 제품 → 감성 태그
+  - `BELONGS_TO_CLUSTER`: 감성 태그 → 감성 클러스터
+  - `BRAND_SENTIMENT`: 브랜드 → 감성 프로필
+- **감성 클러스터**:
+  - Hydration (보습), Pricing (가성비), Usability (편의성)
+  - Effectiveness (효과), Sensory (향/질감), Packaging (패키징)
+  - Skin_Compatibility (피부 적합성)
+- **KG 쿼리 메서드** (`src/ontology/knowledge_graph.py`):
+  - `load_from_sentiment_data()` - 감성 데이터 로드
+  - `get_product_sentiments(asin)` - 제품 감성 조회
+  - `get_brand_sentiment_profile(brand)` - 브랜드 감성 프로필
+  - `compare_product_sentiments(asin1, asin2)` - 제품 감성 비교
+  - `find_products_by_sentiment(tag)` - 특정 감성 제품 검색
+
+#### 📏 감성 기반 추론 규칙 (8개 신규)
+- **강점 규칙** (`src/ontology/business_rules.py`):
+  - `RULE_SENTIMENT_STRENGTH_HYDRATION`: 보습력 강점 인식
+  - `RULE_SENTIMENT_USABILITY_STRENGTH`: 사용 편의성 강점
+  - `RULE_SENTIMENT_EFFECTIVENESS`: 제품 효과 강점
+- **경쟁 우위 규칙**:
+  - `RULE_SENTIMENT_VALUE_ADVANTAGE`: 경쟁사 대비 가성비 우위
+- **개선 필요 규칙**:
+  - `RULE_SENTIMENT_WEAKNESS_PACKAGING`: 패키징 개선 필요
+  - `RULE_SENTIMENT_GAP_SENSORY`: 감각 경험 격차
+- **고객 인식 규칙**:
+  - `RULE_CUSTOMER_PERCEPTION_POSITIVE`: 긍정적 고객 인식
+  - `RULE_CUSTOMER_PERCEPTION_MIXED`: 혼합 고객 인식
+
+#### 🔍 HybridRetriever 감성 검색 통합
+- **감성 키워드 추출**: EntityExtractor에 SENTIMENT_MAP 추가 (한/영 40+ 키워드)
+- **KG 쿼리 확장**: 감성 클러스터, AI 요약 기반 검색
+- **추론 컨텍스트**: 자사/경쟁사 감성 프로필 비교 데이터 포함
+
+#### 📊 대시보드 개선
+- **개별 날짜 선택기**: 5개 차트/메트릭 섹션에 개별 Date Range Picker 추가
+  - 순위 & 가격 추이, 제품 매트릭스, 가격 & 할인율 추이
+  - Laneige 성장 유형 분류, 경쟁사 프로모션 비교
+- **Laneige 성장 유형 분류 UI 리디자인**:
+  - AMOREPACIFIC 디자인 시스템 적용 (--pacific-blue, --amore-blue)
+  - Emoji → Lucide 아이콘으로 변경
+  - 카드 스타일 통일
+
+#### 🐛 버그 수정
+- **리뷰 수 파싱 오류**: `amazon_scraper.py`에서 `aria-hidden` 요소 대응
+  - `inner_text()` → `text_content()` 변경
+  - 정규식 `[\d,]+` → `[0-9,]+` 변경 (환경 호환성)
+- **평점 파싱 Fallback**: 문자열 시작 부분에서 숫자 추출 로직 추가
+- **가격 문자열 파싱**: `dashboard_exporter.py`에서 `$24.99` → `24.99` 변환
+
+#### 📁 변경된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/tools/amazon_product_scraper.py` | 🆕 AI Customers Say 전용 크롤러 |
+| `src/tools/amazon_scraper.py` | 리뷰 수/평점 파싱 수정 |
+| `src/ontology/relations.py` | 감성 관계 타입 및 헬퍼 함수 추가 |
+| `src/ontology/knowledge_graph.py` | 감성 데이터 로드/쿼리 메서드 |
+| `src/ontology/business_rules.py` | 감성 기반 추론 규칙 8개 추가 |
+| `src/rag/hybrid_retriever.py` | 감성 키워드 추출, 감성 검색 통합 |
+| `dashboard/amore_unified_dashboard_v4.html` | 개별 날짜 선택기, 성장 유형 UI |
+| `src/tools/dashboard_exporter.py` | 가격 문자열 → float 변환 |
+
+---
+
 ### 2026-01-19: 카테고리 온톨로지 & 대시보드 UX 개선
 
 #### 🏗️ 카테고리 계층 구조 온톨로지

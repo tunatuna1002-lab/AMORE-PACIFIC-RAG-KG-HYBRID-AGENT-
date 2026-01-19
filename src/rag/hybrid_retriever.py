@@ -131,6 +131,44 @@ class EntityExtractor:
         "1개월": "30days"
     }
 
+    # 감성 관련 키워드 (한/영)
+    SENTIMENT_MAP = {
+        # 영어 키워드 → 클러스터
+        "moisturizing": "Hydration",
+        "hydrating": "Hydration",
+        "보습": "Hydration",
+        "수분": "Hydration",
+        "촉촉": "Hydration",
+        "value for money": "Pricing",
+        "가성비": "Pricing",
+        "affordable": "Pricing",
+        "저렴": "Pricing",
+        "easy to use": "Usability",
+        "사용감": "Usability",
+        "편리": "Usability",
+        "효과": "Effectiveness",
+        "effective": "Effectiveness",
+        "works well": "Effectiveness",
+        "scent": "Sensory",
+        "향": "Sensory",
+        "texture": "Sensory",
+        "텍스처": "Sensory",
+        "질감": "Sensory",
+        "packaging": "Packaging",
+        "패키징": "Packaging",
+        "포장": "Packaging",
+        "gentle": "Skin_Compatibility",
+        "순한": "Skin_Compatibility",
+        "민감": "Skin_Compatibility",
+        "리뷰": "sentiment_general",
+        "review": "sentiment_general",
+        "고객 반응": "sentiment_general",
+        "customer": "sentiment_general",
+        "ai 요약": "ai_summary",
+        "ai summary": "ai_summary",
+        "customers say": "ai_summary",
+    }
+
     def extract(self, query: str, knowledge_graph=None) -> Dict[str, List[str]]:
         """
         쿼리에서 엔티티 추출
@@ -219,6 +257,17 @@ class EntityExtractor:
                                     if asin not in entities["products"]:
                                         entities["products"].append(asin)
                                     break
+
+        # 감성 키워드 추출
+        entities["sentiments"] = []
+        entities["sentiment_clusters"] = []
+
+        for keyword, cluster in self.SENTIMENT_MAP.items():
+            if keyword in query_lower:
+                if keyword not in entities["sentiments"]:
+                    entities["sentiments"].append(keyword)
+                if cluster not in entities["sentiment_clusters"]:
+                    entities["sentiment_clusters"].append(cluster)
 
         return entities
 
@@ -406,6 +455,59 @@ class HybridRetriever:
                     }
                 })
 
+        # 감성 관련 사실 조회
+        sentiment_clusters = entities.get("sentiment_clusters", [])
+        if sentiment_clusters or entities.get("sentiments"):
+            # 제품이 지정된 경우 해당 제품의 감성 조회
+            for asin in entities.get("products", []):
+                try:
+                    product_sentiments = self.kg.get_product_sentiments(asin)
+                    if product_sentiments.get("sentiment_tags") or product_sentiments.get("ai_summary"):
+                        facts.append({
+                            "type": "product_sentiment",
+                            "entity": asin,
+                            "data": product_sentiments
+                        })
+                except Exception:
+                    pass
+
+            # 브랜드가 지정된 경우 브랜드 감성 프로필 조회
+            for brand in entities.get("brands", []):
+                try:
+                    brand_sentiment = self.kg.get_brand_sentiment_profile(brand)
+                    if brand_sentiment.get("all_tags"):
+                        facts.append({
+                            "type": "brand_sentiment",
+                            "entity": brand,
+                            "data": brand_sentiment
+                        })
+                except Exception:
+                    pass
+
+            # 특정 감성 클러스터로 제품 검색
+            for cluster in sentiment_clusters:
+                if cluster not in ["sentiment_general", "ai_summary"]:
+                    try:
+                        # 해당 감성을 가진 제품 찾기
+                        from src.ontology.relations import SENTIMENT_CLUSTERS
+                        cluster_tags = SENTIMENT_CLUSTERS.get(cluster, [])
+                        for tag in cluster_tags[:2]:  # 상위 2개 태그만
+                            products_with_sentiment = self.kg.find_products_by_sentiment(tag)
+                            if products_with_sentiment:
+                                facts.append({
+                                    "type": "sentiment_products",
+                                    "entity": tag,
+                                    "data": {
+                                        "sentiment_tag": tag,
+                                        "cluster": cluster,
+                                        "product_count": len(products_with_sentiment),
+                                        "products": products_with_sentiment[:5]
+                                    }
+                                })
+                                break
+                    except Exception:
+                        pass
+
         return facts
 
     def _build_inference_context(
@@ -485,6 +587,45 @@ class HybridRetriever:
             competitors = self.kg.get_competitors(context["brand"])
             context["competitor_count"] = len(competitors)
             context["competitors"] = competitors
+
+        # 감성 데이터 (지식 그래프에서)
+        if entities.get("sentiments") or entities.get("sentiment_clusters"):
+            # 자사 브랜드 감성 프로필
+            if context.get("brand"):
+                try:
+                    brand_sentiment = self.kg.get_brand_sentiment_profile(context["brand"])
+                    context["sentiment_tags"] = brand_sentiment.get("all_tags", [])
+                    context["sentiment_clusters"] = brand_sentiment.get("clusters", {})
+                    context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
+                except Exception:
+                    pass
+
+            # 제품별 감성 데이터
+            if context.get("asin"):
+                try:
+                    product_sentiment = self.kg.get_product_sentiments(context["asin"])
+                    context["ai_summary"] = product_sentiment.get("ai_summary")
+                    if not context.get("sentiment_tags"):
+                        context["sentiment_tags"] = product_sentiment.get("sentiment_tags", [])
+                        context["sentiment_clusters"] = product_sentiment.get("sentiment_clusters", {})
+                except Exception:
+                    pass
+
+            # 경쟁사 감성 데이터 (비교용)
+            if context.get("competitors"):
+                competitor_tags = []
+                competitor_clusters = {}
+                for comp in context["competitors"][:3]:  # 상위 3개 경쟁사
+                    comp_brand = comp.get("brand", comp) if isinstance(comp, dict) else comp
+                    try:
+                        comp_sentiment = self.kg.get_brand_sentiment_profile(comp_brand)
+                        competitor_tags.extend(comp_sentiment.get("all_tags", []))
+                        for cluster, count in comp_sentiment.get("clusters", {}).items():
+                            competitor_clusters[cluster] = competitor_clusters.get(cluster, 0) + count
+                    except Exception:
+                        pass
+                context["competitor_sentiment_tags"] = list(set(competitor_tags))
+                context["competitor_sentiment_clusters"] = competitor_clusters
 
         return context
 
