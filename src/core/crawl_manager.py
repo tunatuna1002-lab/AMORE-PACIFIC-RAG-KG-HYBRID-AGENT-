@@ -95,13 +95,26 @@ class CrawlManager:
             logger.warning(f"Failed to load crawl state: {e}")
 
     def _save_state(self):
-        """상태 저장"""
+        """상태를 파일에 원자적으로 저장 (crash-safe)"""
         try:
+            import tempfile
+            import os
             Path(self.STATE_FILE).parent.mkdir(parents=True, exist_ok=True)
-            with open(self.STATE_FILE, "w", encoding="utf-8") as f:
+
+            # 원자적 쓰기: 임시 파일에 쓴 후 rename (crash-safe)
+            dir_path = str(Path(self.STATE_FILE).parent)
+            with tempfile.NamedTemporaryFile(mode="w", dir=dir_path, delete=False, suffix=".tmp", encoding="utf-8") as f:
                 json.dump(self.state.to_dict(), f, ensure_ascii=False, indent=2)
+                temp_path = f.name
+            os.replace(temp_path, self.STATE_FILE)  # 원자적 교체
         except Exception as e:
             logger.error(f"Failed to save crawl state: {e}")
+            # 임시 파일 정리
+            try:
+                if 'temp_path' in locals() and os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except:
+                pass
 
     def get_kst_today(self) -> str:
         """한국 시간 기준 오늘 날짜 반환"""

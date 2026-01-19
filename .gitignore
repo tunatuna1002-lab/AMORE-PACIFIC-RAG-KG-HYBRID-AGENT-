@@ -47,11 +47,11 @@ env/
 logs/
 *.log
 
-# Data directories (민감한 데이터는 제외, 대시보드/스케줄러 데이터는 포함)
+# Data directories (런타임에 생성되는 데이터는 git에서 제외)
 data/
 !data/.gitkeep
-!data/dashboard_data.json
-!data/scheduler_state.json
+# dashboard_data.json과 scheduler_state.json은 런타임에 생성되므로 git에서 제외
+# 배포 시 오래된 데이터로 덮어쓰기되는 문제 방지
 
 # ChromaDB
 chroma/

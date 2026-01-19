@@ -10,12 +10,15 @@ Errors:
 
 import asyncio
 import re
+import logging
 from datetime import date, datetime, timezone, timedelta
 from typing import List, Dict, Optional, Any
 from playwright.async_api import async_playwright, Page, Browser, TimeoutError as PlaywrightTimeout
 import json
 import os
 import random
+
+logger = logging.getLogger(__name__)
 
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
@@ -215,7 +218,9 @@ class AmazonScraper:
                     products.append(product_data)
                     rank += 1
 
-            except Exception:
+            except Exception as e:
+                # 제품 파싱 오류 로깅 (디버깅용)
+                logger.warning(f"Product parsing failed at rank {rank}: {str(e)[:100]}")
                 continue
 
         return products

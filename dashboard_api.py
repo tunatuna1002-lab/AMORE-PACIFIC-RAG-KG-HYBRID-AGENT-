@@ -18,7 +18,7 @@ from io import BytesIO
 from collections import defaultdict
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Depends, Security
+from fastapi import FastAPI, HTTPException, Depends, Security, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,6 +26,11 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from litellm import acompletion
+
+# Rate Limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -49,11 +54,18 @@ from src.core.brain import UnifiedBrain, get_brain, get_initialized_brain, Brain
 # 환경 변수 로드
 load_dotenv()
 
+# Rate Limiter 설정 (IP 기반)
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="AMORE Dashboard API",
     description="LANEIGE Amazon 대시보드 백엔드 API (RAG + Ontology 통합)",
     version="2.0.0"
 )
+
+# Rate Limit 초과 시 에러 핸들러
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS 설정 (환경변수로 허용 도메인 설정 가능)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(",")
@@ -101,7 +113,10 @@ AUDIT_LOG_DIR = "./logs"
 
 # ============= API Key 인증 설정 =============
 
-API_KEY = os.getenv("API_KEY", "amore-secret-key-2024")  # 환경변수에서 로드
+# API_KEY: 환경변수 필수 - 기본값 없음 (보안상 하드코딩 금지)
+API_KEY = os.getenv("API_KEY")
+if not API_KEY:
+    logging.warning("⚠️ API_KEY 환경변수가 설정되지 않았습니다. 보호된 엔드포인트에 접근할 수 없습니다.")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
@@ -190,9 +205,27 @@ def log_chat_interaction(
 rag_router = RAGRouter()
 doc_retriever = DocumentRetriever(DOCS_PATH)
 
-# 세션별 대화 메모리 (간단한 인메모리 구현)
+# 세션별 대화 메모리 (TTL 기반 자동 정리)
 conversation_memory: Dict[str, List[Dict[str, str]]] = defaultdict(list)
+session_last_activity: Dict[str, datetime] = {}  # 세션별 마지막 활동 시간
 MAX_MEMORY_TURNS = 10
+SESSION_TTL_HOURS = 1  # 세션 만료 시간 (1시간)
+MAX_SESSIONS = 1000  # 최대 세션 수
+
+
+def cleanup_expired_sessions() -> int:
+    """만료된 세션 정리 (TTL 기반)"""
+    now = datetime.now()
+    expired = [
+        sid for sid, last_time in session_last_activity.items()
+        if (now - last_time).total_seconds() > SESSION_TTL_HOURS * 3600
+    ]
+    for sid in expired:
+        if sid in conversation_memory:
+            del conversation_memory[sid]
+        if sid in session_last_activity:
+            del session_last_activity[sid]
+    return len(expired)
 
 # 통합 오케스트레이터 인스턴스는 get_unified_orchestrator()로 관리됨
 
@@ -251,10 +284,19 @@ def get_conversation_history(session_id: str, limit: int = 5) -> str:
 
 def add_to_memory(session_id: str, role: str, content: str) -> None:
     """대화 메모리에 추가"""
+    now = datetime.now()
+
+    # 주기적 정리 (매 100번째 호출마다 또는 세션 수 초과 시)
+    if len(session_last_activity) > MAX_SESSIONS or len(session_last_activity) % 100 == 0:
+        cleanup_expired_sessions()
+
+    # 마지막 활동 시간 업데이트
+    session_last_activity[session_id] = now
+
     conversation_memory[session_id].append({
         "role": role,
         "content": content,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": now.isoformat()
     })
     # 최대 개수 유지
     if len(conversation_memory[session_id]) > MAX_MEMORY_TURNS * 2:
@@ -457,7 +499,8 @@ async def get_data():
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+@limiter.limit("30/minute")  # 분당 30회 제한
+async def chat(request: ChatRequest, req: Request):
     """
     ChatGPT + RAG + Ontology 통합 챗봇 API
 
@@ -685,7 +728,8 @@ class SimpleChatResponse(BaseModel):
 
 
 @app.post("/api/v3/chat", response_model=SimpleChatResponse)
-async def chat_v3(request: SimpleChatRequest):
+@limiter.limit("30/minute")  # 분당 30회 제한
+async def chat_v3(request: SimpleChatRequest, req: Request):
     """
     Simple LLM Chat API (v3)
 
@@ -763,7 +807,8 @@ class OrchestratorChatResponse(BaseModel):
 
 
 @app.post("/api/v2/chat", response_model=OrchestratorChatResponse)
-async def chat_v2(request: OrchestratorChatRequest):
+@limiter.limit("30/minute")  # 분당 30회 제한
+async def chat_v2(request: OrchestratorChatRequest, req: Request):
     """
     통합 오케스트레이터 기반 챗봇 API (v2)
 
@@ -1723,7 +1768,8 @@ class BrainChatResponse(BaseModel):
 
 
 @app.post("/api/v4/chat", response_model=BrainChatResponse)
-async def chat_v4(request: BrainChatRequest):
+@limiter.limit("30/minute")  # 분당 30회 제한
+async def chat_v4(request: BrainChatRequest, req: Request):
     """
     Level 4 Brain 기반 챗봇 API (v4)
 

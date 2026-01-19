@@ -41,12 +41,17 @@ class KnowledgeGraph:
         products = kg.get_objects("LANEIGE", RelationType.HAS_PRODUCT)
     """
 
-    def __init__(self, persist_path: Optional[str] = None):
+    # 기본 최대 트리플 수 (메모리 보호)
+    DEFAULT_MAX_TRIPLES = 50000
+
+    def __init__(self, persist_path: Optional[str] = None, max_triples: int = None):
         """
         Args:
             persist_path: 영속화 경로 (JSON 파일)
+            max_triples: 최대 트리플 수 (기본값: 50000, 초과 시 오래된 것부터 삭제)
         """
         self.persist_path = Path(persist_path) if persist_path else None
+        self.max_triples = max_triples or self.DEFAULT_MAX_TRIPLES
 
         # 트리플 저장소
         self.triples: List[Relation] = []
@@ -94,6 +99,10 @@ class KnowledgeGraph:
             existing.confidence = max(existing.confidence, relation.confidence)
             return False
 
+        # 최대 크기 체크 - 초과 시 오래된 트리플 삭제 (FIFO)
+        if len(self.triples) >= self.max_triples:
+            self._evict_oldest(int(self.max_triples * 0.1))  # 10% 삭제
+
         # 추가
         self.triples.append(relation)
 
@@ -106,6 +115,36 @@ class KnowledgeGraph:
         self._update_stats()
 
         return True
+
+    def _evict_oldest(self, count: int) -> int:
+        """
+        가장 오래된 트리플 삭제 (FIFO)
+
+        Args:
+            count: 삭제할 개수
+
+        Returns:
+            실제 삭제된 개수
+        """
+        if count <= 0 or not self.triples:
+            return 0
+
+        # 삭제할 트리플들
+        to_remove = self.triples[:count]
+
+        # 인덱스에서 제거
+        for relation in to_remove:
+            if relation in self.subject_index[relation.subject]:
+                self.subject_index[relation.subject].remove(relation)
+            if relation in self.object_index[relation.object]:
+                self.object_index[relation.object].remove(relation)
+            if relation in self.predicate_index[relation.predicate]:
+                self.predicate_index[relation.predicate].remove(relation)
+
+        # 트리플 리스트에서 제거
+        self.triples = self.triples[count:]
+
+        return len(to_remove)
 
     def add_relations(self, relations: List[Relation]) -> int:
         """

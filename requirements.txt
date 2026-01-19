@@ -51,3 +51,6 @@ openpyxl>=3.1.0
 
 # HTTP Client
 httpx>=0.25.0
+
+# Rate Limiting
+slowapi>=0.1.9

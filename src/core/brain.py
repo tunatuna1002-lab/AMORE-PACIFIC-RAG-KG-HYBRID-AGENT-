@@ -176,9 +176,10 @@ class AutonomousScheduler:
             logger.warning(f"Failed to load scheduler state: {e}")
 
     def _save_state(self):
-        """last_run 상태를 파일에 저장"""
+        """last_run 상태를 파일에 원자적으로 저장 (crash-safe)"""
         try:
             import os
+            import tempfile
             os.makedirs(os.path.dirname(self.STATE_FILE), exist_ok=True)
             data = {
                 "last_run": {
@@ -187,10 +188,20 @@ class AutonomousScheduler:
                 },
                 "saved_at": datetime.now().isoformat()
             }
-            with open(self.STATE_FILE, "w", encoding="utf-8") as f:
+            # 원자적 쓰기: 임시 파일에 쓴 후 rename (crash-safe)
+            dir_path = os.path.dirname(self.STATE_FILE) or "."
+            with tempfile.NamedTemporaryFile(mode="w", dir=dir_path, delete=False, suffix=".tmp", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+                temp_path = f.name
+            os.replace(temp_path, self.STATE_FILE)  # 원자적 교체
         except Exception as e:
             logger.error(f"Failed to save scheduler state: {e}")
+            # 임시 파일 정리
+            try:
+                if 'temp_path' in locals() and os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except:
+                pass
 
     def _load_default_schedules(self):
         """기본 스케줄 로드"""
