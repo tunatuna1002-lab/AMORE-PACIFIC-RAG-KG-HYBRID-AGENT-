@@ -1,11 +1,50 @@
 """
 Amazon Bestseller Scraper
-Playwright 기반 Amazon Top 100 크롤러
+=========================
+Playwright 기반 Amazon Top 100 크롤러 (Headless Chromium)
 
-Errors:
-    - "BLOCKED": Amazon 차단됨 - IP 변경 또는 대기 필요
-    - "TIMEOUT": 응답 없음 - 재시도 권장
-    - "PARSE_ERROR": HTML 구조 변경 - 파서 업데이트 필요
+## 크롤링 대상 카테고리 (config/thresholds.json 참조)
+```
+Beauty & Personal Care (L0)         ← 전체 뷰티 랭킹
+├── Skin Care (L1)                  ← 스킨케어
+│   └── Lip Care (L2)               ← 립케어 (LANEIGE 핵심)
+└── Make Up (L1)
+    ├── Lip Makeup (L2)             ← 립메이크업/색조
+    └── Face (L2)
+        └── Face Powder (L3)        ← 파우더
+```
+
+## 데이터 수집 항목
+- 제품 정보: ASIN, 제품명, 브랜드, URL
+- 순위 정보: rank (1-100), 카테고리별
+- 가격 정보: price (현재가), list_price (정가), discount_percent
+- 평가 정보: rating (5점 만점), reviews_count
+- 프로모션: coupon_text, is_subscribe_save, promo_badges
+- 뱃지: Best Seller, Amazon's Choice 등
+
+## 사용 예
+```python
+scraper = AmazonScraper()
+await scraper.initialize()
+
+# 단일 카테고리
+result = await scraper.scrape_category("lip_care", url)
+
+# 모든 카테고리 (config 기반)
+results = await scraper.scrape_all_categories()
+
+await scraper.close()
+```
+
+## 에러 코드
+- "BLOCKED": Amazon 차단됨 → IP 변경 또는 대기 필요
+- "TIMEOUT": 응답 없음 → 재시도 권장
+- "PARSE_ERROR": HTML 구조 변경 → 파서 업데이트 필요
+
+## 주의사항
+- KST (UTC+9) 기준 날짜 사용
+- 페이지당 50개, 총 2페이지 크롤링 (Top 100)
+- 랜덤 User-Agent 및 딜레이로 차단 회피
 """
 
 import asyncio
@@ -419,17 +458,48 @@ class AmazonScraper:
             return None
 
     def _extract_brand(self, product_name: str) -> str:
-        """제품명에서 브랜드 추출"""
-        # 일반적으로 첫 단어가 브랜드인 경우가 많음
-        known_brands = ["LANEIGE", "Laneige", "COSRX", "TIRTIR", "Rare Beauty",
-                       "e.l.f.", "NYX", "Maybelline", "L'Oreal", "Neutrogena",
-                       "CeraVe", "La Roche-Posay", "SKIN1004", "Beauty of Joseon"]
+        """제품명에서 브랜드 추출
 
-        for brand in known_brands:
+        브랜드 목록은 config/brands.json에서 로드하며,
+        없을 경우 기본 목록 사용
+        """
+        # 두 단어 이상 브랜드 먼저 체크 (순서 중요!)
+        multi_word_brands = [
+            "Summer Fridays", "Rare Beauty", "La Roche-Posay",
+            "Beauty of Joseon", "Tower 28", "Drunk Elephant",
+            "Paula's Choice", "The Ordinary", "Glow Recipe",
+            "Youth To The People", "Kiehl's", "Tatcha",
+            "Fresh", "Olehenriksen", "Origins",
+            "Peter Thomas Roth", "Sunday Riley", "Supergoop",
+            "First Aid Beauty", "IT Cosmetics", "Bobbi Brown",
+            "Charlotte Tilbury", "Too Faced", "Urban Decay",
+            "Fenty Beauty", "Huda Beauty", "Anastasia Beverly Hills",
+            "Benefit Cosmetics", "MAC Cosmetics", "NARS",
+            "Clinique", "Estee Lauder", "Lancome"
+        ]
+
+        for brand in multi_word_brands:
             if brand.lower() in product_name.lower():
                 return brand
 
-        # 첫 단어를 브랜드로 추정
+        # 단일 단어 브랜드
+        single_word_brands = [
+            "LANEIGE", "Laneige", "COSRX", "TIRTIR",
+            "e.l.f.", "NYX", "Maybelline", "L'Oreal", "Neutrogena",
+            "CeraVe", "SKIN1004", "Anua", "MEDICUBE", "medicube",
+            "BIODANCE", "Innisfree", "MISSHA", "ETUDE", "SKINFOOD",
+            "Benton", "Purito", "Klairs", "Heimish", "Isntree",
+            "Rovectin", "Torriden", "mixsoon", "Numbuzin",
+            "Revlon", "Covergirl", "Milani", "ColourPop", "Morphe",
+            "Tarte", "Smashbox", "Hourglass", "Glossier",
+            "Cetaphil", "Aveeno", "Olay", "Garnier", "Nivea"
+        ]
+
+        for brand in single_word_brands:
+            if brand.lower() in product_name.lower():
+                return brand
+
+        # 첫 단어를 브랜드로 추정 (fallback)
         words = product_name.split()
         return words[0] if words else "Unknown"
 
