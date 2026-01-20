@@ -1638,6 +1638,68 @@
             border-color: var(--amore-blue);
         }
 
+        /* === SELECTOR TOOLTIP (카테고리/제품 선택 툴팁) === */
+        .selector-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .selector-wrapper .selector-tooltip {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--deep-ocean);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+            min-width: 280px;
+            max-width: 360px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .selector-wrapper .selector-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: var(--deep-ocean);
+        }
+        .selector-wrapper:hover .selector-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .selector-tooltip-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .selector-tooltip-content p {
+            margin: 6px 0;
+            color: rgba(255,255,255,0.9);
+        }
+        .selector-tooltip-content strong {
+            color: white;
+        }
+        .selector-tooltip-content ul {
+            margin: 4px 0 4px 16px;
+            padding: 0;
+        }
+        .selector-tooltip-content li {
+            margin: 2px 0;
+            color: rgba(255,255,255,0.85);
+        }
+
         /* === PRODUCT PAGE HEADER ROW === */
         .product-header-row {
             display: flex;
@@ -2452,7 +2514,7 @@
                                             <div class="tooltip-content">
                                                 <p><strong>선정 기준</strong><br>모니터링 중인 5개 카테고리 Top 100 내 제품 보유 브랜드</p>
                                                 <p><strong>SoS 기준 정렬</strong><br>Share of Shelf(진열 점유율) 높은 순서로 Top 5 표시</p>
-                                                <p><strong>모니터링 카테고리</strong><br>• Beauty & Personal Care<br>• Skin Care<br>• Lip Care<br>• Lip Makeup<br>• Face Powder</p>
+                                                <p><strong>모니터링 카테고리</strong><br>• Beauty & Personal Care (L0)<br>&nbsp;&nbsp;└ Skin Care (L1) → Lip Care (L2)<br>&nbsp;&nbsp;└ Make Up → Lip Makeup (L2), Face Powder (L3)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -2584,12 +2646,21 @@
 
                     <!-- CATEGORY PAGE (L2) -->
                     <div id="page-category" class="page-view">
+                        <!-- 카테고리 계층 구조:
+                             Beauty & Personal Care (L0)
+                             ├── Skin Care (L1)
+                             │   └── Lip Care (L2)
+                             └── Make Up (L1)
+                                 ├── Lip Makeup (L2)
+                                 └── Face (L2)
+                                     └── Face Powder (L3)
+                        -->
                         <div class="category-tabs">
-                            <div class="category-tab active" onclick="selectCategory('beauty', this)" title="Amazon Best Sellers in Beauty & Personal Care (최상위 카테고리)">Beauty & Personal Care</div>
-                            <div class="category-tab" onclick="selectCategory('skin', this)" title="Amazon Best Sellers in Skin Care (Node ID: 11060451)">Skin Care</div>
-                            <div class="category-tab" onclick="selectCategory('lip', this)" title="Amazon Best Sellers in Lip Care (Node ID: 3761351, Skin Care 하위)">Lip Care</div>
-                            <div class="category-tab" onclick="selectCategory('lip_makeup', this)" title="Amazon Best Sellers in Lip Makeup (Node ID: 11059031, Makeup 하위)">Lip Makeup</div>
-                            <div class="category-tab" onclick="selectCategory('face_powder', this)" title="Amazon Best Sellers in Face Powder (Node ID: 11058971, Face 하위)">Face Powder</div>
+                            <div class="category-tab active" onclick="selectCategory('beauty', this)" title="Amazon Best Sellers in Beauty & Personal Care (전체 뷰티 랭킹, Level 0)" data-level="0" data-parent="">Beauty & Personal Care</div>
+                            <div class="category-tab" onclick="selectCategory('skin', this)" title="Beauty > Skin Care (Node ID: 11060451, Level 1)" data-level="1" data-parent="beauty">↳ Skin Care</div>
+                            <div class="category-tab" onclick="selectCategory('lip', this)" title="Beauty > Skin Care > Lip Care (Node ID: 3761351, Level 2)" data-level="2" data-parent="skin_care">↳↳ Lip Care</div>
+                            <div class="category-tab" onclick="selectCategory('lip_makeup', this)" title="Beauty > Make Up > Lip Makeup (Node ID: 11059031, Level 2)" data-level="2" data-parent="makeup">↳ Lip Makeup</div>
+                            <div class="category-tab" onclick="selectCategory('face_powder', this)" title="Beauty > Make Up > Face > Face Powder (Node ID: 11058971, Level 3)" data-level="3" data-parent="face_makeup">↳↳ Face Powder</div>
                         </div>
                         <div class="kpi-grid">
                             <div class="kpi-card has-tooltip">
@@ -2672,7 +2743,7 @@
                                                 <div class="tooltip-content">
                                                     <p><strong>선정 기준</strong><br>모니터링 중인 5개 카테고리 Top 100 내 제품 보유 브랜드</p>
                                                     <p><strong>SoS 기준 정렬</strong><br>Share of Shelf(진열 점유율) 높은 순서로 Top 5 표시</p>
-                                                    <p><strong>모니터링 카테고리</strong><br>• Beauty & Personal Care<br>• Skin Care<br>• Lip Care<br>• Lip Makeup<br>• Face Powder</p>
+                                                    <p><strong>모니터링 카테고리</strong><br>• Beauty & Personal Care (L0)<br>&nbsp;&nbsp;└ Skin Care (L1) → Lip Care (L2)<br>&nbsp;&nbsp;└ Make Up → Lip Makeup (L2), Face Powder (L3)</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -2697,19 +2768,51 @@
                         <div class="product-header-row">
                             <div class="selector-group">
                                 <span class="selector-label">카테고리</span>
-                                <select class="selector-dropdown" id="productCategory" onchange="updateProductList()">
-                                    <option value="beauty">Beauty & Personal Care</option>
-                                    <option value="skin">Skin Care</option>
-                                    <option value="lip">Lip Care</option>
-                                    <option value="lip_makeup">Lip Makeup</option>
-                                    <option value="face_powder">Face Powder</option>
-                                </select>
+                                <div class="selector-wrapper">
+                                    <select class="selector-dropdown" id="productCategory" onchange="updateProductList()">
+                                        <option value="beauty">Beauty & Personal Care</option>
+                                        <option value="skin_care">Skin Care</option>
+                                        <option value="lip_care">Lip Care</option>
+                                        <option value="lip_makeup">Lip Makeup</option>
+                                        <option value="face_powder">Face Powder</option>
+                                    </select>
+                                    <div class="selector-tooltip">
+                                        <div class="selector-tooltip-header">📁 카테고리 선택</div>
+                                        <div class="selector-tooltip-content">
+                                            <p><strong>기능</strong><br>분석할 Amazon 베스트셀러 카테고리를 선택합니다.</p>
+                                            <p><strong>카테고리 계층</strong></p>
+                                            <ul>
+                                                <li>Beauty & Personal Care (전체)</li>
+                                                <li>↳ Skin Care → Lip Care</li>
+                                                <li>↳ Makeup → Lip Makeup, Face Powder</li>
+                                            </ul>
+                                            <p><strong>선택 시</strong><br>해당 카테고리 내 LANEIGE 제품 목록이 업데이트됩니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <span class="selector-label">제품</span>
-                                <select class="selector-dropdown" id="productSelect" onchange="updateProductView()">
-                                    <option value="lip-mask-berry">Lip Sleeping Mask (Berry)</option>
-                                    <option value="lip-mask-original">Lip Sleeping Mask (Original)</option>
-                                    <option value="lip-glowy">Lip Glowy Balm</option>
-                                </select>
+                                <div class="selector-wrapper">
+                                    <select class="selector-dropdown" id="productSelect" onchange="updateProductView()">
+                                        <option value="lip-mask-berry">Lip Sleeping Mask (Berry)</option>
+                                        <option value="lip-mask-original">Lip Sleeping Mask (Original)</option>
+                                        <option value="lip-glowy">Lip Glowy Balm</option>
+                                    </select>
+                                    <div class="selector-tooltip">
+                                        <div class="selector-tooltip-header">📦 제품 선택</div>
+                                        <div class="selector-tooltip-content">
+                                            <p><strong>선택 기준</strong><br>선택한 카테고리의 Top 100 내 LANEIGE 제품이 표시됩니다.</p>
+                                            <p><strong>정렬 방식</strong><br>베스트셀러 순위가 높은 제품이 먼저 표시됩니다.</p>
+                                            <p><strong>대시보드 정보</strong></p>
+                                            <ul>
+                                                <li>Current Rank: 현재 순위</li>
+                                                <li>Volatility: 순위 변동성</li>
+                                                <li>Rating: 고객 평점</li>
+                                                <li>Stickiness: 순위 유지력</li>
+                                            </ul>
+                                            <p><strong>차트</strong><br>순위/가격 추이, 제품 매트릭스, 할인율 분석</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="chart-date-range" id="productDateRange">
                                 <label>기간:</label>
@@ -3245,8 +3348,8 @@
 
         let categoryProducts = {
             'beauty': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['water-bank', 'Water Bank Blue Cream']],
-            'skin': [['water-bank', 'Water Bank Blue Cream'], ['cream-skin', 'Cream Skin Toner']],
-            'lip': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['lip-mask-original', 'Lip Sleeping Mask (Original)'], ['lip-glowy', 'Lip Glowy Balm']],
+            'skin_care': [['water-bank', 'Water Bank Blue Cream'], ['cream-skin', 'Cream Skin Toner']],
+            'lip_care': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['lip-mask-original', 'Lip Sleeping Mask (Original)'], ['lip-glowy', 'Lip Glowy Balm']],
             'lip_makeup': [['lip-glowy', 'Lip Glowy Balm'], ['lip-tint', 'Lip Tint']],
             'face_powder': [['neo-cushion', 'Neo Cushion'], ['skin-veil', 'Skin Veil Base']]
         };
@@ -3523,7 +3626,13 @@
             // Update product data from loaded data
             if (dashboardData.products) {
                 productData = {};
-                categoryProducts = { 'lip': [], 'skin': [], 'face': [], 'toner': [] };
+                categoryProducts = {
+                    'beauty': [],
+                    'skin_care': [],
+                    'lip_care': [],
+                    'lip_makeup': [],
+                    'face_powder': []
+                };
 
                 for (const [asin, product] of Object.entries(dashboardData.products)) {
                     const key = asin.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -3538,11 +3647,21 @@
                         stickDelta: '높음'
                     };
 
-                    // Add to category
-                    const cat = product.category?.replace('_', '') || 'lip';
-                    const catKey = cat.includes('lip') ? 'lip' : cat.includes('face') ? 'face' : cat.includes('toner') ? 'toner' : 'skin';
+                    // Add to category (매핑: thresholds.json 카테고리 키)
+                    const cat = product.category || 'lip_care';
+                    let catKey = 'beauty';
+                    if (cat.includes('lip_care') || cat === 'lip') catKey = 'lip_care';
+                    else if (cat.includes('lip_makeup')) catKey = 'lip_makeup';
+                    else if (cat.includes('skin_care') || cat === 'skin') catKey = 'skin_care';
+                    else if (cat.includes('face_powder') || cat === 'face') catKey = 'face_powder';
+                    else catKey = 'beauty';
+
                     if (categoryProducts[catKey]) {
                         categoryProducts[catKey].push([key, product.name]);
+                    }
+                    // Also add to beauty (top level) for visibility
+                    if (catKey !== 'beauty' && categoryProducts['beauty']) {
+                        categoryProducts['beauty'].push([key, product.name]);
                     }
                 }
             }
