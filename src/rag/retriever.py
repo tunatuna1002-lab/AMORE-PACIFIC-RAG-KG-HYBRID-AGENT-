@@ -87,9 +87,9 @@ class DocumentRetriever:
             # 문서 로드
             await self._load_documents()
 
-            # 벡터 검색 초기화 (가능한 경우) - 키워드 검색 폴백으로 충분
-            # if self._check_vector_search():
-            #     await self._initialize_vector_search()
+            # 벡터 검색 초기화 (ChromaDB + SentenceTransformers 설치 시 활성화)
+            if self._check_vector_search():
+                await self._initialize_vector_search()
 
             self._initialized = True
             return True
@@ -104,12 +104,14 @@ class DocumentRetriever:
         """MD 문서 로드"""
         # 프로젝트 루트에서 MD 파일 찾기
         root_path = self.docs_path.parent
+        guides_path = self.docs_path / "guides"  # docs/guides/ 폴더
 
         for doc_id, doc_info in self.DOCUMENTS.items():
-            # docs 폴더와 루트 폴더 모두 검색
+            # docs/guides 폴더, docs 폴더, 루트 폴더 순으로 검색
             possible_paths = [
-                self.docs_path / doc_info["filename"],
-                root_path / doc_info["filename"]
+                guides_path / doc_info["filename"],  # docs/guides/
+                self.docs_path / doc_info["filename"],  # docs/
+                root_path / doc_info["filename"]  # 프로젝트 루트
             ]
 
             for file_path in possible_paths:
@@ -173,28 +175,35 @@ class DocumentRetriever:
         if not VECTOR_SEARCH_AVAILABLE:
             return
 
-        # 임베딩 모델 로드
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        try:
+            from sentence_transformers import SentenceTransformer
+            import chromadb
 
-        # ChromaDB 초기화
-        persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
-        os.makedirs(persist_dir, exist_ok=True)
+            # 임베딩 모델 로드
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-        self.client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=persist_dir,
-            anonymized_telemetry=False
-        ))
+            # ChromaDB 초기화 (modern API - persistent client)
+            persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
+            os.makedirs(persist_dir, exist_ok=True)
 
-        # 컬렉션 생성/로드
-        self.collection = self.client.get_or_create_collection(
-            name="amore_docs",
-            metadata={"hnsw:space": "cosine"}
-        )
+            self.client = chromadb.PersistentClient(path=persist_dir)
 
-        # 문서 인덱싱
-        if self.collection.count() == 0:
-            await self._index_documents()
+            # 컬렉션 생성/로드
+            self.collection = self.client.get_or_create_collection(
+                name="amore_docs",
+                metadata={"hnsw:space": "cosine"}
+            )
+
+            # 문서 인덱싱 (컬렉션이 비어있을 때만)
+            if self.collection.count() == 0:
+                await self._index_documents()
+
+            print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
+
+        except Exception as e:
+            print(f"Vector search initialization failed (fallback to keyword): {e}")
+            self.collection = None
+            self.embedding_model = None
 
     async def _index_documents(self) -> None:
         """문서 벡터 인덱싱"""
@@ -275,8 +284,11 @@ class DocumentRetriever:
         if len(self._cache_timestamps) > 50:
             self._clean_expired_cache()
 
-        # 키워드 기반 검색 실행
-        result = await self._keyword_search(query, top_k, doc_filter)
+        # 벡터 검색 시도 (가능한 경우), 아니면 키워드 검색
+        if self.collection is not None and self.embedding_model is not None:
+            result = await self._vector_search(query, top_k, doc_filter)
+        else:
+            result = await self._keyword_search(query, top_k, doc_filter)
 
         # 결과 캐싱
         self._search_cache[cache_key] = result

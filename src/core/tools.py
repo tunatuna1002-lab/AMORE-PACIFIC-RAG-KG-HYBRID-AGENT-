@@ -233,6 +233,66 @@ DIRECT_ANSWER_TOOL = AgentTool(
     requires_crawl=False
 )
 
+# 6. 경쟁사 Deals 조회 도구
+QUERY_DEALS_TOOL = AgentTool(
+    name="query_deals",
+    description="경쟁사 할인 정보(Lightning Deal, 쿠폰, 할인율)를 조회합니다. 경쟁사 프로모션 상황을 파악할 때 사용합니다.",
+    parameters=[
+        ToolParameter(
+            name="brand",
+            type="string",
+            description="조회할 브랜드명 (비우면 전체 경쟁사)",
+            required=False
+        ),
+        ToolParameter(
+            name="hours",
+            type="integer",
+            description="최근 N시간 데이터 조회 (기본: 24시간)",
+            required=False,
+            default=24
+        ),
+        ToolParameter(
+            name="deal_type",
+            type="string",
+            description="딜 유형 필터",
+            required=False,
+            enum=["lightning", "deal_of_day", "best_deal", "coupon", "all"]
+        ),
+        ToolParameter(
+            name="min_discount",
+            type="integer",
+            description="최소 할인율 필터 (예: 20 = 20% 이상)",
+            required=False
+        )
+    ],
+    requires_data=False,
+    requires_crawl=False
+)
+
+# 7. Deals 요약 통계 도구
+QUERY_DEALS_SUMMARY_TOOL = AgentTool(
+    name="query_deals_summary",
+    description="경쟁사 할인 현황 요약 통계를 조회합니다. 브랜드별 딜 현황, 일별 추이, 평균 할인율 등을 확인합니다.",
+    parameters=[
+        ToolParameter(
+            name="days",
+            type="integer",
+            description="분석 기간 (일 단위, 기본: 7일)",
+            required=False,
+            default=7
+        ),
+        ToolParameter(
+            name="group_by",
+            type="string",
+            description="그룹화 기준",
+            required=False,
+            enum=["brand", "date", "deal_type"]
+        )
+    ],
+    requires_data=False,
+    requires_crawl=False
+)
+
 
 # =============================================================================
 # 도구 레지스트리
@@ -244,7 +304,9 @@ AGENT_TOOLS: Dict[str, AgentTool] = {
     "calculate_metrics": CALCULATE_METRICS_TOOL,
     "query_data": QUERY_DATA_TOOL,
     "query_knowledge_graph": QUERY_KG_TOOL,
-    "direct_answer": DIRECT_ANSWER_TOOL
+    "direct_answer": DIRECT_ANSWER_TOOL,
+    "query_deals": QUERY_DEALS_TOOL,
+    "query_deals_summary": QUERY_DEALS_SUMMARY_TOOL
 }
 
 

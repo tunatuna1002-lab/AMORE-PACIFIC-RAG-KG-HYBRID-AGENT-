@@ -23,10 +23,8 @@ from dataclasses import dataclass, field
 from src.agents.crawler_agent import CrawlerAgent
 from src.agents.storage_agent import StorageAgent
 from src.agents.metrics_agent import MetricsAgent
-from src.agents.insight_agent import InsightAgent
-from src.agents.chatbot_agent import ChatbotAgent
 
-# Hybrid Agents (신규)
+# Hybrid Agents
 from src.agents.hybrid_insight_agent import HybridInsightAgent
 from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
@@ -147,11 +145,9 @@ class Orchestrator:
         self._crawler: Optional[CrawlerAgent] = None
         self._storage: Optional[StorageAgent] = None
         self._metrics_agent: Optional[MetricsAgent] = None
-        self._insight: Optional[InsightAgent] = None
-        self._chatbot: Optional[ChatbotAgent] = None
         self._dashboard_exporter: Optional[DashboardExporter] = None
 
-        # Hybrid 에이전트 (신규)
+        # Hybrid 에이전트
         self._hybrid_insight: Optional[HybridInsightAgent] = None
         self._hybrid_chatbot: Optional[HybridChatbotAgent] = None
 
@@ -230,33 +226,8 @@ class Orchestrator:
             )
         return self._metrics_agent
 
-    @property
-    def insight(self) -> InsightAgent:
-        """기존 InsightAgent (레거시)"""
-        if self._insight is None:
-            self._insight = InsightAgent(
-                model=self.model,
-                logger=AgentLogger("insight"),
-                tracer=self.tracer,
-                metrics=self.metrics
-            )
-        return self._insight
-
-    @property
-    def chatbot(self) -> ChatbotAgent:
-        """기존 ChatbotAgent (레거시)"""
-        if self._chatbot is None:
-            self._chatbot = ChatbotAgent(
-                model=self.model,
-                logger=AgentLogger("chatbot"),
-                tracer=self.tracer,
-                metrics=self.metrics,
-                context_manager=self.context_manager
-            )
-        return self._chatbot
-
     # =========================================================================
-    # Hybrid 에이전트 초기화 (신규)
+    # Hybrid 에이전트 초기화
     # =========================================================================
 
     @property
@@ -513,11 +484,13 @@ class Orchestrator:
                     }
                 )
             else:
+                # 비하이브리드 모드에서도 하이브리드 에이전트 사용 (레거시 에이전트 제거됨)
                 return ThinkResult(
-                    next_action="insight",
-                    reasoning="일일 인사이트 생성 (LLM 기반)",
+                    next_action="hybrid_insight",
+                    reasoning="하이브리드 인사이트 생성 (Ontology + RAG + LLM)",
                     parameters={
                         "metrics_data": metrics_data,
+                        "crawl_data": self._state.get("crawl_result"),
                         "crawl_summary": self._state.get("crawl_result", {}).get("summary")
                     }
                 )
@@ -569,14 +542,6 @@ class Orchestrator:
                 result = await self.metrics_agent.execute(
                     params.get("crawl_data"),
                     params.get("historical_data")
-                )
-                return ActResult(action=action, success=True, result=result)
-
-            elif action == "insight":
-                # 레거시 인사이트 에이전트
-                result = await self.insight.execute(
-                    params.get("metrics_data"),
-                    params.get("crawl_summary")
                 )
                 return ActResult(action=action, success=True, result=result)
 
@@ -695,10 +660,6 @@ class Orchestrator:
             # 챗봇 데이터 컨텍스트 설정
             if self.use_hybrid:
                 self.hybrid_chatbot.set_data_context(
-                    self._state.get("metrics_result", {})
-                )
-            else:
-                self.chatbot.set_data_context(
                     self._state.get("metrics_result", {})
                 )
 

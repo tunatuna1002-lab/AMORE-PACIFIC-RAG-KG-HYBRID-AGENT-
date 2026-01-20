@@ -3,7 +3,7 @@ AMORE RAG-Ontology Hybrid Agent System
 Agent modules for Amazon bestseller tracking and analysis
 Includes Hybrid Agents with Ontology reasoning capabilities
 
-Recommended Usage:
+Usage:
     # Level 4 Agents (Brain에서 호출)
     from src.agents import QueryAgent, WorkflowAgent
 
@@ -13,9 +13,9 @@ Recommended Usage:
     # Core agents
     from src.agents import CrawlerAgent, StorageAgent, MetricsAgent
 
-Deprecated:
-    - InsightAgent → use HybridInsightAgent
-    - ChatbotAgent → use HybridChatbotAgent
+Note:
+    InsightAgent and ChatbotAgent are DEPRECATED and will be removed.
+    Use HybridInsightAgent and HybridChatbotAgent instead.
 """
 
 # Core agents (always active)
@@ -34,13 +34,28 @@ from .hybrid_chatbot_agent import HybridChatbotAgent, HybridChatbotSession
 # Alert agent
 from .alert_agent import AlertAgent
 
-# Legacy agents (deprecated - lazy import to avoid warnings on module load)
+
+# Legacy agents (deprecated - lazy import with warning)
 def __getattr__(name):
-    """Lazy import for deprecated modules to show warning only when used."""
+    """Lazy import for deprecated modules - shows warning when accessed."""
     if name == "InsightAgent":
+        import warnings
+        warnings.warn(
+            "InsightAgent is deprecated and will be removed in a future version. "
+            "Use HybridInsightAgent instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         from .insight_agent import InsightAgent
         return InsightAgent
     elif name == "ChatbotAgent":
+        import warnings
+        warnings.warn(
+            "ChatbotAgent is deprecated and will be removed in a future version. "
+            "Use HybridChatbotAgent instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         from .chatbot_agent import ChatbotAgent
         return ChatbotAgent
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
@@ -60,7 +75,4 @@ __all__ = [
     "HybridChatbotSession",
     # Alert Agent
     "AlertAgent",
-    # Legacy (Deprecated)
-    "InsightAgent",
-    "ChatbotAgent",
 ]

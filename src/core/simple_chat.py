@@ -1,14 +1,17 @@
 """
 Simple LLM Chat Service
 =======================
-단순화된 LLM 기반 챗봇 서비스
+단순화된 LLM 기반 챗봇 서비스 + RAG + Ontology + KnowledgeGraph 통합
 
 구조:
-질문 → 입력 검증 → LLM (컨텍스트 + 도구) → 출력 검증 → 응답
+질문 → 입력 검증 → HybridRetriever(RAG+KG+Ontology) → LLM (컨텍스트 + 도구) → 출력 검증 → 응답
 
 핵심 원칙:
-- LLM이 모든 판단을 담당
-- Function Calling으로 도구 사용
+- RAG: 지식 문서에서 정의/해석 기준 검색
+- KnowledgeGraph: 브랜드/제품/경쟁사 관계 및 사실 조회
+- OntologyReasoner: 비즈니스 규칙 기반 추론
+- LLM: 위 컨텍스트를 종합하여 자연어 응답 생성
+- Function Calling: 실시간 데이터 조회 보조
 - 다층 보안 가드레일
 """
 
@@ -20,6 +23,9 @@ from typing import Dict, List, Any, Optional, Tuple
 from collections import defaultdict
 
 from litellm import acompletion
+
+# RAG + Ontology + KnowledgeGraph 통합
+from src.rag.hybrid_retriever import HybridRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +186,12 @@ SYSTEM_PROMPT = """당신은 아모레퍼시픽 LANEIGE 브랜드의 Amazon US �
 - **CPI (Category Price Index)**: 카테고리 평균 대비 가격 수준 (100 = 평균)
 - **Volatility**: 순위 변동성 (낮을수록 안정적)
 
+## 경쟁사 할인 모니터링
+경쟁사 프로모션(Lightning Deal, 쿠폰, 할인)을 모니터링하여 LANEIGE 매출에 미치는 영향을 분석합니다.
+- Lightning Deal: 시간 한정 딜, 빠르게 판매율 상승
+- Deal of the Day: 하루 종일 진행되는 주요 프로모션
+- 쿠폰: 추가 할인 제공
+
 ## 응답 원칙
 1. 데이터에 기반하여 정확하게 답변
 2. 수치와 근거를 명확히 제시
@@ -216,6 +228,9 @@ SYSTEM_PROMPT = """당신은 아모레퍼시픽 LANEIGE 브랜드의 Amazon US �
 
 ## 현재 LANEIGE 현황 요약
 {context_summary}
+
+## 온톨로지 추론 및 RAG 분석 결과
+{hybrid_context}
 """
 
 
@@ -310,6 +325,44 @@ TOOLS = [
                 "required": []
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_competitor_deals",
+            "description": "경쟁사 할인 정보를 조회합니다. Lightning Deal, 쿠폰, 할인율 등 경쟁사 프로모션 현황을 확인할 때 사용합니다.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "brand": {
+                        "type": "string",
+                        "description": "특정 브랜드명 (비워두면 전체 경쟁사)"
+                    },
+                    "hours": {
+                        "type": "integer",
+                        "description": "최근 N시간 데이터 조회 (기본: 24시간)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_deals_summary",
+            "description": "경쟁사 할인 현황 요약을 조회합니다. 브랜드별 딜 현황, 평균 할인율, 일별 추이를 확인할 때 사용합니다.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "integer",
+                        "description": "분석 기간 (일 단위, 기본: 7일)"
+                    }
+                },
+                "required": []
+            }
+        }
     }
 ]
 
@@ -319,14 +372,21 @@ TOOLS = [
 # =============================================================================
 
 class SimpleChatService:
-    """단순화된 LLM 챗봇 서비스"""
+    """
+    단순화된 LLM 챗봇 서비스 + RAG + Ontology + KnowledgeGraph 통합
+
+    통합 아키텍처:
+    1. HybridRetriever: RAG(문서검색) + KG(사실조회) + Ontology(추론)
+    2. Function Calling: 실시간 데이터 조회
+    3. PromptGuard: 보안 가드레일
+    """
 
     def __init__(
         self,
         model: str = "gpt-4.1-mini",
         data_path: str = "./data/dashboard_data.json",
         temperature: float = 0.3,
-        max_tokens: int = 1500
+        max_tokens: int = 2000  # 토큰 증가 (추론 컨텍스트 포함)
     ):
         self.model = model
         self.data_path = data_path
@@ -340,6 +400,41 @@ class SimpleChatService:
         # 데이터 캐시
         self._data_cache: Optional[Dict] = None
         self._cache_time: Optional[datetime] = None
+
+        # HybridRetriever 초기화 (RAG + KG + Ontology)
+        self._hybrid_retriever: Optional[HybridRetriever] = None
+        self._retriever_initialized: bool = False
+
+    # =========================================================================
+    # HybridRetriever 초기화 (RAG + KG + Ontology)
+    # =========================================================================
+
+    async def _get_hybrid_retriever(self) -> HybridRetriever:
+        """HybridRetriever 싱글톤 반환 (지연 초기화)"""
+        if self._hybrid_retriever is None:
+            self._hybrid_retriever = HybridRetriever()
+
+        if not self._retriever_initialized:
+            await self._hybrid_retriever.initialize()
+            self._retriever_initialized = True
+            logger.info("HybridRetriever initialized (RAG + KG + Ontology)")
+
+        return self._hybrid_retriever
+
+    def _update_knowledge_graph(self, data: Dict[str, Any]) -> None:
+        """크롤링 데이터로 Knowledge Graph 업데이트"""
+        if self._hybrid_retriever is None:
+            return
+
+        try:
+            # 크롤링 데이터에서 KG 업데이트
+            stats = self._hybrid_retriever.update_knowledge_graph(
+                crawl_data=data,
+                metrics_data=data
+            )
+            logger.info(f"KnowledgeGraph updated: {stats}")
+        except Exception as e:
+            logger.warning(f"KG update failed: {e}")
 
     # =========================================================================
     # 데이터 로드
@@ -356,6 +451,10 @@ class SimpleChatService:
             with open(self.data_path, "r", encoding="utf-8") as f:
                 self._data_cache = json.load(f)
                 self._cache_time = datetime.now()
+
+                # 데이터 로드 시 KG 업데이트
+                self._update_knowledge_graph(self._data_cache)
+
                 return self._data_cache
         except Exception as e:
             logger.error(f"Failed to load data: {e}")
@@ -413,6 +512,12 @@ class SimpleChatService:
 
         elif tool_name == "start_crawling":
             return await self._tool_start_crawling()
+
+        elif tool_name == "get_competitor_deals":
+            return await self._tool_competitor_deals(args.get("brand"), args.get("hours", 24))
+
+        elif tool_name == "get_deals_summary":
+            return await self._tool_deals_summary(args.get("days", 7))
 
         return "알 수 없는 도구입니다."
 
@@ -530,6 +635,125 @@ class SimpleChatService:
                 "message": f"크롤링 시작 실패: {str(e)}"
             }, ensure_ascii=False)
 
+    async def _tool_competitor_deals(self, brand: Optional[str], hours: int) -> str:
+        """경쟁사 할인 정보 조회"""
+        try:
+            from src.tools.sqlite_storage import get_sqlite_storage
+
+            storage = get_sqlite_storage()
+            await storage.initialize()
+
+            # 경쟁사 딜 조회
+            deals = await storage.get_competitor_deals(brand=brand, hours=hours)
+
+            if not deals:
+                return json.dumps({
+                    "status": "no_data",
+                    "message": f"최근 {hours}시간 내 {'해당 브랜드의 ' if brand else ''}경쟁사 딜이 없습니다.",
+                    "deals": [],
+                    "count": 0
+                }, ensure_ascii=False)
+
+            # 요약 정보
+            lightning_count = sum(1 for d in deals if d.get("deal_type") == "lightning")
+            avg_discount = sum(d.get("discount_percent", 0) for d in deals if d.get("discount_percent")) / len(deals) if deals else 0
+
+            # 상위 10개만 반환
+            top_deals = deals[:10]
+
+            return json.dumps({
+                "status": "success",
+                "count": len(deals),
+                "lightning_count": lightning_count,
+                "avg_discount_percent": round(avg_discount, 1),
+                "filter": {
+                    "brand": brand,
+                    "hours": hours
+                },
+                "top_deals": [
+                    {
+                        "brand": d.get("brand"),
+                        "product_name": d.get("product_name", "")[:50],
+                        "deal_type": d.get("deal_type"),
+                        "discount_percent": d.get("discount_percent"),
+                        "deal_price": d.get("deal_price"),
+                        "time_remaining": d.get("time_remaining")
+                    }
+                    for d in top_deals
+                ]
+            }, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            logger.error(f"Competitor deals error: {e}")
+            return json.dumps({
+                "status": "error",
+                "message": f"딜 조회 실패: {str(e)}"
+            }, ensure_ascii=False)
+
+    async def _tool_deals_summary(self, days: int) -> str:
+        """경쟁사 할인 현황 요약"""
+        try:
+            from src.tools.sqlite_storage import get_sqlite_storage
+
+            storage = get_sqlite_storage()
+            await storage.initialize()
+
+            # 요약 통계 조회
+            summary = await storage.get_deals_summary(days=days)
+
+            if not summary.get("by_brand"):
+                return json.dumps({
+                    "status": "no_data",
+                    "message": f"최근 {days}일 동안의 딜 데이터가 없습니다.",
+                    "period_days": days
+                }, ensure_ascii=False)
+
+            # 핵심 요약
+            by_brand = summary.get("by_brand", [])
+            by_date = summary.get("by_date", [])
+
+            total_deals = sum(b.get("total_deals", 0) for b in by_brand)
+            total_lightning = sum(b.get("lightning_deals", 0) for b in by_brand)
+            max_discount = max((b.get("max_discount", 0) for b in by_brand), default=0)
+
+            # 가장 활발한 브랜드 Top 5
+            active_brands = sorted(by_brand, key=lambda x: x.get("total_deals", 0), reverse=True)[:5]
+
+            return json.dumps({
+                "status": "success",
+                "period_days": days,
+                "summary": {
+                    "total_deals": total_deals,
+                    "lightning_deals": total_lightning,
+                    "max_discount_percent": max_discount,
+                    "brands_with_deals": len(by_brand)
+                },
+                "most_active_brands": [
+                    {
+                        "brand": b.get("brand"),
+                        "total_deals": b.get("total_deals"),
+                        "lightning_deals": b.get("lightning_deals"),
+                        "avg_discount": b.get("avg_discount")
+                    }
+                    for b in active_brands
+                ],
+                "daily_trend": [
+                    {
+                        "date": d.get("date"),
+                        "deals": d.get("total_deals"),
+                        "lightning": d.get("lightning_deals")
+                    }
+                    for d in by_date[:7]  # 최근 7일
+                ]
+            }, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            logger.error(f"Deals summary error: {e}")
+            return json.dumps({
+                "status": "error",
+                "message": f"딜 요약 조회 실패: {str(e)}"
+            }, ensure_ascii=False)
+
     # =========================================================================
     # 메인 채팅
     # =========================================================================
@@ -588,11 +812,49 @@ class SimpleChatService:
             scope_warning = "\n\n[시스템 알림: 사용자의 질문이 범위 외일 수 있습니다. 정중히 거절하고 본 역할로 안내하세요.]"
 
         # =====================================================================
-        # Layer 2: 시스템 프롬프트 구성 (강화된 가드레일 포함)
+        # RAG + Ontology + KnowledgeGraph 컨텍스트 수집
+        # =====================================================================
+        hybrid_context_str = ""
+        reasoning_metadata = {}
+
+        try:
+            retriever = await self._get_hybrid_retriever()
+
+            # HybridRetriever로 검색 + 추론 실행
+            hybrid_context = await retriever.retrieve(
+                query=sanitized_message,
+                current_metrics=data,
+                include_explanations=True
+            )
+
+            # 통합 컨텍스트 문자열 (LLM 프롬프트용)
+            hybrid_context_str = hybrid_context.combined_context
+
+            # 메타데이터 저장 (응답에 포함)
+            reasoning_metadata = {
+                "entities_extracted": hybrid_context.entities,
+                "ontology_inferences": len(hybrid_context.inferences),
+                "kg_facts": len(hybrid_context.ontology_facts),
+                "rag_chunks": len(hybrid_context.rag_chunks),
+                "retrieval_time_ms": hybrid_context.metadata.get("retrieval_time_ms", 0)
+            }
+
+            logger.info(
+                f"HybridRetriever: {reasoning_metadata['ontology_inferences']} inferences, "
+                f"{reasoning_metadata['kg_facts']} facts, {reasoning_metadata['rag_chunks']} chunks"
+            )
+
+        except Exception as e:
+            logger.warning(f"HybridRetriever failed (fallback to basic mode): {e}")
+            hybrid_context_str = "(추론 시스템 일시 불가 - 기본 모드로 응답합니다)"
+
+        # =====================================================================
+        # Layer 2: 시스템 프롬프트 구성 (강화된 가드레일 + 추론 컨텍스트 포함)
         # =====================================================================
         system_prompt = SYSTEM_PROMPT.format(
             data_date=data_date,
-            context_summary=self._build_context_summary(data)
+            context_summary=self._build_context_summary(data),
+            hybrid_context=hybrid_context_str
         ) + scope_warning
 
         # 대화 히스토리 구성
@@ -689,7 +951,8 @@ class SimpleChatService:
                 "tools_used": tools_used,
                 "data_date": data_date,
                 "processing_time_ms": processing_time,
-                "sources": sources
+                "sources": sources,
+                "reasoning": reasoning_metadata  # 추론 메타데이터 추가
             }
 
         except Exception as e:
@@ -703,7 +966,7 @@ class SimpleChatService:
                 "error": True
             }
 
-    def _build_sources(self, tools_used: List[str], data_date: str) -> List[Dict[str, str]]:
+    def _build_sources(self, tools_used: List[str], data_date: str, reasoning_used: bool = True) -> List[Dict[str, str]]:
         """사용된 도구 기반으로 출처 정보 구성"""
         sources = []
 
@@ -714,6 +977,24 @@ class SimpleChatService:
             "date": data_date,
             "url": "https://www.amazon.com/Best-Sellers/zgbs"
         })
+
+        # RAG + Ontology 출처 추가
+        if reasoning_used:
+            sources.append({
+                "type": "reasoning",
+                "name": "Ontology 추론 시스템",
+                "description": "비즈니스 규칙 기반 인사이트 추론"
+            })
+            sources.append({
+                "type": "knowledge",
+                "name": "Knowledge Graph",
+                "description": "브랜드/제품/경쟁사 관계 그래프"
+            })
+            sources.append({
+                "type": "guide",
+                "name": "분석 가이드라인 (RAG)",
+                "description": "지표 정의, 해석 기준, 전략 플레이북"
+            })
 
         # 도구별 출처 추가
         tool_sources = {
@@ -741,6 +1022,16 @@ class SimpleChatService:
                 "type": "analysis",
                 "name": "액션 아이템 분석 시스템",
                 "description": "주의 필요 제품 및 권장 조치"
+            },
+            "get_competitor_deals": {
+                "type": "data",
+                "name": "경쟁사 할인 모니터링",
+                "description": "Amazon Deals 페이지 기반 경쟁사 프로모션 정보"
+            },
+            "get_deals_summary": {
+                "type": "analysis",
+                "name": "할인 현황 분석 시스템",
+                "description": "브랜드별 딜 현황 및 추이 분석"
             }
         }
 

@@ -629,6 +629,94 @@ MIT License
 
 ## Changelog (개선 타임라인)
 
+### 2026-01-20: 경쟁사 Deals 모니터링 시스템 추가
+
+#### 🏷️ Amazon Deals 크롤러
+- **신규 모듈**: `src/tools/deals_scraper.py` - Amazon Deals 페이지 전용 크롤러
+- **수집 데이터**:
+  - Lightning Deal (시간 한정 할인, 남은 시간, 판매율)
+  - Deal of the Day (오늘의 딜)
+  - Best Deal / Coupon (쿠폰 할인)
+  - 할인가, 원가, 할인율
+- **API 함수**:
+  - `scrape_deals(max_items, beauty_only)` - 딜 수집
+  - `scrape_competitor_deals()` - 경쟁사 딜만 필터링
+
+#### 💾 SQLite Storage 확장
+- **신규 테이블** (`src/tools/sqlite_storage.py`):
+  - `deals`: 딜 데이터 저장
+  - `deals_history`: 일별 딜 히스토리 집계
+  - `deals_alerts`: 할인 알림 로그
+- **메서드 추가**:
+  - `save_deals()`, `get_competitor_deals()`, `get_deals_summary()`
+  - `save_deal_alert()`, `get_unsent_alerts()`, `mark_alert_sent()`
+  - `export_deals_report()` - Excel 리포트 생성
+
+#### 🔔 알림 서비스
+- **신규 모듈**: `src/tools/alert_service.py` - AlertService 클래스
+- **지원 채널**:
+  - Slack Webhook (`SLACK_WEBHOOK_URL`)
+  - Email/SMTP (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`)
+- **자동 알림 조건**:
+  - Lightning Deal 감지
+  - 30% 이상 대폭 할인
+  - Deal of the Day 선정
+- **환경 변수**:
+  ```bash
+  SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+  SLACK_CHANNEL=#deals-alert
+  SMTP_HOST=smtp.example.com
+  SMTP_PORT=587
+  SMTP_USER=your-email@example.com
+  SMTP_PASSWORD=your-password
+  ALERT_EMAIL_RECIPIENTS=recipient1@example.com,recipient2@example.com
+  ALERT_MIN_DISCOUNT=20.0
+  ```
+
+#### 🌐 API 엔드포인트
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/api/deals` | 딜 데이터 조회 (brand, hours 필터) |
+| GET | `/api/deals/summary` | 브랜드별/일별 요약 통계 |
+| POST | `/api/deals/scrape` | 딜 크롤링 실행 (API Key 필요) |
+| GET | `/api/deals/alerts` | 알림 목록 조회 |
+| POST | `/api/deals/export` | Excel/JSON 리포트 Export |
+| GET | `/api/alerts/status` | 알림 서비스 상태 |
+| POST | `/api/alerts/send` | 미발송 알림 발송 |
+| POST | `/api/alerts/test` | 테스트 알림 발송 |
+
+#### 🤖 챗봇 Function Calling 통합
+- **신규 도구** (`src/core/simple_chat.py`):
+  - `get_competitor_deals` - 경쟁사 할인 조회
+  - `get_deals_summary` - 할인 현황 요약
+- **도구 정의** (`src/core/tools.py`):
+  - `QUERY_DEALS_TOOL`, `QUERY_DEALS_SUMMARY_TOOL`
+
+#### 📊 대시보드 Deals Monitor 페이지
+- **KPI 카드**: Active Deals, Lightning Deals, Avg/Max Discount
+- **실시간 딜 테이블**: 브랜드 필터, 할인율, 남은 시간, 판매율
+- **차트**:
+  - 브랜드별 딜 현황 (Bar Chart)
+  - 일별 Deals 추이 (Line Chart)
+- **알림 섹션**:
+  - 미발송 알림 목록
+  - 알림 발송 버튼 (`📤 알림 발송`)
+  - 테스트 알림 버튼 (`🧪 테스트`)
+  - 알림 서비스 상태 표시
+
+#### 📁 변경/생성된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/tools/deals_scraper.py` | 🆕 Amazon Deals 크롤러 |
+| `src/tools/alert_service.py` | 🆕 Slack/Email 알림 서비스 |
+| `src/tools/sqlite_storage.py` | deals, deals_history, deals_alerts 테이블 추가 |
+| `src/core/tools.py` | QUERY_DEALS_TOOL, QUERY_DEALS_SUMMARY_TOOL 추가 |
+| `src/core/simple_chat.py` | get_competitor_deals, get_deals_summary 도구 추가 |
+| `dashboard/amore_unified_dashboard_v4.html` | Deals Monitor 페이지, 알림 UI |
+| `dashboard_api.py` | 8개 Deals/Alerts API 엔드포인트 추가 |
+
+---
+
 ### 2026-01-20: AI Customers Say 감성 분석 통합
 
 #### 🎯 Amazon AI Customers Say 크롤러
