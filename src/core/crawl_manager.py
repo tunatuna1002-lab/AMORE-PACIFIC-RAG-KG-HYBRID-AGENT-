@@ -294,8 +294,16 @@ class CrawlManager:
             # 크롤링 원본 데이터를 JSON으로 저장 (Excel export용)
             try:
                 crawl_json_path = Path("./data/latest_crawl_result.json")
+                # JSON 직렬화 가능한 형태로 변환 (datetime, Decimal 등 처리)
+                def json_serializer(obj):
+                    if hasattr(obj, 'isoformat'):
+                        return obj.isoformat()
+                    if hasattr(obj, '__str__'):
+                        return str(obj)
+                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
                 with open(crawl_json_path, "w", encoding="utf-8") as f:
-                    json.dump(result, f, ensure_ascii=False, indent=2)
+                    json.dump(result, f, ensure_ascii=False, indent=2, default=json_serializer)
                 logger.info(f"Crawl result saved to {crawl_json_path}")
             except Exception as save_error:
                 logger.error(f"Failed to save crawl result JSON: {save_error}")
