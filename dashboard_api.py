@@ -1692,8 +1692,14 @@ async def export_excel(request: Request):
 
         # 데이터 소스 유형 판단
         # latest_crawl_result.json: {"categories": {"beauty": {"products": [...]}}}
-        # dashboard_data.json: {"metadata": {...}, "brand": {...}, "category": {...}}
-        is_crawl_data = "categories" in crawl_data
+        # dashboard_data.json: {"metadata": {...}, "brand": {...}, "categories": {...} (but no products)}
+        # is_crawl_data: categories에 실제 products 배열이 있는 경우만
+        is_crawl_data = False
+        if "categories" in crawl_data:
+            # 첫 번째 카테고리에 products 키가 있는지 확인
+            first_cat = next(iter(crawl_data["categories"].values()), {})
+            is_crawl_data = isinstance(first_cat, dict) and "products" in first_cat
+
         is_dashboard_data = "metadata" in crawl_data and "brand" in crawl_data
 
         # 출력 경로 (Railway 환경 고려)
