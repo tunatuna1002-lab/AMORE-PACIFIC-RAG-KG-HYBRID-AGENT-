@@ -622,15 +622,10 @@ class BatchWorkflow:
 
             # 크롤링 원본 데이터를 JSON 파일로 저장 (Excel export용)
             try:
-                import os
                 from pathlib import Path
 
-                # Railway 환경 감지
-                if os.environ.get("RAILWAY_ENVIRONMENT"):
-                    data_dir = Path("/data")
-                else:
-                    data_dir = Path("./data")
-
+                # dashboard_data.json과 동일한 경로 사용 (./data/)
+                data_dir = Path("./data")
                 data_dir.mkdir(parents=True, exist_ok=True)
                 crawl_json_path = data_dir / "latest_crawl_result.json"
 
