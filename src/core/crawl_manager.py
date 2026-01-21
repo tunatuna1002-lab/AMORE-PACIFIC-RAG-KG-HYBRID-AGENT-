@@ -291,6 +291,15 @@ class CrawlManager:
 
             logger.info(f"Crawl completed: {self.state.products_collected} products")
 
+            # 크롤링 원본 데이터를 JSON으로 저장 (Excel export용)
+            try:
+                crawl_json_path = Path("./data/latest_crawl_result.json")
+                with open(crawl_json_path, "w", encoding="utf-8") as f:
+                    json.dump(result, f, ensure_ascii=False, indent=2)
+                logger.info(f"Crawl result saved to {crawl_json_path}")
+            except Exception as save_error:
+                logger.error(f"Failed to save crawl result JSON: {save_error}")
+
             # 2. Google Sheets에 데이터 저장
             logger.info("Saving data to Google Sheets...")
             storage = StorageAgent()
