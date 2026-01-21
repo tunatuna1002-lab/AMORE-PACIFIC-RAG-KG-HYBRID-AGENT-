@@ -629,6 +629,62 @@ MIT License
 
 ## Changelog (개선 타임라인)
 
+### 2026-01-21: External Signal Collector & Dashboard UX 개선
+
+#### 📡 External Signal Collector 신규 모듈
+- **신규 모듈**: `src/tools/external_signal_collector.py` - 외부 트렌드 신호 수집기
+- **무료 수집 (활성화)**:
+  - RSS 피드: Allure, Byrdie, Refinery29 뷰티 기사
+  - Reddit JSON API: r/SkincareAddiction, r/AsianBeauty 트렌드
+  - 수동 입력: TikTok Creative Center, 주간 트렌드 레이더
+- **유료 API (주석 처리)**:
+  - NewsAPI ($449/월), Bing News API ($3/1K), YouTube Data API (무료 10K quota)
+  - 코드 구현 완료, 환경변수 설정 후 주석 해제로 활성화 가능
+- **Signal Tiers**:
+  | Tier | Sources | Purpose |
+  |------|---------|---------|
+  | Tier 1 | TikTok, Instagram | 바이럴 감지 |
+  | Tier 2 | YouTube, Reddit | 검증/리뷰 |
+  | Tier 3 | Allure, WWD, People | 권위 있는 근거 |
+  | Tier 4 | X (Twitter) | PR/실시간 이슈 |
+- **보고서 출력 형식**:
+  ```
+  ■ 전문 매체 근거:
+  • Allure (1월 10일): "Lipification of Beauty 현상 가속화"
+  • People (1월 12일): "LANEIGE가 글래스 스킨 트렌드 선도"
+  ```
+
+#### 🏷️ 브랜드 인식 개선
+- **Multi-word 브랜드 우선 처리**: Summer Fridays, Rare Beauty, La Roche-Posay 등 30+ 브랜드
+- **버그 수정**: "Summer Fridays" → "Summer"로 잘못 파싱되던 문제 해결
+- **브랜드 목록 확장**: K-Beauty (COSRX, TIRTIR, Beauty of Joseon 등), US 드럭스토어, 프리미엄 브랜드
+
+#### 📊 Dashboard UX 개선
+- **Product View (L3) 카테고리/제품 드롭다운 툴팁**:
+  - 카테고리: 계층 구조, 선택 기능 설명
+  - 제품: 선택 기준, 정렬 방식, 표시 KPI 설명
+- **Action Table 제품명 표시 개선**:
+  - 긴 제품명 truncate (LANEIGE 제거 후 40자)
+  - 마우스 hover 시 전체 이름 툴팁으로 표시
+  - 테이블 레이아웃 깔끔하게 유지
+- **카테고리 값 정규화**: `thresholds.json` 키와 일치 (skin→skin_care, lip→lip_care)
+
+#### 🐛 버그 수정
+- **제품명 길이 제한 제거**: `dashboard_exporter.py`에서 [:20], [:25], [:30] truncation 제거
+- **원본 데이터 보존**: `latest_crawl_result.json`에 전체 제품명 유지
+
+#### 📁 변경/생성된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/tools/external_signal_collector.py` | 🆕 RSS/Reddit/SNS 트렌드 수집기 |
+| `src/tools/amazon_scraper.py` | 브랜드 추출 개선 (multi-word 우선) |
+| `src/tools/dashboard_exporter.py` | 제품명 truncation 제거 |
+| `dashboard/amore_unified_dashboard_v4.html` | 카테고리/제품 툴팁, 제품명 truncate+tooltip |
+| `requirements.txt` | feedparser>=6.0.0 추가 |
+| `CLAUDE.md` | External Signal Collector, Brand Recognition 문서화 |
+
+---
+
 ### 2026-01-20: 경쟁사 Deals 모니터링 시스템 추가
 
 #### 🏷️ Amazon Deals 크롤러
