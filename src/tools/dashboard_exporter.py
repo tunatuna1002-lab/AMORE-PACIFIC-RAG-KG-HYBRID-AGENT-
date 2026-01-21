@@ -198,7 +198,7 @@ class DashboardExporter:
 
         best_product = min(laneige_products, key=lambda x: self._safe_int(x.get("rank", 999)))
         best_rank = self._safe_int(best_product.get("rank", 0))
-        best_name = best_product.get("product_name", "Unknown")[:30]
+        best_name = best_product.get("product_name", "Unknown")
 
         return (
             f"Amazon US 내 Laneige 브랜드는 "
@@ -224,7 +224,7 @@ class DashboardExporter:
         for asin, product in asin_best.items():
             rank = self._safe_int(product.get("rank", 999))
             rating = self._safe_float(product.get("rating", 0))
-            name = product.get("product_name", "Unknown")[:25]
+            name = product.get("product_name", "Unknown")
             category_id = product.get("category_id", "")
             # category_name이 없으면 CATEGORY_MAP에서 가져옴
             category_name = product.get("category_name") or self.CATEGORY_MAP.get(category_id, "")
@@ -585,7 +585,7 @@ class DashboardExporter:
             # 순위 기반 가중치 (낮을수록 높은 비중)
             weight = max(1, 100 - rank)
             product_sos.append({
-                "name": product.get("product_name", "Unknown")[:20],
+                "name": product.get("product_name", "Unknown"),
                 "weight": weight,
                 "rank": rank
             })
@@ -686,7 +686,7 @@ class DashboardExporter:
         product_rank_trend = {}
         for product in laneige_products[:3]:  # 상위 3개 제품
             asin = product.get("asin", "")
-            name = product.get("product_name", "Unknown")[:25]
+            name = product.get("product_name", "Unknown")
 
             ranks = []
             for date_str in sorted_dates:
@@ -724,7 +724,7 @@ class DashboardExporter:
 
             product_matrix.append({
                 "asin": asin,
-                "name": product.get("product_name", "Unknown")[:20],
+                "name": product.get("product_name", "Unknown"),
                 "rank": rank,
                 "volatility": volatility,
                 "rating": rating,
