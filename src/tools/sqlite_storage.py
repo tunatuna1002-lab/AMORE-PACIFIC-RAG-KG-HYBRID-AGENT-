@@ -184,11 +184,22 @@ class SQLiteStorage:
     CREATE INDEX IF NOT EXISTS idx_deals_alerts_datetime ON deals_alerts(alert_datetime);
     """
 
-    def __init__(self, db_path: str = "./data/amore_data.db"):
+    def __init__(self, db_path: Optional[str] = None):
         """
         Args:
             db_path: SQLite 데이터베이스 파일 경로
+                     None이면 환경에 따라 자동 선택:
+                     - Railway: /data/amore_data.db (Volume)
+                     - Local: ./data/amore_data.db
         """
+        if db_path is None:
+            # Railway 환경 감지
+            if os.environ.get("RAILWAY_ENVIRONMENT"):
+                db_path = "/data/amore_data.db"
+                logger.info("Railway environment detected, using Volume path: /data/amore_data.db")
+            else:
+                db_path = "./data/amore_data.db"
+
         self.db_path = Path(db_path)
         self._initialized = False
 
@@ -629,6 +640,26 @@ class SQLiteStorage:
                             sheets_created.append("Brand Metrics")
                             total_rows += len(df_brand)
 
+                    # 4. 데이터가 없는 경우 안내 시트 생성 (openpyxl 요구사항)
+                    if not sheets_created:
+                        # 사용 가능한 날짜 범위 조회
+                        cursor = conn.execute(
+                            "SELECT MIN(snapshot_date) as min_date, MAX(snapshot_date) as max_date FROM raw_data"
+                        )
+                        row = cursor.fetchone()
+                        available_min = row["min_date"] if row and row["min_date"] else "N/A"
+                        available_max = row["max_date"] if row and row["max_date"] else "N/A"
+
+                        no_data_info = [
+                            {"항목": "요청 기간", "값": f"{start_date} ~ {end_date}"},
+                            {"항목": "결과", "값": "해당 기간에 데이터가 없습니다"},
+                            {"항목": "사용 가능한 데이터 기간", "값": f"{available_min} ~ {available_max}"},
+                            {"항목": "안내", "값": "날짜 범위를 조정하여 다시 시도해주세요"}
+                        ]
+                        df_no_data = pd.DataFrame(no_data_info)
+                        df_no_data.to_excel(writer, sheet_name="No Data", index=False)
+                        sheets_created.append("No Data")
+
             logger.info(f"Excel exported: {output_path} ({total_rows} rows)")
             return {
                 "success": True,
@@ -995,6 +1026,17 @@ class SQLiteStorage:
                     if not df_lightning.empty:
                         df_lightning.to_excel(writer, sheet_name="Lightning Deals", index=False)
                         sheets_created.append("Lightning Deals")
+
+                    # 5. 데이터가 없는 경우 안내 시트 생성 (openpyxl 요구사항)
+                    if not sheets_created:
+                        no_data_info = [
+                            {"항목": "분석 기간", "값": f"최근 {days}일"},
+                            {"항목": "결과", "값": "해당 기간에 딜 데이터가 없습니다"},
+                            {"항목": "안내", "값": "딜 모니터링이 시작된 후 데이터가 수집됩니다"}
+                        ]
+                        df_no_data = pd.DataFrame(no_data_info)
+                        df_no_data.to_excel(writer, sheet_name="No Data", index=False)
+                        sheets_created.append("No Data")
 
             logger.info(f"Deals report exported: {output_path}")
             return {
