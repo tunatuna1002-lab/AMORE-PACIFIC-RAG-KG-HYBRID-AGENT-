@@ -1663,45 +1663,105 @@ async def export_excel(request: Request):
         include_metrics = body.get("include_metrics", True)
 
         # 데이터 디렉토리 경로 설정
-        # /api/data와 동일한 경로를 사용 (DATA_PATH = "./data/dashboard_data.json")
-        # Railway 환경에서도 컨테이너 작업 디렉토리의 ./data/ 사용
         data_dir = Path("./data")
 
-        # JSON 파일에서 데이터 로드 (여러 경로 시도)
+        # ========================================
+        # 1차: SQLite에서 기간별 데이터 조회 (가장 빠름)
+        # ========================================
+        all_records = []
+        data_source = None
+
+        if start_date and end_date:
+            # 1-1. SQLite 시도
+            try:
+                from src.tools.sqlite_storage import get_sqlite_storage
+                sqlite = get_sqlite_storage()
+                await sqlite.initialize()
+
+                # limit을 크게 설정 (5개 카테고리 × 100개 × 기간일수)
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                days = (end_dt - start_dt).days + 1
+                max_records = 500 * days  # 충분한 여유
+
+                records = await sqlite.get_raw_data(
+                    start_date=start_date,
+                    end_date=end_date,
+                    limit=max_records
+                )
+
+                if records:
+                    all_records = records
+                    data_source = "sqlite"
+                    logging.info(f"Excel export: loaded {len(all_records)} records from SQLite ({start_date} ~ {end_date})")
+
+            except Exception as sqlite_err:
+                logging.warning(f"Excel export: SQLite 조회 실패: {sqlite_err}")
+
+            # 1-2. SQLite 실패 시 Google Sheets 시도
+            if not all_records:
+                try:
+                    sheets_writer = get_sheets_writer()
+                    if not sheets_writer._initialized:
+                        await sheets_writer.initialize()
+
+                    records = await sheets_writer.get_rank_history(days=days)
+
+                    if records:
+                        for record in records:
+                            snapshot_date = record.get("snapshot_date", "")
+                            if snapshot_date and start_date <= snapshot_date <= end_date:
+                                all_records.append(record)
+
+                        if all_records:
+                            data_source = "sheets"
+                            logging.info(f"Excel export: loaded {len(all_records)} records from Google Sheets ({start_date} ~ {end_date})")
+
+                except Exception as sheets_err:
+                    logging.warning(f"Excel export: Google Sheets 조회 실패: {sheets_err}")
+
+        # ========================================
+        # 2차: 로컬 JSON 파일에서 데이터 로드 (폴백)
+        # ========================================
+        crawl_data = None
         json_path = None
-        possible_paths = [
-            data_dir / "latest_crawl_result.json",
-            data_dir / "dashboard_data.json",  # fallback
-        ]
 
-        for path in possible_paths:
-            if path.exists():
-                json_path = path
-                break
+        if not data_source:
+            possible_paths = [
+                data_dir / "latest_crawl_result.json",
+                data_dir / "dashboard_data.json",
+            ]
 
-        if json_path is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요. (검색 경로: {[str(p) for p in possible_paths]})"
-            )
+            for path in possible_paths:
+                if path.exists():
+                    json_path = path
+                    break
 
-        with open(json_path, "r", encoding="utf-8") as f:
-            crawl_data = json.load(f)
+            if json_path is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요."
+                )
 
-        logging.info(f"Excel export: loaded data from {json_path}")
+            with open(json_path, "r", encoding="utf-8") as f:
+                crawl_data = json.load(f)
+
+            logging.info(f"Excel export: loaded data from {json_path}")
 
         # 데이터 소스 유형 판단
-        # latest_crawl_result.json: {"categories": {"beauty": {"rank_records": [...]}}}
-        # dashboard_data.json: {"metadata": {...}, "brand": {...}, "categories": {...} (집계만)}
-        # is_crawl_data: categories에 실제 rank_records 또는 products 배열이 있는 경우
+        # 1. data_source: SQLite 또는 Google Sheets에서 기간별 데이터 로드됨
+        # 2. is_crawl_data: latest_crawl_result.json의 raw 데이터
+        # 3. is_dashboard_data: dashboard_data.json의 집계 데이터
         is_crawl_data = False
-        if "categories" in crawl_data:
-            first_cat = next(iter(crawl_data["categories"].values()), {})
-            is_crawl_data = isinstance(first_cat, dict) and (
-                "rank_records" in first_cat or "products" in first_cat
-            )
+        is_dashboard_data = False
 
-        is_dashboard_data = "metadata" in crawl_data and "brand" in crawl_data
+        if crawl_data:
+            if "categories" in crawl_data:
+                first_cat = next(iter(crawl_data["categories"].values()), {})
+                is_crawl_data = isinstance(first_cat, dict) and (
+                    "rank_records" in first_cat or "products" in first_cat
+                )
+            is_dashboard_data = "metadata" in crawl_data and "brand" in crawl_data
 
         # 출력 경로 (Railway 환경 고려)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1722,8 +1782,83 @@ async def export_excel(request: Request):
         }
 
         with pd.ExcelWriter(str(output_path), engine="openpyxl") as writer:
-            # === 대시보드 데이터 형식인 경우 (원본 제품 목록 없음) ===
-            if is_dashboard_data and not is_crawl_data:
+            # Google Sheets RawData와 동일한 컬럼 순서
+            RAWDATA_COLUMNS = [
+                "snapshot_date", "category_id", "rank", "asin", "product_name",
+                "brand", "price", "list_price", "discount_percent", "rating",
+                "reviews_count", "badge", "coupon_text", "is_subscribe_save",
+                "promo_badges", "product_url"
+            ]
+
+            # ========================================
+            # Case 1: SQLite/Google Sheets에서 기간별 데이터 로드됨
+            # ========================================
+            if data_source and all_records:
+                source_name = "SQLite" if data_source == "sqlite" else "Google Sheets"
+                logging.info(f"Excel export: using {source_name} data ({len(all_records)} records, {start_date} ~ {end_date})")
+
+                df_all = pd.DataFrame(all_records)
+
+                if not df_all.empty:
+                    # 1. RawData 시트 - 전체 데이터
+                    available_cols = [c for c in RAWDATA_COLUMNS if c in df_all.columns]
+                    df_raw = df_all[available_cols].copy()
+                    df_raw = df_raw.sort_values(["snapshot_date", "category_id", "rank"])
+                    df_raw.to_excel(writer, sheet_name="RawData", index=False)
+                    sheets_created.append("RawData")
+                    total_rows += len(df_raw)
+
+                    # 2. 날짜별 요약 시트
+                    if "snapshot_date" in df_all.columns:
+                        date_summary = []
+                        for date in sorted(df_all["snapshot_date"].unique()):
+                            df_date = df_all[df_all["snapshot_date"] == date]
+                            laneige_count = len(df_date[df_date["brand"].str.upper() == "LANEIGE"]) if "brand" in df_date.columns else 0
+                            date_summary.append({
+                                "날짜": date,
+                                "총 제품 수": len(df_date),
+                                "LANEIGE 제품 수": laneige_count,
+                                "LANEIGE SoS (%)": round(laneige_count / len(df_date) * 100, 1) if len(df_date) > 0 else 0
+                            })
+                        if date_summary:
+                            df_summary = pd.DataFrame(date_summary)
+                            df_summary.to_excel(writer, sheet_name="Daily Summary", index=False)
+                            sheets_created.append("Daily Summary")
+                            total_rows += len(df_summary)
+
+                    # 3. 카테고리별 시트
+                    if "category_id" in df_all.columns:
+                        for cat_id in df_all["category_id"].unique():
+                            df_cat = df_all[df_all["category_id"] == cat_id].copy()
+                            if df_cat.empty:
+                                continue
+
+                            display_cols = ["snapshot_date", "rank", "asin", "product_name", "brand",
+                                            "price", "rating", "reviews_count", "badge"]
+                            available_display = [c for c in display_cols if c in df_cat.columns]
+                            df_display = df_cat[available_display].sort_values(["snapshot_date", "rank"])
+
+                            sheet_name = categories_info.get(cat_id, cat_id)[:31]
+                            df_display.to_excel(writer, sheet_name=sheet_name, index=False)
+                            sheets_created.append(sheet_name)
+                            total_rows += len(df_display)
+
+                    # 4. LANEIGE 제품 전용 시트
+                    if "brand" in df_all.columns:
+                        df_laneige = df_all[df_all["brand"].str.upper() == "LANEIGE"].copy()
+                        if not df_laneige.empty:
+                            laneige_cols = ["snapshot_date", "category_id", "rank", "asin",
+                                            "product_name", "price", "rating", "reviews_count", "badge"]
+                            available_laneige = [c for c in laneige_cols if c in df_laneige.columns]
+                            df_laneige = df_laneige[available_laneige].sort_values(["snapshot_date", "category_id", "rank"])
+                            df_laneige.to_excel(writer, sheet_name="LANEIGE Products", index=False)
+                            sheets_created.append("LANEIGE Products")
+                            total_rows += len(df_laneige)
+
+            # ========================================
+            # Case 2: 대시보드 데이터 형식 (집계 데이터만)
+            # ========================================
+            elif is_dashboard_data and not is_crawl_data:
                 logging.info("Excel export: using dashboard_data.json (aggregated data only)")
 
                 # 1. Overview 시트
@@ -1760,7 +1895,6 @@ async def export_excel(request: Request):
                 competitors = crawl_data.get("brand", {}).get("competitors", [])
                 if competitors:
                     df_comp = pd.DataFrame(competitors)
-                    # 컬럼명 매핑 (존재하는 컬럼만 적용)
                     column_mapping = {
                         "brand": "Brand",
                         "sos": "SoS (%)",
@@ -1785,7 +1919,6 @@ async def export_excel(request: Request):
                 # 5. Category View 시트
                 category_data = crawl_data.get("category", {})
                 if category_data:
-                    # 카테고리별 상위 제품들
                     for cat_id, cat_info in category_data.items():
                         top_products = cat_info.get("top_products", [])
                         if top_products:
@@ -1795,22 +1928,15 @@ async def export_excel(request: Request):
                             sheets_created.append(sheet_name)
                             total_rows += len(df_cat)
 
-            # === 크롤링 원본 데이터 형식인 경우 (Google Sheets RawData와 동일) ===
+            # ========================================
+            # Case 3: 로컬 크롤링 원본 데이터
+            # ========================================
             else:
                 logging.info("Excel export: using latest_crawl_result.json (raw crawl data)")
 
-                # Google Sheets RawData와 동일한 컬럼 순서
-                RAWDATA_COLUMNS = [
-                    "snapshot_date", "category_id", "rank", "asin", "product_name",
-                    "brand", "price", "list_price", "discount_percent", "rating",
-                    "reviews_count", "badge", "coupon_text", "is_subscribe_save",
-                    "promo_badges", "product_url"
-                ]
-
-                # 1. 전체 RawData 수집 (카테고리별 rank_records)
+                # 전체 RawData 수집 (카테고리별 rank_records)
                 all_records = []
                 for cat_id, cat_data in crawl_data.get("categories", {}).items():
-                    # rank_records 또는 products 키 확인
                     records = cat_data.get("rank_records", cat_data.get("products", []))
                     for record in records:
                         # category_id 추가 (없는 경우)
@@ -1899,10 +2025,11 @@ async def export_excel(request: Request):
 
             # 4. 시트가 하나도 없으면 안내 시트 생성
             if not sheets_created:
+                data_source_info = f"SQLite" if data_source == "sqlite" else ("Google Sheets" if data_source == "sheets" else (str(json_path) if json_path else "N/A"))
                 no_data_info = [
                     {"항목": "요청 기간", "값": f"{start_date or 'N/A'} ~ {end_date or 'N/A'}"},
                     {"항목": "결과", "값": "해당 기간에 데이터가 없습니다"},
-                    {"항목": "데이터 파일", "값": str(json_path)},
+                    {"항목": "데이터 소스", "값": data_source_info},
                     {"항목": "안내", "값": "크롤링 실행 후 다시 시도해주세요"}
                 ]
                 df_no_data = pd.DataFrame(no_data_info)
