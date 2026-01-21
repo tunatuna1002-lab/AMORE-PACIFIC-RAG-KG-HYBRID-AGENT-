@@ -1662,11 +1662,10 @@ async def export_excel(request: Request):
         end_date = body.get("end_date")
         include_metrics = body.get("include_metrics", True)
 
-        # Railway 환경 감지하여 적절한 경로 사용
-        if os.environ.get("RAILWAY_ENVIRONMENT"):
-            data_dir = Path("/data")
-        else:
-            data_dir = Path("./data")
+        # 데이터 디렉토리 경로 설정
+        # /api/data와 동일한 경로를 사용 (DATA_PATH = "./data/dashboard_data.json")
+        # Railway 환경에서도 컨테이너 작업 디렉토리의 ./data/ 사용
+        data_dir = Path("./data")
 
         # JSON 파일에서 데이터 로드 (여러 경로 시도)
         json_path = None
