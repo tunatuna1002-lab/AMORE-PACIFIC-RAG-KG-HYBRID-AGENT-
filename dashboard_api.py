@@ -1759,7 +1759,16 @@ async def export_excel(request: Request):
                 competitors = crawl_data.get("brand", {}).get("competitors", [])
                 if competitors:
                     df_comp = pd.DataFrame(competitors)
-                    df_comp.columns = ["Brand", "SoS (%)", "Avg Rank", "Product Count"]
+                    # 컬럼명 매핑 (존재하는 컬럼만 적용)
+                    column_mapping = {
+                        "brand": "Brand",
+                        "sos": "SoS (%)",
+                        "avg_rank": "Avg Rank",
+                        "product_count": "Product Count",
+                        "avg_price": "Avg Price ($)"
+                    }
+                    existing_cols = {k: v for k, v in column_mapping.items() if k in df_comp.columns}
+                    df_comp = df_comp.rename(columns=existing_cols)
                     df_comp.to_excel(writer, sheet_name="Competitors", index=False)
                     sheets_created.append("Competitors")
                     total_rows += len(df_comp)
