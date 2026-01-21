@@ -1648,10 +1648,12 @@ async def export_excel(request: Request):
     """
     엑셀 데이터 내보내기 (JSON 파일 → Excel)
 
-    데이터 소스: data/latest_crawl_result.json
+    데이터 소스:
+    - Railway: /data/latest_crawl_result.json (Volume)
+    - Local: ./data/latest_crawl_result.json
     """
     import pandas as pd
-    from openpyxl.utils.dataframe import dataframe_to_rows
+    import os
 
     try:
         # Parse request body
@@ -1660,17 +1662,44 @@ async def export_excel(request: Request):
         end_date = body.get("end_date")
         include_metrics = body.get("include_metrics", True)
 
-        # JSON 파일에서 데이터 로드
-        json_path = Path("./data/latest_crawl_result.json")
-        if not json_path.exists():
-            raise HTTPException(status_code=404, detail="크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요.")
+        # Railway 환경 감지하여 적절한 경로 사용
+        if os.environ.get("RAILWAY_ENVIRONMENT"):
+            data_dir = Path("/data")
+        else:
+            data_dir = Path("./data")
+
+        # JSON 파일에서 데이터 로드 (여러 경로 시도)
+        json_path = None
+        possible_paths = [
+            data_dir / "latest_crawl_result.json",
+            data_dir / "dashboard_data.json",  # fallback
+        ]
+
+        for path in possible_paths:
+            if path.exists():
+                json_path = path
+                break
+
+        if json_path is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요. (검색 경로: {[str(p) for p in possible_paths]})"
+            )
 
         with open(json_path, "r", encoding="utf-8") as f:
             crawl_data = json.load(f)
 
-        # 출력 경로
+        logging.info(f"Excel export: loaded data from {json_path}")
+
+        # 데이터 소스 유형 판단
+        # latest_crawl_result.json: {"categories": {"beauty": {"products": [...]}}}
+        # dashboard_data.json: {"metadata": {...}, "brand": {...}, "category": {...}}
+        is_crawl_data = "categories" in crawl_data
+        is_dashboard_data = "metadata" in crawl_data and "brand" in crawl_data
+
+        # 출력 경로 (Railway 환경 고려)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path("./data/exports")
+        output_dir = data_dir / "exports"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / f"AMORE_Data_{timestamp}.xlsx"
 
@@ -1687,82 +1716,148 @@ async def export_excel(request: Request):
         }
 
         with pd.ExcelWriter(str(output_path), engine="openpyxl") as writer:
-            # 1. Summary 시트 - 브랜드별 집계
-            all_products = []
-            for cat_id, cat_data in crawl_data.get("categories", {}).items():
-                products = cat_data.get("products", [])
-                all_products.extend(products)
+            # === 대시보드 데이터 형식인 경우 (원본 제품 목록 없음) ===
+            if is_dashboard_data and not is_crawl_data:
+                logging.info("Excel export: using dashboard_data.json (aggregated data only)")
 
-            if all_products:
-                df_all = pd.DataFrame(all_products)
+                # 1. Overview 시트
+                metadata = crawl_data.get("metadata", {})
+                data_source = crawl_data.get("data_source", {})
+                overview_data = [
+                    {"항목": "데이터 날짜", "값": metadata.get("data_date", "N/A")},
+                    {"항목": "생성 시각", "값": metadata.get("generated_at", "N/A")},
+                    {"항목": "총 제품 수", "값": metadata.get("total_products", 0)},
+                    {"항목": "LANEIGE 제품 수", "값": metadata.get("laneige_products", 0)},
+                    {"항목": "플랫폼", "값": data_source.get("platform", "Amazon US")},
+                ]
+                df_overview = pd.DataFrame(overview_data)
+                df_overview.to_excel(writer, sheet_name="Overview", index=False)
+                sheets_created.append("Overview")
+                total_rows += len(df_overview)
 
-                # 날짜 필터 적용 (선택사항)
-                if start_date and "snapshot_date" in df_all.columns:
-                    df_all = df_all[df_all["snapshot_date"] >= start_date]
-                if end_date and "snapshot_date" in df_all.columns:
-                    df_all = df_all[df_all["snapshot_date"] <= end_date]
+                # 2. Brand KPIs 시트
+                brand_kpis = crawl_data.get("brand", {}).get("kpis", {})
+                if brand_kpis:
+                    kpi_data = [
+                        {"KPI": "SoS (Share of Shelf)", "값": f"{brand_kpis.get('sos', 0)}%"},
+                        {"KPI": "SoS 변화", "값": brand_kpis.get("sos_delta", "N/A")},
+                        {"KPI": "Top 10 제품 수", "값": brand_kpis.get("top10_count", 0)},
+                        {"KPI": "평균 순위", "값": brand_kpis.get("avg_rank", 0)},
+                        {"KPI": "HHI (시장 집중도)", "값": brand_kpis.get("hhi", 0)},
+                    ]
+                    df_kpis = pd.DataFrame(kpi_data)
+                    df_kpis.to_excel(writer, sheet_name="LANEIGE KPIs", index=False)
+                    sheets_created.append("LANEIGE KPIs")
+                    total_rows += len(df_kpis)
 
-                if not df_all.empty:
-                    # Summary: 브랜드별 집계
-                    summary = df_all.groupby("brand").agg({
-                        "asin": "count",
-                        "rank": "mean",
-                        "price": "mean",
-                        "rating": "mean"
-                    }).reset_index()
-                    summary.columns = ["Brand", "Product Count", "Avg Rank", "Avg Price", "Avg Rating"]
-                    summary = summary.sort_values("Product Count", ascending=False).head(30)
-                    summary["Avg Rank"] = summary["Avg Rank"].round(1)
-                    summary["Avg Price"] = summary["Avg Price"].round(2)
-                    summary["Avg Rating"] = summary["Avg Rating"].round(2)
+                # 3. Competitors 시트
+                competitors = crawl_data.get("brand", {}).get("competitors", [])
+                if competitors:
+                    df_comp = pd.DataFrame(competitors)
+                    df_comp.columns = ["Brand", "SoS (%)", "Avg Rank", "Product Count"]
+                    df_comp.to_excel(writer, sheet_name="Competitors", index=False)
+                    sheets_created.append("Competitors")
+                    total_rows += len(df_comp)
 
-                    summary.to_excel(writer, sheet_name="Summary", index=False)
-                    sheets_created.append("Summary")
-                    total_rows += len(summary)
+                # 4. Action Items 시트
+                action_items = crawl_data.get("home", {}).get("action_items", [])
+                if action_items:
+                    df_actions = pd.DataFrame(action_items)
+                    df_actions.to_excel(writer, sheet_name="Action Items", index=False)
+                    sheets_created.append("Action Items")
+                    total_rows += len(df_actions)
 
-            # 2. 카테고리별 시트
-            for cat_id, cat_data in crawl_data.get("categories", {}).items():
-                products = cat_data.get("products", [])
-                if not products:
-                    continue
+                # 5. Category View 시트
+                category_data = crawl_data.get("category", {})
+                if category_data:
+                    # 카테고리별 상위 제품들
+                    for cat_id, cat_info in category_data.items():
+                        top_products = cat_info.get("top_products", [])
+                        if top_products:
+                            df_cat = pd.DataFrame(top_products)
+                            sheet_name = categories_info.get(cat_id, cat_id)[:31]
+                            df_cat.to_excel(writer, sheet_name=sheet_name, index=False)
+                            sheets_created.append(sheet_name)
+                            total_rows += len(df_cat)
 
-                df = pd.DataFrame(products)
+            # === 크롤링 원본 데이터 형식인 경우 ===
+            else:
+                # 1. Summary 시트 - 브랜드별 집계
+                all_products = []
+                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    products = cat_data.get("products", [])
+                    all_products.extend(products)
 
-                # 날짜 필터
-                if start_date and "snapshot_date" in df.columns:
-                    df = df[df["snapshot_date"] >= start_date]
-                if end_date and "snapshot_date" in df.columns:
-                    df = df[df["snapshot_date"] <= end_date]
+                if all_products:
+                    df_all = pd.DataFrame(all_products)
 
-                if df.empty:
-                    continue
+                    # 날짜 필터 적용 (선택사항)
+                    if start_date and "snapshot_date" in df_all.columns:
+                        df_all = df_all[df_all["snapshot_date"] >= start_date]
+                    if end_date and "snapshot_date" in df_all.columns:
+                        df_all = df_all[df_all["snapshot_date"] <= end_date]
 
-                # 필요한 컬럼만 선택
-                columns_to_export = ["snapshot_date", "rank", "asin", "product_name", "brand",
-                                     "price", "rating", "reviews_count", "badge"]
-                available_cols = [c for c in columns_to_export if c in df.columns]
-                df = df[available_cols].sort_values("rank")
+                    if not df_all.empty:
+                        # Summary: 브랜드별 집계
+                        summary = df_all.groupby("brand").agg({
+                            "asin": "count",
+                            "rank": "mean",
+                            "price": "mean",
+                            "rating": "mean"
+                        }).reset_index()
+                        summary.columns = ["Brand", "Product Count", "Avg Rank", "Avg Price", "Avg Rating"]
+                        summary = summary.sort_values("Product Count", ascending=False).head(30)
+                        summary["Avg Rank"] = summary["Avg Rank"].round(1)
+                        summary["Avg Price"] = summary["Avg Price"].round(2)
+                        summary["Avg Rating"] = summary["Avg Rating"].round(2)
 
-                # 시트 이름 (31자 제한)
-                sheet_name = categories_info.get(cat_id, cat_id)[:31]
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-                sheets_created.append(sheet_name)
-                total_rows += len(df)
+                        summary.to_excel(writer, sheet_name="Summary", index=False)
+                        sheets_created.append("Summary")
+                        total_rows += len(summary)
 
-            # 3. LANEIGE 제품 전용 시트
-            if all_products:
-                df_laneige = pd.DataFrame(all_products)
-                df_laneige = df_laneige[df_laneige["brand"].str.upper() == "LANEIGE"]
+                # 2. 카테고리별 시트
+                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    products = cat_data.get("products", [])
+                    if not products:
+                        continue
 
-                if not df_laneige.empty:
-                    columns_to_export = ["snapshot_date", "category_id", "rank", "asin",
-                                         "product_name", "price", "rating", "badge"]
-                    available_cols = [c for c in columns_to_export if c in df_laneige.columns]
-                    df_laneige = df_laneige[available_cols].sort_values(["category_id", "rank"])
+                    df = pd.DataFrame(products)
 
-                    df_laneige.to_excel(writer, sheet_name="LANEIGE Products", index=False)
-                    sheets_created.append("LANEIGE Products")
-                    total_rows += len(df_laneige)
+                    # 날짜 필터
+                    if start_date and "snapshot_date" in df.columns:
+                        df = df[df["snapshot_date"] >= start_date]
+                    if end_date and "snapshot_date" in df.columns:
+                        df = df[df["snapshot_date"] <= end_date]
+
+                    if df.empty:
+                        continue
+
+                    # 필요한 컬럼만 선택
+                    columns_to_export = ["snapshot_date", "rank", "asin", "product_name", "brand",
+                                         "price", "rating", "reviews_count", "badge"]
+                    available_cols = [c for c in columns_to_export if c in df.columns]
+                    df = df[available_cols].sort_values("rank")
+
+                    # 시트 이름 (31자 제한)
+                    sheet_name = categories_info.get(cat_id, cat_id)[:31]
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    sheets_created.append(sheet_name)
+                    total_rows += len(df)
+
+                # 3. LANEIGE 제품 전용 시트
+                if all_products:
+                    df_laneige = pd.DataFrame(all_products)
+                    df_laneige = df_laneige[df_laneige["brand"].str.upper() == "LANEIGE"]
+
+                    if not df_laneige.empty:
+                        columns_to_export = ["snapshot_date", "category_id", "rank", "asin",
+                                             "product_name", "price", "rating", "badge"]
+                        available_cols = [c for c in columns_to_export if c in df_laneige.columns]
+                        df_laneige = df_laneige[available_cols].sort_values(["category_id", "rank"])
+
+                        df_laneige.to_excel(writer, sheet_name="LANEIGE Products", index=False)
+                        sheets_created.append("LANEIGE Products")
+                        total_rows += len(df_laneige)
 
             # 4. 시트가 하나도 없으면 안내 시트 생성
             if not sheets_created:
