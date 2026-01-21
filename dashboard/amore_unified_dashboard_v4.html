@@ -1083,6 +1083,20 @@
         .action-table tr.highlight-row { background: rgba(31, 87, 149, 0.05); }
         .action-table tr.highlight-row:hover { background: rgba(31, 87, 149, 0.08); }
 
+        /* Product Name Truncation with Tooltip */
+        .product-name-truncate {
+            max-width: 320px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            vertical-align: middle;
+            cursor: help;
+        }
+        .product-name-truncate:hover {
+            color: var(--amore-blue);
+        }
+
         /* Competitor Table Styles */
         .rank-badge {
             display: inline-flex;
@@ -3899,6 +3913,10 @@
                 const discountInfo = item.discount_percent || item.has_coupon || item.is_deal ?
                     generateDiscountBadges(item) : '';
 
+                // 제품명 짧게 표시 (LANEIGE 제거 후 40자)
+                const fullName = item.product_name || 'Unknown';
+                const shortName = fullName.replace(/^LANEIGE\s+/i, '').substring(0, 40) + (fullName.length > 47 ? '...' : '');
+
                 return `
                 <tr onclick="goToProductDetail('${item.asin || ''}', '${item.product_name || ''}')">
                     <td><span class="priority-badge ${item.priority.toLowerCase()}">${item.priority === 'P1' ? '🔴' : '🟠'} ${item.priority}</span></td>
@@ -3907,7 +3925,7 @@
                             <div class="product-avatar">LN</div>
                             <div>
                                 <div class="product-name">
-                                    ${item.product_name}
+                                    <span class="product-name-truncate" title="${fullName}">${shortName}</span>
                                     ${discountInfo}
                                 </div>
                                 <div class="product-brand">${item.brand_variant || ''}</div>
