@@ -1025,7 +1025,7 @@
             background: rgba(139, 38, 53, 0.1);
             color: var(--danger);
         }
-        .card-body { padding: 20px; }
+        .card-body { padding: 20px; overflow: visible; }
 
         /* === DATE RANGE SELECTOR === */
         .date-range-selector {
@@ -1060,7 +1060,7 @@
         }
 
         /* === ACTION TABLE - Data-focused === */
-        .action-table { width: 100%; border-collapse: collapse; }
+        .action-table { width: 100%; border-collapse: collapse; overflow: visible; }
         .action-table th {
             text-align: left;
             padding: 12px 16px;
@@ -1077,6 +1077,8 @@
             border-bottom: 1px solid var(--border-light);
             font-size: 13px;
             vertical-align: middle;
+            overflow: visible;
+            position: relative;
         }
         .action-table tr { transition: background 0.15s; }
         .action-table tr:hover { background: var(--bg-subtle); }
@@ -1097,42 +1099,49 @@
             display: inline-block;
             vertical-align: middle;
             cursor: help;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-decoration-color: #9ca3af;
+            text-underline-offset: 2px;
         }
         .product-name-truncate:hover {
             color: var(--amore-blue);
+            text-decoration-color: var(--amore-blue);
         }
         .product-name-tooltip {
             position: absolute;
-            bottom: calc(100% + 8px);
+            top: calc(100% + 8px);
             left: 0;
             background: var(--deep-ocean);
             color: white;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            line-height: 1.4;
-            min-width: 280px;
-            max-width: 400px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            min-width: 300px;
+            max-width: 450px;
             white-space: normal;
             word-break: keep-all;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.15s, visibility 0.15s;
-            z-index: 1000;
+            transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+            z-index: 9999;
             pointer-events: none;
+            transform: translateY(-4px);
         }
-        .product-name-tooltip::after {
+        .product-name-tooltip::before {
             content: '';
             position: absolute;
-            top: 100%;
+            bottom: 100%;
             left: 20px;
-            border: 6px solid transparent;
-            border-top-color: var(--deep-ocean);
+            border: 8px solid transparent;
+            border-bottom-color: var(--deep-ocean);
         }
         .product-name-wrapper:hover .product-name-tooltip {
             opacity: 1;
             visibility: visible;
+            transform: translateY(0);
         }
 
         /* Competitor Table Styles */
