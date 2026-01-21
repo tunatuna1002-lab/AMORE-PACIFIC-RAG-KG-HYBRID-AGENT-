@@ -1083,7 +1083,12 @@
         .action-table tr.highlight-row { background: rgba(31, 87, 149, 0.05); }
         .action-table tr.highlight-row:hover { background: rgba(31, 87, 149, 0.08); }
 
-        /* Product Name Truncation with Tooltip */
+        /* Product Name Truncation with Custom Tooltip */
+        .product-name-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 320px;
+        }
         .product-name-truncate {
             max-width: 320px;
             white-space: nowrap;
@@ -1095,6 +1100,39 @@
         }
         .product-name-truncate:hover {
             color: var(--amore-blue);
+        }
+        .product-name-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            background: var(--deep-ocean);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            min-width: 280px;
+            max-width: 400px;
+            white-space: normal;
+            word-break: keep-all;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s, visibility 0.15s;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .product-name-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 20px;
+            border: 6px solid transparent;
+            border-top-color: var(--deep-ocean);
+        }
+        .product-name-wrapper:hover .product-name-tooltip {
+            opacity: 1;
+            visibility: visible;
         }
 
         /* Competitor Table Styles */
@@ -3925,7 +3963,10 @@
                             <div class="product-avatar">LN</div>
                             <div>
                                 <div class="product-name">
-                                    <span class="product-name-truncate" title="${fullName}">${shortName}</span>
+                                    <span class="product-name-wrapper">
+                                        <span class="product-name-truncate">${shortName}</span>
+                                        <div class="product-name-tooltip">${fullName}</div>
+                                    </span>
                                     ${discountInfo}
                                 </div>
                                 <div class="product-brand">${item.brand_variant || ''}</div>
