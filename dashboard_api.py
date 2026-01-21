@@ -1,11 +1,55 @@
 """
 Dashboard API Server
-대시보드용 FastAPI 백엔드 서버
+====================
+대시보드용 FastAPI 백엔드 서버 (메인 엔트리포인트)
 
+## 핵심 기능
 - 챗봇 API (ChatGPT + RAG + Ontology 연동)
 - DOCX 인사이트 리포트 생성
-- 대화 메모리 지원
+- 대화 메모리 지원 (세션별 TTL 기반)
 - Audit Trail 로깅
+
+## 아키텍처 흐름
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           FastAPI Server                                │
+│   dashboard_api.py (PORT 8001)                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  /api/chat ─────────────► HybridChatbotAgent ─────────► LLM (GPT-4.1)  │
+│                                   │                                     │
+│                         ┌─────────┴─────────┐                          │
+│                         ▼                   ▼                          │
+│                  KnowledgeGraph      DocumentRetriever                  │
+│                  (온톨로지)          (RAG 가이드라인)                   │
+│                                                                         │
+│  /api/crawl/start ────► UnifiedBrain ────► AmazonScraper               │
+│                              │              (Playwright)                │
+│                              ▼                                          │
+│                        MetricCalculator                                 │
+│                              │                                          │
+│                              ▼                                          │
+│                       SheetsWriter / SQLite                             │
+│                                                                         │
+│  /api/data ───────────► dashboard_data.json (캐시된 데이터)            │
+│                                                                         │
+│  /dashboard ──────────► amore_unified_dashboard_v4.html                │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 주요 엔드포인트
+- GET  /           : 헬스체크
+- GET  /api/data   : 대시보드 데이터 JSON
+- POST /api/chat   : 챗봇 v1 (RAG)
+- POST /api/v2/chat: 챗봇 v2 (Unified Brain)
+- POST /api/v3/chat: 챗봇 v3 (Simple Chat)
+- POST /api/crawl/start: 크롤링 시작 (API Key 필요)
+- GET  /dashboard  : 대시보드 UI
+
+## 환경 변수
+- OPENAI_API_KEY: OpenAI API 키 (필수)
+- API_KEY: 보호된 엔드포인트용 인증키
+- AUTO_START_SCHEDULER: 서버 시작 시 스케줄러 자동 시작 (default: true)
 """
 
 import json
@@ -1602,8 +1646,13 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
 @app.post("/api/export/excel")
 async def export_excel(request: Request):
     """
-    엑셀 데이터 내보내기 (SQLite → Excel)
+    엑셀 데이터 내보내기 (JSON 파일 → Excel)
+
+    데이터 소스: data/latest_crawl_result.json
     """
+    import pandas as pd
+    from openpyxl.utils.dataframe import dataframe_to_rows
+
     try:
         # Parse request body
         body = await request.json()
@@ -1611,36 +1660,129 @@ async def export_excel(request: Request):
         end_date = body.get("end_date")
         include_metrics = body.get("include_metrics", True)
 
-        # SQLite storage 사용
-        storage = get_sqlite_storage()
-        await storage.initialize()
+        # JSON 파일에서 데이터 로드
+        json_path = Path("./data/latest_crawl_result.json")
+        if not json_path.exists():
+            raise HTTPException(status_code=404, detail="크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요.")
+
+        with open(json_path, "r", encoding="utf-8") as f:
+            crawl_data = json.load(f)
 
         # 출력 경로
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = f"./data/exports/AMORE_Data_{timestamp}.xlsx"
+        output_dir = Path("./data/exports")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"AMORE_Data_{timestamp}.xlsx"
 
-        # 엑셀 생성
-        result = storage.export_to_excel(
-            output_path=output_path,
-            start_date=start_date,
-            end_date=end_date,
-            include_metrics=include_metrics
-        )
+        sheets_created = []
+        total_rows = 0
 
-        if not result.get("success"):
-            raise HTTPException(status_code=500, detail=result.get("error", "Export failed"))
+        # 카테고리 매핑
+        categories_info = {
+            "beauty": "Beauty & Personal Care",
+            "skin_care": "Skin Care",
+            "lip_care": "Lip Care",
+            "lip_makeup": "Lip Makeup",
+            "face_powder": "Face Powder"
+        }
+
+        with pd.ExcelWriter(str(output_path), engine="openpyxl") as writer:
+            # 1. Summary 시트 - 브랜드별 집계
+            all_products = []
+            for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                products = cat_data.get("products", [])
+                all_products.extend(products)
+
+            if all_products:
+                df_all = pd.DataFrame(all_products)
+
+                # 날짜 필터 적용 (선택사항)
+                if start_date and "snapshot_date" in df_all.columns:
+                    df_all = df_all[df_all["snapshot_date"] >= start_date]
+                if end_date and "snapshot_date" in df_all.columns:
+                    df_all = df_all[df_all["snapshot_date"] <= end_date]
+
+                if not df_all.empty:
+                    # Summary: 브랜드별 집계
+                    summary = df_all.groupby("brand").agg({
+                        "asin": "count",
+                        "rank": "mean",
+                        "price": "mean",
+                        "rating": "mean"
+                    }).reset_index()
+                    summary.columns = ["Brand", "Product Count", "Avg Rank", "Avg Price", "Avg Rating"]
+                    summary = summary.sort_values("Product Count", ascending=False).head(30)
+                    summary["Avg Rank"] = summary["Avg Rank"].round(1)
+                    summary["Avg Price"] = summary["Avg Price"].round(2)
+                    summary["Avg Rating"] = summary["Avg Rating"].round(2)
+
+                    summary.to_excel(writer, sheet_name="Summary", index=False)
+                    sheets_created.append("Summary")
+                    total_rows += len(summary)
+
+            # 2. 카테고리별 시트
+            for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                products = cat_data.get("products", [])
+                if not products:
+                    continue
+
+                df = pd.DataFrame(products)
+
+                # 날짜 필터
+                if start_date and "snapshot_date" in df.columns:
+                    df = df[df["snapshot_date"] >= start_date]
+                if end_date and "snapshot_date" in df.columns:
+                    df = df[df["snapshot_date"] <= end_date]
+
+                if df.empty:
+                    continue
+
+                # 필요한 컬럼만 선택
+                columns_to_export = ["snapshot_date", "rank", "asin", "product_name", "brand",
+                                     "price", "rating", "reviews_count", "badge"]
+                available_cols = [c for c in columns_to_export if c in df.columns]
+                df = df[available_cols].sort_values("rank")
+
+                # 시트 이름 (31자 제한)
+                sheet_name = categories_info.get(cat_id, cat_id)[:31]
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                sheets_created.append(sheet_name)
+                total_rows += len(df)
+
+            # 3. LANEIGE 제품 전용 시트
+            if all_products:
+                df_laneige = pd.DataFrame(all_products)
+                df_laneige = df_laneige[df_laneige["brand"].str.upper() == "LANEIGE"]
+
+                if not df_laneige.empty:
+                    columns_to_export = ["snapshot_date", "category_id", "rank", "asin",
+                                         "product_name", "price", "rating", "badge"]
+                    available_cols = [c for c in columns_to_export if c in df_laneige.columns]
+                    df_laneige = df_laneige[available_cols].sort_values(["category_id", "rank"])
+
+                    df_laneige.to_excel(writer, sheet_name="LANEIGE Products", index=False)
+                    sheets_created.append("LANEIGE Products")
+                    total_rows += len(df_laneige)
+
+            # 4. 시트가 하나도 없으면 안내 시트 생성
+            if not sheets_created:
+                no_data_info = [
+                    {"항목": "요청 기간", "값": f"{start_date or 'N/A'} ~ {end_date or 'N/A'}"},
+                    {"항목": "결과", "값": "해당 기간에 데이터가 없습니다"},
+                    {"항목": "데이터 파일", "값": str(json_path)},
+                    {"항목": "안내", "값": "크롤링 실행 후 다시 시도해주세요"}
+                ]
+                df_no_data = pd.DataFrame(no_data_info)
+                df_no_data.to_excel(writer, sheet_name="No Data", index=False)
+                sheets_created.append("No Data")
+
+        logging.info(f"Excel exported: {output_path} ({total_rows} rows, sheets: {sheets_created})")
 
         # 파일 반환
-        file_path = Path(result["file_path"])
-        if not file_path.exists():
-            raise HTTPException(status_code=500, detail="Generated file not found")
-
-        filename = file_path.name
-
         return FileResponse(
-            path=str(file_path),
+            path=str(output_path),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            headers={"Content-Disposition": f"attachment; filename={output_path.name}"}
         )
 
     except HTTPException:
