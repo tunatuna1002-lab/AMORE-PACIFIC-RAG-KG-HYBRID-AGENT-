@@ -1,0 +1,74 @@
+{
+  "competitors": {
+    "Summer Fridays": {
+      "brand_name": "Summer Fridays",
+      "tier": "premium",
+      "products": [
+        {
+          "asin": "B0C42HJRBF",
+          "name": "Lip Butter Balm - Pink Sugar",
+          "category": "lip_care",
+          "product_type": "lip_balm",
+          "laneige_competitor": "Lip Sleeping Mask"
+        },
+        {
+          "asin": "B0BF4MV2ZC",
+          "name": "Lip Butter Balm - Vanilla",
+          "category": "lip_care",
+          "product_type": "lip_balm",
+          "laneige_competitor": "Lip Sleeping Mask"
+        },
+        {
+          "asin": "B0BF4JWPFP",
+          "name": "Lip Butter Balm - Birthday Cake",
+          "category": "lip_care",
+          "product_type": "lip_balm",
+          "laneige_competitor": "Lip Sleeping Mask"
+        },
+        {
+          "asin": "B07PNSVDD5",
+          "name": "Jet Lag Mask",
+          "category": "skin_care",
+          "product_type": "sleeping_mask",
+          "laneige_competitor": "Water Sleeping Mask"
+        },
+        {
+          "asin": "B0BKKD4WDL",
+          "name": "Rich Cushion Cream",
+          "category": "skin_care",
+          "product_type": "moisturizer",
+          "laneige_competitor": "Water Bank Cream"
+        }
+      ]
+    }
+  },
+  "laneige_products": {
+    "Lip Sleeping Mask": {
+      "product_type": "lip_balm",
+      "category": "lip_care",
+      "keywords": ["lip sleeping mask", "lip mask"]
+    },
+    "Water Sleeping Mask": {
+      "product_type": "sleeping_mask",
+      "category": "skin_care",
+      "keywords": ["water sleeping mask", "sleeping mask"]
+    },
+    "Water Bank Cream": {
+      "product_type": "moisturizer",
+      "category": "skin_care",
+      "keywords": ["water bank", "cream", "moisturizer"]
+    },
+    "Lip Glowy Balm": {
+      "product_type": "lip_balm",
+      "category": "lip_care",
+      "keywords": ["lip glowy", "glowy balm"]
+    }
+  },
+  "product_type_mapping": {
+    "lip_balm": "립밤/립케어",
+    "sleeping_mask": "슬리핑 마스크",
+    "moisturizer": "수분 크림",
+    "toner": "토너",
+    "serum": "세럼"
+  }
+}

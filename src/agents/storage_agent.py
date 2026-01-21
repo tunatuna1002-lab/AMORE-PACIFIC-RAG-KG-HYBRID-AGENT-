@@ -1,6 +1,10 @@
 """
 Storage Agent
-Google Sheets 저장 에이전트
+Google Sheets + SQLite 이중 저장 에이전트
+
+데이터를 두 곳에 동시 저장:
+1. Google Sheets: 클라우드 백업, 비개발자 접근용
+2. SQLite (Railway Volume): 빠른 조회, 대시보드/챗봇용
 """
 
 import json
@@ -8,6 +12,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from src.tools.sheets_writer import SheetsWriter
+from src.tools.sqlite_storage import get_sqlite_storage, SQLiteStorage
 from src.ontology.schema import Product, RankRecord, BrandMetrics, ProductMetrics, MarketMetrics
 from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
@@ -15,14 +20,15 @@ from src.monitoring.metrics import QualityMetrics
 
 
 class StorageAgent:
-    """Google Sheets 저장 에이전트"""
+    """Google Sheets + SQLite 이중 저장 에이전트"""
 
     def __init__(
         self,
         spreadsheet_id: Optional[str] = None,
         logger: Optional[AgentLogger] = None,
         tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None
+        metrics: Optional[QualityMetrics] = None,
+        enable_sqlite: bool = True
     ):
         """
         Args:
@@ -30,8 +36,12 @@ class StorageAgent:
             logger: 로거
             tracer: 추적기
             metrics: 메트릭 수집기
+            enable_sqlite: SQLite 이중 저장 활성화 (기본값: True)
         """
         self.sheets = SheetsWriter(spreadsheet_id)
+        self.sqlite: Optional[SQLiteStorage] = get_sqlite_storage() if enable_sqlite else None
+        self.enable_sqlite = enable_sqlite
+
         self.logger = logger or AgentLogger("storage")
         self.tracer = tracer
         self.metrics = metrics
@@ -68,6 +78,7 @@ class StorageAgent:
                 "saved_at": datetime.now().isoformat(),
                 "raw_records": 0,
                 "products_upserted": 0,
+                "sqlite_records": 0,  # SQLite 저장 결과
                 "errors": []
             }
 
@@ -87,14 +98,31 @@ class StorageAgent:
                             all_records.append(record.model_dump() if hasattr(record, 'model_dump') else record)
 
                 if all_records:
+                    # 1-1. Google Sheets 저장
                     append_result = await self.sheets.append_rank_records(all_records)
                     if append_result.get("success"):
                         results["raw_records"] = len(all_records)
                         self.logger.info(f"Saved {len(all_records)} rank records to Google Sheets")
                     else:
                         error_msg = append_result.get("error", "Unknown error")
-                        results["errors"].append({"step": "raw_data", "error": error_msg})
-                        self.logger.error(f"Failed to save rank records: {error_msg}")
+                        results["errors"].append({"step": "raw_data_sheets", "error": error_msg})
+                        self.logger.error(f"Failed to save rank records to Sheets: {error_msg}")
+
+                    # 1-2. SQLite 저장 (이중 저장)
+                    if self.enable_sqlite and self.sqlite:
+                        try:
+                            await self.sqlite.initialize()
+                            sqlite_result = await self.sqlite.append_rank_records(all_records)
+                            if sqlite_result.get("success"):
+                                results["sqlite_records"] = sqlite_result.get("rows_added", 0)
+                                self.logger.info(f"Saved {results['sqlite_records']} rank records to SQLite")
+                            else:
+                                error_msg = sqlite_result.get("error", "Unknown error")
+                                results["errors"].append({"step": "raw_data_sqlite", "error": error_msg})
+                                self.logger.error(f"Failed to save rank records to SQLite: {error_msg}")
+                        except Exception as sqlite_err:
+                            results["errors"].append({"step": "raw_data_sqlite", "error": str(sqlite_err)})
+                            self.logger.error(f"SQLite storage error: {sqlite_err}")
 
                 if self.tracer:
                     self.tracer.end_span("completed")
@@ -138,6 +166,45 @@ class StorageAgent:
                 if self.tracer:
                     self.tracer.end_span("failed", str(e))
 
+            # 3. 경쟁사 추적 데이터 저장
+            competitor_products = crawl_data.get("competitor_products", [])
+            if competitor_products:
+                if self.tracer:
+                    self.tracer.start_span("save_competitor_data")
+
+                try:
+                    # SQLite에 경쟁사 데이터 저장
+                    if self.enable_sqlite and self.sqlite:
+                        await self.sqlite.initialize()
+                        comp_result = await self.sqlite.save_competitor_products(competitor_products)
+                        if comp_result.get("success"):
+                            results["competitor_products_saved"] = comp_result.get("rows_added", 0)
+                            self.logger.info(f"Saved {results['competitor_products_saved']} competitor products to SQLite")
+                        else:
+                            results["errors"].append({"step": "competitor_sqlite", "error": comp_result.get("error", "Unknown")})
+
+                    # JSON 파일로도 저장 (대시보드용)
+                    try:
+                        from pathlib import Path
+                        comp_json_path = Path("./data/competitor_products.json")
+                        with open(comp_json_path, "w", encoding="utf-8") as f:
+                            json.dump({
+                                "updated_at": datetime.now().isoformat(),
+                                "products": competitor_products
+                            }, f, ensure_ascii=False, indent=2)
+                        self.logger.info(f"Saved competitor data to {comp_json_path}")
+                    except Exception as json_err:
+                        self.logger.warning(f"Failed to save competitor JSON: {json_err}")
+
+                    if self.tracer:
+                        self.tracer.end_span("completed")
+
+                except Exception as e:
+                    results["errors"].append({"step": "competitor_data", "error": str(e)})
+                    self.logger.error(f"Failed to save competitor data: {e}")
+                    if self.tracer:
+                        self.tracer.end_span("failed", str(e))
+
             # 상태 결정
             if results["errors"]:
                 results["status"] = "partial" if results["raw_records"] > 0 else "failed"
@@ -154,10 +221,11 @@ class StorageAgent:
                     "products": results["products_upserted"]
                 })
 
+            sqlite_info = f", SQLite: {results['sqlite_records']}" if self.enable_sqlite else ""
             self.logger.agent_complete(
                 "StorageAgent",
                 duration,
-                f"{results['raw_records']} records, {results['products_upserted']} products"
+                f"Sheets: {results['raw_records']} records, {results['products_upserted']} products{sqlite_info}"
             )
 
             return results

@@ -608,6 +608,164 @@ class AmazonScraper:
         ]
         return random.choice(user_agents)
 
+    async def scrape_product_by_asin(self, asin: str, metadata: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+        """
+        개별 ASIN으로 상품 페이지 크롤링 (경쟁사 추적용)
+
+        Args:
+            asin: Amazon ASIN
+            metadata: 추가 메타데이터 (brand, category, product_type 등)
+
+        Returns:
+            상품 정보 딕셔너리 또는 None
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        url = f"https://www.amazon.com/dp/{asin}"
+        today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
+
+        try:
+            page = await self.browser.new_page()
+            await page.set_extra_http_headers({
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            })
+
+            await self._random_delay()
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+
+            if await self._is_blocked(page):
+                logger.warning(f"Blocked while scraping ASIN: {asin}")
+                await page.close()
+                return None
+
+            # 상품 정보 추출
+            product_data = await page.evaluate("""() => {
+                const data = {};
+
+                // 제품명
+                const titleEl = document.querySelector('#productTitle');
+                data.product_name = titleEl ? titleEl.textContent.trim() : '';
+
+                // 브랜드 (bylineInfo에서 추출)
+                const brandEl = document.querySelector('#bylineInfo');
+                if (brandEl) {
+                    const brandText = brandEl.textContent.trim();
+                    // "Visit the Summer Fridays Store" or "Brand: Summer Fridays"
+                    const visitMatch = brandText.match(/Visit the (.+?) Store/);
+                    const brandMatch = brandText.match(/Brand:\s*(.+)/);
+                    data.brand = visitMatch ? visitMatch[1] : (brandMatch ? brandMatch[1].trim() : brandText);
+                } else {
+                    data.brand = '';
+                }
+
+                // 가격 (여러 위치 시도)
+                const priceSelectors = [
+                    '.a-price .a-offscreen',
+                    '#priceblock_ourprice',
+                    '#priceblock_dealprice',
+                    '.a-price-whole',
+                    '#corePrice_feature_div .a-offscreen'
+                ];
+                for (const sel of priceSelectors) {
+                    const priceEl = document.querySelector(sel);
+                    if (priceEl && priceEl.textContent.includes('$')) {
+                        data.price_text = priceEl.textContent.trim();
+                        break;
+                    }
+                }
+
+                // 평점
+                const ratingEl = document.querySelector('#acrPopover');
+                data.rating_text = ratingEl ? ratingEl.getAttribute('title') || ratingEl.textContent.trim() : '';
+
+                // 리뷰 수
+                const reviewsEl = document.querySelector('#acrCustomerReviewText');
+                data.reviews_text = reviewsEl ? reviewsEl.textContent.trim() : '';
+
+                // 재고 상태
+                const availEl = document.querySelector('#availability span');
+                data.availability = availEl ? availEl.textContent.trim() : '';
+
+                // 이미지 URL
+                const imgEl = document.querySelector('#landingImage');
+                data.image_url = imgEl ? imgEl.getAttribute('src') : '';
+
+                return data;
+            }""")
+
+            await page.close()
+
+            if not product_data.get('product_name'):
+                logger.warning(f"Failed to parse product page for ASIN: {asin}")
+                return None
+
+            # 메타데이터 병합
+            meta = metadata or {}
+
+            result = {
+                "snapshot_date": today,
+                "asin": asin,
+                "product_name": product_data.get("product_name", ""),
+                "brand": meta.get("brand") or product_data.get("brand") or self._extract_brand(product_data.get("product_name", "")),
+                "price": self._parse_price(product_data.get("price_text", "")),
+                "rating": self._parse_rating(product_data.get("rating_text", "")),
+                "reviews_count": self._parse_reviews_count(product_data.get("reviews_text", "").replace(" ratings", "").replace(" rating", "")),
+                "availability": product_data.get("availability", ""),
+                "image_url": product_data.get("image_url", ""),
+                "product_url": url,
+                "category_id": meta.get("category", ""),
+                "product_type": meta.get("product_type", ""),
+                "laneige_competitor": meta.get("laneige_competitor", ""),
+                "source": "competitor_tracking"
+            }
+
+            logger.info(f"Scraped competitor product: {result['brand']} - {result['product_name'][:50]}...")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error scraping ASIN {asin}: {e}")
+            return None
+
+    async def scrape_competitor_products(self, competitor_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        경쟁사 제품 목록 크롤링
+
+        Args:
+            competitor_config: tracked_competitors.json의 경쟁사 설정
+
+        Returns:
+            경쟁사 제품 정보 리스트
+        """
+        results = []
+        brand_name = competitor_config.get("brand_name", "Unknown")
+        products = competitor_config.get("products", [])
+
+        logger.info(f"Scraping {len(products)} products for competitor: {brand_name}")
+
+        for product in products:
+            asin = product.get("asin")
+            if not asin:
+                continue
+
+            metadata = {
+                "brand": brand_name,
+                "category": product.get("category", ""),
+                "product_type": product.get("product_type", ""),
+                "laneige_competitor": product.get("laneige_competitor", "")
+            }
+
+            product_data = await self.scrape_product_by_asin(asin, metadata)
+            if product_data:
+                results.append(product_data)
+
+            # 요청 간 딜레이
+            await self._random_delay()
+
+        logger.info(f"Completed scraping {len(results)}/{len(products)} products for {brand_name}")
+        return results
+
 
 # 편의 함수
 async def scrape_bestsellers(category_url: str, category_id: str = "unknown") -> Dict[str, Any]:

@@ -183,9 +183,16 @@ class CrawlerAgent:
                 # Rate limiting
                 await asyncio.sleep(2)
 
+            # 경쟁사 제품 추적 (tracked_competitors.json)
+            competitor_products = await self._scrape_tracked_competitors()
+            if competitor_products:
+                results["competitor_products"] = competitor_products
+                self.logger.info(f"Tracked {len(competitor_products)} competitor products")
+
             # 전체 결과 집계
             results["total_products"] = len(results["all_products"])
             results["laneige_count"] = len(results["laneige_products"])
+            results["competitor_count"] = len(results.get("competitor_products", []))
 
             # 모든 카테고리 실패 시
             if not results["categories"]:
@@ -229,6 +236,41 @@ class CrawlerAgent:
         brand = product.get("brand", "").lower()
 
         return "laneige" in title or "laneige" in brand
+
+    async def _scrape_tracked_competitors(self) -> List[Dict[str, Any]]:
+        """
+        tracked_competitors.json에 정의된 경쟁사 제품 크롤링
+        """
+        try:
+            config_path = Path("./config/tracked_competitors.json")
+            if not config_path.exists():
+                self.logger.info("No tracked_competitors.json found, skipping competitor tracking")
+                return []
+
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+
+            competitors = config.get("competitors", {})
+            all_competitor_products = []
+
+            for brand_name, brand_config in competitors.items():
+                self.logger.info(f"Scraping tracked competitor: {brand_name}")
+
+                try:
+                    products = await self.scraper.scrape_competitor_products(brand_config)
+                    all_competitor_products.extend(products)
+                except Exception as e:
+                    self.logger.error(f"Failed to scrape competitor {brand_name}: {e}")
+                    continue
+
+                # 브랜드 간 딜레이
+                await asyncio.sleep(3)
+
+            return all_competitor_products
+
+        except Exception as e:
+            self.logger.error(f"Error in competitor tracking: {e}")
+            return []
 
     async def close(self) -> None:
         """리소스 정리"""

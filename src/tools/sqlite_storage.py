@@ -169,6 +169,26 @@ class SQLiteStorage:
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 경쟁사 추적 제품 (Tracked Competitors)
+    CREATE TABLE IF NOT EXISTS competitor_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        snapshot_date TEXT NOT NULL,
+        asin TEXT NOT NULL,
+        product_name TEXT,
+        brand TEXT NOT NULL,
+        price REAL,
+        rating REAL,
+        reviews_count INTEGER,
+        availability TEXT,
+        image_url TEXT,
+        product_url TEXT,
+        category_id TEXT,
+        product_type TEXT,
+        laneige_competitor TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(snapshot_date, asin)
+    );
+
     -- 인덱스 생성 (쿼리 성능 최적화)
     CREATE INDEX IF NOT EXISTS idx_raw_data_date ON raw_data(snapshot_date);
     CREATE INDEX IF NOT EXISTS idx_raw_data_category ON raw_data(category_id);
@@ -182,6 +202,9 @@ class SQLiteStorage:
     CREATE INDEX IF NOT EXISTS idx_deals_type ON deals(deal_type);
     CREATE INDEX IF NOT EXISTS idx_deals_history_date ON deals_history(snapshot_date);
     CREATE INDEX IF NOT EXISTS idx_deals_alerts_datetime ON deals_alerts(alert_datetime);
+    CREATE INDEX IF NOT EXISTS idx_competitor_date ON competitor_products(snapshot_date);
+    CREATE INDEX IF NOT EXISTS idx_competitor_brand ON competitor_products(brand);
+    CREATE INDEX IF NOT EXISTS idx_competitor_asin ON competitor_products(asin);
     """
 
     def __init__(self, db_path: Optional[str] = None):
@@ -495,6 +518,103 @@ class SQLiteStorage:
                 ))
 
         return len(metrics)
+
+    async def save_competitor_products(self, products: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        경쟁사 추적 제품 저장
+
+        Args:
+            products: 경쟁사 제품 리스트 (scrape_competitor_products 결과)
+
+        Returns:
+            {"success": True, "rows_added": N}
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        sql = """
+        INSERT OR REPLACE INTO competitor_products (
+            snapshot_date, asin, product_name, brand, price, rating,
+            reviews_count, availability, image_url, product_url,
+            category_id, product_type, laneige_competitor
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        rows_added = 0
+        try:
+            with self.get_connection() as conn:
+                for p in products:
+                    conn.execute(sql, (
+                        p.get("snapshot_date"),
+                        p.get("asin"),
+                        p.get("product_name"),
+                        p.get("brand"),
+                        self._to_float(p.get("price")),
+                        self._to_float(p.get("rating")),
+                        p.get("reviews_count"),
+                        p.get("availability"),
+                        p.get("image_url"),
+                        p.get("product_url"),
+                        p.get("category_id"),
+                        p.get("product_type"),
+                        p.get("laneige_competitor")
+                    ))
+                    rows_added += 1
+
+            logger.info(f"SQLite: saved {rows_added} competitor products")
+            return {"success": True, "rows_added": rows_added}
+
+        except Exception as e:
+            logger.error(f"Failed to save competitor products: {e}")
+            return {"success": False, "error": str(e), "rows_added": rows_added}
+
+    async def get_competitor_products(
+        self,
+        brand: Optional[str] = None,
+        snapshot_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        경쟁사 제품 조회
+
+        Args:
+            brand: 브랜드 필터 (예: "Summer Fridays")
+            snapshot_date: 특정 날짜 (없으면 최신)
+
+        Returns:
+            경쟁사 제품 리스트
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        conditions = []
+        params = []
+
+        if brand:
+            conditions.append("brand = ?")
+            params.append(brand)
+
+        if snapshot_date:
+            conditions.append("snapshot_date = ?")
+            params.append(snapshot_date)
+        else:
+            # 최신 날짜
+            conditions.append("snapshot_date = (SELECT MAX(snapshot_date) FROM competitor_products)")
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+        sql = f"""
+        SELECT * FROM competitor_products
+        WHERE {where_clause}
+        ORDER BY brand, product_type
+        """
+
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(sql, params)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to get competitor products: {e}")
+            return []
 
     def get_data_date(self) -> Optional[str]:
         """가장 최근 데이터 날짜 반환"""
