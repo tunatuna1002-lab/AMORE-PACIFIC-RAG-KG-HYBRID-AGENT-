@@ -21,7 +21,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.business_rules import register_all_rules
-from src.ontology.relations import Relation, RelationType
+from src.domain.entities.relations import Relation, RelationType
 
 from src.rag.hybrid_retriever import HybridRetriever, HybridContext
 from src.rag.context_builder import ContextBuilder

@@ -799,8 +799,8 @@ class SQLiteStorage:
         start_date: str,
         end_date: str
     ) -> List[Dict[str, Any]]:
-        """Summary 시트용 데이터 생성"""
-        # 브랜드별 SoS 집계
+        """Summary 시트용 데이터 생성 (기간 내 브랜드별 집계)"""
+        # 브랜드별 SoS 집계 - 지정된 기간의 데이터 사용
         cursor = conn.execute(
             """
             SELECT
@@ -808,17 +808,19 @@ class SQLiteStorage:
                 COUNT(*) as product_count,
                 ROUND(COUNT(*) * 100.0 / (
                     SELECT COUNT(*) FROM raw_data
-                    WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_data)
+                    WHERE snapshot_date BETWEEN ? AND ?
                 ), 2) as sos,
                 ROUND(AVG(rank), 1) as avg_rank,
-                ROUND(AVG(rating), 2) as avg_rating
+                ROUND(AVG(rating), 2) as avg_rating,
+                MIN(snapshot_date) as period_start,
+                MAX(snapshot_date) as period_end
             FROM raw_data
-            WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_data)
+            WHERE snapshot_date BETWEEN ? AND ?
             GROUP BY brand
             ORDER BY product_count DESC
             LIMIT 20
             """,
-            ()
+            (start_date, end_date, start_date, end_date)
         )
 
         return [dict(row) for row in cursor.fetchall()]

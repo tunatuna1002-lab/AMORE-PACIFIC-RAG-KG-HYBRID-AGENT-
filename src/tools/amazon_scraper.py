@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
 
-from src.ontology.schema import RankRecord
+from src.domain.entities import RankRecord
 
 
 class AmazonScraper:

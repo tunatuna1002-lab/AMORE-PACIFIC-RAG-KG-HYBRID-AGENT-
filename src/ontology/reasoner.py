@@ -35,13 +35,19 @@ reasoner = OntologyReasoner(knowledge_graph)
 # 규칙 등록
 register_all_rules(reasoner)
 
-# 추론 실행
+# 기본 추론 실행
 inferences = reasoner.infer(context={
     "brand": "LANEIGE",
     "sos": 5.2,
     "rank": 8,
     "hhi": 0.08
 })
+
+# 쿼리 의도 기반 추론 (동적 규칙 필터링)
+inferences = reasoner.infer_with_intent(
+    context={"brand": "LANEIGE", "sos": 5.2},
+    query="LANEIGE vs 경쟁사 비교"  # 자동으로 경쟁 관련 규칙만 활성화
+)
 
 # 결과: List[InferenceResult]
 # - insight: "SoS 5.2%로 적정 수준이나 Top 5 진입 필요"
@@ -61,9 +67,24 @@ explanation = reasoner.explain_all(inferences)
 2. 순방향 추론 (Forward Chaining)
 3. 추론 과정 설명 (Explainability)
 4. 규칙 우선순위 관리
+5. 쿼리 의도 기반 동적 규칙 활성화 (QueryIntentDetector)
+
+## 쿼리 의도 감지 (Query Intent Detection)
+`infer_with_intent()` 메서드는 사용자 쿼리에서 의도를 자동 감지하여 관련 규칙만 활성화합니다.
+
+### 지원 의도 및 키워드
+- **competition**: 경쟁, competitor, vs, 비교, 대비 → COMPETITIVE_THREAT, MARKET_POSITION
+- **market_analysis**: 시장, market, 점유, share, sos, hhi → MARKET_POSITION, MARKET_DOMINANCE, MARKET_STRUCTURE
+- **pricing**: 가격, price, cpi, 프리미엄, premium → PRICE_POSITION, PRICE_QUALITY_GAP
+- **growth**: 성장, growth, 기회, opportunity → GROWTH_OPPORTUNITY, GROWTH_MOMENTUM
+- **risk**: 위험, risk, 경고, warning → RISK_ALERT, COMPETITIVE_THREAT
+- **ranking**: 순위, rank, top, 베스트 → RANK_ANALYSIS, GROWTH_MOMENTUM
+- **sentiment**: 리뷰, review, 평점, rating → SENTIMENT_ANALYSIS, PRICE_QUALITY_GAP
+
+키워드가 없는 일반 쿼리는 모든 규칙을 적용합니다.
 """
 
-from typing import Dict, List, Any, Optional, Callable, Tuple
+from typing import Dict, List, Any, Optional, Callable, Tuple, Set
 from dataclasses import dataclass, field
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -370,6 +391,37 @@ class OntologyReasoner:
         """
         rule_filter = lambda r: r.insight_type in insight_types
         return self.infer(context, rule_filter=rule_filter)
+
+    def infer_with_intent(
+        self,
+        context: Dict[str, Any],
+        query: str,
+        max_results: Optional[int] = None
+    ) -> List[InferenceResult]:
+        """
+        쿼리 의도 기반 동적 규칙 활성화 추론
+
+        Args:
+            context: 추론 컨텍스트
+            query: 사용자 쿼리 (의도 감지용)
+            max_results: 최대 결과 수
+
+        Returns:
+            추론 결과 리스트
+        """
+        # 쿼리에서 의도 감지 및 규칙 필터 생성
+        rule_filter = QueryIntentDetector.create_rule_filter(query)
+
+        # 의도 로깅
+        intents = QueryIntentDetector.detect_intent(query)
+        logger.debug(f"Detected intents: {intents}")
+
+        # 필터된 규칙으로 추론 실행
+        return self.infer(
+            context=context,
+            rule_filter=rule_filter,
+            max_results=max_results
+        )
 
     # =========================================================================
     # 컨텍스트 처리
@@ -791,3 +843,138 @@ class StandardConditions:
             check=lambda ctx: (ctx.get("current_rank") or 100) <= n,
             description=f"현재 순위 Top {n} 이내"
         )
+
+
+# =========================================================================
+# Query Intent Detection
+# =========================================================================
+
+class QueryIntentDetector:
+    """
+    쿼리 의도 감지 및 관련 규칙 필터링
+
+    Query Intent → InsightType 매핑
+    """
+
+    # 의도별 키워드 매핑
+    INTENT_KEYWORDS = {
+        "competition": {
+            "keywords": ["경쟁", "competitor", "vs", "비교", "대비", "경쟁사", "compare"],
+            "insight_types": [
+                InsightType.COMPETITIVE_THREAT,
+                InsightType.MARKET_POSITION,
+                InsightType.MARKET_DOMINANCE
+            ]
+        },
+        "market_analysis": {
+            "keywords": ["시장", "market", "점유", "share", "sos", "hhi", "집중도"],
+            "insight_types": [
+                InsightType.MARKET_POSITION,
+                InsightType.MARKET_DOMINANCE,
+                InsightType.MARKET_STRUCTURE
+            ]
+        },
+        "pricing": {
+            "keywords": ["가격", "price", "cpi", "프리미엄", "premium", "가성비", "비싸"],
+            "insight_types": [
+                InsightType.PRICE_POSITION,
+                InsightType.PRICE_QUALITY_GAP
+            ]
+        },
+        "growth": {
+            "keywords": ["성장", "growth", "기회", "opportunity", "확장", "상승", "증가"],
+            "insight_types": [
+                InsightType.GROWTH_OPPORTUNITY,
+                InsightType.GROWTH_MOMENTUM
+            ]
+        },
+        "risk": {
+            "keywords": ["위험", "risk", "경고", "warning", "하락", "감소", "급변", "shock"],
+            "insight_types": [
+                InsightType.RISK_ALERT,
+                InsightType.COMPETITIVE_THREAT
+            ]
+        },
+        "ranking": {
+            "keywords": ["순위", "rank", "top", "베스트", "bestseller", "1위", "상위"],
+            "insight_types": [
+                InsightType.RANK_ANALYSIS,
+                InsightType.GROWTH_MOMENTUM,
+                InsightType.MARKET_POSITION
+            ]
+        },
+        "sentiment": {
+            "keywords": ["리뷰", "review", "평점", "rating", "고객", "customer", "반응", "감성"],
+            "insight_types": [
+                InsightType.SENTIMENT_ANALYSIS,
+                InsightType.PRICE_QUALITY_GAP
+            ]
+        }
+    }
+
+    @classmethod
+    def detect_intent(cls, query: str) -> List[str]:
+        """
+        쿼리에서 의도 감지
+
+        Args:
+            query: 사용자 쿼리
+
+        Returns:
+            감지된 의도 리스트
+        """
+        query_lower = query.lower()
+        detected_intents = []
+
+        for intent, config in cls.INTENT_KEYWORDS.items():
+            for keyword in config["keywords"]:
+                if keyword in query_lower:
+                    if intent not in detected_intents:
+                        detected_intents.append(intent)
+                    break
+
+        return detected_intents if detected_intents else ["general"]
+
+    @classmethod
+    def get_relevant_insight_types(cls, query: str) -> Optional[List[InsightType]]:
+        """
+        쿼리에 관련된 InsightType 반환
+
+        Args:
+            query: 사용자 쿼리
+
+        Returns:
+            관련 InsightType 리스트 (None이면 모든 타입)
+        """
+        intents = cls.detect_intent(query)
+
+        if "general" in intents:
+            return None  # 필터 없음 - 모든 규칙 적용
+
+        insight_types = set()
+        for intent in intents:
+            if intent in cls.INTENT_KEYWORDS:
+                insight_types.update(cls.INTENT_KEYWORDS[intent]["insight_types"])
+
+        return list(insight_types) if insight_types else None
+
+    @classmethod
+    def create_rule_filter(cls, query: str) -> Optional[Callable[['InferenceRule'], bool]]:
+        """
+        쿼리 기반 규칙 필터 생성
+
+        Args:
+            query: 사용자 쿼리
+
+        Returns:
+            규칙 필터 함수 (None이면 필터 없음)
+        """
+        insight_types = cls.get_relevant_insight_types(query)
+
+        if insight_types is None:
+            return None
+
+        def rule_filter(rule: 'InferenceRule') -> bool:
+            return rule.insight_type in insight_types
+
+        return rule_filter

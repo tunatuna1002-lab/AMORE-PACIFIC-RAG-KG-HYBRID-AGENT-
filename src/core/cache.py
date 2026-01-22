@@ -153,33 +153,53 @@ class ResponseCache:
                 return True
             return False
 
-    def invalidate(self, pattern: str = None) -> int:
+    def invalidate(self, pattern: str = None, cache_type: str = None) -> int:
         """
         캐시 무효화
 
         Args:
             pattern: 키 패턴 (None이면 전체)
+            cache_type: 캐시 유형으로 필터링 (query, kg, crawl, context)
 
         Returns:
             삭제된 항목 수
         """
         with self._lock:
-            if pattern is None:
+            # cache_type만 지정된 경우
+            if cache_type is not None and pattern is None:
+                return self._invalidate_by_type_internal(cache_type)
+
+            if pattern is None and cache_type is None:
                 count = len(self._cache)
                 self._cache.clear()
                 logger.info(f"Cache cleared: {count} items")
                 return count
 
-            # 패턴 매칭 삭제
-            keys_to_delete = [
-                k for k in self._cache.keys()
-                if pattern in k
-            ]
+            # 패턴 + cache_type 필터링 삭제
+            keys_to_delete = []
+            for k, v in self._cache.items():
+                if pattern is not None and pattern not in k:
+                    continue
+                if cache_type is not None and v.get("type") != cache_type:
+                    continue
+                keys_to_delete.append(k)
+
             for key in keys_to_delete:
                 del self._cache[key]
 
-            logger.info(f"Cache invalidated: {len(keys_to_delete)} items (pattern={pattern})")
+            logger.info(f"Cache invalidated: {len(keys_to_delete)} items (pattern={pattern}, type={cache_type})")
             return len(keys_to_delete)
+
+    def _invalidate_by_type_internal(self, cache_type: str) -> int:
+        """내부용: 특정 유형 캐시 무효화 (lock 없이)"""
+        keys_to_delete = [
+            k for k, v in self._cache.items()
+            if v.get("type") == cache_type
+        ]
+        for key in keys_to_delete:
+            del self._cache[key]
+        logger.info(f"Cache invalidated by type: {len(keys_to_delete)} items (type={cache_type})")
+        return len(keys_to_delete)
 
     def invalidate_by_type(self, cache_type: str) -> int:
         """

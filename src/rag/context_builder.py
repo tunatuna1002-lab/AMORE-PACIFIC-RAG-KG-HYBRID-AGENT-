@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 import json
 
-from src.ontology.relations import InsightType, InferenceResult
+from src.domain.entities.relations import InsightType, InferenceResult
 
 
 class OutputFormat(str, Enum):

@@ -15,7 +15,7 @@ from typing import Optional
 from dotenv import load_dotenv
 
 from orchestrator import Orchestrator  # 워크플로우용
-from src.core.unified_orchestrator import get_unified_orchestrator  # 챗봇용
+from src.core.brain import UnifiedBrain, get_brain  # 챗봇용
 from src.monitoring.logger import AgentLogger
 
 
@@ -96,7 +96,7 @@ async def run_daily_workflow(
 
 async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
     """
-    챗봇 인터랙티브 모드 (통합 오케스트레이터 사용)
+    챗봇 인터랙티브 모드 (UnifiedBrain 사용)
 
     Args:
         spreadsheet_id: Google Sheets ID (데이터 로드용)
@@ -109,8 +109,8 @@ async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
     logger.info("Type 'exit' to quit, 'help' for commands")
     logger.info("=" * 50)
 
-    # 통합 오케스트레이터 사용
-    orchestrator = await get_unified_orchestrator()
+    # UnifiedBrain 사용
+    brain = get_brain()
 
     # 현재 데이터 로드
     current_metrics = None
@@ -139,33 +139,33 @@ async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
                     continue
 
                 if user_input.lower() == "status":
-                    stats = orchestrator.get_stats()
+                    stats = brain.get_stats() if hasattr(brain, 'get_stats') else {}
                     print(f"\n📊 Status: {stats}\n")
                     continue
 
                 if user_input.lower() == "errors":
-                    errors = orchestrator.get_recent_errors(limit=5)
+                    errors = brain.get_recent_errors(limit=5) if hasattr(brain, 'get_recent_errors') else []
                     if errors:
                         print("\n⚠️ Recent Errors:")
                         for err in errors:
-                            print(f"   - [{err['agent']}] {err['message']}")
+                            print(f"   - [{err.get('agent', 'unknown')}] {err.get('message', 'unknown error')}")
                     else:
                         print("\n✅ No recent errors")
                     print()
                     continue
 
-                # 통합 오케스트레이터로 응답 생성
-                response = await orchestrator.process(
+                # UnifiedBrain으로 응답 생성
+                response = await brain.process_query(
                     query=user_input,
                     current_metrics=current_metrics
                 )
 
                 # 응답 출력
-                response_dict = response.to_dict()
-                print(f"\n🤖 Assistant: {response_dict.get('text', 'No response')}")
+                response_dict = response.to_dict() if hasattr(response, 'to_dict') else response
+                print(f"\n🤖 Assistant: {response_dict.get('text', response_dict.get('content', 'No response'))}")
 
                 # 도구 호출 정보
-                tools_called = response_dict.get("tools_called", [])
+                tools_called = response_dict.get("tools_called", response_dict.get("tools_used", []))
                 if tools_called:
                     print(f"   [도구 사용: {', '.join(tools_called)}]")
 

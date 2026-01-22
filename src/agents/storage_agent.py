@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 
 from src.tools.sheets_writer import SheetsWriter
 from src.tools.sqlite_storage import get_sqlite_storage, SQLiteStorage
-from src.ontology.schema import Product, RankRecord, BrandMetrics, ProductMetrics, MarketMetrics
+from src.domain.entities import Product, RankRecord, BrandMetrics, ProductMetrics, MarketMetrics
 from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics

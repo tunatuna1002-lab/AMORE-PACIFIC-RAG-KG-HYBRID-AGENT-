@@ -174,6 +174,13 @@ class InsightType(str, Enum):
     SENTIMENT_ADVANTAGE = "sentiment_advantage"
     SENTIMENT_GAP = "sentiment_gap"
     CUSTOMER_PERCEPTION = "customer_perception"
+    SENTIMENT_ANALYSIS = "sentiment_analysis"
+
+    # 순위 분석 관련
+    RANK_ANALYSIS = "rank_analysis"
+
+    # 시장 구조 관련
+    MARKET_STRUCTURE = "market_structure"
 
 
 class MarketPosition(str, Enum):

@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from src.tools.metric_calculator import MetricCalculator
-from src.ontology.schema import BrandMetrics, ProductMetrics, MarketMetrics
+from src.domain.entities import BrandMetrics, ProductMetrics, MarketMetrics
 from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics

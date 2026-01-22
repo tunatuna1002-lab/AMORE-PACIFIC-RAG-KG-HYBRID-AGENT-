@@ -18,7 +18,7 @@ from litellm import acompletion
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.business_rules import register_all_rules
-from src.ontology.relations import InferenceResult, InsightType
+from src.domain.entities.relations import InferenceResult, InsightType
 
 from src.rag.hybrid_retriever import HybridRetriever, HybridContext
 from src.rag.context_builder import ContextBuilder
@@ -28,6 +28,7 @@ from src.rag.templates import ResponseTemplates
 from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics
+from src.tools.external_signal_collector import ExternalSignalCollector
 
 
 class HybridInsightAgent:
@@ -99,6 +100,9 @@ class HybridInsightAgent:
         # 결과 캐시
         self._results: Dict[str, Any] = {}
         self._last_hybrid_context: Optional[HybridContext] = None
+
+        # External Signal Collector
+        self._signal_collector: Optional[ExternalSignalCollector] = None
 
     async def execute(
         self,
@@ -181,19 +185,29 @@ class HybridInsightAgent:
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 4. 일일 인사이트 생성 (LLM)
+            # 4. External Signal 수집 (LLM 호출 전에 수행)
+            if self.tracer:
+                self.tracer.start_span("collect_external_signals")
+
+            external_signals = await self._collect_external_signals()
+            results["external_signals"] = external_signals
+
+            if self.tracer:
+                self.tracer.end_span("completed")
+
+            # 5. 일일 인사이트 생성 (LLM + External Signal 포함)
             if self.tracer:
                 self.tracer.start_span("generate_daily_insight")
 
             daily_insight = await self._generate_daily_insight(
-                hybrid_context, metrics_data, crawl_summary
+                hybrid_context, metrics_data, crawl_summary, external_signals
             )
             results["daily_insight"] = daily_insight
 
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 5. 액션 아이템 추출
+            # 6. 액션 아이템 추출
             if self.tracer:
                 self.tracer.start_span("extract_actions")
 
@@ -205,23 +219,27 @@ class HybridInsightAgent:
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 6. 하이라이트 추출
+            # 7. 하이라이트 추출
             results["highlights"] = self._extract_highlights(
                 hybrid_context.inferences, metrics_data
             )
 
-            # 7. 경고 수집
+            # 8. 경고 수집
             alerts = metrics_data.get("alerts", [])
             results["warnings"] = [
                 a for a in alerts
                 if a.get("severity") in ["warning", "critical"]
             ]
 
-            # 8. 통계
+            if self.tracer:
+                self.tracer.end_span("completed")
+
+            # 9. 통계
             results["hybrid_stats"].update({
                 "inferences_count": len(hybrid_context.inferences),
                 "rag_chunks_count": len(hybrid_context.rag_chunks),
-                "ontology_facts_count": len(hybrid_context.ontology_facts)
+                "ontology_facts_count": len(hybrid_context.ontology_facts),
+                "external_signals_count": len(external_signals.get("signals", []))
             })
 
             self._results = results
@@ -320,7 +338,8 @@ class HybridInsightAgent:
         self,
         hybrid_context: HybridContext,
         metrics_data: Dict,
-        crawl_summary: Optional[Dict]
+        crawl_summary: Optional[Dict],
+        external_signals: Optional[Dict] = None
     ) -> str:
         """일일 인사이트 생성 (LLM)"""
         # 컨텍스트 구성
@@ -330,6 +349,18 @@ class HybridInsightAgent:
             query="오늘의 LANEIGE Amazon 베스트셀러 인사이트"
         )
 
+        # External Signal 컨텍스트 추가
+        external_context = ""
+        if external_signals and external_signals.get("report_section"):
+            external_context = f"""
+
+## 외부 트렌드 신호
+
+{external_signals['report_section']}
+
+_※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등에서 수집되었습니다._
+"""
+
         # 시스템 프롬프트
         system_prompt = self.context_builder.build_system_prompt(
             include_guardrails=True
@@ -338,7 +369,7 @@ class HybridInsightAgent:
         # 사용자 프롬프트
         user_prompt = f"""
 {context}
-
+{external_context}
 ---
 
 ## 요청사항
@@ -348,12 +379,14 @@ class HybridInsightAgent:
 포함 내용:
 1. **핵심 요약** (3-5문장): 오늘의 가장 중요한 인사이트
 2. **주요 발견**: 온톨로지 추론 결과 기반 핵심 발견 사항
-3. **주의 필요 사항**: 경고 또는 모니터링이 필요한 부분
-4. **권장 액션**: 구체적인 다음 단계 제안
+3. **외부 트렌드 연계** (외부 신호가 있는 경우): 뷰티 전문 매체나 SNS 트렌드와의 연관성
+4. **주의 필요 사항**: 경고 또는 모니터링이 필요한 부분
+5. **권장 액션**: 구체적인 다음 단계 제안
 
 형식:
 - 마크다운 형식
 - 구체적인 수치 인용
+- 외부 매체 출처 명시 (예: "Allure 보도에 따르면...")
 - 단정적 표현 대신 가능성 표현 사용
 """
 
@@ -561,6 +594,41 @@ class HybridInsightAgent:
     def get_reasoner(self) -> OntologyReasoner:
         """추론기 반환"""
         return self.reasoner
+
+    async def _collect_external_signals(self) -> Dict[str, Any]:
+        """
+        External Signal 수집
+
+        Returns:
+            {
+                "signals": [...],
+                "report_section": "■ 전문 매체 근거: ...",
+                "stats": {"by_tier": {...}, "by_source": {...}}
+            }
+        """
+        result = {
+            "signals": [],
+            "report_section": "",
+            "stats": {}
+        }
+
+        try:
+            if not self._signal_collector:
+                self._signal_collector = ExternalSignalCollector()
+                await self._signal_collector.initialize()
+
+            # 기존 수집된 신호 확인
+            if self._signal_collector.signals:
+                result["signals"] = [s.to_dict() for s in self._signal_collector.signals[-20:]]
+                result["report_section"] = self._signal_collector.generate_report_section(days=7)
+                result["stats"] = self._signal_collector.get_stats()
+
+            self.logger.debug(f"External signals: {len(result['signals'])} signals loaded")
+
+        except Exception as e:
+            self.logger.warning(f"External signal collection failed: {e}")
+
+        return result
 
     def _extract_data_source_info(
         self,

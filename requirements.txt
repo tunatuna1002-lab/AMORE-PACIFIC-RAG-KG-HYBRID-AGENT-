@@ -27,6 +27,9 @@ numpy>=1.24.0
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
 
+# BM25 for Hybrid Search
+rank-bm25>=0.2.2
+
 # Environment Variables
 python-dotenv>=1.0.0
 

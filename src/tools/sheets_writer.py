@@ -22,7 +22,7 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from src.ontology.schema import RankRecord
+from src.domain.entities import RankRecord
 
 logger = logging.getLogger(__name__)
 

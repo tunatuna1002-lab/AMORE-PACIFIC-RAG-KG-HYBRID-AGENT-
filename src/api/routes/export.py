@@ -16,6 +16,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 
 from src.api.dependencies import load_dashboard_data
 from src.tools.sqlite_storage import get_sqlite_storage
+from src.tools.external_signal_collector import ExternalSignalCollector, SignalTier
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -25,6 +26,26 @@ class ExportRequest(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     include_strategy: bool = True
+    include_external_signals: bool = True  # External Signal 포함 여부
+
+
+async def _get_external_signals(days: int = 7) -> str:
+    """External Signal 수집 및 보고서 섹션 생성"""
+    try:
+        collector = ExternalSignalCollector()
+        await collector.initialize()
+
+        # 기존 신호가 있으면 반환
+        if collector.signals:
+            return collector.generate_report_section(days=days)
+
+        # 신호가 없으면 빈 문자열
+        return ""
+    except Exception as e:
+        logging.warning(f"External signal collection failed: {e}")
+        return ""
+    finally:
+        await collector.close()
 
 
 @router.post("/docx")
@@ -68,7 +89,8 @@ async def export_docx(request: ExportRequest):
         "2. 브랜드별 성과",
         "3. 카테고리별 분석",
         "4. 주요 제품",
-        "5. AI 인사이트 및 전략 제언"
+        "5. AI 인사이트 및 전략 제언",
+        "6. 외부 트렌드 신호"
     ]
     for item in toc_items:
         doc.add_paragraph(item, style='List Bullet')
@@ -206,6 +228,45 @@ async def export_docx(request: ExportRequest):
 
 3. 신규 진입 기회: Lip Care 카테고리 외 Face Powder, Toner 등 확장 가능성 검토
 """)
+
+    # ===== 6. 외부 트렌드 신호 =====
+    if request.include_external_signals:
+        doc.add_heading('6. 외부 트렌드 신호', 1)
+
+        # 분석 기간 계산
+        if request.start_date and request.end_date:
+            try:
+                start = datetime.strptime(request.start_date, "%Y-%m-%d")
+                end = datetime.strptime(request.end_date, "%Y-%m-%d")
+                days = (end - start).days + 1
+            except ValueError:
+                days = 7
+        else:
+            days = 7
+
+        external_signals = await _get_external_signals(days=days)
+
+        if external_signals:
+            doc.add_paragraph(f"분석 기간: 최근 {days}일")
+            doc.add_paragraph()
+
+            # 신호 섹션별로 파싱하여 추가
+            for line in external_signals.split("\n"):
+                if line.startswith("■"):
+                    doc.add_heading(line.replace("■ ", ""), 2)
+                elif line.startswith("•"):
+                    doc.add_paragraph(line, style='List Bullet')
+                elif line.strip():
+                    doc.add_paragraph(line)
+        else:
+            doc.add_paragraph("수집된 외부 트렌드 신호가 없습니다.")
+            doc.add_paragraph()
+            doc.add_paragraph(
+                "외부 신호를 수집하려면:\n"
+                "1. RSS 피드 자동 수집: /api/signals/fetch/rss\n"
+                "2. Reddit 트렌드 수집: /api/signals/fetch/reddit\n"
+                "3. 수동 입력: /api/signals/manual"
+            )
 
     # ===== 푸터 =====
     doc.add_paragraph()
