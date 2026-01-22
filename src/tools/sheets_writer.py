@@ -414,6 +414,81 @@ class SheetsWriter:
         records = await self.get_rank_history(category_id=category_id, days=1)
         return records
 
+    async def get_raw_data(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        category_id: Optional[str] = None,
+        brand: Optional[str] = None,
+        days: int = 30
+    ) -> List[Dict[str, Any]]:
+        """
+        원본 데이터 조회 (SQLiteStorage와 동일한 인터페이스)
+
+        Args:
+            start_date: 시작 날짜 (YYYY-MM-DD)
+            end_date: 종료 날짜 (YYYY-MM-DD)
+            category_id: 카테고리 필터
+            brand: 브랜드 필터
+            days: 조회 일수 (start_date/end_date가 없을 때 사용)
+
+        Returns:
+            데이터 딕셔너리 리스트
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        try:
+            sheet_config = self.SHEETS_CONFIG["raw_data"]
+            range_name = f"{sheet_config['name']}!A:P"
+
+            result = self.service.spreadsheets().values().get(
+                spreadsheetId=self.spreadsheet_id,
+                range=range_name
+            ).execute()
+
+            values = result.get("values", [])
+            if not values:
+                return []
+
+            headers = values[0]
+            records = []
+
+            # 날짜 범위 계산
+            if start_date and end_date:
+                date_start = start_date
+                date_end = end_date
+            else:
+                date_end = datetime.now().strftime("%Y-%m-%d")
+                date_start = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+            for row in values[1:]:
+                record = dict(zip(headers, row + [""] * (len(headers) - len(row))))
+
+                # 날짜 필터
+                snapshot_date = record.get("snapshot_date", "")
+                if snapshot_date < date_start or snapshot_date > date_end:
+                    continue
+
+                # 카테고리 필터
+                if category_id and record.get("category_id") != category_id:
+                    continue
+
+                # 브랜드 필터
+                if brand and record.get("brand", "").lower() != brand.lower():
+                    continue
+
+                records.append(record)
+
+            # 날짜 기준 정렬
+            records.sort(key=lambda x: x.get("snapshot_date", ""), reverse=True)
+
+            return records
+
+        except HttpError as e:
+            logger.error(f"Google Sheets 데이터 조회 오류: {e}")
+            return []
+
     async def _load_products_cache(self) -> Dict[str, Dict[str, Any]]:
         """제품 목록을 캐시로 로드 (한 번만 API 호출)"""
         if self._products_cache is not None:

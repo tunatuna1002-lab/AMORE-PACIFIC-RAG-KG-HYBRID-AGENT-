@@ -27,34 +27,49 @@
   },
   "categories": {
     "beauty": {
-      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty",
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty/ref=zg_bs_nav_beauty_0",
       "name": "Beauty & Personal Care",
       "amazon_node_id": "beauty",
-      "level": 0
+      "level": 0,
+      "parent_id": null,
+      "path": ["beauty"],
+      "display_name_ko": "전체 뷰티 랭킹"
     },
     "skin_care": {
-      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451",
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Skin-Care-Products/zgbs/beauty/11060451/ref=zg_bs_nav_beauty_1",
       "name": "Skin Care",
       "amazon_node_id": "11060451",
-      "level": 1
+      "level": 1,
+      "parent_id": "beauty",
+      "path": ["beauty", "skin_care"],
+      "display_name_ko": "스킨케어"
     },
     "lip_care": {
-      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
+      "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351/ref=zg_bs_nav_beauty_2_11060451",
       "name": "Lip Care",
       "amazon_node_id": "3761351",
-      "level": 2
+      "level": 2,
+      "parent_id": "skin_care",
+      "path": ["beauty", "skin_care", "lip_care"],
+      "display_name_ko": "립케어"
     },
     "lip_makeup": {
-      "url": "https://www.amazon.com/Best-Sellers-Lip-Makeup/zgbs/beauty/11059031",
+      "url": "https://www.amazon.com/Best-Sellers-Lip-Makeup/zgbs/beauty/11059031/ref=zg_bs_nav_beauty_2_11058281",
       "name": "Lip Makeup",
       "amazon_node_id": "11059031",
-      "level": 2
+      "level": 2,
+      "parent_id": "makeup",
+      "path": ["beauty", "makeup", "lip_makeup"],
+      "display_name_ko": "립메이크업/색조"
     },
     "face_powder": {
-      "url": "https://www.amazon.com/Best-Sellers-Face-Powder/zgbs/beauty/11058971",
+      "url": "https://www.amazon.com/Best-Sellers-Face-Powder/zgbs/beauty/11058971/ref=zg_bs_nav_beauty_3_11058691",
       "name": "Face Powder",
       "amazon_node_id": "11058971",
-      "level": 3
+      "level": 3,
+      "parent_id": "face_makeup",
+      "path": ["beauty", "makeup", "face_makeup", "face_powder"],
+      "display_name_ko": "파우더"
     }
   },
   "target_brands": ["LANEIGE", "Laneige", "laneige"]

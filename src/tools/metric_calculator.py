@@ -1,10 +1,64 @@
 """
 Metric Calculator
-10개 전략 지표 계산기
+=================
+10개 전략 지표 계산기 (LANEIGE 경쟁력 분석용)
 
-Level 1: Market & Brand (SoS, HHI, Brand Avg Rank)
-Level 2: Category & Price (CPI, Churn Rate, Avg Rating Gap)
-Level 3: Product & Risk (Rank Volatility, Rank Shock, Streak Days, Rating Trend)
+## 지표 계층 구조
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Level 1: Market & Brand (시장/브랜드 수준)                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ SoS (Share of Shelf)    : Top 100 내 브랜드 제품 비중 (%)               │
+│ HHI (Herfindahl Index)  : 시장 집중도 (0~1, 높을수록 과점)              │
+│ Brand Avg Rank          : 브랜드 제품 평균 순위                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Level 2: Category & Price (카테고리/가격 수준)                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ CPI (Category Price Index) : 카테고리 평균가 대비 브랜드 가격 (100 기준)│
+│ Churn Rate                 : 전일 대비 Top N 구성원 교체율               │
+│ Avg Rating Gap             : 브랜드 평점 - 카테고리 평균 평점            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Level 3: Product & Risk (제품/리스크 수준)                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Rank Volatility : 7일간 순위 표준편차 (변동성)                          │
+│ Rank Shock      : 전일 대비 순위 급변 여부 (±5 이상)                    │
+│ Streak Days     : Top N 내 연속 체류 일수                               │
+│ Rating Trend    : 7일간 평점 이동평균 기울기                            │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 해석 가이드
+| 지표 | 좋음 | 주의 | 경고 |
+|------|------|------|------|
+| SoS | >10% | 5-10% | <5% |
+| HHI | <0.15 (경쟁적) | 0.15-0.25 | >0.25 (집중) |
+| CPI | 80-120 (적정) | 120-150 | >150 (과프리미엄) |
+| Rating Gap | >0 (우위) | 0 | <0 (열위) |
+
+## 사용 예
+```python
+calc = MetricCalculator()
+
+# Level 1: 브랜드 지표
+sos = calc.calculate_sos(records, "LANEIGE")  # 5.2%
+hhi = calc.calculate_hhi(records)              # 0.08
+
+# Level 2: 카테고리 지표
+cpi = calc.calculate_cpi(records, "LANEIGE")   # 105
+
+# Level 3: 제품 지표
+volatility = calc.calculate_rank_volatility([1,2,3,2,1])  # 0.89
+
+# 종합 지표
+brand_metrics = calc.calculate_brand_metrics(records, "LANEIGE", "lip_care")
+```
+
+## 임계값 설정
+config/thresholds.json 참조
 """
 
 import json

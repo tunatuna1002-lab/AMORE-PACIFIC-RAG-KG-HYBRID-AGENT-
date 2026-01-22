@@ -151,20 +151,45 @@ class AmazonScraper:
         context = await self.browser.new_context(
             user_agent=self._get_random_user_agent(),
             viewport={"width": 1920, "height": 1080},
-            locale="en-US"
+            locale="en-US",
+            extra_http_headers={
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Cache-Control": "max-age=0"
+            }
         )
 
         page = await context.new_page()
 
-        try:
-            # 페이지 1 로드 (1-50위)
-            await page.goto(category_url, wait_until="domcontentloaded", timeout=30000)
-            await self._random_delay()
+        # 재시도 로직 (최대 3회)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # 페이지 1 로드 (1-50위)
+                await page.goto(category_url, wait_until="domcontentloaded", timeout=30000)
+                await self._random_delay()
 
-            # 차단 감지
-            if await self._is_blocked(page):
-                result["error"] = "BLOCKED"
-                return result
+                # 차단 감지
+                if await self._is_blocked(page):
+                    if attempt < max_retries - 1:
+                        # 재시도 전 긴 대기 (10-20초)
+                        wait_time = 10 + random.uniform(5, 10)
+                        logger.warning(f"Blocked on {category_id}, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    result["error"] = "BLOCKED"
+                    return result
+                break  # 성공시 루프 탈출
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                raise
+
+        try:
 
             # 첫 페이지 파싱 (1-50위)
             products_page1 = await self._parse_bestseller_page(page, category_id, start_rank=1)
@@ -229,8 +254,9 @@ class AmazonScraper:
             else:
                 results["error_count"] += 1
 
-            # 카테고리 간 딜레이
-            await asyncio.sleep(self.delay_seconds * 2)
+            # 카테고리 간 딜레이 (5-10초)
+            delay = 5 + random.uniform(2, 5)
+            await asyncio.sleep(delay)
 
         return results
 

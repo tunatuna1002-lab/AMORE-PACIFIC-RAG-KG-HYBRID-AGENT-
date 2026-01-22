@@ -1,8 +1,20 @@
 {
-  "version": "1.1",
-  "updated_at": "2026-01-19",
+  "version": "1.2",
+  "updated_at": "2026-01-20",
   "source": "Amazon US Best Sellers",
   "description": "Amazon 카테고리 계층 구조 - 동일 ASIN이 여러 카테고리에서 다른 순위를 가질 수 있음",
+  "hierarchy_visual": {
+    "description": "정리된 계층 구조 (Hierarchy)",
+    "tree": [
+      "Beauty & Personal Care (전체 뷰티 랭킹) - Level 0",
+      "├── Skin Care - Level 1",
+      "│   └── Lip Care (립케어) - Level 2",
+      "└── Make Up - Level 1",
+      "    ├── Lips (립메이크업 / 색조) - Level 2",
+      "    └── Face - Level 2",
+      "        └── Powder (파우더) - Level 3"
+    ]
+  },
   "categories": {
     "beauty": {
       "name": "Beauty & Personal Care",

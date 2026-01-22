@@ -1,0 +1,20 @@
+{
+  "target_brand": {
+    "name": "LANEIGE",
+    "aliases": ["LANEIGE", "Laneige", "laneige", "라네즈"],
+    "keywords": ["laneige", "라네즈", "lip sleeping mask", "water sleeping mask"]
+  },
+  "competitor_brands": [
+    {"name": "Rare Beauty", "tier": "premium"},
+    {"name": "TIRTIR", "tier": "mid"},
+    {"name": "Summer Fridays", "tier": "premium"},
+    {"name": "Rhode", "tier": "premium"},
+    {"name": "Glow Recipe", "tier": "premium"},
+    {"name": "e.l.f.", "tier": "affordable"},
+    {"name": "NYX", "tier": "affordable"},
+    {"name": "Maybelline", "tier": "mass"},
+    {"name": "COSRX", "tier": "mid"},
+    {"name": "Beauty of Joseon", "tier": "mid"}
+  ],
+  "korean_brands": ["LANEIGE", "TIRTIR", "COSRX", "Beauty of Joseon", "innisfree", "MISSHA"]
+}

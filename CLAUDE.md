@@ -21,6 +21,41 @@
 
 ---
 
+## Design System - AMOREPACIFIC Color Palette
+
+모든 UI 개발 시 아래 컬러 팔레트를 **반드시** 적용합니다.
+
+> "달 그림자와 같은 부드럽고 온화한 느낌의 '아모레 블루'와 깊은 바다와 사막의 밤을 연상시키는 이성적이고 강렬한 느낌의 '퍼시픽 블루'가 부드럽게 조화"
+
+| 색상명 | HEX | RGB | 용도 |
+|--------|-----|-----|------|
+| **Amore Blue** | `#1F5795` | R31 G87 B149 | 부드럽고 온화한 느낌, 보조 강조, LANEIGE 브랜드 컬러 |
+| **Pacific Blue** | `#001C58` | R0 G28 B88 | 강렬하고 이성적인 느낌, 헤더/사이드바, 주요 강조 |
+| **Black** | `#000000` | R0 G0 B0 | 기본 텍스트 |
+| **Gray** | `#7D7D7D` | R125 G125 B125 | 보조 텍스트, 비활성 상태, 테두리 |
+| **White** | `#FFFFFF` | R255 G255 B255 | 배경, 카드 |
+
+### CSS 변수 매핑
+
+```css
+:root {
+    --pacific-blue: #001C58;    /* 메인 헤더, 사이드바 */
+    --amore-blue: #1F5795;      /* 강조, 버튼, 링크 */
+    --text-primary: #000000;    /* 기본 텍스트 */
+    --text-secondary: #7D7D7D;  /* 보조 텍스트 */
+    --bg-white: #FFFFFF;        /* 배경 */
+}
+```
+
+### 사용 원칙
+
+1. **Pacific Blue (#001C58)**: 헤더, 사이드바, 주요 CTA 버튼
+2. **Amore Blue (#1F5795)**: 차트 강조색, 링크, 보조 버튼
+3. **Gray (#7D7D7D)**: 비활성 상태, placeholder, 테두리
+4. **White (#FFFFFF)**: 카드 배경, 콘텐츠 영역
+
+---
+
 ## Tech Stack
 
 | Category | Technology |
@@ -211,6 +246,104 @@ Agents follow input/output contracts:
 1. **Think**: Plan next action
 2. **Act**: Execute agent
 3. **Observe**: Validate results
+
+---
+
+## Clean Architecture Guidelines (v2026.01.22)
+
+이 프로젝트는 **Clean Architecture** 원칙을 따릅니다. 새 코드 작성 시 반드시 아래 규칙을 준수하세요.
+
+### Layer Structure (의존성 방향: 안쪽으로만)
+
+```
+src/
+├── domain/           # Layer 1: Entities (핵심 비즈니스 규칙)
+│   ├── entities/     # Product, Brand, RankRecord, Metrics
+│   ├── interfaces/   # Protocol 정의 (Repository, Agent, Scraper)
+│   └── value_objects/
+│
+├── application/      # Layer 2: Use Cases (애플리케이션 비즈니스 규칙)
+│   ├── workflows/    # BatchWorkflow (DI 패턴)
+│   ├── services/     # ChatService, InsightService
+│   └── orchestrators/
+│
+├── adapters/         # Layer 3: Interface Adapters
+│   ├── agents/       # Agent 구현체
+│   └── rag/          # RAG 구현체
+│
+├── infrastructure/   # Layer 4: Frameworks & Drivers
+│   ├── config/       # AppConfig
+│   ├── persistence/  # Repository 구현체
+│   ├── external/     # 외부 API (Amazon, LLM)
+│   └── bootstrap.py  # DI Container
+│
+└── api/              # FastAPI Routes
+```
+
+### Import Rules (절대 위반 금지)
+
+| From → To | 허용 여부 |
+|-----------|----------|
+| domain → (nothing) | ✅ domain은 외부 의존 없음 |
+| application → domain | ✅ |
+| adapters → domain, application | ✅ |
+| infrastructure → domain, application | ✅ |
+| **infrastructure → adapters** | ❌ 금지 |
+| **domain → application** | ❌ 금지 |
+| **domain → infrastructure** | ❌ 금지 |
+
+### New Code Placement Guide
+
+| 코드 유형 | 위치 |
+|----------|------|
+| 새 Entity/Model | `src/domain/entities/` |
+| 새 Protocol/Interface | `src/domain/interfaces/` |
+| 비즈니스 로직/워크플로우 | `src/application/workflows/` |
+| Agent 구현체 | `src/adapters/agents/` |
+| 외부 API 연동 | `src/infrastructure/external/` |
+| DB/Storage 구현 | `src/infrastructure/persistence/` |
+
+### TDD Workflow (테스트 먼저)
+
+새 기능 개발 시 반드시 TDD를 따릅니다:
+
+1. **🔴 RED**: 테스트 먼저 작성 (`tests/unit/{layer}/test_*.py`)
+2. **🟢 GREEN**: 최소한의 구현으로 테스트 통과
+3. **🔵 REFACTOR**: 코드 정리 (테스트 유지)
+
+```bash
+# 테스트 실행
+python -m pytest tests/unit/domain/ -v      # Domain 테스트
+python -m pytest tests/unit/application/ -v # Application 테스트
+python -m pytest tests/ -v                  # 전체 테스트
+```
+
+### Dependency Injection Pattern
+
+새 서비스/워크플로우는 Protocol 기반 DI를 사용합니다:
+
+```python
+# ❌ Bad: 직접 의존
+from src.agents.crawler_agent import CrawlerAgent
+class MyWorkflow:
+    def __init__(self):
+        self.crawler = CrawlerAgent()  # 직접 생성
+
+# ✅ Good: Protocol 기반 DI
+from src.domain.interfaces.agent import CrawlerAgentProtocol
+class MyWorkflow:
+    def __init__(self, crawler: CrawlerAgentProtocol):
+        self.crawler = crawler  # 주입받음
+```
+
+### Deprecated Import Paths
+
+기존 경로는 호환성을 위해 유지되지만, 새 코드는 새 경로를 사용하세요:
+
+| Deprecated | Use Instead |
+|------------|-------------|
+| `from src.ontology.schema import *` | `from src.domain.entities import *` |
+| `from src.ontology.relations import *` | `from src.domain.entities.relations import *` |
 
 ---
 

@@ -1,14 +1,81 @@
 """
 Hybrid Retriever
-Ontology + RAG 하이브리드 검색기
+================
+Ontology + RAG 하이브리드 검색기 (지식 그래프 + 문서 검색 통합)
 
-기능:
+## 아키텍처 다이어그램
+```
+                        ┌─────────────────────┐
+                        │     User Query      │
+                        │  "LANEIGE 경쟁력?"  │
+                        └──────────┬──────────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │  Entity Extraction  │
+                        │ brands: ["LANEIGE"] │
+                        │ categories: ["lip"] │
+                        └──────────┬──────────┘
+                                   │
+          ┌────────────────────────┼────────────────────────┐
+          │                        │                        │
+          ▼                        ▼                        ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ Knowledge Graph │     │    Reasoner     │     │  RAG Document   │
+│                 │     │                 │     │   Retriever     │
+│ - 브랜드 제품   │     │ - 비즈니스 규칙 │     │                 │
+│ - 경쟁 관계     │     │ - SoS 분석      │     │ - 지표 정의     │
+│ - 카테고리 계층 │     │ - 경쟁력 추론   │     │ - 해석 가이드   │
+│ - 감성 데이터   │     │ - 인사이트 생성 │     │ - 전략 플레이북 │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                      ┌──────────▼──────────┐
+                      │    Context Merge    │
+                      │                     │
+                      │ 1. Ontology Facts   │
+                      │ 2. Inferences       │
+                      │ 3. RAG Chunks       │
+                      │ 4. Category Context │
+                      └──────────┬──────────┘
+                                 │
+                      ┌──────────▼──────────┐
+                      │   HybridContext     │
+                      │  (LLM 프롬프트용)   │
+                      └─────────────────────┘
+```
+
+## 핵심 컴포넌트
+1. **KnowledgeGraph**: 구조화된 관계 데이터 (브랜드-제품-카테고리)
+2. **OntologyReasoner**: 비즈니스 규칙 기반 인사이트 추론
+3. **DocumentRetriever**: 가이드라인 문서 키워드 검색 (docs/guides/)
+4. **EntityExtractor**: 쿼리에서 브랜드/카테고리/지표 엔티티 추출
+
+## 사용 예
+```python
+retriever = HybridRetriever(kg, reasoner, doc_retriever)
+await retriever.initialize()
+
+context = await retriever.retrieve(
+    query="LANEIGE Lip Care 경쟁력 분석",
+    current_metrics=dashboard_data
+)
+
+# context.ontology_facts: KG에서 조회한 사실
+# context.inferences: 추론된 인사이트
+# context.rag_chunks: RAG 문서 청크
+# context.combined_context: LLM용 통합 컨텍스트
+```
+
+## 기능
 1. 온톨로지에서 구조화된 지식 추론
 2. RAG에서 비구조화된 가이드라인 검색
 3. 두 결과를 통합하여 풍부한 컨텍스트 생성
+4. 카테고리 계층 정보 포함
+5. 감성 분석 데이터 통합
 
-Flow:
-    Query → Entity Extraction → [Ontology Reasoning + RAG Search] → Context Merge → LLM
+## Flow
+Query → Entity Extraction → [Ontology Reasoning + RAG Search] → Context Merge → LLM
 """
 
 from typing import Dict, List, Any, Optional, Tuple
@@ -322,6 +389,15 @@ class HybridRetriever:
         """비동기 초기화"""
         if not self._initialized:
             await self.doc_retriever.initialize()
+
+            # 카테고리 계층 구조 로드 (지식그래프 강화)
+            try:
+                hierarchy_added = self.kg.load_category_hierarchy()
+                if hierarchy_added > 0:
+                    logger.info(f"Loaded category hierarchy: {hierarchy_added} relations added")
+            except Exception as e:
+                logger.warning(f"Failed to load category hierarchy: {e}")
+
             self._initialized = True
 
     async def retrieve(
@@ -444,6 +520,7 @@ class HybridRetriever:
 
         # 카테고리 관련 사실
         for category in entities.get("categories", []):
+            # 카테고리 브랜드 정보
             category_brands = self.kg.get_category_brands(category)
             if category_brands:
                 facts.append({
@@ -454,6 +531,24 @@ class HybridRetriever:
                         "top_brands": category_brands[:5]
                     }
                 })
+
+            # 카테고리 계층 정보 (부모/자식 관계)
+            try:
+                hierarchy = self.kg.get_category_hierarchy(category)
+                if hierarchy and not hierarchy.get("error"):
+                    facts.append({
+                        "type": "category_hierarchy",
+                        "entity": category,
+                        "data": {
+                            "name": hierarchy.get("name", ""),
+                            "level": hierarchy.get("level", 0),
+                            "path": hierarchy.get("path", []),
+                            "ancestors": hierarchy.get("ancestors", []),
+                            "descendants": hierarchy.get("descendants", [])
+                        }
+                    })
+            except Exception:
+                pass
 
         # 감성 관련 사실 조회
         sentiment_clusters = entities.get("sentiment_clusters", [])
@@ -744,6 +839,18 @@ class HybridRetriever:
                 elif fact_type == "category_brands":
                     top_brands = [b.get("brand", "") for b in data.get("top_brands", [])[:3]]
                     parts.append(f"- **{entity}** Top 브랜드: {', '.join(top_brands)}")
+
+                elif fact_type == "category_hierarchy":
+                    level = data.get("level", 0)
+                    path = data.get("path", [])
+                    ancestors = data.get("ancestors", [])
+                    name = data.get("name", entity)
+                    if path:
+                        path_str = " > ".join([a.get("name", a.get("id", "")) if isinstance(a, dict) else a for a in path])
+                        parts.append(f"- **{name}** 계층: {path_str} (Level {level})")
+                    if ancestors:
+                        parent_names = [a.get("name", "") for a in ancestors[:2]]
+                        parts.append(f"  - 상위 카테고리: {', '.join(parent_names)}")
 
             parts.append("")
 

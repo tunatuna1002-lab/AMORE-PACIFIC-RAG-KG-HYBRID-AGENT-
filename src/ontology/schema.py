@@ -1,202 +1,61 @@
 """
 Ontology Schema Definitions
+===========================
 5개 핵심 엔티티: Brand, Product, Category, Snapshot, RankRecord
+
+DEPRECATED: 이 모듈은 기존 import 경로 호환성을 위해 유지됩니다.
+새 코드는 src.domain.entities에서 직접 import하세요:
+
+    from src.domain.entities import RankRecord, Product, Brand, Category, Snapshot
+    from src.domain.entities import BrandMetrics, MarketMetrics, ProductMetrics, BadgeType
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime, date
-from enum import Enum
+import warnings
+from typing import TYPE_CHECKING
+
+# Re-export from new domain layer for backward compatibility
+from src.domain.entities.product import (
+    BadgeType,
+    Product,
+    RankRecord,
+)
+from src.domain.entities.brand import (
+    Brand,
+    BrandMetrics,
+)
+from src.domain.entities.market import (
+    Category,
+    Snapshot,
+    ProductMetrics,
+    MarketMetrics,
+)
+
+# All exports for star import
+__all__ = [
+    # Product entities
+    "BadgeType",
+    "Product",
+    "RankRecord",
+    # Brand entities
+    "Brand",
+    "BrandMetrics",
+    # Market entities
+    "Category",
+    "Snapshot",
+    "ProductMetrics",
+    "MarketMetrics",
+]
 
 
-class BadgeType(str, Enum):
-    """Amazon 뱃지 유형"""
-    BEST_SELLER = "Best Seller"
-    AMAZONS_CHOICE = "Amazon's Choice"
-    CLIMATE_PLEDGE = "Climate Pledge Friendly"
-    NONE = ""
-
-
-class Brand(BaseModel):
-    """브랜드 엔티티"""
-    name: str = Field(..., description="브랜드명 (예: LANEIGE)")
-    is_target: bool = Field(default=False, description="추적 대상 브랜드 여부")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "name": "LANEIGE",
-                "is_target": True
-            }
-        }
-
-
-class Category(BaseModel):
-    """카테고리 엔티티"""
-    id: str = Field(..., description="카테고리 ID (예: lip_care)")
-    name: str = Field(..., description="카테고리명 (예: Lip Care)")
-    url: str = Field(..., description="Amazon 베스트셀러 URL")
-    parent_id: Optional[str] = Field(default=None, description="상위 카테고리 ID")
-    amazon_node_id: str = Field(default="", description="Amazon 노드 ID")
-    level: int = Field(default=0, description="계층 레벨 (0=root, 1=중분류, 2=소분류)")
-    path: List[str] = Field(default_factory=list, description="전체 경로 (예: ['beauty', 'skin_care', 'lip_care'])")
-    children: List[str] = Field(default_factory=list, description="자식 카테고리 ID 목록")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "lip_care",
-                "name": "Lip Care",
-                "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care-Lip-Care-Products/zgbs/beauty/3761351",
-                "parent_id": "beauty",
-                "amazon_node_id": "3761351",
-                "level": 2,
-                "path": ["beauty", "skin_care", "lip_care"],
-                "children": []
-            }
-        }
-
-
-class Product(BaseModel):
-    """제품 엔티티"""
-    asin: str = Field(..., description="Amazon Standard Identification Number")
-    product_name: str = Field(..., description="제품명")
-    brand: str = Field(..., description="브랜드명")
-    product_url: str = Field(..., description="제품 상세 페이지 URL")
-    first_seen_date: Optional[date] = Field(default=None, description="시스템에서 최초 발견된 날짜")
-    launch_date: Optional[date] = Field(default=None, description="실제 출시일 (Amazon 상세페이지에서 수집)")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "asin": "B08XYZ1234",
-                "product_name": "LANEIGE Lip Sleeping Mask - Berry",
-                "brand": "LANEIGE",
-                "product_url": "https://www.amazon.com/dp/B08XYZ1234",
-                "first_seen_date": "2025-01-01",
-                "launch_date": "2024-11-15"
-            }
-        }
-
-
-class Snapshot(BaseModel):
-    """스냅샷 엔티티 - 특정 시점의 데이터 수집 기록"""
-    snapshot_date: date = Field(..., description="스냅샷 날짜")
-    category_id: str = Field(..., description="카테고리 ID")
-    collected_at: datetime = Field(default_factory=datetime.now, description="실제 수집 시간")
-    total_products: int = Field(default=100, description="수집된 제품 수")
-    success: bool = Field(default=True, description="수집 성공 여부")
-    error_message: Optional[str] = Field(default=None, description="에러 메시지")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "snapshot_date": "2025-01-15",
-                "category_id": "lip_care",
-                "collected_at": "2025-01-15T09:30:00",
-                "total_products": 100,
-                "success": True
-            }
-        }
-
-
-class RankRecord(BaseModel):
-    """순위 기록 엔티티 - 특정 시점의 제품 순위 정보 (프로모션 정보 포함)"""
-    snapshot_date: date = Field(..., description="스냅샷 날짜")
-    category_id: str = Field(..., description="카테고리 ID")
-    asin: str = Field(..., description="제품 ASIN")
-    product_name: str = Field(..., description="제품명")
-    brand: str = Field(..., description="브랜드명")
-    rank: int = Field(..., ge=1, le=100, description="순위 (1-100)")
-    price: Optional[float] = Field(default=None, description="현재 판매가 (USD)")
-    list_price: Optional[float] = Field(default=None, description="정가/원가 (USD)")
-    discount_percent: Optional[float] = Field(default=None, description="할인율 (%)")
-    rating: Optional[float] = Field(default=None, ge=0, le=5, description="평점 (0-5)")
-    reviews_count: Optional[int] = Field(default=None, ge=0, description="리뷰 수")
-    badge: str = Field(default="", description="뱃지 (Best Seller, Amazon's Choice 등)")
-    coupon_text: str = Field(default="", description="쿠폰 정보 (예: Save 5% with coupon)")
-    is_subscribe_save: bool = Field(default=False, description="Subscribe & Save 여부")
-    promo_badges: str = Field(default="", description="프로모션 배지 (Limited Time Deal, Lightning Deal 등)")
-    product_url: str = Field(..., description="제품 URL")
-
-    # 신규 필드 (할인 추적 및 정확한 수집 시간)
-    collected_at: Optional[datetime] = Field(default=None, description="정확한 수집 시간 (날짜+시간)")
-    discount_trend: Optional[str] = Field(default=None, description="할인율 추세 (up, down, stable, None)")
-    previous_price: Optional[float] = Field(default=None, description="이전 가격 (할인 추적용, USD)")
-    previous_discount: Optional[float] = Field(default=None, description="이전 할인율 (%)")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "snapshot_date": "2025-01-15",
-                "category_id": "lip_care",
-                "asin": "B08XYZ1234",
-                "product_name": "LANEIGE Lip Sleeping Mask - Berry",
-                "brand": "LANEIGE",
-                "rank": 1,
-                "price": 24.00,
-                "list_price": 30.00,
-                "discount_percent": 20.0,
-                "rating": 4.7,
-                "reviews_count": 89234,
-                "badge": "Best Seller",
-                "coupon_text": "Save 5% with coupon",
-                "is_subscribe_save": True,
-                "promo_badges": "Limited Time Deal, Climate Pledge Friendly",
-                "product_url": "https://www.amazon.com/dp/B08XYZ1234",
-                "collected_at": "2025-01-15T09:30:00",
-                "discount_trend": "down",
-                "previous_price": 26.00,
-                "previous_discount": 13.3
-            }
-        }
-
-
-class ProductMetrics(BaseModel):
-    """제품별 계산된 지표"""
-    asin: str
-    category_id: str
-
-    # Level 3: Product & Risk 지표
-    rank_volatility: Optional[float] = Field(default=None, description="순위 변동성 (7일 표준편차)")
-    rank_shock: bool = Field(default=False, description="순위 급변 발생 여부")
-    rank_change: Optional[int] = Field(default=None, description="전일 대비 순위 변화")
-    streak_days: int = Field(default=0, description="Top N 연속 체류일")
-    rating_trend: Optional[float] = Field(default=None, description="평점 추세 (기울기)")
-    best_rank: Optional[int] = Field(default=None, description="최고 순위")
-    days_in_top_n: dict = Field(default_factory=dict, description="Top N별 체류일 수")
-
-    calculated_at: datetime = Field(default_factory=datetime.now)
-
-
-class BrandMetrics(BaseModel):
-    """브랜드별 계산된 지표"""
-    brand: str
-    category_id: str
-
-    # Level 1: Market & Brand 지표
-    sos: float = Field(..., description="Share of Shelf (%)")
-    brand_avg_rank: Optional[float] = Field(default=None, description="브랜드 평균 순위")
-    product_count: int = Field(default=0, description="Top 100 내 제품 수")
-
-    # Level 2: Category & Price 지표
-    cpi: Optional[float] = Field(default=None, description="Category Price Index")
-    avg_rating_gap: Optional[float] = Field(default=None, description="평균 평점 격차")
-
-    calculated_at: datetime = Field(default_factory=datetime.now)
-
-
-class MarketMetrics(BaseModel):
-    """시장(카테고리)별 계산된 지표"""
-    category_id: str
-    snapshot_date: date
-
-    # Level 1: Market 지표
-    hhi: float = Field(..., description="Herfindahl Index (시장 집중도)")
-
-    # Level 2: Market 지표
-    churn_rate: Optional[float] = Field(default=None, description="순위 교체율")
-    category_avg_price: Optional[float] = Field(default=None, description="카테고리 평균 가격")
-    category_avg_rating: Optional[float] = Field(default=None, description="카테고리 평균 평점")
-
-    calculated_at: datetime = Field(default_factory=datetime.now)
+def __getattr__(name: str):
+    """Emit deprecation warning for direct access."""
+    if name in __all__:
+        warnings.warn(
+            f"Importing {name} from src.ontology.schema is deprecated. "
+            f"Use 'from src.domain.entities import {name}' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        # Return the already imported symbol
+        return globals().get(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

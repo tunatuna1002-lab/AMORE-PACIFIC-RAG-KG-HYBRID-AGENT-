@@ -1,0 +1,9 @@
+Classify the user query into one of these categories:
+
+1. METRICS - Questions about specific KPIs (SoS, HHI, CPI, rankings)
+2. COMPARISON - Comparing brands or products
+3. TREND - Questions about changes over time
+4. INSIGHT - Requests for analysis or recommendations
+5. GENERAL - General questions about the system
+
+Return JSON: {"category": "CATEGORY_NAME", "confidence": 0.0-1.0}

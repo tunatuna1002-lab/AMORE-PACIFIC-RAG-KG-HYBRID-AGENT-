@@ -15,6 +15,7 @@ Ontology-RAG Hybrid Integration:
 
 import os
 import json
+from pathlib import Path
 from datetime import datetime, date, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from collections import defaultdict
@@ -23,6 +24,7 @@ from collections import defaultdict
 KST = timezone(timedelta(hours=9))
 
 from src.tools.sheets_writer import SheetsWriter
+from src.tools.sqlite_storage import SQLiteStorage
 
 # Ontology components (optional import)
 try:
@@ -61,6 +63,7 @@ class DashboardExporter:
             enable_ontology: 온톨로지 추론 활성화 여부
         """
         self.sheets = SheetsWriter(spreadsheet_id=spreadsheet_id)
+        self.sqlite = SQLiteStorage()
         self._initialized = False
 
         # Ontology components
@@ -82,9 +85,12 @@ class DashboardExporter:
 
     async def initialize(self) -> bool:
         """초기화"""
-        result = await self.sheets.initialize()
-        self._initialized = result
-        return result
+        # SQLite 초기화 (primary)
+        await self.sqlite.initialize()
+        # Google Sheets 초기화 (fallback)
+        await self.sheets.initialize()
+        self._initialized = True
+        return True
 
     async def export_dashboard_data(self, output_path: str = "./data/dashboard_data.json") -> Dict[str, Any]:
         """
@@ -142,8 +148,81 @@ class DashboardExporter:
         return dashboard_data
 
     async def _load_raw_data(self) -> List[Dict[str, Any]]:
-        """RawData 시트에서 데이터 로드"""
-        return await self.sheets.get_rank_history(days=30)
+        """SQLite, raw_products 폴더, 또는 로컬 JSON에서 데이터 로드"""
+        all_products = []
+
+        # 1. SQLite에서 시도 (primary)
+        try:
+            data = await self.sqlite.get_historical_data(days=30)
+            if data:
+                print(f"SQLite에서 {len(data)}개 제품 로드")
+                return data
+        except Exception as e:
+            print(f"SQLite 로드 실패: {e}")
+
+        # 2. raw_products 폴더에서 날짜별 히스토리 로드 (최근 30일)
+        raw_products_dir = "./data/raw_products"
+        if os.path.exists(raw_products_dir):
+            cutoff_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            json_files = sorted(Path(raw_products_dir).glob("*.json"), reverse=True)
+
+            for json_file in json_files:
+                file_date = json_file.stem  # YYYY-MM-DD 형식
+                if file_date < cutoff_date:
+                    continue
+
+                try:
+                    with open(json_file, "r", encoding="utf-8") as f:
+                        daily_products = json.load(f)
+
+                    # snapshot_date가 없으면 파일명에서 추출
+                    for product in daily_products:
+                        if not product.get("snapshot_date"):
+                            product["snapshot_date"] = file_date
+
+                    all_products.extend(daily_products)
+                    print(f"히스토리 데이터 로드: {json_file.name} ({len(daily_products)}개)")
+                except Exception as e:
+                    print(f"히스토리 파일 로드 실패 ({json_file}): {e}")
+
+        # 3. latest_crawl_result.json에서 fallback (히스토리에 없는 최신 데이터)
+        local_paths = [
+            "./data/latest_crawl_result.json",
+            "./data/crawl_result.json"
+        ]
+
+        for path in local_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        crawl_data = json.load(f)
+
+                    # categories 구조에서 products 추출
+                    products = []
+                    categories = crawl_data.get("categories", {})
+                    for cat_id, cat_data in categories.items():
+                        for product in cat_data.get("products", []):
+                            product["category_id"] = cat_id
+                            products.append(product)
+
+                    if products:
+                        # 이미 로드된 날짜인지 확인
+                        latest_date = products[0].get("snapshot_date", "")
+                        existing_dates = set(p.get("snapshot_date") for p in all_products)
+
+                        if latest_date and latest_date not in existing_dates:
+                            all_products.extend(products)
+                            print(f"최신 데이터 로드: {path} ({len(products)}개, {latest_date})")
+                        elif not all_products:
+                            # 히스토리가 없으면 최신 데이터라도 사용
+                            all_products.extend(products)
+                            print(f"로컬 JSON에서 {len(products)}개 제품 로드: {path}")
+                        break
+                except Exception as e:
+                    print(f"로컬 JSON 로드 실패 ({path}): {e}")
+
+        print(f"총 {len(all_products)}개 제품 데이터 로드 완료")
+        return all_products
 
     def _get_latest_date(self, data: List[Dict]) -> str:
         """최신 데이터 날짜 반환"""
@@ -329,9 +408,9 @@ class DashboardExporter:
         laneige_ranks = laneige_stats["ranks"] if laneige_stats["ranks"] else [999]
         avg_rank = sum(laneige_ranks) / len(laneige_ranks) if laneige_ranks else 0
 
-        # LANEIGE 평균 가격 계산 (문자열 → float 변환)
+        # LANEIGE 평균 가격 계산 (문자열 → float 변환, $0.50~$500 범위만)
         laneige_prices = [self._safe_float(p.get("price")) for p in laneige_stats.get("products", []) if p.get("price")]
-        laneige_prices = [p for p in laneige_prices if p > 0]  # 유효한 가격만
+        laneige_prices = [p for p in laneige_prices if 0.5 <= p <= 500]  # 유효한 USD 가격 범위만
         laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else None
 
         # SoS 계산 (Share of Shelf = LANEIGE 제품 수 / 전체 Top 100)
@@ -381,9 +460,9 @@ class DashboardExporter:
             avg_rank = sum(stats["ranks"]) / len(stats["ranks"])
             product_count = len(stats["products"])
 
-            # 평균 가격 계산 (문자열 → float 변환)
+            # 평균 가격 계산 (문자열 → float 변환, $0.50~$500 범위만)
             prices = [self._safe_float(p.get("price")) for p in stats["products"] if p.get("price")]
-            prices = [p for p in prices if p > 0]  # 유효한 가격만
+            prices = [p for p in prices if 0.5 <= p <= 500]  # 유효한 USD 가격 범위만
             avg_price = sum(prices) / len(prices) if prices else None
 
             competitors.append({
@@ -500,8 +579,9 @@ class DashboardExporter:
 
     def _classify_growth_type(self, discount_percent: float, coupon_text: str, promo_badges: str) -> str:
         """성장 유형 분류: 할인 기반 vs 오가닉"""
-        has_significant_discount = discount_percent > 15
+        has_significant_discount = (discount_percent or 0) > 15
         has_coupon = bool(coupon_text)
+        promo_badges = promo_badges or ""
         has_deal = "Deal" in promo_badges or "Lightning" in promo_badges
 
         if has_significant_discount or has_coupon or has_deal:
@@ -545,21 +625,36 @@ class DashboardExporter:
             if date_str:
                 date_groups[date_str].append(record)
 
-        # 최근 7일 정렬
-        sorted_dates = sorted(date_groups.keys())[-7:]
+        # 전체 날짜 정렬
+        all_sorted_dates = sorted(date_groups.keys())
 
-        # SoS 추이 데이터
-        sos_trend = []
-        for date_str in sorted_dates:
-            day_data = date_groups[date_str]
-            laneige_count = len([r for r in day_data if self._is_laneige(r)])
-            total = len(day_data)
-            sos = (laneige_count / total * 100) if total > 0 else 0
+        # 기간별 SoS 추이 데이터 생성 함수
+        def calc_sos_trend(days: int) -> Dict[str, Any]:
+            dates = all_sorted_dates[-days:] if len(all_sorted_dates) >= days else all_sorted_dates
+            labels = []
+            data = []
+            for date_str in dates:
+                day_data = date_groups[date_str]
+                laneige_count = len([r for r in day_data if self._is_laneige(r)])
+                total = len(day_data)
+                sos = (laneige_count / total * 100) if total > 0 else 0
+                labels.append(date_str[-5:])  # MM-DD 형식
+                data.append(round(sos, 1))
+            return {"labels": labels, "data": data}
 
-            sos_trend.append({
-                "date": date_str[-5:],  # MM-DD 형식
-                "sos": round(sos, 1)
-            })
+        # 7일, 14일, 30일 데이터 생성
+        sos_trend = {
+            "7d": calc_sos_trend(7),
+            "14d": calc_sos_trend(14),
+            "30d": calc_sos_trend(30)
+        }
+
+        # 레거시 호환성을 위해 기본 labels/data도 유지 (7일)
+        sos_trend["labels"] = sos_trend["7d"]["labels"]
+        sos_trend["data"] = sos_trend["7d"]["data"]
+
+        # 최근 7일 정렬 (다른 차트용)
+        sorted_dates = all_sorted_dates[-7:]
 
         # 제품별 SoS (최신 데이터)
         latest_date = sorted_dates[-1] if sorted_dates else ""
@@ -733,16 +828,21 @@ class DashboardExporter:
                 "bubble_size": max(8, min(18, 20 - rank))
             })
 
-        # 할인율 추이 차트 (LANEIGE 제품 평균 할인율)
+        # 할인율 추이 차트 (LANEIGE 제품 평균 할인율 + 가격)
         discount_trend = []
         for date_str in sorted_dates:
             day_data = date_groups[date_str]
             laneige_in_day = [r for r in day_data if self._is_laneige(r)]
-            discounts = [self._safe_float(r.get("discount_percent", 0)) for r in laneige_in_day if r.get("discount_percent")]
+            discounts = [self._safe_float(r.get("discount_percent", 0)) for r in laneige_in_day]
+            prices = [self._safe_float(r.get("price", 0)) for r in laneige_in_day if r.get("price")]
+            # 유효한 USD 가격만 (0.5~500)
+            prices = [p for p in prices if 0.5 <= p <= 500]
             avg_discount = sum(discounts) / len(discounts) if discounts else 0
+            avg_price = sum(prices) / len(prices) if prices else 0
             discount_trend.append({
                 "date": date_str[-5:],
-                "discount": round(avg_discount, 1)
+                "discount": round(avg_discount, 1),
+                "price": round(avg_price, 2)
             })
 
         # 순위 x 할인율 이중축 차트 (LANEIGE 대표 제품)
@@ -768,7 +868,7 @@ class DashboardExporter:
             # 브랜드별 프로모션 현황
             discount_products = [p for p in products if self._safe_float(p.get("discount_percent", 0)) > 0]
             coupon_products = [p for p in products if p.get("coupon_text")]
-            deal_products = [p for p in products if "Deal" in p.get("promo_badges", "")]
+            deal_products = [p for p in products if "Deal" in (p.get("promo_badges") or "")]
             sns_products = [p for p in products if p.get("is_subscribe_save")]
 
             avg_discount = sum(self._safe_float(p.get("discount_percent", 0)) for p in products) / len(products) if products else 0
@@ -797,10 +897,7 @@ class DashboardExporter:
             growth_type_summary[growth_type] += 1
 
         return {
-            "sos_trend": {
-                "labels": [d["date"] for d in sos_trend],
-                "data": [d["sos"] for d in sos_trend]
-            },
+            "sos_trend": sos_trend,
             "product_sos": {
                 "labels": [p["name"] for p in product_sos],
                 "data": [p["sos"] for p in product_sos]
@@ -819,7 +916,8 @@ class DashboardExporter:
             # 프로모션 관련 차트 데이터
             "discount_trend": {
                 "labels": [d["date"] for d in discount_trend],
-                "data": [d["discount"] for d in discount_trend]
+                "prices": [d["price"] for d in discount_trend],
+                "discounts": [d["discount"] for d in discount_trend]
             },
             "rank_discount_dual": {
                 "labels": [d["date"] for d in rank_discount_dual],

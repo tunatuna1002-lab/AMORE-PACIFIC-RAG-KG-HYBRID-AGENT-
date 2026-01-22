@@ -1,12 +1,60 @@
 """
 Knowledge Graph
-온톨로지 기반 지식 그래프 구현
+================
+온톨로지 기반 지식 그래프 구현 (In-Memory Triple Store)
 
-기능:
+## 핵심 개념
+- **Triple**: (Subject, Predicate, Object) 형태의 관계 표현
+  - 예: ("LANEIGE", HAS_PRODUCT, "B08XYZ")
+  - 예: ("B08XYZ", BELONGS_TO_CATEGORY, "lip_care")
+  - 예: ("LANEIGE", COMPETES_WITH, "COSRX")
+
+## 데이터 구조
+```
+KnowledgeGraph
+├── triples: List[Relation]              # 모든 관계 저장
+├── subject_index: Dict[str, List]       # 주체별 빠른 조회
+├── object_index: Dict[str, List]        # 객체별 빠른 조회
+├── predicate_index: Dict[Type, List]    # 관계 유형별 인덱스
+└── entity_metadata: Dict[str, Dict]     # 엔티티 메타데이터
+```
+
+## 관계 유형 (RelationType)
+- HAS_PRODUCT: 브랜드 → 제품
+- BELONGS_TO_CATEGORY: 제품 → 카테고리
+- COMPETES_WITH / DIRECT_COMPETITOR: 브랜드 경쟁 관계
+- PARENT_CATEGORY / HAS_SUBCATEGORY: 카테고리 계층
+- HAS_SENTIMENT / HAS_AI_SUMMARY: 감성 분석 데이터
+
+## 사용 패턴
+```python
+kg = KnowledgeGraph()
+
+# 데이터 로드
+kg.load_from_crawl_data(crawl_result)     # 크롤링 데이터에서 자동 관계 생성
+kg.load_category_hierarchy()               # 카테고리 계층 로드
+
+# 쿼리
+products = kg.get_brand_products("LANEIGE")
+competitors = kg.get_competitors("LANEIGE", category="lip_care")
+hierarchy = kg.get_category_hierarchy("lip_care")
+
+# 그래프 탐색
+path = kg.find_path("LANEIGE", "lip_care")
+neighbors = kg.get_neighbors("LANEIGE", direction="outgoing")
+```
+
+## 메모리 관리
+- max_triples: 최대 트리플 수 (기본 50,000)
+- 초과 시 FIFO로 오래된 트리플 자동 삭제 (10%)
+
+## 기능
 1. 트리플(Triple) 저장 및 관리
-2. 패턴 기반 쿼리
+2. 패턴 기반 쿼리 (SPARQL-like)
 3. 그래프 탐색 (BFS/DFS)
 4. 관계 추론 지원
+5. 카테고리 계층 관리
+6. 감성 데이터 통합
 """
 
 import json

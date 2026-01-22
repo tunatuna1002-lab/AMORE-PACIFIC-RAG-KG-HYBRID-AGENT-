@@ -1,8 +1,62 @@
 """
 Ontology Reasoner
-규칙 기반 추론 엔진
+=================
+규칙 기반 추론 엔진 (비즈니스 로직 인사이트 생성)
 
-기능:
+## 핵심 개념
+- **규칙(InferenceRule)**: IF 조건 THEN 결론 형태
+- **순방향 추론(Forward Chaining)**: 사실 → 규칙 적용 → 새로운 인사이트
+
+## 규칙 구조
+```python
+InferenceRule(
+    name="low_sos_warning",
+    conditions=[
+        RuleCondition("sos_below_5", lambda ctx: ctx["sos"] < 5)
+    ],
+    conclusion=lambda ctx: InferenceResult(
+        insight="SoS가 5% 미만으로 점유율 확대 필요",
+        recommendation="신제품 출시 또는 마케팅 강화 검토"
+    )
+)
+```
+
+## 인사이트 유형 (InsightType)
+- COMPETITIVE_POSITION: 경쟁 포지션 분석
+- MARKET_STRUCTURE: 시장 구조 분석
+- PRICE_STRATEGY: 가격 전략 분석
+- GROWTH_OPPORTUNITY: 성장 기회 분석
+- RISK_ALERT: 리스크 경고
+
+## 사용 예
+```python
+reasoner = OntologyReasoner(knowledge_graph)
+
+# 규칙 등록
+register_all_rules(reasoner)
+
+# 추론 실행
+inferences = reasoner.infer(context={
+    "brand": "LANEIGE",
+    "sos": 5.2,
+    "rank": 8,
+    "hhi": 0.08
+})
+
+# 결과: List[InferenceResult]
+# - insight: "SoS 5.2%로 적정 수준이나 Top 5 진입 필요"
+# - recommendation: "핵심 제품 마케팅 집중"
+# - confidence: 0.85
+
+# 설명 생성
+explanation = reasoner.explain_all(inferences)
+```
+
+## 규칙 정의 위치
+비즈니스 규칙 → src/ontology/business_rules.py
+규칙 설정 → config/rules.json
+
+## 기능
 1. 조건-결론 규칙 정의 및 실행
 2. 순방향 추론 (Forward Chaining)
 3. 추론 과정 설명 (Explainability)
