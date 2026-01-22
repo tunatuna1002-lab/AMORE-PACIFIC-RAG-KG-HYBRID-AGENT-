@@ -647,47 +647,49 @@ class UnifiedOrchestrator:
 
 
 # =============================================================================
-# 팩토리 함수
+# 팩토리 함수 (스레드 안전)
 # =============================================================================
 
 _orchestrator_instance: Optional[UnifiedOrchestrator] = None
+_orchestrator_lock = asyncio.Lock()
 
 
-def get_unified_orchestrator() -> UnifiedOrchestrator:
+async def get_unified_orchestrator() -> UnifiedOrchestrator:
     """
-    통합 오케스트레이터 싱글톤 반환
+    통합 오케스트레이터 싱글톤 반환 (스레드 안전)
 
     Usage:
-        orchestrator = get_unified_orchestrator()
+        orchestrator = await get_unified_orchestrator()
         response = await orchestrator.process(query)
     """
     global _orchestrator_instance
 
-    if _orchestrator_instance is None:
-        from rag.router import RAGRouter
-        from rag.hybrid_retriever import HybridRetriever
-        from ontology.knowledge_graph import KnowledgeGraph
-        from ontology.reasoner import OntologyReasoner
+    async with _orchestrator_lock:
+        if _orchestrator_instance is None:
+            from rag.router import RAGRouter
+            from rag.hybrid_retriever import HybridRetriever
+            from ontology.knowledge_graph import KnowledgeGraph
+            from ontology.reasoner import OntologyReasoner
 
-        # 컴포넌트 초기화
-        kg = KnowledgeGraph(persist_path="./data/knowledge_graph.json")
-        reasoner = OntologyReasoner(kg)
-        hybrid_retriever = HybridRetriever(kg, reasoner)
+            # 컴포넌트 초기화
+            kg = KnowledgeGraph(persist_path="./data/knowledge_graph.json")
+            reasoner = OntologyReasoner(kg)
+            hybrid_retriever = HybridRetriever(kg, reasoner)
 
-        context_gatherer = ContextGatherer(
-            hybrid_retriever=hybrid_retriever,
-            orchestrator_state=OrchestratorState()
-        )
+            context_gatherer = ContextGatherer(
+                hybrid_retriever=hybrid_retriever,
+                orchestrator_state=OrchestratorState()
+            )
 
-        _orchestrator_instance = UnifiedOrchestrator(
-            rag_router=RAGRouter(),
-            context_gatherer=context_gatherer,
-            tool_executor=ToolExecutor(),
-            response_pipeline=ResponsePipeline(),
-            cache=ResponseCache()
-        )
+            _orchestrator_instance = UnifiedOrchestrator(
+                rag_router=RAGRouter(),
+                context_gatherer=context_gatherer,
+                tool_executor=ToolExecutor(),
+                response_pipeline=ResponsePipeline(),
+                cache=ResponseCache()
+            )
 
-        logger.info("UnifiedOrchestrator singleton created")
+            logger.info("UnifiedOrchestrator singleton created")
 
     return _orchestrator_instance
 

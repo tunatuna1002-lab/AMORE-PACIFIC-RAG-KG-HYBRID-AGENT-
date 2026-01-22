@@ -113,8 +113,8 @@ class CrawlManager:
             try:
                 if 'temp_path' in locals() and os.path.exists(temp_path):
                     os.remove(temp_path)
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"임시 파일 정리 실패 (무시됨): {e}")
 
     def get_kst_today(self) -> str:
         """한국 시간 기준 오늘 날짜 반환"""
@@ -305,6 +305,24 @@ class CrawlManager:
                 with open(crawl_json_path, "w", encoding="utf-8") as f:
                     json.dump(result, f, ensure_ascii=False, indent=2, default=json_serializer)
                 logger.info(f"Crawl result saved to {crawl_json_path}")
+
+                # 날짜별 히스토리 데이터 저장 (raw_products 폴더)
+                raw_products_dir = Path("./data/raw_products")
+                raw_products_dir.mkdir(parents=True, exist_ok=True)
+
+                snapshot_date = result.get("snapshot_date", datetime.now(KST).strftime("%Y-%m-%d"))
+                history_path = raw_products_dir / f"{snapshot_date}.json"
+
+                # 모든 카테고리의 제품을 플랫 리스트로 저장
+                all_products = []
+                for cat_id, cat_data in result.get("categories", {}).items():
+                    for product in cat_data.get("products", []):
+                        product["category_id"] = cat_id
+                        all_products.append(product)
+
+                with open(history_path, "w", encoding="utf-8") as f:
+                    json.dump(all_products, f, ensure_ascii=False, indent=2, default=json_serializer)
+                logger.info(f"Historical data saved to {history_path} ({len(all_products)} products)")
             except Exception as save_error:
                 logger.error(f"Failed to save crawl result JSON: {save_error}")
 
@@ -395,13 +413,15 @@ class CrawlManager:
         )
 
 
-# 싱글톤 인스턴스
+# 싱글톤 인스턴스 (스레드 안전)
 _crawl_manager: Optional[CrawlManager] = None
+_crawl_manager_lock = asyncio.Lock()
 
 
-def get_crawl_manager() -> CrawlManager:
-    """CrawlManager 싱글톤 반환"""
+async def get_crawl_manager() -> CrawlManager:
+    """CrawlManager 싱글톤 반환 (스레드 안전)"""
     global _crawl_manager
-    if _crawl_manager is None:
-        _crawl_manager = CrawlManager()
+    async with _crawl_manager_lock:
+        if _crawl_manager is None:
+            _crawl_manager = CrawlManager()
     return _crawl_manager

@@ -57,6 +57,8 @@ import os
 import asyncio
 import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 from typing import Dict, Any, List, Optional
 from io import BytesIO
 from collections import defaultdict
@@ -67,7 +69,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from litellm import acompletion
 
@@ -125,6 +128,20 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-API-Key", "Authorization"],
 )
 
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """보안 헤더 추가 미들웨어"""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"  # iframe 임베딩은 같은 도메인만 허용
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 # ============= 서버 시작 시 자동 스케줄러 =============
 
 AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "true").lower() == "true"
@@ -135,7 +152,7 @@ async def startup_event():
     """서버 시작 시 자동 스케줄러 시작 및 즉시 크롤링 체크"""
     # 1. 즉시 크롤링 필요 여부 체크 (서버 재시작 후 오늘 데이터가 없으면 바로 크롤링)
     try:
-        crawl_manager = get_crawl_manager()
+        crawl_manager = await get_crawl_manager()
         if crawl_manager.needs_crawl():
             logging.info(f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 시작")
             await crawl_manager.start_crawl()
@@ -281,8 +298,8 @@ def cleanup_expired_sessions() -> int:
 
 class ChatRequest(BaseModel):
     """챗봇 요청"""
-    message: str
-    session_id: Optional[str] = "default"
+    message: str = Field(..., max_length=10000, description="최대 10,000자")
+    session_id: Optional[str] = Field(default="default", max_length=100)
     context: Optional[Dict] = None
 
 
@@ -707,7 +724,7 @@ Ontology 엔티티 이해:
         )
 
     except Exception as e:
-        print(f"LLM Error: {e}")
+        logger.error(f"LLM Error: {e}")
 
         # Fallback 응답
         fallback = route_result.get("fallback_message") or rag_router.get_fallback_response("unknown")
@@ -792,7 +809,7 @@ async def chat_v3(request: SimpleChatRequest, req: Request):
         raise HTTPException(status_code=400, detail="Message is required")
 
     # 크롤링 상태 체크
-    crawl_manager = get_crawl_manager()
+    crawl_manager = await get_crawl_manager()
     crawl_notification = None
     crawl_started = False
 
@@ -882,7 +899,7 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
         raise HTTPException(status_code=400, detail="Message is required")
 
     # === 크롤링 상태 체크 ===
-    crawl_manager = get_crawl_manager()
+    crawl_manager = await get_crawl_manager()
     crawl_notification = None
     crawl_started = False
 
@@ -899,7 +916,7 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
 
     try:
         # 통합 오케스트레이터로 처리
-        orchestrator = get_unified_orchestrator()
+        orchestrator = await get_unified_orchestrator()
 
         # 현재 메트릭 데이터 로드
         data = load_dashboard_data()
@@ -963,14 +980,14 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
 @app.get("/api/v2/stats")
 async def get_orchestrator_stats():
     """통합 오케스트레이터 통계 조회"""
-    orchestrator = get_unified_orchestrator()
+    orchestrator = await get_unified_orchestrator()
     return orchestrator.get_stats()
 
 
 @app.get("/api/v2/state")
 async def get_orchestrator_state():
     """통합 오케스트레이터 상태 조회"""
-    orchestrator = get_unified_orchestrator()
+    orchestrator = await get_unified_orchestrator()
     return {
         "summary": orchestrator.get_state_summary(),
         "state": orchestrator.state.to_dict()
@@ -980,7 +997,7 @@ async def get_orchestrator_state():
 @app.get("/api/v2/errors")
 async def get_orchestrator_errors():
     """통합 오케스트레이터 최근 에러 조회"""
-    orchestrator = get_unified_orchestrator()
+    orchestrator = await get_unified_orchestrator()
     return {
         "recent_errors": orchestrator.get_recent_errors(limit=20),
         "stats": orchestrator.get_stats()
@@ -990,7 +1007,7 @@ async def get_orchestrator_errors():
 @app.post("/api/v2/reset-errors")
 async def reset_orchestrator_errors():
     """실패한 에이전트 목록 초기화"""
-    orchestrator = get_unified_orchestrator()
+    orchestrator = await get_unified_orchestrator()
     orchestrator.reset_failed_agents()
     return {"status": "ok", "message": "Failed agents list cleared"}
 
@@ -1007,7 +1024,7 @@ async def get_crawl_status():
         - data_date: 현재 데이터 날짜
         - needs_crawl: 크롤링 필요 여부
     """
-    crawl_manager = get_crawl_manager()
+    crawl_manager = await get_crawl_manager()
     return {
         **crawl_manager.state.to_dict(),
         "data_date": crawl_manager.get_data_date(),
@@ -1026,7 +1043,7 @@ async def start_crawl():
         - started: 크롤링 시작 여부
         - message: 상태 메시지
     """
-    crawl_manager = get_crawl_manager()
+    crawl_manager = await get_crawl_manager()
 
     if crawl_manager.is_crawling():
         return {
@@ -1075,7 +1092,7 @@ async def get_historical_data(
     brand: Optional[str] = "LANEIGE"
 ):
     """
-    히스토리컬 데이터 조회 (Google Sheets에서)
+    히스토리컬 데이터 조회 (SQLite 우선, Google Sheets fallback)
 
     Args:
         start_date: 시작 날짜 (YYYY-MM-DD)
@@ -1086,34 +1103,65 @@ async def get_historical_data(
     Returns:
         - data: 날짜별 지표 데이터
         - sos_history: SoS 추이 데이터
-        - rank_history: 순위 추이 데이터
+        - raw_data: 순위 추이 데이터
     """
     try:
-        sheets_writer = get_sheets_writer()
-        if not sheets_writer._initialized:
-            await sheets_writer.initialize()
+        records = []
+        data_source = None
+
+        # 1차: SQLite에서 조회 (빠름)
+        try:
+            sqlite = get_sqlite_storage()
+            await sqlite.initialize()
+            records = await sqlite.get_raw_data(
+                start_date=start_date,
+                end_date=end_date,
+                category_id=category_id,
+                limit=50000  # 충분히 큰 limit
+            )
+            if records:
+                data_source = "sqlite"
+                logging.info(f"Historical: loaded {len(records)} records from SQLite ({start_date} ~ {end_date})")
+        except Exception as sqlite_err:
+            logging.warning(f"Historical: SQLite 조회 실패: {sqlite_err}")
+
+        # 2차: SQLite 실패/빈 결과 시 Google Sheets fallback
+        if not records:
+            try:
+                sheets_writer = get_sheets_writer()
+                if not sheets_writer._initialized:
+                    await sheets_writer.initialize()
+                records = await sheets_writer.get_raw_data(
+                    start_date=start_date,
+                    end_date=end_date,
+                    category_id=category_id
+                )
+                if records:
+                    data_source = "sheets"
+                    logging.info(f"Historical: loaded {len(records)} records from Sheets ({start_date} ~ {end_date})")
+            except Exception as sheets_err:
+                logging.warning(f"Historical: Google Sheets 조회 실패: {sheets_err}")
+
+        if not records:
+            # 모든 소스에서 데이터 없음 - 로컬 JSON 파일에서 시도
+            return await _get_historical_from_local(start_date, end_date, brand)
 
         # 날짜 범위 계산
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         days = (end_dt - start_dt).days + 1
 
-        # Google Sheets에서 히스토리컬 데이터 조회
-        records = await sheets_writer.get_rank_history(
-            category_id=category_id,
-            brand=brand,
-            days=days
-        )
-
-        if not records:
-            # Google Sheets에 데이터가 없으면 로컬 JSON 파일에서 시도
-            return await _get_historical_from_local(start_date, end_date, brand)
-
-        # 날짜별 데이터 집계
+        # 날짜별 데이터 집계 (특정 브랜드 필터링)
         daily_data = {}
+        brand_lower = brand.lower() if brand else ""
         for record in records:
             snapshot_date = record.get("snapshot_date", "")
             if not snapshot_date or snapshot_date < start_date or snapshot_date > end_date:
+                continue
+
+            # 특정 브랜드 필터링 (SoS 추이 계산용)
+            record_brand = record.get("brand", "")
+            if brand_lower and record_brand.lower() != brand_lower:
                 continue
 
             if snapshot_date not in daily_data:
@@ -1128,6 +1176,7 @@ async def get_historical_data(
             daily_data[snapshot_date]["products"].append({
                 "asin": record.get("asin", ""),
                 "product_name": record.get("product_name", ""),
+                "brand": record_brand,
                 "rank": rank,
                 "price": record.get("price", ""),
                 "rating": record.get("rating", "")
@@ -1136,14 +1185,14 @@ async def get_historical_data(
             if rank <= 10:
                 daily_data[snapshot_date]["top10_count"] += 1
 
-        # SoS 추이 계산 (Top 100 기준)
+        # SoS 추이 계산 (Top 100 기준, 해당 브랜드 기준)
         sos_history = []
-        rank_history = []
+        raw_data = []
         for date_str in sorted(daily_data.keys()):
             day_data = daily_data[date_str]
             products = day_data["products"]
 
-            # SoS = (LANEIGE 제품 수 / 100) * 100
+            # SoS = (브랜드 제품 수 / 100) * 100
             sos = round(len(products) / 100 * 100, 1) if products else 0
             sos_history.append({
                 "date": date_str,
@@ -1155,7 +1204,7 @@ async def get_historical_data(
             # 평균 순위 (있는 경우)
             if products:
                 avg_rank = round(sum(p["rank"] for p in products) / len(products), 1)
-                rank_history.append({
+                raw_data.append({
                     "date": date_str,
                     "rank": avg_rank,
                     "best_rank": min(p["rank"] for p in products),
@@ -1168,13 +1217,55 @@ async def get_historical_data(
         # brand_metrics 계산 (전체 기간 통합 - 모든 브랜드 포함)
         brand_metrics = await _calculate_brand_metrics_for_period(records, daily_data, brand)
 
+        # rank_history 생성 (Product View 차트용)
+        # 형식: { "2026-01-14": { "products": [{ "name": "...", "rank": 5, "price": 21.5 }, ...] } }
+        rank_history = {}
+        for record in records:
+            snapshot_date = record.get("snapshot_date", "")
+            if not snapshot_date or snapshot_date < start_date or snapshot_date > end_date:
+                continue
+
+            if snapshot_date not in rank_history:
+                rank_history[snapshot_date] = {"products": []}
+
+            rank = int(record.get("rank", 0)) if record.get("rank") else 0
+            price_val = record.get("price", 0)
+            try:
+                price = float(str(price_val).replace("$", "").replace(",", "")) if price_val else 0
+            except (ValueError, TypeError):
+                price = 0
+
+            rank_history[snapshot_date]["products"].append({
+                "name": record.get("product_name", ""),
+                "product_name": record.get("product_name", ""),
+                "brand": record.get("brand", ""),
+                "asin": record.get("asin", ""),
+                "rank": rank,
+                "price": price,
+                "rating": record.get("rating", ""),
+                "discount_percent": record.get("discount_percent", 0)
+            })
+
+        # 전체 데이터의 사용 가능한 날짜 범위 조회 (SQLite에서)
+        available_date_range = {"min": None, "max": None}
+        try:
+            sqlite = get_sqlite_storage()
+            stats = sqlite.get_stats()
+            if "date_range" in stats:
+                available_date_range = stats["date_range"]
+        except Exception:
+            pass
+
         return {
             "success": True,
             "available_dates": available_dates,
+            "available_date_range": available_date_range,
+            "data_source": data_source,
             "brand_metrics": brand_metrics,
+            "rank_history": rank_history,
             "data": {
                 "sos_history": sos_history,
-                "rank_history": rank_history,
+                "raw_data": raw_data,
                 "daily_data": list(daily_data.values()),
                 "period": {
                     "start": start_date,
@@ -1299,7 +1390,7 @@ async def _get_historical_from_local(
         # 메인 대시보드 데이터 로드
         data = load_dashboard_data()
         sos_history = []
-        rank_history = []
+        raw_data = []
 
         # 1. 대시보드 데이터에서 현재 SoS/순위 정보 추출
         if data:
@@ -1318,7 +1409,7 @@ async def _get_historical_from_local(
 
                 avg_rank = brand_kpis.get("avg_rank", 0)
                 if avg_rank:
-                    rank_history.append({
+                    raw_data.append({
                         "date": data_date,
                         "rank": avg_rank,
                         "best_rank": brand_kpis.get("best_rank", avg_rank),
@@ -1365,7 +1456,7 @@ async def _get_historical_from_local(
                             "product_count": len(brand_products),
                             "top10_count": sum(1 for p in brand_products if p.get("rank", 100) <= 10)
                         })
-                        rank_history.append({
+                        raw_data.append({
                             "date": crawl_date,
                             "rank": avg_rank,
                             "best_rank": min(p.get("rank", 100) for p in brand_products),
@@ -1403,7 +1494,7 @@ async def _get_historical_from_local(
                                     "product_count": len(brand_products),
                                     "top10_count": sum(1 for p in brand_products if p.get("rank", 100) <= 10)
                                 })
-                                rank_history.append({
+                                raw_data.append({
                                     "date": file_date,
                                     "rank": avg_rank,
                                     "best_rank": min(p.get("rank", 100) for p in brand_products),
@@ -1414,7 +1505,7 @@ async def _get_historical_from_local(
 
         # 날짜순 정렬
         sos_history.sort(key=lambda x: x["date"])
-        rank_history.sort(key=lambda x: x["date"])
+        raw_data.sort(key=lambda x: x["date"])
 
         # available_dates 계산
         available_dates = [h["date"] for h in sos_history]
@@ -1437,7 +1528,7 @@ async def _get_historical_from_local(
             "brand_metrics": brand_metrics,
             "data": {
                 "sos_history": sos_history,
-                "rank_history": rank_history,
+                "raw_data": raw_data,
                 "period": {
                     "start": start_date,
                     "end": end_date
@@ -1705,7 +1796,7 @@ async def export_excel(request: Request):
                     if not sheets_writer._initialized:
                         await sheets_writer.initialize()
 
-                    records = await sheets_writer.get_rank_history(days=days)
+                    records = await sheets_writer.get_raw_data(days=days)
 
                     if records:
                         for record in records:
@@ -2048,8 +2139,8 @@ async def export_excel(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Excel export error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Excel export error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Excel 내보내기 중 오류가 발생했습니다")
 
 
 # ============= Competitor Comparison API =============
@@ -2186,8 +2277,8 @@ async def get_competitor_data(brand: Optional[str] = None):
         return result
 
     except Exception as e:
-        logging.error(f"Competitor data error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Competitor data error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="경쟁사 데이터 조회 중 오류가 발생했습니다")
 
 
 def _detect_product_type(product_name: str) -> str:
@@ -2965,8 +3056,8 @@ async def export_deals_report(
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Deals export error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Deals export error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Deals 내보내기 중 오류가 발생했습니다")
 
 
 # ============= 알림 서비스 API =============
@@ -3092,6 +3183,546 @@ async def send_test_alert():
 
     except Exception as e:
         logging.error(f"Test alert error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+# ============= Category KPI API =============
+
+@app.get("/api/category/kpi")
+async def get_category_kpi(
+    category_id: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    brand: str = "LANEIGE"
+):
+    """
+    카테고리별 KPI 데이터 조회 (기간 필터링 지원)
+
+    Args:
+        category_id: 카테고리 ID (beauty_personal_care, skin_care, lip_care, lip_makeup, face_powder)
+        start_date: 시작일 (YYYY-MM-DD)
+        end_date: 종료일 (YYYY-MM-DD)
+        brand: 타겟 브랜드 (기본값: LANEIGE)
+
+    Returns:
+        KPI 데이터: sos, best_rank, cpi, new_competitors
+    """
+    try:
+        # 날짜 범위 설정
+        if not end_date:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        rows = []
+
+        # SQLite에서 데이터 조회
+        try:
+            from src.tools.sqlite_storage import get_sqlite_storage
+            sqlite = get_sqlite_storage()
+            await sqlite.initialize()
+
+            query = """
+                SELECT snapshot_date, rank, brand, price
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND category_id = ?
+                ORDER BY snapshot_date DESC, rank ASC
+            """
+            with sqlite.get_connection() as conn:
+                cursor = conn.execute(query, (start_date, end_date, category_id))
+                rows = cursor.fetchall()
+        except Exception as db_err:
+            logging.warning(f"SQLite query failed for category KPI: {db_err}")
+
+        # JSON fallback
+        if not rows:
+            crawl_data = _load_crawl_data_for_sos()
+            if crawl_data and crawl_data.get("categories", {}).get(category_id):
+                cat_data = crawl_data["categories"][category_id]
+                snapshot_date = crawl_data.get("snapshot_date", end_date)
+                for product in cat_data.get("products", []):
+                    rows.append((
+                        snapshot_date,
+                        product.get("rank", 100),
+                        product.get("brand", "Unknown"),
+                        product.get("price")
+                    ))
+
+        if not rows:
+            return {
+                "success": True,
+                "message": f"해당 기간({start_date} ~ {end_date})에 데이터가 없습니다.",
+                "data": None,
+                "period": {"start": start_date, "end": end_date}
+            }
+
+        # KPI 계산
+        total_products = len(rows)
+        brand_products = [r for r in rows if r[2] and brand.lower() in r[2].lower()]
+        brand_count = len(brand_products)
+
+        # SoS (Share of Shelf)
+        sos = (brand_count / total_products * 100) if total_products > 0 else 0
+
+        # Best Rank
+        brand_ranks = [r[1] for r in brand_products if r[1]]
+        best_rank = min(brand_ranks) if brand_ranks else None
+
+        # CPI (Competitive Price Index) - 브랜드 평균가 / 전체 평균가 * 100
+        brand_prices = [r[3] for r in brand_products if r[3] and r[3] > 0]
+        all_prices = [r[3] for r in rows if r[3] and r[3] > 0]
+
+        if brand_prices and all_prices:
+            brand_avg_price = sum(brand_prices) / len(brand_prices)
+            all_avg_price = sum(all_prices) / len(all_prices)
+            cpi = (brand_avg_price / all_avg_price * 100) if all_avg_price > 0 else 100
+        else:
+            cpi = 100
+
+        # New Competitors (최근 7일 내 신규 진입 - 간소화된 계산)
+        # 실제로는 이전 기간 데이터와 비교 필요, 여기서는 추정값
+        new_competitors = max(0, total_products - brand_count - 50)  # 간소화된 추정
+
+        return {
+            "success": True,
+            "data": {
+                "category_id": category_id,
+                "sos": round(sos, 1),
+                "best_rank": best_rank,
+                "cpi": round(cpi, 0),
+                "new_competitors": new_competitors,
+                "brand": brand,
+                "product_count": brand_count,
+                "total_products": total_products
+            },
+            "period": {"start": start_date, "end": end_date}
+        }
+
+    except Exception as e:
+        logging.error(f"Category KPI API error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None
+        }
+
+
+# ============= SoS (Share of Shelf) API =============
+
+def _load_crawl_data_for_sos():
+    """JSON 파일에서 크롤링 데이터 로드 (SQLite fallback)"""
+    import json
+    from pathlib import Path
+
+    # latest_crawl_result.json에서 데이터 로드
+    crawl_path = Path("./data/latest_crawl_result.json")
+    if crawl_path.exists():
+        with open(crawl_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return None
+
+
+@app.get("/api/sos/category")
+async def get_sos_by_category(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    compare_brands: Optional[str] = None  # comma-separated brand names
+):
+    """
+    카테고리별 SoS (Share of Shelf) 데이터 조회
+
+    SoS = (해당 브랜드 제품 수 / Top 100) * 100
+
+    Args:
+        start_date: 시작일 (YYYY-MM-DD)
+        end_date: 종료일 (YYYY-MM-DD)
+        compare_brands: 비교할 브랜드 (콤마로 구분)
+
+    Returns:
+        카테고리별 SoS 데이터
+    """
+    try:
+        # 비교 브랜드 파싱
+        compare_brand_list = []
+        if compare_brands:
+            compare_brand_list = [b.strip() for b in compare_brands.split(",") if b.strip()]
+
+        # 날짜 범위 설정
+        if not end_date:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if not start_date:
+            start_date = end_date
+
+        # SQLite 먼저 시도
+        rows = []
+        try:
+            from src.tools.sqlite_storage import get_sqlite_storage
+            sqlite = get_sqlite_storage()
+            await sqlite.initialize()
+
+            query = """
+                SELECT snapshot_date, category_id, brand, COUNT(*) as product_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                GROUP BY snapshot_date, category_id, brand
+                ORDER BY snapshot_date DESC, category_id, product_count DESC
+            """
+            with sqlite.get_connection() as conn:
+                cursor = conn.execute(query, (start_date, end_date))
+                rows = cursor.fetchall()
+        except Exception as db_err:
+            logging.warning(f"SQLite query failed, using JSON fallback: {db_err}")
+
+        # SQLite 데이터 없으면 JSON fallback
+        if not rows:
+            crawl_data = _load_crawl_data_for_sos()
+            if crawl_data and crawl_data.get("categories"):
+                # JSON에서 데이터 추출
+                snapshot_date = crawl_data.get("snapshot_date", end_date)
+                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    for product in cat_data.get("products", []):
+                        brand = product.get("brand", "Unknown")
+                        rows.append((snapshot_date, cat_id, brand, 1))
+
+        if not rows:
+            return {
+                "success": True,
+                "message": f"해당 기간({start_date} ~ {end_date})에 데이터가 없습니다.",
+                "data": [],
+                "period": {"start": start_date, "end": end_date}
+            }
+
+        # 데이터 집계
+        # 구조: {category_id: {brand: {dates: [count, ...], total_count: N}}}
+        category_data = {}
+        dates_set = set()
+
+        for row in rows:
+            if len(row) == 4:
+                snapshot_date, category_id, brand, count = row
+            else:
+                snapshot_date, category_id, brand, count = row[0], row[1], row[2], row[3]
+            dates_set.add(snapshot_date)
+
+            if category_id not in category_data:
+                category_data[category_id] = {}
+            if brand not in category_data[category_id]:
+                category_data[category_id][brand] = {"dates": {}, "total_count": 0}
+
+            category_data[category_id][brand]["dates"][snapshot_date] = count
+            category_data[category_id][brand]["total_count"] += count
+
+        # SoS 계산 (기간 평균)
+        num_dates = len(dates_set)
+        result_data = []
+
+        # 카테고리 계층 구조 로드
+        hierarchy_path = Path("./config/category_hierarchy.json")
+        hierarchy_data = {}
+        if hierarchy_path.exists():
+            with open(hierarchy_path, 'r', encoding='utf-8') as f:
+                hierarchy_data = json.load(f).get('categories', {})
+
+        # 카테고리 메타 정보 (계층 구조 포함)
+        category_meta = {
+            "beauty": {"name": "Beauty & Personal Care", "level": 0, "parent_id": None, "indent": 0, "order": 0},
+            "skin_care": {"name": "Skin Care", "level": 1, "parent_id": "beauty", "indent": 1, "order": 1},
+            "lip_care": {"name": "Lip Care", "level": 2, "parent_id": "skin_care", "indent": 2, "order": 2},
+            "lip_makeup": {"name": "Lip Makeup", "level": 2, "parent_id": "makeup", "indent": 1, "order": 3},
+            "face_powder": {"name": "Face Powder", "level": 3, "parent_id": "face_makeup", "indent": 2, "order": 4}
+        }
+
+        # hierarchy_data에서 정보 업데이트
+        for cat_id, meta in category_meta.items():
+            if cat_id in hierarchy_data:
+                meta["name"] = hierarchy_data[cat_id].get("name", meta["name"])
+                meta["level"] = hierarchy_data[cat_id].get("level", meta["level"])
+                meta["parent_id"] = hierarchy_data[cat_id].get("parent_id", meta["parent_id"])
+
+        for category_id, brands in category_data.items():
+            # 해당 카테고리의 총 제품 수 (기간 합계)
+            total_products_in_category = sum(b["total_count"] for b in brands.values())
+
+            # LANEIGE SoS
+            laneige_count = 0
+            laneige_variants = ["LANEIGE", "Laneige", "laneige"]
+            for variant in laneige_variants:
+                if variant in brands:
+                    laneige_count += brands[variant]["total_count"]
+
+            laneige_sos = (laneige_count / total_products_in_category * 100) if total_products_in_category > 0 else 0
+
+            # 평균 SoS (전체 브랜드 수 기준)
+            num_brands = len(brands)
+            avg_sos = (100 / num_brands) if num_brands > 0 else 0
+
+            # 비교 브랜드 SoS
+            compare_sos = {}
+            for compare_brand in compare_brand_list:
+                brand_count = 0
+                for brand_name, brand_data in brands.items():
+                    if compare_brand.lower() in brand_name.lower():
+                        brand_count += brand_data["total_count"]
+                compare_sos[compare_brand] = (brand_count / total_products_in_category * 100) if total_products_in_category > 0 else 0
+
+            # LANEIGE 개별 제품 데이터 (해당 카테고리 내)
+            laneige_products = []
+            # 제품별 상세는 별도 쿼리 필요 - 여기서는 브랜드 레벨만
+
+            # 카테고리 메타 정보 가져오기
+            meta = category_meta.get(category_id, {"name": category_id, "level": 0, "parent_id": None, "indent": 0, "order": 99})
+
+            result_data.append({
+                "category_id": category_id,
+                "category_name": meta["name"],
+                "level": meta["level"],
+                "parent_id": meta["parent_id"],
+                "indent": meta["indent"],
+                "order": meta["order"],
+                "total_products": total_products_in_category // num_dates if num_dates > 0 else 0,
+                "laneige_sos": round(laneige_sos, 2),
+                "laneige_count": laneige_count // num_dates if num_dates > 0 else 0,
+                "avg_sos": round(avg_sos, 2),
+                "compare_brands": compare_sos,
+                "num_dates": num_dates
+            })
+
+        # 계층 구조 순서대로 정렬
+        result_data.sort(key=lambda x: x.get("order", 99))
+
+        return {
+            "success": True,
+            "period": {
+                "start": start_date,
+                "end": end_date,
+                "days": num_dates
+            },
+            "data": result_data,
+            "compare_brands": compare_brand_list,
+            "hierarchy_info": {
+                "description": "각 카테고리는 자체 Top 100 기준으로 독립 계산됩니다.",
+                "note": "상위 카테고리와 하위 카테고리의 SoS는 서로 다른 랭킹에서 계산됩니다."
+            }
+        }
+
+    except Exception as e:
+        logging.error(f"SoS category API error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.get("/api/sos/brands")
+async def get_available_brands(
+    category_id: Optional[str] = None,
+    min_count: int = 1
+):
+    """
+    비교 가능한 브랜드 목록 조회 (Top 100에 포함된 브랜드들)
+
+    Args:
+        category_id: 특정 카테고리만 조회 (선택)
+        min_count: 최소 제품 수 (기본: 1)
+
+    Returns:
+        브랜드 목록 (제품 수 기준 정렬)
+    """
+    try:
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        rows = []
+        # SQLite 먼저 시도
+        try:
+            from src.tools.sqlite_storage import get_sqlite_storage
+            sqlite = get_sqlite_storage()
+            await sqlite.initialize()
+
+            if category_id:
+                query = """
+                    SELECT brand, COUNT(DISTINCT asin) as product_count,
+                           COUNT(DISTINCT snapshot_date) as days_present
+                    FROM raw_data
+                    WHERE snapshot_date BETWEEN ? AND ?
+                    AND category_id = ?
+                    GROUP BY brand
+                    HAVING product_count >= ?
+                    ORDER BY product_count DESC
+                """
+                params = (start_date, end_date, category_id, min_count)
+            else:
+                query = """
+                    SELECT brand, COUNT(DISTINCT asin) as product_count,
+                           COUNT(DISTINCT snapshot_date) as days_present
+                    FROM raw_data
+                    WHERE snapshot_date BETWEEN ? AND ?
+                    GROUP BY brand
+                    HAVING product_count >= ?
+                    ORDER BY product_count DESC
+                """
+                params = (start_date, end_date, min_count)
+
+            with sqlite.get_connection() as conn:
+                cursor = conn.execute(query, params)
+                rows = cursor.fetchall()
+        except Exception as db_err:
+            logging.warning(f"SQLite query failed for brands: {db_err}")
+
+        # SQLite 데이터 없으면 JSON fallback
+        brands = []
+        if not rows:
+            crawl_data = _load_crawl_data_for_sos()
+            if crawl_data and crawl_data.get("categories"):
+                brand_counts = {}
+                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    if category_id and cat_id != category_id:
+                        continue
+                    for product in cat_data.get("products", []):
+                        brand = product.get("brand", "Unknown")
+                        if brand:
+                            brand_counts[brand] = brand_counts.get(brand, 0) + 1
+
+                for brand_name, count in sorted(brand_counts.items(), key=lambda x: -x[1]):
+                    if count >= min_count and brand_name.strip():
+                        brands.append({
+                            "name": brand_name,
+                            "product_count": count,
+                            "days_present": 1,
+                            "is_laneige": "laneige" in brand_name.lower()
+                        })
+        else:
+            for row in rows:
+                brand_name, product_count, days_present = row
+                if brand_name and brand_name.strip():
+                    brands.append({
+                        "name": brand_name,
+                        "product_count": product_count,
+                        "days_present": days_present,
+                        "is_laneige": "laneige" in brand_name.lower()
+                    })
+
+        return {
+            "success": True,
+            "period": {"start": start_date, "end": end_date},
+            "category_id": category_id,
+            "brands": brands,
+            "total_brands": len(brands)
+        }
+
+    except Exception as e:
+        logging.error(f"SoS brands API error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.get("/api/sos/trend")
+async def get_sos_trend(
+    brand: str = "LANEIGE",
+    category_id: Optional[str] = None,
+    days: int = 7
+):
+    """
+    브랜드의 SoS 추세 데이터 (일별)
+
+    Args:
+        brand: 브랜드명 (기본: LANEIGE)
+        category_id: 카테고리 (선택, 없으면 전체)
+        days: 조회 기간 (기본: 7일)
+
+    Returns:
+        일별 SoS 추세 데이터
+    """
+    try:
+        from src.tools.sqlite_storage import get_sqlite_storage
+
+        sqlite = get_sqlite_storage()
+        await sqlite.initialize()
+
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # 일별 전체 제품 수
+        if category_id:
+            total_query = """
+                SELECT snapshot_date, COUNT(*) as total_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND category_id = ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date
+            """
+            total_params = (start_date, end_date, category_id)
+
+            brand_query = """
+                SELECT snapshot_date, COUNT(*) as brand_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND category_id = ?
+                AND LOWER(brand) LIKE ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date
+            """
+            brand_params = (start_date, end_date, category_id, f"%{brand.lower()}%")
+        else:
+            total_query = """
+                SELECT snapshot_date, COUNT(*) as total_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date
+            """
+            total_params = (start_date, end_date)
+
+            brand_query = """
+                SELECT snapshot_date, COUNT(*) as brand_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND LOWER(brand) LIKE ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date
+            """
+            brand_params = (start_date, end_date, f"%{brand.lower()}%")
+
+        with sqlite.get_connection() as conn:
+            # 전체 카운트
+            cursor = conn.execute(total_query, total_params)
+            total_rows = cursor.fetchall()
+            total_by_date = {row[0]: row[1] for row in total_rows}
+
+            # 브랜드 카운트
+            cursor = conn.execute(brand_query, brand_params)
+            brand_rows = cursor.fetchall()
+            brand_by_date = {row[0]: row[1] for row in brand_rows}
+
+        # SoS 계산
+        trend_data = []
+        for date, total in sorted(total_by_date.items()):
+            brand_count = brand_by_date.get(date, 0)
+            sos = (brand_count / total * 100) if total > 0 else 0
+            trend_data.append({
+                "date": date,
+                "total_products": total,
+                "brand_count": brand_count,
+                "sos": round(sos, 2)
+            })
+
+        return {
+            "success": True,
+            "brand": brand,
+            "category_id": category_id,
+            "period": {"start": start_date, "end": end_date, "days": days},
+            "trend": trend_data
+        }
+
+    except Exception as e:
+        logging.error(f"SoS trend API error: {e}")
         return {
             "success": False,
             "error": str(e)

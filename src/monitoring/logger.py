@@ -72,7 +72,8 @@ class AgentLogger:
             return ""
         try:
             return f" | {json.dumps(extra, ensure_ascii=False, default=str)}"
-        except:
+        except Exception:
+            # JSON 직렬화 실패 시 문자열 변환 사용
             return f" | {str(extra)}"
 
     def debug(self, message: str, extra: Optional[Dict] = None) -> None:

@@ -771,7 +771,7 @@ class BatchWorkflow:
         Returns:
             챗봇 응답
         """
-        orchestrator = get_unified_orchestrator()
+        orchestrator = await get_unified_orchestrator()
         response = await orchestrator.process(
             query=message,
             session_id=self._session_id,
@@ -789,7 +789,7 @@ class BatchWorkflow:
         Returns:
             Response 딕셔너리
         """
-        orchestrator = get_unified_orchestrator()
+        orchestrator = await get_unified_orchestrator()
         response = await orchestrator.process(
             query=query,
             session_id=self._session_id,

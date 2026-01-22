@@ -514,7 +514,8 @@ class AmazonDealsScraper:
                 total_seconds += int(secs_match.group(1))
 
             return total_seconds if total_seconds > 0 else None
-        except:
+        except Exception:
+            # 시간 파싱 실패 시 None 반환
             return None
 
     def _is_beauty_product(self, deal: DealRecord) -> bool:

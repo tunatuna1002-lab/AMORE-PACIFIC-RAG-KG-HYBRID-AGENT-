@@ -52,12 +52,12 @@ from .state import OrchestratorState
 from .context_gatherer import ContextGatherer
 from .tools import ToolExecutor, AGENT_TOOLS
 from .response_pipeline import ResponsePipeline
+from .scheduler import AutonomousScheduler
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
-    from ..agents.query_agent import QueryAgent
-    from ..agents.workflow_agent import WorkflowAgent
     from ..agents.alert_agent import AlertAgent
+    from .batch_workflow import BatchWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -138,192 +138,6 @@ AGENT_ERROR_STRATEGIES: Dict[str, ErrorStrategy] = {
     "send_alert": ErrorStrategy.RETRY,
     "workflow": ErrorStrategy.RETRY,
 }
-
-
-# =============================================================================
-# 자율 스케줄러
-# =============================================================================
-
-class AutonomousScheduler:
-    """
-    자율 작업 스케줄러
-
-    설정된 스케줄에 따라 자동 작업을 트리거합니다.
-    last_run 상태는 파일에 저장되어 서버 재시작 후에도 유지됩니다.
-    """
-
-    STATE_FILE = "./data/scheduler_state.json"
-
-    def __init__(self):
-        self.schedules: List[Dict[str, Any]] = []
-        self._last_run: Dict[str, datetime] = {}
-        self.running: bool = False
-        self._task: Optional[asyncio.Task] = None
-        self._load_state()  # 파일에서 상태 복원
-        self._load_default_schedules()
-
-    def _load_state(self):
-        """파일에서 last_run 상태 복원"""
-        try:
-            import os
-            if os.path.exists(self.STATE_FILE):
-                with open(self.STATE_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for schedule_id, timestamp in data.get("last_run", {}).items():
-                        self._last_run[schedule_id] = datetime.fromisoformat(timestamp)
-                    logger.info(f"Scheduler state loaded: {list(self._last_run.keys())}")
-        except Exception as e:
-            logger.warning(f"Failed to load scheduler state: {e}")
-
-    def _save_state(self):
-        """last_run 상태를 파일에 원자적으로 저장 (crash-safe)"""
-        try:
-            import os
-            import tempfile
-            os.makedirs(os.path.dirname(self.STATE_FILE), exist_ok=True)
-            data = {
-                "last_run": {
-                    schedule_id: dt.isoformat()
-                    for schedule_id, dt in self._last_run.items()
-                },
-                "saved_at": datetime.now().isoformat()
-            }
-            # 원자적 쓰기: 임시 파일에 쓴 후 rename (crash-safe)
-            dir_path = os.path.dirname(self.STATE_FILE) or "."
-            with tempfile.NamedTemporaryFile(mode="w", dir=dir_path, delete=False, suffix=".tmp", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-                temp_path = f.name
-            os.replace(temp_path, self.STATE_FILE)  # 원자적 교체
-        except Exception as e:
-            logger.error(f"Failed to save scheduler state: {e}")
-            # 임시 파일 정리
-            try:
-                if 'temp_path' in locals() and os.path.exists(temp_path):
-                    os.remove(temp_path)
-            except:
-                pass
-
-    def _load_default_schedules(self):
-        """기본 스케줄 로드"""
-        self.schedules = [
-            {
-                "id": "daily_crawl",
-                "name": "일일 크롤링",
-                "action": "crawl_workflow",
-                "schedule_type": "daily",
-                "hour": 6,  # 한국시간 06:00 (KST 기준)
-                "minute": 0,
-                "enabled": True
-            },
-            {
-                "id": "check_data_freshness",
-                "name": "데이터 신선도 체크",
-                "action": "check_data",
-                "schedule_type": "interval",
-                "interval_hours": 1,
-                "enabled": True
-            }
-        ]
-
-    def get_kst_now(self) -> datetime:
-        """한국 시간 기준 현재 시각 반환"""
-        return datetime.now(KST)
-
-    def get_due_tasks(self, current_time: datetime) -> List[Dict[str, Any]]:
-        """실행해야 할 작업 목록 반환 (한국시간 기준)"""
-        due_tasks = []
-
-        # 한국 시간 기준으로 체크
-        kst_now = self.get_kst_now()
-        kst_today = kst_now.date()
-
-        for schedule in self.schedules:
-            if not schedule.get("enabled", True):
-                continue
-
-            schedule_id = schedule["id"]
-            last_run = self._last_run.get(schedule_id)
-
-            if schedule["schedule_type"] == "daily":
-                # 매일 특정 시간에 실행 (한국시간 기준)
-                scheduled_time = kst_now.replace(
-                    hour=schedule["hour"],
-                    minute=schedule["minute"],
-                    second=0,
-                    microsecond=0
-                )
-
-                # 오늘(KST) 아직 실행 안 했고, 시간이 됐으면
-                last_run_date = last_run.date() if last_run else None
-                if (last_run_date is None or last_run_date < kst_today) and \
-                   kst_now >= scheduled_time:
-                    logger.info(f"Task {schedule_id} is due: last_run={last_run_date}, kst_today={kst_today}, kst_now={kst_now.strftime('%H:%M')}")
-                    due_tasks.append(schedule)
-
-            elif schedule["schedule_type"] == "interval":
-                # 일정 간격으로 실행
-                interval = timedelta(hours=schedule.get("interval_hours", 1))
-                if last_run is None or (kst_now - last_run.replace(tzinfo=KST)) >= interval:
-                    due_tasks.append(schedule)
-
-        return due_tasks
-
-    def mark_completed(self, schedule_id: str):
-        """작업 완료 마킹 및 상태 저장 (한국시간 기준)"""
-        self._last_run[schedule_id] = self.get_kst_now()
-        self._save_state()  # 파일에 저장
-        logger.info(f"Marked {schedule_id} as completed at {self._last_run[schedule_id]}")
-
-    def add_schedule(self, schedule: Dict[str, Any]):
-        """스케줄 추가"""
-        self.schedules.append(schedule)
-
-    def remove_schedule(self, schedule_id: str):
-        """스케줄 제거"""
-        self.schedules = [s for s in self.schedules if s["id"] != schedule_id]
-
-    def get_pending_count(self) -> int:
-        """대기 중인 작업 수 반환"""
-        return len(self.get_due_tasks(self.get_kst_now()))
-
-    def stop(self):
-        """스케줄러 중지"""
-        self.running = False
-        if self._task and not self._task.done():
-            self._task.cancel()
-            self._task = None
-
-    async def start(self, callback: Callable):
-        """
-        스케줄러 시작
-
-        Args:
-            callback: 작업 실행 시 호출할 콜백 함수
-        """
-        if self.running:
-            return
-
-        self.running = True
-
-        async def _run_loop():
-            while self.running:
-                try:
-                    due_tasks = self.get_due_tasks(datetime.now())
-                    for task in due_tasks:
-                        try:
-                            await callback(task)
-                            self.mark_completed(task["id"])
-                        except Exception as e:
-                            logging.error(f"Scheduler task error: {task['id']} - {e}")
-                    # 1분마다 체크
-                    await asyncio.sleep(60)
-                except asyncio.CancelledError:
-                    break
-                except Exception as e:
-                    logging.error(f"Scheduler loop error: {e}")
-                    await asyncio.sleep(60)
-
-        self._task = asyncio.create_task(_run_loop())
 
 
 # =============================================================================
@@ -911,12 +725,12 @@ class UnifiedBrain:
 
         try:
             if action == "crawl_workflow":
-                # WorkflowAgent 호출
+                # BatchWorkflow 호출 (리팩토링: WorkflowAgent → BatchWorkflow)
                 if not self._workflow_agent:
-                    from ..agents.workflow_agent import WorkflowAgent
-                    self._workflow_agent = WorkflowAgent()
+                    from .batch_workflow import BatchWorkflow
+                    self._workflow_agent = BatchWorkflow()
 
-                result = await self._workflow_agent.run_workflow()
+                result = await self._workflow_agent.run_daily_workflow()
 
                 # 크롤링 완료 이벤트
                 await self.emit_event("crawl_complete", {"result": result})
@@ -1150,7 +964,7 @@ class UnifiedBrain:
                 if action == "crawl_workflow":
                     # 크롤링 실행
                     from src.core.crawl_manager import get_crawl_manager
-                    crawl_manager = get_crawl_manager()
+                    crawl_manager = await get_crawl_manager()
 
                     if not crawl_manager.is_crawling():
                         await crawl_manager.start_crawl()
@@ -1161,7 +975,7 @@ class UnifiedBrain:
                 elif action == "check_data":
                     # 데이터 신선도 체크
                     from src.core.crawl_manager import get_crawl_manager
-                    crawl_manager = get_crawl_manager()
+                    crawl_manager = await get_crawl_manager()
 
                     if crawl_manager.needs_crawl():
                         logger.info("Data is stale, triggering crawl")
@@ -1188,26 +1002,28 @@ class UnifiedBrain:
 
 
 # =============================================================================
-# 싱글톤
+# 싱글톤 (스레드 안전)
 # =============================================================================
 
 _brain_instance: Optional[UnifiedBrain] = None
+_brain_lock = asyncio.Lock()
 
 
-def get_brain() -> UnifiedBrain:
-    """통합 두뇌 싱글톤 반환"""
+async def get_brain() -> UnifiedBrain:
+    """통합 두뇌 싱글톤 반환 (스레드 안전)"""
     global _brain_instance
 
-    if _brain_instance is None:
-        _brain_instance = UnifiedBrain()
-        logger.info("UnifiedBrain singleton created (LLM-First)")
+    async with _brain_lock:
+        if _brain_instance is None:
+            _brain_instance = UnifiedBrain()
+            logger.info("UnifiedBrain singleton created (LLM-First)")
 
     return _brain_instance
 
 
 async def get_initialized_brain() -> UnifiedBrain:
     """초기화된 통합 두뇌 싱글톤 반환"""
-    brain = get_brain()
+    brain = await get_brain()
     if not brain._initialized:
         await brain.initialize()
     return brain

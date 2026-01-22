@@ -607,7 +607,7 @@ class SimpleChatService:
         try:
             from src.core.crawl_manager import get_crawl_manager
 
-            manager = get_crawl_manager()
+            manager = await get_crawl_manager()
 
             if manager.is_crawling():
                 return json.dumps({

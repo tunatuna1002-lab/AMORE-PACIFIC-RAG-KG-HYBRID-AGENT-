@@ -110,7 +110,7 @@ async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
     logger.info("=" * 50)
 
     # 통합 오케스트레이터 사용
-    orchestrator = get_unified_orchestrator()
+    orchestrator = await get_unified_orchestrator()
 
     # 현재 데이터 로드
     current_metrics = None

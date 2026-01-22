@@ -314,7 +314,8 @@ class ExecutionTracer:
                         "created_at": data["created_at"],
                         "span_count": len(data.get("spans", []))
                     })
-            except:
+            except Exception as e:
+                # 손상된 트레이스 파일 무시
                 continue
 
         return traces

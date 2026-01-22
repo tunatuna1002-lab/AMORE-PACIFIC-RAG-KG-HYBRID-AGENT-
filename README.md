@@ -951,3 +951,357 @@ MIT License
 - 실시간 순위 모니터링
 - SoS, HHI, CPI 지표
 - AI 챗봇 통합
+
+---
+
+## 개발자 가이드: Lock 개념 설명
+
+### Lock이란 무엇인가?
+
+**Lock(잠금)**은 여러 스레드/코루틴이 동시에 같은 자원에 접근할 때 발생하는 **경쟁 상태(Race Condition)**를 방지하는 동기화 메커니즘입니다.
+
+#### 왜 "Lock"이라고 부르나?
+
+실제 자물쇠처럼 작동합니다:
+
+```
+🚪 화장실 비유:
+
+1. A가 화장실에 들어감 → 🔒 문 잠금 (Lock 획득)
+2. B가 화장실 가려함 → 🚫 문 잠겨있음 → 대기
+3. A가 나옴 → 🔓 문 열림 (Lock 해제)
+4. B가 들어감 → 🔒 문 잠금 (Lock 획득)
+```
+
+코드에서도 동일합니다:
+
+```python
+# Lock 없이 (위험!)
+if brain is None:        # A가 체크: "비어있네"
+    brain = Brain()      # A가 생성 시작 (1초 소요)
+                         # 그 사이 B도 체크: "비어있네" (아직 A가 생성 중)
+                         # B도 생성 시작 → 2개의 Brain 인스턴스 생성!
+
+# Lock 있으면 (안전!)
+async with lock:         # A가 잠금 획득
+    if brain is None:    # A가 체크: "비어있네"
+        brain = Brain()  # A가 생성 (B는 대기 중)
+                         # A 완료, 잠금 해제
+async with lock:         # B가 잠금 획득
+    if brain is None:    # B가 체크: "이미 있네!" → 생성 안 함
+```
+
+---
+
+### 동기 Lock vs 비동기 Lock
+
+#### 동기 Lock (`threading.Lock`)
+
+```python
+import threading
+
+lock = threading.Lock()
+
+def get_brain():
+    with lock:  # 다른 스레드 완전 차단
+        if brain is None:
+            brain = Brain()
+        return brain
+```
+
+**특징:**
+| 장점 | 단점 |
+|------|------|
+| ✅ 호출부 변경 불필요 | ⚠️ Lock 대기 중 전체 이벤트 루프 멈춤 |
+| ✅ 구현 간단 | ⚠️ 다른 API 요청도 처리 못함 |
+
+**작동 방식:**
+```
+요청 A: Lock 획득 → Brain 생성 (2초) → Lock 해제
+요청 B: Lock 대기 (2초 동안 아무것도 못함) → Lock 획득 → 반환
+요청 C: Lock 대기 (B 뒤에서 대기)
+        ↓
+    전체 서버가 2초간 멈춘 것처럼 보임
+```
+
+---
+
+#### 비동기 Lock (`asyncio.Lock`)
+
+```python
+import asyncio
+
+lock = asyncio.Lock()
+
+async def get_brain():  # async 필수!
+    async with lock:  # 대기 중 다른 코루틴에게 양보
+        if brain is None:
+            brain = Brain()
+        return brain
+```
+
+**특징:**
+| 장점 | 단점 |
+|------|------|
+| ✅ Lock 대기 중 다른 요청 처리 가능 | ⚠️ 함수가 `async`로 변경됨 |
+| ✅ FastAPI 비동기 특성에 적합 | ⚠️ 호출부에 `await` 추가 필요 |
+
+**작동 방식:**
+```
+요청 A: Lock 획득 → Brain 생성 시작 (2초)
+                    ↓ (I/O 대기 중)
+요청 B: Lock 대기 시작 → 이벤트 루프에 양보
+요청 C: (다른 API) → 정상 처리됨! ✅
+요청 D: (다른 API) → 정상 처리됨! ✅
+                    ↓
+요청 A: Brain 생성 완료 → Lock 해제
+요청 B: Lock 획득 → brain 이미 있음 → 반환
+```
+
+---
+
+### 이 프로젝트에서의 적용
+
+**선택: 비동기 Lock (`asyncio.Lock`)**
+
+이유:
+1. FastAPI는 비동기 프레임워크
+2. Brain 초기화에 1-2초 소요 (KG 로드, 규칙 등록)
+3. 초기화 중에도 다른 API 요청 처리 필요
+
+**변경되는 파일:**
+- `src/core/brain.py`: `get_brain()` → `async def get_brain()`
+- `dashboard_api.py`: `get_brain()` → `await get_brain()`
+
+---
+
+## 코드 개선 계획 (2026-01-23)
+
+### 개요
+
+코드베이스 심층 분석 결과 발견된 이슈들을 3단계로 개선합니다.
+
+| Phase | 위험도 | 내용 | 파일 수 |
+|-------|--------|------|---------|
+| **Phase 1** | 🟢 무위험 | 로깅 개선, print→logger | 17개 |
+| **Phase 2** | 🟡 저위험 | 에러 메시지 개선, 보안 헤더 | 2개 |
+| **Phase 3** | 🟠 주의 | 싱글톤 Lock 추가 | 4개 |
+
+---
+
+### Phase 1: 무위험 변경 (즉시 적용)
+
+#### 1.1 Bare `except: pass` → 로깅 추가 (19개)
+
+**현재 (나쁨):**
+```python
+except:
+    pass  # 에러 정보 손실!
+```
+
+**개선 (안전함):**
+```python
+except Exception as e:
+    logger.debug(f"선택적 데이터 로드 실패 (무시됨): {e}")
+```
+
+**대상 파일:**
+| 파일 | 라인 | 용도 |
+|------|------|------|
+| `src/rag/hybrid_retriever.py` | 551, 567, 580, 604, 696, 707, 721 | 선택적 KG 데이터 |
+| `src/tools/amazon_scraper.py` | 483, 550, 583, 601 | 크롤링 재시도 |
+| `src/tools/amazon_product_scraper.py` | 270, 303, 323, 336, 349 | 제품 파싱 |
+| `src/core/scheduler.py` | 103 | 스케줄러 |
+| `src/core/crawl_manager.py` | 117 | 크롤 매니저 |
+| `src/tools/deals_scraper.py` | 517 | 딜 스크래퍼 |
+| `src/monitoring/tracer.py` | 317 | 트레이싱 |
+| `src/monitoring/logger.py` | 75 | 로거 |
+
+**잠재적 문제:** 없음 - 동작 동일, 로깅만 추가
+
+---
+
+#### 1.2 `print()` → `logger` 변경 (15개)
+
+**대상 파일:**
+| 파일 | 개수 |
+|------|------|
+| `src/infrastructure/persistence/json_repository.py` | 6 |
+| `src/infrastructure/persistence/sheets_repository.py` | 6 |
+| `src/api/routes/chat.py` | 1 |
+| `dashboard_api.py` | 2 |
+
+**잠재적 문제:** 없음 - 출력 대상만 변경
+
+---
+
+#### 1.3 Protocol 인터페이스 수정
+
+**파일:** `src/domain/interfaces/agent.py`
+
+```python
+# 현재
+class StorageAgentProtocol(Protocol):
+    async def save(self, records: List[Any]) -> bool: ...
+    async def initialize(self) -> None: ...
+
+# 개선 (메서드 추가)
+class StorageAgentProtocol(Protocol):
+    async def save(self, records: List[Any]) -> bool: ...
+    async def initialize(self) -> None: ...
+    async def save_metrics(self, metrics: Dict[str, Any]) -> bool: ...  # 추가
+```
+
+**잠재적 문제:** 없음 - Protocol은 duck typing
+
+---
+
+### Phase 2: 저위험 변경 (테스트 후 적용)
+
+#### 2.1 HTTPException 에러 메시지 일반화
+
+**파일:** `dashboard_api.py`
+
+**현재 (정보 노출):**
+```python
+raise HTTPException(status_code=500, detail=str(e))
+# → 내부 파일 경로, DB 정보 등 노출 가능
+```
+
+**개선 (안전):**
+```python
+logger.error(f"Operation failed: {e}", exc_info=True)
+raise HTTPException(status_code=500, detail="내부 서버 오류가 발생했습니다")
+```
+
+**잠재적 문제:**
+- 프론트엔드는 현재 `detail` 필드를 사용하지 않음 (하드코딩 메시지)
+- 따라서 **안전함**
+
+---
+
+#### 2.2 보안 헤더 미들웨어 추가
+
+**파일:** `dashboard_api.py`
+
+```python
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"  # iframe 임베딩 허용
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+```
+
+**잠재적 문제:**
+- `X-Frame-Options: DENY` 사용 시 iframe 임베딩 불가
+- **해결:** `SAMEORIGIN`으로 설정하여 같은 도메인에서만 허용
+
+---
+
+### Phase 3: 주의 필요 변경 (신중히 적용)
+
+#### 3.1 싱글톤 비동기 Lock 추가
+
+**파일:** `src/core/brain.py`
+
+```python
+# 현재 (Race Condition 위험)
+_brain_instance = None
+
+def get_brain():
+    global _brain_instance
+    if _brain_instance is None:
+        _brain_instance = UnifiedBrain()
+    return _brain_instance
+
+# 개선 (스레드 안전)
+import asyncio
+
+_brain_instance = None
+_brain_lock = asyncio.Lock()
+
+async def get_brain():
+    global _brain_instance
+    async with _brain_lock:
+        if _brain_instance is None:
+            _brain_instance = UnifiedBrain()
+    return _brain_instance
+```
+
+**연쇄 변경 필요:**
+| 파일 | 변경 내용 |
+|------|----------|
+| `dashboard_api.py` | `get_brain()` → `await get_brain()` |
+| `src/core/unified_orchestrator.py` | 동일 패턴 적용 |
+| `src/core/crawl_manager.py` | 동일 패턴 적용 |
+
+**잠재적 문제:**
+- 호출부에서 `await` 누락 시 런타임 에러
+- **해결:** 모든 호출부 검색 후 일괄 변경
+
+---
+
+#### 3.2 입력 길이 검증 추가
+
+**파일:** `dashboard_api.py`
+
+```python
+class ChatRequest(BaseModel):
+    message: str = Field(..., max_length=10000)  # 10KB 제한
+    session_id: Optional[str] = None
+```
+
+**잠재적 문제:**
+- 10KB 초과 메시지 시 400 에러 반환
+- 프론트엔드에서 에러 처리 필요할 수 있음
+- **권장:** 프론트엔드에도 동일한 길이 제한 추가
+
+---
+
+### 검증 방법
+
+```bash
+# 1. 기존 테스트 실행
+python -m pytest tests/ -v
+
+# 2. 서버 시작
+uvicorn dashboard_api:app --host 0.0.0.0 --port 8001 --reload
+
+# 3. API 테스트
+curl -X POST http://localhost:8001/api/v3/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "라네즈 순위 알려줘"}'
+
+# 4. 대시보드 테스트
+# http://localhost:8001/dashboard 접속 후:
+# - 채팅 기능 테스트
+# - 크롤링 상태 확인
+# - 에러 시나리오 (서버 중지 후 재연결)
+```
+
+---
+
+### 변경 파일 요약
+
+| 파일 | Phase | 변경 내용 |
+|------|-------|----------|
+| `src/rag/hybrid_retriever.py` | 1 | except:pass 7개 → 로깅 |
+| `src/tools/amazon_scraper.py` | 1 | except:pass 4개 → 로깅 |
+| `src/tools/amazon_product_scraper.py` | 1 | except:pass 5개 → 로깅 |
+| `src/core/scheduler.py` | 1 | except:pass 1개 → 로깅 |
+| `src/core/crawl_manager.py` | 1, 3 | except:pass → 로깅, Lock 추가 |
+| `src/tools/deals_scraper.py` | 1 | except:pass 1개 → 로깅 |
+| `src/monitoring/tracer.py` | 1 | except:pass 1개 → 로깅 |
+| `src/monitoring/logger.py` | 1 | except:pass 1개 → 로깅 |
+| `src/infrastructure/persistence/json_repository.py` | 1 | print 6개 → logger |
+| `src/infrastructure/persistence/sheets_repository.py` | 1 | print 6개 → logger |
+| `src/api/routes/chat.py` | 1 | print 1개 → logger |
+| `dashboard_api.py` | 1, 2, 3 | print→logger, HTTPException, 미들웨어, Lock |
+| `src/domain/interfaces/agent.py` | 1 | save_metrics() 추가 |
+| `src/core/brain.py` | 3 | asyncio.Lock 추가 |
+| `src/core/unified_orchestrator.py` | 3 | asyncio.Lock 추가 |
