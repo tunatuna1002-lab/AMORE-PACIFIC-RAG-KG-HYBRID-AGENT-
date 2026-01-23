@@ -570,7 +570,7 @@ async def get_data():
 
 @app.post("/api/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")  # 분당 30회 제한
-async def chat(request: ChatRequest, req: Request):
+async def chat(request: Request, body: ChatRequest):
     """
     ChatGPT + RAG + Ontology 통합 챗봇 API
 
@@ -585,8 +585,8 @@ async def chat(request: ChatRequest, req: Request):
     import time
     start_time = time.time()
 
-    message = request.message.strip()
-    session_id = request.session_id or "default"
+    message = body.message.strip()
+    session_id = body.session_id or "default"
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -799,7 +799,7 @@ class SimpleChatResponse(BaseModel):
 
 @app.post("/api/v3/chat", response_model=SimpleChatResponse)
 @limiter.limit("30/minute")  # 분당 30회 제한
-async def chat_v3(request: SimpleChatRequest, req: Request):
+async def chat_v3(request: Request, body: SimpleChatRequest):
     """
     Simple LLM Chat API (v3)
 
@@ -808,8 +808,8 @@ async def chat_v3(request: SimpleChatRequest, req: Request):
     - Function Calling으로 도구 사용
     - 불필요한 레이어 제거
     """
-    message = request.message.strip()
-    session_id = request.session_id or "default"
+    message = body.message.strip()
+    session_id = body.session_id or "default"
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -878,7 +878,7 @@ class OrchestratorChatResponse(BaseModel):
 
 @app.post("/api/v2/chat", response_model=OrchestratorChatResponse)
 @limiter.limit("30/minute")  # 분당 30회 제한
-async def chat_v2(request: OrchestratorChatRequest, req: Request):
+async def chat_v2(request: Request, body: OrchestratorChatRequest):
     """
     통합 오케스트레이터 기반 챗봇 API (v2)
 
@@ -898,8 +898,8 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
     import time
     start_time = time.time()
 
-    message = request.message.strip()
-    session_id = request.session_id or "default"
+    message = body.message.strip()
+    session_id = body.session_id or "default"
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -933,7 +933,7 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
-            skip_cache=request.skip_cache
+            skip_cache=body.skip_cache
         )
 
         # 응답 변환 (UnifiedBrain response 처리)
@@ -2513,7 +2513,7 @@ class BrainChatResponse(BaseModel):
 
 @app.post("/api/v4/chat", response_model=BrainChatResponse)
 @limiter.limit("30/minute")  # 분당 30회 제한
-async def chat_v4(request: BrainChatRequest, req: Request):
+async def chat_v4(request: Request, body: BrainChatRequest):
     """
     Level 4 Brain 기반 챗봇 API (v4)
 
@@ -2526,8 +2526,8 @@ async def chat_v4(request: BrainChatRequest, req: Request):
     import time
     start_time = time.time()
 
-    message = request.message.strip()
-    session_id = request.session_id or "default"
+    message = body.message.strip()
+    session_id = body.session_id or "default"
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -2545,7 +2545,7 @@ async def chat_v4(request: BrainChatRequest, req: Request):
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
-            skip_cache=request.skip_cache
+            skip_cache=body.skip_cache
         )
 
         processing_time = (time.time() - start_time) * 1000
