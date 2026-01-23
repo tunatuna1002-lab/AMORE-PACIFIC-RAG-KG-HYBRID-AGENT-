@@ -162,9 +162,10 @@ class TestResponseCache:
 class TestOrchestratorState:
     """상태 관리 테스트"""
 
-    def test_crawl_needed(self):
+    def test_crawl_needed(self, tmp_path):
         """크롤링 필요 여부"""
-        state = OrchestratorState()
+        # 임시 경로로 격리하여 기존 상태 파일 영향 제거
+        state = OrchestratorState(_persist_path=tmp_path / "state.json")
 
         # 초기 상태: 크롤링 필요
         assert state.is_crawl_needed()
@@ -174,9 +175,9 @@ class TestOrchestratorState:
         assert not state.is_crawl_needed()
         assert state.data_freshness == "fresh"
 
-    def test_tool_tracking(self):
+    def test_tool_tracking(self, tmp_path):
         """도구 실행 추적"""
-        state = OrchestratorState()
+        state = OrchestratorState(_persist_path=tmp_path / "state.json")
 
         state.start_tool("crawl_amazon")
         assert state.is_tool_running("crawl_amazon")
@@ -186,9 +187,9 @@ class TestOrchestratorState:
         assert not state.is_tool_running("crawl_amazon")
         assert not state.has_active_tools()
 
-    def test_context_summary(self):
+    def test_context_summary(self, tmp_path):
         """컨텍스트 요약"""
-        state = OrchestratorState()
+        state = OrchestratorState(_persist_path=tmp_path / "state.json")
         state.mark_crawled(50)
         state.mark_kg_initialized(1000)
 
@@ -255,10 +256,10 @@ class TestToolExecutor:
 class TestIntegration:
     """통합 테스트"""
 
-    def test_full_flow_simulation(self):
+    def test_full_flow_simulation(self, tmp_path):
         """전체 흐름 시뮬레이션"""
-        # 1. 상태 초기화
-        state = OrchestratorState()
+        # 1. 상태 초기화 (임시 경로로 격리)
+        state = OrchestratorState(_persist_path=tmp_path / "state.json")
         assert state.is_crawl_needed()
 
         # 2. 크롤링 완료

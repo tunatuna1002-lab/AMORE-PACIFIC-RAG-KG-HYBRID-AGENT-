@@ -89,10 +89,10 @@ from src.rag.router import RAGRouter, QueryType
 from src.rag.retriever import DocumentRetriever
 
 # Ontology 스키마
-from src.ontology.schema import ProductMetrics, BrandMetrics, MarketMetrics
+from src.domain.entities import ProductMetrics, BrandMetrics, MarketMetrics
 
-# 통합 오케스트레이터 (신규)
-from src.core.unified_orchestrator import UnifiedOrchestrator, get_unified_orchestrator
+# 통합 오케스트레이터 (deprecated - use UnifiedBrain instead)
+from src.core.brain import UnifiedBrain, get_brain
 from src.core.crawl_manager import get_crawl_manager, CrawlStatus
 
 # SQLite Storage
@@ -100,6 +100,9 @@ from src.tools.sqlite_storage import SQLiteStorage, get_sqlite_storage
 
 # Level 4 Brain (LLM-First Autonomous Agent)
 from src.core.brain import UnifiedBrain, get_brain, get_initialized_brain, BrainMode, TaskPriority
+
+# External Signal Routes
+from src.api.routes.signals import router as signals_router
 
 # 환경 변수 로드
 load_dotenv()
@@ -141,6 +144,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# External Signals Router 등록
+app.include_router(signals_router)
 
 # ============= 서버 시작 시 자동 스케줄러 =============
 
@@ -291,7 +297,7 @@ def cleanup_expired_sessions() -> int:
             del session_last_activity[sid]
     return len(expired)
 
-# 통합 오케스트레이터 인스턴스는 get_unified_orchestrator()로 관리됨
+# 통합 시스템은 UnifiedBrain (get_brain())으로 관리됨
 
 
 # ============= Pydantic Models =============
@@ -915,23 +921,26 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
         crawl_manager.mark_notified(session_id)
 
     try:
-        # 통합 오케스트레이터로 처리
-        orchestrator = await get_unified_orchestrator()
+        # UnifiedBrain으로 처리
+        brain = get_brain()
 
         # 현재 메트릭 데이터 로드
         data = load_dashboard_data()
         current_metrics = data if data else None
 
         # 처리
-        response = await orchestrator.process(
+        response = await brain.process_query(
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
             skip_cache=request.skip_cache
         )
 
+        # 응답 변환 (UnifiedBrain response 처리)
+        response_dict = response.to_dict() if hasattr(response, 'to_dict') else response
+
         # 응답 텍스트 구성
-        response_text = response.text
+        response_text = response_dict.get('text', response_dict.get('content', ''))
 
         # 크롤링 알림 추가
         if crawl_notification:
@@ -948,16 +957,16 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
         # 응답 변환
         return OrchestratorChatResponse(
             text=response_text,
-            query_type=response.query_type,
-            confidence_level=response.confidence_level.value,
-            confidence_score=response.confidence_score,
-            sources=response.sources,
-            entities=response.entities,
-            tools_called=response.tools_called,
-            suggestions=response.suggestions,
-            is_fallback=response.is_fallback,
-            is_clarification=response.is_clarification,
-            processing_time_ms=response.processing_time_ms
+            query_type=response_dict.get('query_type', 'unknown'),
+            confidence_level=response_dict.get('confidence_level', 'medium'),
+            confidence_score=response_dict.get('confidence_score', response_dict.get('confidence', 0.5)),
+            sources=response_dict.get('sources', []),
+            entities=response_dict.get('entities', {}),
+            tools_called=response_dict.get('tools_called', response_dict.get('tools_used', [])),
+            suggestions=response_dict.get('suggestions', []),
+            is_fallback=response_dict.get('is_fallback', False),
+            is_clarification=response_dict.get('is_clarification', False),
+            processing_time_ms=response_dict.get('processing_time_ms', 0)
         )
 
     except Exception as e:
@@ -979,36 +988,37 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
 
 @app.get("/api/v2/stats")
 async def get_orchestrator_stats():
-    """통합 오케스트레이터 통계 조회"""
-    orchestrator = await get_unified_orchestrator()
-    return orchestrator.get_stats()
+    """UnifiedBrain 통계 조회"""
+    brain = get_brain()
+    return brain.get_stats() if hasattr(brain, 'get_stats') else {"status": "ok"}
 
 
 @app.get("/api/v2/state")
 async def get_orchestrator_state():
-    """통합 오케스트레이터 상태 조회"""
-    orchestrator = await get_unified_orchestrator()
+    """UnifiedBrain 상태 조회"""
+    brain = get_brain()
     return {
-        "summary": orchestrator.get_state_summary(),
-        "state": orchestrator.state.to_dict()
+        "summary": brain.get_state_summary() if hasattr(brain, 'get_state_summary') else {},
+        "state": brain.state.to_dict() if hasattr(brain, 'state') and hasattr(brain.state, 'to_dict') else {}
     }
 
 
 @app.get("/api/v2/errors")
 async def get_orchestrator_errors():
-    """통합 오케스트레이터 최근 에러 조회"""
-    orchestrator = await get_unified_orchestrator()
+    """UnifiedBrain 최근 에러 조회"""
+    brain = get_brain()
     return {
-        "recent_errors": orchestrator.get_recent_errors(limit=20),
-        "stats": orchestrator.get_stats()
+        "recent_errors": brain.get_recent_errors(limit=20) if hasattr(brain, 'get_recent_errors') else [],
+        "stats": brain.get_stats() if hasattr(brain, 'get_stats') else {}
     }
 
 
 @app.post("/api/v2/reset-errors")
 async def reset_orchestrator_errors():
     """실패한 에이전트 목록 초기화"""
-    orchestrator = await get_unified_orchestrator()
-    orchestrator.reset_failed_agents()
+    brain = get_brain()
+    if hasattr(brain, 'reset_failed_agents'):
+        brain.reset_failed_agents()
     return {"status": "ok", "message": "Failed agents list cleared"}
 
 
@@ -3626,7 +3636,9 @@ async def get_available_brands(
 async def get_sos_trend(
     brand: str = "LANEIGE",
     category_id: Optional[str] = None,
-    days: int = 7
+    days: int = 7,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
 ):
     """
     브랜드의 SoS 추세 데이터 (일별)
@@ -3634,7 +3646,9 @@ async def get_sos_trend(
     Args:
         brand: 브랜드명 (기본: LANEIGE)
         category_id: 카테고리 (선택, 없으면 전체)
-        days: 조회 기간 (기본: 7일)
+        days: 조회 기간 (기본: 7일, start_date/end_date가 없을 때만 사용)
+        start_date: 시작 날짜 (YYYY-MM-DD)
+        end_date: 종료 날짜 (YYYY-MM-DD)
 
     Returns:
         일별 SoS 추세 데이터
@@ -3645,8 +3659,12 @@ async def get_sos_trend(
         sqlite = get_sqlite_storage()
         await sqlite.initialize()
 
-        end_date = datetime.now().strftime("%Y-%m-%d")
-        start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        # start_date/end_date가 제공되면 사용, 아니면 days 기반으로 계산
+        if start_date and end_date:
+            pass  # 그대로 사용
+        else:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # 일별 전체 제품 수
         if category_id:

@@ -2625,15 +2625,17 @@
                             </div>
                             <!-- SoS 추이 차트 -->
                             <div class="card">
-                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                                     <div class="card-title">
                                         <div class="card-title-icon"><i data-lucide="trending-up" style="color: white; width: 16px; height: 16px;"></i></div>
                                         Laneige SoS 추이
                                     </div>
-                                    <div class="period-selector" style="display: flex; gap: 4px;">
-                                        <button class="period-btn active" data-period="7" onclick="updateSosTrendPeriod(7, this)">7일</button>
-                                        <button class="period-btn" data-period="14" onclick="updateSosTrendPeriod(14, this)">14일</button>
-                                        <button class="period-btn" data-period="30" onclick="updateSosTrendPeriod(30, this)">30일</button>
+                                    <div class="sos-trend-date-range" style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                                        <label style="color: var(--text-secondary);">기간:</label>
+                                        <input type="date" id="sosTrendStartDate" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px;">
+                                        <span style="color: var(--text-secondary);">~</span>
+                                        <input type="date" id="sosTrendEndDate" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px;">
+                                        <button onclick="applySosTrendDateRange()" style="padding: 4px 12px; background: var(--amore-blue); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">적용</button>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -4698,19 +4700,65 @@
             }, 300);
         }
 
-        // SoS 추이 차트 기간 변경
-        function updateSosTrendPeriod(days, btnElement) {
-            // 버튼 활성화 상태 변경
-            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-            if (btnElement) btnElement.classList.add('active');
+        // SoS 추이 차트 날짜 범위 초기화
+        function initSosTrendDateRange() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 7);  // 기본 7일
 
-            // 차트 데이터 업데이트
-            if (charts.trend && typeof getSosTrendData === 'function') {
-                const newData = getSosTrendData(days);
-                charts.trend.data.labels = newData.labels;
-                charts.trend.data.datasets[0].data = newData.data;
-                charts.trend.update('none');
+            const startInput = document.getElementById('sosTrendStartDate');
+            const endInput = document.getElementById('sosTrendEndDate');
+            if (startInput && endInput) {
+                startInput.value = startDate.toISOString().split('T')[0];
+                endInput.value = endDate.toISOString().split('T')[0];
             }
+        }
+
+        // SoS 추이 차트 날짜 범위 적용
+        async function applySosTrendDateRange() {
+            const startDate = document.getElementById('sosTrendStartDate')?.value;
+            const endDate = document.getElementById('sosTrendEndDate')?.value;
+
+            if (!startDate || !endDate) {
+                showToast('시작일과 종료일을 모두 선택해주세요.', 'error');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showToast('시작일이 종료일보다 늦을 수 없습니다.', 'error');
+                return;
+            }
+
+            try {
+                // API 호출하여 해당 기간의 SoS 데이터 가져오기
+                const response = await fetch(`/api/sos/trend?start_date=${startDate}&end_date=${endDate}&brand=LANEIGE`);
+                const result = await response.json();
+
+                if (result.success && charts.trend) {
+                    const trendData = result.trend || [];
+
+                    // X축 레이블과 데이터 업데이트
+                    charts.trend.data.labels = trendData.map(d => {
+                        const date = new Date(d.date);
+                        return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    });
+                    charts.trend.data.datasets[0].data = trendData.map(d => d.sos);
+                    charts.trend.update('none');
+
+                    const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
+                    showToast(`SoS 추이 기간이 적용되었습니다: ${periodText}`, 'success');
+                } else {
+                    showToast('데이터를 불러오는데 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('SoS trend update error:', error);
+                showToast('데이터 조회 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 기존 호환성 유지용 (사용 안함)
+        function updateSosTrendPeriod(days, btnElement) {
+            // 날짜 선택기로 대체됨
         }
 
         function switchPage(pageId) {
@@ -5758,6 +5806,8 @@
             initAllChartDateRanges();
             // Category View 날짜 범위 초기화
             initCategoryDateRange();
+            // SoS 추이 차트 날짜 범위 초기화
+            initSosTrendDateRange();
         });
 
         // CSS 애니메이션 추가
@@ -6503,7 +6553,7 @@
                                 ${d.category_name}
                             </div>
                             <div style="color: var(--text-secondary); font-size: 10px;">
-                                Top ${d.total_products} 중
+                                Top 100 중
                                 <strong style="color: ${hasLaneige ? '#1F5795' : '#999'};">LANEIGE ${d.laneige_count}개 (${d.laneige_sos.toFixed(1)}%)</strong>
                             </div>
                         </div>

@@ -13,7 +13,7 @@ from pathlib import Path
 KST = timezone(timedelta(hours=9))
 
 from src.tools.amazon_scraper import AmazonScraper
-from src.ontology.schema import RankRecord, Product, Category
+from src.domain.entities import RankRecord, Product, Category
 from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics

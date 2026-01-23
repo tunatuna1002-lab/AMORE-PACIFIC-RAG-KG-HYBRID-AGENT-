@@ -15,7 +15,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.business_rules import register_all_rules, ALL_BUSINESS_RULES
-from src.ontology.relations import RelationType, Relation, InsightType
+from src.domain.entities.relations import RelationType, Relation, InsightType
 
 
 def load_dashboard_data() -> dict:

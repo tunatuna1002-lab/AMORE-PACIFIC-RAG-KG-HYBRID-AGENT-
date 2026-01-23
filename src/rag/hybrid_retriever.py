@@ -81,11 +81,12 @@ Query → Entity Extraction → [Ontology Reasoning + RAG Search] → Context Me
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 import logging
 
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.ontology.relations import InsightType, InferenceResult, RelationType
+from src.domain.entities.relations import InsightType, InferenceResult, RelationType
 from src.ontology.business_rules import register_all_rules
 
 from .retriever import DocumentRetriever
@@ -93,6 +94,94 @@ from .retriever import DocumentRetriever
 
 # 로거 설정
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Query Intent Classification
+# ============================================================================
+
+class QueryIntent(Enum):
+    """쿼리 의도 분류"""
+    DIAGNOSIS = "diagnosis"      # 원인 분석 → Type A (플레이북) 우선
+    TREND = "trend"              # 트렌드 → Type B (인텔리전스) 우선
+    CRISIS = "crisis"            # 위기 대응 → Type C (대응 가이드) 우선
+    METRIC = "metric"            # 지표 해석 → Type D (기존 가이드) 우선
+    GENERAL = "general"          # 일반 → 모든 문서
+
+
+# 의도별 우선 검색 문서 유형 매핑
+INTENT_DOC_TYPE_PRIORITY = {
+    QueryIntent.DIAGNOSIS: ["playbook", "metric_guide", "intelligence"],
+    QueryIntent.TREND: ["intelligence", "knowledge_base", "response_guide"],
+    QueryIntent.CRISIS: ["response_guide", "intelligence", "playbook"],
+    QueryIntent.METRIC: ["metric_guide", "playbook"],
+    QueryIntent.GENERAL: None  # 모든 문서 검색
+}
+
+
+def classify_intent(query: str) -> QueryIntent:
+    """
+    쿼리 의도 분류
+    
+    Args:
+        query: 사용자 쿼리
+        
+    Returns:
+        QueryIntent enum 값
+        
+    Note:
+        키워드 우선순위: TREND > CRISIS > DIAGNOSIS > METRIC > GENERAL
+        트렌드/위기 키워드가 있으면 분석 키워드보다 우선
+    """
+    query_lower = query.lower()
+    
+    # 1순위: 트렌드 의도 (Type B 우선)
+    # "트렌드 분석" 같은 쿼리는 TREND로 분류
+    trend_keywords = [
+        "트렌드", "요즘", "최근", "인기", "바이럴", "키워드",
+        "성분", "펩타이드", "pdrn", "글래스스킨", "모닝쉐드"
+    ]
+    if any(kw in query_lower for kw in trend_keywords):
+        return QueryIntent.TREND
+    
+    # 2순위: 위기 대응 의도 (Type C 우선)
+    crisis_keywords = [
+        "부정", "문제", "이슈", "대응", "어떻게 해", "위기",
+        "리뷰", "불만", "인플루언서", "마케팅", "메시지"
+    ]
+    if any(kw in query_lower for kw in crisis_keywords):
+        return QueryIntent.CRISIS
+    
+    # 3순위: 원인 분석 의도 (Type A 우선)
+    diagnosis_keywords = [
+        "왜", "원인", "갑자기", "급변", "떨어", "올라", "변동",
+        "이유", "분석", "진단", "체크", "확인"
+    ]
+    if any(kw in query_lower for kw in diagnosis_keywords):
+        return QueryIntent.DIAGNOSIS
+    
+    # 4순위: 지표 해석 의도 (Type D 우선)
+    metric_keywords = [
+        "sos", "hhi", "cpi", "지표", "점유율", "해석",
+        "의미", "정의", "공식", "계산"
+    ]
+    if any(kw in query_lower for kw in metric_keywords):
+        return QueryIntent.METRIC
+    
+    return QueryIntent.GENERAL
+
+
+def get_doc_type_filter(intent: QueryIntent) -> Optional[List[str]]:
+    """
+    의도에 따른 문서 유형 필터 반환
+    
+    Args:
+        intent: 쿼리 의도
+        
+    Returns:
+        우선 검색할 문서 유형 리스트 (None이면 모든 문서)
+    """
+    return INTENT_DOC_TYPE_PRIORITY.get(intent)
 
 
 @dataclass
@@ -427,6 +516,11 @@ class HybridRetriever:
         context = HybridContext(query=query)
 
         try:
+            # 0. 쿼리 의도 분류
+            query_intent = classify_intent(query)
+            doc_type_filter = get_doc_type_filter(query_intent)
+            logger.debug(f"Query intent: {query_intent.value}, doc_type_filter: {doc_type_filter}")
+
             # 1. 엔티티 추출 (지식 그래프 전달로 제품 ASIN도 추출 가능)
             entities = self.entity_extractor.extract(query, knowledge_graph=self.kg)
             context.entities = entities
@@ -446,9 +540,27 @@ class HybridRetriever:
             context.inferences = inferences
             logger.debug(f"Generated {len(inferences)} inferences")
 
-            # 5. RAG 문서 검색 (추론 결과로 쿼리 확장)
+            # 5. RAG 문서 검색 (추론 결과로 쿼리 확장 + 의도 기반 필터링)
             expanded_query = self._expand_query(query, inferences, entities)
-            rag_results = await self.doc_retriever.search(expanded_query, top_k=5)
+            rag_results = await self.doc_retriever.search(
+                expanded_query, 
+                top_k=5,
+                doc_type_filter=doc_type_filter
+            )
+            
+            # 필터링된 결과가 부족하면 전체 문서에서 추가 검색
+            if len(rag_results) < 3 and doc_type_filter:
+                additional_results = await self.doc_retriever.search(
+                    expanded_query,
+                    top_k=5 - len(rag_results),
+                    doc_type_filter=None  # 전체 문서에서 검색
+                )
+                # 중복 제거하며 추가
+                existing_ids = {r["id"] for r in rag_results}
+                for result in additional_results:
+                    if result["id"] not in existing_ids:
+                        rag_results.append(result)
+                        
             context.rag_chunks = rag_results
 
             # 6. 통합 컨텍스트 생성
@@ -462,7 +574,9 @@ class HybridRetriever:
                 "ontology_facts_count": len(ontology_facts),
                 "inferences_count": len(inferences),
                 "rag_chunks_count": len(rag_results),
-                "query_expanded": expanded_query != query
+                "query_expanded": expanded_query != query,
+                "query_intent": query_intent.value,
+                "doc_type_filter": doc_type_filter
             }
 
         except Exception as e:
@@ -516,6 +630,50 @@ class HybridRetriever:
                     "type": "competitors",
                     "entity": brand,
                     "data": competitors[:5]  # 상위 5개
+                })
+
+            # 경쟁사 네트워크 (직/간접 이웃)
+            try:
+                network = self.kg.get_neighbors(
+                    brand,
+                    direction="both",
+                    predicate_filter=[
+                        RelationType.COMPETES_WITH,
+                        RelationType.DIRECT_COMPETITOR,
+                        RelationType.INDIRECT_COMPETITOR
+                    ]
+                )
+                if network.get("outgoing") or network.get("incoming"):
+                    facts.append({
+                        "type": "competitor_network",
+                        "entity": brand,
+                        "data": {
+                            "outgoing": network.get("outgoing", [])[:10],
+                            "incoming": network.get("incoming", [])[:10]
+                        }
+                    })
+            except Exception:
+                pass
+
+            # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
+            trend_relations = self.kg.query(
+                subject=brand,
+                predicate=RelationType.HAS_TREND
+            )
+            if not trend_relations:
+                trend_relations = self.kg.query(
+                    subject="MARKET",
+                    predicate=RelationType.HAS_TREND
+                )
+            if trend_relations:
+                trend_keywords = [rel.object for rel in trend_relations[:10]]
+                facts.append({
+                    "type": "trend_keywords",
+                    "entity": brand,
+                    "data": {
+                        "keywords": trend_keywords,
+                        "count": len(trend_relations)
+                    }
                 })
 
         # 카테고리 관련 사실
@@ -584,7 +742,7 @@ class HybridRetriever:
                 if cluster not in ["sentiment_general", "ai_summary"]:
                     try:
                         # 해당 감성을 가진 제품 찾기
-                        from src.ontology.relations import SENTIMENT_CLUSTERS
+                        from src.domain.entities.relations import SENTIMENT_CLUSTERS
                         cluster_tags = SENTIMENT_CLUSTERS.get(cluster, [])
                         for tag in cluster_tags[:2]:  # 상위 2개 태그만
                             products_with_sentiment = self.kg.find_products_by_sentiment(tag)
@@ -682,6 +840,19 @@ class HybridRetriever:
             competitors = self.kg.get_competitors(context["brand"])
             context["competitor_count"] = len(competitors)
             context["competitors"] = competitors
+
+            # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
+            trend_relations = self.kg.query(
+                subject=context["brand"],
+                predicate=RelationType.HAS_TREND
+            )
+            if not trend_relations:
+                trend_relations = self.kg.query(
+                    subject="MARKET",
+                    predicate=RelationType.HAS_TREND
+                )
+            if trend_relations:
+                context["trend_keywords"] = [rel.object for rel in trend_relations[:10]]
 
         # 감성 데이터 (지식 그래프에서)
         if entities.get("sentiments") or entities.get("sentiment_clusters"):

@@ -9,7 +9,7 @@ Batch Workflow Orchestrator
 - Knowledge Graph 관리
 
 이 모듈은 예약된 배치 작업 실행에 특화되어 있습니다.
-챗봇/질의 처리는 core/unified_orchestrator.py를 사용합니다.
+챗봇/질의 처리는 core/brain.py (UnifiedBrain)를 사용합니다.
 
 Workflow Steps:
 1. Crawl: Amazon 베스트셀러 크롤링
@@ -60,8 +60,8 @@ from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics
 
-# 통합 오케스트레이터 (챗봇용)
-from src.core.unified_orchestrator import get_unified_orchestrator
+# UnifiedBrain (챗봇 질의 처리용)
+from src.core.brain import get_brain
 
 
 class WorkflowStep(Enum):
@@ -763,7 +763,7 @@ class BatchWorkflow:
 
     async def chat(self, message: str) -> Dict[str, Any]:
         """
-        챗봇 질의 - 통합 오케스트레이터로 위임
+        챗봇 질의 - UnifiedBrain으로 위임
 
         Args:
             message: 사용자 메시지
@@ -771,17 +771,17 @@ class BatchWorkflow:
         Returns:
             챗봇 응답
         """
-        orchestrator = await get_unified_orchestrator()
-        response = await orchestrator.process(
+        brain = get_brain()
+        response = await brain.process_query(
             query=message,
             session_id=self._session_id,
             current_metrics=self._state.get("metrics_result")
         )
-        return response.to_dict()
+        return response.to_dict() if hasattr(response, 'to_dict') else response
 
     async def process_query(self, query: str) -> Dict[str, Any]:
         """
-        질의 처리 - 통합 오케스트레이터로 위임
+        질의 처리 - UnifiedBrain으로 위임
 
         Args:
             query: 사용자 질문
@@ -789,13 +789,13 @@ class BatchWorkflow:
         Returns:
             Response 딕셔너리
         """
-        orchestrator = await get_unified_orchestrator()
-        response = await orchestrator.process(
+        brain = get_brain()
+        response = await brain.process_query(
             query=query,
             session_id=self._session_id,
             current_metrics=self._state.get("metrics_result")
         )
-        return response.to_dict()
+        return response.to_dict() if hasattr(response, 'to_dict') else response
 
     # =========================================================================
     # 유틸리티

@@ -17,3 +17,12 @@ class LLMClientProtocol(Protocol):
         temperature: float = 0.7,
         max_tokens: int = 2000,
     ) -> str: ...
+
+    async def generate_with_context(
+        self,
+        prompt: str,
+        context: List[Dict[str, Any]],
+        system_prompt: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+    ) -> str: ...

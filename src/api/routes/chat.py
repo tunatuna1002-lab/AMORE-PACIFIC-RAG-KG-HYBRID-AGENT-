@@ -30,8 +30,7 @@ from src.rag.retriever import DocumentRetriever
 
 # Core Services
 from src.core.simple_chat import get_chat_service
-from src.core.unified_orchestrator import get_unified_orchestrator
-from src.core.brain import get_initialized_brain
+from src.core.brain import UnifiedBrain, get_brain, get_initialized_brain
 from src.core.crawl_manager import get_crawl_manager
 
 # ============= Router Setup =============
@@ -606,23 +605,26 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
         crawl_manager.mark_notified(session_id)
 
     try:
-        # 통합 오케스트레이터로 처리
-        orchestrator = await get_unified_orchestrator()
+        # UnifiedBrain으로 처리
+        brain = get_brain()
 
         # 현재 메트릭 데이터 로드
         data = load_dashboard_data()
         current_metrics = data if data else None
 
         # 처리
-        response = await orchestrator.process(
+        response = await brain.process_query(
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
             skip_cache=request.skip_cache
         )
 
+        # 응답 변환 (UnifiedBrain response 처리)
+        response_dict = response.to_dict() if hasattr(response, 'to_dict') else response
+
         # 응답 텍스트 구성
-        response_text = response.text
+        response_text = response_dict.get('text', response_dict.get('content', ''))
 
         # 크롤링 알림 추가
         if crawl_notification:
@@ -638,16 +640,16 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
         # 응답 변환
         return OrchestratorChatResponse(
             text=response_text,
-            query_type=response.query_type,
-            confidence_level=response.confidence_level.value,
-            confidence_score=response.confidence_score,
-            sources=response.sources,
-            entities=response.entities,
-            tools_called=response.tools_called,
-            suggestions=response.suggestions,
-            is_fallback=response.is_fallback,
-            is_clarification=response.is_clarification,
-            processing_time_ms=response.processing_time_ms
+            query_type=response_dict.get('query_type', 'unknown'),
+            confidence_level=response_dict.get('confidence_level', 'medium'),
+            confidence_score=response_dict.get('confidence_score', response_dict.get('confidence', 0.5)),
+            sources=response_dict.get('sources', []),
+            entities=response_dict.get('entities', {}),
+            tools_called=response_dict.get('tools_called', response_dict.get('tools_used', [])),
+            suggestions=response_dict.get('suggestions', []),
+            is_fallback=response_dict.get('is_fallback', False),
+            is_clarification=response_dict.get('is_clarification', False),
+            processing_time_ms=response_dict.get('processing_time_ms', 0)
         )
 
     except Exception as e:

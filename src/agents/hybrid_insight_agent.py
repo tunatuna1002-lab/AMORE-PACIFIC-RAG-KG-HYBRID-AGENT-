@@ -18,7 +18,7 @@ from litellm import acompletion
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.business_rules import register_all_rules
-from src.ontology.relations import InferenceResult, InsightType
+from src.domain.entities.relations import InferenceResult, InsightType, RelationType, Relation
 
 from src.rag.hybrid_retriever import HybridRetriever, HybridContext
 from src.rag.context_builder import ContextBuilder
@@ -28,6 +28,7 @@ from src.rag.templates import ResponseTemplates
 from src.monitoring.logger import AgentLogger
 from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics
+from src.tools.external_signal_collector import ExternalSignalCollector
 
 
 class HybridInsightAgent:
@@ -100,6 +101,9 @@ class HybridInsightAgent:
         self._results: Dict[str, Any] = {}
         self._last_hybrid_context: Optional[HybridContext] = None
 
+        # External Signal Collector
+        self._signal_collector: Optional[ExternalSignalCollector] = None
+
     async def execute(
         self,
         metrics_data: Dict[str, Any],
@@ -171,7 +175,11 @@ class HybridInsightAgent:
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 3. 추론 설명 생성
+            # 3. RAG → KG 지식 추출
+            rag_kg_stats = self._ingest_rag_knowledge(hybrid_context.rag_chunks)
+            results["hybrid_stats"]["rag_to_kg"] = rag_kg_stats
+
+            # 4. 추론 설명 생성
             if self.tracer:
                 self.tracer.start_span("generate_explanations")
 
@@ -181,19 +189,31 @@ class HybridInsightAgent:
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 4. 일일 인사이트 생성 (LLM)
+            # 5. External Signal 수집 (LLM 호출 전에 수행)
+            if self.tracer:
+                self.tracer.start_span("collect_external_signals")
+
+            external_signals = await self._collect_external_signals()
+            results["external_signals"] = external_signals
+            signal_kg_stats = self._ingest_external_signals(external_signals)
+            results["hybrid_stats"]["signal_to_kg"] = signal_kg_stats
+
+            if self.tracer:
+                self.tracer.end_span("completed")
+
+            # 6. 일일 인사이트 생성 (LLM + External Signal 포함)
             if self.tracer:
                 self.tracer.start_span("generate_daily_insight")
 
             daily_insight = await self._generate_daily_insight(
-                hybrid_context, metrics_data, crawl_summary
+                hybrid_context, metrics_data, crawl_summary, external_signals
             )
             results["daily_insight"] = daily_insight
 
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 5. 액션 아이템 추출
+            # 7. 액션 아이템 추출
             if self.tracer:
                 self.tracer.start_span("extract_actions")
 
@@ -205,23 +225,27 @@ class HybridInsightAgent:
             if self.tracer:
                 self.tracer.end_span("completed")
 
-            # 6. 하이라이트 추출
+            # 8. 하이라이트 추출
             results["highlights"] = self._extract_highlights(
                 hybrid_context.inferences, metrics_data
             )
 
-            # 7. 경고 수집
+            # 9. 경고 수집
             alerts = metrics_data.get("alerts", [])
             results["warnings"] = [
                 a for a in alerts
                 if a.get("severity") in ["warning", "critical"]
             ]
 
-            # 8. 통계
+            if self.tracer:
+                self.tracer.end_span("completed")
+
+            # 10. 통계
             results["hybrid_stats"].update({
                 "inferences_count": len(hybrid_context.inferences),
                 "rag_chunks_count": len(hybrid_context.rag_chunks),
-                "ontology_facts_count": len(hybrid_context.ontology_facts)
+                "ontology_facts_count": len(hybrid_context.ontology_facts),
+                "external_signals_count": len(external_signals.get("signals", []))
             })
 
             self._results = results
@@ -320,15 +344,29 @@ class HybridInsightAgent:
         self,
         hybrid_context: HybridContext,
         metrics_data: Dict,
-        crawl_summary: Optional[Dict]
+        crawl_summary: Optional[Dict],
+        external_signals: Optional[Dict] = None
     ) -> str:
         """일일 인사이트 생성 (LLM)"""
         # 컨텍스트 구성
         context = self.context_builder.build(
             hybrid_context=hybrid_context,
             current_metrics=metrics_data,
-            query="오늘의 LANEIGE Amazon 베스트셀러 인사이트"
+            query="오늘의 LANEIGE Amazon 베스트셀러 인사이트",
+            knowledge_graph=self.kg
         )
+
+        # External Signal 컨텍스트 추가
+        external_context = ""
+        if external_signals and external_signals.get("report_section"):
+            external_context = f"""
+
+## 외부 트렌드 신호
+
+{external_signals['report_section']}
+
+_※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등에서 수집되었습니다._
+"""
 
         # 시스템 프롬프트
         system_prompt = self.context_builder.build_system_prompt(
@@ -336,9 +374,11 @@ class HybridInsightAgent:
         )
 
         # 사용자 프롬프트
+        reference_section = self._build_reference_section(hybrid_context, external_signals)
         user_prompt = f"""
 {context}
-
+{external_context}
+{reference_section}
 ---
 
 ## 요청사항
@@ -348,13 +388,17 @@ class HybridInsightAgent:
 포함 내용:
 1. **핵심 요약** (3-5문장): 오늘의 가장 중요한 인사이트
 2. **주요 발견**: 온톨로지 추론 결과 기반 핵심 발견 사항
-3. **주의 필요 사항**: 경고 또는 모니터링이 필요한 부분
-4. **권장 액션**: 구체적인 다음 단계 제안
+3. **외부 트렌드 연계** (외부 신호가 있는 경우): 뷰티 전문 매체나 SNS 트렌드와의 연관성
+4. **주의 필요 사항**: 경고 또는 모니터링이 필요한 부분
+5. **권장 액션**: 구체적인 다음 단계 제안
 
 형식:
 - 마크다운 형식
 - 구체적인 수치 인용
+- 외부 매체 출처 명시 (예: "Allure 보도에 따르면...")
 - 단정적 표현 대신 가능성 표현 사용
+- 본문 문장/불릿 끝에 [1], [2] 형태로 출처 인용
+- 문서 마지막에 '## 참고자료' 섹션을 포함하고, 제공된 참고자료 목록을 그대로 사용
 """
 
         try:
@@ -417,6 +461,10 @@ class HybridInsightAgent:
             "\n\n_※ 상세 인사이트 생성 중 오류가 발생하여 기본 요약을 제공합니다._"
         )
 
+        reference_section = self._build_reference_section(hybrid_context, {})
+        if reference_section:
+            insight_parts.append("\n" + reference_section)
+
         return "\n".join(insight_parts)
 
     def _extract_action_items(
@@ -466,6 +514,50 @@ class HybridInsightAgent:
         actions.sort(key=lambda x: priority_order.get(x.get("priority"), 3))
 
         return actions[:10]
+
+    def _build_reference_section(
+        self,
+        hybrid_context: HybridContext,
+        external_signals: Optional[Dict[str, Any]]
+    ) -> str:
+        """참고자료 섹션 생성 (숫자 인용용)"""
+        entries = []
+        idx = 1
+
+        # RAG 문서 출처
+        for chunk in (hybrid_context.rag_chunks or [])[:5]:
+            metadata = chunk.get("metadata", {})
+            title = metadata.get("title") or metadata.get("doc_id", "RAG 문서")
+            source_filename = metadata.get("source_filename", "")
+            doc_id = metadata.get("doc_id", "")
+            chunk_id = metadata.get("chunk_id") or chunk.get("id", "")
+            entries.append(
+                f"[{idx}] RAG: {title} - {source_filename} - {doc_id} - {chunk_id}"
+            )
+            idx += 1
+
+        # External Signal 출처
+        for signal in (external_signals or {}).get("signals", [])[:5]:
+            source = signal.get("source", "")
+            title = signal.get("title", "")
+            url = signal.get("url", "")
+            collected_at = signal.get("collected_at", "") or signal.get("published_at", "")
+            entries.append(
+                f"[{idx}] External: {source} - {title} - {url} - {collected_at}"
+            )
+            idx += 1
+
+        # KG 근거 (요약)
+        if hybrid_context.ontology_facts:
+            fact_types = sorted({fact.get("type") for fact in hybrid_context.ontology_facts})
+            entries.append(
+                f"[{idx}] KG: KnowledgeGraph facts used ({', '.join([t for t in fact_types if t])})"
+            )
+
+        if not entries:
+            return ""
+
+        return "## 참고자료\n" + "\n".join(entries)
 
     def _get_priority_from_insight(self, inference: InferenceResult) -> str:
         """인사이트 유형에서 우선순위 결정"""
@@ -562,6 +654,41 @@ class HybridInsightAgent:
         """추론기 반환"""
         return self.reasoner
 
+    async def _collect_external_signals(self) -> Dict[str, Any]:
+        """
+        External Signal 수집
+
+        Returns:
+            {
+                "signals": [...],
+                "report_section": "■ 전문 매체 근거: ...",
+                "stats": {"by_tier": {...}, "by_source": {...}}
+            }
+        """
+        result = {
+            "signals": [],
+            "report_section": "",
+            "stats": {}
+        }
+
+        try:
+            if not self._signal_collector:
+                self._signal_collector = ExternalSignalCollector()
+                await self._signal_collector.initialize()
+
+            # 기존 수집된 신호 확인
+            if self._signal_collector.signals:
+                result["signals"] = [s.to_dict() for s in self._signal_collector.signals[-20:]]
+                result["report_section"] = self._signal_collector.generate_report_section(days=7)
+                result["stats"] = self._signal_collector.get_stats()
+
+            self.logger.debug(f"External signals: {len(result['signals'])} signals loaded")
+
+        except Exception as e:
+            self.logger.warning(f"External signal collection failed: {e}")
+
+        return result
+
     def _extract_data_source_info(
         self,
         metrics_data: Optional[Dict],
@@ -622,3 +749,127 @@ class HybridInsightAgent:
                 source_info["total_products"] = total
 
         return source_info
+
+    def _ingest_rag_knowledge(self, rag_chunks: List[Dict[str, Any]]) -> Dict[str, int]:
+        """RAG 청크에서 지식 추출 후 KG에 적재"""
+        stats = {"trend_relations": 0, "action_relations": 0}
+
+        for chunk in rag_chunks or []:
+            metadata = chunk.get("metadata", {})
+            doc_type = metadata.get("doc_type", "")
+            doc_id = metadata.get("doc_id", "")
+            chunk_id = metadata.get("chunk_id") or chunk.get("id")
+            target_brand = metadata.get("target_brand")
+            brands_covered = metadata.get("brands_covered", [])
+
+            subject = self._normalize_brand_name(target_brand) if target_brand else "MARKET"
+            if not target_brand and brands_covered:
+                subject = self._normalize_brand_name(brands_covered[0])
+
+            # 트렌드 키워드 추출 (인텔리전스 문서 우선)
+            if doc_type in {"intelligence", "knowledge_base"}:
+                trend_keywords = metadata.get("keywords", [])
+                for keyword in trend_keywords:
+                    if len(keyword) < 3:
+                        continue
+                    relation = Relation(
+                        subject=subject,
+                        predicate=RelationType.HAS_TREND,
+                        object=keyword,
+                        properties={
+                            "source": "rag",
+                            "doc_id": doc_id,
+                            "chunk_id": chunk_id,
+                            "doc_type": doc_type,
+                            "source_filename": metadata.get("source_filename", "")
+                        }
+                    )
+                    if self.kg.add_relation(relation):
+                        stats["trend_relations"] += 1
+
+            # 액션 아이템 추출 (플레이북/대응 가이드)
+            if doc_type in {"playbook", "response_guide"}:
+                action_lines = self._extract_action_lines(chunk.get("content", ""))
+                for action in action_lines:
+                    relation = Relation(
+                        subject=subject,
+                        predicate=RelationType.REQUIRES_ACTION,
+                        object=action,
+                        properties={
+                            "source": "rag",
+                            "doc_id": doc_id,
+                            "chunk_id": chunk_id,
+                            "doc_type": doc_type,
+                            "source_filename": metadata.get("source_filename", "")
+                        }
+                    )
+                    if self.kg.add_relation(relation):
+                        stats["action_relations"] += 1
+
+        return stats
+
+    def _ingest_external_signals(self, external_signals: Dict[str, Any]) -> Dict[str, int]:
+        """External Signal을 KG에 적재"""
+        stats = {"trend_relations": 0}
+        signals = external_signals.get("signals", []) if external_signals else []
+
+        for signal in signals:
+            keywords = signal.get("keywords", [])
+            if not keywords:
+                continue
+
+            subject = self._infer_signal_subject(keywords)
+            for keyword in keywords:
+                relation = Relation(
+                    subject=subject,
+                    predicate=RelationType.HAS_TREND,
+                    object=keyword,
+                    properties={
+                        "source": "external_signal",
+                        "signal_id": signal.get("signal_id"),
+                        "source_name": signal.get("source"),
+                        "url": signal.get("url"),
+                        "published_at": signal.get("published_at"),
+                        "collected_at": signal.get("collected_at")
+                    }
+                )
+                if self.kg.add_relation(relation):
+                    stats["trend_relations"] += 1
+
+        return stats
+
+    def _extract_action_lines(self, content: str) -> List[str]:
+        """문서 본문에서 액션 항목 추출"""
+        actions = []
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("- ") or stripped.startswith("* "):
+                actions.append(stripped[2:].strip())
+            elif stripped[:2].isdigit() and stripped[1:3] == ". ":
+                actions.append(stripped[3:].strip())
+        return [a for a in actions if 5 <= len(a) <= 140]
+
+    def _infer_signal_subject(self, keywords: List[str]) -> str:
+        """External Signal 키워드에서 대상 엔티티 추정"""
+        brand_keywords = {
+            "laneige": "LANEIGE",
+            "cosrx": "COSRX",
+            "tirtir": "TIRTIR",
+            "rare beauty": "RARE BEAUTY",
+            "innisfree": "INNISFREE",
+            "etude": "ETUDE",
+            "sulwhasoo": "SULWHASOO",
+            "hera": "HERA"
+        }
+        for keyword in keywords:
+            normalized = keyword.lower()
+            if normalized in brand_keywords:
+                return brand_keywords[normalized]
+        return "MARKET"
+
+    def _normalize_brand_name(self, brand: Optional[str]) -> str:
+        if not brand:
+            return "MARKET"
+        return brand.upper() if brand.isalpha() else brand

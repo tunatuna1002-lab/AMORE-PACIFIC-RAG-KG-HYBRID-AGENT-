@@ -74,13 +74,26 @@ Beauty & Personal Care (beauty) ← Level 0, 최상위
 `HybridRetriever`는 3개 컴포넌트를 통합:
 1. **KnowledgeGraph** - Triple Store 기반 지식 그래프 (브랜드/제품/카테고리 관계)
 2. **OntologyReasoner** - 비즈니스 규칙 기반 추론 엔진
-3. **DocumentRetriever** - 키워드 기반 가이드 문서 검색 (4개 MD 파일)
+3. **DocumentRetriever** - 키워드 기반 가이드 문서 검색 (11개 MD 파일)
 
-**참조 문서** (`docs/guides/`):
+**참조 문서**:
+
+**기존 지표 가이드** (`docs/guides/`):
 - Strategic Indicators Definition.md
 - Metric Interpretation Guide.md
 - Indicator Combination Playbook.md
 - Home Page Insight Rules.md
+
+**시장 분석 문서** (`docs/market/`):
+- 아마존 랭킹 급등 원인 역추적 보고서.md (플레이북)
+- 아마존 랭킹 변동 원인 분석 가이드.md (플레이북)
+- (1) K-뷰티 초격차의 서막.md (지식 베이스)
+- 미국 뷰티 트렌드 레이더.md (인텔리전스)
+- 뷰티 트렌드 분석 및 판매 전략 제안.md (인텔리전스)
+- 부정 이슈 조기경보 및 대응 프롬프트.md (대응 가이드)
+- 인플루언서 맵 & 메시지 맵 생성.md (대응 가이드)
+
+**의도 기반 검색**: 쿼리 의도(DIAGNOSIS, TREND, CRISIS, METRIC)에 따라 관련 문서 유형을 우선 검색합니다.
 
 > ChromaDB 벡터 검색은 코드에 존재하나 현재 **비활성화** 상태
 
@@ -503,13 +516,26 @@ Beauty & Personal Care (beauty) ← Level 0, Root
 `HybridRetriever` integrates 3 components:
 1. **KnowledgeGraph** - Triple Store based knowledge graph (brand/product/category relations)
 2. **OntologyReasoner** - Business rules based inference engine
-3. **DocumentRetriever** - Keyword-based guide document search (4 MD files)
+3. **DocumentRetriever** - Keyword-based guide document search (11 MD files)
 
-**Reference Documents** (`docs/guides/`):
+**Reference Documents**:
+
+**Metric Guides** (`docs/guides/`):
 - Strategic Indicators Definition.md
 - Metric Interpretation Guide.md
 - Indicator Combination Playbook.md
 - Home Page Insight Rules.md
+
+**Market Analysis Documents** (`docs/market/`):
+- 아마존 랭킹 급등 원인 역추적 보고서.md (Playbook)
+- 아마존 랭킹 변동 원인 분석 가이드.md (Playbook)
+- (1) K-뷰티 초격차의 서막.md (Knowledge Base)
+- 미국 뷰티 트렌드 레이더.md (Intelligence)
+- 뷰티 트렌드 분석 및 판매 전략 제안.md (Intelligence)
+- 부정 이슈 조기경보 및 대응 프롬프트.md (Response Guide)
+- 인플루언서 맵 & 메시지 맵 생성.md (Response Guide)
+
+**Intent-based Search**: Queries are automatically classified by intent (DIAGNOSIS, TREND, CRISIS, METRIC) to prioritize relevant document types.
 
 > ChromaDB vector search exists in code but is currently **disabled**
 
@@ -628,6 +654,92 @@ MIT License
 ---
 
 ## Changelog (개선 타임라인)
+
+### 2026-01-23: RAG 문서 통합 전략 구현 완료
+
+#### 📚 신규 문서 통합 (7개 문서)
+- **문서 폴더 구조**: `docs/market/` 폴더 생성 및 7개 신규 문서 이동
+  - 아마존 랭킹 급등 원인 역추적 보고서.md (Type A: 플레이북)
+  - 아마존 랭킹 변동 원인 분석 가이드.md (Type A: 플레이북)
+  - (1) K-뷰티 초격차의 서막.md (Type B: 지식 베이스)
+  - 미국 뷰티 트렌드 레이더.md (Type B: 인텔리전스)
+  - 뷰티 트렌드 분석 및 판매 전략 제안.md (Type B: 인텔리전스)
+  - 부정 이슈 조기경보 및 대응 프롬프트.md (Type C: 대응 가이드)
+  - 인플루언서 맵 & 메시지 맵 생성.md (Type C: 대응 가이드)
+
+#### 🏷️ 문서 분류 체계 (4-Type)
+| 문서 유형 | 개수 | 설명 | 갱신 주기 |
+|----------|------|------|----------|
+| **Type A: 플레이북** | 2개 | 원인 분석 방법론 (How to diagnose) | 분기별 |
+| **Type B: 인텔리전스** | 3개 | 시장 트렌드 정보 (What is happening) | 주간/월간 |
+| **Type C: 대응 가이드** | 2개 | 위기 대응 전략 (How to respond) | 월간/이슈 발생시 |
+| **Type D: 지표 가이드** | 4개 | 기존 지표 해석 가이드 | 연간 (거의 변경 없음) |
+
+#### 🎯 QueryIntent 기반 검색
+- **QueryIntent 분류**: `classify_intent()` 함수로 쿼리 의도 자동 분류
+  - `DIAGNOSIS`: 원인 분석 → Type A (플레이북) 우선 검색
+  - `TREND`: 트렌드 → Type B (인텔리전스) 우선 검색
+  - `CRISIS`: 위기 대응 → Type C (대응 가이드) 우선 검색
+  - `METRIC`: 지표 해석 → Type D (기존 가이드) 우선 검색
+  - `GENERAL`: 일반 → 모든 문서 검색
+- **의도별 우선순위 매트릭스**:
+  | Intent | Type A | Type B | Type C | Type D |
+  |--------|--------|--------|--------|--------|
+  | DIAGNOSIS | **1순위** | 3순위 | - | 2순위 |
+  | TREND | - | **1순위** | 2순위 | - |
+  | CRISIS | - | 2순위 | **1순위** | - |
+  | METRIC | 2순위 | - | - | **1순위** |
+
+#### 📝 확장된 메타데이터 스키마
+- **신규 필드 추가**: `doc_type`, `intent_triggers`, `freshness`, `valid_period`, `target_brand`, `brands_covered`
+- **문서 유형별 청크 크기 차별화**:
+  - 플레이북: 800자 (큰 청크)
+  - 인텔리전스/지식 베이스: 600자
+  - 대응 가이드/지표 가이드: 500자
+
+#### 🔍 차별화된 청킹 전략
+- **표(Table) 별도 처리**: 마크다운 표를 별도 청크로 분리하여 완전성 유지
+  - 12개 표 청크 자동 생성
+  - `content_type: "table"` 메타데이터 추가
+- **스마트 분할**: `_smart_split()` 함수로 단락 기반 지능형 분할
+  - 긴 섹션은 단락(`\n\n`) 기준으로 우선 분할
+  - 단락이 청크 크기보다 크면 문장 단위로 분할
+
+#### 🔧 기술 구현
+- **DocumentRetriever 개선** (`src/rag/retriever.py`):
+  - `docs/market/` 경로 추가
+  - `doc_type_filter` 파라미터로 문서 유형 필터링 지원
+  - 벡터 검색 및 키워드 검색 모두 필터링 지원
+- **HybridRetriever 통합** (`src/rag/hybrid_retriever.py`):
+  - `QueryIntent` enum 및 `classify_intent()` 함수 추가
+  - `get_doc_type_filter()` 함수로 의도별 필터 반환
+  - `retrieve()` 메서드에 intent 기반 자동 필터링 적용
+  - 메타데이터에 `query_intent`, `doc_type_filter` 포함
+
+#### ✅ 테스트 및 검증
+- **통합 테스트**: `tests/test_rag_integration.py` 작성
+  - 25개 테스트 케이스 전체 통과 ✅
+  - 11개 문서, 271개 청크 정상 로드
+  - 의도 기반 검색 정상 작동 확인
+  - 표 청크 분리 검증 (12개)
+
+#### 📊 기대 효과
+| 질문 유형 | 개선 전 | 개선 후 |
+|----------|--------|---------|
+| "LANEIGE 순위가 왜 떨어졌나요?" | 지표 해석만 제공 | + 외부 원인 체크리스트 제공 |
+| "요즘 미국 립케어 트렌드는?" | 응답 불가 | 트렌드 Top 10 + 전략 제안 |
+| "부정 리뷰 대응 어떻게?" | 일반적 안전장치만 | 브랜드별 구체적 대응 문구 |
+| "인플루언서 마케팅 전략?" | 응답 불가 | 플랫폼별 인플루언서 맵 + 훅 |
+
+#### 📁 변경/생성된 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| `docs/market/` | 🆕 7개 신규 문서 폴더 |
+| `src/rag/retriever.py` | 문서 메타데이터 확장, doc_type 필터링, 표 청킹 |
+| `src/rag/hybrid_retriever.py` | QueryIntent 분류, intent 기반 필터링 |
+| `tests/test_rag_integration.py` | 🆕 RAG 통합 테스트 스위트 |
+
+---
 
 ### 2026-01-21: External Signal Collector & Dashboard UX 개선
 
