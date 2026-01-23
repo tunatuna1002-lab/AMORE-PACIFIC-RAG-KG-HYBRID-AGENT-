@@ -1326,6 +1326,8 @@
         }
 
         /* === RESPONSIVE LAYOUT === */
+
+        /* 태블릿 가로 (1200px 이하) */
         @media (max-width: 1200px) {
             .kpi-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -1333,7 +1335,43 @@
             .content-grid {
                 grid-template-columns: 1fr;
             }
+            .chatbot-panel.open {
+                width: 360px;
+                min-width: 280px;
+            }
         }
+
+        /* 태블릿 세로 (992px 이하) */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 200px;
+            }
+            .chatbot-panel.open {
+                position: fixed;
+                right: 0;
+                top: 0;
+                height: 100vh;
+                width: 380px;
+                z-index: 1000;
+                box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+            }
+            .chatbot-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 999;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.25s ease;
+            }
+            .chatbot-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+
+        /* 모바일 가로 / 작은 태블릿 (768px 이하) */
         @media (max-width: 768px) {
             .kpi-grid {
                 grid-template-columns: 1fr;
@@ -1349,29 +1387,188 @@
                 justify-content: flex-start;
             }
             .sidebar {
-                width: 200px;
+                position: fixed;
+                left: -240px;
+                top: 0;
+                height: 100vh;
+                width: 240px;
+                z-index: 1001;
+                transition: left 0.3s ease;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .sidebar-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 1000;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.25s ease;
+            }
+            .sidebar-overlay.active {
+                opacity: 1;
+                visibility: visible;
             }
             .main-content {
-                margin-left: 200px;
+                margin-left: 0 !important;
+                width: 100%;
+            }
+            .mobile-header {
+                display: flex !important;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                background: var(--pacific-blue);
+                padding: 12px 16px;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .mobile-header .menu-btn {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 4px;
+            }
+            .mobile-header .logo-text {
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            .mobile-header .chat-toggle-btn {
+                background: var(--amore-blue);
+                border: none;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                cursor: pointer;
             }
             .category-tabs {
                 flex-wrap: wrap;
             }
+            .chatbot-panel.open {
+                width: 100%;
+                max-width: 100%;
+                min-width: 100%;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 12px;
+            }
+            .page-header h2 {
+                font-size: 18px;
+            }
+            .view-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .header-controls {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            .growth-type-container {
+                flex-direction: column;
+            }
         }
+
+        /* 모바일 세로 (576px 이하) */
         @media (max-width: 576px) {
             .sidebar {
-                width: 60px;
-            }
-            .sidebar .nav-text {
-                display: none;
+                width: 280px;
+                left: -280px;
             }
             .main-content {
-                margin-left: 60px;
+                padding: 12px !important;
+            }
+            .kpi-card {
+                padding: 16px;
+            }
+            .kpi-value {
+                font-size: 24px;
+            }
+            .card {
+                border-radius: 8px;
+            }
+            .card-header {
+                padding: 12px 16px;
+            }
+            .card-body {
+                padding: 12px 16px;
             }
             .chart-date-range input[type="date"] {
                 width: 110px;
                 font-size: 11px;
             }
+            .chart-date-range select {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            .apply-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            .chatbot-input-area {
+                padding: 12px;
+            }
+            .chatbot-input-area textarea {
+                font-size: 14px;
+            }
+            .chat-message {
+                max-width: 95%;
+                font-size: 13px;
+            }
+            .suggestion-chips {
+                flex-direction: column;
+            }
+            .suggestion-chip {
+                width: 100%;
+                text-align: left;
+            }
+            .data-table {
+                font-size: 11px;
+            }
+            .data-table th, .data-table td {
+                padding: 8px 6px;
+            }
+        }
+
+        /* 매우 작은 화면 (400px 이하) */
+        @media (max-width: 400px) {
+            .page-header h2 {
+                font-size: 16px;
+            }
+            .kpi-grid {
+                gap: 8px;
+            }
+            .kpi-card {
+                padding: 12px;
+            }
+            .kpi-value {
+                font-size: 20px;
+            }
+            .kpi-label {
+                font-size: 10px;
+            }
+            .chart-container {
+                height: 200px;
+            }
+        }
+
+        /* 모바일 헤더 기본 숨김 */
+        .mobile-header {
+            display: none;
+        }
+
+        /* 사이드바/챗봇 오버레이 기본 숨김 */
+        .sidebar-overlay,
+        .chatbot-overlay {
+            display: none;
         }
 
         /* === CHARTS === */
@@ -2448,8 +2645,21 @@
     </div>
 
     <div class="app-container">
+        <!-- MOBILE HEADER (768px 이하에서 표시) -->
+        <div class="mobile-header">
+            <button class="menu-btn" onclick="toggleMobileSidebar()">☰</button>
+            <span class="logo-text">AMORE INSIGHT</span>
+            <button class="chat-toggle-btn" onclick="toggleChatbot()">💬 AI</button>
+        </div>
+
+        <!-- SIDEBAR OVERLAY (모바일용) -->
+        <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+        <!-- CHATBOT OVERLAY (태블릿/모바일용) -->
+        <div class="chatbot-overlay" onclick="toggleChatbot()"></div>
+
         <!-- SIDEBAR -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="logo-section">
                 <div class="logo">
                     <div class="logo-icon"><i data-lucide="sparkles" style="color: white; width: 22px; height: 22px;"></i></div>
@@ -3556,9 +3766,9 @@
                                         </div>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 12px;">
-                                        <span class="card-badge" id="alerts-count-badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">0개의 새 알림</span>
-                                        <button class="apply-btn" onclick="sendPendingAlerts()" style="background: #f59e0b;">📤 알림 발송</button>
-                                        <button class="apply-btn" onclick="testAlertService()" style="background: #6b7280;">🧪 테스트</button>
+                                        <span class="card-badge" id="alerts-count-badge" style="background: rgba(31, 87, 149, 0.1); color: var(--amore-blue);">0개의 새 알림</span>
+                                        <button class="apply-btn" onclick="sendPendingAlerts()">📤 알림 발송</button>
+                                        <button class="apply-btn" onclick="testAlertService()" style="background: var(--amore-blue);">🧪 테스트</button>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -4794,6 +5004,13 @@
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.getElementById(`page-${pageId}`).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(item => { item.classList.remove('active'); if (item.dataset.page === pageId) item.classList.add('active'); });
+            // 모바일에서 페이지 전환 시 사이드바 닫기
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.querySelector('.sidebar-overlay');
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+            }
             const titles = {
                 home: { title: 'Home', breadcrumb: 'Daily Insight & Action Board' },
                 brand: { title: 'Brand View (L1)', breadcrumb: 'Laneige 브랜드 분석' },
@@ -5847,8 +6064,23 @@
             chatbotOpen = !chatbotOpen;
             document.getElementById('chatbotPanel').classList.toggle('open', chatbotOpen);
             document.getElementById('chatFab').classList.toggle('hidden', chatbotOpen);
+            // 태블릿/모바일에서 오버레이 토글
+            const overlay = document.querySelector('.chatbot-overlay');
+            if (overlay) {
+                overlay.classList.toggle('active', chatbotOpen);
+            }
             if (chatbotOpen) {
                 lucide.createIcons();
+            }
+        }
+
+        // ===== 모바일 사이드바 토글 =====
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.toggle('open');
+            if (overlay) {
+                overlay.classList.toggle('active');
             }
         }
 
