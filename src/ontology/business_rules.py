@@ -468,6 +468,38 @@ RULE_STABLE_GROWTH = InferenceRule(
 
 
 # =========================================================================
+# 추가 규칙: 트렌드 정렬 기회 (Trend Alignment Opportunity)
+# =========================================================================
+
+RULE_TREND_ALIGNMENT = InferenceRule(
+    name="trend_alignment_opportunity",
+    description="외부/문서 트렌드 키워드와의 정렬이 확인되면 성장 기회 신호",
+    conditions=[
+        RuleCondition(
+            name="has_trend_keywords",
+            check=lambda ctx: len(ctx.get("trend_keywords", [])) >= 2,
+            description="트렌드 키워드 2개 이상"
+        ),
+        StandardConditions.is_target_brand()
+    ],
+    conclusion=lambda ctx: {
+        "insight": f"현재 트렌드 키워드({', '.join(ctx.get('trend_keywords', [])[:3])})와 "
+                  f"{ctx.get('brand', '브랜드')}가 정렬될 가능성이 있습니다.",
+        "opportunity": "trend_alignment",
+        "recommendation": "해당 키워드 중심 콘텐츠/광고 테스트 및 해시태그 전략 강화를 검토하세요.",
+        "related_entities": [ctx.get("brand", "")],
+        "metadata": {
+            "trend_keywords": ctx.get("trend_keywords", [])[:5]
+        }
+    },
+    insight_type=InsightType.GROWTH_OPPORTUNITY,
+    priority=7,
+    confidence=0.75,
+    tags=["trend", "opportunity", "positive"]
+)
+
+
+# =========================================================================
 # 규칙 7: 순위 하락 경고 (Rank Decline Alert)
 # =========================================================================
 
@@ -1401,6 +1433,7 @@ ALL_BUSINESS_RULES: List[InferenceRule] = [
 
     # 성장/기회 규칙
     RULE_STABLE_GROWTH,
+    RULE_TREND_ALIGNMENT,
     RULE_TOP10_STABILITY,
     RULE_CATEGORY_OPPORTUNITY,
     RULE_RATING_MOMENTUM,

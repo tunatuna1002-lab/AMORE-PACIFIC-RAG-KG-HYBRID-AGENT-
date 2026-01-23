@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 """
-LLM API 연동 테스트
-HybridInsightAgent를 사용하여 실제 LLM 인사이트 생성 테스트
+인사이트 샘플 생성 스크립트
+HybridInsightAgent를 사용하여 실제 인사이트 샘플을 생성합니다.
 """
 
 import sys
@@ -9,10 +10,9 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 import os
-import pytest
 
 # 프로젝트 루트 추가
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # 환경변수 로드
@@ -23,18 +23,89 @@ from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.business_rules import register_all_rules
 from src.domain.entities.relations import Relation, RelationType
-
-from src.rag.hybrid_retriever import HybridRetriever, HybridContext
-from src.rag.context_builder import ContextBuilder
-
 from src.agents.hybrid_insight_agent import HybridInsightAgent
 
 
 def load_dashboard_data() -> dict:
     """대시보드 데이터 로드"""
     data_path = PROJECT_ROOT / "data" / "dashboard_data.json"
+    if not data_path.exists():
+        print(f"❌ 데이터 파일이 없습니다: {data_path}")
+        print("기본 샘플 데이터를 생성합니다...")
+        return create_sample_data()
+    
     with open(data_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def create_sample_data() -> dict:
+    """샘플 데이터 생성"""
+    return {
+        "brand": {
+            "kpis": {
+                "hhi": 0.12
+            },
+            "competitors": [
+                {
+                    "brand": "LANEIGE",
+                    "sos": 6.2,
+                    "avg_rank": 12,
+                    "product_count": 6
+                },
+                {
+                    "brand": "COSRX",
+                    "sos": 8.5,
+                    "avg_rank": 9,
+                    "product_count": 7
+                },
+                {
+                    "brand": "TIRTIR",
+                    "sos": 5.1,
+                    "avg_rank": 18,
+                    "product_count": 4
+                },
+                {
+                    "brand": "Beauty of Joseon",
+                    "sos": 7.3,
+                    "avg_rank": 11,
+                    "product_count": 5
+                }
+            ]
+        },
+        "categories": {
+            "lip_care": {
+                "sos": 6.2,
+                "cpi": 135
+            },
+            "skin_care": {
+                "sos": 4.4,
+                "cpi": 120
+            }
+        },
+        "products": {
+            "B000TEST01": {
+                "name": "LANEIGE Lip Sleeping Mask",
+                "category": "lip_care",
+                "rank": 7,
+                "rating": 4.6,
+                "volatility": 2.1
+            },
+            "B000TEST02": {
+                "name": "LANEIGE Water Bank Cream",
+                "category": "skin_care",
+                "rank": 18,
+                "rating": 4.5,
+                "volatility": 3.0
+            },
+            "B000TEST03": {
+                "name": "LANEIGE Lip Glowy Balm",
+                "category": "lip_care",
+                "rank": 15,
+                "rating": 4.4,
+                "volatility": 1.8
+            }
+        }
+    }
 
 
 def build_metrics_data_from_dashboard(data: dict) -> dict:
@@ -63,8 +134,8 @@ def build_metrics_data_from_dashboard(data: dict) -> dict:
             "product_title": product.get("name", ""),
             "category_id": product.get("category"),
             "current_rank": product.get("rank"),
-            "rank_change_1d": 0,  # 데이터에 없음
-            "rank_change_7d": 0,
+            "rank_change_1d": 0,
+            "rank_change_7d": -2,  # 샘플: 7일 전 대비 2위 상승
             "rating": product.get("rating"),
             "rank_volatility": product.get("volatility", 0)
         })
@@ -153,23 +224,22 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
     return kg
 
 
-async def test_hybrid_insight_agent_with_llm():
-    """HybridInsightAgent LLM 연동 테스트"""
-    print("=" * 60)
-    print("🤖 LLM API 연동 테스트")
+async def generate_insight_sample():
+    """인사이트 샘플 생성"""
+    print("=" * 80)
+    print("📊 인사이트 샘플 생성")
     print(f"   실행 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
-
-    if os.getenv("SKIP_LLM_TESTS") == "1":
-        pytest.skip("SKIP_LLM_TESTS is set")
+    print("=" * 80)
 
     # API 키 확인
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or api_key.startswith("sk-your"):
-        pytest.skip("OPENAI_API_KEY not set for LLM tests")
+        print("\n⚠️  OPENAI_API_KEY가 설정되지 않았습니다.")
+        print("   LLM 기반 인사이트 생성은 스킵되고, 추론 결과만 표시됩니다.")
+        use_llm = False
     else:
         print(f"\n✅ OPENAI_API_KEY 확인됨 (마지막 4자리: ...{api_key[-4:]})")
-        use_fallback = False
+        use_llm = True
 
     # 1. 데이터 로드
     print("\n📊 데이터 로드 중...")
@@ -177,12 +247,16 @@ async def test_hybrid_insight_agent_with_llm():
     metrics_data = build_metrics_data_from_dashboard(data)
     print(f"   - 제품 메트릭: {len(metrics_data['product_metrics'])}개")
     print(f"   - 브랜드 메트릭: {len(metrics_data['brand_metrics'])}개")
+    print(f"   - 카테고리 메트릭: {len(metrics_data['market_metrics'])}개")
 
     # 2. KG 구축
     print("\n📈 Knowledge Graph 구축 중...")
     kg = build_knowledge_graph_from_dashboard(data)
     stats = kg.get_stats()
-    print(f"   - 트리플: {stats['total_triples']}개")
+    print(f"   - 트리플: {stats.get('total_triples', len(kg.triples))}개")
+    unique_subjects = stats.get('unique_subjects', 0)
+    unique_objects = stats.get('unique_objects', 0)
+    print(f"   - 주체 엔티티: {unique_subjects}개, 객체 엔티티: {unique_objects}개")
 
     # 3. Reasoner 초기화
     print("\n🧠 Reasoner 초기화 중...")
@@ -192,20 +266,20 @@ async def test_hybrid_insight_agent_with_llm():
 
     # 4. HybridInsightAgent 생성
     print("\n🔧 HybridInsightAgent 초기화 중...")
-    model = "gpt-4o-mini"
-
+    model = "gpt-4o-mini" if use_llm else None
+    
     agent = HybridInsightAgent(
         model=model,
         knowledge_graph=kg,
         reasoner=reasoner,
         docs_dir=str(PROJECT_ROOT)
     )
-    print(f"   - 모델: {model}")
+    print(f"   - 모델: {model or 'N/A (추론만)'}")
 
     # 5. 인사이트 생성 실행
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 80)
     print("🚀 하이브리드 인사이트 생성 실행")
-    print("=" * 60)
+    print("=" * 80)
 
     try:
         result = await agent.execute(
@@ -221,36 +295,50 @@ async def test_hybrid_insight_agent_with_llm():
         print(f"   - 하이라이트: {len(result.get('highlights', []))}개")
 
         # 일일 인사이트 출력
-        print("\n" + "=" * 60)
+        print("\n" + "=" * 80)
         print("📝 일일 인사이트")
-        print("=" * 60)
+        print("=" * 80)
         daily_insight = result.get("daily_insight", "")
-        print(daily_insight)
+        if daily_insight:
+            print(daily_insight)
+        else:
+            print("(LLM 기반 인사이트가 생성되지 않았습니다. API 키를 확인해주세요.)")
 
         # 추론 결과 출력
-        print("\n" + "=" * 60)
+        print("\n" + "=" * 80)
         print("🔍 온톨로지 추론 결과")
-        print("=" * 60)
-        for i, inf in enumerate(result.get("inferences", []), 1):
-            print(f"\n{i}. [{inf.get('insight_type')}]")
-            print(f"   결론: {inf.get('insight')}")
-            if inf.get('recommendation'):
-                print(f"   권장: {inf.get('recommendation')}")
-            print(f"   신뢰도: {inf.get('confidence', 0):.0%}")
+        print("=" * 80)
+        inferences = result.get("inferences", [])
+        if inferences:
+            for i, inf in enumerate(inferences, 1):
+                print(f"\n{i}. [{inf.get('insight_type', 'UNKNOWN')}]")
+                print(f"   결론: {inf.get('insight', 'N/A')}")
+                if inf.get('recommendation'):
+                    print(f"   권장: {inf.get('recommendation')}")
+                print(f"   신뢰도: {inf.get('confidence', 0):.0%}")
+        else:
+            print("(추론 결과가 없습니다.)")
 
         # 액션 아이템 출력
-        print("\n" + "=" * 60)
+        print("\n" + "=" * 80)
         print("📋 액션 아이템")
-        print("=" * 60)
-        for i, action in enumerate(result.get("action_items", []), 1):
-            priority = action.get("priority", "low").upper()
-            print(f"{i}. [{priority}] {action.get('action')}")
-            print(f"   소스: {action.get('source')} / 유형: {action.get('type')}")
+        print("=" * 80)
+        action_items = result.get("action_items", [])
+        if action_items:
+            for i, action in enumerate(action_items, 1):
+                priority = action.get("priority", "low").upper()
+                print(f"{i}. [{priority}] {action.get('action', 'N/A')}")
+                if action.get('source'):
+                    print(f"   소스: {action.get('source')}")
+                if action.get('type'):
+                    print(f"   유형: {action.get('type')}")
+        else:
+            print("(액션 아이템이 없습니다.)")
 
         # 하이브리드 통계
-        print("\n" + "=" * 60)
+        print("\n" + "=" * 80)
         print("📊 하이브리드 시스템 통계")
-        print("=" * 60)
+        print("=" * 80)
         hybrid_stats = result.get("hybrid_stats", {})
         print(f"   - KG 업데이트: {hybrid_stats.get('kg_update', {})}")
         print(f"   - 추론 결과: {hybrid_stats.get('inferences_count', 0)}개")
@@ -258,10 +346,33 @@ async def test_hybrid_insight_agent_with_llm():
         print(f"   - 온톨로지 사실: {hybrid_stats.get('ontology_facts_count', 0)}개")
 
         # 결과 저장
-        output_path = PROJECT_ROOT / "data" / "llm_insight_result.json"
+        output_path = PROJECT_ROOT / "data" / "insight_sample.json"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2, default=str)
         print(f"\n💾 결과 저장: {output_path}")
+
+        # 마크다운 샘플 생성
+        markdown_path = PROJECT_ROOT / "data" / "insight_sample.md"
+        with open(markdown_path, "w", encoding="utf-8") as f:
+            f.write("# 인사이트 샘플\n\n")
+            f.write(f"생성일: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            f.write("## 일일 인사이트\n\n")
+            f.write(daily_insight or "(인사이트 없음)\n\n")
+            f.write("\n## 추론 결과\n\n")
+            for i, inf in enumerate(inferences, 1):
+                f.write(f"### {i}. {inf.get('insight_type', 'UNKNOWN')}\n\n")
+                f.write(f"**결론:** {inf.get('insight', 'N/A')}\n\n")
+                if inf.get('recommendation'):
+                    f.write(f"**권장:** {inf.get('recommendation')}\n\n")
+                f.write(f"**신뢰도:** {inf.get('confidence', 0):.0%}\n\n")
+            f.write("\n## 액션 아이템\n\n")
+            for i, action in enumerate(action_items, 1):
+                priority = action.get("priority", "low").upper()
+                f.write(f"{i}. **[{priority}]** {action.get('action', 'N/A')}\n")
+                if action.get('source'):
+                    f.write(f"   - 소스: {action.get('source')}\n")
+        print(f"📄 마크다운 샘플 저장: {markdown_path}")
 
         return True
 
@@ -272,80 +383,11 @@ async def test_hybrid_insight_agent_with_llm():
         return False
 
 
-async def test_context_builder_only():
-    """컨텍스트 빌더만 테스트 (LLM 없이)"""
-    print("\n" + "=" * 60)
-    print("📋 컨텍스트 빌더 테스트 (LLM 없이)")
-    print("=" * 60)
-
-    # 데이터 준비
-    data = load_dashboard_data()
-    kg = build_knowledge_graph_from_dashboard(data)
-    reasoner = OntologyReasoner(kg)
-    register_all_rules(reasoner)
-
-    # 추론 실행
-    inference_context = {
-        "brand": "LANEIGE",
-        "is_target": True,
-        "sos": 0.023,
-        "hhi": 0.02,
-        "category": "lip_care",
-        "cpi": 212.0,
-        "current_rank": 3
-    }
-
-    inferences = reasoner.infer(inference_context)
-    print(f"\n추론 결과: {len(inferences)}개")
-
-    # HybridContext 구성
-    hybrid_context = HybridContext(
-        query="LANEIGE 시장 분석",
-        inferences=inferences,
-        rag_chunks=[],
-        ontology_facts=[]
-    )
-
-    # 컨텍스트 빌드
-    builder = ContextBuilder()
-    context = builder.build(
-        hybrid_context=hybrid_context,
-        current_metrics=None,
-        query="시장 분석해줘",
-        knowledge_graph=kg
-    )
-    system_prompt = builder.build_system_prompt()
-    user_prompt = builder.build_user_prompt("시장 분석해줘", context)
-
-    print("\n" + "-" * 40)
-    print("📝 시스템 프롬프트 (처음 500자)")
-    print("-" * 40)
-    print(system_prompt[:500] + "...")
-
-    print("\n" + "-" * 40)
-    print("📝 사용자 프롬프트 (처음 500자)")
-    print("-" * 40)
-    print(user_prompt[:500] + "...")
-
-    return True
-
-
-async def main():
-    """메인 실행"""
-    # 1. 컨텍스트 빌더 테스트 (LLM 없이)
-    await test_context_builder_only()
-
-    # 2. LLM 연동 테스트
-    print("\n\n")
-    success = await test_hybrid_insight_agent_with_llm()
-
-    print("\n" + "=" * 60)
-    if success:
-        print("✅ LLM 연동 테스트 완료")
-    else:
-        print("⚠️  LLM 연동 테스트 실패 (API 키 확인 필요)")
-    print("=" * 60)
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    success = asyncio.run(generate_insight_sample())
+    print("\n" + "=" * 80)
+    if success:
+        print("✅ 인사이트 샘플 생성 완료")
+    else:
+        print("⚠️  인사이트 샘플 생성 중 오류 발생")
+    print("=" * 80)
