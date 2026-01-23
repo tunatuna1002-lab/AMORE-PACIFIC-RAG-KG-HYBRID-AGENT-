@@ -60,3 +60,13 @@ slowapi>=0.1.9
 
 # RSS Feed Parsing (External Signal Collector)
 feedparser>=6.0.0
+
+# True RAG - Re-ranking
+sentence-transformers>=2.2.0
+
+# True Ontology - OWL/RDF
+owlready2>=0.45
+rdflib>=7.0.0
+
+# Entity Linking - NER
+spacy>=3.7.0

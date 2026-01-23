@@ -30,6 +30,18 @@ import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
+try:
+    from .reranker import get_reranker
+    RERANKER_AVAILABLE = True
+except ImportError:
+    RERANKER_AVAILABLE = False
+
+try:
+    from .chunker import get_semantic_chunker
+    SEMANTIC_CHUNKER_AVAILABLE = True
+except ImportError:
+    SEMANTIC_CHUNKER_AVAILABLE = False
+
 # Lazy import flag - 실제 사용 시 초기화
 VECTOR_SEARCH_AVAILABLE = None
 
@@ -152,10 +164,19 @@ class DocumentRetriever:
         }
     }
 
-    def __init__(self, docs_path: str = "./docs"):
+    def __init__(
+        self,
+        docs_path: str = "./docs",
+        use_semantic_chunking: bool = False,
+        use_reranker: bool = True,
+        use_query_expansion: bool = True
+    ):
         """
         Args:
             docs_path: 문서 폴더 경로
+            use_semantic_chunking: Semantic Chunker 사용 여부
+            use_reranker: Reranker 사용 여부 (기본값: True)
+            use_query_expansion: Query Expansion 사용 여부 (기본값: True)
         """
         self.docs_path = Path(docs_path)
         self.documents: Dict[str, str] = {}
@@ -166,6 +187,14 @@ class DocumentRetriever:
         self.embedding_model_name = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
         self.collection = None
         self._initialized = False
+
+        # 새 기능 플래그
+        self.use_semantic_chunking = use_semantic_chunking
+        self.use_reranker = use_reranker and RERANKER_AVAILABLE
+        self.use_query_expansion = use_query_expansion
+
+        # Reranker 인스턴스 (lazy loading)
+        self._reranker = None
 
     def _check_vector_search(self) -> bool:
         """벡터 검색 가능 여부 확인 (OpenAI Embeddings + ChromaDB)"""
@@ -189,23 +218,27 @@ class DocumentRetriever:
 
         Returns:
             초기화 성공 여부
+
+        Raises:
+            ValueError: 벡터 검색 초기화 실패 시
         """
-        try:
-            # 문서 로드
-            await self._load_documents()
+        # 문서 로드
+        await self._load_documents()
 
-            # 벡터 검색 초기화 (ChromaDB + SentenceTransformers 설치 시 활성화)
-            if self._check_vector_search():
-                await self._initialize_vector_search()
+        # 벡터 검색 초기화 (필수)
+        if not self._check_vector_search():
+            raise ValueError(
+                "Vector search is required but not available. "
+                "Please install required packages: chromadb, openai"
+            )
 
-            self._initialized = True
-            return True
+        await self._initialize_vector_search()
 
-        except Exception as e:
-            print(f"DocumentRetriever 초기화 실패: {e}")
-            # 폴백: 키워드 검색만 사용
-            self._initialized = True
-            return True
+        if self.collection is None:
+            raise ValueError("Vector search initialization failed")
+
+        self._initialized = True
+        return True
 
     async def _load_documents(self) -> None:
         """MD 문서 로드"""
@@ -213,6 +246,11 @@ class DocumentRetriever:
         root_path = self.docs_path.parent
         guides_path = self.docs_path / "guides"  # docs/guides/ 폴더
         market_path = self.docs_path / "market"  # docs/market/ 폴더
+
+        # Semantic Chunker 초기화 (옵션)
+        semantic_chunker = None
+        if self.use_semantic_chunking and SEMANTIC_CHUNKER_AVAILABLE:
+            semantic_chunker = get_semantic_chunker()
 
         for doc_id, doc_info in self.DOCUMENTS.items():
             # docs/guides, docs/market, docs, 루트 폴더 순으로 검색
@@ -229,10 +267,16 @@ class DocumentRetriever:
                         content = f.read()
                         self.documents[doc_id] = content
 
-                        # 청크 분할 (문서 유형에 따라 chunk_size 조정)
-                        doc_type = doc_info.get("doc_type", "metric_guide")
-                        chunk_size = self._get_chunk_size_by_type(doc_type)
-                        chunks = self._split_into_chunks(content, doc_id, doc_info, chunk_size)
+                        # 청크 분할
+                        if semantic_chunker:
+                            # Semantic Chunking 사용
+                            chunks = semantic_chunker.chunk_document(content, doc_info)
+                        else:
+                            # 기존 청킹 방식
+                            doc_type = doc_info.get("doc_type", "metric_guide")
+                            chunk_size = self._get_chunk_size_by_type(doc_type)
+                            chunks = self._split_into_chunks(content, doc_id, doc_info, chunk_size)
+
                         self.chunks.extend(chunks)
                     break
 
@@ -399,48 +443,48 @@ class DocumentRetriever:
         return chunks
 
     async def _initialize_vector_search(self) -> None:
-        """벡터 검색 초기화"""
+        """
+        벡터 검색 초기화 (필수)
+
+        Raises:
+            ImportError: 필수 패키지 미설치 시
+            ValueError: OPENAI_API_KEY 미설정 시
+            Exception: 기타 초기화 실패 시
+        """
         if not VECTOR_SEARCH_AVAILABLE:
-            return
+            raise ImportError("Vector search dependencies not available. Install: chromadb, openai")
 
-        try:
-            import chromadb
-            import openai
+        import chromadb
+        import openai
 
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY not set")
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set")
 
-            # OpenAI 클라이언트 초기화
-            self.openai_client = openai.OpenAI(api_key=api_key)
-            self.embedding_model_name = os.getenv(
-                "OPENAI_EMBEDDING_MODEL",
-                self.embedding_model_name or "text-embedding-3-small"
-            )
+        # OpenAI 클라이언트 초기화
+        self.openai_client = openai.OpenAI(api_key=api_key)
+        self.embedding_model_name = os.getenv(
+            "OPENAI_EMBEDDING_MODEL",
+            self.embedding_model_name or "text-embedding-3-small"
+        )
 
-            # ChromaDB 초기화 (modern API - persistent client)
-            persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
-            os.makedirs(persist_dir, exist_ok=True)
+        # ChromaDB 초기화 (modern API - persistent client)
+        persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
+        os.makedirs(persist_dir, exist_ok=True)
 
-            self.client = chromadb.PersistentClient(path=persist_dir)
+        self.client = chromadb.PersistentClient(path=persist_dir)
 
-            # 컬렉션 생성/로드
-            self.collection = self.client.get_or_create_collection(
-                name="amore_docs",
-                metadata={"hnsw:space": "cosine"}
-            )
+        # 컬렉션 생성/로드
+        self.collection = self.client.get_or_create_collection(
+            name="amore_docs",
+            metadata={"hnsw:space": "cosine"}
+        )
 
-            # 문서 인덱싱 (컬렉션이 비어있을 때만)
-            if self.collection.count() == 0:
-                await self._index_documents()
+        # 문서 인덱싱 (컬렉션이 비어있을 때만)
+        if self.collection.count() == 0:
+            await self._index_documents()
 
-            print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
-
-        except Exception as e:
-            print(f"Vector search initialization failed (fallback to keyword): {e}")
-            self.collection = None
-            self.embedding_model = None
-            self.openai_client = None
+        print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
 
     def _embed_texts(self, texts: List[str]) -> List[List[float]]:
         """OpenAI Embeddings API로 텍스트 임베딩 생성"""
@@ -451,6 +495,60 @@ class DocumentRetriever:
             input=texts
         )
         return [item.embedding for item in response.data]
+
+    async def expand_query(self, query: str) -> List[str]:
+        """
+        LLM을 사용하여 쿼리 확장
+
+        Args:
+            query: 원본 쿼리
+
+        Returns:
+            확장된 쿼리 리스트 (원본 포함)
+        """
+        if not self.openai_client or not self.use_query_expansion:
+            return [query]
+
+        try:
+            import openai
+
+            prompt = f"""You are a search query expansion assistant. Given a user query, generate 2-3 alternative phrasings or related queries that would help retrieve relevant documents.
+
+Original query: {query}
+
+Generate alternative queries that:
+1. Use synonyms or related terms
+2. Rephrase the question differently
+3. Add relevant context
+
+Return ONLY a JSON array of strings, like: ["query1", "query2", "query3"]
+Do not include any explanation."""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": "You are a search query expansion system."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=200
+            )
+
+            content = response.choices[0].message.content.strip()
+
+            # JSON 파싱
+            import json
+            expanded = json.loads(content)
+
+            # 원본 쿼리를 리스트 맨 앞에 추가
+            if isinstance(expanded, list):
+                return [query] + expanded[:3]  # 최대 3개까지
+            else:
+                return [query]
+
+        except Exception as e:
+            print(f"Query expansion failed: {e}")
+            return [query]
 
     async def _index_documents(self) -> None:
         """문서 벡터 인덱싱"""
@@ -528,7 +626,9 @@ class DocumentRetriever:
         query: str,
         top_k: int = 3,
         doc_filter: Optional[str] = None,
-        doc_type_filter: Optional[List[str]] = None
+        doc_type_filter: Optional[List[str]] = None,
+        use_query_expansion: Optional[bool] = None,
+        use_reranking: Optional[bool] = None
     ) -> List[Dict[str, Any]]:
         """
         쿼리 기반 문서 검색 (TTL 캐싱 적용)
@@ -538,12 +638,20 @@ class DocumentRetriever:
             top_k: 반환할 결과 수
             doc_filter: 특정 문서 ID로 필터링
             doc_type_filter: 문서 유형 필터링 (예: ["playbook", "intelligence"])
+            use_query_expansion: Query Expansion 사용 여부 (None이면 생성자 설정 따름)
+            use_reranking: Reranking 사용 여부 (None이면 생성자 설정 따름)
 
         Returns:
             검색 결과 리스트
         """
         if not self._initialized:
             await self.initialize()
+
+        # 파라미터 기본값 설정
+        if use_query_expansion is None:
+            use_query_expansion = self.use_query_expansion
+        if use_reranking is None:
+            use_reranking = self.use_reranker
 
         # 캐시 키 생성 및 확인
         cache_key = self._get_cache_key(query, top_k, doc_filter, doc_type_filter)
@@ -555,11 +663,54 @@ class DocumentRetriever:
         if len(self._cache_timestamps) > 50:
             self._clean_expired_cache()
 
-        # 벡터 검색 시도 (가능한 경우), 아니면 키워드 검색
-        if self.collection is not None and self.openai_client is not None:
-            result = await self._vector_search(query, top_k, doc_filter, doc_type_filter)
+        # Query Expansion (옵션)
+        queries = [query]
+        if use_query_expansion:
+            queries = await self.expand_query(query)
+
+        # 각 쿼리에 대해 검색 수행
+        all_results = []
+        seen_ids = set()
+
+        for q in queries:
+            # 벡터 검색 (필수)
+            if self.collection is not None and self.openai_client is not None:
+                results = await self._vector_search(
+                    q,
+                    top_k * 3 if use_reranking else top_k,  # reranking 시 더 많은 후보 검색
+                    doc_filter,
+                    doc_type_filter
+                )
+            else:
+                raise RuntimeError("Vector search is required but not available")
+
+            # 중복 제거
+            for result in results:
+                if result["id"] not in seen_ids:
+                    all_results.append(result)
+                    seen_ids.add(result["id"])
+
+        # Reranking (옵션)
+        if use_reranking and all_results:
+            if self._reranker is None and RERANKER_AVAILABLE:
+                self._reranker = get_reranker()
+
+            if self._reranker:
+                # Reranker 호출
+                ranked = self._reranker.rerank(query, all_results, top_k=top_k)
+                result = [
+                    {
+                        "id": doc.metadata.get("chunk_id", ""),
+                        "content": doc.content,
+                        "metadata": doc.metadata,
+                        "score": doc.score
+                    }
+                    for doc in ranked
+                ]
+            else:
+                result = all_results[:top_k]
         else:
-            result = await self._keyword_search(query, top_k, doc_filter, doc_type_filter)
+            result = all_results[:top_k]
 
         # 결과 캐싱
         self._search_cache[cache_key] = result

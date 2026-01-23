@@ -1,0 +1,598 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.amorepacific.com/ontology/cosmetics#"
+     xml:base="http://www.amorepacific.com/ontology/cosmetics"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:swrl="http://www.w3.org/2003/11/swrl#"
+     xmlns:swrlb="http://www.w3.org/2003/11/swrlb#">
+
+    <owl:Ontology rdf:about="http://www.amorepacific.com/ontology/cosmetics">
+        <rdfs:label xml:lang="en">AMORE Pacific Cosmetics Domain Ontology</rdfs:label>
+        <rdfs:label xml:lang="ko">아모레퍼시픽 화장품 도메인 온톨로지</rdfs:label>
+        <rdfs:comment xml:lang="en">OWL ontology for cosmetics market analysis, brand competitiveness tracking, and strategic intelligence for AMORE Pacific brands on Amazon marketplace.</rdfs:comment>
+        <owl:versionInfo>1.0</owl:versionInfo>
+    </owl:Ontology>
+
+
+    <!--
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes (클래스)
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    <!-- Brand (브랜드) -->
+    <owl:Class rdf:about="#Brand">
+        <rdfs:label xml:lang="en">Brand</rdfs:label>
+        <rdfs:label xml:lang="ko">브랜드</rdfs:label>
+        <rdfs:comment xml:lang="en">A cosmetic brand (e.g., LANEIGE, COSRX, CeraVe)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- Product (제품) -->
+    <owl:Class rdf:about="#Product">
+        <rdfs:label xml:lang="en">Product</rdfs:label>
+        <rdfs:label xml:lang="ko">제품</rdfs:label>
+        <rdfs:comment xml:lang="en">An individual cosmetic product listed on Amazon</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- Category (카테고리) -->
+    <owl:Class rdf:about="#Category">
+        <rdfs:label xml:lang="en">Category</rdfs:label>
+        <rdfs:label xml:lang="ko">카테고리</rdfs:label>
+        <rdfs:comment xml:lang="en">Amazon product category (e.g., Lip Care, Skin Care, Face Powder)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- Ingredient (성분) -->
+    <owl:Class rdf:about="#Ingredient">
+        <rdfs:label xml:lang="en">Ingredient</rdfs:label>
+        <rdfs:label xml:lang="ko">성분</rdfs:label>
+        <rdfs:comment xml:lang="en">Cosmetic ingredient (e.g., peptide, ceramide, hyaluronic acid)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- MarketPosition (시장 포지션) -->
+    <owl:Class rdf:about="#MarketPosition">
+        <rdfs:label xml:lang="en">Market Position</rdfs:label>
+        <rdfs:label xml:lang="ko">시장 포지션</rdfs:label>
+        <rdfs:comment xml:lang="en">Brand's competitive position in the market</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- MarketPosition Subclasses -->
+    <owl:Class rdf:about="#DominantPosition">
+        <rdfs:subClassOf rdf:resource="#MarketPosition"/>
+        <rdfs:label xml:lang="en">Dominant Position</rdfs:label>
+        <rdfs:label xml:lang="ko">지배적 포지션</rdfs:label>
+        <rdfs:comment xml:lang="en">Market leader (SoS > 30%)</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#StrongPosition">
+        <rdfs:subClassOf rdf:resource="#MarketPosition"/>
+        <rdfs:label xml:lang="en">Strong Position</rdfs:label>
+        <rdfs:label xml:lang="ko">강력한 포지션</rdfs:label>
+        <rdfs:comment xml:lang="en">Strong competitor (15% < SoS ≤ 30%)</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#ModeratePosition">
+        <rdfs:subClassOf rdf:resource="#MarketPosition"/>
+        <rdfs:label xml:lang="en">Moderate Position</rdfs:label>
+        <rdfs:label xml:lang="ko">중간 포지션</rdfs:label>
+        <rdfs:comment xml:lang="en">Moderate presence (5% < SoS ≤ 15%)</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#WeakPosition">
+        <rdfs:subClassOf rdf:resource="#MarketPosition"/>
+        <rdfs:label xml:lang="en">Weak Position</rdfs:label>
+        <rdfs:label xml:lang="ko">약한 포지션</rdfs:label>
+        <rdfs:comment xml:lang="en">Weak presence (SoS ≤ 5%)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- Trend (트렌드) -->
+    <owl:Class rdf:about="#Trend">
+        <rdfs:label xml:lang="en">Trend</rdfs:label>
+        <rdfs:label xml:lang="ko">트렌드</rdfs:label>
+        <rdfs:comment xml:lang="en">Market trend or consumer preference (e.g., clean beauty, K-beauty)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- SentimentCluster (감성 클러스터) -->
+    <owl:Class rdf:about="#SentimentCluster">
+        <rdfs:label xml:lang="en">Sentiment Cluster</rdfs:label>
+        <rdfs:label xml:lang="ko">감성 클러스터</rdfs:label>
+        <rdfs:comment xml:lang="en">Customer sentiment category (e.g., Hydration, Pricing, Usability)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- TopProduct (추론 대상) -->
+    <owl:Class rdf:about="#TopProduct">
+        <rdfs:subClassOf rdf:resource="#Product"/>
+        <rdfs:label xml:lang="en">Top Product</rdfs:label>
+        <rdfs:label xml:lang="ko">상위 제품</rdfs:label>
+        <rdfs:comment xml:lang="en">Product ranking in top 10 (inferred from rank &lt; 10)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- PremiumProduct (추론 대상) -->
+    <owl:Class rdf:about="#PremiumProduct">
+        <rdfs:subClassOf rdf:resource="#Product"/>
+        <rdfs:label xml:lang="en">Premium Product</rdfs:label>
+        <rdfs:label xml:lang="ko">프리미엄 제품</rdfs:label>
+        <rdfs:comment xml:lang="en">High-priced product (price > category average * 1.5)</rdfs:comment>
+    </owl:Class>
+
+
+    <!-- RisingBrand (추론 대상) -->
+    <owl:Class rdf:about="#RisingBrand">
+        <rdfs:subClassOf rdf:resource="#Brand"/>
+        <rdfs:label xml:lang="en">Rising Brand</rdfs:label>
+        <rdfs:label xml:lang="ko">상승 브랜드</rdfs:label>
+        <rdfs:comment xml:lang="en">Brand with rising momentum (consecutive rank improvements)</rdfs:comment>
+    </owl:Class>
+
+
+    <!--
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties (객체 속성)
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    <!-- manufactures: Brand → Product -->
+    <owl:ObjectProperty rdf:about="#manufactures">
+        <rdfs:domain rdf:resource="#Brand"/>
+        <rdfs:range rdf:resource="#Product"/>
+        <rdfs:label xml:lang="en">manufactures</rdfs:label>
+        <rdfs:label xml:lang="ko">생산하다</rdfs:label>
+        <rdfs:comment xml:lang="en">Brand manufactures a product</rdfs:comment>
+        <owl:inverseOf rdf:resource="#manufacturedBy"/>
+    </owl:ObjectProperty>
+
+
+    <!-- manufacturedBy: Product → Brand (역관계) -->
+    <owl:ObjectProperty rdf:about="#manufacturedBy">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="#Brand"/>
+        <rdfs:label xml:lang="en">manufactured by</rdfs:label>
+        <rdfs:label xml:lang="ko">제조사</rdfs:label>
+        <owl:inverseOf rdf:resource="#manufactures"/>
+    </owl:ObjectProperty>
+
+
+    <!-- belongsToCategory: Product → Category -->
+    <owl:ObjectProperty rdf:about="#belongsToCategory">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="#Category"/>
+        <rdfs:label xml:lang="en">belongs to category</rdfs:label>
+        <rdfs:label xml:lang="ko">속한 카테고리</rdfs:label>
+        <rdfs:comment xml:lang="en">Product belongs to a specific category</rdfs:comment>
+    </owl:ObjectProperty>
+
+
+    <!-- competitorOf: Brand → Brand (대칭 관계) -->
+    <owl:ObjectProperty rdf:about="#competitorOf">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#SymmetricProperty"/>
+        <rdfs:domain rdf:resource="#Brand"/>
+        <rdfs:range rdf:resource="#Brand"/>
+        <rdfs:label xml:lang="en">competitor of</rdfs:label>
+        <rdfs:label xml:lang="ko">경쟁사</rdfs:label>
+        <rdfs:comment xml:lang="en">Symmetric competitive relationship between brands</rdfs:comment>
+    </owl:ObjectProperty>
+
+
+    <!-- hasIngredient: Product → Ingredient -->
+    <owl:ObjectProperty rdf:about="#hasIngredient">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="#Ingredient"/>
+        <rdfs:label xml:lang="en">has ingredient</rdfs:label>
+        <rdfs:label xml:lang="ko">포함 성분</rdfs:label>
+        <rdfs:comment xml:lang="en">Product contains specific ingredient</rdfs:comment>
+    </owl:ObjectProperty>
+
+
+    <!-- followsTrend: Brand → Trend -->
+    <owl:ObjectProperty rdf:about="#followsTrend">
+        <rdfs:domain rdf:resource="#Brand"/>
+        <rdfs:range rdf:resource="#Trend"/>
+        <rdfs:label xml:lang="en">follows trend</rdfs:label>
+        <rdfs:label xml:lang="ko">따르는 트렌드</rdfs:label>
+        <rdfs:comment xml:lang="en">Brand aligns with market trend</rdfs:comment>
+    </owl:ObjectProperty>
+
+
+    <!-- hasMarketPosition: Brand → MarketPosition -->
+    <owl:ObjectProperty rdf:about="#hasMarketPosition">
+        <rdfs:domain rdf:resource="#Brand"/>
+        <rdfs:range rdf:resource="#MarketPosition"/>
+        <rdfs:label xml:lang="en">has market position</rdfs:label>
+        <rdfs:label xml:lang="ko">시장 포지션</rdfs:label>
+        <rdfs:comment xml:lang="en">Brand's current market position</rdfs:comment>
+    </owl:ObjectProperty>
+
+
+    <!-- associatedWithSentiment: Product → SentimentCluster -->
+    <owl:ObjectProperty rdf:about="#associatedWithSentiment">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="#SentimentCluster"/>
+        <rdfs:label xml:lang="en">associated with sentiment</rdfs:label>
+        <rdfs:label xml:lang="ko">연관 감성</rdfs:label>
+        <rdfs:comment xml:lang="en">Product associated with customer sentiment cluster</rdfs:comment>
+    </owl:ObjectProperty>
+
+
+    <!--
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data Properties (데이터 속성)
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    <!-- Brand Properties -->
+    <owl:DatatypeProperty rdf:about="#hasShareOfShelf">
+        <rdfs:domain rdf:resource="#Brand"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">has share of shelf</rdfs:label>
+        <rdfs:label xml:lang="ko">점유율</rdfs:label>
+        <rdfs:comment xml:lang="en">Brand's Share of Shelf (SoS) percentage in category</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#brandName">
+        <rdfs:domain rdf:resource="#Brand"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">brand name</rdfs:label>
+        <rdfs:label xml:lang="ko">브랜드명</rdfs:label>
+    </owl:DatatypeProperty>
+
+
+    <!-- Product Properties -->
+    <owl:DatatypeProperty rdf:about="#hasRank">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+        <rdfs:label xml:lang="en">has rank</rdfs:label>
+        <rdfs:label xml:lang="ko">순위</rdfs:label>
+        <rdfs:comment xml:lang="en">Amazon bestseller rank in category</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#hasPrice">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">has price</rdfs:label>
+        <rdfs:label xml:lang="ko">가격</rdfs:label>
+        <rdfs:comment xml:lang="en">Product price in USD</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#hasRating">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">has rating</rdfs:label>
+        <rdfs:label xml:lang="ko">평점</rdfs:label>
+        <rdfs:comment xml:lang="en">Amazon customer rating (0-5)</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#asin">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">ASIN</rdfs:label>
+        <rdfs:label xml:lang="ko">ASIN</rdfs:label>
+        <rdfs:comment xml:lang="en">Amazon Standard Identification Number</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#productTitle">
+        <rdfs:domain rdf:resource="#Product"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">product title</rdfs:label>
+        <rdfs:label xml:lang="ko">제품명</rdfs:label>
+    </owl:DatatypeProperty>
+
+
+    <!-- Category Properties -->
+    <owl:DatatypeProperty rdf:about="#hasHHI">
+        <rdfs:domain rdf:resource="#Category"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">has HHI</rdfs:label>
+        <rdfs:label xml:lang="ko">HHI 지수</rdfs:label>
+        <rdfs:comment xml:lang="en">Herfindahl-Hirschman Index (market concentration)</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#hasCPI">
+        <rdfs:domain rdf:resource="#Category"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">has CPI</rdfs:label>
+        <rdfs:label xml:lang="ko">CPI 지수</rdfs:label>
+        <rdfs:comment xml:lang="en">Category Price Index (average price level)</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#categoryName">
+        <rdfs:domain rdf:resource="#Category"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">category name</rdfs:label>
+        <rdfs:label xml:lang="ko">카테고리명</rdfs:label>
+    </owl:DatatypeProperty>
+
+
+    <!-- Ingredient Properties -->
+    <owl:DatatypeProperty rdf:about="#ingredientName">
+        <rdfs:domain rdf:resource="#Ingredient"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">ingredient name</rdfs:label>
+        <rdfs:label xml:lang="ko">성분명</rdfs:label>
+    </owl:DatatypeProperty>
+
+
+    <!-- Trend Properties -->
+    <owl:DatatypeProperty rdf:about="#trendKeyword">
+        <rdfs:domain rdf:resource="#Trend"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">trend keyword</rdfs:label>
+        <rdfs:label xml:lang="ko">트렌드 키워드</rdfs:label>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#trendStrength">
+        <rdfs:domain rdf:resource="#Trend"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">trend strength</rdfs:label>
+        <rdfs:label xml:lang="ko">트렌드 강도</rdfs:label>
+        <rdfs:comment xml:lang="en">Normalized trend strength score (0-1)</rdfs:comment>
+    </owl:DatatypeProperty>
+
+
+    <!-- Sentiment Properties -->
+    <owl:DatatypeProperty rdf:about="#sentimentScore">
+        <rdfs:domain rdf:resource="#SentimentCluster"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:label xml:lang="en">sentiment score</rdfs:label>
+        <rdfs:label xml:lang="ko">감성 점수</rdfs:label>
+        <rdfs:comment xml:lang="en">Aggregated sentiment score (-1 to 1)</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#clusterLabel">
+        <rdfs:domain rdf:resource="#SentimentCluster"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label xml:lang="en">cluster label</rdfs:label>
+        <rdfs:label xml:lang="ko">클러스터 레이블</rdfs:label>
+    </owl:DatatypeProperty>
+
+
+    <!--
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // SWRL Rules (추론 규칙)
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    <!-- Rule 1: SoS > 30% → DominantPosition -->
+    <swrl:Imp rdf:about="#Rule_DominantPosition">
+        <swrl:body>
+            <swrl:AtomList>
+                <rdf:first>
+                    <swrl:ClassAtom>
+                        <swrl:classPredicate rdf:resource="#Brand"/>
+                        <swrl:argument1 rdf:resource="#b"/>
+                    </swrl:ClassAtom>
+                </rdf:first>
+                <rdf:rest>
+                    <swrl:AtomList>
+                        <rdf:first>
+                            <swrl:DatavaluedPropertyAtom>
+                                <swrl:propertyPredicate rdf:resource="#hasShareOfShelf"/>
+                                <swrl:argument1 rdf:resource="#b"/>
+                                <swrl:argument2 rdf:resource="#sos"/>
+                            </swrl:DatavaluedPropertyAtom>
+                        </rdf:first>
+                        <rdf:rest>
+                            <swrl:AtomList>
+                                <rdf:first>
+                                    <swrl:BuiltinAtom>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThan"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:first rdf:resource="#sos"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#float">30.0</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </swrl:BuiltinAtom>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </swrl:AtomList>
+                        </rdf:rest>
+                    </swrl:AtomList>
+                </rdf:rest>
+            </swrl:AtomList>
+        </swrl:body>
+        <swrl:head>
+            <swrl:AtomList>
+                <rdf:first>
+                    <swrl:ClassAtom>
+                        <swrl:classPredicate rdf:resource="#DominantPosition"/>
+                        <swrl:argument1 rdf:resource="#pos"/>
+                    </swrl:ClassAtom>
+                </rdf:first>
+                <rdf:rest>
+                    <swrl:AtomList>
+                        <rdf:first>
+                            <swrl:IndividualPropertyAtom>
+                                <swrl:propertyPredicate rdf:resource="#hasMarketPosition"/>
+                                <swrl:argument1 rdf:resource="#b"/>
+                                <swrl:argument2 rdf:resource="#pos"/>
+                            </swrl:IndividualPropertyAtom>
+                        </rdf:first>
+                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </swrl:AtomList>
+                </rdf:rest>
+            </swrl:AtomList>
+        </swrl:head>
+        <rdfs:label>Dominant Position Rule</rdfs:label>
+        <rdfs:comment>If Brand has SoS > 30%, infer DominantPosition</rdfs:comment>
+    </swrl:Imp>
+
+
+    <!-- Rule 2: 15% < SoS ≤ 30% → StrongPosition -->
+    <swrl:Imp rdf:about="#Rule_StrongPosition">
+        <swrl:body>
+            <swrl:AtomList>
+                <rdf:first>
+                    <swrl:ClassAtom>
+                        <swrl:classPredicate rdf:resource="#Brand"/>
+                        <swrl:argument1 rdf:resource="#b"/>
+                    </swrl:ClassAtom>
+                </rdf:first>
+                <rdf:rest>
+                    <swrl:AtomList>
+                        <rdf:first>
+                            <swrl:DatavaluedPropertyAtom>
+                                <swrl:propertyPredicate rdf:resource="#hasShareOfShelf"/>
+                                <swrl:argument1 rdf:resource="#b"/>
+                                <swrl:argument2 rdf:resource="#sos"/>
+                            </swrl:DatavaluedPropertyAtom>
+                        </rdf:first>
+                        <rdf:rest>
+                            <swrl:AtomList>
+                                <rdf:first>
+                                    <swrl:BuiltinAtom>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThan"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:first rdf:resource="#sos"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#float">15.0</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </swrl:BuiltinAtom>
+                                </rdf:first>
+                                <rdf:rest>
+                                    <swrl:AtomList>
+                                        <rdf:first>
+                                            <swrl:BuiltinAtom>
+                                                <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThanOrEqual"/>
+                                                <swrl:arguments>
+                                                    <rdf:Description>
+                                                        <rdf:first rdf:resource="#sos"/>
+                                                        <rdf:rest>
+                                                            <rdf:Description>
+                                                                <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#float">30.0</rdf:first>
+                                                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                            </rdf:Description>
+                                                        </rdf:rest>
+                                                    </rdf:Description>
+                                                </swrl:arguments>
+                                            </swrl:BuiltinAtom>
+                                        </rdf:first>
+                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                    </swrl:AtomList>
+                                </rdf:rest>
+                            </swrl:AtomList>
+                        </rdf:rest>
+                    </swrl:AtomList>
+                </rdf:rest>
+            </swrl:AtomList>
+        </swrl:body>
+        <swrl:head>
+            <swrl:AtomList>
+                <rdf:first>
+                    <swrl:ClassAtom>
+                        <swrl:classPredicate rdf:resource="#StrongPosition"/>
+                        <swrl:argument1 rdf:resource="#pos"/>
+                    </swrl:ClassAtom>
+                </rdf:first>
+                <rdf:rest>
+                    <swrl:AtomList>
+                        <rdf:first>
+                            <swrl:IndividualPropertyAtom>
+                                <swrl:propertyPredicate rdf:resource="#hasMarketPosition"/>
+                                <swrl:argument1 rdf:resource="#b"/>
+                                <swrl:argument2 rdf:resource="#pos"/>
+                            </swrl:IndividualPropertyAtom>
+                        </rdf:first>
+                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                    </swrl:AtomList>
+                </rdf:rest>
+            </swrl:AtomList>
+        </swrl:head>
+        <rdfs:label>Strong Position Rule</rdfs:label>
+        <rdfs:comment>If Brand has 15% < SoS ≤ 30%, infer StrongPosition</rdfs:comment>
+    </swrl:Imp>
+
+
+    <!-- Rule 3: Rank < 10 → TopProduct -->
+    <swrl:Imp rdf:about="#Rule_TopProduct">
+        <swrl:body>
+            <swrl:AtomList>
+                <rdf:first>
+                    <swrl:ClassAtom>
+                        <swrl:classPredicate rdf:resource="#Product"/>
+                        <swrl:argument1 rdf:resource="#p"/>
+                    </swrl:ClassAtom>
+                </rdf:first>
+                <rdf:rest>
+                    <swrl:AtomList>
+                        <rdf:first>
+                            <swrl:DatavaluedPropertyAtom>
+                                <swrl:propertyPredicate rdf:resource="#hasRank"/>
+                                <swrl:argument1 rdf:resource="#p"/>
+                                <swrl:argument2 rdf:resource="#rank"/>
+                            </swrl:DatavaluedPropertyAtom>
+                        </rdf:first>
+                        <rdf:rest>
+                            <swrl:AtomList>
+                                <rdf:first>
+                                    <swrl:BuiltinAtom>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThan"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:first rdf:resource="#rank"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </swrl:BuiltinAtom>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </swrl:AtomList>
+                        </rdf:rest>
+                    </swrl:AtomList>
+                </rdf:rest>
+            </swrl:AtomList>
+        </swrl:body>
+        <swrl:head>
+            <swrl:AtomList>
+                <rdf:first>
+                    <swrl:ClassAtom>
+                        <swrl:classPredicate rdf:resource="#TopProduct"/>
+                        <swrl:argument1 rdf:resource="#p"/>
+                    </swrl:ClassAtom>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </swrl:AtomList>
+        </swrl:head>
+        <rdfs:label>Top Product Rule</rdfs:label>
+        <rdfs:comment>If Product has rank < 10, classify as TopProduct</rdfs:comment>
+    </swrl:Imp>
+
+</rdf:RDF>
