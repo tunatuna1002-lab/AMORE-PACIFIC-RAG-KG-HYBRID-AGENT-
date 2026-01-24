@@ -24,6 +24,10 @@ from src.api.dependencies import (
     load_dashboard_data
 )
 
+# Input Validation
+from src.api.validators.input_validator import InputValidator, get_validator
+from src.domain.exceptions import DataValidationError
+
 # RAG & Router
 from src.rag.router import RAGRouter, QueryType
 from src.rag.retriever import DocumentRetriever
@@ -312,9 +316,17 @@ async def chat(request: ChatRequest, req: Request):
     7. Audit Trail 로깅
     """
     start_time = time.time()
-
-    message = request.message.strip()
     session_id = request.session_id or "default"
+
+    # 입력 검증
+    try:
+        validator = get_validator()
+        is_valid, message = validator.validate(request.message)
+    except DataValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"입력 검증 실패: {e}"
+        )
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -517,8 +529,17 @@ async def chat_v3(request: SimpleChatRequest, req: Request):
     - Function Calling으로 도구 사용
     - 불필요한 레이어 제거
     """
-    message = request.message.strip()
     session_id = request.session_id or "default"
+
+    # 입력 검증
+    try:
+        validator = get_validator()
+        is_valid, message = validator.validate(request.message)
+    except DataValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"입력 검증 실패: {e}"
+        )
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -583,9 +604,17 @@ async def chat_v2(request: OrchestratorChatRequest, req: Request):
     - ABORT: 중단 + 사용자 알림
     """
     start_time = time.time()
-
-    message = request.message.strip()
     session_id = request.session_id or "default"
+
+    # 입력 검증
+    try:
+        validator = get_validator()
+        is_valid, message = validator.validate(request.message)
+    except DataValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"입력 검증 실패: {e}"
+        )
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
@@ -684,9 +713,17 @@ async def chat_v4(request: BrainChatRequest, req: Request):
     - 자율 스케줄러와 통합
     """
     start_time = time.time()
-
-    message = request.message.strip()
     session_id = request.session_id or "default"
+
+    # 입력 검증
+    try:
+        validator = get_validator()
+        is_valid, message = validator.validate(request.message)
+    except DataValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"입력 검증 실패: {e}"
+        )
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")

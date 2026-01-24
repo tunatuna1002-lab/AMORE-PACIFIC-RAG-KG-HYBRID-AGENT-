@@ -208,7 +208,7 @@ PORT=8001                          # Server port (default: 8001)
 
 ### Hybrid RAG System
 
-`HybridRetriever` integrates 3 components:
+`HybridRetriever` integrates 4 components:
 
 1. **KnowledgeGraph** (`src/ontology/knowledge_graph.py`)
    - In-memory triple store
@@ -222,6 +222,12 @@ PORT=8001                          # Server port (default: 8001)
 3. **DocumentRetriever** (`src/rag/retriever.py`)
    - Keyword-based search over 4 guide documents in `docs/guides/`
    - ChromaDB support exists but currently disabled
+
+4. **EntityLinker** (`src/rag/entity_linker.py`)
+   - NER-based entity extraction from text
+   - Maps entities to ontology concepts (OWL URIs)
+   - Supports fuzzy matching and multi-language (Korean/English)
+   - Confidence scoring for entity-concept links
 
 ### Agent Pattern
 
@@ -566,6 +572,101 @@ NEWSAPI_KEY=...
 BING_NEWS_API_KEY=...
 YOUTUBE_API_KEY=...
 ```
+
+---
+
+## Entity Linker (v2026.01.23)
+
+텍스트에서 엔티티를 추출하고 온톨로지 개념에 자동 연결하는 NER 기반 모듈입니다.
+
+### 핵심 기능
+
+1. **NER 기반 엔티티 추출**
+   - spaCy NER (선택) 또는 규칙 기반 폴백
+   - 브랜드, 카테고리, 지표, 성분, 트렌드, 제품 인식
+   - 한/영 다국어 지원
+
+2. **온톨로지 개념 매칭**
+   - OWL 온톨로지 URI 생성 (`http://amorepacific.com/ontology/amore_brand.owl#...`)
+   - Fuzzy matching (브랜드명 변형 처리)
+   - 동의어/별칭 자동 정규화
+
+3. **신뢰도 점수**
+   - Exact match: 1.0
+   - Fuzzy match: 0.7-0.9
+   - Partial match: 0.5-0.7
+
+### 사용 예시
+
+```python
+from src.rag.entity_linker import EntityLinker, LinkedEntity
+
+linker = EntityLinker()
+
+# 기본 링킹
+entities = linker.link("LANEIGE Lip Care 경쟁력 분석")
+for ent in entities:
+    print(f"{ent.text} → {ent.concept_label} (URI: {ent.concept_uri})")
+
+# 타입별 필터링
+brands = linker.link(query, entity_types=["brand"])
+metrics = linker.link(query, entity_types=["metric"])
+
+# 신뢰도 임계값
+high_conf = linker.link(query, min_confidence=0.9)
+```
+
+### LinkedEntity 데이터 구조
+
+```python
+@dataclass
+class LinkedEntity:
+    text: str                # 원본 텍스트
+    entity_type: str         # brand, product, category, metric, ingredient, trend
+    concept_uri: str         # OWL 온톨로지 URI
+    concept_label: str       # 정규화된 레이블
+    confidence: float        # 연결 신뢰도 (0-1)
+    context: Dict[str, Any]  # 추가 컨텍스트 (위치, 매칭 키 등)
+```
+
+### 인식 가능한 엔티티
+
+| 유형 | 예시 |
+|------|------|
+| **Brand** | LANEIGE, 라네즈, COSRX, Beauty of Joseon, 조선미녀 |
+| **Category** | Lip Care, 립케어, Skin Care, 스킨케어, Face Powder |
+| **Metric** | SoS, 점유율, HHI, 시장집중도, CPI, 가격지수 |
+| **Ingredient** | Peptide, 펩타이드, Ceramide, 세라마이드, Niacinamide |
+| **Trend** | 글래스스킨, Glass Skin, 모닝쉐드, Morning Shade, 바이럴 |
+| **Product** | B0BSHRYY1S (ASIN 형식) |
+
+### 통합 예제
+
+```python
+from src.rag.entity_linker import EntityLinker
+from src.rag.hybrid_retriever import HybridRetriever
+
+linker = EntityLinker()
+retriever = HybridRetriever()
+
+# 1. Entity Linking
+query = "LANEIGE vs COSRX SoS 비교"
+entities = linker.link(query)
+
+# 2. Convert to retriever format
+entity_dict = {
+    "brands": [e.concept_label for e in entities if e.entity_type == "brand"],
+    "indicators": [e.context["matched_key"] for e in entities if e.entity_type == "metric"]
+}
+
+# 3. Hybrid Retrieval
+context = await retriever.retrieve(query, current_metrics=...)
+```
+
+### 파일 위치
+- **구현**: `src/rag/entity_linker.py`
+- **테스트**: `test_entity_linker.py`
+- **통합 예제**: `examples/entity_linker_integration.py`
 
 ---
 
