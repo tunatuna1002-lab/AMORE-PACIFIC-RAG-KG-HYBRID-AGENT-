@@ -1372,3 +1372,23 @@ class KnowledgeGraph:
             f"subjects={stats['unique_subjects']}, "
             f"objects={stats['unique_objects']})"
         )
+
+
+# =============================================================================
+# 싱글톤 패턴
+# =============================================================================
+
+_knowledge_graph_instance: Optional[KnowledgeGraph] = None
+
+
+def get_knowledge_graph() -> KnowledgeGraph:
+    """
+    KnowledgeGraph 싱글톤 인스턴스 반환
+
+    Returns:
+        KnowledgeGraph 인스턴스
+    """
+    global _knowledge_graph_instance
+    if _knowledge_graph_instance is None:
+        _knowledge_graph_instance = KnowledgeGraph()
+    return _knowledge_graph_instance

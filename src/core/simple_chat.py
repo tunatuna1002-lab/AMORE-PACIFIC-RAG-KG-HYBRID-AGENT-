@@ -24,8 +24,10 @@ from collections import defaultdict
 
 from litellm import acompletion
 
-# RAG + Ontology + KnowledgeGraph 통합
-from src.rag.hybrid_retriever import HybridRetriever
+# RAG + Ontology + KnowledgeGraph 통합 (True Hybrid)
+from src.rag.true_hybrid_retriever import TrueHybridRetriever, get_true_hybrid_retriever, HybridResult
+from src.ontology.owl_reasoner import get_owl_reasoner
+from src.ontology.knowledge_graph import KnowledgeGraph, get_knowledge_graph
 
 logger = logging.getLogger(__name__)
 
@@ -401,40 +403,81 @@ class SimpleChatService:
         self._data_cache: Optional[Dict] = None
         self._cache_time: Optional[datetime] = None
 
-        # HybridRetriever 초기화 (RAG + KG + Ontology)
-        self._hybrid_retriever: Optional[HybridRetriever] = None
+        # TrueHybridRetriever 초기화 (RAG + KG + OWL Ontology)
+        self._hybrid_retriever: Optional[TrueHybridRetriever] = None
         self._retriever_initialized: bool = False
+        self._owl_reasoner = None
+        self._knowledge_graph = None
 
     # =========================================================================
-    # HybridRetriever 초기화 (RAG + KG + Ontology)
+    # TrueHybridRetriever 초기화 (RAG + KG + OWL Ontology)
     # =========================================================================
 
-    async def _get_hybrid_retriever(self) -> HybridRetriever:
-        """HybridRetriever 싱글톤 반환 (지연 초기화)"""
+    async def _get_hybrid_retriever(self) -> TrueHybridRetriever:
+        """TrueHybridRetriever 싱글톤 반환 (지연 초기화)"""
         if self._hybrid_retriever is None:
-            self._hybrid_retriever = HybridRetriever()
+            # KnowledgeGraph 초기화
+            self._knowledge_graph = get_knowledge_graph()
+
+            # OWL Reasoner 초기화
+            self._owl_reasoner = get_owl_reasoner()
+
+            # TrueHybridRetriever 생성
+            self._hybrid_retriever = get_true_hybrid_retriever(
+                owl_reasoner=self._owl_reasoner,
+                knowledge_graph=self._knowledge_graph,
+                docs_path="./docs"
+            )
 
         if not self._retriever_initialized:
             await self._hybrid_retriever.initialize()
             self._retriever_initialized = True
-            logger.info("HybridRetriever initialized (RAG + KG + Ontology)")
+            logger.info("TrueHybridRetriever initialized (RAG + KG + OWL Ontology)")
 
         return self._hybrid_retriever
 
     def _update_knowledge_graph(self, data: Dict[str, Any]) -> None:
-        """크롤링 데이터로 Knowledge Graph 업데이트"""
-        if self._hybrid_retriever is None:
+        """크롤링 데이터로 Knowledge Graph 및 OWL Ontology 업데이트"""
+        if self._knowledge_graph is None:
             return
 
         try:
-            # 크롤링 데이터에서 KG 업데이트
-            stats = self._hybrid_retriever.update_knowledge_graph(
-                crawl_data=data,
-                metrics_data=data
-            )
-            logger.info(f"KnowledgeGraph updated: {stats}")
+            # KnowledgeGraph 업데이트
+            from src.ontology.relations import RelationType
+
+            # 브랜드 메트릭 업데이트
+            brand_metrics = data.get("brand", {}).get("competitors", [])
+            for brand_info in brand_metrics:
+                brand_name = brand_info.get("brand")
+                if brand_name:
+                    self._knowledge_graph.add_entity_metadata(
+                        entity=brand_name,
+                        metadata={
+                            "type": "brand",
+                            "sos": brand_info.get("sos", 0) / 100,  # % → 소수점
+                            "avg_rank": brand_info.get("avg_rank"),
+                            "product_count": brand_info.get("products", 0)
+                        }
+                    )
+
+            # OWL Ontology에도 동기화
+            if self._owl_reasoner:
+                for brand_info in brand_metrics[:20]:  # 상위 20개 브랜드
+                    brand_name = brand_info.get("brand")
+                    if brand_name:
+                        self._owl_reasoner.add_brand(
+                            name=brand_name,
+                            sos=brand_info.get("sos", 0) / 100,
+                            avg_rank=brand_info.get("avg_rank"),
+                            product_count=brand_info.get("products", 0)
+                        )
+
+                # 시장 포지션 추론
+                self._owl_reasoner.infer_market_positions()
+
+            logger.info(f"KnowledgeGraph & OWL Ontology updated: {len(brand_metrics)} brands")
         except Exception as e:
-            logger.warning(f"KG update failed: {e}")
+            logger.warning(f"KG/Ontology update failed: {e}")
 
     # =========================================================================
     # 데이터 로드
@@ -820,32 +863,42 @@ class SimpleChatService:
         try:
             retriever = await self._get_hybrid_retriever()
 
-            # HybridRetriever로 검색 + 추론 실행
-            hybrid_context = await retriever.retrieve(
+            # TrueHybridRetriever로 검색 + 추론 실행
+            hybrid_result: HybridResult = await retriever.retrieve(
                 query=sanitized_message,
                 current_metrics=data,
-                include_explanations=True
+                top_k=5
             )
 
             # 통합 컨텍스트 문자열 (LLM 프롬프트용)
-            hybrid_context_str = hybrid_context.combined_context
+            hybrid_context_str = hybrid_result.combined_context
+
+            # 엔티티 정보 추출
+            entities_info = {
+                "brands": [e.text for e in hybrid_result.entity_links if e.entity_type.value == "brand"],
+                "categories": [e.text for e in hybrid_result.entity_links if e.entity_type.value == "category"],
+                "indicators": [e.text for e in hybrid_result.entity_links if e.entity_type.value == "indicator"]
+            }
 
             # 메타데이터 저장 (응답에 포함)
             reasoning_metadata = {
-                "entities_extracted": hybrid_context.entities,
-                "ontology_inferences": len(hybrid_context.inferences),
-                "kg_facts": len(hybrid_context.ontology_facts),
-                "rag_chunks": len(hybrid_context.rag_chunks),
-                "retrieval_time_ms": hybrid_context.metadata.get("retrieval_time_ms", 0)
+                "entities_extracted": entities_info,
+                "entity_count": len(hybrid_result.entity_links),
+                "ontology_inferences": len(hybrid_result.ontology_context.get("inferences", [])),
+                "kg_facts": len(hybrid_result.ontology_context.get("facts", [])),
+                "rag_chunks": len(hybrid_result.documents),
+                "confidence": hybrid_result.confidence,
+                "retrieval_time_ms": hybrid_result.metadata.get("retrieval_time_ms", 0)
             }
 
             logger.info(
-                f"HybridRetriever: {reasoning_metadata['ontology_inferences']} inferences, "
-                f"{reasoning_metadata['kg_facts']} facts, {reasoning_metadata['rag_chunks']} chunks"
+                f"TrueHybridRetriever: {reasoning_metadata['ontology_inferences']} inferences, "
+                f"{reasoning_metadata['kg_facts']} facts, {reasoning_metadata['rag_chunks']} docs, "
+                f"confidence={hybrid_result.confidence:.2f}"
             )
 
         except Exception as e:
-            logger.warning(f"HybridRetriever failed (fallback to basic mode): {e}")
+            logger.warning(f"TrueHybridRetriever failed (fallback to basic mode): {e}")
             hybrid_context_str = "(추론 시스템 일시 불가 - 기본 모드로 응답합니다)"
 
         # =====================================================================
