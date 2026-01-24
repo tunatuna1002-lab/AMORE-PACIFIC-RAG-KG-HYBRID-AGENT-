@@ -150,18 +150,24 @@ app.include_router(signals_router)
 
 # ============= 서버 시작 시 자동 스케줄러 =============
 
-AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "true").lower() == "true"
+# Railway 배포 시 healthcheck 타임아웃 방지: 기본값 false
+# 로컬 개발 시 AUTO_START_SCHEDULER=true 로 설정하면 스케줄러 자동 시작
+AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "false").lower() == "true"
 
 
 @app.on_event("startup")
 async def startup_event():
-    """서버 시작 시 자동 스케줄러 시작 및 즉시 크롤링 체크"""
-    # 1. 즉시 크롤링 필요 여부 체크 (서버 재시작 후 오늘 데이터가 없으면 바로 크롤링)
+    """서버 시작 시 자동 스케줄러 시작 및 즉시 크롤링 체크
+
+    ⚠️ 중요: 크롤링은 백그라운드에서 실행하여 healthcheck 타임아웃 방지
+    """
+    # 1. 크롤링 필요 여부 체크 후 백그라운드 실행 (비블로킹)
     try:
         crawl_manager = await get_crawl_manager()
         if crawl_manager.needs_crawl():
-            logging.info(f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 시작")
-            await crawl_manager.start_crawl()
+            logging.info(f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 백그라운드 시작")
+            # ⚠️ await 대신 create_task로 백그라운드 실행 (healthcheck 블로킹 방지)
+            asyncio.create_task(crawl_manager.start_crawl())
         else:
             logging.info(f"서버 시작: 오늘 데이터 있음 또는 크롤링 중 (data_date={crawl_manager.get_data_date()})")
     except Exception as e:
