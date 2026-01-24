@@ -873,11 +873,14 @@ class SimpleChatService:
             # 통합 컨텍스트 문자열 (LLM 프롬프트용)
             hybrid_context_str = hybrid_result.combined_context
 
-            # 엔티티 정보 추출
+            # 엔티티 정보 추출 (entity_type이 Enum이면 .value, 문자열이면 그대로)
+            def get_entity_type(e):
+                return e.entity_type.value if hasattr(e.entity_type, 'value') else e.entity_type
+
             entities_info = {
-                "brands": [e.text for e in hybrid_result.entity_links if e.entity_type.value == "brand"],
-                "categories": [e.text for e in hybrid_result.entity_links if e.entity_type.value == "category"],
-                "indicators": [e.text for e in hybrid_result.entity_links if e.entity_type.value == "indicator"]
+                "brands": [e.text for e in hybrid_result.entity_links if get_entity_type(e) == "brand"],
+                "categories": [e.text for e in hybrid_result.entity_links if get_entity_type(e) == "category"],
+                "indicators": [e.text for e in hybrid_result.entity_links if get_entity_type(e) == "indicator"]
             }
 
             # 메타데이터 저장 (응답에 포함)

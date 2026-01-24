@@ -680,6 +680,50 @@ class EntityLinker:
 
         return (best_match, best_score)
 
+    def get_ontology_filters(
+        self,
+        entities: List[LinkedEntity]
+    ) -> Dict[str, Any]:
+        """
+        연결된 엔티티로부터 ChromaDB 필터 조건 생성
+
+        Args:
+            entities: LinkedEntity 리스트
+
+        Returns:
+            ChromaDB where 조건 딕셔너리
+            예: {"$or": [{"brand": "LANEIGE"}, {"category": "lip_care"}]}
+        """
+        if not entities:
+            return {}
+
+        conditions = []
+
+        for entity in entities:
+            if entity.entity_type == "brand":
+                conditions.append({"brand": entity.concept_label})
+            elif entity.entity_type == "category":
+                # concept_label에서 ID 추출 (예: "Lip Care" → "lip_care")
+                cat_key = entity.context.get("matched_key", entity.concept_label.lower().replace(" ", "_"))
+                conditions.append({"category": cat_key})
+            elif entity.entity_type == "metric":
+                # 지표는 메타데이터 필터로 사용
+                metric_key = entity.context.get("matched_key", entity.concept_label.lower())
+                conditions.append({"metric_type": metric_key})
+            elif entity.entity_type == "ingredient":
+                conditions.append({"ingredient": entity.concept_label})
+            elif entity.entity_type == "trend":
+                conditions.append({"trend": entity.concept_label})
+            elif entity.entity_type == "product":
+                conditions.append({"asin": entity.text})
+
+        if len(conditions) == 0:
+            return {}
+        elif len(conditions) == 1:
+            return conditions[0]
+        else:
+            return {"$or": conditions}
+
     def get_stats(self) -> Dict[str, Any]:
         """통계 조회"""
         return self._stats.copy()

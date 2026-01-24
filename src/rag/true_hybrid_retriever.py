@@ -65,13 +65,23 @@ class HybridResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """딕셔너리 변환 (기존 HybridContext 호환)"""
+        def get_entity_type(e):
+            """entity_type이 Enum이면 .value, 문자열이면 그대로"""
+            return e.entity_type.value if hasattr(e.entity_type, 'value') else e.entity_type
+
+        def get_entity_id(e):
+            """ontology_id 또는 concept_label 반환"""
+            if hasattr(e, 'ontology_id'):
+                return e.ontology_id
+            return getattr(e, 'concept_label', e.text)
+
         return {
             "query": self.query,
             "entities": {
-                "brands": [e.ontology_id for e in self.entity_links if e.entity_type.value == "brand"],
-                "categories": [e.ontology_id for e in self.entity_links if e.entity_type.value == "category"],
-                "indicators": [e.ontology_id for e in self.entity_links if e.entity_type.value == "indicator"],
-                "products": [e.ontology_id for e in self.entity_links if e.entity_type.value == "product"],
+                "brands": [get_entity_id(e) for e in self.entity_links if get_entity_type(e) == "brand"],
+                "categories": [get_entity_id(e) for e in self.entity_links if get_entity_type(e) == "category"],
+                "indicators": [get_entity_id(e) for e in self.entity_links if get_entity_type(e) == "indicator"],
+                "products": [get_entity_id(e) for e in self.entity_links if get_entity_type(e) == "product"],
             },
             "ontology_facts": self.ontology_context.get("facts", []),
             "inferences": self.ontology_context.get("inferences", []),
@@ -241,24 +251,29 @@ class TrueHybridRetriever:
             )
 
             # 최종 결과 (top_k)
+            # fused_docs는 FusedResult 객체 (documents는 List[Dict])
+            fused_documents = fused_docs.documents if hasattr(fused_docs, 'documents') else []
             result.documents = [
                 {
-                    "id": doc.id,
-                    "content": doc.content,
-                    "metadata": doc.metadata,
-                    "score": doc.combined_score,
-                    "rank": doc.rank
+                    "id": doc.get("id", str(i)),
+                    "content": doc.get("content", ""),
+                    "metadata": doc.get("metadata", {}),
+                    "score": doc.get("score", 0.5),
+                    "rank": i + 1
                 }
-                for doc in fused_docs[:top_k]
+                for i, doc in enumerate(fused_documents[:top_k])
             ]
+            result.metadata["fusion_confidence"] = fused_docs.confidence if hasattr(fused_docs, 'confidence') else 0.5
 
             # 8. Combined Context 생성
             result.combined_context = self._build_combined_context(result)
 
             # 9. 전체 신뢰도 계산
+            # fused_docs는 FusedResult 객체이므로 confidence 속성 사용
+            avg_doc_score = fused_docs.confidence if hasattr(fused_docs, 'confidence') else 0.5
             result.confidence = self._calculate_overall_confidence(
                 entity_confidence=entity_confidence,
-                avg_doc_score=sum(doc.combined_score for doc in fused_docs[:top_k]) / top_k if fused_docs else 0,
+                avg_doc_score=avg_doc_score,
                 ontology_coverage=len(ontology_context.get("inferences", [])) / 5  # 최대 5개 인사이트 가정
             )
 
@@ -403,15 +418,18 @@ class TrueHybridRetriever:
 
             # 브랜드 관련 인사이트 생성
             for entity in entities:
-                if entity.entity_type.value == "brand":
-                    brand_info = self.owl_reasoner.get_brand_info(entity.ontology_id)
+                entity_type = entity.entity_type.value if hasattr(entity.entity_type, 'value') else entity.entity_type
+                # entity_id: ontology_id 또는 concept_label 사용
+                entity_id = entity.ontology_id if hasattr(entity, 'ontology_id') else getattr(entity, 'concept_label', entity.text)
+                if entity_type == "brand":
+                    brand_info = self.owl_reasoner.get_brand_info(entity_id)
                     if brand_info:
                         # 시장 포지션 추론
                         position = brand_info.get("market_position")
                         if position:
                             context["inferences"].append({
                                 "type": "market_position",
-                                "brand": entity.ontology_id,
+                                "brand": entity_id,
                                 "position": position,
                                 "sos": brand_info.get("sos", 0.0)
                             })
@@ -421,7 +439,7 @@ class TrueHybridRetriever:
                         if competitors:
                             context["inferences"].append({
                                 "type": "competition",
-                                "brand": entity.ontology_id,
+                                "brand": entity_id,
                                 "competitors": competitors[:5]
                             })
 
@@ -485,16 +503,49 @@ class TrueHybridRetriever:
         Returns:
             융합된 SearchResult 리스트
         """
+        # ConfidenceFusion API에 맞게 변환
+        # vector_results를 SearchResult로 변환
+        from src.rag.confidence_fusion import SearchResult as FusionSearchResult
+        from src.rag.confidence_fusion import InferenceResult, LinkedEntity as FusionLinkedEntity
+
+        fusion_vector = [
+            FusionSearchResult(
+                content=r.get("content", ""),
+                score=r.get("score", 0.5),
+                metadata=r.get("metadata", {}),
+                source="vector"
+            )
+            for r in vector_results
+        ] if vector_results else None
+
+        fusion_ontology = [
+            InferenceResult(
+                insight=r.get("insight", ""),
+                confidence=r.get("confidence", 0.5),
+                evidence=r.get("evidence", {}),
+                rule_name=r.get("rule_name")
+            )
+            for r in ontology_results
+        ] if ontology_results else None
+
+        # reranked_results를 entity_links로 변환
+        fusion_entities = [
+            FusionLinkedEntity(
+                entity_id=str(i),
+                entity_name=r.get("text", ""),
+                entity_type=r.get("type", "unknown"),
+                link_confidence=entity_confidence,
+                context=r.get("context", ""),
+                metadata=r.get("metadata", {})
+            )
+            for i, r in enumerate(reranked_results)
+        ] if reranked_results else None
+
         return self.confidence_fusion.fuse(
-            vector_results=vector_results,
-            ontology_results=ontology_results,
-            reranker_results=reranked_results,
-            entity_confidence=entity_confidence,
-            weights={
-                "vector": 0.4,
-                "ontology": 0.3,
-                "reranker": 0.3
-            }
+            vector_results=fusion_vector,
+            ontology_results=fusion_ontology,
+            entity_links=fusion_entities,
+            query=None
         )
 
     def _build_combined_context(self, result: HybridResult) -> str:
@@ -513,7 +564,9 @@ class TrueHybridRetriever:
         if result.entity_links:
             parts.append("## 추출된 엔티티\n")
             for entity in result.entity_links[:5]:
-                parts.append(f"- {entity.entity_type.value}: {entity.text} (신뢰도: {entity.confidence:.2f})")
+                # entity_type이 Enum이면 .value, 문자열이면 그대로 사용
+                entity_type = entity.entity_type.value if hasattr(entity.entity_type, 'value') else entity.entity_type
+                parts.append(f"- {entity_type}: {entity.text} (신뢰도: {entity.confidence:.2f})")
             parts.append("")
 
         # 2. 온톨로지 추론 결과
@@ -587,3 +640,38 @@ class TrueHybridRetriever:
             },
             "initialized": self._initialized
         }
+
+
+# 싱글톤 인스턴스
+_retriever_instance: Optional[TrueHybridRetriever] = None
+
+
+def get_true_hybrid_retriever(
+    owl_reasoner: Optional[OWLReasoner] = None,
+    knowledge_graph: Optional[Any] = None,
+    docs_path: str = "./docs"
+) -> TrueHybridRetriever:
+    """TrueHybridRetriever 싱글톤 인스턴스 반환
+
+    Args:
+        owl_reasoner: OWLReasoner 인스턴스
+        knowledge_graph: KnowledgeGraph 인스턴스
+        docs_path: RAG 문서 디렉토리 경로
+
+    Returns:
+        TrueHybridRetriever 인스턴스
+    """
+    global _retriever_instance
+    if _retriever_instance is None:
+        doc_retriever = DocumentRetriever(
+            docs_path=docs_path,
+            use_semantic_chunking=True,
+            use_reranker=True,
+            use_query_expansion=True
+        )
+        _retriever_instance = TrueHybridRetriever(
+            owl_reasoner=owl_reasoner,
+            knowledge_graph=knowledge_graph,
+            doc_retriever=doc_retriever
+        )
+    return _retriever_instance
