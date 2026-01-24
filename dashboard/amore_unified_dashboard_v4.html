@@ -1992,6 +1992,106 @@
             border-color: var(--amore-blue);
         }
 
+        /* === CATEGORY HIERARCHY TREE (카테고리 계층 트리) === */
+        .category-tree {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .category-tree-item {
+            margin: 0;
+            padding: 0;
+        }
+        .category-tree-node {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 2px 0;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .category-tree-node:hover {
+            background: rgba(31, 87, 149, 0.05);
+            border-color: var(--amore-blue);
+        }
+        .category-tree-node.has-laneige {
+            border-left: 3px solid var(--amore-blue);
+        }
+        .category-tree-node.no-laneige {
+            border-left: 3px solid #D0D0D0;
+            opacity: 0.7;
+        }
+        .category-tree-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            color: var(--text-secondary);
+            font-size: 10px;
+            transition: transform 0.2s ease;
+        }
+        .category-tree-toggle.expanded {
+            transform: rotate(90deg);
+        }
+        .category-tree-toggle.empty {
+            visibility: hidden;
+        }
+        .category-tree-content {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .category-tree-name {
+            font-weight: 500;
+            color: var(--pacific-blue);
+        }
+        .category-tree-level {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-left: 6px;
+            padding: 2px 6px;
+            background: rgba(0, 28, 88, 0.06);
+            border-radius: 4px;
+        }
+        .category-tree-stats {
+            text-align: right;
+            font-size: 11px;
+        }
+        .category-tree-sos {
+            font-weight: 600;
+            color: var(--amore-blue);
+        }
+        .category-tree-count {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+        .category-tree-children {
+            margin-left: 28px;
+            padding-left: 12px;
+            border-left: 1px dashed var(--border-light);
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
+        .category-tree-children.expanded {
+            max-height: 500px;
+        }
+        /* 중간 카테고리 (모니터링 안함) */
+        .category-tree-node.intermediate {
+            background: rgba(0, 0, 0, 0.02);
+            border-style: dashed;
+            opacity: 0.6;
+        }
+        .category-tree-node.intermediate .category-tree-name {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
         /* === SELECTOR TOOLTIP (카테고리/제품 선택 툴팁) === */
         .selector-wrapper {
             position: relative;
@@ -2826,9 +2926,13 @@
                                         <i data-lucide="alert-circle" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
                                         <p>해당 기간에 데이터가 없습니다.</p>
                                     </div>
-                                    <!-- 카테고리별 상세 정보 -->
-                                    <div id="sosCategoryDetail" style="margin-top: 12px; padding: 10px; background: rgba(0, 28, 88, 0.03); border-radius: 8px; font-size: 11px;">
-                                        <div style="display: flex; flex-wrap: wrap; gap: 16px;" id="sosCategoryDetailContent">
+                                    <!-- 카테고리별 상세 정보 (계층적 트리) -->
+                                    <div id="sosCategoryDetail" style="margin-top: 12px; padding: 12px; background: rgba(0, 28, 88, 0.03); border-radius: 8px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                                            <i data-lucide="git-branch" style="width: 14px; height: 14px;"></i>
+                                            카테고리 계층 구조 (클릭하여 펼치기/접기)
+                                        </div>
+                                        <div class="category-tree" id="sosCategoryDetailContent">
                                             <!-- 동적으로 채워짐 -->
                                         </div>
                                     </div>
@@ -6608,6 +6712,19 @@
             }
         }
 
+        // 카테고리 트리 토글 함수
+        function toggleCategoryTree(nodeElement) {
+            const toggleIcon = nodeElement.querySelector('.category-tree-toggle');
+            const parentItem = nodeElement.closest('.category-tree-item');
+            const childrenContainer = parentItem.querySelector('.category-tree-children');
+
+            if (childrenContainer) {
+                const isExpanded = childrenContainer.classList.contains('expanded');
+                childrenContainer.classList.toggle('expanded');
+                toggleIcon.classList.toggle('expanded');
+            }
+        }
+
         // 브랜드 목록 필터링
         function filterBrandList() {
             const input = document.getElementById('brandSearchInput');
@@ -6802,22 +6919,130 @@
 
                 sosChartInstance.update();
 
-                // 카테고리별 상세 정보 표시 (깔끔하게)
+                // 카테고리별 상세 정보 표시 (계층적 트리 구조)
                 const detailContent = document.getElementById('sosCategoryDetailContent');
                 if (detailContent) {
-                    detailContent.innerHTML = result.data.map(d => {
-                        const hasLaneige = d.laneige_count > 0;
+                    // API 데이터를 카테고리별로 매핑
+                    const categoryDataMap = {};
+                    result.data.forEach(d => {
+                        categoryDataMap[d.category_id] = d;
+                    });
+
+                    // 카테고리 계층 구조 정의 (category_hierarchy.json 기반)
+                    const categoryHierarchy = {
+                        beauty: {
+                            name: 'Beauty & Personal Care',
+                            level: 0,
+                            children: ['skin_care', 'makeup']
+                        },
+                        skin_care: {
+                            name: 'Skin Care',
+                            level: 1,
+                            parent: 'beauty',
+                            children: ['lip_care']
+                        },
+                        lip_care: {
+                            name: 'Lip Care',
+                            level: 2,
+                            parent: 'skin_care',
+                            children: []
+                        },
+                        makeup: {
+                            name: 'Makeup',
+                            level: 1,
+                            parent: 'beauty',
+                            children: ['lip_makeup', 'face_makeup'],
+                            isIntermediate: true  // 모니터링 안 함
+                        },
+                        lip_makeup: {
+                            name: 'Lip Makeup',
+                            level: 2,
+                            parent: 'makeup',
+                            children: []
+                        },
+                        face_makeup: {
+                            name: 'Face Makeup',
+                            level: 2,
+                            parent: 'makeup',
+                            children: ['face_powder'],
+                            isIntermediate: true  // 모니터링 안 함
+                        },
+                        face_powder: {
+                            name: 'Face Powder',
+                            level: 3,
+                            parent: 'face_makeup',
+                            children: []
+                        }
+                    };
+
+                    // 계층적 트리 렌더링 함수
+                    function renderCategoryTree(categoryId, expanded = true) {
+                        const cat = categoryHierarchy[categoryId];
+                        if (!cat) return '';
+
+                        const data = categoryDataMap[categoryId];
+                        const hasLaneige = data && data.laneige_count > 0;
+                        const hasChildren = cat.children && cat.children.length > 0;
+                        const isIntermediate = cat.isIntermediate;
+
+                        // 노드 클래스 결정
+                        let nodeClass = 'category-tree-node';
+                        if (isIntermediate) {
+                            nodeClass += ' intermediate';
+                        } else if (hasLaneige) {
+                            nodeClass += ' has-laneige';
+                        } else {
+                            nodeClass += ' no-laneige';
+                        }
+
+                        // 통계 정보
+                        let statsHtml = '';
+                        if (data && !isIntermediate) {
+                            statsHtml = `
+                                <div class="category-tree-stats">
+                                    <div class="category-tree-sos">${data.laneige_sos.toFixed(1)}%</div>
+                                    <div class="category-tree-count">LANEIGE ${data.laneige_count}개</div>
+                                </div>
+                            `;
+                        } else if (isIntermediate) {
+                            statsHtml = '<div class="category-tree-stats" style="font-size: 10px; color: #999;">모니터링 안 함</div>';
+                        }
+
+                        // 자식 노드 렌더링
+                        let childrenHtml = '';
+                        if (hasChildren) {
+                            const childNodes = cat.children.map(childId => renderCategoryTree(childId, false)).join('');
+                            childrenHtml = `<div class="category-tree-children ${expanded ? 'expanded' : ''}">${childNodes}</div>`;
+                        }
+
+                        // 토글 아이콘
+                        const toggleClass = hasChildren ? (expanded ? 'expanded' : '') : 'empty';
+                        const toggleIcon = hasChildren ? '▶' : '';
+
                         return `
-                        <div style="flex: 1; min-width: 150px; padding: 8px; background: white; border-radius: 6px; border-left: 3px solid ${hasLaneige ? '#1F5795' : '#D0D0D0'};">
-                            <div style="font-weight: 600; color: var(--pacific-blue); margin-bottom: 4px; font-size: 11px;">
-                                ${d.category_name}
+                            <div class="category-tree-item">
+                                <div class="${nodeClass}" onclick="toggleCategoryTree(this)" data-category="${categoryId}">
+                                    <div class="category-tree-toggle ${toggleClass}">${toggleIcon}</div>
+                                    <div class="category-tree-content">
+                                        <div>
+                                            <span class="category-tree-name">${cat.name}</span>
+                                            <span class="category-tree-level">L${cat.level}</span>
+                                        </div>
+                                        ${statsHtml}
+                                    </div>
+                                </div>
+                                ${childrenHtml}
                             </div>
-                            <div style="color: var(--text-secondary); font-size: 10px;">
-                                Top 100 중
-                                <strong style="color: ${hasLaneige ? '#1F5795' : '#999'};">LANEIGE ${d.laneige_count}개 (${d.laneige_sos.toFixed(1)}%)</strong>
-                            </div>
-                        </div>
-                    `}).join('');
+                        `;
+                    }
+
+                    // 루트(Beauty & Personal Care)부터 시작하여 트리 렌더링
+                    detailContent.innerHTML = renderCategoryTree('beauty', true);
+
+                    // Lucide 아이콘 새로고침
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
                 }
 
             } catch (error) {
