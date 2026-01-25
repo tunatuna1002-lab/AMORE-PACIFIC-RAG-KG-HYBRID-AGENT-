@@ -508,6 +508,10 @@ class DashboardExporter:
             if not stats["ranks"]:
                 continue
 
+            # Unknown 브랜드는 대시보드에서 제외
+            if brand.lower() == "unknown":
+                continue
+
             avg_rank = sum(stats["ranks"]) / len(stats["ranks"])
             product_count = len(stats["products"])
 
@@ -789,6 +793,10 @@ class DashboardExporter:
             if not stats["ranks"] or len(stats["products"]) < 2:
                 continue
 
+            # Unknown 브랜드는 대시보드에서 제외
+            if brand.lower() == "unknown":
+                continue
+
             avg_rank = sum(stats["ranks"]) / len(stats["ranks"])
             product_count = len(stats["products"])
             sos = (product_count / len(latest_data) * 100) if latest_data else 0
@@ -945,6 +953,10 @@ class DashboardExporter:
         for brand, stats in brand_stats.items():
             products = stats["products"]
             if not products:
+                continue
+
+            # Unknown 브랜드는 대시보드에서 제외
+            if brand.lower() == "unknown":
                 continue
 
             # 브랜드별 프로모션 현황
