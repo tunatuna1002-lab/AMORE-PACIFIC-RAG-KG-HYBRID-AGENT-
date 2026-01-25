@@ -74,6 +74,44 @@ class DashboardExporter:
         if self.enable_ontology:
             self._init_ontology()
 
+        # 브랜드 정규화 매핑 (product_name 기반 보정)
+        self._brand_corrections = {
+            "summer": ("Summer Fridays", "summer fridays"),
+            "rare": ("Rare Beauty", "rare beauty"),
+            "la": ("La Roche-Posay", "la roche"),
+            "beauty": ("Beauty of Joseon", "beauty of joseon"),
+            "tower": ("Tower 28", "tower 28"),
+            "drunk": ("Drunk Elephant", "drunk elephant"),
+            "paula's": ("Paula's Choice", "paula's choice"),
+            "the": ("The Ordinary", "the ordinary"),
+            "glow": ("Glow Recipe", "glow recipe"),
+            "youth": ("Youth To The People", "youth to the people"),
+            "first": ("First Aid Beauty", "first aid beauty"),
+            "it": ("IT Cosmetics", "it cosmetics"),
+            "too": ("Too Faced", "too faced"),
+            "urban": ("Urban Decay", "urban decay"),
+            "fenty": ("Fenty Beauty", "fenty beauty"),
+            "huda": ("Huda Beauty", "huda beauty"),
+            "anastasia": ("Anastasia Beverly Hills", "anastasia beverly hills"),
+            "benefit": ("Benefit Cosmetics", "benefit cosmetics"),
+            "mac": ("MAC Cosmetics", "mac cosmetics"),
+        }
+
+    def _normalize_brand(self, brand: str, product_name: str) -> str:
+        """브랜드명 정규화 - product_name 기반으로 잘못된 브랜드 보정"""
+        if not brand or not product_name:
+            return brand
+
+        brand_lower = brand.lower().strip()
+        product_lower = product_name.lower()
+
+        if brand_lower in self._brand_corrections:
+            correct_brand, check_string = self._brand_corrections[brand_lower]
+            if check_string in product_lower:
+                return correct_brand
+
+        return brand
+
     def _init_ontology(self):
         """온톨로지 컴포넌트 초기화"""
         if not ONTOLOGY_AVAILABLE:
@@ -222,6 +260,13 @@ class DashboardExporter:
                     print(f"로컬 JSON 로드 실패 ({path}): {e}")
 
         print(f"총 {len(all_products)}개 제품 데이터 로드 완료")
+
+        # 브랜드 정규화 적용
+        for product in all_products:
+            original_brand = product.get("brand", "")
+            product_name = product.get("product_name", "")
+            product["brand"] = self._normalize_brand(original_brand, product_name)
+
         return all_products
 
     def _get_latest_date(self, data: List[Dict]) -> str:
@@ -450,9 +495,15 @@ class DashboardExporter:
         return hhi
 
     def _generate_competitor_data(self, brand_stats: Dict) -> List[Dict]:
-        """경쟁사 데이터 생성"""
+        """경쟁사 데이터 생성 (tracked competitors 포함)"""
         competitors = []
+        tracked_brands_to_include = set()
 
+        # Load tracked competitors config to know which brands to prioritize
+        tracked_data = self._load_tracked_competitors()
+        tracked_brands_to_include = set(tracked_data.keys())
+
+        # Organic competitors (Top 100에서 추출)
         for brand, stats in brand_stats.items():
             if not stats["ranks"]:
                 continue
@@ -465,17 +516,48 @@ class DashboardExporter:
             prices = [p for p in prices if 0.5 <= p <= 500]  # 유효한 USD 가격 범위만
             avg_price = sum(prices) / len(prices) if prices else None
 
+            is_tracked = brand in tracked_brands_to_include
+
             competitors.append({
                 "brand": brand,
                 "sos": round(product_count / sum(len(s["products"]) for s in brand_stats.values()) * 100, 1),
                 "avg_rank": round(avg_rank, 1),
                 "product_count": product_count,
-                "avg_price": round(avg_price, 2) if avg_price else None
+                "avg_price": round(avg_price, 2) if avg_price else None,
+                "is_tracked": is_tracked  # Flag if this is a tracked competitor
             })
+
+        # Tracked competitors 추가 (Top 100에 없는 브랜드만)
+        organic_brands = set(brand_stats.keys())
+        for tracked_brand, tracked_info in tracked_data.items():
+            if tracked_brand not in organic_brands:
+                # Top 100에 없으므로 SoS는 0
+                competitors.append({
+                    "brand": tracked_brand,
+                    "sos": 0,  # Not in Top 100
+                    "avg_rank": None,  # Not ranked in bestseller
+                    "product_count": tracked_info.get("product_count", 0),
+                    "avg_price": tracked_info.get("avg_price"),
+                    "is_tracked": True  # Tracked competitor (not in Top 100)
+                })
 
         # SoS 기준 정렬
         competitors.sort(key=lambda x: x["sos"], reverse=True)
-        return competitors[:10]
+
+        # Ensure tracked competitors always appear (even if outside top 10)
+        tracked_in_list = [c for c in competitors if c.get("is_tracked")]
+        non_tracked_in_list = [c for c in competitors if not c.get("is_tracked")]
+
+        # If we have tracked competitors, ensure they're in the final list
+        if tracked_in_list:
+            # Take top 7 non-tracked + all tracked (up to 10 total)
+            max_non_tracked = max(7, 10 - len(tracked_in_list))
+            final_list = non_tracked_in_list[:max_non_tracked] + tracked_in_list
+            # Sort again by SoS
+            final_list.sort(key=lambda x: x["sos"], reverse=True)
+            return final_list[:10]
+        else:
+            return competitors[:10]
 
     def _generate_category_data(self, raw_data: List[Dict]) -> Dict[str, Any]:
         """Category View (L2) 데이터"""
@@ -927,6 +1009,86 @@ class DashboardExporter:
             "competitor_promo": competitor_promo,
             "growth_type_summary": growth_type_summary
         }
+
+    def _load_tracked_competitors(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Tracked competitors 데이터 로드
+
+        Returns:
+            {
+                "Summer Fridays": {
+                    "product_count": 5,
+                    "avg_price": 24.99,
+                    "tier": "premium"
+                }
+            }
+        """
+        tracked_data = {}
+
+        # 1. SQLite에서 로드 시도
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # 이미 실행 중인 이벤트 루프가 있으면 동기적으로 처리
+                import sqlite3
+                if self.sqlite.db_path.exists():
+                    with self.sqlite.get_connection() as conn:
+                        cursor = conn.execute("""
+                            SELECT brand,
+                                   COUNT(*) as product_count,
+                                   AVG(price) as avg_price
+                            FROM competitor_products
+                            WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM competitor_products)
+                            GROUP BY brand
+                        """)
+                        for row in cursor.fetchall():
+                            brand = row["brand"]
+                            tracked_data[brand] = {
+                                "product_count": row["product_count"],
+                                "avg_price": round(row["avg_price"], 2) if row["avg_price"] else None
+                            }
+            else:
+                # 새 이벤트 루프 생성
+                competitor_products = loop.run_until_complete(self.sqlite.get_competitor_products())
+                brand_groups = defaultdict(list)
+                for product in competitor_products:
+                    brand = product.get("brand")
+                    if brand:
+                        brand_groups[brand].append(product)
+
+                for brand, products in brand_groups.items():
+                    prices = [self._safe_float(p.get("price")) for p in products if p.get("price")]
+                    prices = [p for p in prices if 0.5 <= p <= 500]
+                    avg_price = sum(prices) / len(prices) if prices else None
+
+                    tracked_data[brand] = {
+                        "product_count": len(products),
+                        "avg_price": round(avg_price, 2) if avg_price else None
+                    }
+        except Exception as e:
+            print(f"SQLite에서 tracked competitors 로드 실패: {e}")
+
+        # 2. config/tracked_competitors.json에서 fallback
+        if not tracked_data:
+            try:
+                config_path = Path(__file__).parent.parent.parent / "config" / "tracked_competitors.json"
+                if config_path.exists():
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        config = json.load(f)
+
+                    for brand_key, brand_info in config.get("competitors", {}).items():
+                        brand_name = brand_info.get("brand_name", brand_key)
+                        products = brand_info.get("products", [])
+                        tracked_data[brand_name] = {
+                            "product_count": len(products),
+                            "avg_price": None,  # 가격 정보는 크롤링 후 업데이트 필요
+                            "tier": brand_info.get("tier", "unknown")
+                        }
+            except Exception as e:
+                print(f"tracked_competitors.json 로드 실패: {e}")
+
+        return tracked_data
 
     def _safe_int(self, value: Any) -> int:
         """안전한 int 변환"""
