@@ -7,7 +7,7 @@
 **AMORE Pacific RAG-KG Hybrid Agent** - An autonomous AI system that monitors LANEIGE brand competitiveness on Amazon US marketplace.
 
 ### Core Features
-- **Daily Auto-Crawling**: Amazon Top 100 bestsellers across 5 categories (KST 06:00)
+- **Daily Auto-Crawling**: Amazon Top 100 bestsellers across 5 categories (KST 22:00)
 - **KPI Analysis**: SoS (Share of Shelf), HHI, CPI calculations
 - **AI Chatbot**: Hybrid RAG-powered Q&A (Knowledge Graph + Ontology + Documents)
 - **Insight Generation**: LLM-based strategic insights
@@ -62,10 +62,60 @@
 |----------|-----------|
 | Backend | Python 3.11+, FastAPI 0.104+, Uvicorn |
 | LLM | OpenAI GPT-4.1-mini via LiteLLM |
-| Scraping | Playwright (Chromium headless) |
-| Storage | Google Sheets API, JSON files |
+| Scraping | Playwright (Chromium headless), playwright-stealth, browserforge |
+| Storage | Google Sheets API, SQLite, JSON files |
 | Data | Pandas, Pydantic 2.0+ |
 | Deployment | Docker, Railway |
+
+---
+
+## Data Storage Architecture (v2026.01.25)
+
+### 3중 저장소 구조
+
+| 저장소 | 위치 | 역할 | Source of Truth |
+|--------|------|------|-----------------|
+| **Railway SQLite** | `/data/amore_data.db` | Production 데이터 | ✅ Yes |
+| **Google Sheets** | 스프레드시트 | 백업 + 비개발자 공유 | - |
+| **로컬 SQLite** | `./data/amore_data.db` | 로컬 개발/테스트 | - |
+
+### 데이터 흐름
+
+```
+크롤링 (Railway, 22:00 KST)
+    ↓
+Railway SQLite ✅ (자동)
+    ↓
+Google Sheets ✅ (자동)
+    ↓
+로컬 SQLite ❌ (수동 동기화 필요)
+```
+
+### 로컬 개발 시 데이터 동기화
+
+**로컬 SQLite는 Railway와 자동 동기화되지 않습니다.**
+
+로컬 개발/테스트 전에 수동으로 동기화 실행:
+```bash
+python scripts/sync_from_railway.py
+```
+
+### 동기화 API
+
+| 엔드포인트 | 용도 |
+|-----------|------|
+| `GET /api/sync/status` | Railway 데이터 현황 |
+| `GET /api/sync/dates` | 사용 가능한 날짜 목록 |
+| `GET /api/sync/download/{date}` | 특정 날짜 데이터 다운로드 |
+
+### 핵심 파일
+
+| 파일 | 역할 |
+|------|------|
+| `src/tools/sqlite_storage.py` | SQLite 저장 로직 |
+| `src/agents/storage_agent.py` | 이중 저장 (Sheets + SQLite) |
+| `scripts/sync_from_railway.py` | Railway → 로컬 동기화 |
+| `scripts/sync_sheets_to_sqlite.py` | Sheets → SQLite 동기화 |
 
 ---
 
@@ -242,7 +292,7 @@ Agents follow input/output contracts:
 
 `UnifiedBrain` in `src/core/brain.py`:
 - KST timezone-aware scheduling
-- Daily crawl at 06:00 KST
+- Daily crawl at **22:00 KST (13:00 UTC)**
 - Persistent state in `data/scheduler_state.json`
 - Graceful recovery across restarts
 
@@ -667,6 +717,63 @@ context = await retriever.retrieve(query, current_metrics=...)
 - **구현**: `src/rag/entity_linker.py`
 - **테스트**: `test_entity_linker.py`
 - **통합 예제**: `examples/entity_linker_integration.py`
+
+---
+
+## Amazon Crawler - Stealth Mode (v2026.01.25)
+
+### 크롤링 시간 최적화
+
+| 설정 | 값 | 이유 |
+|------|-----|------|
+| **크롤링 시간** | 22:00 KST (13:00 UTC) | 미국 새벽 = 트래픽 최저 + 피크 판매 BSR 반영 |
+| **프록시** | 사용 안 함 (Stealth Only) | 일 1회/500요청에 프록시 불필요 |
+| **예상 소요 시간** | 80-90분 | 8-12초/제품 × 500개 |
+
+### 안티봇 전략 (Stealth Only)
+
+> **핵심 원칙**: "빠르게 하기보다 차단되지 않고 천천히 모두 수집하는 것이 중요"
+
+| 기술 | 라이브러리 | 용도 |
+|------|-----------|------|
+| **Stealth 모드** | `playwright-stealth` | navigator.webdriver 제거, HeadlessChrome 숨김 |
+| **핑거프린트** | `browserforge` | 실제 브라우저 핑거프린트 생성 |
+| **User-Agent** | `fake-useragent` | 실제 UA 로테이션 |
+| **행동 시뮬레이션** | 커스텀 | 랜덤 스크롤, 마우스 이동, 딜레이 |
+| **회로 차단기** | 커스텀 | 연속 3회 실패 시 중단 + 지수 백오프 |
+
+### 딜레이 설정
+
+| 구간 | 기본 딜레이 | 랜덤 추가 | 10% 확률 2배 |
+|------|------------|----------|--------------|
+| 제품 간 | 5초 | 0-3초 | 10-16초 |
+| 상세 페이지 | 8초 | 0-4초 | 16-24초 |
+| 페이지 전환 | 12초 | 0-3초 | 24-30초 |
+| 카테고리 전환 | 45초 | 0-15초 | 90-120초 |
+
+### Railway 크롤링 시간 설정
+
+Railway 환경변수에서 설정:
+```bash
+CRAWL_HOUR=13  # UTC 기준 (13:00 UTC = 22:00 KST)
+```
+
+또는 `src/core/scheduler.py`에서 직접 수정:
+```python
+# 22:00 KST = 13:00 UTC
+CRAWL_SCHEDULE = {"hour": 13, "minute": 0, "timezone": "UTC"}
+```
+
+### 할인 정보 수집
+
+상세 페이지 크롤링으로 수집하는 필드:
+
+| 필드 | 예상 수집률 | 셀렉터 |
+|------|-----------|--------|
+| `list_price` | 70-90% | `.basisPrice .a-offscreen` |
+| `discount_percent` | 70-90% | `#savingsPercentage` |
+| `coupon_text` | 20-40% | `#promoPriceBlockMessage_feature_div` |
+| `promo_badges` | 30-50% | `.dealBadge`, `.a-badge-limited-time-deal` |
 
 ---
 

@@ -188,6 +188,24 @@ uvicorn dashboard_api:app --host 0.0.0.0 --port 8001
 
 **접속:** http://localhost:8001/dashboard
 
+### 5.1 로컬 데이터 동기화
+
+로컬 개발 시 Railway 서버의 최신 데이터를 동기화합니다:
+
+```bash
+# 누락된 데이터만 동기화
+python scripts/sync_from_railway.py
+
+# 전체 재동기화 (--force)
+python scripts/sync_from_railway.py --force
+
+# 확인만 (실제 동기화 없이)
+python scripts/sync_from_railway.py --dry-run
+```
+
+> **Note**: 로컬 SQLite는 Railway와 자동 동기화되지 않습니다.
+> 로컬 테스트 전에 수동으로 위 명령을 실행하세요.
+
 ---
 
 ## 6. API 레퍼런스
