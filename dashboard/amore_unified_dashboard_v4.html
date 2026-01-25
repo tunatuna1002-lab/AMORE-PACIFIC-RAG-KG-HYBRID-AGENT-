@@ -462,13 +462,15 @@
         .status-card-tooltip {
             position: absolute;
             bottom: 100%;
-            left: 0;
+            left: 50%;
+            transform: translateX(-50%);
             background: var(--pacific-blue);
             color: var(--ap-white);
             padding: 14px 18px;
             border-radius: 8px;
             font-size: 11px;
-            white-space: nowrap;
+            white-space: normal;
+            word-break: break-word;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.15s ease, visibility 0.15s ease;
@@ -476,31 +478,52 @@
             box-shadow: var(--shadow-lg);
             margin-bottom: 8px;
             text-align: left;
-            max-width: 320px;
+            min-width: 280px;
+            max-width: 350px;
+            width: max-content;
+        }
+        .status-card-tooltip.align-left {
+            left: 0;
+            transform: none;
         }
         .status-card-tooltip.align-right {
             left: auto;
             right: 0;
+            transform: none;
         }
         .status-card-tooltip.align-center {
             left: 50%;
             transform: translateX(-50%);
         }
+        /* 기본: 툴팁이 위에 있을 때 - 화살표가 아래를 향함 (카드 방향) */
         .status-card-tooltip::after {
             content: '';
             position: absolute;
             top: 100%;
-            left: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             border: 6px solid transparent;
             border-top-color: var(--pacific-blue);
+        }
+        .status-card-tooltip.align-left::after {
+            left: 20px;
+            transform: none;
         }
         .status-card-tooltip.align-right::after {
             left: auto;
             right: 20px;
+            transform: none;
         }
         .status-card-tooltip.align-center::after {
             left: 50%;
             transform: translateX(-50%);
+        }
+        /* 툴팁이 아래에 있을 때 - 화살표가 위를 향함 (카드 방향) */
+        .status-card-tooltip.position-below::after {
+            top: auto;
+            bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: var(--pacific-blue);
         }
         .status-card-tooltip ul {
             list-style: none;
@@ -509,11 +532,19 @@
             padding: 0;
         }
         .status-card-tooltip li {
-            padding: 3px 0;
+            padding: 4px 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 6px;
             font-size: 11px;
+            line-height: 1.4;
+        }
+        .status-card-tooltip li span {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .status-card:hover .status-card-tooltip {
             opacity: 1;
@@ -660,6 +691,21 @@
         .kpi-card.has-tooltip:hover .kpi-tooltip {
             opacity: 1;
             visibility: visible;
+        }
+
+        /* Product View 툴팁 - 아래쪽에 표시 (화면 상단에 위치하므로) */
+        #page-product .kpi-tooltip {
+            top: auto;
+            bottom: auto;
+            top: 100%;
+            margin-top: 10px;
+        }
+        #page-product .kpi-tooltip::before {
+            bottom: 100%;
+            top: auto;
+            border: 8px solid transparent;
+            border-bottom-color: var(--pacific-blue);
+            border-top-color: transparent;
         }
 
         /* === TABLE HEADER TOOLTIP === */
@@ -1187,11 +1233,13 @@
             margin-bottom: 24px;
         }
         .kpi-card {
+            position: relative;
             background: var(--ap-white);
             border-radius: 8px;
             padding: 20px;
             border: 1px solid var(--border-light);
             transition: all 0.2s ease;
+            overflow: visible;
         }
         .kpi-card:hover {
             border-color: var(--amore-blue);
@@ -2014,7 +2062,7 @@
             bottom: calc(100% + 10px);
             left: 50%;
             transform: translateX(-50%);
-            background: var(--deep-ocean);
+            background: var(--pacific-blue);
             color: white;
             padding: 12px 16px;
             border-radius: 8px;
@@ -2036,12 +2084,26 @@
             left: 50%;
             transform: translateX(-50%);
             border: 8px solid transparent;
-            border-top-color: var(--deep-ocean);
+            border-top-color: var(--pacific-blue);
         }
         .selector-wrapper:hover .selector-tooltip {
             opacity: 1;
             visibility: visible;
         }
+
+        /* Selector 툴팁 동적 위치 조정: 아래쪽에 표시될 때 */
+        .selector-tooltip.position-below {
+            bottom: auto !important;
+            top: calc(100% + 10px) !important;
+        }
+        .selector-tooltip.position-below::after {
+            top: auto !important;
+            bottom: 100% !important;
+            border: 8px solid transparent !important;
+            border-top-color: transparent !important;
+            border-bottom-color: var(--pacific-blue) !important;
+        }
+
         .selector-tooltip-header {
             font-weight: 600;
             margin-bottom: 8px;
@@ -2080,6 +2142,17 @@
         }
         .product-header-row .chart-date-range {
             margin-left: 0;
+        }
+
+        /* 고정 기간 배지 (최근 7일) */
+        .fixed-date-badge {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            background: rgba(0, 28, 88, 0.06);
+            padding: 4px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
         }
 
         /* === TEXT TRUNCATION FIX - 제품명 전체 표시 === */
@@ -2210,68 +2283,29 @@
         }
         .chat-message.bot .bubble strong { color: var(--amore-blue); }
 
-        /* === AI 출처 표기 === */
-        .ai-source-citation {
-            margin-top: 12px;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border-light);
-            font-size: 11px;
-        }
-        .ai-source-citation .source-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            padding: 4px 0;
-            color: var(--text-secondary);
-            transition: color 0.15s;
-        }
-        .ai-source-citation .source-header:hover {
+        /* === 스트리밍 커서 애니메이션 === */
+        .streaming-cursor {
+            display: inline-block;
             color: var(--amore-blue);
+            animation: blink 0.7s infinite;
+            font-weight: bold;
         }
-        .ai-source-citation .source-toggle {
-            font-size: 8px;
-            transition: transform 0.2s;
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
-        .ai-source-citation.expanded .source-toggle {
-            transform: rotate(90deg);
+        .streaming-text {
+            white-space: pre-wrap;
         }
-        .ai-source-citation .source-label {
-            font-weight: 500;
-        }
-        .ai-source-citation .source-details {
-            display: none;
-            margin-top: 8px;
-            padding: 10px;
-            background: var(--bg-subtle);
-            border-radius: 6px;
-        }
-        .ai-source-citation.expanded .source-details {
-            display: block;
-        }
-        .ai-source-citation .source-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            margin-bottom: 6px;
-            line-height: 1.5;
-        }
-        .ai-source-citation .source-icon {
-            flex-shrink: 0;
-        }
-        .ai-source-citation .source-text {
-            color: var(--text-primary);
-        }
-        .ai-source-citation .source-text strong {
-            color: var(--pacific-blue);
-        }
-        .ai-source-citation .source-disclaimer {
+
+        /* === AI 경고 문구 === */
+        .ai-disclaimer {
             margin-top: 10px;
             padding-top: 8px;
-            border-top: 1px solid var(--border-light);
+            border-top: 1px dashed var(--border-light);
             color: var(--ap-gray);
-            font-style: italic;
             font-size: 10px;
+            font-style: italic;
         }
 
         /* === 추천 질문 - 접기/펼치기 === */
@@ -2755,7 +2789,23 @@
                                 </div>
                             </div>
                             <div class="status-card danger" id="warningProductsCard">
-                                <div class="status-label">주의 제품</div>
+                                <div class="status-label" style="display: flex; align-items: center; gap: 4px; position: relative;">
+                                    주의 제품
+                                    <span class="help-icon-wrapper" style="cursor: help; display: inline-flex;"
+                                          onmouseenter="document.getElementById('warningCriteriaTooltip').style.display='block'"
+                                          onmouseleave="document.getElementById('warningCriteriaTooltip').style.display='none'">
+                                        <i data-lucide="help-circle" style="width: 12px; height: 12px; opacity: 0.6;"></i>
+                                    </span>
+                                    <div id="warningCriteriaTooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 4px; width: 260px; background: var(--pacific-blue); color: white; padding: 12px; border-radius: 8px; font-size: 11px; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                                        <div style="font-weight: 600; margin-bottom: 8px;">⚠️ 선정 기준</div>
+                                        <div style="line-height: 1.5;">
+                                            다음 조건 중 하나 이상 해당 시 주의 제품으로 분류:<br><br>
+                                            • <strong>순위 하락</strong>: 전일 대비 10위 이상 하락<br>
+                                            • <strong>평점 하락</strong>: 최근 평점 4.0 미만으로 하락<br>
+                                            • <strong>순위 변동성</strong>: 7일간 순위 변동폭 20위 이상
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="status-value"><i data-lucide="alert-octagon" style="width: 24px; height: 24px;"></i><span id="warningCount">2개</span></div>
                                 <div class="status-card-tooltip warning-tooltip align-right" id="warningTooltip">
                                     <div style="font-weight: 600; margin-bottom: 8px; color: #f59e0b;">⚠️ 주의 필요 제품</div>
@@ -2768,7 +2818,30 @@
                         </div>
                         <div class="content-grid single">
                             <div class="card">
-                                <div class="card-header"><div class="card-title"><div class="card-title-icon"><i data-lucide="zap" style="color: white; width: 16px; height: 16px;"></i></div>Laneige 액션 보드</div><span class="card-badge danger">4건 대기</span></div>
+                                <div class="card-header">
+                                    <div class="card-title" style="position: relative;">
+                                        <div class="card-title-icon"><i data-lucide="zap" style="color: white; width: 16px; height: 16px;"></i></div>
+                                        Laneige 액션 보드
+                                        <span class="help-icon-wrapper" style="margin-left: 6px; cursor: help; display: inline-flex; align-items: center;"
+                                              onmouseenter="document.getElementById('actionBoardTooltip').style.display='block'"
+                                              onmouseleave="document.getElementById('actionBoardTooltip').style.display='none'">
+                                            <i data-lucide="help-circle" style="width: 14px; height: 14px; opacity: 0.6;"></i>
+                                        </span>
+                                        <div id="actionBoardTooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 8px; width: 320px; background: var(--pacific-blue); color: white; padding: 14px 14px 16px 14px; border-radius: 8px; font-size: 12px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;">
+                                            <div style="font-weight: 600; margin-bottom: 10px;">📋 액션 보드 선정 기준</div>
+                                            <div style="line-height: 1.6;">
+                                                <p style="margin-bottom: 8px;"><strong>🔴 P1 (긴급)</strong><br>
+                                                <span style="opacity: 0.9; font-size: 11px;">• 순위 10위 이상 급락<br>• 평점 4.0 미만 하락<br>• Top 10 진입/이탈</span></p>
+                                                <p style="margin-bottom: 8px;"><strong>🟠 P2 (주의)</strong><br>
+                                                <span style="opacity: 0.9; font-size: 11px;">• 순위 변동성 높음 (7일간 20위↑)<br>• 경쟁사 가격/프로모션 변화<br>• 리뷰 수 급증/급감</span></p>
+                                                <p style="margin-bottom: 0; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px;">
+                                                <strong>액션 태그</strong><br>
+                                                <span style="font-size: 11px;">CHECK: 즉시 확인 | MONITOR: 모니터링<br>DEEP DIVE: 심층 분석 필요</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="card-badge danger" id="actionBoardBadge">4건 대기</span>
+                                </div>
                                 <div class="card-body" style="padding: 0;">
                                     <table class="action-table">
                                         <thead><tr><th>우선순위</th><th>제품</th><th>문제 신호</th><th>액션 태그</th><th>상세 분석</th></tr></thead>
@@ -2789,17 +2862,25 @@
                                     <div class="card-title" style="position: relative;">
                                         <div class="card-title-icon"><i data-lucide="bar-chart-2" style="color: white; width: 16px; height: 16px;"></i></div>
                                         카테고리별 시장점유율 비교
-                                        <i data-lucide="help-circle" id="sosChartHelpIcon" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6; cursor: help;"></i>
-                                        <div id="sosChartTooltip" class="sos-chart-tooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 8px; width: 320px; background: var(--pacific-blue); color: white; padding: 14px; border-radius: 8px; font-size: 12px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                                            <div style="font-weight: 600; margin-bottom: 8px;">📊 시장점유율 (SoS) 이해하기</div>
+                                        <span id="sosChartHelpIcon" class="help-icon-wrapper" style="margin-left: 6px; cursor: help; display: inline-flex; align-items: center;" onmouseenter="document.getElementById('sosChartTooltip').style.display='block'" onmouseleave="document.getElementById('sosChartTooltip').style.display='none'">
+                                            <i data-lucide="help-circle" style="width: 14px; height: 14px; opacity: 0.6;"></i>
+                                        </span>
+                                        <div id="sosChartTooltip" class="sos-chart-tooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 8px; width: 340px; background: var(--pacific-blue); color: white; padding: 14px; border-radius: 8px; font-size: 12px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                                            <div style="font-weight: 600; margin-bottom: 10px;">📊 계산 기준 안내</div>
                                             <div style="line-height: 1.6;">
-                                                <p style="margin-bottom: 8px;"><strong>시장점유율이란?</strong><br>각 카테고리 Top 100 중 해당 브랜드가 차지하는 비율입니다.</p>
-                                                <p style="margin-bottom: 8px;"><strong>카테고리 계층 관계</strong><br>
-                                                • Beauty & Personal Care는 최상위 카테고리<br>
-                                                • Skin Care, Lip Makeup 등은 하위 카테고리<br>
-                                                • 상위 카테고리일수록 경쟁 범위가 넓어 진입이 어려움</p>
-                                                <p style="margin-bottom: 0;"><strong>해석 TIP</strong><br>
-                                                상위 카테고리(Beauty)에서 0%여도 하위 카테고리(Skin Care)에서 높은 SoS를 가질 수 있습니다. 이는 전체 뷰티 시장 대비 특정 세그먼트에서 강점을 가진다는 의미입니다.</p>
+                                                <p style="margin-bottom: 10px;"><strong>SoS (%)</strong><br>
+                                                선택 기간의 <u>일 평균</u> 점유율입니다.<br>
+                                                <span style="opacity: 0.8; font-size: 11px;">계산: (브랜드 제품 수 ÷ Top 100) × 100의 일 평균</span></p>
+                                                <p style="margin-bottom: 10px;"><strong>제품 수</strong><br>
+                                                선택 기간의 <u>일 평균</u> 개수입니다.<br>
+                                                <span style="opacity: 0.8; font-size: 11px;">계산: 기간 내 총 출현 횟수 ÷ 기간 일수</span></p>
+                                                <p style="margin-bottom: 10px;"><strong>출현율</strong><br>
+                                                Top 100에 <u>진입한 날짜</u> 비율입니다.<br>
+                                                <span style="opacity: 0.8; font-size: 11px;">계산: (진입 일수 ÷ 선택 기간) × 100%</span></p>
+                                                <p style="margin-bottom: 0; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px;">
+                                                <strong>💡 TIP</strong><br>
+                                                출현율이 낮으면 간헐적 Top 100 진입,<br>
+                                                출현율이 100%면 매일 안정적 진입을 의미합니다.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -2870,6 +2951,11 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
+                                    <!-- 누락 날짜 안내 -->
+                                    <div id="sosTrendMissingDates" style="display: none; margin-bottom: 8px; padding: 8px 12px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px; font-size: 11px; color: #856404;">
+                                        <i data-lucide="alert-triangle" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i>
+                                        <span id="sosTrendMissingDatesText"></span>
+                                    </div>
                                     <div class="chart-container"><canvas id="trendChart"></canvas></div>
                                 </div>
                             </div>
@@ -3127,17 +3213,13 @@
                                  └── Face (L2)
                                      └── Face Powder (L3)
                         -->
-                        <div class="category-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <div class="section-title" style="font-size: 14px; font-weight: 600; color: var(--pacific-blue);">
+                        <div class="category-header-row" style="display: flex; align-items: center; margin-bottom: 16px;">
+                            <div class="section-title" style="font-size: 14px; font-weight: 600; color: var(--pacific-blue); display: flex; align-items: center;">
                                 <i data-lucide="bar-chart-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
                                 카테고리별 KPI 현황
-                            </div>
-                            <div class="chart-date-range" id="categoryDateRange">
-                                <label>기간:</label>
-                                <input type="date" id="categoryStartDate">
-                                <span class="date-separator">~</span>
-                                <input type="date" id="categoryEndDate">
-                                <button class="apply-btn" onclick="applyCategoryDateRange()">적용</button>
+                                <span style="margin-left: 12px; font-size: 11px; font-weight: 400; color: var(--text-secondary); background: rgba(0, 28, 88, 0.06); padding: 3px 8px; border-radius: 4px;">
+                                    최근 7일
+                                </span>
                             </div>
                         </div>
                         <div class="category-tabs">
@@ -3207,44 +3289,31 @@
                                     <div class="card-title has-tooltip">
                                         <div class="card-title-icon"><i data-lucide="bar-chart" style="color: white; width: 16px; height: 16px;"></i></div>
                                         가격경쟁지수 추이
+                                        <span style="margin-left: 12px; font-size: 11px; font-weight: 400; color: var(--text-secondary); background: rgba(0, 28, 88, 0.06); padding: 3px 8px; border-radius: 4px;">
+                                            최근 7일
+                                        </span>
                                         <i data-lucide="help-circle" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6;"></i>
                                         <div class="chart-title-tooltip">
                                             <div class="tooltip-header">📈 가격경쟁지수 (CPI) 추이</div>
                                             <div class="tooltip-content">
-                                                <p><strong>차트 설명</strong><br>경쟁사 대비 Laneige의 가격 경쟁력 지수(CPI)를 일별로 추적합니다.</p>
-                                                <p><strong>기준선 해석</strong><br>• 파란 실선: Laneige CPI<br>• 점선 (100): 경쟁사 동일 가격 기준</p>
+                                                <p><strong>차트 설명</strong><br>LANEIGE 제품 평균가격 vs 경쟁사 Top 100 평균가격의 비율을 일별로 추적합니다.</p>
+                                                <p><strong>기준선 해석</strong><br>• 파란 실선: LANEIGE CPI<br>• 점선 (100): 경쟁사 동일 가격 기준</p>
                                                 <p><strong>활용법</strong><br>CPI가 100 위면 프리미엄 포지셔닝, 100 아래면 가격 경쟁력 우위</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <label style="font-size: 12px; color: #666;">LANEIGE:</label>
-                                            <select id="cpiLaneigeProductSelect" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; max-width: 180px;">
-                                                <option value="">제품 선택...</option>
-                                            </select>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <label style="font-size: 12px; color: #666;">vs 경쟁사:</label>
-                                            <select id="cpiCompetitorProductSelect" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; max-width: 180px;">
-                                                <option value="">제품 선택...</option>
-                                            </select>
-                                        </div>
-                                        <div class="chart-date-range" id="cpiDateRange">
-                                            <label>기간:</label>
-                                            <input type="date" id="cpiStartDate">
-                                            <span class="date-separator">~</span>
-                                            <input type="date" id="cpiEndDate">
-                                            <button class="apply-btn" onclick="applyCpiDateRange()">적용</button>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="card-body">
+                                    <!-- 누락 날짜 안내 -->
+                                    <div id="cpiMissingDates" style="display: none; margin-bottom: 8px; padding: 8px 12px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px; font-size: 11px; color: #856404;">
+                                        <i data-lucide="alert-triangle" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i>
+                                        <span id="cpiMissingDatesText"></span>
+                                    </div>
                                     <div class="chart-container"><canvas id="cpiChart"></canvas></div>
                                     <div class="chart-guide">
-                                        <strong>CPI (Competitive Price Index):</strong> 100 이상 = 경쟁사 대비 고가 / 100 미만 = 경쟁사 대비 저가<br>
-                                        <span id="cpi-comparison-info" style="color: var(--text-secondary); font-size: 11px; margin-top: 4px; display: inline-block;">
-                                            📊 제품을 선택하면 CPI 비교 차트가 표시됩니다.
+                                        <strong>CPI (Competitive Price Index):</strong> LANEIGE 평균가 / 경쟁사 Top 100 평균가 × 100<br>
+                                        <span style="color: var(--text-secondary); font-size: 11px; margin-top: 4px; display: inline-block;">
+                                            100 이상 = 프리미엄 포지셔닝 / 100 미만 = 가격 경쟁력 우위
                                         </span>
                                     </div>
                                 </div>
@@ -3302,14 +3371,11 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="fixed-date-badge" style="margin-left: 16px;">최근 7일</div>
                             </div>
-                            <div class="chart-date-range" id="productDateRange">
-                                <label>기간:</label>
-                                <input type="date" id="productStartDate" value="2026-01-12">
-                                <span class="date-separator">~</span>
-                                <input type="date" id="productEndDate" value="2026-01-19">
-                                <button class="apply-btn" onclick="applyProductDateRange()">적용</button>
-                            </div>
+                            <!-- 숨겨진 날짜 필드 (JS에서 사용) -->
+                            <input type="hidden" id="productStartDate">
+                            <input type="hidden" id="productEndDate">
                         </div>
                         <div class="kpi-grid">
                             <div class="kpi-card has-tooltip">
@@ -3376,7 +3442,7 @@
                                             <div class="tooltip-header">📈 순위 & 가격 추이</div>
                                             <div class="tooltip-content">
                                                 <p><strong>차트 설명</strong><br>Laneige 제품과 카테고리 1위 제품의 순위/가격을 비교합니다.</p>
-                                                <p><strong>라인 구분</strong><br>• 실선: Laneige 제품<br>• 점선: 카테고리 1위 (Summer Fridays)<br>• 1위 기준선: 최상위 순위</p>
+                                                <p><strong>라인 구분</strong><br>• 실선: Laneige 제품<br>• 점선: 카테고리 1위 비교 대상</p>
                                                 <p><strong>활용법</strong><br>경쟁사 대비 순위 추세와 가격 변동 패턴을 파악</p>
                                             </div>
                                         </div>
@@ -3476,6 +3542,7 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
+                                    <div id="discount-missing-dates" style="display: none;"></div>
                                     <div class="chart-container"><canvas id="discountTrendChart"></canvas></div>
                                     <div class="chart-guide">
                                         <strong>해석 가이드:</strong> 할인율 상승 = 프로모션 강화 / 가격 하락 = 가격 경쟁력 확보
@@ -4169,7 +4236,7 @@
             const dateInputPairs = [
                 ['sosTrendStartDate', 'sosTrendEndDate'],
                 ['cpiStartDate', 'cpiEndDate'],
-                ['categoryStartDate', 'categoryEndDate'],
+                // categoryStartDate/EndDate 제거됨 (최근 7일 고정)
                 ['productStartDate', 'productEndDate'],
                 ['rankTrendStartDate', 'rankTrendEndDate'],
                 ['matrixStartDate', 'matrixEndDate'],
@@ -4538,6 +4605,12 @@
             });
         }
 
+        // 제품명 말줄임 함수 (20자 초과 시 ...)
+        function truncateProductName(name, maxLength = 20) {
+            if (!name) return '';
+            return name.length > maxLength ? name.substring(0, maxLength) + '...' : name;
+        }
+
         // 주의 제품 툴팁 업데이트
         function updateWarningTooltip(items) {
             const warningItems = items.filter(item => item.priority === 'P1' || item.action_tag === 'CHECK' || item.action_tag === 'RISK');
@@ -4546,7 +4619,7 @@
 
             if (tooltipList && warningItems.length > 0) {
                 tooltipList.innerHTML = warningItems.map(item =>
-                    `<li>${item.product_name} - ${item.signal}</li>`
+                    `<li title="${item.product_name}">${truncateProductName(item.product_name)} - ${item.signal}</li>`
                 ).join('');
                 if (warningCount) warningCount.textContent = warningItems.length + '개';
             }
@@ -4969,9 +5042,35 @@
             document.getElementById('page-title').textContent = titles[pageId].title;
             document.getElementById('breadcrumb').textContent = titles[pageId].breadcrumb;
             initChartsForPage(pageId);
-            // Product View 진입 시 날짜 선택기 값으로 차트 데이터 로드
+            // Product View 진입 시 최근 7일로 설정 후 차트 데이터 로드
             if (pageId === 'product') {
                 setTimeout(() => {
+                    // 최근 7일 기간 설정
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(start.getDate() - 6);  // 7일간 (오늘 포함)
+                    const startStr = start.toISOString().split('T')[0];
+                    const endStr = end.toISOString().split('T')[0];
+
+                    // Product View의 모든 날짜 선택기를 최근 7일로 설정
+                    const dateInputPairs = [
+                        ['productStartDate', 'productEndDate'],
+                        ['rankTrendStartDate', 'rankTrendEndDate'],
+                        ['matrixStartDate', 'matrixEndDate'],
+                        ['discountStartDate', 'discountEndDate'],
+                        ['growthTypeStartDate', 'growthTypeEndDate'],
+                        ['competitorPromoStartDate', 'competitorPromoEndDate']
+                    ];
+
+                    dateInputPairs.forEach(([startId, endId]) => {
+                        const startInput = document.getElementById(startId);
+                        const endInput = document.getElementById(endId);
+                        if (startInput && endInput) {
+                            startInput.value = startStr;
+                            endInput.value = endStr;
+                        }
+                    });
+
                     loadInitialProductChartData();
                 }, 200);
             }
@@ -4984,20 +5083,13 @@
         };
 
         function initCategoryDateRange() {
+            // 카테고리 KPI는 최근 7일 고정 (날짜 선택 UI 제거됨)
+            // 특정 기간 데이터가 필요하면 챗봇에게 질문
+
             // 글로벌 날짜 범위 사용
             const { startDate, endDate } = globalDateRange.get();
 
-            const catStartInput = document.getElementById('categoryStartDate');
-            const catEndInput = document.getElementById('categoryEndDate');
-            if (catStartInput && catEndInput) {
-                catStartInput.value = startDate;
-                catEndInput.value = endDate;
-            }
-
-            categoryDateRange.start = startDate;
-            categoryDateRange.end = endDate;
-
-            // CPI 차트 날짜 범위도 초기화
+            // CPI 차트 날짜 범위 초기화
             const cpiStartInput = document.getElementById('cpiStartDate');
             const cpiEndInput = document.getElementById('cpiEndDate');
             if (cpiStartInput && cpiEndInput) {
@@ -5034,166 +5126,223 @@
             globalDateRange.set(startDate, endDate);
         }
 
-        async function updateCpiChartWithProducts(startDate, endDate) {
+        // CPI 차트: LANEIGE 브랜드 평균가 vs 경쟁사 Top 100 평균가 (최근 7일 고정)
+        async function updateCpiChartWithBrandAverage() {
             try {
-                console.log('[CPI] Updating chart with range:', startDate, '~', endDate);
-                const laneigeSelect = document.getElementById('cpiLaneigeProductSelect');
-                const competitorSelect = document.getElementById('cpiCompetitorProductSelect');
+                // 최근 7일 계산
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 6);  // 7일 (오늘 포함)
 
-                const historicalData = await fetchHistoricalData(startDate, endDate);
+                const startStr = startDate.toISOString().split('T')[0];
+                const endStr = endDate.toISOString().split('T')[0];
+
+                console.log('[CPI Brand Avg] Loading data for:', startStr, '~', endStr);
+
+                const historicalData = await fetchHistoricalData(startStr, endStr);
                 if (!historicalData) {
-                    console.log('[CPI] No historical data');
+                    console.log('[CPI Brand Avg] No historical data');
                     return;
                 }
 
                 const rankHistory = historicalData.rank_history || {};
-                // 요청된 기간 내 날짜만 필터링
                 const allDates = Object.keys(rankHistory).sort();
-                const dates = allDates.filter(d => d >= startDate && d <= endDate);
-                console.log('[CPI] Filtered dates:', dates.length, 'from', dates[0], 'to', dates[dates.length-1]);
+                const dates = allDates.filter(d => d >= startStr && d <= endStr);
 
-                // 제품별 가격/할인 데이터 수집
-                const productStats = {};
+                // 누락 날짜 계산 및 UI 업데이트
+                const missingDatesList = calculateMissingDates(startStr, endStr, dates);
+                updateMissingDatesUI('cpi', missingDatesList);
+
+                console.log('[CPI Brand Avg] Available dates:', dates.length);
+
+                // 일별 브랜드 평균 가격 계산
+                const dailyCpi = [];
+                const labels = [];
+
                 dates.forEach(date => {
                     const dayData = rankHistory[date];
-                    if (dayData && dayData.products) {
-                        dayData.products.forEach(p => {
-                            const name = p.name || p.product_name;
-                            if (!name) return;
-                            if (!productStats[name]) {
-                                productStats[name] = {
-                                    name,
-                                    brand: p.brand || 'Unknown',
-                                    prices: {},
-                                    ranks: []
-                                };
-                            }
-                            if (p.price) productStats[name].prices[date] = p.price;
-                            if (p.rank) productStats[name].ranks.push(p.rank);
-                        });
+                    if (!dayData || !dayData.products) {
+                        labels.push(date.slice(5));
+                        dailyCpi.push(null);
+                        return;
+                    }
+
+                    // LANEIGE 제품들의 평균 가격
+                    const laneigePrices = dayData.products
+                        .filter(p => p.brand && p.brand.toLowerCase() === 'laneige' && p.price && p.price > 0)
+                        .map(p => p.price);
+
+                    // 경쟁사 (LANEIGE 제외) Top 100 제품들의 평균 가격
+                    const competitorPrices = dayData.products
+                        .filter(p => p.brand && p.brand.toLowerCase() !== 'laneige' && p.price && p.price > 0)
+                        .map(p => p.price);
+
+                    const dateLabel = date.slice(5); // MM-DD
+                    labels.push(dateLabel);
+
+                    if (laneigePrices.length > 0 && competitorPrices.length > 0) {
+                        const laneigeAvg = laneigePrices.reduce((a, b) => a + b, 0) / laneigePrices.length;
+                        const competitorAvg = competitorPrices.reduce((a, b) => a + b, 0) / competitorPrices.length;
+                        const cpi = (laneigeAvg / competitorAvg) * 100;
+                        dailyCpi.push(parseFloat(cpi.toFixed(1)));
+                        console.log(`[CPI] ${dateLabel}: LANEIGE avg $${laneigeAvg.toFixed(2)} (${laneigePrices.length}개) vs Competitors avg $${competitorAvg.toFixed(2)} (${competitorPrices.length}개) = CPI ${cpi.toFixed(1)}`);
+                    } else {
+                        dailyCpi.push(null);
                     }
                 });
 
-                // 제품 목록 정렬 (LANEIGE 우선, 순위순)
-                const sortedProducts = Object.values(productStats)
-                    .filter(p => p.ranks.length > 0)
-                    .map(p => ({
-                        ...p,
-                        avgRank: p.ranks.reduce((a, b) => a + b, 0) / p.ranks.length
-                    }))
-                    .sort((a, b) => {
-                        const aIsLaneige = a.brand.toLowerCase() === 'laneige';
-                        const bIsLaneige = b.brand.toLowerCase() === 'laneige';
-                        if (aIsLaneige && !bIsLaneige) return -1;
-                        if (!aIsLaneige && bIsLaneige) return 1;
-                        return a.avgRank - b.avgRank;
-                    });
+                const validCount = dailyCpi.filter(v => v !== null).length;
+                console.log('[CPI Brand Avg] Valid data points:', validCount, '/', dates.length);
 
-                const laneigProducts = sortedProducts.filter(p => p.brand.toLowerCase() === 'laneige');
-                const otherProducts = sortedProducts.filter(p => p.brand.toLowerCase() !== 'laneige');
-
-                // LANEIGE 드롭다운 업데이트
-                if (laneigeSelect) {
-                    const currentLaneige = laneigeSelect.value;
-                    laneigeSelect.innerHTML = '<option value="">LANEIGE 제품 선택...</option>';
-                    laneigProducts.forEach(p => {
-                        const option = document.createElement('option');
-                        option.value = p.name;
-                        const shortName = p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name;
-                        option.textContent = shortName;
-                        option.title = p.name;
-                        laneigeSelect.appendChild(option);
-                    });
-                    if (currentLaneige) laneigeSelect.value = currentLaneige;
-                }
-
-                // 경쟁사 드롭다운 업데이트
-                if (competitorSelect) {
-                    const currentCompetitor = competitorSelect.value;
-                    competitorSelect.innerHTML = '<option value="">경쟁사 제품 선택...</option>';
-
-                    // 브랜드별 그룹화
-                    const brandGroups = {};
-                    otherProducts.forEach(p => {
-                        if (!brandGroups[p.brand]) brandGroups[p.brand] = [];
-                        brandGroups[p.brand].push(p);
-                    });
-
-                    Object.keys(brandGroups).sort().forEach(brand => {
-                        const group = document.createElement('optgroup');
-                        group.label = brand;
-                        brandGroups[brand].slice(0, 5).forEach(p => {
-                            const option = document.createElement('option');
-                            option.value = p.name;
-                            const shortName = p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name;
-                            option.textContent = shortName;
-                            option.title = p.name;
-                            group.appendChild(option);
-                        });
-                        competitorSelect.appendChild(group);
-                    });
-                    if (currentCompetitor) competitorSelect.value = currentCompetitor;
-                }
-
-                // 선택된 제품으로 CPI 차트 그리기
-                const selectedLaneige = laneigeSelect?.value;
-                const selectedCompetitor = competitorSelect?.value;
-
-                if (selectedLaneige && selectedCompetitor) {
-                    const laneigeData = productStats[selectedLaneige];
-                    const competitorData = productStats[selectedCompetitor];
-
-                    if (laneigeData && competitorData) {
-                        // CPI 계산: (LANEIGE 가격 / 경쟁사 가격) * 100
-                        // 모든 날짜를 labels에 추가하고, 데이터 없는 날은 null로 처리
-                        const cpiData = [];
-                        const labels = [];
-                        let missingDates = 0;
-                        let validDates = 0;
-                        let firstValidDate = null;
-                        let lastValidDate = null;
-
-                        dates.forEach(date => {
-                            const lPrice = laneigeData.prices[date];
-                            const cPrice = competitorData.prices[date];
-                            const dateLabel = date.slice(5); // MM-DD
-                            labels.push(dateLabel);
-
-                            if (lPrice && lPrice > 0 && cPrice && cPrice > 0) {
-                                const cpi = (lPrice / cPrice) * 100;
-                                cpiData.push(parseFloat(cpi.toFixed(1)));
-                                validDates++;
-                                if (!firstValidDate) firstValidDate = dateLabel;
-                                lastValidDate = dateLabel;
-                            } else {
-                                cpiData.push(null); // 차트에서 gap으로 표시
-                                missingDates++;
-                            }
-                        });
-
-                        console.log('[CPI] Total dates:', dates.length, '| Valid:', validDates, '| Missing:', missingDates);
-
-                        if (validDates > 0) {
-                            const actualRange = `${firstValidDate} ~ ${lastValidDate}`;
-                            updateCpiChart(labels, cpiData, selectedLaneige, selectedCompetitor, competitorData.brand, actualRange, missingDates, dates.length, validDates);
-                        } else {
-                            const infoEl = document.getElementById('cpi-comparison-info');
-                            if (infoEl) {
-                                infoEl.innerHTML = '⚠️ 선택한 기간에 두 제품의 가격 데이터가 겹치는 날짜가 없습니다.';
-                            }
-                        }
-                    }
-                } else {
-                    // 선택 안됨 - 안내 메시지
-                    const infoEl = document.getElementById('cpi-comparison-info');
-                    if (infoEl) {
-                        infoEl.innerHTML = '📊 LANEIGE 제품과 비교할 경쟁사 제품을 선택해주세요.';
-                    }
+                if (validCount > 0) {
+                    updateCpiChartSimple(labels, dailyCpi);
                 }
 
             } catch (error) {
-                console.error('[CPI] Error updating chart:', error);
+                console.error('[CPI Brand Avg] Error:', error);
             }
+        }
+
+        // 간소화된 CPI 차트 업데이트 (브랜드 평균 비교용)
+        function updateCpiChartSimple(labels, cpiData) {
+            const ctx = document.getElementById('cpiChart');
+            if (!ctx) return;
+
+            // 기존 차트 제거
+            if (charts.cpi) {
+                charts.cpi.destroy();
+            }
+
+            // Y축 스케일: 100을 정확히 가운데로 배치 (null 값 제외)
+            const numericData = cpiData.filter(v => v !== null).map(Number);
+            const dataMax = numericData.length > 0 ? Math.max(...numericData) : 130;
+            const dataMin = numericData.length > 0 ? Math.min(...numericData) : 70;
+
+            // 100에서 가장 멀리 떨어진 값 기준으로 대칭 범위 설정
+            const maxDeviation = Math.max(
+                Math.abs(dataMax - 100),
+                Math.abs(dataMin - 100)
+            );
+            // 여유 20% 추가, 최소 30pt
+            const range = Math.max(30, Math.ceil(maxDeviation * 1.2));
+            const yMin = 100 - range;
+            const yMax = 100 + range;
+
+            charts.cpi = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'LANEIGE 브랜드 평균 CPI',
+                            data: cpiData,
+                            borderColor: '#1F5795',
+                            backgroundColor: 'rgba(31, 87, 149, 0.15)',
+                            borderWidth: 2.5,
+                            fill: false,
+                            tension: 0.3,
+                            spanGaps: false,
+                            pointRadius: function(context) {
+                                return context.raw === null ? 0 : 5;
+                            },
+                            pointBackgroundColor: '#1F5795',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            segment: {
+                                borderDash: ctx => {
+                                    if (ctx.p0.skip || ctx.p1.skip) return [5, 5];
+                                    return undefined;
+                                }
+                            }
+                        },
+                        {
+                            label: '기준선 (100)',
+                            data: Array(labels.length).fill(100),
+                            borderColor: '#E74C3C',
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { font: { size: 11 } }
+                        },
+                        tooltip: {
+                            filter: function(tooltipItem) {
+                                return tooltipItem.raw !== null;
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        const cpi = context.parsed.y;
+                                        if (cpi === null) return null;
+                                        const diff = (cpi - 100).toFixed(1);
+                                        const status = cpi >= 100 ? `+${diff} 프리미엄` : `${diff} 저가`;
+                                        return `CPI: ${cpi} (${status})`;
+                                    }
+                                    return context.dataset.label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: yMin,
+                            max: yMax,
+                            ticks: {
+                                font: { size: 11 },
+                                stepSize: range > 100 ? 50 : 25,
+                                callback: function(value) {
+                                    if (value === 100) return '★ 100 (기준)';
+                                    return value;
+                                }
+                            },
+                            grid: {
+                                color: function(context) {
+                                    // 100 기준선은 데이터셋의 점선으로 표시하므로 그리드는 투명
+                                    if (context.tick.value === 100) {
+                                        return 'transparent';
+                                    }
+                                    return 'rgba(0, 0, 0, 0.08)';
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 정보 업데이트 (브랜드 평균 비교용)
+            const infoEl = document.getElementById('cpi-comparison-info');
+            if (infoEl) {
+                const validData = cpiData.filter(v => v !== null);
+                const avgCpi = validData.length > 0
+                    ? (validData.reduce((a, b) => a + parseFloat(b), 0) / validData.length).toFixed(1)
+                    : 100;
+                const diff = (avgCpi - 100).toFixed(1);
+                const status = avgCpi >= 100 ? `프리미엄 (+${diff}%)` : `저가 (${diff}%)`;
+                infoEl.innerHTML = `📊 <strong>비교:</strong> LANEIGE 브랜드 평균 vs 경쟁사 Top 100 평균 | <strong>평균 CPI:</strong> ${avgCpi} (${status})`;
+            }
+        }
+
+        // 기존 함수 호환성 유지 (무시하고 브랜드 평균 사용)
+        async function updateCpiChartWithProducts(startDate, endDate) {
+            // 최근 7일 고정으로 변경됨 - 브랜드 평균 비교 방식 사용
+            await updateCpiChartWithBrandAverage();
         }
 
         function updateCpiChart(labels, data, laneigeName, competitorName, competitorBrand, actualRange = '', missingDates = 0, totalDates = 0, validDates = 0) {
@@ -5257,7 +5406,6 @@
                             data: Array(labels.length).fill(100),
                             borderColor: '#E74C3C',
                             borderWidth: 2,
-                            borderDash: [8, 4],
                             fill: false,
                             pointRadius: 0
                         }
@@ -5304,16 +5452,11 @@
                             },
                             grid: {
                                 color: function(context) {
+                                    // 100 기준선은 데이터셋의 점선으로 표시하므로 그리드는 투명
                                     if (context.tick.value === 100) {
-                                        return '#E74C3C';
+                                        return 'transparent';
                                     }
                                     return 'rgba(0, 0, 0, 0.08)';
-                                },
-                                lineWidth: function(context) {
-                                    if (context.tick.value === 100) {
-                                        return 2;
-                                    }
-                                    return 1;
                                 }
                             }
                         },
@@ -5394,8 +5537,9 @@
         }
 
         async function loadCategoryKPIWithDateRange(categoryKey, startDate, endDate) {
+            // category_id 매핑: SQLite에 저장된 실제 category_id와 일치해야 함
             const catMap = {
-                'beauty': 'beauty_personal_care',
+                'beauty': 'beauty',  // SQLite: 'beauty' (not 'beauty_personal_care')
                 'skin': 'skin_care',
                 'lip': 'lip_care',
                 'lip_makeup': 'lip_makeup',
@@ -5446,7 +5590,7 @@
             });
         }
 
-        function selectCategory(cat, el) {
+        async function selectCategory(cat, el) {
             document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
 
@@ -5460,21 +5604,27 @@
             };
             const catId = catMap[cat] || cat;
 
-            // API 데이터에서 카테고리 KPI 로드 (fallback 없이 실제 데이터만 사용)
+            // 최근 7일 고정 (기간 선택 UI 제거됨)
+            // 특정 기간 데이터가 필요하면 챗봇에게 질문
+
+            // 캐시된 dashboardData 사용 (최근 7일 데이터)
             let data;
             const catKpi = dashboardData?.charts?.category_kpis?.[catId];
             if (catKpi) {
+                // Top 100 진입 여부에 따라 순위 표시 방식 변경
+                const hasRank = catKpi.best_rank && catKpi.best_rank < 999;
                 data = {
                     sos: catKpi.sos ?? 0,
-                    rank: catKpi.best_rank < 999 ? '#' + catKpi.best_rank : '#N/A',
+                    rank: hasRank ? '#' + catKpi.best_rank : 'Top 100 외',
+                    rankValue: hasRank ? catKpi.best_rank : null,  // 배지 계산용
                     cpi: catKpi.cpi ?? 100,
                     new: catKpi.new_competitors ?? 0
                 };
-                console.log(`[Category KPI] ${catId}:`, data);
+                console.log(`[Category KPI] ${catId} (캐시 사용):`, data);
             } else {
-                // 데이터 없음 - 기본값 (N/A 표시)
+                // 데이터 없음 - 기본값
                 console.warn(`[Category KPI] No data for ${catId}`);
-                data = { sos: 0, rank: '#N/A', cpi: 100, new: 0 };
+                data = { sos: 0, rank: 'Top 100 외', rankValue: null, cpi: 100, new: 0 };
             }
 
             document.getElementById('cat-sos').innerHTML = data.sos + '<span class="unit">%</span>';
@@ -5496,7 +5646,7 @@
         // 카테고리 KPI 배지 동적 업데이트
         function updateCategoryBadges(data) {
             const sos = parseFloat(data.sos);
-            const rank = parseInt(data.rank.replace('#', ''));
+            const rank = data.rankValue;  // null이면 Top 100 외
             const cpi = parseFloat(data.cpi);
             const newComp = parseInt(data.new);
 
@@ -5515,7 +5665,11 @@
 
             // Rank 배지
             const rankBadge = document.getElementById('cat-rank-badge');
-            if (rank <= 3) {
+            if (rank === null) {
+                // Top 100에 진입하지 못함
+                rankBadge.textContent = '진입 필요';
+                rankBadge.className = 'kpi-delta down';
+            } else if (rank <= 3) {
                 rankBadge.textContent = '1위 근접';
                 rankBadge.className = 'kpi-delta up';
             } else if (rank <= 10) {
@@ -5624,8 +5778,8 @@
                 return;
             }
 
-            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
-            globalDateRange.set(startDate, endDate);
+            // 순위 차트만 독립적으로 업데이트
+            await updateRankTrendChart(startDate, endDate);
         }
 
         async function applyMatrixDateRange() {
@@ -5642,8 +5796,8 @@
                 return;
             }
 
-            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
-            globalDateRange.set(startDate, endDate);
+            // 매트릭스 차트만 독립적으로 업데이트
+            await updateProductMatrixChart(startDate, endDate);
         }
 
         async function applyDiscountDateRange() {
@@ -5660,8 +5814,8 @@
                 return;
             }
 
-            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
-            globalDateRange.set(startDate, endDate);
+            // 가격/할인율 차트만 독립적으로 업데이트
+            await updateDiscountTrendChartWithRange(startDate, endDate);
         }
 
         async function applyGrowthTypeDateRange() {
@@ -5678,8 +5832,9 @@
                 return;
             }
 
-            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
-            globalDateRange.set(startDate, endDate);
+            // 성장 유형 차트만 독립적으로 업데이트
+            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+            await updateGrowthTypeDataWithRange(startDate, endDate, daysDiff);
         }
 
         async function applyCompetitorPromoDateRange() {
@@ -5696,8 +5851,9 @@
                 return;
             }
 
-            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
-            globalDateRange.set(startDate, endDate);
+            // 경쟁사 프로모션 차트만 독립적으로 업데이트
+            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+            await updateCompetitorPromoDataWithRange(startDate, endDate, daysDiff);
         }
 
         // Product View 초기화 시 날짜 범위 기본값 설정 (글로벌 날짜 범위 사용)
@@ -6004,6 +6160,7 @@
 
             // 툴팁 동적 위치 조정 초기화
             initTooltipPositioning();
+            initSelectorTooltipPositioning();
         });
 
         // ===== 툴팁 동적 위치 조정 =====
@@ -6032,7 +6189,89 @@
         function adjustTooltipPosition(card, tooltip) {
             const cardRect = card.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
+            const padding = 16;
+
+            // 인라인 스타일 초기화 (CSS 기본값 사용)
+            tooltip.style.left = '';
+            tooltip.style.right = '';
+            tooltip.style.transform = '';
+            tooltip.style.top = '';
+            tooltip.style.bottom = '';
+            tooltip.style.marginTop = '';
+            tooltip.style.marginBottom = '';
+
+            // 기존 정렬 클래스 제거
+            tooltip.classList.remove('align-left', 'align-right', 'align-center', 'position-below');
+
+            // 잠시 표시해서 크기 측정
+            const originalVisibility = tooltip.style.visibility;
+            const originalOpacity = tooltip.style.opacity;
+            const originalDisplay = tooltip.style.display;
+
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
+            tooltip.style.display = 'block';
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            // 측정 후 인라인 스타일 제거 (CSS가 hover 상태 제어)
+            tooltip.style.display = originalDisplay || '';
+            tooltip.style.visibility = '';
+            tooltip.style.opacity = '';
+
+            // 카드 중심 기준 툴팁 좌우 끝 계산
+            const cardCenter = cardRect.left + cardRect.width / 2;
+            const tooltipHalfWidth = tooltipRect.width / 2;
+            const leftEdge = cardCenter - tooltipHalfWidth;
+            const rightEdge = cardCenter + tooltipHalfWidth;
+
+            // 기본: 중앙 정렬
+            if (leftEdge < padding) {
+                // 왼쪽 넘침 → 왼쪽 정렬
+                tooltip.classList.add('align-left');
+            } else if (rightEdge > viewportWidth - padding) {
+                // 오른쪽 넘침 → 오른쪽 정렬
+                tooltip.classList.add('align-right');
+            } else {
+                // 중앙 정렬 유지
+                tooltip.classList.add('align-center');
+            }
+
+            // 상단 경계 체크 (툴팁이 위로 넘어가면 아래로)
+            if (cardRect.top - tooltipRect.height < padding) {
+                tooltip.style.bottom = 'auto';
+                tooltip.style.top = '100%';
+                tooltip.style.marginTop = '8px';
+                tooltip.style.marginBottom = '0';
+                tooltip.classList.add('position-below'); // 화살표 방향 반전
+            }
+        }
+
+        // ===== Selector 툴팁 동적 위치 조정 (카테고리/제품 선택) =====
+        function initSelectorTooltipPositioning() {
+            const selectorWrappers = document.querySelectorAll('.selector-wrapper');
+
+            selectorWrappers.forEach(wrapper => {
+                const tooltip = wrapper.querySelector('.selector-tooltip');
+                if (!tooltip) return;
+
+                wrapper.addEventListener('mouseenter', () => {
+                    adjustSelectorTooltipPosition(wrapper, tooltip);
+                });
+            });
+        }
+
+        function adjustSelectorTooltipPosition(wrapper, tooltip) {
+            const wrapperRect = wrapper.getBoundingClientRect();
             const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            const padding = 16;
+
+            // 인라인 스타일 초기화
+            tooltip.style.left = '';
+            tooltip.style.right = '';
+            tooltip.style.top = '';
+            tooltip.style.bottom = '';
+            tooltip.style.transform = '';
 
             // 잠시 표시해서 크기 측정
             tooltip.style.visibility = 'hidden';
@@ -6040,44 +6279,38 @@
             tooltip.style.display = 'block';
             const tooltipRect = tooltip.getBoundingClientRect();
             tooltip.style.display = '';
+            tooltip.style.visibility = '';
+            tooltip.style.opacity = '';
 
-            // 기존 정렬 클래스 제거
-            tooltip.classList.remove('align-left', 'align-right', 'align-center');
+            // 상단 공간 vs 하단 공간 비교
+            const spaceAbove = wrapperRect.top;
+            const spaceBelow = viewportHeight - wrapperRect.bottom;
 
-            // 좌우 경계 체크
-            const leftOverflow = cardRect.left - (tooltipRect.width - cardRect.width) / 2;
-            const rightOverflow = cardRect.right + (tooltipRect.width - cardRect.width) / 2;
-
-            if (leftOverflow < 10) {
-                // 왼쪽 경계에 가까움 - 왼쪽 정렬
-                tooltip.style.left = '0';
-                tooltip.style.right = 'auto';
-                tooltip.style.transform = 'none';
-            } else if (rightOverflow > viewportWidth - 10) {
-                // 오른쪽 경계에 가까움 - 오른쪽 정렬
-                tooltip.classList.add('align-right');
-                tooltip.style.left = 'auto';
-                tooltip.style.right = '0';
-                tooltip.style.transform = 'none';
-            } else {
-                // 중앙 정렬 가능
-                tooltip.classList.add('align-center');
-                tooltip.style.left = '50%';
-                tooltip.style.right = 'auto';
-                tooltip.style.transform = 'translateX(-50%)';
-            }
-
-            // 상단 경계 체크 (툴팁이 위로 넘어가면 아래로)
-            if (cardRect.top - tooltipRect.height < 10) {
+            // 위쪽 공간이 부족하면 아래로 표시
+            if (spaceAbove < tooltipRect.height + padding && spaceBelow > spaceAbove) {
                 tooltip.style.bottom = 'auto';
-                tooltip.style.top = '100%';
-                tooltip.style.marginTop = '8px';
-                tooltip.style.marginBottom = '0';
+                tooltip.style.top = 'calc(100% + 10px)';
+                // 화살표 방향 변경
+                tooltip.classList.add('position-below');
             } else {
                 tooltip.style.top = 'auto';
-                tooltip.style.bottom = '100%';
-                tooltip.style.marginTop = '0';
-                tooltip.style.marginBottom = '8px';
+                tooltip.style.bottom = 'calc(100% + 10px)';
+                tooltip.classList.remove('position-below');
+            }
+
+            // 좌우 위치 조정 (화면 밖으로 나가면)
+            const tooltipLeft = wrapperRect.left + wrapperRect.width / 2 - tooltipRect.width / 2;
+            const tooltipRight = tooltipLeft + tooltipRect.width;
+
+            if (tooltipLeft < padding) {
+                // 왼쪽으로 넘침 → 왼쪽 정렬
+                tooltip.style.left = '0';
+                tooltip.style.transform = 'translateX(0)';
+            } else if (tooltipRight > viewportWidth - padding) {
+                // 오른쪽으로 넘침 → 오른쪽 정렬
+                tooltip.style.left = 'auto';
+                tooltip.style.right = '0';
+                tooltip.style.transform = 'translateX(0)';
             }
         }
 
@@ -6116,6 +6349,61 @@
 
         // ===== 글로벌 날짜 범위로 각 차트 업데이트 함수들 =====
 
+        // 누락 날짜 계산 유틸리티
+        function calculateMissingDates(startDate, endDate, existingDates) {
+            const missing = [];
+            const existing = new Set(existingDates.map(d => d.split('T')[0]));  // ISO 형식 처리
+
+            const current = new Date(startDate);
+            const end = new Date(endDate);
+
+            while (current <= end) {
+                const dateStr = current.toISOString().split('T')[0];
+                if (!existing.has(dateStr)) {
+                    missing.push(dateStr);
+                }
+                current.setDate(current.getDate() + 1);
+            }
+
+            return missing;
+        }
+
+        // 누락 날짜 UI 업데이트 유틸리티
+        function updateMissingDatesUI(chartId, missingDates) {
+            const container = document.getElementById(`${chartId}MissingDates`);
+            const textEl = document.getElementById(`${chartId}MissingDatesText`);
+
+            if (!container || !textEl) return;
+
+            if (missingDates.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+
+            // 날짜 포맷팅 (MM월 DD일)
+            const formatDate = (dateStr) => {
+                const d = new Date(dateStr);
+                return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+            };
+
+            if (missingDates.length <= 5) {
+                // 5일 이하: 모든 날짜 나열
+                textEl.textContent = `${missingDates.map(formatDate).join(', ')}은(는) 데이터가 없습니다.`;
+            } else {
+                // 6일 이상: 처음 3개 + 나머지 개수 표시
+                const firstThree = missingDates.slice(0, 3).map(formatDate).join(', ');
+                const remaining = missingDates.length - 3;
+                textEl.textContent = `${firstThree} 외 ${remaining}일은 데이터가 없습니다.`;
+            }
+
+            // Lucide 아이콘 다시 렌더링
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
         // SoS 추이 차트 업데이트
         async function updateSosTrendWithGlobalRange(startDate, endDate) {
             try {
@@ -6124,13 +6412,20 @@
 
                 if (result.success && charts.trend) {
                     const trendData = result.trend || [];
+
+                    // 누락 날짜 계산 및 UI 업데이트
+                    const existingDates = trendData.map(d => d.date);
+                    const missingDates = calculateMissingDates(startDate, endDate, existingDates);
+                    updateMissingDatesUI('sosTrend', missingDates);
+
+                    // 차트 데이터 업데이트
                     charts.trend.data.labels = trendData.map(d => {
                         const date = new Date(d.date);
                         return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                     });
                     charts.trend.data.datasets[0].data = trendData.map(d => d.sos);
                     charts.trend.update('none');
-                    console.log('[GlobalDateRange] SoS trend chart updated');
+                    console.log('[GlobalDateRange] SoS trend chart updated, missing dates:', missingDates.length);
                 }
             } catch (error) {
                 console.error('[GlobalDateRange] Failed to update SoS trend:', error);
@@ -6284,129 +6579,138 @@
             });
         })();
 
-        // 챗봇 메시지 전송 - LLM Orchestrator v2 API 연동
+        // 챗봇 메시지 전송 - SSE 스트리밍 v3 API 연동
         async function sendChatMessage(msg) {
             const chatBody = document.getElementById('chatBody');
 
             // 사용자 메시지 표시 (XSS 방지)
             chatBody.innerHTML += `<div class="chat-message user"><div class="bubble">${escapeHtml(msg)}</div></div>`;
-            chatBody.innerHTML += `<div class="chat-message bot" id="typing"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+
+            // 응답 버블 생성 (스트리밍용)
+            const responseId = 'response-' + Date.now();
+            chatBody.innerHTML += `<div class="chat-message bot" id="${responseId}"><div class="bubble"><span class="streaming-text"></span><span class="streaming-cursor">▌</span></div></div>`;
             chatBody.scrollTop = chatBody.scrollHeight;
 
+            const responseEl = document.getElementById(responseId);
+            const textEl = responseEl.querySelector('.streaming-text');
+            const cursorEl = responseEl.querySelector('.streaming-cursor');
+
+            let fullText = '';
+            let toolsUsed = [];
+            let suggestions = [];
+
             try {
-                // v3 API 호출 (Simple LLM Chat)
-                const response = await fetch(`${API_BASE}/api/v3/chat`, {
+                // SSE 스트리밍 API 호출
+                const response = await fetch(`${API_BASE}/api/v3/chat/stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: msg })
                 });
 
-                // 타이핑 인디케이터 제거
-                const typingEl = document.getElementById('typing');
-                if (typingEl) typingEl.remove();
-
-                if (response.ok) {
-                    const data = await response.json();
-
-                    // 크롤링 시작 감지 시 폴링 시작
-                    if (data.text.includes('백그라운드에서 오늘 데이터 수집')) {
-                        startCrawlStatusPolling();
-                    }
-
-                    // 응답 표시 (마크다운 변환)
-                    let formattedResponse = data.text
-                        .replace(/\n/g, '<br>')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-                    // 사용된 도구 표시 (있으면)
-                    if (data.tools_used && data.tools_used.length > 0) {
-                        const toolBadges = data.tools_used.map(t =>
-                            `<span style="background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:9px;">🔧 ${t}</span>`
-                        ).join(' ');
-                        formattedResponse = toolBadges + '<br><br>' + formattedResponse;
-                    }
-
-                    // AI 출처 표기 추가
-                    const sourceCitation = renderSourceCitation(data.sources);
-                    formattedResponse += sourceCitation;
-
-                    chatBody.innerHTML += `<div class="chat-message bot"><div class="bubble">${formattedResponse}</div></div>`;
-
-                    // 후속 질문 제안 업데이트
-                    updateSuggestions(data.suggestions);
-                } else {
+                if (!response.ok) {
                     throw new Error('API 응답 오류');
                 }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+
+                                if (data.type === 'text') {
+                                    // 텍스트 청크 추가
+                                    fullText += data.content;
+                                    // 마크다운 변환하여 표시
+                                    textEl.innerHTML = formatMarkdown(fullText);
+                                    chatBody.scrollTop = chatBody.scrollHeight;
+
+                                } else if (data.type === 'tool_call') {
+                                    // 도구 호출 표시
+                                    toolsUsed.push(data.content.name);
+                                    const toolBadge = document.createElement('span');
+                                    toolBadge.className = 'tool-badge-streaming';
+                                    toolBadge.innerHTML = `🔧 ${data.content.name} 호출 중...`;
+                                    toolBadge.style.cssText = 'display:inline-block;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:9px;margin-bottom:6px;';
+                                    textEl.parentElement.insertBefore(toolBadge, textEl);
+
+                                } else if (data.type === 'done') {
+                                    // 완료 - 커서 제거 및 마무리
+                                    cursorEl.remove();
+                                    suggestions = data.content.suggestions || [];
+
+                                    // 도구 배지 업데이트 (완료 상태로)
+                                    const toolBadges = responseEl.querySelectorAll('.tool-badge-streaming');
+                                    toolBadges.forEach(badge => {
+                                        badge.style.background = '#e0f2fe';
+                                        badge.style.color = '#0369a1';
+                                        badge.innerHTML = badge.innerHTML.replace('호출 중...', '');
+                                    });
+
+                                    // AI 출처 표기 추가
+                                    const sourceCitation = renderSourceCitation([]);
+                                    textEl.innerHTML += sourceCitation;
+
+                                    // 후속 질문 제안 업데이트
+                                    updateSuggestions(suggestions);
+
+                                } else if (data.type === 'error') {
+                                    // 오류
+                                    cursorEl.remove();
+                                    textEl.innerHTML = `<span style="color:#dc2626;">⚠️ ${escapeHtml(data.content)}</span>`;
+                                }
+
+                            } catch (parseError) {
+                                // JSON 파싱 실패 무시
+                            }
+                        }
+                    }
+                }
+
             } catch (error) {
-                console.error('Chat API error:', error);
+                console.error('Chat SSE error:', error);
 
-                // 타이핑 인디케이터 제거
-                const typingEl = document.getElementById('typing');
-                if (typingEl) typingEl.remove();
+                // 커서 제거
+                if (cursorEl) cursorEl.remove();
 
-                // 폴백 응답 (API 연결 실패 시) - 자동 재연결 시도
+                // 폴백 응답 (API 연결 실패 시)
                 let res = `<strong>💡 안내:</strong><br><br>현재 API 서버에 연결할 수 없습니다.<br><br>`;
 
                 if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                     res += `<span style="color:#f59e0b;">🔄 자동 재연결 시도 중... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})</span><br><br>`;
                     res += `<button onclick="retryLastMessage('${msg.replace(/'/g, "\\'")}')" style="background:#3b82f6;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-right:8px;">🔁 재시도</button>`;
-                    // 재연결 시도
                     if (!serverConnected) autoReconnect();
                 } else {
                     res += `서버 실행 명령:<br><code>python dashboard_api.py</code><br><br>`;
                     res += `<button onclick="location.reload()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">🔄 페이지 새로고침</button>`;
                 }
 
-                chatBody.innerHTML += `<div class="chat-message bot"><div class="bubble">${res}</div></div>`;
+                textEl.innerHTML = res;
             }
 
             chatBody.scrollTop = chatBody.scrollHeight;
         }
 
-        // AI 출처 표기 렌더링
+        // 마크다운 포매팅 헬퍼
+        function formatMarkdown(text) {
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">$1</code>');
+        }
+
+        // AI 경고 문구 렌더링
         function renderSourceCitation(sources) {
-            if (!sources || sources.length === 0) {
-                // 기본 AI 출처 표기
-                return `<div class="ai-source-citation">
-                    <div class="source-header" onclick="this.parentElement.classList.toggle('expanded')">
-                        <span class="source-toggle">▶</span>
-                        <span class="source-label">🤖 AI 분석 결과</span>
-                    </div>
-                    <div class="source-details">
-                        <div class="source-item">
-                            <span class="source-icon">🤖</span>
-                            <span class="source-text">AI 모델: GPT-4.1-mini</span>
-                        </div>
-                        <div class="source-disclaimer">※ AI가 생성한 분석 결과입니다. 중요한 의사결정 시 추가 검증을 권장합니다.</div>
-                    </div>
-                </div>`;
-            }
-
-            let sourceItems = sources.map(src => {
-                const icon = src.icon || '📄';
-                const name = src.name || 'Unknown';
-                const desc = src.description || '';
-                return `<div class="source-item">
-                    <span class="source-icon">${icon}</span>
-                    <span class="source-text"><strong>${name}</strong>${desc ? ' - ' + desc : ''}</span>
-                </div>`;
-            }).join('');
-
-            // 면책조항 찾기
-            const aiSource = sources.find(s => s.type === 'ai_model');
-            const disclaimer = aiSource?.disclaimer || 'AI가 생성한 분석 결과입니다.';
-
-            return `<div class="ai-source-citation">
-                <div class="source-header" onclick="this.parentElement.classList.toggle('expanded')">
-                    <span class="source-toggle">▶</span>
-                    <span class="source-label">📋 출처 (${sources.length}개)</span>
-                </div>
-                <div class="source-details">
-                    ${sourceItems}
-                    <div class="source-disclaimer">※ ${disclaimer}</div>
-                </div>
-            </div>`;
+            return `<div class="ai-disclaimer">※ AI가 생성한 분석 결과입니다. 중요한 의사결정 시 추가 검증을 권장합니다.</div>`;
         }
 
         // 후속 질문 제안 업데이트 (XSS 방지)
@@ -6825,15 +7129,7 @@
             }
         });
 
-        // SoS 차트 툴팁 호버 이벤트
-        document.addEventListener('DOMContentLoaded', function() {
-            const sosTooltipTrigger = document.getElementById('sosChartHelpIcon');
-            const sosTooltip = document.getElementById('sosChartTooltip');
-            if (sosTooltipTrigger && sosTooltip) {
-                sosTooltipTrigger.addEventListener('mouseenter', () => sosTooltip.style.display = 'block');
-                sosTooltipTrigger.addEventListener('mouseleave', () => sosTooltip.style.display = 'none');
-            }
-        });
+        // SoS 차트 툴팁은 인라인 이벤트 핸들러로 처리 (sosChartHelpIcon span의 onmouseenter/onmouseleave)
 
         // SoS 막대그래프 초기화
         function initSosBarChart(colors, chartColors, brandColors) {
@@ -7066,7 +7362,7 @@
                         if (!cat) return '';
 
                         const data = categoryDataMap[categoryId];
-                        const hasLaneige = data && data.laneige_count > 0;
+                        const hasLaneige = data && (data.laneige_count > 0 || data.laneige_sos > 0);
                         const hasChildren = cat.children && cat.children.length > 0;
                         const isIntermediate = cat.isIntermediate;
 
@@ -7083,10 +7379,23 @@
                         // 통계 정보
                         let statsHtml = '';
                         if (data && !isIntermediate) {
+                            // 제품 수 표시 (소수점, 일 평균)
+                            const countText = data.laneige_count > 0
+                                ? `평균 ${data.laneige_count}개`
+                                : '미출현';
+                            // 출현율 표시
+                            const appearanceText = data.laneige_appearance_rate !== undefined && data.laneige_appearance_rate > 0
+                                ? `${data.laneige_appearance_rate}% 출현`
+                                : '';
+                            // 출현 일수 텍스트 (툴팁용)
+                            const appearanceDaysText = data.laneige_appearance_days !== undefined && data.num_dates
+                                ? `${data.laneige_appearance_days}/${data.num_dates}일`
+                                : '';
+
                             statsHtml = `
                                 <div class="category-tree-stats">
                                     <div class="category-tree-sos">${data.laneige_sos.toFixed(1)}%</div>
-                                    <div class="category-tree-count">LANEIGE ${data.laneige_count}개</div>
+                                    <div class="category-tree-count" title="${appearanceDaysText ? appearanceDaysText + ' Top 100 진입' : ''}">${countText}${appearanceText ? ' | ' + appearanceText : ''}</div>
                                 </div>
                             `;
                         } else if (isIntermediate) {
@@ -7141,6 +7450,11 @@
 
         function initChartsForPage(pageId) {
             Object.values(charts).forEach(c => c.destroy()); charts = {};
+            // SoS Bar Chart는 별도 인스턴스로 관리됨
+            if (sosChartInstance) {
+                sosChartInstance.destroy();
+                sosChartInstance = null;
+            }
             // AMOREPACIFIC CI Colors - Harmony of Contrast
             const colors = {
                 laneige: '#1F5795',      // Amore Blue - 부드러움
@@ -7262,10 +7576,55 @@
                                 },
                                 beginAtZero: true
                             },
-                            x: { grid: { display: false } }
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 0,
+                                    autoSkip: false,
+                                    callback: function(value, tickIndex, ticks) {
+                                        const labels = this.chart.data.labels;
+                                        const total = labels.length;
+                                        const maxLabels = 10;
+
+                                        // value는 labels 배열의 인덱스
+                                        const labelIndex = value;
+                                        const label = labels[labelIndex];
+
+                                        if (!label) return null;
+
+                                        // 첫 번째, 마지막은 항상 표시
+                                        if (labelIndex === 0 || labelIndex === total - 1) {
+                                            return label;
+                                        }
+
+                                        // 레이블 수가 적으면 모두 표시
+                                        if (total <= maxLabels) {
+                                            return label;
+                                        }
+
+                                        // 중간: 균등 간격으로 선택
+                                        const step = Math.ceil(total / (maxLabels - 1));
+                                        if (labelIndex % step === 0) {
+                                            return label;
+                                        }
+
+                                        return null;
+                                    }
+                                }
+                            }
                         }
                     }
                 });
+
+                // [FIX] Home 복귀 시 API에서 최신 SoS Trend 데이터 로드
+                // 다른 차트들(SoS 막대그래프, Product 차트)과 동일한 패턴 적용
+                const { startDate, endDate } = globalDateRange.get();
+                if (startDate && endDate) {
+                    updateSosTrendWithGlobalRange(startDate, endDate).catch(err => {
+                        console.error('[initChartsForPage] Failed to load SoS trend data:', err);
+                    });
+                }
             }
 
             if (pageId === 'brand') {
@@ -7418,6 +7777,12 @@
                         scales: { y: { min: 90, max: 250, grid: { color: colors.grid } }, x: { grid: { display: false } } }
                     }
                 });
+
+                // [FIX] Category 페이지 진입/복귀 시 API에서 최신 CPI 데이터 로드
+                // 최근 7일 고정, LANEIGE 브랜드 평균 vs 경쟁사 Top 100 평균 비교
+                updateCpiChartWithBrandAverage().catch(err => {
+                    console.error('[initChartsForPage] Failed to load CPI data:', err);
+                });
             }
 
             if (pageId === 'product') {
@@ -7434,8 +7799,7 @@
                 };
                 let rankLabels = generateRecentDatesForRank(7);
                 let rankDatasets = [
-                    { label: '데이터 로딩 중...', data: rankLabels.map(() => null), borderColor: colors.laneige, backgroundColor: 'rgba(32,128,128,0.1)', tension: 0.4, fill: true, borderWidth: 3 },
-                    { label: '1위 기준선', data: rankLabels.map(() => 1), borderColor: colors.competitor, borderDash: [5, 5], tension: 0, borderWidth: 2 }
+                    { label: '데이터 로딩 중...', data: rankLabels.map(() => null), borderColor: colors.laneige, backgroundColor: 'rgba(32,128,128,0.1)', tension: 0.4, fill: true, borderWidth: 3 }
                 ];
 
                 let rankYMax = 20; // 기본값
@@ -7461,16 +7825,6 @@
                             fill: idx === 0,
                             borderWidth: 3
                         }));
-                        // 1위 기준선 추가
-                        rankDatasets.push({
-                            label: '1위 기준선',
-                            data: rankLabels.map(() => 1),
-                            borderColor: colors.competitor,
-                            borderDash: [5, 5],
-                            tension: 0,
-                            borderWidth: 2,
-                            pointRadius: 0
-                        });
                     }
                 }
 
@@ -7743,7 +8097,11 @@
                             backgroundColor: 'rgba(31, 87, 149, 0.1)',
                             fill: true,
                             tension: 0.3,
-                            yAxisID: 'y'
+                            yAxisID: 'y',
+                            spanGaps: false,  // null 값에서 선 끊기
+                            pointRadius: function(context) {
+                                return context.raw === null ? 0 : 4;
+                            }
                         },
                         {
                             label: '할인율 (%)',
@@ -7753,7 +8111,11 @@
                             borderDash: [5, 5],
                             fill: false,
                             tension: 0.3,
-                            yAxisID: 'y1'
+                            yAxisID: 'y1',
+                            spanGaps: false,  // null 값에서 선 끊기
+                            pointRadius: function(context) {
+                                return context.raw === null ? 0 : 4;
+                            }
                         }
                     ]
                 },
@@ -7764,8 +8126,12 @@
                     plugins: {
                         legend: { position: 'top', labels: { font: { size: 11 } } },
                         tooltip: {
+                            filter: function(tooltipItem) {
+                                return tooltipItem.raw !== null;
+                            },
                             callbacks: {
                                 label: function(context) {
+                                    if (context.raw === null) return null;
                                     if (context.dataset.label.includes('가격') || context.dataset.label.includes('판매가')) {
                                         return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
                                     }
@@ -8100,19 +8466,6 @@
                 rankYMax = maxRank + padding;
             }
 
-            // 기준선 추가 (1위)
-            if (rankYMin <= 1) {
-                datasets.push({
-                    label: '1위 기준선',
-                    data: formattedLabels.map(() => 1),
-                    borderColor: 'rgba(100, 100, 100, 0.4)',
-                    borderDash: [5, 5],
-                    tension: 0,
-                    borderWidth: 1.5,
-                    pointRadius: 0
-                });
-            }
-
             // 차트 업데이트
             if (charts.rankTrend) {
                 charts.rankTrend.data.labels = formattedLabels;
@@ -8335,10 +8688,11 @@
 
                 // 드롭다운 업데이트
                 const productSelect = document.getElementById('discountProductSelect');
+                const sortedProducts = Array.from(productSet).sort();
                 if (productSelect) {
                     const currentValue = productSelect.value;
-                    productSelect.innerHTML = '<option value="">전체 LANEIGE 평균</option>';
-                    Array.from(productSet).sort().forEach(name => {
+                    productSelect.innerHTML = '';
+                    sortedProducts.forEach((name, idx) => {
                         const shortName = name.length > 50 ? name.substring(0, 50) + '...' : name;
                         const option = document.createElement('option');
                         option.value = name;
@@ -8346,9 +8700,11 @@
                         option.title = name;
                         productSelect.appendChild(option);
                     });
-                    // 이전 선택 유지
+                    // 이전 선택 유지 또는 첫 번째 제품 선택
                     if (currentValue && productSet.has(currentValue)) {
                         productSelect.value = currentValue;
+                    } else if (sortedProducts.length > 0) {
+                        productSelect.value = sortedProducts[0];
                     }
                 }
 
@@ -8374,24 +8730,57 @@
                             );
                         }
 
-                        if (targetProducts.length === 0) return;
+                        if (targetProducts.length === 0) {
+                            // 날짜는 추가하되 데이터 없음 표시
+                            const d = new Date(date);
+                            formattedLabels.push(`${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`);
+                            priceData.push(null);
+                            discountData.push(null);
+                            return;
+                        }
 
                         // 가격과 할인율 계산
-                        const prices = targetProducts.map(p => p.price).filter(p => p !== null && p !== undefined);
-                        const discounts = targetProducts.map(p => p.discount_percent || 0);
+                        // 원화 오류 데이터 필터링: 2026년 1월 이전 && $100 초과는 원화로 잘못 수집된 데이터
+                        const KRW_ERROR_CUTOFF_DATE = new Date('2026-01-06');
+                        const USD_PRICE_MAX = 100;
+                        const currentDate = new Date(date);
+                        const isKrwErrorPeriod = currentDate < KRW_ERROR_CUTOFF_DATE;
 
+                        const prices = targetProducts
+                            .map(p => p.price)
+                            .filter(p => {
+                                if (p === null || p === undefined) return false;
+                                // 2026년 1월 이전에만 $100 초과 필터링
+                                if (isKrwErrorPeriod && p > USD_PRICE_MAX) return false;
+                                return true;
+                            });
+                        const discounts = targetProducts
+                            .filter(p => {
+                                if (p.price === null || p.price === undefined) return false;
+                                if (isKrwErrorPeriod && p.price > USD_PRICE_MAX) return false;
+                                return true;
+                            })
+                            .map(p => p.discount_percent || 0);
+
+                        // 유효한 USD 가격 데이터가 없으면 null 처리 (원화 데이터만 있는 날)
                         const avgPrice = prices.length > 0
                             ? prices.reduce((a, b) => a + b, 0) / prices.length
                             : null;
                         const avgDiscount = discounts.length > 0
                             ? discounts.reduce((a, b) => a + b, 0) / discounts.length
-                            : 0;
+                            : null;
 
                         priceData.push(avgPrice);
-                        discountData.push(Math.round(avgDiscount * 10) / 10);
+                        discountData.push(avgDiscount !== null ? Math.round(avgDiscount * 10) / 10 : null);
 
                         const d = new Date(date);
                         formattedLabels.push(`${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`);
+                    } else {
+                        // 데이터 없는 날짜도 레이블에 추가 (차트 X축 일관성)
+                        const d = new Date(date);
+                        formattedLabels.push(`${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`);
+                        priceData.push(null);
+                        discountData.push(null);
                     }
                 });
 
@@ -8402,9 +8791,28 @@
                     charts.discountTrend.data.datasets[1].data = discountData;
                     charts.discountTrend.update('none');
 
-                    // 현재 할인율 배지 업데이트
-                    const latestDiscount = discountData[discountData.length - 1] || 0;
-                    const latestPrice = priceData[priceData.length - 1];
+                    // 누락 데이터 (원화 오류) 알림 표시
+                    const nullCount = priceData.filter(p => p === null).length;
+                    const missingDatesContainer = document.getElementById('discount-missing-dates');
+                    if (missingDatesContainer) {
+                        if (nullCount > 0) {
+                            const nullDates = formattedLabels.filter((_, idx) => priceData[idx] === null);
+                            missingDatesContainer.innerHTML = `
+                                <div style="background: rgba(196, 169, 98, 0.1); border-left: 3px solid #C4A962; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; font-size: 11px;">
+                                    <strong>⚠️ ${nullDates.join(', ')}</strong> 날짜의 가격 데이터가 없습니다. (2026.01.06 이전 원화 수집 오류)
+                                </div>
+                            `;
+                            missingDatesContainer.style.display = 'block';
+                        } else {
+                            missingDatesContainer.style.display = 'none';
+                        }
+                    }
+
+                    // 현재 할인율 배지 업데이트 (null이 아닌 최신 값 사용)
+                    const validDiscounts = discountData.filter(d => d !== null);
+                    const validPrices = priceData.filter(p => p !== null);
+                    const latestDiscount = validDiscounts.length > 0 ? validDiscounts[validDiscounts.length - 1] : 0;
+                    const latestPrice = validPrices.length > 0 ? validPrices[validPrices.length - 1] : null;
                     const discountBadge = document.getElementById('discount-badge');
                     if (discountBadge) {
                         const priceText = latestPrice ? ` ($${latestPrice.toFixed(2)})` : '';
@@ -8413,9 +8821,9 @@
 
                     // 인사이트 업데이트
                     const insightEl = document.getElementById('discount-insight');
-                    if (insightEl && discountData.length > 1) {
-                        const trend = discountData[discountData.length - 1] > discountData[0] ? '상승' :
-                                      discountData[discountData.length - 1] < discountData[0] ? '하락' : '유지';
+                    if (insightEl && validDiscounts.length > 1) {
+                        const trend = validDiscounts[validDiscounts.length - 1] > validDiscounts[0] ? '상승' :
+                                      validDiscounts[validDiscounts.length - 1] < validDiscounts[0] ? '하락' : '유지';
                         insightEl.textContent = `추세: ${trend}`;
                     }
                 } else if (formattedLabels.length === 0) {
