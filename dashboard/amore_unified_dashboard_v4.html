@@ -5262,7 +5262,7 @@
                         const option = document.createElement('option');
                         option.value = p.name;
                         const shortName = p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name;
-                        option.textContent = `#${Math.round(p.avgRank)} ${shortName}`;
+                        option.textContent = shortName;
                         option.title = p.name;
                         laneigeSelect.appendChild(option);
                     });
@@ -5288,7 +5288,7 @@
                             const option = document.createElement('option');
                             option.value = p.name;
                             const shortName = p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name;
-                            option.textContent = `#${Math.round(p.avgRank)} ${shortName}`;
+                            option.textContent = shortName;
                             option.title = p.name;
                             group.appendChild(option);
                         });
@@ -8437,7 +8437,7 @@
                             const option = document.createElement('option');
                             option.value = p.name;
                             const shortName = p.name.length > 40 ? p.name.substring(0, 40) + '...' : p.name;
-                            option.textContent = `#${Math.round(p.avgRank)} ${shortName}`;
+                            option.textContent = shortName;
                             option.title = p.name;
                             laneigGroup.appendChild(option);
                         });
@@ -8451,7 +8451,7 @@
                             const option = document.createElement('option');
                             option.value = p.name;
                             const shortName = p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name;
-                            option.textContent = `#${Math.round(p.avgRank)} [${p.brand}] ${shortName}`;
+                            option.textContent = `[${p.brand}] ${shortName}`;
                             option.title = p.name;
                             otherGroup.appendChild(option);
                         });
@@ -8580,7 +8580,7 @@
                             const option = document.createElement('option');
                             option.value = p.name;
                             const shortName = p.name.length > 40 ? p.name.substring(0, 40) + '...' : p.name;
-                            option.textContent = `#${Math.round(p.avgRank)} ${shortName}`;
+                            option.textContent = shortName;
                             option.title = p.name;
                             laneigGroup.appendChild(option);
                         });
@@ -8595,7 +8595,7 @@
                             const option = document.createElement('option');
                             option.value = p.name;
                             const shortName = p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name;
-                            option.textContent = `#${Math.round(p.avgRank)} [${p.brand}] ${shortName}`;
+                            option.textContent = `[${p.brand}] ${shortName}`;
                             option.title = p.name;
                             otherGroup.appendChild(option);
                         });
