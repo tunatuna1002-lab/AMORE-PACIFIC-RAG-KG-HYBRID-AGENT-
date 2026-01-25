@@ -4316,35 +4316,173 @@
 
         // ============== DATE RANGE PICKER FUNCTIONS ==============
 
-        // Date range state
+        // ===== 글로벌 날짜 범위 상태 관리 =====
+        const globalDateRange = {
+            startDate: null,
+            endDate: null,
+            availableDateRange: null,  // API에서 받은 사용 가능한 날짜 범위
+
+            // 초기화: localStorage에서 복원 또는 기본값 설정
+            init() {
+                const saved = localStorage.getItem('dashboardDateRange');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        this.startDate = parsed.startDate;
+                        this.endDate = parsed.endDate;
+                        console.log('[GlobalDateRange] Restored from localStorage:', this.startDate, '~', this.endDate);
+                    } catch (e) {
+                        console.warn('[GlobalDateRange] Failed to parse localStorage, using defaults');
+                        this.setDefaultRange();
+                    }
+                } else {
+                    this.setDefaultRange();
+                }
+            },
+
+            // 기본값 설정: dashboardData에서 사용 가능한 날짜 범위 추출
+            setDefaultRange() {
+                // API 메타데이터에서 날짜 범위 가져오기 시도
+                if (dashboardData?.metadata?.available_date_range) {
+                    const range = dashboardData.metadata.available_date_range;
+                    this.startDate = range.min;
+                    this.endDate = range.max;
+                    console.log('[GlobalDateRange] Default from metadata:', this.startDate, '~', this.endDate);
+                } else if (dashboardData?.charts?.sos_trend?.["30d"]?.labels) {
+                    // 폴백: SoS 트렌드 30일 데이터에서 추출
+                    const labels = dashboardData.charts.sos_trend["30d"].labels;
+                    this.startDate = labels[0];
+                    this.endDate = labels[labels.length - 1];
+                    console.log('[GlobalDateRange] Default from sos_trend:', this.startDate, '~', this.endDate);
+                } else {
+                    // 최후 폴백: 최근 30일
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(start.getDate() - 30);
+                    this.startDate = start.toISOString().split('T')[0];
+                    this.endDate = end.toISOString().split('T')[0];
+                    console.log('[GlobalDateRange] Default fallback (30 days):', this.startDate, '~', this.endDate);
+                }
+            },
+
+            // 날짜 범위 설정 및 저장
+            set(start, end) {
+                // 유효성 검사
+                if (new Date(start) > new Date(end)) {
+                    console.warn('[GlobalDateRange] Invalid range: start > end');
+                    return false;
+                }
+
+                this.startDate = start;
+                this.endDate = end;
+
+                // localStorage에 저장
+                localStorage.setItem('dashboardDateRange', JSON.stringify({
+                    startDate: start,
+                    endDate: end,
+                    savedAt: new Date().toISOString()
+                }));
+
+                console.log('[GlobalDateRange] Set:', start, '~', end);
+
+                // 모든 차트에 날짜 변경 이벤트 발송
+                this.notifyCharts();
+                return true;
+            },
+
+            // 모든 차트에 날짜 변경 이벤트 발송
+            notifyCharts() {
+                console.log('[GlobalDateRange] Dispatching dateRangeChanged event');
+                document.dispatchEvent(new CustomEvent('dateRangeChanged', {
+                    detail: {
+                        startDate: this.startDate,
+                        endDate: this.endDate
+                    }
+                }));
+            },
+
+            // 날짜 범위 가져오기
+            get() {
+                return {
+                    startDate: this.startDate,
+                    endDate: this.endDate
+                };
+            },
+
+            // 일수 계산
+            getDays() {
+                if (!this.startDate || !this.endDate) return 30;
+                const start = new Date(this.startDate);
+                const end = new Date(this.endDate);
+                return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            }
+        };
+
+        // Date range state (기존 호환성 유지)
         let chartDateRanges = {
             brandMatrix: { startDate: null, endDate: null, availableDates: [] }
         };
 
         // Initialize date range pickers with current data
         function initDateRangePickers() {
-            const today = new Date();
-            const defaultEndDate = today.toISOString().split('T')[0];
-            const defaultStartDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+            // 글로벌 날짜 범위 초기화
+            globalDateRange.init();
+
+            const startDate = globalDateRange.startDate;
+            const endDate = globalDateRange.endDate;
+
+            console.log('[initDateRangePickers] Using global date range:', startDate, '~', endDate);
 
             // Brand Matrix chart date picker
             const brandMatrixStart = document.getElementById('brandMatrixStartDate');
             const brandMatrixEnd = document.getElementById('brandMatrixEndDate');
 
             if (brandMatrixStart && brandMatrixEnd) {
-                // Set default values
-                brandMatrixStart.value = defaultStartDate;
-                brandMatrixEnd.value = defaultEndDate;
-                brandMatrixStart.max = defaultEndDate;
-                brandMatrixEnd.max = defaultEndDate;
+                // 글로벌 날짜 범위 적용
+                brandMatrixStart.value = startDate;
+                brandMatrixEnd.value = endDate;
 
                 // Store initial range
-                chartDateRanges.brandMatrix.startDate = defaultStartDate;
-                chartDateRanges.brandMatrix.endDate = defaultEndDate;
+                chartDateRanges.brandMatrix.startDate = startDate;
+                chartDateRanges.brandMatrix.endDate = endDate;
 
                 // Update tooltip with period info
-                updateChartPeriodTooltip('brandMatrix', defaultStartDate, defaultEndDate);
+                updateChartPeriodTooltip('brandMatrix', startDate, endDate);
             }
+
+            // 모든 날짜 입력창에 글로벌 날짜 범위 동기화
+            syncAllDateInputsToGlobal();
+        }
+
+        // 모든 날짜 입력창을 글로벌 날짜 범위와 동기화
+        function syncAllDateInputsToGlobal() {
+            const { startDate, endDate } = globalDateRange.get();
+
+            // 동기화할 날짜 입력창 ID 목록
+            const dateInputPairs = [
+                ['sosTrendStartDate', 'sosTrendEndDate'],
+                ['cpiStartDate', 'cpiEndDate'],
+                ['categoryStartDate', 'categoryEndDate'],
+                ['productStartDate', 'productEndDate'],
+                ['rankTrendStartDate', 'rankTrendEndDate'],
+                ['matrixStartDate', 'matrixEndDate'],
+                ['discountStartDate', 'discountEndDate'],
+                ['growthTypeStartDate', 'growthTypeEndDate'],
+                ['competitorPromoStartDate', 'competitorPromoEndDate'],
+                ['sosStartDate', 'sosEndDate']
+            ];
+
+            dateInputPairs.forEach(([startId, endId]) => {
+                const startInput = document.getElementById(startId);
+                const endInput = document.getElementById(endId);
+
+                if (startInput && endInput) {
+                    startInput.value = startDate;
+                    endInput.value = endDate;
+                }
+            });
+
+            console.log('[syncAllDateInputsToGlobal] Synced all date inputs to:', startDate, '~', endDate);
         }
 
         // Update chart tooltip with period info
@@ -4359,7 +4497,7 @@
             }
         }
 
-        // Apply date range for Brand Matrix chart
+        // Apply date range for Brand Matrix chart (글로벌 상태 업데이트 포함)
         async function applyBrandMatrixDateRange() {
             const startDate = document.getElementById('brandMatrixStartDate').value;
             const endDate = document.getElementById('brandMatrixEndDate').value;
@@ -4376,6 +4514,11 @@
                 return;
             }
 
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
+            return;
+
+            // 아래 코드는 이제 globalDateRange.set() 호출 시 dateRangeChanged 이벤트로 처리됨
             showToast('데이터 로딩 중...', 'info');
 
             try {
@@ -5042,21 +5185,19 @@
             }, 300);
         }
 
-        // SoS 추이 차트 날짜 범위 초기화
+        // SoS 추이 차트 날짜 범위 초기화 (글로벌 날짜 범위 사용)
         function initSosTrendDateRange() {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 7);  // 기본 7일
+            const { startDate, endDate } = globalDateRange.get();
 
             const startInput = document.getElementById('sosTrendStartDate');
             const endInput = document.getElementById('sosTrendEndDate');
             if (startInput && endInput) {
-                startInput.value = startDate.toISOString().split('T')[0];
-                endInput.value = endDate.toISOString().split('T')[0];
+                startInput.value = startDate;
+                endInput.value = endDate;
             }
         }
 
-        // SoS 추이 차트 날짜 범위 적용
+        // SoS 추이 차트 날짜 범위 적용 (글로벌 상태 업데이트 포함)
         async function applySosTrendDateRange() {
             const startDate = document.getElementById('sosTrendStartDate')?.value;
             const endDate = document.getElementById('sosTrendEndDate')?.value;
@@ -5071,31 +5212,8 @@
                 return;
             }
 
-            try {
-                // API 호출하여 해당 기간의 SoS 데이터 가져오기
-                const response = await fetch(`/api/sos/trend?start_date=${startDate}&end_date=${endDate}&brand=LANEIGE`);
-                const result = await response.json();
-
-                if (result.success && charts.trend) {
-                    const trendData = result.trend || [];
-
-                    // X축 레이블과 데이터 업데이트
-                    charts.trend.data.labels = trendData.map(d => {
-                        const date = new Date(d.date);
-                        return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                    });
-                    charts.trend.data.datasets[0].data = trendData.map(d => d.sos);
-                    charts.trend.update('none');
-
-                    const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-                    showToast(`SoS 추이 기간이 적용되었습니다: ${periodText}`, 'success');
-                } else {
-                    showToast('데이터를 불러오는데 실패했습니다.', 'error');
-                }
-            } catch (error) {
-                console.error('SoS trend update error:', error);
-                showToast('데이터 조회 중 오류가 발생했습니다.', 'error');
-            }
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
         // 기존 호환성 유지용 (사용 안함)
@@ -5145,23 +5263,25 @@
         };
 
         function initCategoryDateRange() {
-            // 기본값: 최근 7일
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 7);
+            // 글로벌 날짜 범위 사용
+            const { startDate, endDate } = globalDateRange.get();
 
-            document.getElementById('categoryStartDate').value = startDate.toISOString().split('T')[0];
-            document.getElementById('categoryEndDate').value = endDate.toISOString().split('T')[0];
+            const catStartInput = document.getElementById('categoryStartDate');
+            const catEndInput = document.getElementById('categoryEndDate');
+            if (catStartInput && catEndInput) {
+                catStartInput.value = startDate;
+                catEndInput.value = endDate;
+            }
 
-            categoryDateRange.start = startDate.toISOString().split('T')[0];
-            categoryDateRange.end = endDate.toISOString().split('T')[0];
+            categoryDateRange.start = startDate;
+            categoryDateRange.end = endDate;
 
             // CPI 차트 날짜 범위도 초기화
             const cpiStartInput = document.getElementById('cpiStartDate');
             const cpiEndInput = document.getElementById('cpiEndDate');
             if (cpiStartInput && cpiEndInput) {
-                cpiStartInput.value = startDate.toISOString().split('T')[0];
-                cpiEndInput.value = endDate.toISOString().split('T')[0];
+                cpiStartInput.value = startDate;
+                cpiEndInput.value = endDate;
             }
 
             // CPI 드롭다운 변경 이벤트 리스너 추가
@@ -5189,11 +5309,8 @@
                 return;
             }
 
-            const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-            console.log(`CPI 차트 기간 설정: ${startDate} ~ ${endDate}`);
-
-            await updateCpiChartWithProducts(startDate, endDate);
-            showToast(`CPI 차트 기간이 적용되었습니다: ${periodText}`, 'success');
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
         async function updateCpiChartWithProducts(startDate, endDate) {
@@ -5735,7 +5852,7 @@
             // filterProductDataByDateRange(startDate, endDate);
         }
 
-        // Individual chart date range functions
+        // Individual chart date range functions (글로벌 상태 업데이트 포함)
         async function applyRankTrendDateRange() {
             const startDate = document.getElementById('rankTrendStartDate').value;
             const endDate = document.getElementById('rankTrendEndDate').value;
@@ -5750,13 +5867,8 @@
                 return;
             }
 
-            const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-            console.log(`순위 & 가격 추이 차트 기간 설정: ${startDate} ~ ${endDate}`);
-            showToast(`순위 & 가격 추이 차트 기간이 적용되었습니다: ${periodText}`, 'success');
-
-            // Update rank trend chart with filtered data
-            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-            await updateRankTrendChartWithRange(startDate, endDate, daysDiff);
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
         async function applyMatrixDateRange() {
@@ -5773,13 +5885,8 @@
                 return;
             }
 
-            const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-            console.log(`제품 매트릭스 차트 기간 설정: ${startDate} ~ ${endDate}`);
-            showToast(`제품 매트릭스 차트 기간이 적용되었습니다: ${periodText}`, 'success');
-
-            // Update product matrix chart with filtered data
-            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-            await updateProductMatrixChartWithRange(startDate, endDate, daysDiff);
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
         async function applyDiscountDateRange() {
@@ -5796,13 +5903,8 @@
                 return;
             }
 
-            const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-            console.log(`할인율 추이 차트 기간 설정: ${startDate} ~ ${endDate}`);
-            showToast(`할인율 추이 차트 기간이 적용되었습니다: ${periodText}`, 'success');
-
-            // Update discount trend chart with filtered data
-            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-            await updateDiscountTrendChartWithRange(startDate, endDate, daysDiff);
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
         async function applyGrowthTypeDateRange() {
@@ -5819,13 +5921,8 @@
                 return;
             }
 
-            const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-            console.log(`성장 유형 분류 기간 설정: ${startDate} ~ ${endDate}`);
-            showToast(`성장 유형 분류 기간이 적용되었습니다: ${periodText}`, 'success');
-
-            // Update growth type data with filtered data
-            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-            await updateGrowthTypeDataWithRange(startDate, endDate, daysDiff);
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
         async function applyCompetitorPromoDateRange() {
@@ -5842,62 +5939,49 @@
                 return;
             }
 
-            const periodText = `${startDate.slice(5)} ~ ${endDate.slice(5)}`;
-            console.log(`경쟁사 프로모션 비교 기간 설정: ${startDate} ~ ${endDate}`);
-            showToast(`경쟁사 프로모션 비교 기간이 적용되었습니다: ${periodText}`, 'success');
-
-            // Update competitor promo data with filtered data
-            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-            await updateCompetitorPromoDataWithRange(startDate, endDate, daysDiff);
+            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            globalDateRange.set(startDate, endDate);
         }
 
-        // Product View 초기화 시 날짜 범위 기본값 설정
+        // Product View 초기화 시 날짜 범위 기본값 설정 (글로벌 날짜 범위 사용)
         function initProductDateRange() {
-            const today = new Date();
-            const sevenDaysAgo = new Date(today);
-            sevenDaysAgo.setDate(today.getDate() - 7);
-
-            const formatDate = (d) => d.toISOString().split('T')[0];
+            const { startDate, endDate } = globalDateRange.get();
 
             const startInput = document.getElementById('productStartDate');
             const endInput = document.getElementById('productEndDate');
 
             if (startInput && endInput) {
-                startInput.value = formatDate(sevenDaysAgo);
-                endInput.value = formatDate(today);
+                startInput.value = startDate;
+                endInput.value = endDate;
             }
         }
 
-        // Initialize all chart date ranges
+        // Initialize all chart date ranges (글로벌 날짜 범위 사용)
         function initAllChartDateRanges() {
-            const today = new Date();
-            const sevenDaysAgo = new Date(today);
-            sevenDaysAgo.setDate(today.getDate() - 7);
-
-            const formatDate = (d) => d.toISOString().split('T')[0];
+            const { startDate, endDate } = globalDateRange.get();
 
             // Rank Trend chart
             const rankStartInput = document.getElementById('rankTrendStartDate');
             const rankEndInput = document.getElementById('rankTrendEndDate');
             if (rankStartInput && rankEndInput) {
-                rankStartInput.value = formatDate(sevenDaysAgo);
-                rankEndInput.value = formatDate(today);
+                rankStartInput.value = startDate;
+                rankEndInput.value = endDate;
             }
 
             // Matrix chart
             const matrixStartInput = document.getElementById('matrixStartDate');
             const matrixEndInput = document.getElementById('matrixEndDate');
             if (matrixStartInput && matrixEndInput) {
-                matrixStartInput.value = formatDate(sevenDaysAgo);
-                matrixEndInput.value = formatDate(today);
+                matrixStartInput.value = startDate;
+                matrixEndInput.value = endDate;
             }
 
             // Discount chart
             const discountStartInput = document.getElementById('discountStartDate');
             const discountEndInput = document.getElementById('discountEndDate');
             if (discountStartInput && discountEndInput) {
-                discountStartInput.value = formatDate(sevenDaysAgo);
-                discountEndInput.value = formatDate(today);
+                discountStartInput.value = startDate;
+                discountEndInput.value = endDate;
             }
 
             // 제품 선택 드롭다운 변경 시 차트 업데이트
@@ -5912,8 +5996,8 @@
             const growthStartInput = document.getElementById('growthTypeStartDate');
             const growthEndInput = document.getElementById('growthTypeEndDate');
             if (growthStartInput && growthEndInput) {
-                growthStartInput.value = formatDate(sevenDaysAgo);
-                growthEndInput.value = formatDate(today);
+                growthStartInput.value = startDate;
+                growthEndInput.value = endDate;
             }
 
             // 성장 유형 제품 선택 드롭다운 변경 시 업데이트
@@ -5928,8 +6012,8 @@
             const compStartInput = document.getElementById('competitorPromoStartDate');
             const compEndInput = document.getElementById('competitorPromoEndDate');
             if (compStartInput && compEndInput) {
-                compStartInput.value = formatDate(sevenDaysAgo);
-                compEndInput.value = formatDate(today);
+                compStartInput.value = startDate;
+                compEndInput.value = endDate;
             }
 
             // 경쟁사 프로모션 제품 선택 드롭다운 변경 시 테이블 업데이트
@@ -6157,7 +6241,143 @@
             initCategoryDateRange();
             // SoS 추이 차트 날짜 범위 초기화
             initSosTrendDateRange();
+
+            // 글로벌 날짜 범위 변경 이벤트 리스너 등록
+            registerGlobalDateRangeListeners();
         });
+
+        // ===== 글로벌 날짜 범위 변경 이벤트 리스너 등록 =====
+        function registerGlobalDateRangeListeners() {
+            console.log('[GlobalDateRange] Registering event listeners');
+
+            // dateRangeChanged 이벤트 리스너 - 모든 차트 업데이트
+            document.addEventListener('dateRangeChanged', async (e) => {
+                const { startDate, endDate } = e.detail;
+                console.log('[GlobalDateRange] dateRangeChanged received:', startDate, '~', endDate);
+
+                // 모든 날짜 입력창 동기화
+                syncAllDateInputsToGlobal();
+
+                // 현재 페이지에 따라 관련 차트 업데이트
+                showToast('날짜 범위가 변경되었습니다. 차트 업데이트 중...', 'info');
+
+                try {
+                    // 병렬로 모든 차트 업데이트
+                    await Promise.allSettled([
+                        updateSosTrendWithGlobalRange(startDate, endDate),
+                        updateCpiChartWithGlobalRange(startDate, endDate),
+                        updateRankTrendWithGlobalRange(startDate, endDate),
+                        updateBrandMatrixWithGlobalRange(startDate, endDate),
+                        updateDiscountTrendWithGlobalRange(startDate, endDate)
+                    ]);
+
+                    showToast(`${startDate} ~ ${endDate} 기간 데이터가 적용되었습니다.`, 'success');
+                } catch (error) {
+                    console.error('[GlobalDateRange] Error updating charts:', error);
+                    showToast('일부 차트 업데이트에 실패했습니다.', 'error');
+                }
+            });
+        }
+
+        // ===== 글로벌 날짜 범위로 각 차트 업데이트 함수들 =====
+
+        // SoS 추이 차트 업데이트
+        async function updateSosTrendWithGlobalRange(startDate, endDate) {
+            try {
+                const response = await fetch(`/api/sos/trend?start_date=${startDate}&end_date=${endDate}&brand=LANEIGE`);
+                const result = await response.json();
+
+                if (result.success && charts.trend) {
+                    const trendData = result.trend || [];
+                    charts.trend.data.labels = trendData.map(d => {
+                        const date = new Date(d.date);
+                        return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    });
+                    charts.trend.data.datasets[0].data = trendData.map(d => d.sos);
+                    charts.trend.update('none');
+                    console.log('[GlobalDateRange] SoS trend chart updated');
+                }
+            } catch (error) {
+                console.error('[GlobalDateRange] Failed to update SoS trend:', error);
+            }
+        }
+
+        // CPI 차트 업데이트
+        async function updateCpiChartWithGlobalRange(startDate, endDate) {
+            try {
+                // 기존 함수 호출
+                if (typeof updateCpiChartWithProducts === 'function') {
+                    await updateCpiChartWithProducts(startDate, endDate);
+                    console.log('[GlobalDateRange] CPI chart updated');
+                }
+            } catch (error) {
+                console.error('[GlobalDateRange] Failed to update CPI chart:', error);
+            }
+        }
+
+        // 제품 순위 추이 차트 업데이트
+        async function updateRankTrendWithGlobalRange(startDate, endDate) {
+            try {
+                const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+                if (typeof updateProductRankTrendChart === 'function') {
+                    await updateProductRankTrendChart(startDate, endDate, days);
+                    console.log('[GlobalDateRange] Rank trend chart updated');
+                }
+            } catch (error) {
+                console.error('[GlobalDateRange] Failed to update rank trend:', error);
+            }
+        }
+
+        // 브랜드 매트릭스 차트 업데이트
+        async function updateBrandMatrixWithGlobalRange(startDate, endDate) {
+            try {
+                const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+                if (typeof updateProductMatrixChart === 'function') {
+                    await updateProductMatrixChart(startDate, endDate, days);
+                    console.log('[GlobalDateRange] Brand matrix chart updated');
+                }
+            } catch (error) {
+                console.error('[GlobalDateRange] Failed to update brand matrix:', error);
+            }
+        }
+
+        // 할인율 추이 차트 업데이트
+        async function updateDiscountTrendWithGlobalRange(startDate, endDate) {
+            try {
+                const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+                if (typeof updateDiscountTrendChartWithRange === 'function') {
+                    await updateDiscountTrendChartWithRange(startDate, endDate, days);
+                    console.log('[GlobalDateRange] Discount trend chart updated');
+                }
+            } catch (error) {
+                console.error('[GlobalDateRange] Failed to update discount trend:', error);
+            }
+        }
+
+        // ===== 글로벌 날짜 범위 적용 버튼 핸들러 =====
+        // 이 함수를 개별 차트의 "적용" 버튼에서 호출하면 글로벌 범위도 함께 업데이트됨
+        function applyGlobalDateRange(startInputId, endInputId) {
+            const startInput = document.getElementById(startInputId);
+            const endInput = document.getElementById(endInputId);
+
+            if (!startInput || !endInput) return false;
+
+            const startDate = startInput.value;
+            const endDate = endInput.value;
+
+            if (!startDate || !endDate) {
+                showToast('시작일과 종료일을 모두 선택해주세요.', 'error');
+                return false;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showToast('시작일이 종료일보다 늦을 수 없습니다.', 'error');
+                return false;
+            }
+
+            // 글로벌 날짜 범위 업데이트 (이벤트 자동 발송됨)
+            return globalDateRange.set(startDate, endDate);
+        }
 
         // CSS 애니메이션 추가
         const pulseStyle = document.createElement('style');
@@ -6517,11 +6737,10 @@
         }
         function openExportModal() {
             document.getElementById('exportModal').classList.add('open');
-            // 기본 날짜 설정 (최근 7일)
-            const today = new Date();
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-            document.getElementById('exportEndDate').value = today.toISOString().slice(0, 10);
-            document.getElementById('exportStartDate').value = weekAgo.toISOString().slice(0, 10);
+            // 글로벌 날짜 범위 사용
+            const { startDate, endDate } = globalDateRange.get();
+            document.getElementById('exportEndDate').value = endDate;
+            document.getElementById('exportStartDate').value = startDate;
         }
         function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
 
@@ -6603,14 +6822,16 @@
         let sosChartInstance = null;
         let sosBrandsData = [];
 
-        // 날짜 필터 초기화
+        // 날짜 필터 초기화 (글로벌 날짜 범위 사용)
         function initSosDateFilters() {
-            const today = new Date();
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
+            const { startDate, endDate } = globalDateRange.get();
 
-            document.getElementById('sosEndDate').value = today.toISOString().split('T')[0];
-            document.getElementById('sosStartDate').value = weekAgo.toISOString().split('T')[0];
+            const sosEndInput = document.getElementById('sosEndDate');
+            const sosStartInput = document.getElementById('sosStartDate');
+            if (sosEndInput && sosStartInput) {
+                sosEndInput.value = endDate;
+                sosStartInput.value = startDate;
+            }
         }
 
         // 선택된 브랜드 저장
@@ -8768,7 +8989,31 @@
             switchPage('home');
             loadAlertSettings(); // 알림 설정 로드
             initDateRangeSelectors(); // 날짜 범위 선택 초기화
+
+            // 글로벌 날짜 범위로 초기 차트 데이터 로드
+            await loadInitialChartDataWithGlobalRange();
         };
+
+        // 글로벌 날짜 범위로 초기 차트 데이터 로드
+        async function loadInitialChartDataWithGlobalRange() {
+            const { startDate, endDate } = globalDateRange.get();
+
+            if (!startDate || !endDate) {
+                console.log('[GlobalDateRange] No initial date range set, skipping initial load');
+                return;
+            }
+
+            console.log('[GlobalDateRange] Loading initial chart data:', startDate, '~', endDate);
+
+            try {
+                // Home 페이지 차트 (SoS 추이) 초기 로드
+                await updateSosTrendWithGlobalRange(startDate, endDate);
+
+                console.log('[GlobalDateRange] Initial chart data loaded successfully');
+            } catch (error) {
+                console.error('[GlobalDateRange] Error loading initial chart data:', error);
+            }
+        }
 
         // ============================
         // Alert Settings (알림 설정)
