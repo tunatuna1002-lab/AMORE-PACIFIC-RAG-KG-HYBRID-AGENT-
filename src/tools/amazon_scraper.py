@@ -525,9 +525,9 @@ class AmazonScraper:
             if brand.lower() in product_name.lower():
                 return brand
 
-        # 첫 단어를 브랜드로 추정 (fallback)
-        words = product_name.split()
-        return words[0] if words else "Unknown"
+        # Fallback: 브랜드를 특정할 수 없으면 "Unknown" 반환
+        # 기존에 words[0]을 반환했으나, "Summer Fridays" -> "Summer" 버그 발생
+        return "Unknown"
 
     def _parse_price(self, price_text: str) -> Optional[float]:
         """가격 문자열 파싱 - $ 기호가 있는 가격만 인식"""
