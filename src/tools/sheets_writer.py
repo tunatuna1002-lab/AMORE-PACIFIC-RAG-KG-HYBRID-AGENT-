@@ -92,6 +92,55 @@ class SheetsWriter:
         # 제품 목록 캐시 (API 호출 최소화)
         self._products_cache: Optional[Dict[str, Dict[str, Any]]] = None
 
+        # 브랜드 정규화 매핑 (product_name 기반 보정)
+        # key: 잘못 기록된 브랜드, value: (올바른 브랜드, product_name에 포함되어야 할 문자열)
+        self._brand_corrections = {
+            "summer": ("Summer Fridays", "summer fridays"),
+            "rare": ("Rare Beauty", "rare beauty"),
+            "la": ("La Roche-Posay", "la roche"),
+            "beauty": ("Beauty of Joseon", "beauty of joseon"),
+            "tower": ("Tower 28", "tower 28"),
+            "drunk": ("Drunk Elephant", "drunk elephant"),
+            "paula's": ("Paula's Choice", "paula's choice"),
+            "the": ("The Ordinary", "the ordinary"),
+            "glow": ("Glow Recipe", "glow recipe"),
+            "youth": ("Youth To The People", "youth to the people"),
+            "first": ("First Aid Beauty", "first aid beauty"),
+            "it": ("IT Cosmetics", "it cosmetics"),
+            "too": ("Too Faced", "too faced"),
+            "urban": ("Urban Decay", "urban decay"),
+            "fenty": ("Fenty Beauty", "fenty beauty"),
+            "huda": ("Huda Beauty", "huda beauty"),
+            "anastasia": ("Anastasia Beverly Hills", "anastasia beverly hills"),
+            "benefit": ("Benefit Cosmetics", "benefit cosmetics"),
+            "mac": ("MAC Cosmetics", "mac cosmetics"),
+        }
+
+    def _normalize_brand(self, brand: str, product_name: str) -> str:
+        """
+        브랜드명 정규화 - product_name 기반으로 잘못된 브랜드 보정
+
+        Args:
+            brand: 현재 기록된 브랜드명
+            product_name: 제품명
+
+        Returns:
+            보정된 브랜드명
+        """
+        if not brand or not product_name:
+            return brand
+
+        brand_lower = brand.lower().strip()
+        product_lower = product_name.lower()
+
+        # 잘못된 브랜드인지 확인하고 product_name으로 보정
+        if brand_lower in self._brand_corrections:
+            correct_brand, check_string = self._brand_corrections[brand_lower]
+            if check_string in product_lower:
+                return correct_brand
+
+        return brand
+
     def _get_credentials(self) -> Credentials:
         """
         Credentials 객체 생성
@@ -385,6 +434,11 @@ class SheetsWriter:
             for row in values[1:]:
                 record = dict(zip(headers, row + [""] * (len(headers) - len(row))))
 
+                # 브랜드 정규화 적용 (product_name 기반 보정)
+                original_brand = record.get("brand", "")
+                product_name = record.get("product_name", "")
+                record["brand"] = self._normalize_brand(original_brand, product_name)
+
                 # 필터 적용
                 if category_id and record.get("category_id") != category_id:
                     continue
@@ -464,6 +518,11 @@ class SheetsWriter:
 
             for row in values[1:]:
                 record = dict(zip(headers, row + [""] * (len(headers) - len(row))))
+
+                # 브랜드 정규화 적용 (product_name 기반 보정)
+                original_brand = record.get("brand", "")
+                product_name = record.get("product_name", "")
+                record["brand"] = self._normalize_brand(original_brand, product_name)
 
                 # 날짜 필터
                 snapshot_date = record.get("snapshot_date", "")
