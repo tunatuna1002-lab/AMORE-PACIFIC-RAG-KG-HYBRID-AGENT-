@@ -455,110 +455,75 @@
             background: rgba(139, 38, 53, 0.03);
         }
 
-        /* === TOOLTIP === */
-        .status-card.danger { position: relative; z-index: 1; }
-        .status-card.danger:hover { z-index: 9999; }
-        .warning-tooltip {
+        /* === STATUS CARD TOOLTIP (공통) === */
+        .status-card { position: relative; z-index: 1; }
+        .status-card:hover { z-index: 9999; }
+
+        .status-card-tooltip {
             position: absolute;
             bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0;
             background: var(--pacific-blue);
             color: var(--ap-white);
-            padding: 12px 16px;
-            border-radius: 6px;
+            padding: 14px 18px;
+            border-radius: 8px;
             font-size: 11px;
             white-space: nowrap;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.15s ease;
+            transition: opacity 0.15s ease, visibility 0.15s ease;
             z-index: 10000;
             box-shadow: var(--shadow-lg);
             margin-bottom: 8px;
+            text-align: left;
+            max-width: 320px;
         }
-        .warning-tooltip::after {
+        .status-card-tooltip.align-right {
+            left: auto;
+            right: 0;
+        }
+        .status-card-tooltip.align-center {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .status-card-tooltip::after {
             content: '';
             position: absolute;
             top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 20px;
             border: 6px solid transparent;
             border-top-color: var(--pacific-blue);
         }
-        .warning-tooltip ul {
+        .status-card-tooltip.align-right::after {
+            left: auto;
+            right: 20px;
+        }
+        .status-card-tooltip.align-center::after {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .status-card-tooltip ul {
             list-style: none;
             text-align: left;
             margin: 0;
             padding: 0;
         }
-        .warning-tooltip li {
+        .status-card-tooltip li {
             padding: 3px 0;
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 11px;
         }
-        .warning-tooltip li::before {
-            content: '•';
-            color: var(--warning);
-        }
-        .status-card.danger:hover .warning-tooltip {
+        .status-card:hover .status-card-tooltip {
             opacity: 1;
             visibility: visible;
         }
 
-        /* === EXPOSURE STATUS TOOLTIP === */
-        .status-card.success { position: relative; z-index: 1; }
-        .status-card.success:hover { z-index: 9999; }
-        .exposure-status-tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--pacific-blue);
-            color: var(--ap-white);
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 11px;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.15s ease;
-            z-index: 10000;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 8px;
-            min-width: 200px;
-        }
-        .exposure-status-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: var(--pacific-blue);
-        }
-        .exposure-status-tooltip ul {
-            list-style: none;
-            text-align: left;
-            margin: 0;
-            padding: 0;
-        }
-        .exposure-status-tooltip li {
-            padding: 3px 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-        }
-        .exposure-status-tooltip li::before {
-            content: '•';
-            color: #22c55e;
-        }
-        .status-card.success:hover .exposure-status-tooltip {
-            opacity: 1;
-            visibility: visible;
-        }
+        /* 툴팁 색상별 bullet */
+        .warning-tooltip li::before { content: '•'; color: var(--warning); }
+        .exposure-status-tooltip li::before { content: '•'; color: #22c55e; }
+        .category-position-tooltip li::before { content: '•'; color: #60a5fa; }
 
         /* === CHART TITLE TOOLTIP === */
         .card-title.has-tooltip {
@@ -917,59 +882,6 @@
             border-top: 1px solid rgba(255,255,255,0.2);
             font-size: 10px;
             color: rgba(255,255,255,0.8);
-        }
-
-        /* === CATEGORY POSITION TOOLTIP === */
-        .status-card.info { position: relative; z-index: 1; }
-        .status-card.info:hover { z-index: 9999; }
-        .category-position-tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--pacific-blue);
-            color: var(--ap-white);
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 11px;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.15s ease;
-            z-index: 10000;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 8px;
-            min-width: 220px;
-        }
-        .category-position-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: var(--pacific-blue);
-        }
-        .category-position-tooltip ul {
-            list-style: none;
-            text-align: left;
-            margin: 0;
-            padding: 0;
-        }
-        .category-position-tooltip li {
-            padding: 3px 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-        }
-        .category-position-tooltip li::before {
-            content: '•';
-            color: #60a5fa;
-        }
-        .status-card.info:hover .category-position-tooltip {
-            opacity: 1;
-            visibility: visible;
         }
 
         /* === GRID & CARDS - Clean Professional Style === */
@@ -2818,18 +2730,23 @@
                             <div class="status-card success" id="exposureStatusCard">
                                 <div class="status-label">Laneige 노출 상태</div>
                                 <div class="status-value"><i data-lucide="trending-up" style="width: 24px; height: 24px;"></i><span id="exposureStatusValue">Stable Up</span></div>
-                                <div class="exposure-status-tooltip" id="exposureStatusTooltip">
-                                    <div style="font-weight: 600; margin-bottom: 8px; color: #22c55e;">📈 상태 판단 근거</div>
+                                <div class="status-card-tooltip exposure-status-tooltip" id="exposureStatusTooltip">
+                                    <div style="font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;">📊 노출 상태 기준</div>
+                                    <div style="margin-bottom: 10px; font-size: 10px; line-height: 1.6;">
+                                        <div style="margin-bottom: 4px;"><span style="color: #22c55e; font-weight: 600;">● Stable Up</span> : Top 10 내 3개 이상</div>
+                                        <div style="margin-bottom: 4px;"><span style="color: #3b82f6; font-weight: 600;">● Moderate</span> : Top 10 내 1~2개</div>
+                                        <div><span style="color: #ef4444; font-weight: 600;">● Needs Attention</span> : Top 10 내 0개</div>
+                                    </div>
+                                    <div style="font-weight: 600; margin-bottom: 6px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">📈 현재 상태</div>
                                     <ul id="exposureStatusList">
-                                        <li>Top 10 내 LANEIGE 제품: 3개</li>
-                                        <li>전일 대비: 순위 상승</li>
+                                        <li>Top 10 내 LANEIGE 제품: 로딩중...</li>
                                     </ul>
                                 </div>
                             </div>
                             <div class="status-card info" id="categoryPositionCard">
                                 <div class="status-label">카테고리 포지션</div>
                                 <div class="status-value"><i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i><span id="categoryPositionValue">Top 3</span></div>
-                                <div class="category-position-tooltip" id="categoryPositionTooltip">
+                                <div class="status-card-tooltip category-position-tooltip align-center" id="categoryPositionTooltip">
                                     <div style="font-weight: 600; margin-bottom: 8px; color: #3b82f6;">📊 카테고리별 Top 순위</div>
                                     <ul id="categoryPositionList">
                                         <li>Lip Sleeping Mask - Lip Care 4위</li>
@@ -2840,7 +2757,7 @@
                             <div class="status-card danger" id="warningProductsCard">
                                 <div class="status-label">주의 제품</div>
                                 <div class="status-value"><i data-lucide="alert-octagon" style="width: 24px; height: 24px;"></i><span id="warningCount">2개</span></div>
-                                <div class="warning-tooltip" id="warningTooltip">
+                                <div class="status-card-tooltip warning-tooltip align-right" id="warningTooltip">
                                     <div style="font-weight: 600; margin-bottom: 8px; color: #f59e0b;">⚠️ 주의 필요 제품</div>
                                     <ul id="warningProductsList">
                                         <li>Water Bank Cream - 평점 하락</li>
@@ -6084,7 +6001,85 @@
 
             // 글로벌 날짜 범위 변경 이벤트 리스너 등록
             registerGlobalDateRangeListeners();
+
+            // 툴팁 동적 위치 조정 초기화
+            initTooltipPositioning();
         });
+
+        // ===== 툴팁 동적 위치 조정 =====
+        function initTooltipPositioning() {
+            const statusCards = document.querySelectorAll('.status-card');
+
+            statusCards.forEach(card => {
+                const tooltip = card.querySelector('.status-card-tooltip');
+                if (!tooltip) return;
+
+                card.addEventListener('mouseenter', () => {
+                    adjustTooltipPosition(card, tooltip);
+                });
+            });
+
+            // 윈도우 리사이즈 시 재계산
+            window.addEventListener('resize', () => {
+                const visibleTooltips = document.querySelectorAll('.status-card:hover .status-card-tooltip');
+                visibleTooltips.forEach(tooltip => {
+                    const card = tooltip.closest('.status-card');
+                    if (card) adjustTooltipPosition(card, tooltip);
+                });
+            });
+        }
+
+        function adjustTooltipPosition(card, tooltip) {
+            const cardRect = card.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            // 잠시 표시해서 크기 측정
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
+            tooltip.style.display = 'block';
+            const tooltipRect = tooltip.getBoundingClientRect();
+            tooltip.style.display = '';
+
+            // 기존 정렬 클래스 제거
+            tooltip.classList.remove('align-left', 'align-right', 'align-center');
+
+            // 좌우 경계 체크
+            const leftOverflow = cardRect.left - (tooltipRect.width - cardRect.width) / 2;
+            const rightOverflow = cardRect.right + (tooltipRect.width - cardRect.width) / 2;
+
+            if (leftOverflow < 10) {
+                // 왼쪽 경계에 가까움 - 왼쪽 정렬
+                tooltip.style.left = '0';
+                tooltip.style.right = 'auto';
+                tooltip.style.transform = 'none';
+            } else if (rightOverflow > viewportWidth - 10) {
+                // 오른쪽 경계에 가까움 - 오른쪽 정렬
+                tooltip.classList.add('align-right');
+                tooltip.style.left = 'auto';
+                tooltip.style.right = '0';
+                tooltip.style.transform = 'none';
+            } else {
+                // 중앙 정렬 가능
+                tooltip.classList.add('align-center');
+                tooltip.style.left = '50%';
+                tooltip.style.right = 'auto';
+                tooltip.style.transform = 'translateX(-50%)';
+            }
+
+            // 상단 경계 체크 (툴팁이 위로 넘어가면 아래로)
+            if (cardRect.top - tooltipRect.height < 10) {
+                tooltip.style.bottom = 'auto';
+                tooltip.style.top = '100%';
+                tooltip.style.marginTop = '8px';
+                tooltip.style.marginBottom = '0';
+            } else {
+                tooltip.style.top = 'auto';
+                tooltip.style.bottom = '100%';
+                tooltip.style.marginTop = '0';
+                tooltip.style.marginBottom = '8px';
+            }
+        }
 
         // ===== 글로벌 날짜 범위 변경 이벤트 리스너 등록 =====
         function registerGlobalDateRangeListeners() {
@@ -6709,7 +6704,11 @@
                 const data = await response.json();
 
                 if (data.success && data.brands) {
-                    sosBrandsData = data.brands.filter(b => !b.is_laneige);
+                    // LANEIGE 제외 + Unknown 브랜드 제외
+                    sosBrandsData = data.brands.filter(b =>
+                        !b.is_laneige &&
+                        b.name.toLowerCase() !== 'unknown'
+                    );
                     renderBrandCheckboxList();
                 }
             } catch (error) {
