@@ -813,9 +813,18 @@ class DashboardExporter:
                 "is_laneige": self.LANEIGE_BRAND in brand.lower()
             })
 
-        # SoS 기준 상위 10개만
+        # SoS 기준 상위 10개 + LANEIGE 항상 포함
         brand_matrix.sort(key=lambda x: x["sos"], reverse=True)
-        brand_matrix = brand_matrix[:10]
+
+        # LANEIGE가 상위 10개에 없으면 강제 추가
+        laneige_entry = next((b for b in brand_matrix if b["is_laneige"]), None)
+        top_10 = brand_matrix[:10]
+
+        if laneige_entry and laneige_entry not in top_10:
+            # LANEIGE를 마지막에 추가
+            top_10.append(laneige_entry)
+
+        brand_matrix = top_10
 
         # 카테고리별 KPI 데이터
         category_kpis = {}

@@ -3772,19 +3772,16 @@
         // Dashboard Data (loaded from JSON)
         let dashboardData = null;
 
-        // Default Product Data (fallback)
-        let productData = {
-            'lip-mask-berry': { rank: '#2', rankDelta: '▲ 1위 상승', vol: '12', volDelta: '안정적', rating: '4.5', ratingDelta: '상위 10%', stick: '92', stickDelta: '고착화 높음' },
-            'lip-mask-original': { rank: '#5', rankDelta: '유지', vol: '8', volDelta: '매우 안정', rating: '4.4', ratingDelta: '양호', stick: '88', stickDelta: '높음' },
-            'lip-glowy': { rank: '#12', rankDelta: '▼ 2위 하락', vol: '22', volDelta: '변동성 높음', rating: '4.2', ratingDelta: '평균', stick: '65', stickDelta: '중간' }
-        };
+        // Product Data - API에서 로드 (하드코딩 fallback 제거)
+        let productData = {};
 
+        // Category Products - API에서 로드 (하드코딩 fallback 제거)
         let categoryProducts = {
-            'beauty': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['water-bank', 'Water Bank Blue Cream']],
-            'skin_care': [['water-bank', 'Water Bank Blue Cream'], ['cream-skin', 'Cream Skin Toner']],
-            'lip_care': [['lip-mask-berry', 'Lip Sleeping Mask (Berry)'], ['lip-mask-original', 'Lip Sleeping Mask (Original)'], ['lip-glowy', 'Lip Glowy Balm']],
-            'lip_makeup': [['lip-glowy', 'Lip Glowy Balm'], ['lip-tint', 'Lip Tint']],
-            'face_powder': [['neo-cushion', 'Neo Cushion'], ['skin-veil', 'Skin Veil Base']]
+            'beauty': [],
+            'skin_care': [],
+            'lip_care': [],
+            'lip_makeup': [],
+            'face_powder': []
         };
 
         // 크롤링 상태 관리
@@ -5536,36 +5533,31 @@
             document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
 
-            // 카테고리 ID 매핑 (새로운 5개 카테고리)
+            // 카테고리 ID 매핑 (프론트엔드 탭 ID → 백엔드 category_id)
             const catMap = {
-                'beauty': 'beauty_personal_care',
-                'skin': 'skin_care',
-                'lip': 'lip_care',
-                'lip_makeup': 'lip_makeup',
-                'face_powder': 'face_powder'
+                'beauty': 'beauty',          // Beauty & Personal Care
+                'skin': 'skin_care',         // Skin Care
+                'lip': 'lip_care',           // Lip Care
+                'lip_makeup': 'lip_makeup',  // Lip Makeup
+                'face_powder': 'face_powder' // Face Powder
             };
             const catId = catMap[cat] || cat;
 
-            // JSON 데이터에서 카테고리 KPI 로드
+            // API 데이터에서 카테고리 KPI 로드 (fallback 없이 실제 데이터만 사용)
             let data;
-            if (dashboardData?.charts?.category_kpis?.[catId]) {
-                const catKpi = dashboardData.charts.category_kpis[catId];
+            const catKpi = dashboardData?.charts?.category_kpis?.[catId];
+            if (catKpi) {
                 data = {
-                    sos: catKpi.sos || 0,
-                    rank: '#' + (catKpi.best_rank || 'N/A'),
-                    cpi: catKpi.cpi || 100,
-                    new: catKpi.new_competitors || 0
+                    sos: catKpi.sos ?? 0,
+                    rank: catKpi.best_rank < 999 ? '#' + catKpi.best_rank : '#N/A',
+                    cpi: catKpi.cpi ?? 100,
+                    new: catKpi.new_competitors ?? 0
                 };
+                console.log(`[Category KPI] ${catId}:`, data);
             } else {
-                // Fallback 데이터 (새로운 5개 카테고리)
-                const fallback = {
-                    beauty: { sos: '5.2', rank: '#8', cpi: '105', new: '45' },
-                    skin: { sos: '12.3', rank: '#4', cpi: '108', new: '24' },
-                    lip: { sos: '18.5', rank: '#2', cpi: '112', new: '18' },
-                    lip_makeup: { sos: '8.1', rank: '#6', cpi: '98', new: '22' },
-                    face_powder: { sos: '6.7', rank: '#9', cpi: '115', new: '15' }
-                };
-                data = fallback[cat] || { sos: 0, rank: '#N/A', cpi: 100, new: 0 };
+                // 데이터 없음 - 기본값 (N/A 표시)
+                console.warn(`[Category KPI] No data for ${catId}`);
+                data = { sos: 0, rank: '#N/A', cpi: 100, new: 0 };
             }
 
             document.getElementById('cat-sos').innerHTML = data.sos + '<span class="unit">%</span>';
@@ -5654,7 +5646,8 @@
 
         function updateProductView() {
             const prod = document.getElementById('productSelect').value;
-            const d = productData[prod] || { rank: '#10', rankDelta: '-', vol: '15', volDelta: '-', rating: '4.0', ratingDelta: '-', stick: '70', stickDelta: '-' };
+            // API 데이터 없으면 N/A 표시 (하드코딩 fallback 제거)
+            const d = productData[prod] || { rank: '#N/A', rankDelta: '-', vol: '-', volDelta: '-', rating: '-', ratingDelta: '-', stick: '-', stickDelta: '-' };
             document.getElementById('prod-rank').textContent = d.rank;
             document.getElementById('prod-rank-delta').textContent = d.rankDelta;
             document.getElementById('prod-vol').innerHTML = d.vol + '<span class="unit">pt</span>';
@@ -7277,13 +7270,8 @@
             }
 
             if (pageId === 'brand') {
-                // 브랜드 매트릭스 버블 차트 - JSON 데이터 사용
-                let brandDatasets = [
-                    { label: 'Laneige', data: [{x: 44, y: 53.6, r: 18}], backgroundColor: colors.laneige },
-                    { label: 'Summer Fridays', data: [{x: 32, y: 42, r: 14}], backgroundColor: colors.competitor },
-                    { label: 'Burt\'s Bees', data: [{x: 22, y: 48, r: 12}], backgroundColor: '#ffd700' },
-                    { label: 'EOS', data: [{x: 18, y: 55, r: 10}], backgroundColor: '#ff69b4' }
-                ];
+                // 브랜드 매트릭스 버블 차트 - API 데이터만 사용 (하드코딩 fallback 제거)
+                let brandDatasets = [];
 
                 if (dashboardData?.charts?.brand_matrix && dashboardData.charts.brand_matrix.length > 0) {
                     brandDatasets = dashboardData.charts.brand_matrix.map((brand, idx) => ({
@@ -7300,10 +7288,12 @@
                 // 동적 축 범위 계산 (데이터 분포에 맞게 + 10% 여유)
                 const allSoS = brandDatasets.flatMap(d => d.data.map(p => p.x));
                 const allRanks = brandDatasets.flatMap(d => d.data.map(p => p.y));
-                const sosMin = Math.max(0, Math.min(...allSoS) - 2);
-                const sosMax = Math.min(100, Math.max(...allSoS) * 1.3);  // 30% 여유
-                const rankMin = Math.max(1, Math.min(...allRanks) - 5);
-                const rankMax = Math.min(100, Math.max(...allRanks) + 10);
+
+                // 데이터가 없을 때 기본값 사용
+                const sosMin = allSoS.length > 0 ? Math.max(0, Math.min(...allSoS) - 2) : 0;
+                const sosMax = allSoS.length > 0 ? Math.min(100, Math.max(...allSoS) * 1.3) : 50;
+                const rankMin = allRanks.length > 0 ? Math.max(1, Math.min(...allRanks) - 5) : 1;
+                const rankMax = allRanks.length > 0 ? Math.min(100, Math.max(...allRanks) + 10) : 100;
 
                 // stepSize 계산 (범위에 맞게)
                 const sosRange = sosMax - sosMin;
@@ -7537,13 +7527,8 @@
                     }
                 });
 
-                // 제품 매트릭스 버블 차트 - JSON 데이터 사용
-                let matrixDatasets = [
-                    { label: 'Lip Mask Berry', data: [{x: 2, y: 12, r: 16}], backgroundColor: 'rgba(16,185,129,0.7)' },
-                    { label: 'Lip Mask Original', data: [{x: 5, y: 8, r: 14}], backgroundColor: colors.laneige },
-                    { label: 'Lip Glowy Balm', data: [{x: 12, y: 22, r: 10}], backgroundColor: 'rgba(245,158,11,0.7)' },
-                    { label: 'Water Bank', data: [{x: 8, y: 18, r: 12}], backgroundColor: 'rgba(231,76,60,0.7)' }
-                ];
+                // 제품 매트릭스 버블 차트 - API 데이터만 사용 (하드코딩 fallback 제거)
+                let matrixDatasets = [];
 
                 if (dashboardData?.charts?.product_matrix && dashboardData.charts.product_matrix.length > 0) {
                     matrixDatasets = dashboardData.charts.product_matrix.map(product => ({
@@ -7635,8 +7620,24 @@
                             }
                         },
                         scales: {
-                            y: { title: { display: true, text: '순위변동성 ↑' }, min: 0, max: 45, ticks: { stepSize: 5 }, grid: { color: colors.grid } },
-                            x: { title: { display: true, text: '순위 (← 우수)' }, min: 0, max: 50, ticks: { stepSize: 5 }, grid: { color: colors.grid } }
+                            y: {
+                                title: { display: true, text: '순위변동성 ↑' },
+                                min: 0,
+                                // 데이터 기반 동적 최대값 (데이터 없으면 기본 45)
+                                max: matrixDatasets.length > 0 ?
+                                    Math.ceil(Math.max(...matrixDatasets.flatMap(d => d.data.map(p => p.y))) * 1.2) : 45,
+                                ticks: { stepSize: 5 },
+                                grid: { color: colors.grid }
+                            },
+                            x: {
+                                title: { display: true, text: '순위 (← 우수)' },
+                                min: 0,
+                                // 데이터 기반 동적 최대값 (데이터 없으면 기본 50)
+                                max: matrixDatasets.length > 0 ?
+                                    Math.ceil(Math.max(...matrixDatasets.flatMap(d => d.data.map(p => p.x))) * 1.2) : 50,
+                                ticks: { stepSize: 5 },
+                                grid: { color: colors.grid }
+                            }
                         }
                     }
                 });
