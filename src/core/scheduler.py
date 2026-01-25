@@ -7,7 +7,10 @@ Autonomous Scheduler
 last_run 상태는 파일에 저장되어 서버 재시작 후에도 유지됩니다.
 
 ## 기본 스케줄
-- daily_crawl: 매일 한국시간 06:00 크롤링
+- daily_crawl: 매일 한국시간 22:00 크롤링 (UTC 13:00)
+  - 미국 새벽~아침 시간대 = 트래픽 최저
+  - 미국 피크(7-10 PM EST) 판매가 BSR에 반영된 후 수집
+  - 한국 09:00 업무 시작 전 데이터 준비 완료
 - check_data_freshness: 1시간마다 데이터 신선도 체크
 
 ## 사용 예
@@ -104,14 +107,20 @@ class AutonomousScheduler:
                 logger.debug(f"임시 파일 정리 실패 (무시됨): {e}")
 
     def _load_default_schedules(self):
-        """기본 스케줄 로드"""
+        """기본 스케줄 로드
+
+        크롤링 시간: 22:00 KST (13:00 UTC)
+        - 미국 동부 08:00 EST = 새벽~아침 트래픽 최저
+        - 미국 피크(7-10 PM EST) 판매가 BSR에 완전 반영
+        - 한국 09:00 업무 시작 전 데이터 준비 완료
+        """
         self.schedules = [
             {
                 "id": "daily_crawl",
                 "name": "일일 크롤링",
                 "action": "crawl_workflow",
                 "schedule_type": "daily",
-                "hour": 6,
+                "hour": 22,  # KST 22:00 = UTC 13:00
                 "minute": 0,
                 "enabled": True
             },

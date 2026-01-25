@@ -664,6 +664,32 @@ class OWLReasoner:
             logger.error(f"Failed to get competitors for {brand_name}: {e}")
             return []
 
+    def get_all_brands(self) -> List[Dict[str, Any]]:
+        """
+        모든 브랜드 정보 조회
+
+        Returns:
+            브랜드 정보 리스트
+        """
+        if not OWLREADY2_AVAILABLE:
+            return []
+
+        brands = []
+        try:
+            for brand in self.onto.Brand.instances():
+                brands.append({
+                    "name": brand.name,
+                    "share_of_shelf": brand.share_of_shelf or 0.0,
+                    "average_rank": brand.average_rank,
+                    "product_count": brand.product_count or 0,
+                    "market_position": self._get_brand_position(brand),
+                    "competitors": [c.name for c in brand.competes_with] if brand.competes_with else []
+                })
+            return brands
+        except Exception as e:
+            logger.error(f"Failed to get all brands: {e}")
+            return []
+
     def get_category_brands(self, category_id: str) -> List[Dict[str, Any]]:
         """
         카테고리별 브랜드 조회

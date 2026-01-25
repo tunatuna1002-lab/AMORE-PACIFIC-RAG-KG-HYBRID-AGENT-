@@ -25,6 +25,7 @@ from src.rag.context_builder import ContextBuilder, CompactContextBuilder
 from src.rag.router import RAGRouter, QueryType
 from src.rag.retriever import DocumentRetriever
 from src.rag.templates import ResponseTemplates
+from src.rag.query_rewriter import QueryRewriter, RewriteResult, create_rewrite_result_no_change
 
 from src.memory.context import ContextManager
 
@@ -112,6 +113,9 @@ class HybridChatbotAgent:
         # 마지막 하이브리드 컨텍스트
         self._last_hybrid_context: Optional[HybridContext] = None
 
+        # Query Rewriter (대화 맥락 기반 질문 재구성)
+        self.query_rewriter = QueryRewriter(model=model)
+
     def set_data_context(self, data: Dict[str, Any]) -> None:
         """
         현재 데이터 컨텍스트 설정
@@ -177,12 +181,40 @@ class HybridChatbotAgent:
                     "suggestions": self._get_fallback_suggestions()
                 }
 
+            # 2.5 질문 재구성 (대화 맥락 기반)
+            rewrite_result = await self._maybe_rewrite_query(user_message)
+
+            # 명확화 필요시 바로 반환
+            if rewrite_result.needs_clarification:
+                self.context.add_user_message(user_message)
+                self.context.add_assistant_message(rewrite_result.clarification_message)
+                return {
+                    "response": rewrite_result.clarification_message,
+                    "query_type": "clarification",
+                    "is_fallback": True,
+                    "inferences": [],
+                    "sources": [],
+                    "suggestions": ["특정 브랜드를 지정해주세요", "어떤 지표가 궁금하신가요?", "제품명을 알려주세요"],
+                    "query_info": {
+                        "original": user_message,
+                        "rewritten": None,
+                        "was_rewritten": False,
+                        "needs_clarification": True
+                    }
+                }
+
+            # 재구성된 쿼리 사용 (검색용)
+            search_query = rewrite_result.rewritten_query
+
+            if rewrite_result.was_rewritten:
+                self.logger.info(f"Query rewritten: '{user_message}' -> '{search_query}'")
+
             # 3. 하이브리드 검색 (추론 + RAG)
             if self.tracer:
                 self.tracer.start_span("hybrid_retrieval")
 
             hybrid_context = await self.hybrid_retriever.retrieve(
-                query=user_message,
+                query=search_query,  # 재구성된 쿼리 사용
                 current_metrics=self._current_data,
                 include_explanations=include_reasoning
             )
@@ -266,6 +298,11 @@ class HybridChatbotAgent:
                 "sources": sources,
                 "suggestions": suggestions,
                 "entities": hybrid_context.entities,
+                "query_info": {
+                    "original": user_message,
+                    "rewritten": search_query if rewrite_result.was_rewritten else None,
+                    "was_rewritten": rewrite_result.was_rewritten
+                },
                 "stats": {
                     "inferences_count": len(hybrid_context.inferences),
                     "rag_chunks_count": len(hybrid_context.rag_chunks),
@@ -831,6 +868,36 @@ class HybridChatbotAgent:
     def clear_conversation(self) -> None:
         """대화 기록 초기화"""
         self.context.reset()
+        self.query_rewriter.clear_cache()
+
+    async def _maybe_rewrite_query(self, query: str) -> RewriteResult:
+        """
+        필요시 질문 재구성 (대화 맥락 기반)
+
+        후속 질문에서 지시어(그것, 그 제품, 해당 등)를 이전 대화 맥락을 참조하여
+        구체적인 대상으로 치환합니다.
+
+        최적화:
+        1. 대화 히스토리가 없으면 스킵
+        2. 지시어가 없으면 스킵 (LLM 호출 절약)
+
+        Args:
+            query: 사용자 질문
+
+        Returns:
+            RewriteResult 객체
+        """
+        # 대화 히스토리가 없으면 스킵
+        history = self.context.get_conversation_history(limit=3)
+        if not history:
+            return create_rewrite_result_no_change(query)
+
+        # 지시어가 없으면 스킵 (LLM 호출 절약)
+        if not self.query_rewriter.needs_rewrite(query):
+            return create_rewrite_result_no_change(query)
+
+        # LLM으로 재구성
+        return await self.query_rewriter.rewrite(query, history)
 
     def get_last_hybrid_context(self) -> Optional[HybridContext]:
         """마지막 하이브리드 컨텍스트"""

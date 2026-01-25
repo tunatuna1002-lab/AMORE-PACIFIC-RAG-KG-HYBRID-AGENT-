@@ -8,6 +8,7 @@ from .retriever import DocumentRetriever
 from .templates import ResponseTemplates
 from .hybrid_retriever import HybridRetriever, EntityExtractor, HybridContext
 from .context_builder import ContextBuilder, CompactContextBuilder, ContextSection
+from .query_rewriter import QueryRewriter, RewriteResult, create_rewrite_result_no_change
 
 __all__ = [
     # Legacy RAG
@@ -20,5 +21,9 @@ __all__ = [
     "HybridContext",
     "ContextBuilder",
     "CompactContextBuilder",
-    "ContextSection"
+    "ContextSection",
+    # Query Rewriting
+    "QueryRewriter",
+    "RewriteResult",
+    "create_rewrite_result_no_change",
 ]

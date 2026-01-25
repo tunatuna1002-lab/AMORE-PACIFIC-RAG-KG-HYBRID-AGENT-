@@ -992,7 +992,7 @@ class UnifiedBrain:
 
         await self.scheduler.start(_handle_scheduled_task)
         self.mode = BrainMode.AUTONOMOUS
-        logger.info("Autonomous scheduler started (KST 06:00 daily crawl)")
+        logger.info("Autonomous scheduler started (KST 22:00 daily crawl = UTC 13:00)")
 
     def stop_scheduler(self) -> None:
         """자율 스케줄러 중지"""

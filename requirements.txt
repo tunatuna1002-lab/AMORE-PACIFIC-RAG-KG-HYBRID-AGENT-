@@ -14,6 +14,11 @@ openai>=1.30.0
 # Web Scraping
 playwright>=1.40.0
 
+# Anti-Bot / Stealth Mode
+playwright-stealth>=1.0.6
+browserforge>=1.0.0
+fake-useragent>=1.4.0
+
 # Google Sheets API
 google-api-python-client>=2.100.0
 google-auth-httplib2>=0.2.0
