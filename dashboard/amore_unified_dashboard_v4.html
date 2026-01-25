@@ -5424,25 +5424,37 @@
 
                     if (laneigeData && competitorData) {
                         // CPI 계산: (LANEIGE 가격 / 경쟁사 가격) * 100
+                        // 모든 날짜를 labels에 추가하고, 데이터 없는 날은 null로 처리
                         const cpiData = [];
                         const labels = [];
                         let missingDates = 0;
+                        let validDates = 0;
+                        let firstValidDate = null;
+                        let lastValidDate = null;
 
                         dates.forEach(date => {
                             const lPrice = laneigeData.prices[date];
                             const cPrice = competitorData.prices[date];
+                            const dateLabel = date.slice(5); // MM-DD
+                            labels.push(dateLabel);
+
                             if (lPrice && lPrice > 0 && cPrice && cPrice > 0) {
                                 const cpi = (lPrice / cPrice) * 100;
-                                cpiData.push(cpi.toFixed(1));
-                                labels.push(date.slice(5)); // MM-DD
+                                cpiData.push(parseFloat(cpi.toFixed(1)));
+                                validDates++;
+                                if (!firstValidDate) firstValidDate = dateLabel;
+                                lastValidDate = dateLabel;
                             } else {
+                                cpiData.push(null); // 차트에서 gap으로 표시
                                 missingDates++;
                             }
                         });
 
-                        if (cpiData.length > 0) {
-                            const actualRange = `${labels[0]} ~ ${labels[labels.length-1]}`;
-                            updateCpiChart(labels, cpiData, selectedLaneige, selectedCompetitor, competitorData.brand, actualRange, missingDates);
+                        console.log('[CPI] Total dates:', dates.length, '| Valid:', validDates, '| Missing:', missingDates);
+
+                        if (validDates > 0) {
+                            const actualRange = `${firstValidDate} ~ ${lastValidDate}`;
+                            updateCpiChart(labels, cpiData, selectedLaneige, selectedCompetitor, competitorData.brand, actualRange, missingDates, dates.length, validDates);
                         } else {
                             const infoEl = document.getElementById('cpi-comparison-info');
                             if (infoEl) {
@@ -5463,7 +5475,7 @@
             }
         }
 
-        function updateCpiChart(labels, data, laneigeName, competitorName, competitorBrand, actualRange = '', missingDates = 0) {
+        function updateCpiChart(labels, data, laneigeName, competitorName, competitorBrand, actualRange = '', missingDates = 0, totalDates = 0, validDates = 0) {
             const ctx = document.getElementById('cpiChart');
             if (!ctx) return;
 
@@ -5475,10 +5487,10 @@
             const shortLaneige = laneigeName.length > 25 ? laneigeName.substring(0, 25) + '...' : laneigeName;
             const shortCompetitor = competitorName.length > 25 ? competitorName.substring(0, 25) + '...' : competitorName;
 
-            // Y축 스케일: 100을 정확히 가운데로 배치
-            const numericData = data.map(Number);
-            const dataMax = Math.max(...numericData);
-            const dataMin = Math.min(...numericData);
+            // Y축 스케일: 100을 정확히 가운데로 배치 (null 값 제외)
+            const numericData = data.filter(v => v !== null).map(Number);
+            const dataMax = numericData.length > 0 ? Math.max(...numericData) : 130;
+            const dataMin = numericData.length > 0 ? Math.min(...numericData) : 70;
 
             // 100에서 가장 멀리 떨어진 값 기준으로 대칭 범위 설정
             const maxDeviation = Math.max(
@@ -5501,12 +5513,23 @@
                             borderColor: '#1F5795',
                             backgroundColor: 'rgba(31, 87, 149, 0.15)',
                             borderWidth: 2.5,
-                            fill: true,
+                            fill: false, // null 값이 있을 때 fill 비활성화
                             tension: 0.3,
-                            pointRadius: 5,
+                            spanGaps: false, // null 값에서 선 끊기
+                            pointRadius: function(context) {
+                                // null 값은 포인트 숨김
+                                return context.raw === null ? 0 : 5;
+                            },
                             pointBackgroundColor: '#1F5795',
                             pointBorderColor: '#fff',
-                            pointBorderWidth: 2
+                            pointBorderWidth: 2,
+                            segment: {
+                                // 데이터가 끊어진 구간 전후는 점선으로 표시
+                                borderDash: ctx => {
+                                    if (ctx.p0.skip || ctx.p1.skip) return [5, 5];
+                                    return undefined;
+                                }
+                            }
                         },
                         {
                             label: '기준선 (100)',
@@ -5528,10 +5551,15 @@
                             labels: { font: { size: 11 } }
                         },
                         tooltip: {
+                            filter: function(tooltipItem) {
+                                // null 값은 툴팁에서 제외
+                                return tooltipItem.raw !== null;
+                            },
                             callbacks: {
                                 label: function(context) {
                                     if (context.datasetIndex === 0) {
                                         const cpi = context.parsed.y;
+                                        if (cpi === null) return null;
                                         const diff = (cpi - 100).toFixed(1);
                                         const status = cpi >= 100 ? `+${diff} 프리미엄` : `${diff} 저가`;
                                         return `CPI: ${cpi} (${status})`;
@@ -5569,24 +5597,36 @@
                             }
                         },
                         x: {
-                            ticks: { font: { size: 11 } }
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 15 // 너무 많은 날짜는 자동 생략
+                            }
                         }
                     }
                 }
             });
 
-            // 정보 업데이트
+            // 정보 업데이트 (개선된 표시)
             const infoEl = document.getElementById('cpi-comparison-info');
             if (infoEl) {
-                const avgCpi = (data.reduce((a, b) => a + parseFloat(b), 0) / data.length).toFixed(1);
+                // null 값 제외하고 평균 계산
+                const validData = data.filter(v => v !== null);
+                const avgCpi = validData.length > 0
+                    ? (validData.reduce((a, b) => a + parseFloat(b), 0) / validData.length).toFixed(1)
+                    : 100;
                 const diff = (avgCpi - 100).toFixed(1);
                 const status = avgCpi >= 100 ? `프리미엄 (+${diff}%)` : `저가 (${diff}%)`;
                 let info = `📊 <strong>비교:</strong> ${shortLaneige} vs ${competitorBrand} (${shortCompetitor}) | <strong>평균 CPI:</strong> ${avgCpi} (${status})`;
                 if (actualRange) {
                     info += ` | <strong>데이터 기간:</strong> ${actualRange}`;
                 }
-                if (missingDates > 0) {
-                    info += ` <span style="color: #C4A962;">(${missingDates}일 데이터 누락)</span>`;
+                // 개선된 누락 정보 표시
+                if (totalDates > 0 && validDates > 0 && validDates < totalDates) {
+                    const coverage = ((validDates / totalDates) * 100).toFixed(0);
+                    info += ` <span style="color: #C4A962;">(${validDates}일/${totalDates}일 데이터, ${coverage}% 커버리지)</span>`;
                 }
                 infoEl.innerHTML = info;
             }
