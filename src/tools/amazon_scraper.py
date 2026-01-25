@@ -681,35 +681,97 @@ class AmazonScraper:
                 return cached_brand
 
         # 2. 두 단어 이상 브랜드 먼저 체크 (순서 중요!)
+        # Amazon Top 100 Beauty 기준 브랜드 목록 (2024-2025 기준)
         multi_word_brands = [
-            "Summer Fridays", "Rare Beauty", "La Roche-Posay",
-            "Beauty of Joseon", "Tower 28", "Drunk Elephant",
-            "Paula's Choice", "The Ordinary", "Glow Recipe",
-            "Youth To The People", "Kiehl's", "Tatcha",
-            "Fresh", "Olehenriksen", "Origins",
-            "Peter Thomas Roth", "Sunday Riley", "Supergoop",
-            "First Aid Beauty", "IT Cosmetics", "Bobbi Brown",
+            # === K-Beauty ===
+            "Beauty of Joseon", "SKIN1004", "Thank You Farmer",
+            "I'm From", "I DEW CARE", "Some By Mi", "By Wishtrend",
+            "Dear Klairs", "Sulwhasoo", "Amore Pacific",
+            # === Premium Skincare ===
+            "La Roche-Posay", "Drunk Elephant", "Paula's Choice",
+            "The Ordinary", "Glow Recipe", "Youth To The People",
+            "Peter Thomas Roth", "Sunday Riley", "First Aid Beauty",
+            "Sol de Janeiro", "Clean Skin Club", "Hero Cosmetics",
+            "Summer Fridays", "Rare Beauty", "Tower 28",
+            # === Classic Luxury ===
+            "Kiehl's", "Tatcha", "Fresh", "Olehenriksen", "Origins",
+            "Clinique", "Estee Lauder", "Lancome", "Shiseido",
+            "SK-II", "Elizabeth Arden", "Clarins", "Dermalogica",
+            # === Makeup Premium ===
             "Charlotte Tilbury", "Too Faced", "Urban Decay",
             "Fenty Beauty", "Huda Beauty", "Anastasia Beverly Hills",
-            "Benefit Cosmetics", "MAC Cosmetics", "NARS",
-            "Clinique", "Estee Lauder", "Lancome"
+            "Benefit Cosmetics", "MAC Cosmetics", "IT Cosmetics",
+            "Bobbi Brown", "Laura Mercier", "Bare Minerals",
+            "Kylie Cosmetics", "KVD Vegan Beauty",
+            # === Sunscreen/Derm ===
+            "EltaMD", "Supergoop", "La Roche Posay", "Blue Lizard",
+            "Banana Boat", "Sun Bum", "Australian Gold",
+            # === Hair Care ===
+            "Mielle Organics", "Olaplex", "Moroccanoil", "Aussie",
+            "OGX", "Not Your Mother's", "Bed Head", "Living Proof",
+            "Briogeo", "Verb", "Color Wow", "Pureology",
+            # === Body Care ===
+            "Tree Hut", "Necessaire", "Soap & Glory", "Jergens",
+            "Gold Bond", "Eucerin", "Aquaphor", "Lubriderm",
+            # === Fragrance ===
+            "Bath & Body Works", "Victoria's Secret",
+            # === Misc ===
+            "NARS", "Burt's Bees", "e.l.f. Cosmetics"
         ]
 
         for brand in multi_word_brands:
             if brand.lower() in product_name.lower():
                 return brand
 
-        # 단일 단어 브랜드
+        # 단일 단어 브랜드 (대소문자 구분 없이 매칭)
         single_word_brands = [
-            "LANEIGE", "Laneige", "COSRX", "TIRTIR",
-            "e.l.f.", "NYX", "Maybelline", "L'Oreal", "Neutrogena",
-            "CeraVe", "SKIN1004", "Anua", "MEDICUBE", "medicube",
+            # === K-Beauty ===
+            "LANEIGE", "Laneige", "COSRX", "TIRTIR", "Anua", "ANUA",
             "BIODANCE", "Innisfree", "MISSHA", "ETUDE", "SKINFOOD",
             "Benton", "Purito", "Klairs", "Heimish", "Isntree",
-            "Rovectin", "Torriden", "mixsoon", "Numbuzin",
+            "Rovectin", "Torriden", "mixsoon", "Numbuzin", "Haruharu",
+            "Neogen", "Mediheal", "Banila", "Holika", "Peripera",
+            "Romand", "Espoir", "Clio", "Moonshot", "Hera", "Sulwhasoo",
+            "MEDICUBE", "medicube", "SKIN1004", "Abib", "Round Lab",
+            # === Drugstore US ===
+            "CeraVe", "Neutrogena", "Cetaphil", "Aveeno", "Olay",
+            "Garnier", "Nivea", "Vaseline", "Dove", "Pond's",
+            "Differin", "Bioderma", "Vichy", "Vanicream",
+            # === Makeup Drugstore ===
+            "e.l.f.", "elf", "NYX", "Maybelline", "L'Oreal", "Loreal",
             "Revlon", "Covergirl", "Milani", "ColourPop", "Morphe",
-            "Tarte", "Smashbox", "Hourglass", "Glossier",
-            "Cetaphil", "Aveeno", "Olay", "Garnier", "Nivea"
+            "Wet n Wild", "Almay", "Rimmel", "Physicians Formula",
+            "Essence", "Catrice", "Makeup Revolution",
+            # === Makeup Premium ===
+            "Tarte", "Smashbox", "Hourglass", "Glossier", "Nars",
+            "Stila", "Becca", "Jouer", "Natasha Denona",
+            # === Skincare Prestige ===
+            "TruSkin", "InstaNatural", "Murad", "Obagi", "SkinMedica",
+            "iS Clinical", "SkinCeuticals", "Alastin", "ZO Skin",
+            # === Hair ===
+            "Olaplex", "Nizoral", "Mielle", "OGX", "TRESemme",
+            "Pantene", "Herbal Essences", "Aussie", "Suave",
+            "Head & Shoulders", "Redken", "Kerastase", "Aveda",
+            "CHI", "Kenra", "Joico", "Sebastian", "Matrix",
+            "Nioxin", "Nutrafol", "Vegamour", "Rogaine",
+            # === Body/Bath ===
+            "Jergens", "Eucerin", "Aquaphor", "Lubriderm",
+            "Palmer's", "Aveeno", "Curel", "Vanicream",
+            "Lottabody", "Cantu", "SheaMoisture",
+            # === Lip Care ===
+            "Aquaphor", "Blistex", "Chapstick", "Carmex", "Burt's Bees",
+            "eos", "Laneige", "Tatcha",
+            # === Tools/Accessories ===
+            "Revlon", "Conair", "Remington", "Hot Tools",
+            "BaByliss", "T3", "Dyson", "GHD",
+            # === Nails ===
+            "OPI", "Essie", "Sally Hansen", "ORLY", "Zoya",
+            # === Men's ===
+            "Gillette", "Nivea", "Jack Black", "Bulldog",
+            "Duke Cannon", "Every Man Jack", "Cremo",
+            # === Specialty ===
+            "Sacheu", "Patchology", "Starface", "ZitSticka",
+            "Peace Out", "Bliss", "Mario Badescu", "Origins"
         ]
 
         for brand in single_word_brands:
