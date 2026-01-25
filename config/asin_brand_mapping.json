@@ -1,0 +1,6 @@
+{
+  "version": "1.0",
+  "updated_at": "2025-01-25T00:00:00Z",
+  "description": "ASIN → Brand 검증된 매핑. 크롤링 시 우선 참조, Unknown 브랜드는 배치로 검증 후 추가",
+  "mappings": {}
+}

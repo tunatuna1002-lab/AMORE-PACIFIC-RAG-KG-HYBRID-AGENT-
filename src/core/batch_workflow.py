@@ -286,6 +286,52 @@ class BatchWorkflow:
             )
         return self._dashboard_exporter
 
+    async def _verify_unknown_brands(self) -> Dict[str, Any]:
+        """
+        Unknown 브랜드 배치 검증 (크롤링 후 처리)
+
+        크롤링 결과에서 brand="Unknown"인 제품들을 추출하여
+        Amazon 상세 페이지 또는 웹검색으로 브랜드 확정
+        """
+        try:
+            from src.tools.brand_resolver import get_brand_resolver
+
+            # 크롤링 결과에서 제품 목록 추출
+            crawl_result = self._state.get("crawl_result", {})
+            all_products = []
+
+            categories = crawl_result.get("categories", {})
+            for cat_id, cat_data in categories.items():
+                products = cat_data.get("products", [])
+                all_products.extend(products)
+
+            if not all_products:
+                self.logger.info("No products to verify brands")
+                return {"verified_count": 0, "skipped": True}
+
+            # Unknown 브랜드 검증
+            resolver = get_brand_resolver()
+            result = await resolver.verify_unknown_brands(
+                products=all_products,
+                use_amazon=True,
+                use_websearch=True,
+                delay_seconds=3.0  # Amazon 차단 방지
+            )
+
+            self.logger.info(
+                f"Brand verification: {result['verified_count']} verified, "
+                f"{result['failed_count']} failed, {result['skipped_count']} skipped"
+            )
+
+            return result
+
+        except ImportError:
+            self.logger.warning("BrandResolver not available")
+            return {"verified_count": 0, "error": "BrandResolver not available"}
+        except Exception as e:
+            self.logger.error(f"Brand verification failed: {e}")
+            return {"verified_count": 0, "error": str(e)}
+
     # =========================================================================
     # 워크플로우 실행
     # =========================================================================
@@ -576,11 +622,16 @@ class BatchWorkflow:
                 result = await self.dashboard_exporter.export_dashboard_data(
                     "./data/dashboard_data.json"
                 )
+
+                # Unknown 브랜드 배치 검증 (크롤링 후 처리)
+                brand_verify_result = await self._verify_unknown_brands()
+
                 return ActResult(action=action, success=True, result={
                     "exported": True,
                     "path": "./data/dashboard_data.json",
                     "products": result.get("metadata", {}).get("total_products", 0),
-                    "laneige_count": result.get("metadata", {}).get("laneige_products", 0)
+                    "laneige_count": result.get("metadata", {}).get("laneige_products", 0),
+                    "brands_verified": brand_verify_result.get("verified_count", 0)
                 })
 
             elif action == "skip":

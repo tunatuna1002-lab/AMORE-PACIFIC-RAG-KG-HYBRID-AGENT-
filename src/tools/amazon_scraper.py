@@ -52,10 +52,30 @@ import re
 import logging
 from datetime import date, datetime, timezone, timedelta
 from typing import List, Dict, Optional, Any
-from playwright.async_api import async_playwright, Page, Browser, TimeoutError as PlaywrightTimeout
+from playwright.async_api import async_playwright, Page, Browser, BrowserContext, TimeoutError as PlaywrightTimeout
 import json
 import os
 import random
+
+# Anti-bot / Stealth mode packages
+try:
+    from playwright_stealth import stealth_async
+    STEALTH_AVAILABLE = True
+except ImportError:
+    STEALTH_AVAILABLE = False
+
+try:
+    from browserforge.headers import HeaderGenerator
+    from browserforge.fingerprints import FingerprintGenerator
+    BROWSERFORGE_AVAILABLE = True
+except ImportError:
+    BROWSERFORGE_AVAILABLE = False
+
+try:
+    from fake_useragent import UserAgent
+    FAKE_UA_AVAILABLE = True
+except ImportError:
+    FAKE_UA_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +83,51 @@ logger = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
 
 from src.domain.entities import RankRecord
+
+
+class CircuitBreaker:
+    """연속 실패 시 자동 중단하는 회로 차단기"""
+
+    def __init__(self, threshold: int = 3, reset_minutes: int = 30):
+        self.threshold = threshold
+        self.reset_minutes = reset_minutes
+        self.failures = 0
+        self.last_failure: Optional[datetime] = None
+        self.is_open = False
+
+    def record_failure(self) -> None:
+        """실패 기록"""
+        self.failures += 1
+        self.last_failure = datetime.now()
+
+        if self.failures >= self.threshold:
+            self.is_open = True
+            logger.error(f"Circuit breaker OPEN after {self.failures} consecutive failures")
+
+    def record_success(self) -> None:
+        """성공 시 리셋"""
+        self.failures = 0
+        self.is_open = False
+
+    def can_proceed(self) -> bool:
+        """진행 가능 여부 확인"""
+        if not self.is_open:
+            return True
+
+        # 리셋 시간 확인
+        if self.last_failure:
+            elapsed = (datetime.now() - self.last_failure).total_seconds() / 60
+            if elapsed >= self.reset_minutes:
+                self.is_open = False
+                self.failures = 0
+                logger.info("Circuit breaker reset after timeout")
+                return True
+
+        return False
+
+    def get_backoff_seconds(self) -> int:
+        """지수 백오프 시간 계산"""
+        return min(60 * (2 ** (self.failures - 1)), 600)  # 최대 10분
 
 
 class AmazonScraper:
@@ -78,6 +143,21 @@ class AmazonScraper:
         self.delay_seconds = float(os.getenv("SCRAPE_DELAY_SECONDS", "2"))
         self.browser: Optional[Browser] = None
 
+        # Anti-bot 도구 초기화
+        self.ua = UserAgent(browsers=['chrome', 'firefox', 'edge']) if FAKE_UA_AVAILABLE else None
+        self.header_generator = HeaderGenerator() if BROWSERFORGE_AVAILABLE else None
+        self.fingerprint_generator = FingerprintGenerator() if BROWSERFORGE_AVAILABLE else None
+
+        # 회로 차단기
+        self.circuit_breaker = CircuitBreaker(threshold=3, reset_minutes=30)
+
+        # 브랜드 매핑 resolver (캐시된 ASIN→Brand 조회)
+        try:
+            from src.tools.brand_resolver import get_brand_resolver
+            self.brand_resolver = get_brand_resolver()
+        except ImportError:
+            self.brand_resolver = None
+
     def _load_config(self, config_path: str) -> dict:
         """설정 파일 로드"""
         try:
@@ -87,21 +167,124 @@ class AmazonScraper:
             return {"categories": {}}
 
     async def initialize(self) -> None:
-        """브라우저 초기화"""
+        """브라우저 초기화 (Stealth 모드)"""
         playwright = await async_playwright().start()
         self.browser = await playwright.chromium.launch(
             headless=True,
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
-                "--disable-dev-shm-usage"
+                "--disable-dev-shm-usage",
+                "--disable-infobars",
+                "--disable-extensions",
+                "--disable-features=IsolateOrigins,site-per-process",
             ]
         )
+        logger.info(f"Browser initialized (Stealth: {STEALTH_AVAILABLE}, BrowserForge: {BROWSERFORGE_AVAILABLE})")
 
     async def close(self) -> None:
         """브라우저 종료"""
         if self.browser:
             await self.browser.close()
+
+    async def _create_stealth_context(self) -> BrowserContext:
+        """Stealth 모드가 적용된 브라우저 컨텍스트 생성"""
+        # 실제 브라우저 핑거프린트 생성
+        viewport_width = random.randint(1200, 1920)
+        viewport_height = random.randint(800, 1080)
+
+        # User-Agent 선택
+        if self.ua:
+            user_agent = self.ua.random
+        else:
+            user_agent = self._get_random_user_agent()
+
+        # 헤더 생성
+        extra_headers = {
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Cache-Control": "max-age=0",
+            "sec-ch-ua": '"Chromium";v="120", "Not A(Brand";v="99"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        }
+
+        if self.header_generator:
+            try:
+                generated = self.header_generator.generate(browser='chrome', os='windows')
+                if generated:
+                    extra_headers.update({
+                        k: v for k, v in generated.items()
+                        if k.lower() not in ['host', 'content-length', 'content-type']
+                    })
+            except Exception as e:
+                logger.debug(f"Header generation failed: {e}")
+
+        context = await self.browser.new_context(
+            user_agent=user_agent,
+            viewport={"width": viewport_width, "height": viewport_height},
+            locale="en-US",
+            timezone_id="America/New_York",  # 미국 동부 시간대
+            geolocation={"longitude": -73.935242, "latitude": 40.730610},  # NYC
+            permissions=["geolocation"],
+            extra_http_headers=extra_headers
+        )
+
+        return context
+
+    async def _create_stealth_page(self, context: BrowserContext) -> Page:
+        """Stealth 모드가 적용된 페이지 생성"""
+        page = await context.new_page()
+
+        # Stealth 적용 (navigator.webdriver 제거, HeadlessChrome 숨김 등)
+        if STEALTH_AVAILABLE:
+            try:
+                await stealth_async(page)
+            except Exception as e:
+                logger.debug(f"Stealth application failed: {e}")
+
+        return page
+
+    async def _simulate_human_behavior(self, page: Page) -> None:
+        """인간처럼 행동하는 시뮬레이션"""
+        try:
+            # 1. 랜덤 스크롤
+            scroll_amount = random.randint(100, 500)
+            await page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+            await asyncio.sleep(random.uniform(0.5, 1.5))
+
+            # 2. 마우스 움직임 (랜덤 좌표)
+            x = random.randint(100, 800)
+            y = random.randint(100, 600)
+            await page.mouse.move(x, y)
+            await asyncio.sleep(random.uniform(0.3, 0.8))
+
+            # 3. 랜덤 대기 (읽는 척)
+            await asyncio.sleep(random.uniform(1, 3))
+
+        except Exception as e:
+            logger.debug(f"Human behavior simulation failed: {e}")
+
+    async def _random_delay_advanced(self, delay_type: str = "base") -> None:
+        """더 자연스러운 랜덤 딜레이 (안티봇용)"""
+        delays = {
+            "base": (5, 3),      # 5-8초
+            "detail": (8, 4),    # 8-12초
+            "page": (12, 3),     # 12-15초
+            "category": (45, 15) # 45-60초
+        }
+        base, jitter = delays.get(delay_type, (5, 3))
+
+        # 가끔 더 긴 딜레이 (인간처럼) - 10% 확률
+        if random.random() < 0.1:
+            base *= 2
+
+        delay = base + random.uniform(0, jitter)
+        logger.debug(f"Waiting {delay:.1f}s ({delay_type})")
+        await asyncio.sleep(delay)
 
     async def scrape_category(self, category_id: str, category_url: str) -> Dict[str, Any]:
         """
@@ -298,8 +481,8 @@ class AmazonScraper:
             product_name = await name_elem.inner_text() if name_elem else "Unknown"
             product_name = product_name.strip()
 
-            # 브랜드 추출 (제품명에서 추출 시도)
-            brand = self._extract_brand(product_name)
+            # 브랜드 추출 (ASIN 매핑 우선, 제품명에서 추출 fallback)
+            brand = self._extract_brand(product_name, asin=asin)
 
             # 가격 (현재 판매가) - 더 구체적인 선택자 사용
             price = None
@@ -483,13 +666,21 @@ class AmazonScraper:
         except Exception:
             return None
 
-    def _extract_brand(self, product_name: str) -> str:
+    def _extract_brand(self, product_name: str, asin: str = None) -> str:
         """제품명에서 브랜드 추출
 
-        브랜드 목록은 config/brands.json에서 로드하며,
-        없을 경우 기본 목록 사용
+        우선순위:
+        1. ASIN→Brand 매핑 테이블 조회 (캐시)
+        2. 하드코딩된 브랜드 리스트 매칭
+        3. Unknown 반환 (나중에 배치 검증)
         """
-        # 두 단어 이상 브랜드 먼저 체크 (순서 중요!)
+        # 1. ASIN 매핑 테이블에서 캐시된 브랜드 조회
+        if asin and self.brand_resolver:
+            cached_brand = self.brand_resolver.get_brand(asin)
+            if cached_brand:
+                return cached_brand
+
+        # 2. 두 단어 이상 브랜드 먼저 체크 (순서 중요!)
         multi_word_brands = [
             "Summer Fridays", "Rare Beauty", "La Roche-Posay",
             "Beauty of Joseon", "Tower 28", "Drunk Elephant",
@@ -636,37 +827,48 @@ class AmazonScraper:
 
     async def scrape_product_by_asin(self, asin: str, metadata: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
         """
-        개별 ASIN으로 상품 페이지 크롤링 (경쟁사 추적용)
+        개별 ASIN으로 상품 상세 페이지 크롤링 (할인 정보 포함)
 
         Args:
             asin: Amazon ASIN
             metadata: 추가 메타데이터 (brand, category, product_type 등)
 
         Returns:
-            상품 정보 딕셔너리 또는 None
+            상품 정보 딕셔너리 (할인 정보 포함) 또는 None
         """
-        if not self._initialized:
+        # 버그 수정: _initialized → self.browser
+        if not self.browser:
             await self.initialize()
+
+        # 회로 차단기 확인
+        if not self.circuit_breaker.can_proceed():
+            logger.warning(f"Circuit breaker is OPEN - skipping ASIN {asin}")
+            return None
 
         url = f"https://www.amazon.com/dp/{asin}"
         today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
 
+        context = None
         try:
-            page = await self.browser.new_page()
-            await page.set_extra_http_headers({
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            })
+            # Stealth 컨텍스트 생성
+            context = await self._create_stealth_context()
+            page = await self._create_stealth_page(context)
 
-            await self._random_delay()
+            # 인간 행동 시뮬레이션 + 딜레이
+            await self._random_delay_advanced("detail")
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await self._simulate_human_behavior(page)
 
+            # 차단 확인
             if await self._is_blocked(page):
+                self.circuit_breaker.record_failure()
                 logger.warning(f"Blocked while scraping ASIN: {asin}")
-                await page.close()
+                await context.close()
                 return None
 
-            # 상품 정보 추출
+            self.circuit_breaker.record_success()
+
+            # 상품 정보 추출 (할인 정보 포함)
             product_data = await page.evaluate("""() => {
                 const data = {};
 
@@ -678,33 +880,80 @@ class AmazonScraper:
                 const brandEl = document.querySelector('#bylineInfo');
                 if (brandEl) {
                     const brandText = brandEl.textContent.trim();
-                    // "Visit the Summer Fridays Store" or "Brand: Summer Fridays"
                     const visitMatch = brandText.match(/Visit the (.+?) Store/);
-                    const brandMatch = brandText.match(/Brand:\s*(.+)/);
+                    const brandMatch = brandText.match(/Brand:\\s*(.+)/);
                     data.brand = visitMatch ? visitMatch[1] : (brandMatch ? brandMatch[1].trim() : brandText);
                 } else {
                     data.brand = '';
                 }
 
-                // 가격 (여러 위치 시도)
+                // 현재가
                 const priceSelectors = [
+                    '#corePrice_feature_div .a-price .a-offscreen',
                     '.a-price .a-offscreen',
                     '#priceblock_ourprice',
-                    '#priceblock_dealprice',
-                    '.a-price-whole',
-                    '#corePrice_feature_div .a-offscreen'
+                    '#priceblock_dealprice'
                 ];
                 for (const sel of priceSelectors) {
-                    const priceEl = document.querySelector(sel);
-                    if (priceEl && priceEl.textContent.includes('$')) {
-                        data.price_text = priceEl.textContent.trim();
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent.includes('$')) {
+                        data.price_text = el.textContent.trim();
                         break;
                     }
                 }
 
+                // === 할인 정보 (핵심 추가) ===
+
+                // 정가 (취소선 가격)
+                const listPriceSelectors = [
+                    '.basisPrice .a-offscreen',
+                    '#listPrice',
+                    '.a-text-price[data-a-strike] .a-offscreen',
+                    'span[data-a-strike="true"] .a-offscreen',
+                    '#priceblock_listprice'
+                ];
+                for (const sel of listPriceSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent.includes('$')) {
+                        data.list_price_text = el.textContent.trim();
+                        break;
+                    }
+                }
+
+                // 할인율 (직접 표시)
+                const savingsEl = document.querySelector('#savingsPercentage');
+                data.savings_percent = savingsEl ? savingsEl.textContent.trim() : '';
+
+                // 쿠폰
+                const couponSelectors = [
+                    '#promoPriceBlockMessage_feature_div .a-color-success',
+                    '#vpcButton',
+                    '.couponBadge',
+                    '[data-csa-c-content-id="coupon"]'
+                ];
+                for (const sel of couponSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent.toLowerCase().includes('coupon')) {
+                        data.coupon_text = el.textContent.trim();
+                        break;
+                    }
+                }
+
+                // Subscribe & Save
+                const snsEl = document.querySelector('#sns-base-price, #snsPrice, .sns-price');
+                data.has_subscribe_save = !!snsEl;
+
+                // 프로모션 배지
+                const badges = [];
+                if (document.querySelector('.dealBadge')) badges.push('Deal');
+                if (document.querySelector('.a-badge-limited-time-deal')) badges.push('Limited Time Deal');
+                if (document.body.textContent.includes('Lightning Deal')) badges.push('Lightning Deal');
+                if (document.body.textContent.includes('Prime Day')) badges.push('Prime Day Deal');
+                data.promo_badges = badges.join(', ');
+
                 // 평점
                 const ratingEl = document.querySelector('#acrPopover');
-                data.rating_text = ratingEl ? ratingEl.getAttribute('title') || ratingEl.textContent.trim() : '';
+                data.rating_text = ratingEl ? (ratingEl.getAttribute('title') || ratingEl.textContent.trim()) : '';
 
                 // 리뷰 수
                 const reviewsEl = document.querySelector('#acrCustomerReviewText');
@@ -721,7 +970,7 @@ class AmazonScraper:
                 return data;
             }""")
 
-            await page.close()
+            await context.close()
 
             if not product_data.get('product_name'):
                 logger.warning(f"Failed to parse product page for ASIN: {asin}")
@@ -730,12 +979,24 @@ class AmazonScraper:
             # 메타데이터 병합
             meta = metadata or {}
 
+            # 할인율 파싱
+            discount_percent = None
+            if product_data.get('savings_percent'):
+                match = re.search(r'(\d+)%', product_data['savings_percent'])
+                if match:
+                    discount_percent = float(match.group(1))
+
             result = {
                 "snapshot_date": today,
                 "asin": asin,
                 "product_name": product_data.get("product_name", ""),
-                "brand": meta.get("brand") or product_data.get("brand") or self._extract_brand(product_data.get("product_name", "")),
+                "brand": meta.get("brand") or product_data.get("brand") or self._extract_brand(product_data.get("product_name", ""), asin=asin),
                 "price": self._parse_price(product_data.get("price_text", "")),
+                "list_price": self._parse_price(product_data.get("list_price_text", "")),
+                "discount_percent": discount_percent,
+                "coupon_text": product_data.get("coupon_text", ""),
+                "is_subscribe_save": product_data.get("has_subscribe_save", False),
+                "promo_badges": product_data.get("promo_badges", ""),
                 "rating": self._parse_rating(product_data.get("rating_text", "")),
                 "reviews_count": self._parse_reviews_count(product_data.get("reviews_text", "").replace(" ratings", "").replace(" rating", "")),
                 "availability": product_data.get("availability", ""),
@@ -744,15 +1005,79 @@ class AmazonScraper:
                 "category_id": meta.get("category", ""),
                 "product_type": meta.get("product_type", ""),
                 "laneige_competitor": meta.get("laneige_competitor", ""),
-                "source": "competitor_tracking"
+                "source": "detail_page"
             }
 
-            logger.info(f"Scraped competitor product: {result['brand']} - {result['product_name'][:50]}...")
+            logger.debug(f"Scraped ASIN {asin}: list_price={result.get('list_price')}, coupon={result.get('coupon_text')}")
             return result
 
         except Exception as e:
+            self.circuit_breaker.record_failure()
             logger.error(f"Error scraping ASIN {asin}: {e}")
+            if context:
+                await context.close()
             return None
+
+    async def scrape_category_with_details(
+        self,
+        category_id: str,
+        category_url: str
+    ) -> Dict[str, Any]:
+        """
+        베스트셀러 + 상세 페이지 통합 크롤링 (할인 정보 포함)
+
+        1. 베스트셀러 목록에서 Top 100 수집
+        2. 각 제품의 상세 페이지에서 할인 정보 수집
+
+        Args:
+            category_id: 카테고리 ID
+            category_url: Amazon 베스트셀러 URL
+
+        Returns:
+            할인 정보가 포함된 제품 목록
+        """
+        # 회로 차단기 확인
+        if not self.circuit_breaker.can_proceed():
+            logger.warning("Circuit breaker is OPEN - skipping category crawl")
+            return {"products": [], "success": False, "error": "CIRCUIT_BREAKER_OPEN"}
+
+        # 1. 베스트셀러 목록 크롤링
+        result = await self.scrape_category(category_id, category_url)
+
+        if not result["success"]:
+            return result
+
+        # 2. 모든 제품의 상세 페이지 크롤링 (천천히, 안전하게)
+        product_count = len(result['products'])
+        estimated_minutes = (product_count * 10) // 60
+        logger.info(f"Fetching details for {product_count} products (estimated: ~{estimated_minutes} minutes)...")
+
+        for i, product in enumerate(result["products"]):
+            # 회로 차단기 확인
+            if not self.circuit_breaker.can_proceed():
+                logger.warning(f"Circuit breaker opened at product {i+1} - stopping")
+                break
+
+            asin = product.get("asin")
+            if not asin:
+                continue
+
+            # 상세 페이지 크롤링
+            detail = await self.scrape_product_by_asin(asin)
+
+            if detail:
+                # 할인 정보 병합 (상세 페이지에서만 얻을 수 있는 정보)
+                product["list_price"] = detail.get("list_price") or product.get("list_price")
+                product["discount_percent"] = detail.get("discount_percent") or product.get("discount_percent")
+                product["coupon_text"] = detail.get("coupon_text") or product.get("coupon_text")
+                product["promo_badges"] = detail.get("promo_badges") or product.get("promo_badges")
+                product["is_subscribe_save"] = detail.get("is_subscribe_save") or product.get("is_subscribe_save")
+
+            # 진행률 로깅 (10개마다)
+            if (i + 1) % 10 == 0:
+                logger.info(f"Progress: {i + 1}/{product_count} ({(i+1)/product_count*100:.1f}%)")
+
+        return result
 
     async def scrape_competitor_products(self, competitor_config: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
