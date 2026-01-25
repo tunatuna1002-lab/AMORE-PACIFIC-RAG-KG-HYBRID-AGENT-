@@ -122,7 +122,15 @@ class StorageAgent:
                                 self.logger.error(f"Failed to save rank records to SQLite: {error_msg}")
                         except Exception as sqlite_err:
                             results["errors"].append({"step": "raw_data_sqlite", "error": str(sqlite_err)})
-                            self.logger.error(f"SQLite storage error: {sqlite_err}")
+                            self.logger.error(
+                                f"SQLite storage error: {sqlite_err}",
+                                exc_info=True
+                            )
+                            # 동기화 불일치 경고
+                            self.logger.warning(
+                                "⚠️ SQLite 저장 실패로 Google Sheets와 불일치 발생. "
+                                "수동 동기화 필요: python scripts/sync_sheets_to_sqlite.py"
+                            )
 
                 if self.tracer:
                     self.tracer.end_span("completed")

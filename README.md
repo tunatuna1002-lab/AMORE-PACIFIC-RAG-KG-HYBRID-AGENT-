@@ -96,9 +96,41 @@ Amazon Bestsellers (Top 100 × 5 categories)
 ## 3. 주요 기능
 
 ### 3.1 자동 크롤링
-- **매일 KST 06:00** Amazon Top 100 자동 수집
+- **매일 KST 22:00** Amazon Top 100 자동 수집 (UTC 13:00)
 - 5개 카테고리 × 100개 제품 = 500개 제품 데이터
 - 상태 파일: `data/scheduler_state.json`
+
+#### 크롤링 시간 최적화 (22:00 KST)
+
+| 시간 | 미국 동부 (EST) | 미국 서부 (PST) | 선택 이유 |
+|------|----------------|----------------|----------|
+| **22:00 KST** | 08:00 EST | 05:00 PST | 미국 새벽~아침 = 트래픽 최저 |
+
+**왜 22:00 KST인가?**
+- 미국 피크 타임 (7-10 PM EST) 판매가 BSR에 완전 반영된 후 수집
+- 미국 트래픽 최저 시간대 → 차단 위험 최소
+- 한국 09:00 출근 전 데이터 준비 완료
+
+#### 안티봇 전략 (Stealth Only)
+
+> **핵심 원칙**: "빠르게 하기보다 차단되지 않고 천천히 모두 수집"
+
+| 기술 | 라이브러리 | 용도 |
+|------|-----------|------|
+| **Stealth 모드** | `playwright-stealth` | navigator.webdriver 제거, HeadlessChrome 숨김 |
+| **핑거프린트** | `browserforge` | 실제 브라우저 핑거프린트 생성 |
+| **User-Agent** | `fake-useragent` | 실제 UA 로테이션 |
+| **행동 시뮬레이션** | 커스텀 | 랜덤 스크롤, 마우스 이동, 딜레이 |
+| **회로 차단기** | 커스텀 | 연속 3회 실패 시 중단 + 백오프 |
+
+**딜레이 설정 (보수적)**:
+| 구간 | 기본 딜레이 | 랜덤 추가 |
+|------|------------|----------|
+| 상세 페이지 | 8초 | 0-4초 |
+| 페이지 전환 | 12초 | 0-3초 |
+| 카테고리 전환 | 45초 | 0-15초 |
+
+**예상 크롤링 시간**: ~80-90분 (500개 제품)
 
 ### 3.2 KPI 분석
 | 지표 | 설명 |
@@ -126,7 +158,7 @@ Amazon Bestsellers (Top 100 × 5 categories)
 | LLM | OpenAI GPT-4.1-mini (via LiteLLM) |
 | RAG | ChromaDB, OpenAI Embeddings |
 | Ontology | owlready2, Pellet Reasoner |
-| 크롤링 | Playwright (Chromium) |
+| 크롤링 | Playwright (Chromium), playwright-stealth, browserforge |
 | 데이터 | Pandas, Google Sheets API |
 | 배포 | Docker, Railway |
 
@@ -202,6 +234,63 @@ docker run -p 8001:8001 -e OPENAI_API_KEY=sk-... amore-agent
 ---
 
 ## 8. 업데이트 히스토리
+
+### 2026-01-25: SQLite 동기화 누락 이슈 해결
+
+**문제 발견:**
+- 대시보드에서 기간 설정(01-07~01-25) 시 그래프가 01-21~01-25만 표시
+- 원인: Google Sheets에는 데이터가 있으나 SQLite에 01-22~25일 데이터 누락
+
+**원인 분석:**
+- Railway 환경의 SQLite 볼륨 마운트 문제 또는 저장 오류
+- 로컬 DB와 서버 DB 불일치
+
+**해결 방안:**
+| 구분 | 방법 |
+|------|------|
+| **즉시 해결** | `python scripts/sync_sheets_to_sqlite.py` 실행 |
+| **자동 동기화** | 크롤링 완료 후 Sheets → SQLite 자동 동기화 추가 (`batch_workflow.py`) |
+| **데이터 정합성 검사** | `src/tools/data_integrity_checker.py` 모듈 추가 |
+| **로깅 강화** | SQLite 저장 실패 시 상세 에러 로깅 및 경고 메시지 |
+
+**관련 파일:**
+| 파일 | 역할 |
+|------|------|
+| `scripts/sync_sheets_to_sqlite.py` | 수동 동기화 스크립트 |
+| `src/agents/storage_agent.py` | 이중 저장 에이전트 |
+| `src/core/batch_workflow.py` | 자동 동기화 로직 추가 |
+| `src/tools/data_integrity_checker.py` | 데이터 정합성 검사 모듈 |
+
+**정합성 검사 사용법:**
+```bash
+# CLI 실행
+python -m src.tools.data_integrity_checker
+
+# 코드에서 사용
+from src.tools.data_integrity_checker import check_data_integrity
+result = await check_data_integrity()
+print(f"Severity: {result['severity']}")
+```
+
+---
+
+### 2026-01-25: 크롤링 시간 최적화 및 안티봇 전략
+
+**크롤링 시간 변경**: KST 06:00 → **KST 22:00 (UTC 13:00)**
+- 미국 트래픽 최저 시간대 크롤링으로 차단 위험 최소화
+- US 피크 판매(7-10 PM EST) 반영된 BSR 데이터 수집
+- 한국 09:00 업무 시작 전 데이터 준비 완료
+
+**안티봇 Stealth 모드 적용**:
+- `playwright-stealth`: navigator.webdriver 제거
+- `browserforge`: 실제 브라우저 핑거프린트 생성
+- `fake-useragent`: UA 로테이션
+- 인간 행동 시뮬레이션 (스크롤, 마우스, 랜덤 딜레이)
+- 회로 차단기 패턴 (연속 3회 실패 시 중단)
+
+**할인 정보 수집 개선**:
+- 상세 페이지 크롤링으로 list_price, coupon_text, promo_badges 수집
+- 예상 수집률: list_price 70-90%, coupon_text 20-40%
 
 ### 2026-01-24: True RAG-Ontology 통합 계획
 

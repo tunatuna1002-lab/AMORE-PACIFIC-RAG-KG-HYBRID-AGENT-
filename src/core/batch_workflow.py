@@ -332,6 +332,60 @@ class BatchWorkflow:
             self.logger.error(f"Brand verification failed: {e}")
             return {"verified_count": 0, "error": str(e)}
 
+    async def _sync_sheets_to_sqlite(self) -> Dict[str, Any]:
+        """
+        Google Sheets → SQLite 자동 동기화 (크롤링 후 처리)
+
+        크롤링 완료 후 Google Sheets 데이터를 SQLite에 동기화하여
+        데이터 정합성을 보장합니다.
+        """
+        try:
+            from src.tools.sheets_writer import SheetsWriter
+            from src.tools.sqlite_storage import SQLiteStorage
+
+            self.logger.info("Starting Google Sheets → SQLite auto-sync")
+
+            # Google Sheets 연결
+            sheets = SheetsWriter(spreadsheet_id=self.spreadsheet_id)
+            if not await sheets.initialize():
+                self.logger.warning("Google Sheets connection failed for sync")
+                return {"synced_count": 0, "error": "Sheets connection failed"}
+
+            # SQLite 연결
+            sqlite = SQLiteStorage()
+            if not await sqlite.initialize():
+                self.logger.warning("SQLite connection failed for sync")
+                return {"synced_count": 0, "error": "SQLite connection failed"}
+
+            # 최근 7일 데이터만 동기화 (효율성)
+            records = await sheets.get_rank_history(days=7)
+
+            if not records:
+                self.logger.info("No records to sync from Sheets")
+                return {"synced_count": 0, "message": "No records"}
+
+            # SQLite에 삽입 (ON CONFLICT 처리로 중복 방지)
+            result = await sqlite.append_rank_records(records)
+
+            synced_count = result.get("rows_added", 0)
+            self.logger.info(
+                f"Google Sheets → SQLite sync complete: "
+                f"{synced_count} records synced from {len(records)} fetched"
+            )
+
+            return {
+                "synced_count": synced_count,
+                "fetched_count": len(records),
+                "success": True
+            }
+
+        except ImportError as e:
+            self.logger.warning(f"Import error during sync: {e}")
+            return {"synced_count": 0, "error": str(e)}
+        except Exception as e:
+            self.logger.error(f"Sheets → SQLite sync failed: {e}", exc_info=True)
+            return {"synced_count": 0, "error": str(e)}
+
     # =========================================================================
     # 워크플로우 실행
     # =========================================================================
@@ -626,12 +680,16 @@ class BatchWorkflow:
                 # Unknown 브랜드 배치 검증 (크롤링 후 처리)
                 brand_verify_result = await self._verify_unknown_brands()
 
+                # Google Sheets → SQLite 자동 동기화
+                sync_result = await self._sync_sheets_to_sqlite()
+
                 return ActResult(action=action, success=True, result={
                     "exported": True,
                     "path": "./data/dashboard_data.json",
                     "products": result.get("metadata", {}).get("total_products", 0),
                     "laneige_count": result.get("metadata", {}).get("laneige_products", 0),
-                    "brands_verified": brand_verify_result.get("verified_count", 0)
+                    "brands_verified": brand_verify_result.get("verified_count", 0),
+                    "sqlite_synced": sync_result.get("synced_count", 0)
                 })
 
             elif action == "skip":
