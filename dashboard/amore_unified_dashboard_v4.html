@@ -2772,7 +2772,6 @@
                 <div class="nav-item" onclick="switchPage('brand')" data-page="brand"><i data-lucide="building-2" style="width: 18px; height: 18px;"></i>Brand View (L1)</div>
                 <div class="nav-item" onclick="switchPage('category')" data-page="category"><i data-lucide="layers" style="width: 18px; height: 18px;"></i>Category View (L2)</div>
                 <div class="nav-item" onclick="switchPage('product')" data-page="product"><i data-lucide="box" style="width: 18px; height: 18px;"></i>Product View (L3)</div>
-                <div class="nav-item" onclick="switchPage('deals')" data-page="deals"><i data-lucide="tag" style="width: 18px; height: 18px;"></i>Deals Monitor</div>
                 <div class="nav-divider"></div>
                 <div class="nav-label">Settings</div>
                 <div class="nav-item" onclick="openAlertSettings()"><i data-lucide="bell" style="width: 18px; height: 18px;"></i>Alert Settings</div>
@@ -3682,20 +3681,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- DEALS MONITOR PAGE -->
-                    <div id="page-deals" class="page-view">
-                        <div class="insight-banner" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                            <div class="insight-content">
-                                <div class="insight-icon"><i data-lucide="tag" style="color: white; width: 28px; height: 28px;"></i></div>
-                                <div class="insight-text">
-                                    <div class="insight-label">🔥 Competitor Deals Monitor</div>
-                                    <div class="insight-message" id="deals-insight-message">경쟁사 할인 정보를 모니터링하여 LANEIGE 매출에 미치는 영향을 분석합니다. 실시간 Lightning Deal과 쿠폰 정보를 확인하세요.</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Deals Summary KPIs -->
                         <div class="kpi-grid">
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">Active Deals <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
@@ -5187,7 +5172,27 @@
 
         // SoS 추이 차트 날짜 범위 초기화 (글로벌 날짜 범위 사용)
         function initSosTrendDateRange() {
-            const { startDate, endDate } = globalDateRange.get();
+            let { startDate, endDate } = globalDateRange.get();
+
+            // globalDateRange가 아직 초기화되지 않은 경우 fallback
+            if (!startDate || !endDate) {
+                console.warn('[initSosTrendDateRange] globalDateRange not initialized, using fallback');
+                if (dashboardData?.charts?.sos_trend?.['30d']?.labels) {
+                    const labels = dashboardData.charts.sos_trend['30d'].labels;
+                    if (labels.length > 0) {
+                        const year = new Date().getFullYear();
+                        endDate = `${year}-${labels[labels.length - 1].replace('/', '-')}`;
+                        startDate = `${year}-${labels[0].replace('/', '-')}`;
+                    }
+                }
+                if (!startDate || !endDate) {
+                    const today = new Date();
+                    endDate = today.toISOString().split('T')[0];
+                    const start = new Date(today);
+                    start.setDate(start.getDate() - 13);
+                    startDate = start.toISOString().split('T')[0];
+                }
+            }
 
             const startInput = document.getElementById('sosTrendStartDate');
             const endInput = document.getElementById('sosTrendEndDate');
@@ -5237,17 +5242,11 @@
                 home: { title: 'Home', breadcrumb: 'Daily Insight & Action Board' },
                 brand: { title: 'Brand View (L1)', breadcrumb: 'Laneige 브랜드 분석' },
                 category: { title: 'Category View (L2)', breadcrumb: 'Amazon US 카테고리 분석' },
-                product: { title: 'Product View (L3)', breadcrumb: 'Laneige 제품 상세' },
-                deals: { title: 'Deals Monitor', breadcrumb: '경쟁사 할인 모니터링' }
+                product: { title: 'Product View (L3)', breadcrumb: 'Laneige 제품 상세' }
             };
             document.getElementById('page-title').textContent = titles[pageId].title;
             document.getElementById('breadcrumb').textContent = titles[pageId].breadcrumb;
             initChartsForPage(pageId);
-            // Deals 페이지 진입 시 데이터 로드 및 알림 서비스 상태 확인
-            if (pageId === 'deals') {
-                loadDealsData();
-                checkAlertServiceStatus();
-            }
             // Product View 진입 시 날짜 선택기 값으로 차트 데이터 로드
             if (pageId === 'product') {
                 setTimeout(() => {
@@ -6864,13 +6863,38 @@
 
         // 날짜 필터 초기화 (글로벌 날짜 범위 사용)
         function initSosDateFilters() {
-            const { startDate, endDate } = globalDateRange.get();
+            let { startDate, endDate } = globalDateRange.get();
+
+            // globalDateRange가 아직 초기화되지 않은 경우 fallback
+            if (!startDate || !endDate) {
+                console.warn('[initSosDateFilters] globalDateRange not initialized, using fallback');
+                // dashboardData에서 가져오기 시도
+                if (dashboardData?.charts?.sos_trend?.['30d']?.labels) {
+                    const labels = dashboardData.charts.sos_trend['30d'].labels;
+                    if (labels.length > 0) {
+                        // MM-DD 형식을 YYYY-MM-DD로 변환
+                        const year = new Date().getFullYear();
+                        endDate = `${year}-${labels[labels.length - 1].replace('/', '-')}`;
+                        startDate = `${year}-${labels[0].replace('/', '-')}`;
+                    }
+                }
+                // 그래도 없으면 최근 14일
+                if (!startDate || !endDate) {
+                    const today = new Date();
+                    endDate = today.toISOString().split('T')[0];
+                    const start = new Date(today);
+                    start.setDate(start.getDate() - 13);
+                    startDate = start.toISOString().split('T')[0];
+                }
+                console.log('[initSosDateFilters] Fallback dates:', startDate, '~', endDate);
+            }
 
             const sosEndInput = document.getElementById('sosEndDate');
             const sosStartInput = document.getElementById('sosStartDate');
             if (sosEndInput && sosStartInput) {
                 sosEndInput.value = endDate;
                 sosStartInput.value = startDate;
+                console.log('[initSosDateFilters] Set dates:', startDate, '~', endDate);
             }
         }
 
@@ -7332,10 +7356,11 @@
             const brandColors = ['#1F5795', '#001C58', '#7D7D7D', '#4A7DB8', '#A0A0A0', '#2E4A6E', '#5C5C5C', '#3D6B99', '#8B8B8B', '#1A3D66'];
 
             if (pageId === 'home') {
-                // SoS 막대그래프 초기화 - API 연동
+                // SoS 날짜 필터 먼저 초기화 (updateSosChart가 날짜 값을 필요로 함)
+                initSosDateFilters();
+                // SoS 막대그래프 초기화 - API 연동 (내부에서 updateSosChart 호출)
                 initSosBarChart(colors, chartColors, brandColors);
                 loadSosBrands();  // 비교 브랜드 드롭다운 로드
-                initSosDateFilters();  // 날짜 필터 초기화
 
                 // SoS 트렌드 차트 - JSON 데이터 사용
                 // 동적 fallback 날짜 생성
