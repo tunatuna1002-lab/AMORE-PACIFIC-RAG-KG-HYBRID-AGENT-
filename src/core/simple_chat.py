@@ -1134,6 +1134,190 @@ class SimpleChatService:
 
         return suggestions[:3]
 
+    async def chat_stream(
+        self,
+        message: str,
+        session_id: str = "default"
+    ):
+        """
+        스트리밍 채팅 (SSE용 제너레이터)
+
+        Args:
+            message: 사용자 메시지
+            session_id: 세션 ID
+
+        Yields:
+            Dict with 'type' and 'content' keys:
+            - {"type": "text", "content": "chunk"}
+            - {"type": "tool_call", "content": {"name": "...", "args": {...}}}
+            - {"type": "done", "content": {"suggestions": [...], "tools_used": [...]}}
+            - {"type": "error", "content": "error message"}
+        """
+        start_time = datetime.now()
+
+        # 데이터 로드
+        data = self._load_data()
+        data_date = data.get("metadata", {}).get("data_date", "N/A")
+
+        # Layer 1: 입력 검증
+        is_safe, block_reason, sanitized_message = PromptGuard.check_input(message)
+
+        if not is_safe:
+            logger.warning(f"Input blocked: {block_reason} - session={session_id}")
+            yield {
+                "type": "error",
+                "content": PromptGuard.get_rejection_message(block_reason)
+            }
+            return
+
+        # 범위 외 경고
+        scope_warning = ""
+        if block_reason == "out_of_scope_warning":
+            scope_warning = "\n\n[시스템 알림: 사용자의 질문이 범위 외일 수 있습니다. 정중히 거절하고 본 역할로 안내하세요.]"
+
+        # RAG + Ontology 컨텍스트 수집
+        hybrid_context_str = ""
+        try:
+            retriever = await self._get_hybrid_retriever()
+            hybrid_result = await retriever.retrieve(
+                query=sanitized_message,
+                current_metrics=data,
+                top_k=5
+            )
+            hybrid_context_str = hybrid_result.combined_context
+        except Exception as e:
+            logger.warning(f"TrueHybridRetriever failed: {e}")
+            hybrid_context_str = "(추론 시스템 일시 불가 - 기본 모드로 응답합니다)"
+
+        # 시스템 프롬프트 구성
+        system_prompt = SYSTEM_PROMPT.format(
+            data_date=data_date,
+            context_summary=self._build_context_summary(data),
+            hybrid_context=hybrid_context_str
+        ) + scope_warning
+
+        # 메시지 구성
+        messages = [{"role": "system", "content": system_prompt}]
+        history = self.conversation_memory[session_id][-self.max_memory:]
+        messages.extend(history)
+        messages.append({"role": "user", "content": sanitized_message})
+
+        tools_used = []
+        full_response = ""
+
+        try:
+            # 1차 LLM 호출 (도구 사용 여부 판단)
+            response = await acompletion(
+                model=self.model,
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto",
+                temperature=self.temperature,
+                max_tokens=self.max_tokens
+            )
+
+            assistant_message = response.choices[0].message
+
+            # 도구 호출이 있으면 실행
+            if assistant_message.tool_calls:
+                tool_results = []
+                for tool_call in assistant_message.tool_calls:
+                    tool_name = tool_call.function.name
+                    tool_args = json.loads(tool_call.function.arguments or "{}")
+
+                    logger.info(f"Tool call: {tool_name}({tool_args})")
+                    tools_used.append(tool_name)
+
+                    # 도구 호출 알림
+                    yield {
+                        "type": "tool_call",
+                        "content": {"name": tool_name, "args": tool_args}
+                    }
+
+                    result = await self._execute_tool(tool_name, tool_args)
+                    tool_results.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "content": result
+                    })
+
+                # 도구 결과로 2차 LLM 호출 (스트리밍)
+                messages.append(assistant_message.model_dump())
+                messages.extend(tool_results)
+
+                stream_response = await acompletion(
+                    model=self.model,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    stream=True
+                )
+
+                async for chunk in stream_response:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        yield {"type": "text", "content": text}
+
+            else:
+                # 도구 호출 없이 바로 스트리밍
+                messages_for_stream = [{"role": "system", "content": system_prompt}]
+                messages_for_stream.extend(history)
+                messages_for_stream.append({"role": "user", "content": sanitized_message})
+
+                stream_response = await acompletion(
+                    model=self.model,
+                    messages=messages_for_stream,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    stream=True
+                )
+
+                async for chunk in stream_response:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        yield {"type": "text", "content": text}
+
+            # 출력 검증
+            is_output_safe, sanitized_output = PromptGuard.check_output(full_response)
+            if not is_output_safe:
+                logger.warning(f"Output contained sensitive info - session={session_id}")
+
+            # 대화 메모리 저장
+            self.conversation_memory[session_id].append(
+                {"role": "user", "content": message}
+            )
+            self.conversation_memory[session_id].append(
+                {"role": "assistant", "content": full_response}
+            )
+
+            if len(self.conversation_memory[session_id]) > self.max_memory * 2:
+                self.conversation_memory[session_id] = \
+                    self.conversation_memory[session_id][-self.max_memory * 2:]
+
+            # 후속 질문 생성
+            suggestions = self._generate_suggestions(message, full_response, data)
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+
+            # 완료 메시지
+            yield {
+                "type": "done",
+                "content": {
+                    "suggestions": suggestions,
+                    "tools_used": tools_used,
+                    "data_date": data_date,
+                    "processing_time_ms": processing_time
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Stream chat error: {e}")
+            yield {
+                "type": "error",
+                "content": f"죄송합니다. 응답 생성 중 오류가 발생했습니다: {str(e)}"
+            }
+
     def clear_memory(self, session_id: str) -> None:
         """세션 메모리 초기화"""
         self.conversation_memory[session_id] = []

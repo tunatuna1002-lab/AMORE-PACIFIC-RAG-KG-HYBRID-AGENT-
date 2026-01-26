@@ -858,6 +858,65 @@ async def chat_v3(request: Request, body: SimpleChatRequest):
     )
 
 
+@app.post("/api/v3/chat/stream")
+@limiter.limit("30/minute")
+async def chat_v3_stream(request: Request, body: SimpleChatRequest):
+    """
+    Simple LLM Chat API with SSE Streaming (v3)
+
+    SSE 형식으로 실시간 스트리밍 응답을 반환합니다.
+
+    이벤트 타입:
+    - text: 응답 텍스트 청크
+    - tool_call: 도구 호출 정보
+    - done: 완료 (후속 질문 등 메타데이터 포함)
+    - error: 오류 발생
+    """
+    message = body.message.strip()
+    session_id = body.session_id or "default"
+
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    chat_service = get_chat_service()
+
+    async def generate():
+        """SSE 이벤트 생성기"""
+        try:
+            async for chunk in chat_service.chat_stream(message, session_id):
+                event_type = chunk.get("type", "text")
+                content = chunk.get("content", "")
+
+                # SSE 형식으로 변환
+                if event_type == "text":
+                    data = json.dumps({"type": "text", "content": content}, ensure_ascii=False)
+                elif event_type == "tool_call":
+                    data = json.dumps({"type": "tool_call", "content": content}, ensure_ascii=False)
+                elif event_type == "done":
+                    data = json.dumps({"type": "done", "content": content}, ensure_ascii=False)
+                elif event_type == "error":
+                    data = json.dumps({"type": "error", "content": content}, ensure_ascii=False)
+                else:
+                    data = json.dumps(chunk, ensure_ascii=False)
+
+                yield f"data: {data}\n\n"
+
+        except Exception as e:
+            logger.error(f"SSE stream error: {e}")
+            error_data = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)
+            yield f"data: {error_data}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # nginx 버퍼링 비활성화
+        }
+    )
+
+
 # ============= LLM Orchestrator API (v2 - 기존, deprecated) =============
 
 class OrchestratorChatRequest(BaseModel):
@@ -3465,10 +3524,16 @@ async def get_sos_by_category(
 
             # LANEIGE SoS
             laneige_count = 0
+            laneige_appearance_days = 0  # Top 100에 진입한 고유 날짜 수
+            laneige_dates = set()  # 중복 제거용
             laneige_variants = ["LANEIGE", "Laneige", "laneige"]
             for variant in laneige_variants:
                 if variant in brands:
                     laneige_count += brands[variant]["total_count"]
+                    # 출현 날짜 수집
+                    if "dates" in brands[variant]:
+                        laneige_dates.update(brands[variant]["dates"])
+            laneige_appearance_days = len(laneige_dates)
 
             laneige_sos = (laneige_count / total_products_in_category * 100) if total_products_in_category > 0 else 0
 
@@ -3501,7 +3566,9 @@ async def get_sos_by_category(
                 "order": meta["order"],
                 "total_products": total_products_in_category // num_dates if num_dates > 0 else 0,
                 "laneige_sos": round(laneige_sos, 2),
-                "laneige_count": laneige_count // num_dates if num_dates > 0 else 0,
+                "laneige_count": round(laneige_count / num_dates, 1) if num_dates > 0 else 0,  # 소수점 1자리 (일 평균)
+                "laneige_appearance_days": laneige_appearance_days,  # 출현 일수
+                "laneige_appearance_rate": round(laneige_appearance_days / num_dates * 100, 1) if num_dates > 0 else 0,  # 출현율 %
                 "avg_sos": round(avg_sos, 2),
                 "compare_brands": compare_sos,
                 "num_dates": num_dates
@@ -3566,6 +3633,7 @@ async def get_available_brands(
                     FROM raw_data
                     WHERE snapshot_date BETWEEN ? AND ?
                     AND category_id = ?
+                    AND LOWER(brand) != 'unknown'
                     GROUP BY brand
                     HAVING product_count >= ?
                     ORDER BY product_count DESC
@@ -3577,6 +3645,7 @@ async def get_available_brands(
                            COUNT(DISTINCT snapshot_date) as days_present
                     FROM raw_data
                     WHERE snapshot_date BETWEEN ? AND ?
+                    AND LOWER(brand) != 'unknown'
                     GROUP BY brand
                     HAVING product_count >= ?
                     ORDER BY product_count DESC
@@ -3604,7 +3673,8 @@ async def get_available_brands(
                             brand_counts[brand] = brand_counts.get(brand, 0) + 1
 
                 for brand_name, count in sorted(brand_counts.items(), key=lambda x: -x[1]):
-                    if count >= min_count and brand_name.strip():
+                    # Unknown 브랜드 제외
+                    if count >= min_count and brand_name.strip() and brand_name.lower() != 'unknown':
                         brands.append({
                             "name": brand_name,
                             "product_count": count,
@@ -3614,7 +3684,8 @@ async def get_available_brands(
         else:
             for row in rows:
                 brand_name, product_count, days_present = row
-                if brand_name and brand_name.strip():
+                # Unknown 브랜드 제외 (SQL에서도 필터링하지만 이중 체크)
+                if brand_name and brand_name.strip() and brand_name.lower() != 'unknown':
                     brands.append({
                         "name": brand_name,
                         "product_count": product_count,

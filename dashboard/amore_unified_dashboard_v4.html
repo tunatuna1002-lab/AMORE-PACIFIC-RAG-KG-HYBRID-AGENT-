@@ -1762,6 +1762,14 @@
             color: #ef4444;
             font-weight: 500;
         }
+        .promo-table .no-data-dash {
+            cursor: help;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+        .promo-table .no-data-dash:hover {
+            color: var(--amore-blue);
+        }
 
         /* === DISCOUNT & PRICE BADGES === */
         .discount-badge {
@@ -3587,7 +3595,7 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="growth-type-container" id="growth-type-container">
-                                        <div class="growth-type-box organic">
+                                        <div class="growth-type-box organic" id="organic-box">
                                             <div class="growth-type-icon-wrapper">
                                                 <i data-lucide="trending-up" style="width: 24px; height: 24px; color: var(--amore-blue);"></i>
                                             </div>
@@ -3595,7 +3603,7 @@
                                             <div class="growth-type-value" id="organic-count">-</div>
                                             <div class="growth-type-desc">할인/프로모션 없이 순위 상승</div>
                                         </div>
-                                        <div class="growth-type-box discount">
+                                        <div class="growth-type-box discount" id="discount-box">
                                             <div class="growth-type-icon-wrapper">
                                                 <i data-lucide="tag" style="width: 24px; height: 24px; color: var(--pacific-blue);"></i>
                                             </div>
@@ -8976,21 +8984,43 @@
                 // 성장 유형 분류 계산
                 let organicCount = 0;
                 let discountBasedCount = 0;
+                let organicProducts = [];
+                let discountProducts = [];
 
                 selectedProducts.forEach(p => {
                     const isDiscountBased = p.avgDiscount > 15 || p.hasCoupon || p.hasDeal;
+                    // 제품명 줄임 (35자)
+                    const shortName = p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name;
                     if (isDiscountBased) {
                         discountBasedCount++;
+                        discountProducts.push(shortName);
                     } else {
                         organicCount++;
+                        organicProducts.push(shortName);
                     }
                 });
 
-                // UI 업데이트
+                // UI 업데이트 - 숫자
                 const organicEl = document.getElementById('organic-count');
                 const discountEl = document.getElementById('discount-count');
-                if (organicEl) organicEl.textContent = organicCount > 0 ? `${organicCount}개` : '-';
-                if (discountEl) discountEl.textContent = discountBasedCount > 0 ? `${discountBasedCount}개` : '-';
+                if (organicEl) {
+                    organicEl.textContent = organicCount > 0 ? `${organicCount}개` : '-';
+                }
+                if (discountEl) {
+                    discountEl.textContent = discountBasedCount > 0 ? `${discountBasedCount}개` : '-';
+                }
+
+                // 박스 전체에 툴팁 적용
+                const organicBox = document.getElementById('organic-box');
+                const discountBox = document.getElementById('discount-box');
+                if (organicBox) {
+                    organicBox.title = organicProducts.length > 0 ? organicProducts.join('\n') : '';
+                    organicBox.style.cursor = organicCount > 0 ? 'help' : 'default';
+                }
+                if (discountBox) {
+                    discountBox.title = discountProducts.length > 0 ? discountProducts.join('\n') : '';
+                    discountBox.style.cursor = discountBasedCount > 0 ? 'help' : 'default';
+                }
 
                 console.log(`[DateRange] Growth type data updated for ${startDate} to ${endDate}`, { organicCount, discountBasedCount });
             } catch (error) {
@@ -9167,17 +9197,23 @@
                 if (isLaneige) row.classList.add('is-laneige');
 
                 const nameClass = isLaneige ? 'brand-name laneige' : 'brand-name';
-                const discountDisplay = product.avg_discount > 0 ? product.avg_discount.toFixed(1) + '%' : '-';
-                const rankDisplay = product.avg_rank ? '#' + product.avg_rank.toFixed(1) : '-';
+                const discountDisplay = product.avg_discount > 0
+                    ? product.avg_discount.toFixed(1) + '%'
+                    : '<span class="no-data-dash" title="해당 기간에 할인 정보가 수집되지 않았습니다">-</span>';
+                const rankDisplay = product.avg_rank
+                    ? '#' + product.avg_rank.toFixed(1)
+                    : '<span class="no-data-dash" title="해당 기간에 순위 데이터가 없습니다">-</span>';
 
                 const discountBadge = product.avg_discount > 15 ?
                     `<span class="discount-badge" style="font-size: 9px; padding: 2px 6px; margin-left: 4px;">🔥</span>` : '';
 
                 const couponDisplay = product.has_coupon
                     ? `<span title="${product.coupon_text || '쿠폰'}">🎟️</span>`
-                    : '-';
+                    : '<span class="no-data-dash" title="해당 기간에 쿠폰 적용 이력이 없습니다">-</span>';
 
-                const snsDisplay = product.has_sns ? '✓' : '-';
+                const snsDisplay = product.has_sns
+                    ? '✓'
+                    : '<span class="no-data-dash" title="Subscribe & Save 미적용 제품입니다">-</span>';
 
                 // 제품명 줄임 (20자)
                 const shortName = product.name.length > 25
