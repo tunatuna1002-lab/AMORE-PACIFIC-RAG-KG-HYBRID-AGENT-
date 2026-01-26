@@ -140,7 +140,16 @@ class AmazonScraper:
         """
         self.config = self._load_config(config_path)
         self.base_url = "https://www.amazon.com"
-        self.delay_seconds = float(os.getenv("SCRAPE_DELAY_SECONDS", "2"))
+
+        # crawler 설정 로드 (system.crawler 섹션)
+        crawler_config = self.config.get("system", {}).get("crawler", {})
+        self.delay_base_seconds = crawler_config.get("delay_base_seconds", 8)
+        self.delay_random_max = crawler_config.get("delay_random_max", 4)
+        self.category_delay_seconds = crawler_config.get("category_delay_seconds", 45)
+        self.max_retries = crawler_config.get("max_retries", 3)
+
+        # 환경변수 오버라이드 (호환성 유지)
+        self.delay_seconds = float(os.getenv("SCRAPE_DELAY_SECONDS", str(self.delay_base_seconds)))
         self.browser: Optional[Browser] = None
 
         # Anti-bot 도구 초기화
@@ -269,14 +278,19 @@ class AmazonScraper:
             logger.debug(f"Human behavior simulation failed: {e}")
 
     async def _random_delay_advanced(self, delay_type: str = "base") -> None:
-        """더 자연스러운 랜덤 딜레이 (안티봇용)"""
+        """더 자연스러운 랜덤 딜레이 (안티봇용) - 설정 파일에서 로드"""
+        # 설정 파일 값 기반 딜레이 (config/thresholds.json → system.crawler)
+        base_delay = self.delay_base_seconds  # 기본 8초
+        random_max = self.delay_random_max    # 랜덤 최대 4초
+        category_delay = self.category_delay_seconds  # 카테고리 전환 45초
+
         delays = {
-            "base": (5, 3),      # 5-8초
-            "detail": (8, 4),    # 8-12초
-            "page": (12, 3),     # 12-15초
-            "category": (45, 15) # 45-60초
+            "base": (base_delay - 3, random_max - 1),       # ~5-8초
+            "detail": (base_delay, random_max),             # ~8-12초
+            "page": (base_delay + 4, random_max - 1),       # ~12-15초
+            "category": (category_delay, 15)                # ~45-60초
         }
-        base, jitter = delays.get(delay_type, (5, 3))
+        base, jitter = delays.get(delay_type, (base_delay - 3, random_max - 1))
 
         # 가끔 더 긴 딜레이 (인간처럼) - 10% 확률
         if random.random() < 0.1:
@@ -666,6 +680,46 @@ class AmazonScraper:
         except Exception:
             return None
 
+    # 브랜드명 정규화 매핑 (부분 매칭/대소문자 불일치 교정)
+    BRAND_NORMALIZATION = {
+        # 잘린 브랜드명 → 전체 브랜드명
+        "burt's": "Burt's Bees",
+        "wet": "wet n wild",
+        "tree": "Tree Hut",
+        "clean": "Clean Skin Club",
+        "physicians": "Physicians Formula",
+        "mighty": "Mighty Patch",
+        "hero": "Hero Cosmetics",
+        "sol": "Sol de Janeiro",
+        "grace": "grace & stella",
+        "mrs.": "Mrs. Meyer's",
+        "dr.": "Dr.Melaxin",
+        "amazon": "Amazon Basics",
+        # 대소문자 통일
+        "covergirl": "COVERGIRL",
+        "medicube": "MEDICUBE",
+        "biodance": "BIODANCE",
+        "laneige": "LANEIGE",
+        "cosrx": "COSRX",
+        "tirtir": "TIRTIR",
+        "anua": "ANUA",
+        "carslan": "CARSLAN",
+        "eos": "eos",  # 소문자가 공식
+    }
+
+    def _normalize_brand(self, brand: str) -> str:
+        """브랜드명 정규화 - 대소문자 통일 및 잘린 이름 교정"""
+        if not brand or brand == "Unknown":
+            return brand
+
+        brand_lower = brand.lower().strip()
+
+        # 정규화 매핑에서 찾기
+        if brand_lower in self.BRAND_NORMALIZATION:
+            return self.BRAND_NORMALIZATION[brand_lower]
+
+        return brand
+
     def _extract_brand(self, product_name: str, asin: str = None) -> str:
         """제품명에서 브랜드 추출
 
@@ -678,7 +732,7 @@ class AmazonScraper:
         if asin and self.brand_resolver:
             cached_brand = self.brand_resolver.get_brand(asin)
             if cached_brand:
-                return cached_brand
+                return self._normalize_brand(cached_brand)
 
         # 2. 두 단어 이상 브랜드 먼저 체크 (순서 중요!)
         # Amazon Top 100 Beauty 기준 브랜드 목록 (2024-2025 기준)
@@ -721,7 +775,7 @@ class AmazonScraper:
 
         for brand in multi_word_brands:
             if brand.lower() in product_name.lower():
-                return brand
+                return self._normalize_brand(brand)
 
         # 단일 단어 브랜드 (대소문자 구분 없이 매칭)
         single_word_brands = [
@@ -776,7 +830,7 @@ class AmazonScraper:
 
         for brand in single_word_brands:
             if brand.lower() in product_name.lower():
-                return brand
+                return self._normalize_brand(brand)
 
         # Fallback: 브랜드를 특정할 수 없으면 "Unknown" 반환
         # 기존에 words[0]을 반환했으나, "Summer Fridays" -> "Summer" 버그 발생
@@ -1052,7 +1106,7 @@ class AmazonScraper:
                 "snapshot_date": today,
                 "asin": asin,
                 "product_name": product_data.get("product_name", ""),
-                "brand": meta.get("brand") or product_data.get("brand") or self._extract_brand(product_data.get("product_name", ""), asin=asin),
+                "brand": self._normalize_brand(meta.get("brand") or "") or self._normalize_brand(product_data.get("brand") or "") or self._extract_brand(product_data.get("product_name", ""), asin=asin),
                 "price": self._parse_price(product_data.get("price_text", "")),
                 "list_price": self._parse_price(product_data.get("list_price_text", "")),
                 "discount_percent": discount_percent,

@@ -2,7 +2,7 @@
 Document Retriever
 RAG를 위한 문서 검색 모듈
 
-11개 MD 파일 기반:
+14개 MD 파일 기반:
 
 [Type D: 기존 지표 가이드] - docs/guides/
 - Strategic Indicators Definition.md
@@ -22,6 +22,11 @@ RAG를 위한 문서 검색 모듈
 [Type C: 대응 가이드] - docs/market/
 - 부정 이슈 조기경보 및 대응 프롬프트.md
 - 인플루언서 맵 & 메시지 맵 생성.md
+
+[Type E: IR 분기 실적 보고서] - docs/ir/
+- AP_1Q25_EN.md (아모레퍼시픽 2025 Q1)
+- AP_2Q25_EN.md (아모레퍼시픽 2025 Q2)
+- AP_3Q25_EN.md (아모레퍼시픽 2025 Q3)
 """
 
 import os
@@ -49,10 +54,38 @@ VECTOR_SEARCH_AVAILABLE = None
 class DocumentRetriever:
     """문서 검색 클래스 (TTL 캐싱 지원)"""
 
+    # 설정 파일 경로
+    CONFIG_PATH = "config/thresholds.json"
+
     # 검색 결과 캐시 (maxsize=100, TTL=5분)
     _search_cache: Dict[str, Any] = {}
     _cache_timestamps: Dict[str, float] = {}
-    _CACHE_TTL = 300  # 5분
+    _CACHE_TTL = None  # 설정에서 로드
+
+    @classmethod
+    def _load_config(cls) -> dict:
+        """설정 파일에서 RAG 관련 설정 로드"""
+        import json
+        project_root = Path(__file__).parent.parent.parent
+        config_path = project_root / cls.CONFIG_PATH
+
+        if config_path.exists():
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    return config.get("system", {}).get("rag", {})
+            except Exception:
+                pass
+
+        return {}  # 설정 없으면 기본값 사용
+
+    @classmethod
+    def get_cache_ttl(cls) -> int:
+        """캐시 TTL 반환 (설정 파일에서 로드, 기본 300초)"""
+        if cls._CACHE_TTL is None:
+            config = cls._load_config()
+            cls._CACHE_TTL = config.get("ttl_seconds", 300)
+        return cls._CACHE_TTL
 
     # 문서 메타데이터
     DOCUMENTS = {
@@ -161,6 +194,50 @@ class DocumentRetriever:
             "intent_triggers": ["인플루언서", "마케팅", "메시지", "콘텐츠", "크리에이터"],
             "freshness": "monthly",
             "target_brand": "laneige"
+        },
+
+        # ========== Type E: IR 분기 실적 보고서 (docs/ir/) ==========
+        "ir_2025_q1": {
+            "filename": "AP_1Q25_EN.md",
+            "description": "아모레퍼시픽 2025 Q1 실적 (COSRX 편입, Americas +102%)",
+            "doc_type": "ir_report",
+            "keywords": ["매출", "영업이익", "Revenue", "Operating Profit",
+                        "Americas", "COSRX", "LANEIGE", "Sulwhasoo", "Prime Day",
+                        "Western Region", "Greater China", "Q1", "1분기", "실적",
+                        "아모레퍼시픽", "Amorepacific", "IR", "earnings"],
+            "intent_triggers": ["Q1", "1분기", "2025", "실적", "매출", "Americas",
+                               "COSRX 편입", "IR", "분기", "earnings"],
+            "freshness": "quarterly",
+            "quarter": "2025-Q1",
+            "parent_company": "amorepacific"
+        },
+        "ir_2025_q2": {
+            "filename": "AP_2Q25_EN.md",
+            "description": "아모레퍼시픽 2025 Q2 실적 (Greater China 턴어라운드, OP +1673%)",
+            "doc_type": "ir_report",
+            "keywords": ["매출", "영업이익", "Revenue", "Operating Profit",
+                        "Americas", "Greater China", "턴어라운드", "LANEIGE",
+                        "Neo Cushion", "Aestura", "Q2", "2분기", "실적",
+                        "아모레퍼시픽", "Amorepacific", "IR", "earnings", "중국"],
+            "intent_triggers": ["Q2", "2분기", "2025", "중국", "Greater China",
+                               "실적", "IR", "분기", "earnings", "턴어라운드"],
+            "freshness": "quarterly",
+            "quarter": "2025-Q2",
+            "parent_company": "amorepacific"
+        },
+        "ir_2025_q3": {
+            "filename": "AP_3Q25_EN.md",
+            "description": "아모레퍼시픽 2025 Q3 실적 (Prime Day 2배, Americas +6.9%)",
+            "doc_type": "ir_report",
+            "keywords": ["매출", "영업이익", "Revenue", "Operating Profit",
+                        "Americas", "Prime Day", "아마존", "Amazon", "LANEIGE",
+                        "Illiyoon", "Mise-en-scène", "Q3", "3분기", "실적",
+                        "아모레퍼시픽", "Amorepacific", "IR", "earnings"],
+            "intent_triggers": ["Q3", "3분기", "2025", "Prime Day", "아마존",
+                               "실적", "IR", "분기", "earnings", "최근"],
+            "freshness": "quarterly",
+            "quarter": "2025-Q3",
+            "parent_company": "amorepacific"
         }
     }
 
@@ -246,6 +323,7 @@ class DocumentRetriever:
         root_path = self.docs_path.parent
         guides_path = self.docs_path / "guides"  # docs/guides/ 폴더
         market_path = self.docs_path / "market"  # docs/market/ 폴더
+        ir_path = self.docs_path / "ir"  # docs/ir/ 폴더 (IR 실적 보고서)
 
         # Semantic Chunker 초기화 (옵션)
         semantic_chunker = None
@@ -253,10 +331,11 @@ class DocumentRetriever:
             semantic_chunker = get_semantic_chunker()
 
         for doc_id, doc_info in self.DOCUMENTS.items():
-            # docs/guides, docs/market, docs, 루트 폴더 순으로 검색
+            # docs/guides, docs/market, docs/ir, docs, 루트 폴더 순으로 검색
             possible_paths = [
                 guides_path / doc_info["filename"],  # docs/guides/
                 market_path / doc_info["filename"],  # docs/market/
+                ir_path / doc_info["filename"],  # docs/ir/ (IR 보고서)
                 self.docs_path / doc_info["filename"],  # docs/
                 root_path / doc_info["filename"]  # 프로젝트 루트
             ]
@@ -290,7 +369,8 @@ class DocumentRetriever:
             "intelligence": 600,  # Type B: 시장 인텔리전스
             "knowledge_base": 600,  # Type B: 지식 베이스
             "response_guide": 500,  # Type C: 대응 가이드
-            "metric_guide": 500   # Type D: 기존 지표 가이드
+            "metric_guide": 500,  # Type D: 기존 지표 가이드
+            "ir_report": 700      # Type E: IR 분기 실적 - 테이블 포함 큰 청크
         }
         return chunk_sizes.get(doc_type, 500)
 
@@ -608,14 +688,15 @@ Do not include any explanation."""
         if cache_key not in self._cache_timestamps:
             return False
         elapsed = time.time() - self._cache_timestamps[cache_key]
-        return elapsed < self._CACHE_TTL
+        return elapsed < self.get_cache_ttl()
 
     def _clean_expired_cache(self) -> None:
         """만료된 캐시 항목 정리"""
         current_time = time.time()
+        cache_ttl = self.get_cache_ttl()
         expired_keys = [
             key for key, timestamp in self._cache_timestamps.items()
-            if current_time - timestamp >= self._CACHE_TTL
+            if current_time - timestamp >= cache_ttl
         ]
         for key in expired_keys:
             self._search_cache.pop(key, None)

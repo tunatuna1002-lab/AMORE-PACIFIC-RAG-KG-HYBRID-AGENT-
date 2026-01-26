@@ -58,6 +58,7 @@ from .scheduler import AutonomousScheduler
 if TYPE_CHECKING:
     from ..agents.alert_agent import AlertAgent
     from .batch_workflow import BatchWorkflow
+    from ..tools.market_intelligence import MarketIntelligenceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -242,6 +243,9 @@ class UnifiedBrain:
         self._query_agent = None
         self._workflow_agent = None
         self._alert_agent = None
+
+        # Market Intelligence Engine (lazy init)
+        self._market_intelligence: Optional['MarketIntelligenceEngine'] = None
 
         # 통계
         self._stats = {
@@ -735,10 +739,15 @@ class UnifiedBrain:
                 # 크롤링 완료 이벤트
                 await self.emit_event("crawl_complete", {"result": result})
 
+                # Market Intelligence 데이터 수집 (크롤링 후 자동 실행)
+                mi_result = await self.collect_market_intelligence()
+                result["market_intelligence"] = mi_result
+
                 return {
                     "task": task_name,
                     "status": "completed",
-                    "result": result.get("summary")
+                    "result": result.get("summary"),
+                    "market_intelligence": mi_result
                 }
 
             elif action == "check_data":
@@ -802,6 +811,48 @@ class UnifiedBrain:
     # =========================================================================
     # 알림 처리
     # =========================================================================
+
+    async def collect_market_intelligence(self) -> Dict[str, Any]:
+        """
+        Market Intelligence 데이터 수집 (Layer 2-4)
+
+        크롤링 완료 후 자동 호출됩니다.
+
+        Returns:
+            수집 결과
+        """
+        logger.info("Starting Market Intelligence collection...")
+
+        try:
+            if not self._market_intelligence:
+                from ..tools.market_intelligence import MarketIntelligenceEngine
+                self._market_intelligence = MarketIntelligenceEngine()
+                await self._market_intelligence.initialize()
+
+            # 모든 레이어 수집
+            layer_data = await self._market_intelligence.collect_all_layers()
+
+            # 데이터 저장
+            self._market_intelligence.save_data()
+
+            result = {
+                "status": "success",
+                "layers_collected": list(layer_data.keys()),
+                "timestamp": datetime.now().isoformat()
+            }
+
+            logger.info(f"Market Intelligence collection completed: {result['layers_collected']}")
+            await self.emit_event("market_intelligence_collected", result)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Market Intelligence collection failed: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
 
     async def check_alerts(self, metrics_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -969,6 +1020,14 @@ class UnifiedBrain:
                     if not crawl_manager.is_crawling():
                         await crawl_manager.start_crawl()
                         logger.info("Scheduled crawl started")
+
+                        # 크롤링 완료 대기 후 Market Intelligence 수집
+                        # Note: start_crawl은 백그라운드로 실행되므로,
+                        # 실제 수집은 crawl_complete 이벤트에서 트리거됨
+                        # 여기서는 별도로 MI 수집 시작 (API가 없어도 동작하도록)
+                        brain = await get_brain()
+                        asyncio.create_task(brain.collect_market_intelligence())
+                        logger.info("Market Intelligence collection queued")
                     else:
                         logger.info("Crawl already in progress, skipping")
 

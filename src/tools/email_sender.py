@@ -14,8 +14,16 @@
 - error: 에러 발생
 - daily_summary: 일일 요약
 
+이메일 서비스 옵션:
+1. Resend API (권장): 무료 3,000통/월, 설정 간편
+2. SMTP: Gmail, 기존 메일서버 등
+
 Usage:
-    sender = EmailSender()
+    # Resend 사용 (권장)
+    sender = EmailSender()  # RESEND_API_KEY 환경변수 자동 감지
+
+    # SMTP 사용
+    sender = EmailSender(provider="smtp")
 
     # 동의한 수신자에게만 발송
     result = await sender.send_alert(
@@ -28,15 +36,24 @@ Usage:
 
 import smtplib
 import logging
+import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from typing import Dict, Any, List, Optional, Literal
+from dataclasses import dataclass, field
 from enum import Enum
 import os
 
 logger = logging.getLogger(__name__)
+
+# Resend 클라이언트 (선택적 의존성)
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
+    logger.debug("resend not installed - SMTP only mode")
 
 
 # =============================================================================
@@ -55,16 +72,39 @@ class AlertType(Enum):
 @dataclass
 class EmailConfig:
     """이메일 설정"""
+    # Provider 선택: "resend" (권장) 또는 "smtp"
+    provider: Literal["resend", "smtp"] = "resend"
+
+    # Resend 설정 (권장)
+    resend_api_key: str = ""
+    resend_from_email: str = "onboarding@resend.dev"  # 기본값 (Resend 테스트용)
+
+    # SMTP 설정 (대안)
     smtp_server: str = "smtp.gmail.com"
     smtp_port: int = 587
     sender_email: str = ""
     sender_password: str = ""
+
+    # 공통 설정
     sender_name: str = "AMORE Market Agent"
 
     @classmethod
     def from_env(cls) -> "EmailConfig":
-        """환경 변수에서 로드"""
+        """환경 변수에서 로드 (Resend 우선)"""
+        resend_api_key = os.getenv("RESEND_API_KEY", "")
+
+        # Resend API 키가 있으면 Resend 사용
+        if resend_api_key:
+            return cls(
+                provider="resend",
+                resend_api_key=resend_api_key,
+                resend_from_email=os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
+                sender_name=os.getenv("SENDER_NAME", "AMORE Market Agent")
+            )
+
+        # 없으면 SMTP 폴백
         return cls(
+            provider="smtp",
             smtp_server=os.getenv("SMTP_SERVER", "smtp.gmail.com"),
             smtp_port=int(os.getenv("SMTP_PORT", "587")),
             sender_email=os.getenv("SENDER_EMAIL", ""),
@@ -216,25 +256,55 @@ class EmailSender:
 
     명시적 동의 기반으로 알림 이메일을 발송합니다.
 
+    지원 Provider:
+    1. Resend (권장): 무료 3,000통/월, API 키만 설정
+    2. SMTP: Gmail 등 기존 메일서버
+
     중요 원칙:
     1. 동의 없이는 절대 발송 안 함
     2. 발송 기록 로깅
     3. 실패 시 재시도 (최대 2회)
     """
 
-    def __init__(self, config: Optional[EmailConfig] = None):
+    def __init__(
+        self,
+        config: Optional[EmailConfig] = None,
+        provider: Optional[Literal["resend", "smtp"]] = None
+    ):
         """
         Args:
             config: 이메일 설정 (None이면 환경 변수에서 로드)
+            provider: 강제 지정 시 사용 (resend 또는 smtp)
         """
         self.config = config or EmailConfig.from_env()
-        self._enabled = bool(self.config.sender_email and self.config.sender_password)
+
+        # Provider 강제 지정
+        if provider:
+            self.config.provider = provider
+
+        # Resend 초기화
+        if self.config.provider == "resend":
+            if not RESEND_AVAILABLE:
+                logger.warning("resend package not installed, falling back to SMTP")
+                self.config.provider = "smtp"
+            elif not self.config.resend_api_key:
+                logger.warning("RESEND_API_KEY not set, falling back to SMTP")
+                self.config.provider = "smtp"
+            else:
+                resend.api_key = self.config.resend_api_key
+                logger.info("Email sender initialized with Resend API")
+
+        # 활성화 여부 판단
+        if self.config.provider == "resend":
+            self._enabled = bool(self.config.resend_api_key)
+        else:
+            self._enabled = bool(self.config.sender_email and self.config.sender_password)
 
         # 발송 기록
         self._send_history: List[Dict[str, Any]] = []
 
         if not self._enabled:
-            logger.warning("Email sender disabled: credentials not configured")
+            logger.warning(f"Email sender disabled: {self.config.provider} credentials not configured")
 
     # =========================================================================
     # 메인 발송
@@ -349,7 +419,37 @@ class EmailSender:
         return result
 
     async def _send_email(self, recipient: str, subject: str, html_body: str) -> None:
-        """실제 이메일 발송"""
+        """실제 이메일 발송 (Resend 또는 SMTP)"""
+        if self.config.provider == "resend":
+            await self._send_via_resend(recipient, subject, html_body)
+        else:
+            await self._send_via_smtp(recipient, subject, html_body)
+
+    async def _send_via_resend(self, recipient: str, subject: str, html_body: str) -> None:
+        """Resend API로 발송"""
+        if not RESEND_AVAILABLE:
+            raise RuntimeError("resend package not installed")
+
+        # Resend는 동기 API이므로 executor에서 실행
+        def _send():
+            params = {
+                "from": f"{self.config.sender_name} <{self.config.resend_from_email}>",
+                "to": [recipient],
+                "subject": subject,
+                "html": html_body
+            }
+            return resend.Emails.send(params)
+
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, _send)
+
+        if not result.get("id"):
+            raise RuntimeError(f"Resend failed: {result}")
+
+        logger.debug(f"Resend email sent: {result.get('id')}")
+
+    async def _send_via_smtp(self, recipient: str, subject: str, html_body: str) -> None:
+        """SMTP로 발송"""
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"{self.config.sender_name} <{self.config.sender_email}>"
@@ -359,11 +459,15 @@ class EmailSender:
         html_part = MIMEText(html_body, "html", "utf-8")
         msg.attach(html_part)
 
-        # SMTP 연결 및 발송
-        with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
-            server.starttls()
-            server.login(self.config.sender_email, self.config.sender_password)
-            server.sendmail(self.config.sender_email, recipient, msg.as_string())
+        # SMTP 연결 및 발송 (동기 작업을 executor에서 실행)
+        def _send():
+            with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
+                server.starttls()
+                server.login(self.config.sender_email, self.config.sender_password)
+                server.sendmail(self.config.sender_email, recipient, msg.as_string())
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _send)
 
     # =========================================================================
     # 편의 메서드
@@ -463,7 +567,26 @@ class EmailSender:
 
         return {
             "enabled": self._enabled,
+            "provider": self.config.provider,
             "total_sent": total,
             "successful": successful,
             "failed": total - successful
         }
+
+    def get_provider_info(self) -> Dict[str, Any]:
+        """현재 Provider 정보"""
+        if self.config.provider == "resend":
+            return {
+                "provider": "resend",
+                "from_email": self.config.resend_from_email,
+                "api_key_set": bool(self.config.resend_api_key),
+                "free_tier": "3,000 emails/month"
+            }
+        else:
+            return {
+                "provider": "smtp",
+                "server": self.config.smtp_server,
+                "port": self.config.smtp_port,
+                "sender_email": self.config.sender_email,
+                "credentials_set": bool(self.config.sender_password)
+            }

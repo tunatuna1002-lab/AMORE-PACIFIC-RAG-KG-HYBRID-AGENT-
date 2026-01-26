@@ -354,6 +354,151 @@ class BrandResolver:
 
         return None
 
+    async def extract_brand_with_llm(self, product_name: str, asin: str = None) -> Optional[str]:
+        """
+        LLM을 사용하여 제품명에서 브랜드 추출 (Unknown 브랜드 검증용)
+
+        Args:
+            product_name: Amazon 제품명
+            asin: 제품 ASIN (캐싱용)
+
+        Returns:
+            추출된 브랜드명 또는 None
+        """
+        try:
+            from litellm import acompletion
+
+            prompt = f"""Amazon 제품명에서 브랜드를 추출하세요.
+
+제품명: {product_name}
+
+규칙:
+1. 제품명 앞부분에 브랜드가 있는 경우가 대부분입니다
+2. 브랜드가 명확하지 않으면 "Unknown" 반환
+3. 일반 단어(예: Hydrating, Professional)는 브랜드가 아닙니다
+4. Amazon Basics, Amazon 등은 브랜드입니다
+
+JSON 형식으로만 응답: {{"brand": "브랜드명"}}"""
+
+            response = await acompletion(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=50,
+                temperature=0
+            )
+
+            # 응답 파싱
+            content = response.choices[0].message.content.strip()
+
+            # JSON 추출
+            import json
+            # JSON 블록 찾기
+            if "{" in content and "}" in content:
+                json_str = content[content.find("{"):content.rfind("}") + 1]
+                result = json.loads(json_str)
+                brand = result.get("brand", "").strip()
+
+                if brand and brand != "Unknown" and len(brand) < 50:
+                    logger.info(f"LLM extracted brand: '{brand}' from '{product_name[:50]}...'")
+
+                    # 캐싱
+                    if asin:
+                        self.add_mapping(asin, brand, product_name, auto_save=True)
+
+                    return brand
+
+        except ImportError:
+            logger.warning("LiteLLM not available for brand extraction")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse LLM response: {e}")
+        except Exception as e:
+            logger.error(f"Error in LLM brand extraction: {e}")
+
+        return None
+
+    async def verify_brands_with_llm(
+        self,
+        products: List[Dict[str, Any]],
+        max_concurrent: int = 5,
+        delay_seconds: float = 0.5
+    ) -> Dict[str, Any]:
+        """
+        LLM을 사용하여 Unknown/빈 브랜드 일괄 검증 (크롤링 직후 호출)
+
+        Args:
+            products: 제품 리스트 [{"asin": "...", "brand": "...", "product_name": "..."}]
+            max_concurrent: 최대 동시 요청 수
+            delay_seconds: 요청 간 딜레이
+
+        Returns:
+            {
+                "verified_count": int,
+                "failed_count": int,
+                "skipped_count": int,
+                "updated_products": List[Dict]  # 업데이트된 제품 리스트
+            }
+        """
+        # Unknown 또는 빈 브랜드만 필터링
+        unknown_products = [
+            p for p in products
+            if not p.get("brand") or p.get("brand") == "Unknown" or p.get("brand") == ""
+        ]
+
+        # 이미 매핑에 있는 것은 제외
+        to_verify = [
+            p for p in unknown_products
+            if p.get("asin") not in self.mappings
+        ]
+
+        logger.info(f"LLM brand verification: {len(to_verify)} products to verify (out of {len(unknown_products)} unknown)")
+
+        verified_count = 0
+        failed_count = 0
+        results = []
+
+        for product in to_verify:
+            asin = product.get("asin")
+            product_name = product.get("product_name", "")
+
+            if not product_name:
+                failed_count += 1
+                continue
+
+            brand = await self.extract_brand_with_llm(product_name, asin)
+
+            if brand and brand != "Unknown":
+                verified_count += 1
+                results.append({
+                    "asin": asin,
+                    "brand": brand,
+                    "product_name": product_name,
+                    "source": "llm"
+                })
+            else:
+                failed_count += 1
+
+            # 딜레이 (API 제한 방지)
+            if delay_seconds > 0:
+                await asyncio.sleep(delay_seconds)
+
+        # 원본 products 리스트 업데이트
+        updated_products = []
+        for p in products:
+            asin = p.get("asin")
+            # 캐시에서 브랜드 조회
+            cached_brand = self.get_brand(asin)
+            if cached_brand:
+                p["brand"] = cached_brand
+            updated_products.append(p)
+
+        return {
+            "verified_count": verified_count,
+            "failed_count": failed_count,
+            "skipped_count": len(products) - len(to_verify),
+            "results": results,
+            "updated_products": updated_products
+        }
+
     def get_stats(self) -> Dict[str, Any]:
         """매핑 통계 반환"""
         brands = [m.get("brand") for m in self.mappings.values()]

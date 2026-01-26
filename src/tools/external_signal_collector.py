@@ -115,6 +115,12 @@ class SignalSource(Enum):
     COSINKOREA = "cosinkorea"
     COSMORNING = "cosmorning"
 
+    # Tier 3: 뷰티 산업 전문 매체 (Phase 1.2 추가)
+    PREMIUM_BEAUTY_NEWS = "premium_beauty_news"
+    HAPPI = "happi"
+    BEAUTY_PACKAGING = "beauty_packaging"
+    GLOBAL_COSMETICS_NEWS = "global_cosmetics_news"
+
     # Tier 4: PR
     TWITTER = "twitter"
 
@@ -188,6 +194,13 @@ RSS_FEEDS = {
     SignalSource.COSMETICS_DESIGN_EUROPE: "https://www.cosmeticsdesign-europe.com/Info/RSS/",
     SignalSource.KEDGLOBAL: "https://www.kedglobal.com/rss/all.xml",
     SignalSource.KOREA_HERALD: "https://www.koreaherald.com/rss/028040600.xml",  # Business & Economy
+
+    # Phase 1.2: 추가 뷰티 산업 매체 (2026-01)
+    SignalSource.COSMETICS_BUSINESS: "https://www.cosmeticsbusiness.com/rss/news.xml",
+    SignalSource.PREMIUM_BEAUTY_NEWS: "https://www.premiumbeautynews.com/en/?format=feed&type=rss",
+    SignalSource.HAPPI: "https://www.happi.com/rss/",
+    SignalSource.BEAUTY_PACKAGING: "https://www.beautypackaging.com/rss/news.xml",
+    SignalSource.GLOBAL_COSMETICS_NEWS: "https://www.globalcosmeticsnews.com/feed/",
 
     # 일부 매체는 RSS를 제공하지 않거나 제한적
     # WWD, People, Vogue는 RSS가 없거나 유료 구독 필요
@@ -271,6 +284,9 @@ class ExternalSignalCollector:
         # HTTP 세션
         self._session: Optional[aiohttp.ClientSession] = None
 
+        # Tavily 클라이언트 (lazy initialization)
+        self._tavily_client = None
+
     async def initialize(self) -> None:
         """비동기 초기화"""
         if AIOHTTP_AVAILABLE and not self._session:
@@ -280,6 +296,22 @@ class ExternalSignalCollector:
                     "User-Agent": "Mozilla/5.0 (compatible; BeautyTrendBot/1.0)"
                 }
             )
+
+        # Tavily 클라이언트 초기화
+        try:
+            from src.tools.tavily_search import TavilySearchClient
+            self._tavily_client = TavilySearchClient()
+            if self._tavily_client.is_enabled():
+                logger.info("Tavily Search API initialized successfully")
+            else:
+                logger.warning("Tavily Search API not configured (TAVILY_API_KEY not set)")
+                self._tavily_client = None
+        except ImportError as e:
+            logger.warning(f"Tavily module not available: {e}")
+            self._tavily_client = None
+        except Exception as e:
+            logger.warning(f"Tavily initialization failed: {e}")
+            self._tavily_client = None
 
         # 기존 신호 로드
         self._load_signals()
@@ -1005,6 +1037,9 @@ class ExternalSignalCollector:
             "wwd_beauty": 0.85,
             "vogue_beauty": 0.8,
 
+            # Tavily 뉴스 (신뢰도는 도메인별로 다름, 기본값)
+            "tavily_news": 0.85,
+
             # 검증/리뷰 (Tier 2)
             "youtube": 0.6,
             "reddit": 0.5,
@@ -1042,6 +1077,153 @@ class ExternalSignalCollector:
             "source_type": "news" if signal.tier == SignalTier.TIER3_AUTHORITY.value else "sns",
             "reliability_score": self.get_source_reliability(signal.source)
         }
+
+    # =========================================================================
+    # Tavily API 검색 (실시간 뉴스)
+    # =========================================================================
+
+    async def fetch_tavily_news(
+        self,
+        brands: Optional[List[str]] = None,
+        topics: Optional[List[str]] = None,
+        days: int = 7,
+        max_results: int = 10
+    ) -> List[ExternalSignal]:
+        """
+        Tavily API를 통한 실시간 뉴스 검색
+
+        Args:
+            brands: 브랜드명 리스트 (예: ["LANEIGE", "COSRX"])
+            topics: 토픽 리스트 (예: ["K-Beauty", "skincare trends"])
+            days: 검색 기간 (최근 N일)
+            max_results: 최대 결과 수
+
+        Returns:
+            ExternalSignal 리스트
+
+        Example:
+            >>> signals = await collector.fetch_tavily_news(
+            ...     brands=["LANEIGE", "COSRX"],
+            ...     topics=["K-Beauty trends"],
+            ...     days=7
+            ... )
+        """
+        if not self._tavily_client:
+            logger.warning("Tavily client not initialized. Skipping Tavily news search.")
+            return []
+
+        try:
+            # Tavily 검색 실행
+            results = await self._tavily_client.search_beauty_news(
+                brands=brands,
+                topics=topics,
+                days=days,
+                max_results_per_query=max_results // 2 if max_results > 2 else max_results
+            )
+
+            signals = []
+            for result in results[:max_results]:
+                # Tavily 결과 → ExternalSignal 변환
+                signal = ExternalSignal(
+                    signal_id=self._generate_signal_id("tavily"),
+                    source="tavily_news",
+                    tier=SignalTier.TIER3_AUTHORITY.value,  # 뉴스 = Tier 3
+                    title=result.title,
+                    content=result.content[:500] if result.content else "",
+                    url=result.url,
+                    published_at=result.published_date or datetime.now(KST).strftime("%Y-%m-%d"),
+                    collected_at=datetime.now(KST).isoformat(),
+                    keywords=brands or [],
+                    relevance_score=result.score,
+                    metadata={
+                        "domain": result.source,
+                        "reliability_score": result.reliability_score,
+                        "tavily_score": result.score,
+                        "search_type": "tavily_api"
+                    }
+                )
+                signals.append(signal)
+
+            # 수집된 신호 저장
+            self.signals.extend(signals)
+            self._save_signals()
+
+            logger.info(f"Fetched {len(signals)} news articles via Tavily API")
+            return signals
+
+        except Exception as e:
+            logger.error(f"Tavily news fetch failed: {e}")
+            return []
+
+    async def fetch_all_news(
+        self,
+        brands: Optional[List[str]] = None,
+        keywords: Optional[List[str]] = None,
+        days: int = 7,
+        include_tavily: bool = True,
+        include_rss: bool = True,
+        include_reddit: bool = True
+    ) -> List[ExternalSignal]:
+        """
+        모든 소스에서 뉴스/신호 수집 (통합 메서드)
+
+        Args:
+            brands: 브랜드명 리스트
+            keywords: 키워드 리스트
+            days: 검색 기간
+            include_tavily: Tavily 뉴스 포함 여부
+            include_rss: RSS 피드 포함 여부
+            include_reddit: Reddit 포함 여부
+
+        Returns:
+            ExternalSignal 리스트 (중복 제거, 신뢰도 정렬)
+        """
+        all_signals = []
+
+        # 1. Tavily API (실시간 뉴스)
+        if include_tavily and self._tavily_client:
+            tavily_signals = await self.fetch_tavily_news(
+                brands=brands,
+                topics=keywords,
+                days=days
+            )
+            all_signals.extend(tavily_signals)
+
+        # 2. RSS 피드 (전문 매체)
+        if include_rss:
+            rss_signals = await self.fetch_all_rss_feeds(
+                keywords=keywords or BEAUTY_KEYWORDS
+            )
+            all_signals.extend(rss_signals)
+
+        # 3. Reddit (소비자 검증)
+        if include_reddit:
+            reddit_signals = await self.fetch_reddit_trends(
+                subreddits=["SkincareAddiction", "AsianBeauty", "MakeupAddiction"],
+                keywords=keywords,
+                max_posts=10
+            )
+            all_signals.extend(reddit_signals)
+
+        # 중복 제거 (URL 기준)
+        seen_urls = set()
+        unique_signals = []
+        for signal in all_signals:
+            if signal.url not in seen_urls:
+                seen_urls.add(signal.url)
+                unique_signals.append(signal)
+
+        # 신뢰도/관련성 기반 정렬
+        unique_signals.sort(
+            key=lambda s: (
+                s.metadata.get("reliability_score", 0.5) * 0.6 +
+                s.relevance_score * 0.4
+            ),
+            reverse=True
+        )
+
+        logger.info(f"Fetched {len(unique_signals)} unique signals from all sources")
+        return unique_signals
 
     # =========================================================================
     # 유틸리티

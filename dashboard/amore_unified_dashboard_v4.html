@@ -6923,15 +6923,18 @@
                     });
                     filename = `AMORE_Data_${new Date().toISOString().slice(0,10)}.xlsx`;
                 } else {
-                    // DOCX 내보내기
-                    response = await fetch(`${API_BASE}/api/export/docx`, {
+                    // DOCX 내보내기 (애널리스트 리포트)
+                    response = await fetch(`${API_BASE}/api/export/analyst-report`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            include_strategy: true
+                            start_date: startDate,
+                            end_date: endDate,
+                            include_charts: true,
+                            include_external_signals: true
                         })
                     });
-                    filename = `AMORE_Insight_Report_${new Date().toISOString().slice(0,10)}.docx`;
+                    filename = `AMORE_Analyst_Report_${startDate}_${endDate}.docx`;
                 }
 
                 if (!response.ok) {

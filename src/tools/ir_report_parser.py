@@ -271,69 +271,11 @@ class IRReport:
 # IR 보고서 URL 패턴
 IR_BASE_URL = "https://www.apgroup.com/int/en/investors/amorepacific-corporation/ir-reports/quarterly-results/quarterly-results.html"
 
-# 미리 정의된 IR 데이터 (PDF 파싱 실패 시 폴백)
-# 실제로는 PDF에서 추출해야 하지만, API 없이도 작동하도록 하드코딩
-PREDEFINED_IR_DATA = {
-    "2025_Q3": {
-        "release_date": "2025-11-06",
-        "financials": {
-            "revenue_krw": 1016.9,
-            "operating_profit_krw": 91.9,
-            "net_income_krw": 68.2,
-            "operating_margin": 9.0,
-            "revenue_yoy": 4.1,
-            "op_yoy": 41.0
-        },
-        "regional": {
-            "Domestic": {"revenue_krw": 556.6, "revenue_yoy": 4.1},
-            "Americas": {"revenue_krw": 156.8, "revenue_yoy": 6.9},
-            "EMEA": {"revenue_krw": 52.7, "revenue_yoy": -3.2},
-            "Greater China": {"revenue_krw": 106.0, "revenue_yoy": 8.5},
-            "Other Asia": {"revenue_krw": 125.4, "revenue_yoy": -3.3}
-        },
-        "brand_highlights": {
-            "LANEIGE": {
-                "region": "Americas",
-                "highlights": [
-                    "'Next-Gen Hydration' 캠페인으로 스킨케어 매출 증가",
-                    "Lip Sleeping Mask 신에디션 (Baskin Robbins, Strawberry Shortcake) 출시",
-                    "인플루언서 콜라보 마이크로드라마 'Beauty and the Beat' 런칭",
-                    "Tracckr Brand Viral Index 8월 2위 기록"
-                ],
-                "products": ["Cream Skin", "Water Bank", "Lip Sleeping Mask"]
-            },
-            "COSRX": {
-                "region": "Americas",
-                "highlights": [
-                    "'Peptide Collagen Hydrogel Eye Patch' TikTok Shop 매출 급증",
-                    "신규 성장 모멘텀 확보"
-                ],
-                "products": ["Peptide Collagen Hydrogel Eye Patch"]
-            },
-            "Aestura": {
-                "region": "Americas",
-                "highlights": [
-                    "미국 오프라인 확대 + 캐나다 Sephora 신규 진출",
-                    "피부과 의사/인플루언서 이벤트로 더마 카테고리 신뢰도 강화",
-                    "'Atobarrier 365 Cream' 강력한 판매 모멘텀"
-                ],
-                "products": ["Atobarrier 365 Cream"]
-            },
-            "Mise-en-scène": {
-                "region": "Americas",
-                "highlights": [
-                    "Amazon Prime Day 강력한 성과",
-                    "'Perfect Hair Serum' US Amazon Fragrance 카테고리 1위"
-                ],
-                "products": ["Perfect Hair Serum"]
-            }
-        },
-        "key_events": [
-            "Amazon Prime Day 매출 2배 성장",
-            "Illiyoon, Mise-en-scène 강력한 성과"
-        ]
-    }
-}
+# NOTE: Predefined IR 데이터 제거됨 (2026-01-26)
+# IR 데이터는 이제 RAG를 통해 docs/ir/ 폴더의 MD 파일에서 검색됩니다.
+# - docs/ir/AP_1Q25_EN.md (Q1 2025)
+# - docs/ir/AP_2Q25_EN.md (Q2 2025)
+# - docs/ir/AP_3Q25_EN.md (Q3 2025)
 
 
 class IRReportParser:
@@ -377,8 +319,7 @@ class IRReportParser:
         # 기존 데이터 로드
         self._load_reports()
 
-        # 미리 정의된 IR 데이터 로드
-        self._load_predefined_data()
+        # NOTE: Predefined 데이터 로드 제거됨 - IR 데이터는 RAG를 통해 검색
 
         logger.info(f"IRReportParser initialized with {len(self.reports)} reports")
 
@@ -388,61 +329,8 @@ class IRReportParser:
             await self._session.close()
             self._session = None
 
-    def _load_predefined_data(self) -> None:
-        """미리 정의된 IR 데이터 로드"""
-        for key, data in PREDEFINED_IR_DATA.items():
-            year, quarter = key.split("_")
-            report_id = f"IR-{year}-{quarter}"
-
-            if report_id in self.reports:
-                continue
-
-            # 재무 데이터
-            financials = QuarterlyFinancials(
-                year=year,
-                quarter=quarter,
-                **data["financials"]
-            )
-
-            # 지역별 실적
-            regional = []
-            for region_name, region_data in data["regional"].items():
-                regional.append(RegionalPerformance(
-                    region=region_name,
-                    year=year,
-                    quarter=quarter,
-                    **region_data
-                ))
-
-            # 브랜드 하이라이트
-            brand_highlights = []
-            for brand_name, brand_data in data.get("brand_highlights", {}).items():
-                brand_highlights.append(BrandHighlight(
-                    brand=brand_name,
-                    year=year,
-                    quarter=quarter,
-                    region=brand_data.get("region"),
-                    highlights=brand_data.get("highlights", []),
-                    products=brand_data.get("products", [])
-                ))
-
-            report = IRReport(
-                report_id=report_id,
-                report_type=ReportType.EARNINGS_RELEASE.value,
-                year=year,
-                quarter=quarter,
-                release_date=data["release_date"],
-                financials=financials,
-                regional_performance=regional,
-                brand_highlights=brand_highlights
-            )
-
-            # key_events를 metadata에 저장
-            report.metadata = {"key_events": data.get("key_events", [])}
-
-            self.reports[report_id] = report
-
-        logger.info(f"Loaded {len(PREDEFINED_IR_DATA)} predefined IR reports")
+    # NOTE: _load_predefined_data() 메서드 제거됨 (2026-01-26)
+    # IR 데이터는 이제 RAG (DocumentRetriever)를 통해 docs/ir/의 MD 파일에서 검색됩니다.
 
     # =========================================================================
     # PDF 다운로드 및 파싱

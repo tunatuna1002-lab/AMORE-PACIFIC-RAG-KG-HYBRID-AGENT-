@@ -2,19 +2,102 @@
   "target_brand": {
     "name": "LANEIGE",
     "aliases": ["LANEIGE", "Laneige", "laneige", "라네즈"],
-    "keywords": ["laneige", "라네즈", "lip sleeping mask", "water sleeping mask"]
+    "keywords": ["laneige", "라네즈", "lip sleeping mask", "water sleeping mask"],
+    "parent": "AMOREPACIFIC",
+    "segment": "Premium",
+    "country": "Korea"
   },
-  "competitor_brands": [
-    {"name": "Rare Beauty", "tier": "premium"},
-    {"name": "TIRTIR", "tier": "mid"},
-    {"name": "Summer Fridays", "tier": "premium"},
-    {"name": "Rhode", "tier": "premium"},
-    {"name": "Glow Recipe", "tier": "premium"},
-    {"name": "e.l.f.", "tier": "affordable"},
-    {"name": "NYX", "tier": "affordable"},
-    {"name": "Maybelline", "tier": "mass"},
-    {"name": "COSRX", "tier": "mid"},
-    {"name": "Beauty of Joseon", "tier": "mid"}
+
+  "amorepacific_brands": [
+    {"name": "LANEIGE", "segment": "Premium", "category": "Skincare/Makeup"},
+    {"name": "COSRX", "segment": "K-Beauty", "category": "Skincare", "acquired": "2024", "country": "Korea"},
+    {"name": "Sulwhasoo", "segment": "Luxury", "category": "Skincare", "aliases": ["설화수"]},
+    {"name": "innisfree", "segment": "Premium", "category": "Skincare"},
+    {"name": "HERA", "segment": "Luxury", "category": "Makeup"},
+    {"name": "IOPE", "segment": "Luxury", "category": "Skincare"},
+    {"name": "primera", "segment": "Premium", "category": "Skincare", "aliases": ["프리메라"]},
+    {"name": "MAMONDE", "segment": "Premium", "category": "Skincare"},
+    {"name": "Hanyul", "segment": "Premium", "category": "Skincare", "aliases": ["한율"]},
+    {"name": "AESTURA", "segment": "Derma", "category": "Skincare"},
+    {"name": "ETUDE", "segment": "Mass", "category": "Makeup"},
+    {"name": "espoir", "segment": "Makeup", "category": "Makeup"},
+    {"name": "Illiyoon", "segment": "Body", "category": "Body Care", "aliases": ["일리윤"]},
+    {"name": "Mise-en-scène", "segment": "Hair", "category": "Hair Care", "aliases": ["미쟝센"]},
+    {"name": "RYO", "segment": "Hair", "category": "Hair Care", "aliases": ["려"]},
+    {"name": "LABO-H", "segment": "Scalp", "category": "Hair Care"},
+    {"name": "Happy Bath", "segment": "Body", "category": "Body Care"},
+    {"name": "TATA HARPER", "segment": "Clean Beauty", "category": "Skincare", "acquired": true, "country": "USA"},
+    {"name": "Amore Pacific", "segment": "Luxury", "category": "Skincare", "aliases": ["AP", "아모레퍼시픽"]},
+    {"name": "Longtake", "segment": "Hair", "category": "Hair Care"},
+    {"name": "B.Ready", "segment": "Mass", "category": "Skincare"},
+    {"name": "HOLITUAL", "segment": "Wellness", "category": "Supplements"},
+    {"name": "ODYSSEY", "segment": "Men", "category": "Men's Care"},
+    {"name": "SKIN U", "segment": "Body", "category": "Body Care"},
+    {"name": "Median", "segment": "Oral", "category": "Oral Care", "aliases": ["메디안"]},
+    {"name": "GENTIST", "segment": "Oral", "category": "Oral Care"},
+    {"name": "Vital Beautie", "segment": "Health", "category": "Supplements", "aliases": ["바이탈뷰티"]},
+    {"name": "OSULLOC", "segment": "Tea", "category": "Lifestyle", "aliases": ["오설록"]},
+    {"name": "make ON", "segment": "Tools", "category": "Beauty Tools"},
+    {"name": "AYUNCHE", "segment": "Premium", "category": "Skincare"},
+    {"name": "AMOS Professional", "segment": "Hair Pro", "category": "Hair Care"}
   ],
-  "korean_brands": ["LANEIGE", "TIRTIR", "COSRX", "Beauty of Joseon", "innisfree", "MISSHA"]
+
+  "competitor_brands": [
+    {"name": "Rare Beauty", "tier": "premium", "country": "USA"},
+    {"name": "TIRTIR", "tier": "mid", "country": "Korea"},
+    {"name": "Summer Fridays", "tier": "premium", "country": "USA"},
+    {"name": "Rhode", "tier": "premium", "country": "USA"},
+    {"name": "Glow Recipe", "tier": "premium", "country": "USA"},
+    {"name": "e.l.f.", "tier": "affordable", "country": "USA"},
+    {"name": "NYX", "tier": "affordable", "country": "USA"},
+    {"name": "Maybelline", "tier": "mass", "country": "USA"},
+    {"name": "Beauty of Joseon", "tier": "mid", "country": "Korea", "aliases": ["조선미녀"]},
+    {"name": "CeraVe", "tier": "mass", "country": "USA"},
+    {"name": "La Roche-Posay", "tier": "premium", "country": "France"},
+    {"name": "The Ordinary", "tier": "affordable", "country": "Canada"},
+    {"name": "Drunk Elephant", "tier": "premium", "country": "USA"},
+    {"name": "SKIN1004", "tier": "mid", "country": "Korea"},
+    {"name": "Anua", "tier": "mid", "country": "Korea", "aliases": ["아누아"]},
+    {"name": "MEDICUBE", "tier": "mid", "country": "Korea"},
+    {"name": "BIODANCE", "tier": "mid", "country": "Korea"},
+    {"name": "Torriden", "tier": "mid", "country": "Korea"},
+    {"name": "mixsoon", "tier": "mid", "country": "Korea"},
+    {"name": "Numbuzin", "tier": "mid", "country": "Korea"}
+  ],
+
+  "korean_brands": [
+    "LANEIGE", "COSRX", "innisfree", "HERA", "Sulwhasoo", "ETUDE",
+    "TIRTIR", "Beauty of Joseon", "SKIN1004", "Anua", "MEDICUBE",
+    "BIODANCE", "Torriden", "mixsoon", "Numbuzin", "MISSHA"
+  ],
+
+  "brand_ownership": {
+    "COSRX": {
+      "owner": "AMOREPACIFIC",
+      "country_of_origin": "Korea",
+      "acquired_date": "2024",
+      "note": "COSRX is a Korean brand, NOT Chinese. Acquired by Amorepacific in 2024.",
+      "evidence": ["IR 2025 Q1: consolidation of COSRX earnings", "IR 2025 Q2-Q3: COSRX performance reports"]
+    },
+    "TATA HARPER": {
+      "owner": "AMOREPACIFIC",
+      "country_of_origin": "USA",
+      "acquired": true,
+      "note": "Clean beauty brand acquired by Amorepacific"
+    }
+  },
+
+  "segments": {
+    "Luxury": ["Sulwhasoo", "Amore Pacific", "HERA", "IOPE"],
+    "Premium": ["LANEIGE", "innisfree", "primera", "MAMONDE", "Hanyul", "AYUNCHE"],
+    "K-Beauty": ["COSRX"],
+    "Derma": ["AESTURA"],
+    "Mass": ["ETUDE", "B.Ready"],
+    "Makeup": ["espoir", "HERA", "ETUDE"],
+    "Hair": ["RYO", "Mise-en-scène", "LABO-H", "Longtake", "AMOS Professional"],
+    "Body": ["Illiyoon", "Happy Bath", "SKIN U"],
+    "Oral": ["Median", "GENTIST"],
+    "Health": ["Vital Beautie", "HOLITUAL"],
+    "Lifestyle": ["OSULLOC"]
+  }
 }

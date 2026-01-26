@@ -101,6 +101,9 @@ from src.tools.sqlite_storage import SQLiteStorage, get_sqlite_storage
 # Level 4 Brain (LLM-First Autonomous Agent)
 from src.core.brain import UnifiedBrain, get_brain, get_initialized_brain, BrainMode, TaskPriority
 
+# Market Intelligence Engine
+from src.tools.market_intelligence import MarketIntelligenceEngine, DataLayer, create_market_intelligence_engine
+
 # External Signal Routes
 from src.api.routes.signals import router as signals_router
 
@@ -305,6 +308,17 @@ def cleanup_expired_sessions() -> int:
 
 # 통합 시스템은 UnifiedBrain (get_brain())으로 관리됨
 
+# Market Intelligence Engine 싱글톤
+_market_intelligence_engine: Optional[MarketIntelligenceEngine] = None
+
+async def get_market_intelligence() -> MarketIntelligenceEngine:
+    """Market Intelligence Engine 싱글톤 반환"""
+    global _market_intelligence_engine
+    if _market_intelligence_engine is None:
+        _market_intelligence_engine = MarketIntelligenceEngine()
+        await _market_intelligence_engine.initialize()
+    return _market_intelligence_engine
+
 
 # ============= Pydantic Models =============
 
@@ -330,6 +344,23 @@ class ExportRequest(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     include_strategy: bool = True
+
+
+class MarketIntelligenceStatusResponse(BaseModel):
+    """Market Intelligence 상태 응답"""
+    initialized: bool
+    layers_collected: List[int]
+    last_collection: Optional[str] = None
+    stats: Dict[str, Any]
+
+
+class LayerDataResponse(BaseModel):
+    """레이어 데이터 응답"""
+    layer: int
+    layer_name: str
+    collected_at: str
+    data: Dict[str, Any]
+    sources: List[Dict[str, Any]]
 
 
 # ============= Helper Functions =============
@@ -498,59 +529,168 @@ async def get_rag_context(query: str, query_type: QueryType) -> tuple[str, List[
     return "\n\n---\n\n".join(context_parts), sources
 
 
-def get_dynamic_suggestions(query_type: QueryType, entities: Dict, response: str) -> List[str]:
+def generate_dynamic_suggestions(
+    query_type: QueryType,
+    entities: Dict,
+    response: str,
+    user_query: str = ""
+) -> List[str]:
     """
-    동적 후속 질문 제안
+    동적 후속 질문 제안 (v2 - 개선 버전)
 
-    응답 내용과 컨텍스트를 기반으로 맞춤형 제안 생성
+    응답 내용, 엔티티, 쿼리 유형을 종합하여 맞춤형 제안 생성
+
+    우선순위:
+    1. 응답 키워드 기반 (response 분석)
+    2. 엔티티 기반 (브랜드, 카테고리, 지표 활용)
+    3. 쿼리 유형 기반 (폴백)
+
+    Args:
+        query_type: 질문 유형
+        entities: 추출된 엔티티
+        response: AI 응답 내용
+        user_query: 원본 사용자 질문
+
+    Returns:
+        3개의 후속 질문 리스트
     """
+    import re
     suggestions = []
 
-    # 엔티티 기반 제안
+    # 엔티티 추출
     brands = entities.get("brands", [])
     indicators = entities.get("indicators", [])
     categories = entities.get("categories", [])
 
+    # 1순위: 응답 키워드 기반 제안
+    if response:
+        keyword_suggestions = _extract_response_keywords(response)
+        suggestions.extend(keyword_suggestions)
+
+    # 2순위: 엔티티 기반 제안
+    if len(suggestions) < 3:
+        entity_suggestions = _generate_entity_suggestions(brands, categories, indicators)
+        suggestions.extend(entity_suggestions)
+
+    # 3순위: 쿼리 유형 기반 제안 (폴백)
+    if len(suggestions) < 3:
+        type_suggestions = _generate_type_suggestions(query_type, brands, indicators)
+        suggestions.extend(type_suggestions)
+
+    # 중복 제거 및 상위 3개
+    unique = list(dict.fromkeys(suggestions))
+    return unique[:3]
+
+
+def _extract_response_keywords(response: str) -> List[str]:
+    """응답에서 후속 질문 관련 키워드 추출"""
+    import re
+    keywords = []
+
+    # 패턴 매칭 - 응답 내용에 따라 관련 후속 질문 생성
+    patterns = {
+        r"순위.{0,10}(하락|급락|떨어)": "순위 하락 원인을 분석해주세요",
+        r"순위.{0,10}(상승|급등|올라)": "상승 요인을 상세 분석해주세요",
+        r"경쟁사|경쟁 브랜드|competitor": "경쟁사 상세 비교를 해주세요",
+        r"가격.{0,10}(인상|인하|변동)": "가격 전략을 분석해주세요",
+        r"리뷰|평점|rating": "소비자 피드백을 상세 분석해주세요",
+        r"트렌드|유행|trend": "트렌드 상세 분석을 해주세요",
+        r"성장.{0,5}(기회|가능|potential)": "성장 전략을 제안해주세요",
+        r"위험|리스크|위협|risk": "리스크 대응 전략은?",
+        r"SoS|점유율|share": "점유율 개선 전략은?",
+        r"Top.{0,3}(10|5)|상위": "Top 10 진입 전략은?",
+    }
+
+    for pattern, suggestion in patterns.items():
+        if re.search(pattern, response, re.IGNORECASE):
+            keywords.append(suggestion)
+            if len(keywords) >= 2:  # 최대 2개
+                break
+
+    return keywords
+
+
+def _generate_entity_suggestions(
+    brands: List[str],
+    categories: List[str],
+    indicators: List[str]
+) -> List[str]:
+    """엔티티 기반 동적 제안 생성"""
+    suggestions = []
+
+    # 브랜드 기반
+    if brands:
+        brand = brands[0]
+        suggestions.append(f"{brand} 경쟁사 비교 분석")
+        if len(brands) > 1:
+            suggestions.append(f"{brands[0]} vs {brands[1]} 비교")
+
+    # 카테고리 기반
+    if categories:
+        cat = categories[0]
+        suggestions.append(f"{cat} 시장 트렌드 분석")
+
+    # 지표 기반
+    if indicators:
+        ind = indicators[0].upper()
+        suggestions.append(f"{ind} 개선 전략")
+
+    return suggestions
+
+
+def _generate_type_suggestions(
+    query_type: QueryType,
+    brands: List[str],
+    indicators: List[str]
+) -> List[str]:
+    """쿼리 유형 기반 폴백 제안"""
+    suggestions = []
+
     if query_type == QueryType.DEFINITION:
-        # 정의 질문 → 해석/활용 질문 제안
         if indicators:
             ind = indicators[0].upper()
             suggestions.append(f"{ind}가 높으면 어떤 의미인가요?")
-            suggestions.append(f"{ind} 개선을 위한 전략은?")
-        suggestions.append("다른 지표와 함께 해석하면 어떤가요?")
+        suggestions.extend([
+            "관련된 다른 지표는?",
+            "실제 데이터에 적용해주세요"
+        ])
 
     elif query_type == QueryType.INTERPRETATION:
-        # 해석 질문 → 액션/조합 제안
-        suggestions.append("현재 LANEIGE 수치를 분석해주세요")
-        suggestions.append("경쟁사와 비교하면 어떤가요?")
-        suggestions.append("개선을 위한 액션 아이템은?")
+        suggestions.extend([
+            "현재 LANEIGE 수치 분석",
+            "경쟁사와 비교해주세요",
+            "개선 액션 아이템은?"
+        ])
 
     elif query_type == QueryType.DATA_QUERY:
-        # 데이터 조회 → 심화 분석 제안
-        suggestions.append("이 수치가 좋은 건가요?")
-        suggestions.append("최근 7일 추이를 알려주세요")
-        suggestions.append("경쟁사 대비 어떤가요?")
+        suggestions.extend([
+            "이 수치가 좋은 건가요?",
+            "최근 7일 추이 분석",
+            "경쟁사 대비 현황"
+        ])
 
     elif query_type == QueryType.ANALYSIS:
-        # 분석 → 전략/액션 제안
-        suggestions.append("가장 시급한 액션은 무엇인가요?")
-        suggestions.append("Top 10 진입을 위한 전략은?")
-        suggestions.append("리스크 요인이 있나요?")
+        suggestions.extend([
+            "가장 시급한 액션은?",
+            "Top 10 진입 전략",
+            "리스크 요인 분석"
+        ])
 
     elif query_type == QueryType.COMBINATION:
-        # 조합 질문 → 다른 조합 제안
-        suggestions.append("다른 시나리오도 분석해주세요")
-        suggestions.append("현재 데이터에서 해당 상황이 있나요?")
+        suggestions.extend([
+            "다른 시나리오 분석",
+            "현재 해당 상황 존재 여부"
+        ])
 
     else:
         # 기본 제안
         suggestions = [
-            "SoS(점유율)에 대해 알려주세요",
-            "현재 LANEIGE 순위는?",
-            "전략적 권고사항이 있나요?"
+            "SoS(점유율) 설명해주세요",
+            "LANEIGE 현재 순위는?",
+            "전략적 권고사항"
         ]
 
-    return suggestions[:3]
+    return suggestions
 
 
 # ============= API Endpoints =============
@@ -710,8 +850,8 @@ Ontology 엔티티 이해:
         add_to_memory(session_id, "user", message)
         add_to_memory(session_id, "assistant", answer)
 
-        # 10. 동적 후속 질문 제안
-        suggestions = get_dynamic_suggestions(query_type, entities, answer)
+        # 10. 동적 후속 질문 제안 (v2 - 개선 버전)
+        suggestions = generate_dynamic_suggestions(query_type, entities, answer, message)
 
         # 11. Audit Trail 로깅
         response_time_ms = (time.time() - start_time) * 1000
@@ -1807,6 +1947,262 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+class AnalystReportRequest(BaseModel):
+    """애널리스트 리포트 요청"""
+    start_date: str  # Required: YYYY-MM-DD
+    end_date: str    # Required: YYYY-MM-DD
+    include_charts: bool = True
+    include_external_signals: bool = True
+
+
+@app.post("/api/export/analyst-report")
+async def export_analyst_report(request: AnalystReportRequest):
+    """
+    기간별 애널리스트 리포트 DOCX 생성 (8 Sections)
+
+    증권사/리서치 기관 수준의 산업 분석 보고서 생성
+
+    Args:
+        request: AnalystReportRequest with start_date, end_date, options
+
+    Returns:
+        StreamingResponse with DOCX file
+    """
+    import tempfile
+    from docx.shared import RGBColor
+
+    # 모듈 임포트
+    from src.tools.period_analyzer import PeriodAnalyzer
+    from src.tools.chart_generator import ChartGenerator
+    from src.tools.reference_tracker import ReferenceTracker
+    from src.agents.period_insight_agent import PeriodInsightAgent
+    from src.tools.external_signal_collector import ExternalSignalCollector
+
+    logger.info(f"Generating analyst report: {request.start_date} ~ {request.end_date}")
+
+    # AMOREPACIFIC colors
+    PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
+    AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795
+    GRAY = RGBColor(125, 125, 125)      # #7D7D7D
+
+    try:
+        # 1. Period Analysis
+        analyzer = PeriodAnalyzer()
+        analysis = await analyzer.analyze(request.start_date, request.end_date)
+
+        if analysis.total_days == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for period {request.start_date} ~ {request.end_date}"
+            )
+
+        # 2. External Signals (optional)
+        external_signals = None
+        if request.include_external_signals:
+            try:
+                collector = ExternalSignalCollector()
+                await collector.initialize()
+                if collector.signals:
+                    external_signals = {
+                        "signals": collector.signals,
+                        "report_section": collector.generate_report_section(days=analysis.total_days)
+                    }
+                await collector.close()
+            except Exception as e:
+                logger.warning(f"External signal collection failed: {e}")
+
+        # 3. Generate Insights
+        insight_agent = PeriodInsightAgent()
+        report = await insight_agent.generate_report(analysis, external_signals=external_signals)
+
+        # 4. Generate Charts
+        chart_paths = {}
+        temp_dir = None
+        if request.include_charts:
+            temp_dir = tempfile.mkdtemp()
+            chart_gen = ChartGenerator(output_dir=temp_dir)
+            chart_paths = chart_gen.generate_all_charts(analysis)
+            logger.info(f"Generated {len(chart_paths)} charts in {temp_dir}")
+
+        # 5. Reference Tracker
+        tracker = ReferenceTracker()
+        tracker.auto_add_amazon_sources(
+            start_date=request.start_date,
+            end_date=request.end_date
+        )
+
+        # 6. Create DOCX Document
+        doc = Document()
+
+        # Style setup
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Arial'
+        font.size = Pt(11)
+
+        # ===== 표지 (Cover Page) =====
+        title = doc.add_heading('LANEIGE Amazon US 경쟁력 분석 보고서', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title.runs[0]
+        run.font.color.rgb = PACIFIC_BLUE
+
+        subtitle = doc.add_paragraph(f'분석 기간: {request.start_date} ~ {request.end_date}')
+        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        date_para = doc.add_paragraph()
+        date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        date_para.add_run(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+        doc.add_page_break()
+
+        # ===== 목차 (Table of Contents) =====
+        toc_heading = doc.add_heading('목차', 1)
+        toc_heading.runs[0].font.color.rgb = PACIFIC_BLUE
+
+        toc_items = [
+            "1. Executive Summary",
+            "2. LANEIGE 심층 분석",
+            "3. 경쟁 환경 분석",
+            "4. 시장 동향",
+            "5. 외부 신호 분석",
+            "6. 리스크 및 기회 요인",
+            "7. 전략 제언",
+            "8. 참고자료 (References)"
+        ]
+        for item in toc_items:
+            doc.add_paragraph(item, style='List Bullet')
+
+        doc.add_page_break()
+
+        # Helper function for section content
+        def add_section_content(section, section_prefix):
+            """섹션 내용 추가 헬퍼"""
+            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading.runs[0].font.color.rgb = PACIFIC_BLUE
+
+            for line in section.content.split('\n'):
+                if line.strip():
+                    if line.startswith('■'):
+                        para = doc.add_paragraph(line)
+                        para.runs[0].font.bold = True
+                    elif line.startswith(f'{section_prefix}.'):
+                        doc.add_heading(line, 2)
+                    else:
+                        doc.add_paragraph(line)
+
+        # ===== Section 1: Executive Summary =====
+        if report.executive_summary:
+            add_section_content(report.executive_summary, '1')
+            # Insert SoS chart if available
+            if request.include_charts and 'sos_trend' in chart_paths:
+                doc.add_paragraph()
+                doc.add_picture(str(chart_paths['sos_trend']), width=Inches(6))
+            doc.add_page_break()
+
+        # ===== Section 2: LANEIGE 심층 분석 =====
+        if report.laneige_analysis:
+            add_section_content(report.laneige_analysis, '2')
+            # Insert charts
+            if request.include_charts:
+                doc.add_paragraph()
+                if 'sos_trend' in chart_paths:
+                    doc.add_heading('일별 SoS 추이', 3)
+                    doc.add_picture(str(chart_paths['sos_trend']), width=Inches(6))
+                    doc.add_paragraph()
+                if 'product_ranks' in chart_paths:
+                    doc.add_heading('제품별 순위 변동', 3)
+                    doc.add_picture(str(chart_paths['product_ranks']), width=Inches(6))
+            doc.add_page_break()
+
+        # ===== Section 3: 경쟁 환경 분석 =====
+        if report.competitive_analysis:
+            add_section_content(report.competitive_analysis, '3')
+            # Insert brand comparison chart
+            if request.include_charts and 'brand_comparison' in chart_paths:
+                doc.add_paragraph()
+                doc.add_heading('브랜드별 점유율', 3)
+                doc.add_picture(str(chart_paths['brand_comparison']), width=Inches(6))
+            doc.add_page_break()
+
+        # ===== Section 4: 시장 동향 =====
+        if report.market_trends:
+            add_section_content(report.market_trends, '4')
+            # Insert HHI chart
+            if request.include_charts and 'hhi_trend' in chart_paths:
+                doc.add_paragraph()
+                doc.add_heading('HHI 추이', 3)
+                doc.add_picture(str(chart_paths['hhi_trend']), width=Inches(6))
+            doc.add_page_break()
+
+        # ===== Section 5: 외부 신호 분석 =====
+        if report.external_signals:
+            add_section_content(report.external_signals, '5')
+            doc.add_page_break()
+
+        # ===== Section 6: 리스크 및 기회 요인 =====
+        if report.risks_opportunities:
+            add_section_content(report.risks_opportunities, '6')
+            doc.add_page_break()
+
+        # ===== Section 7: 전략 제언 =====
+        if report.strategic_recommendations:
+            add_section_content(report.strategic_recommendations, '7')
+            doc.add_page_break()
+
+        # ===== Section 8: 참고자료 (References) =====
+        ref_heading = doc.add_heading('8. 참고자료 (References)', 1)
+        ref_heading.runs[0].font.color.rgb = PACIFIC_BLUE
+
+        # Format reference section
+        ref_section = tracker.format_section()
+        for line in ref_section.split('\n'):
+            if line.strip():
+                if line.startswith('8.'):
+                    doc.add_heading(line, 2)
+                else:
+                    doc.add_paragraph(line)
+
+        # ===== Footer =====
+        doc.add_paragraph()
+        footer = doc.add_paragraph()
+        footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = footer.add_run("© 2025 AMORE Pacific - Confidential")
+        run.italic = True
+        run.font.color.rgb = GRAY
+
+        # Save to BytesIO
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        # Generate filename
+        filename = f"AMORE_Analyst_Report_{request.start_date}_{request.end_date}.docx"
+
+        # Cleanup temp charts
+        if request.include_charts and chart_paths and temp_dir:
+            try:
+                for chart_path in chart_paths.values():
+                    if chart_path.exists():
+                        chart_path.unlink()
+                Path(temp_dir).rmdir()
+            except Exception as e:
+                logger.warning(f"Chart cleanup failed: {e}")
+
+        logger.info(f"Analyst report generated successfully: {filename}")
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Analyst report generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
 
 
 @app.post("/api/export/excel")
@@ -3967,6 +4363,215 @@ async def sync_download(date: str):
         raise
     except Exception as e:
         logging.error(f"Sync download error for {date}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Market Intelligence API (v2026.01.26)
+# =============================================================================
+
+@app.get("/api/market-intelligence/status", response_model=MarketIntelligenceStatusResponse)
+async def get_market_intelligence_status():
+    """
+    Market Intelligence 시스템 상태 조회
+
+    Returns:
+        초기화 상태, 수집된 레이어, 통계
+    """
+    try:
+        engine = await get_market_intelligence()
+        stats = engine.get_stats()
+
+        # 마지막 수집 시간
+        last_collection = None
+        if engine.layer_data:
+            times = [ld.collected_at for ld in engine.layer_data.values()]
+            if times:
+                last_collection = max(times)
+
+        return MarketIntelligenceStatusResponse(
+            initialized=engine._initialized,
+            layers_collected=list(engine.layer_data.keys()),
+            last_collection=last_collection,
+            stats=stats
+        )
+    except Exception as e:
+        logger.error(f"Market Intelligence status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/market-intelligence/layers")
+async def get_market_intelligence_layers(
+    layer: Optional[int] = None
+):
+    """
+    4-Layer 데이터 조회
+
+    Args:
+        layer: 특정 레이어만 조회 (1-4, None이면 전체)
+
+    Returns:
+        레이어별 데이터
+    """
+    try:
+        engine = await get_market_intelligence()
+
+        if layer is not None:
+            layer_data = engine.layer_data.get(layer)
+            if not layer_data:
+                return {"error": f"Layer {layer} 데이터가 없습니다.", "available_layers": list(engine.layer_data.keys())}
+
+            return {
+                "layer": layer_data.layer,
+                "layer_name": layer_data.layer_name,
+                "collected_at": layer_data.collected_at,
+                "data": layer_data.data,
+                "sources": layer_data.sources
+            }
+
+        # 전체 레이어
+        result = {}
+        for layer_num, layer_data in engine.layer_data.items():
+            result[f"layer_{layer_num}"] = {
+                "layer": layer_data.layer,
+                "layer_name": layer_data.layer_name,
+                "collected_at": layer_data.collected_at,
+                "data": layer_data.data,
+                "sources": layer_data.sources
+            }
+
+        return result
+    except Exception as e:
+        logger.error(f"Market Intelligence layers error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/market-intelligence/collect", dependencies=[Depends(verify_api_key)])
+async def collect_market_intelligence(
+    layers: Optional[List[int]] = None
+):
+    """
+    Market Intelligence 데이터 수집 트리거
+
+    Args:
+        layers: 수집할 레이어 목록 (None이면 전체)
+
+    Returns:
+        수집 결과
+    """
+    try:
+        engine = await get_market_intelligence()
+
+        if layers:
+            # 특정 레이어만 수집
+            results = {}
+            for layer_num in layers:
+                layer_data = await engine.collect_layer(layer_num)
+                if layer_data:
+                    results[f"layer_{layer_num}"] = {
+                        "status": "collected",
+                        "collected_at": layer_data.collected_at,
+                        "sources_count": len(layer_data.sources)
+                    }
+                else:
+                    results[f"layer_{layer_num}"] = {"status": "skipped"}
+        else:
+            # 전체 수집
+            await engine.collect_all_layers()
+            results = {
+                f"layer_{k}": {
+                    "status": "collected",
+                    "collected_at": v.collected_at,
+                    "sources_count": len(v.sources)
+                }
+                for k, v in engine.layer_data.items()
+            }
+
+        # 데이터 저장
+        engine.save_data()
+
+        return {
+            "status": "success",
+            "collected": results,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Market Intelligence collection error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/market-intelligence/insight")
+async def get_market_intelligence_insight(
+    include_amazon: bool = False
+):
+    """
+    4-Layer 기반 인사이트 생성
+
+    Args:
+        include_amazon: Layer 1 Amazon 데이터 포함 여부
+
+    Returns:
+        생성된 인사이트 텍스트
+    """
+    try:
+        engine = await get_market_intelligence()
+
+        # 데이터가 없으면 먼저 수집
+        if not engine.layer_data:
+            await engine.collect_all_layers()
+
+        # Amazon 데이터 가져오기 (선택)
+        amazon_data = None
+        if include_amazon:
+            try:
+                storage = await get_sqlite_storage()
+                # 최신 LANEIGE 데이터 조회
+                # (실제 구현은 storage의 메서드에 따라 다름)
+                amazon_data = {"sos": 5.2, "laneige_rank": 15}  # placeholder
+            except Exception:
+                pass
+
+        insight = engine.generate_layered_insight(amazon_data=amazon_data)
+
+        return {
+            "insight": insight,
+            "generated_at": datetime.now().isoformat(),
+            "layers_used": list(engine.layer_data.keys())
+        }
+    except Exception as e:
+        logger.error(f"Market Intelligence insight error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/insights/sources")
+async def get_insight_sources():
+    """
+    인사이트 출처 정보 조회
+
+    Returns:
+        출처 목록 및 통계
+    """
+    try:
+        engine = await get_market_intelligence()
+
+        all_sources = []
+        for layer_data in engine.layer_data.values():
+            all_sources.extend(layer_data.sources)
+
+        # 출처 유형별 통계
+        by_type = {}
+        for source in all_sources:
+            source_type = source.get("source_type", "unknown")
+            by_type[source_type] = by_type.get(source_type, 0) + 1
+
+        return {
+            "total_sources": len(all_sources),
+            "by_type": by_type,
+            "sources": all_sources[:20],  # 최근 20개
+            "source_manager_stats": engine.source_manager.get_stats()
+        }
+    except Exception as e:
+        logger.error(f"Insight sources error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

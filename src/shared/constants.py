@@ -43,8 +43,15 @@ VOLATILITY_WINDOW_DAYS = 7   # Rolling window for volatility calculations
 
 # Model configuration
 DEFAULT_MODEL = "gpt-4.1-mini"  # Primary model for general tasks
-DEFAULT_TEMPERATURE = 0.7        # Standard creativity level for insights
+
+# Temperature settings (E2E Audit Action Item - 2026-01-27)
+# - Chatbot: 낮은 temperature = 사실적/일관된 답변
+# - Insight: 높은 temperature = 창의적 분석/전략 제안
+CHATBOT_TEMPERATURE = 0.4        # Conservative for factual Q&A
+INSIGHT_TEMPERATURE = 0.6        # Creative for strategic insights
+DEFAULT_TEMPERATURE = 0.7        # Legacy compatibility
 JSON_TEMPERATURE = 0.3           # Lower temperature for structured output
+
 MAX_TOKENS_DEFAULT = 2000        # Standard response length
 MAX_TOKENS_LONG = 4000           # Extended response for complex analysis
 
@@ -65,6 +72,16 @@ MAX_CACHE_SIZE = 100     # Maximum number of cached entries
 # HTTP client configuration
 REQUEST_TIMEOUT = 60     # Timeout for external API calls (seconds)
 MAX_RETRIES = 3          # Maximum retry attempts for failed requests
+
+
+# ==============================================================================
+# SUGGESTION GENERATION SETTINGS
+# ==============================================================================
+
+# LLM-based suggestion generation
+SUGGESTION_TEMPERATURE = 0.7  # Higher for diversity
+SUGGESTION_MAX_TOKENS = 150   # Compact output
+SUGGESTION_MAX_COUNT = 3      # Maximum suggestions per response
 
 
 # ==============================================================================

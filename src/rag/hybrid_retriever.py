@@ -228,102 +228,167 @@ class EntityExtractor:
     - 카테고리 (Lip Care, Skin Care 등)
     - 지표명 (SoS, HHI, CPI 등)
     - 시간 범위 (오늘, 최근 7일 등)
+
+    설정 파일:
+    - config/entities.json에서 동적 로드
+    - 브랜드 추가/수정 시 설정 파일만 수정하면 됨
     """
 
-    # 알려진 엔티티 매핑
-    KNOWN_BRANDS = [
-        "laneige", "라네즈",
-        "cosrx", "코스알엑스",
-        "tirtir", "티르티르",
-        "rare beauty", "레어뷰티",
-        "innisfree", "이니스프리",
-        "etude", "에뛰드",
-        "sulwhasoo", "설화수",
-        "hera", "헤라"
-    ]
+    # 설정 파일 경로
+    CONFIG_PATH = "config/entities.json"
 
-    CATEGORY_MAP = {
-        "lip care": "lip_care",
-        "립케어": "lip_care",
-        "lip makeup": "lip_makeup",
-        "립메이크업": "lip_makeup",
-        "skin care": "skin_care",
-        "스킨케어": "skin_care",
-        "face powder": "face_powder",
-        "파우더": "face_powder",
-        "beauty": "beauty",
-        "뷰티": "beauty"
-    }
+    # 캐시된 설정 (싱글톤 패턴)
+    _config_cache = None
+    _config_loaded_at = None
 
-    INDICATOR_MAP = {
-        "sos": "sos",
-        "점유율": "sos",
-        "share of shelf": "sos",
-        "hhi": "hhi",
-        "시장집중도": "hhi",
-        "허핀달": "hhi",
-        "cpi": "cpi",
-        "가격지수": "cpi",
-        "churn": "churn_rate",
-        "교체율": "churn_rate",
-        "streak": "streak_days",
-        "연속": "streak_days",
-        "volatility": "rank_volatility",
-        "변동성": "rank_volatility",
-        "shock": "rank_shock",
-        "급변": "rank_shock"
-    }
+    @classmethod
+    def _get_config_ttl_seconds(cls) -> int:
+        """설정 파일에서 캐시 TTL 로드 (기본: 300초)"""
+        import json
+        from pathlib import Path
 
-    TIME_RANGE_MAP = {
-        "오늘": "today",
-        "today": "today",
-        "어제": "yesterday",
-        "yesterday": "yesterday",
-        "이번 주": "week",
-        "이번 달": "month",
-        "최근 7일": "7days",
-        "최근 30일": "30days",
-        "3개월": "90days",
-        "1개월": "30days"
-    }
+        thresholds_path = Path(__file__).parent.parent.parent / "config/thresholds.json"
+        if thresholds_path.exists():
+            try:
+                with open(thresholds_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    return config.get("system", {}).get("rag", {}).get("ttl_seconds", 300)
+            except Exception:
+                pass
+        return 300
 
-    # 감성 관련 키워드 (한/영)
-    SENTIMENT_MAP = {
-        # 영어 키워드 → 클러스터
-        "moisturizing": "Hydration",
-        "hydrating": "Hydration",
-        "보습": "Hydration",
-        "수분": "Hydration",
-        "촉촉": "Hydration",
-        "value for money": "Pricing",
-        "가성비": "Pricing",
-        "affordable": "Pricing",
-        "저렴": "Pricing",
-        "easy to use": "Usability",
-        "사용감": "Usability",
-        "편리": "Usability",
-        "효과": "Effectiveness",
-        "effective": "Effectiveness",
-        "works well": "Effectiveness",
-        "scent": "Sensory",
-        "향": "Sensory",
-        "texture": "Sensory",
-        "텍스처": "Sensory",
-        "질감": "Sensory",
-        "packaging": "Packaging",
-        "패키징": "Packaging",
-        "포장": "Packaging",
-        "gentle": "Skin_Compatibility",
-        "순한": "Skin_Compatibility",
-        "민감": "Skin_Compatibility",
-        "리뷰": "sentiment_general",
-        "review": "sentiment_general",
-        "고객 반응": "sentiment_general",
-        "customer": "sentiment_general",
-        "ai 요약": "ai_summary",
-        "ai summary": "ai_summary",
-        "customers say": "ai_summary",
-    }
+    @classmethod
+    def _load_config(cls) -> dict:
+        """설정 파일에서 엔티티 매핑 로드 (캐싱 적용)"""
+        import json
+        import os
+        from pathlib import Path
+
+        # 캐시가 있으면 반환 (설정 파일 TTL 적용)
+        if cls._config_cache is not None and cls._config_loaded_at is not None:
+            from datetime import datetime, timedelta
+            ttl_seconds = cls._get_config_ttl_seconds()
+            if datetime.now() - cls._config_loaded_at < timedelta(seconds=ttl_seconds):
+                return cls._config_cache
+
+        # 설정 파일 경로 찾기
+        config_path = Path(cls.CONFIG_PATH)
+        if not config_path.exists():
+            # 프로젝트 루트에서 찾기
+            project_root = Path(__file__).parent.parent.parent
+            config_path = project_root / cls.CONFIG_PATH
+
+        if config_path.exists():
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    cls._config_cache = json.load(f)
+                    cls._config_loaded_at = datetime.now()
+                    logger.info(f"EntityExtractor config loaded from {config_path}")
+                    return cls._config_cache
+            except Exception as e:
+                logger.warning(f"Failed to load entity config: {e}, using defaults")
+
+        # 기본값 반환
+        return cls._get_default_config()
+
+    @classmethod
+    def _get_default_config(cls) -> dict:
+        """기본 설정값 (설정 파일 없을 때 fallback)"""
+        return {
+            "known_brands": [
+                {"name": "laneige", "aliases": ["라네즈"]},
+                {"name": "cosrx", "aliases": ["코스알엑스"]},
+                {"name": "tirtir", "aliases": ["티르티르"]},
+                {"name": "rare beauty", "aliases": ["레어뷰티"]},
+                {"name": "innisfree", "aliases": ["이니스프리"]},
+                {"name": "etude", "aliases": ["에뛰드"]},
+                {"name": "sulwhasoo", "aliases": ["설화수"]},
+                {"name": "hera", "aliases": ["헤라"]}
+            ],
+            "category_map": {
+                "lip care": "lip_care", "립케어": "lip_care",
+                "lip makeup": "lip_makeup", "립메이크업": "lip_makeup",
+                "skin care": "skin_care", "스킨케어": "skin_care",
+                "face powder": "face_powder", "파우더": "face_powder",
+                "beauty": "beauty", "뷰티": "beauty"
+            },
+            "indicator_map": {
+                "sos": "sos", "점유율": "sos", "share of shelf": "sos",
+                "hhi": "hhi", "시장집중도": "hhi", "허핀달": "hhi",
+                "cpi": "cpi", "가격지수": "cpi",
+                "churn": "churn_rate", "교체율": "churn_rate",
+                "streak": "streak_days", "연속": "streak_days",
+                "volatility": "rank_volatility", "변동성": "rank_volatility",
+                "shock": "rank_shock", "급변": "rank_shock"
+            },
+            "time_range_map": {
+                "오늘": "today", "today": "today",
+                "어제": "yesterday", "yesterday": "yesterday",
+                "이번 주": "week", "이번 달": "month",
+                "최근 7일": "7days", "최근 30일": "30days",
+                "3개월": "90days", "1개월": "30days"
+            },
+            "sentiment_map": {
+                "moisturizing": "Hydration", "hydrating": "Hydration",
+                "보습": "Hydration", "수분": "Hydration", "촉촉": "Hydration",
+                "value for money": "Pricing", "가성비": "Pricing",
+                "affordable": "Pricing", "저렴": "Pricing",
+                "easy to use": "Usability", "사용감": "Usability", "편리": "Usability",
+                "효과": "Effectiveness", "effective": "Effectiveness",
+                "scent": "Sensory", "향": "Sensory", "texture": "Sensory",
+                "packaging": "Packaging", "패키징": "Packaging",
+                "gentle": "Skin_Compatibility", "순한": "Skin_Compatibility",
+                "리뷰": "sentiment_general", "review": "sentiment_general"
+            }
+        }
+
+    @classmethod
+    def get_known_brands(cls) -> list:
+        """설정에서 브랜드 목록 가져오기 (이름 + 별칭 평탄화)"""
+        config = cls._load_config()
+        brands = []
+        for brand_info in config.get("known_brands", []):
+            if isinstance(brand_info, dict):
+                brands.append(brand_info["name"].lower())
+                for alias in brand_info.get("aliases", []):
+                    brands.append(alias.lower())
+            else:
+                brands.append(str(brand_info).lower())
+        return brands
+
+    @classmethod
+    def get_brand_normalization_map(cls) -> dict:
+        """별칭 → 정규화된 브랜드명 매핑"""
+        config = cls._load_config()
+        mapping = {}
+        for brand_info in config.get("known_brands", []):
+            if isinstance(brand_info, dict):
+                name = brand_info["name"].lower()
+                mapping[name] = name
+                for alias in brand_info.get("aliases", []):
+                    mapping[alias.lower()] = name
+        return mapping
+
+    # 프로퍼티로 동적 로드 (설정 파일 기반)
+    @property
+    def KNOWN_BRANDS(self) -> list:
+        return self.get_known_brands()
+
+    @property
+    def CATEGORY_MAP(self) -> dict:
+        return self._load_config().get("category_map", {})
+
+    @property
+    def INDICATOR_MAP(self) -> dict:
+        return self._load_config().get("indicator_map", {})
+
+    @property
+    def TIME_RANGE_MAP(self) -> dict:
+        return self._load_config().get("time_range_map", {})
+
+    @property
+    def SENTIMENT_MAP(self) -> dict:
+        return self._load_config().get("sentiment_map", {})
 
     def extract(self, query: str, knowledge_graph=None) -> Dict[str, List[str]]:
         """
@@ -353,11 +418,12 @@ class EntityExtractor:
             "products": []
         }
 
-        # 브랜드 추출
+        # 브랜드 추출 (설정 파일 기반 정규화)
+        brand_norm_map = self.get_brand_normalization_map()
         for brand in self.KNOWN_BRANDS:
             if brand in query_lower:
-                # 정규화 (영문 소문자)
-                normalized = brand.replace("라네즈", "laneige").replace("코스알엑스", "cosrx")
+                # 설정 파일의 매핑으로 정규화
+                normalized = brand_norm_map.get(brand, brand)
                 if normalized not in entities["brands"]:
                     entities["brands"].append(normalized)
 

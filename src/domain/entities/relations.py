@@ -41,6 +41,28 @@ class RelationType(str, Enum):
     PARENT_CATEGORY = "parentCategory"
 
     # =========================================================================
+    # 1.5. 기업 소유권 관계 (Corporate Ownership Relations) - 2026-01-26 추가
+    # =========================================================================
+
+    # Brand → CorporateGroup: 브랜드의 소유 그룹
+    OWNED_BY_GROUP = "ownedByGroup"
+
+    # CorporateGroup → Brand: 그룹이 브랜드 소유
+    OWNS_BRAND = "ownsBrand"
+
+    # Brand → Brand: 같은 그룹 내 자매 브랜드
+    SIBLING_BRAND = "siblingBrand"
+
+    # Brand → Segment: 브랜드 세그먼트
+    HAS_SEGMENT = "hasSegment"
+
+    # Brand → Country: 원산지
+    ORIGINATES_FROM = "originatesFrom"
+
+    # AcquiredBrand → Year: 인수 연도
+    ACQUIRED_IN = "acquiredIn"
+
+    # =========================================================================
     # 2. 순위/성과 관계 (Ranking Relations)
     # =========================================================================
 

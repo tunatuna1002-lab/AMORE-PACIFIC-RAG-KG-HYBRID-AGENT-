@@ -1,4 +1,36 @@
 {
+  "_version": "2.0.0",
+  "_description": "AMORE RAG-KG Hybrid Agent Configuration (Audit Report Quick Wins)",
+  "_updated": "2026-01-27",
+
+  "system": {
+    "knowledge_graph": {
+      "max_triples": 50000,
+      "eviction_policy": "importance_based",
+      "auto_save": true,
+      "auto_load": true,
+      "persist_path": "data/knowledge_graph.json",
+      "save_batch_threshold": 100
+    },
+    "rag": {
+      "ttl_seconds": 300,
+      "max_chunks": 5,
+      "rerank_enabled": false
+    },
+    "crawler": {
+      "crawl_hour_utc": 13,
+      "delay_base_seconds": 8,
+      "delay_random_max": 4,
+      "category_delay_seconds": 45,
+      "max_retries": 3
+    },
+    "chatbot": {
+      "model": "gpt-4.1-mini",
+      "max_context_tokens": 8000,
+      "temperature": 0.7
+    }
+  },
+
   "ranking": {
     "top_n_tiers": [3, 5, 10, 20, 50, 100],
     "significant_drop": 5,

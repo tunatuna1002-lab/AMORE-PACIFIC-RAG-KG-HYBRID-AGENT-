@@ -1,7 +1,7 @@
 {
-  "active": true,
-  "started_at": "2026-01-22T20:12:44.011Z",
-  "original_prompt": "전체 로드맵 승인, ultrawork",
-  "reinforcement_count": 1,
-  "last_checked_at": "2026-01-22T20:30:12.280Z"
+  "active": false,
+  "started_at": null,
+  "original_prompt": null,
+  "reinforcement_count": 0,
+  "last_checked_at": null
 }

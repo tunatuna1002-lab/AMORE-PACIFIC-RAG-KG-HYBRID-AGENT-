@@ -503,10 +503,20 @@ class BatchWorkflow:
             # 최종 결과
             results["summary"] = self._generate_summary()
 
-            # Knowledge Graph 저장
+            # Knowledge Graph 저장 및 자동 백업
             if self.use_hybrid and self._knowledge_graph:
                 self._knowledge_graph.save()
                 self.logger.info("Knowledge Graph saved")
+
+                # 자동 백업 (일 1회, 7일 롤링 보관)
+                try:
+                    from src.tools.kg_backup import get_kg_backup_service
+                    backup_service = get_kg_backup_service()
+                    backup_path = backup_service.auto_backup()
+                    if backup_path:
+                        self.logger.info(f"KG auto-backup created: {backup_path}")
+                except Exception as e:
+                    self.logger.warning(f"KG auto-backup failed (non-critical): {e}")
 
         except Exception as e:
             self.logger.error(f"Workflow failed: {e}", exc_info=True)
@@ -716,6 +726,50 @@ class BatchWorkflow:
 
         if act_result.action == "crawl":
             result = act_result.result
+
+            # LLM 기반 Unknown 브랜드 검증 (크롤링 직후)
+            try:
+                all_products = []
+                for cat_data in result.get("categories", {}).values():
+                    all_products.extend(cat_data.get("products", []))
+
+                # Unknown/빈 브랜드 개수 확인
+                unknown_count = sum(
+                    1 for p in all_products
+                    if not p.get("brand") or p.get("brand") in ("Unknown", "")
+                )
+
+                if unknown_count > 0:
+                    self.logger.info(f"LLM 브랜드 검증 시작: {unknown_count}개 Unknown 브랜드 발견")
+
+                    from src.tools.brand_resolver import get_brand_resolver
+                    resolver = get_brand_resolver()
+                    verify_result = await resolver.verify_brands_with_llm(
+                        products=all_products,
+                        max_concurrent=5,
+                        delay_seconds=0.3
+                    )
+
+                    observations.append(
+                        f"브랜드 검증: {verify_result.get('verified_count', 0)}개 확인, "
+                        f"{verify_result.get('failed_count', 0)}개 실패"
+                    )
+
+                    # 결과 업데이트 (categories 내 products 갱신)
+                    updated_products = verify_result.get("updated_products", [])
+                    if updated_products:
+                        # ASIN 기준으로 빠른 조회용 딕셔너리
+                        updated_by_asin = {p["asin"]: p for p in updated_products if p.get("asin")}
+
+                        for cat_data in result.get("categories", {}).values():
+                            for i, prod in enumerate(cat_data.get("products", [])):
+                                asin = prod.get("asin")
+                                if asin and asin in updated_by_asin:
+                                    cat_data["products"][i]["brand"] = updated_by_asin[asin].get("brand", prod.get("brand"))
+
+            except Exception as e:
+                self.logger.warning(f"LLM 브랜드 검증 실패 (크롤링 계속): {e}")
+
             observations.append(
                 f"크롤링 완료: {result.get('total_products', 0)} 제품, "
                 f"LANEIGE {result.get('laneige_count', 0)}개"
