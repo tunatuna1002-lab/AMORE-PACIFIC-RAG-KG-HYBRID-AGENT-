@@ -32,7 +32,7 @@ class TestTradeData:
             country_code="US",
             country_name="미국",
             amount_usd=1_500_000_000,
-            revenue_yoy=12.5
+            yoy_change=12.5
         )
 
         assert trade.data_id == "TRADE-20260126-0001"
