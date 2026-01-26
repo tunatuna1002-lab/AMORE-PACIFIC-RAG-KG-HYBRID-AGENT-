@@ -1,0 +1,297 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "공공데이터 API 및 외부 소스 설정",
+  "version": "1.0.0",
+  "updated_at": "2026-01-26",
+
+  "public_apis": {
+    "customs_trade": {
+      "name": "관세청 수출입통계",
+      "description": "HS Code별 국가별 수출입 통계",
+      "base_url": "https://apis.data.go.kr/1220000/natImexpTrdStt/getNatImexpTrdSttList",
+      "documentation": "https://www.data.go.kr/data/15100475/openapi.do",
+      "api_key_env": "PUBLIC_DATA_API_KEY",
+      "rate_limit": {
+        "requests_per_day": 1000,
+        "requests_per_minute": 30
+      },
+      "parameters": {
+        "required": ["serviceKey", "hsSgn"],
+        "optional": ["searchYear", "searchMon", "natCd", "searchImexpDt", "numOfRows", "pageNo"]
+      },
+      "hs_codes": {
+        "3304": "화장품류 (메이크업, 스킨케어 등)",
+        "330499": "기타 화장품 (스킨케어 포함)",
+        "330410": "입술용 화장품 (립스틱 등)",
+        "330420": "눈 화장용 제품"
+      },
+      "update_frequency": "monthly",
+      "cost": "$0"
+    },
+
+    "mfds_cosmetics": {
+      "name": "식약처 기능성화장품",
+      "description": "기능성화장품 보고대상 품목정보",
+      "base_url": "http://apis.data.go.kr/1471000/FtnltCosmRptPrdlstInfoService/getRptPrdlstInq",
+      "documentation": "https://www.data.go.kr/data/15095680/openapi.do",
+      "api_key_env": "PUBLIC_DATA_API_KEY",
+      "rate_limit": {
+        "requests_per_day": 1000,
+        "requests_per_minute": 30
+      },
+      "parameters": {
+        "required": ["serviceKey"],
+        "optional": ["entrpsNm", "prdlstNm", "numOfRows", "pageNo"]
+      },
+      "update_frequency": "daily",
+      "cost": "$0"
+    },
+
+    "kosis_stats": {
+      "name": "KOSIS 국가통계포털",
+      "description": "산업 시계열 통계",
+      "base_url": "https://apis.data.go.kr/15057227",
+      "documentation": "https://www.data.go.kr/data/15057227/openapi.do",
+      "api_key_env": "PUBLIC_DATA_API_KEY",
+      "update_frequency": "monthly",
+      "cost": "$0"
+    }
+  },
+
+  "rss_feeds": {
+    "global_beauty_media": {
+      "allure": {
+        "name": "Allure",
+        "url": "https://www.allure.com/feed/rss",
+        "tier": "tier3_authority",
+        "reliability_score": 0.8,
+        "language": "en"
+      },
+      "byrdie": {
+        "name": "Byrdie",
+        "url": "https://www.byrdie.com/feed",
+        "tier": "tier3_authority",
+        "reliability_score": 0.8,
+        "language": "en"
+      },
+      "refinery29": {
+        "name": "Refinery29",
+        "url": "https://www.refinery29.com/en-us/beauty/rss.xml",
+        "tier": "tier3_authority",
+        "reliability_score": 0.75,
+        "language": "en"
+      }
+    },
+
+    "industry_media": {
+      "cosmetics_design_asia": {
+        "name": "Cosmetics Design Asia",
+        "url": "https://www.cosmeticsdesign-asia.com/Info/RSS/",
+        "tier": "tier3_authority",
+        "reliability_score": 0.85,
+        "language": "en",
+        "focus": "Asia cosmetics industry"
+      },
+      "cosmetics_design_europe": {
+        "name": "Cosmetics Design Europe",
+        "url": "https://www.cosmeticsdesign-europe.com/Info/RSS/",
+        "tier": "tier3_authority",
+        "reliability_score": 0.85,
+        "language": "en",
+        "focus": "Europe cosmetics industry"
+      },
+      "kedglobal": {
+        "name": "KEDGlobal (Korea Economic Daily)",
+        "url": "https://www.kedglobal.com/rss/all.xml",
+        "tier": "tier3_authority",
+        "reliability_score": 0.8,
+        "language": "en",
+        "focus": "K-Beauty global news"
+      },
+      "korea_herald": {
+        "name": "Korea Herald",
+        "url": "https://www.koreaherald.com/rss/028040600.xml",
+        "tier": "tier3_authority",
+        "reliability_score": 0.8,
+        "language": "en",
+        "focus": "Business & Economy"
+      }
+    },
+
+    "korean_media": {
+      "cosinkorea": {
+        "name": "코스인코리아",
+        "url": null,
+        "note": "RSS not available, scraping required",
+        "tier": "tier3_authority",
+        "reliability_score": 0.8,
+        "language": "ko"
+      },
+      "cosmorning": {
+        "name": "코스모닝",
+        "url": null,
+        "note": "RSS not available, scraping required",
+        "tier": "tier3_authority",
+        "reliability_score": 0.8,
+        "language": "ko"
+      }
+    }
+  },
+
+  "ir_sources": {
+    "amorepacific": {
+      "name": "아모레퍼시픽",
+      "ir_page": "https://www.apgroup.com/int/en/investors/amorepacific-corporation/ir-reports/quarterly-results/quarterly-results.html",
+      "report_type": "quarterly",
+      "language": "en",
+      "reliability_score": 1.0,
+      "update_schedule": {
+        "Q1": "4월",
+        "Q2": "7월",
+        "Q3": "11월",
+        "Q4": "1월 (익년)"
+      }
+    }
+  },
+
+  "research_sources": {
+    "kcii": {
+      "name": "대한화장품산업연구원",
+      "url": "https://www.kcii.re.kr/",
+      "reliability_score": 0.9,
+      "update_frequency": "monthly",
+      "data_type": ["market_trend", "ingredient_trend", "export_guide"]
+    },
+    "khidi": {
+      "name": "한국보건산업진흥원",
+      "url": "https://khiss.go.kr/menu?menuId=MENU00319",
+      "reliability_score": 0.9,
+      "update_frequency": "annual",
+      "data_type": ["industry_statistics", "health_industry_report"]
+    },
+    "kita": {
+      "name": "한국무역협회",
+      "url": "https://stat.kita.net/",
+      "reliability_score": 0.9,
+      "update_frequency": "monthly",
+      "data_type": ["export_statistics", "market_analysis"]
+    },
+    "kdi": {
+      "name": "KDI 경제정보센터",
+      "url": "https://eiec.kdi.re.kr/",
+      "reliability_score": 0.9,
+      "update_frequency": "irregular",
+      "data_type": ["industry_whitepaper", "policy_report"]
+    },
+    "kpmg": {
+      "name": "삼정KPMG 경제연구원",
+      "url": "https://kpmg.com/kr/ko/home/services/special-service/eri.html",
+      "reliability_score": 0.9,
+      "update_frequency": "annual",
+      "data_type": ["industry_trend", "ma_trend"]
+    }
+  },
+
+  "social_sources": {
+    "reddit": {
+      "subreddits": ["SkincareAddiction", "AsianBeauty", "MakeupAddiction"],
+      "tier": "tier2_validation",
+      "reliability_score": 0.5,
+      "api_type": "json_api",
+      "rate_limit": {
+        "requests_per_minute": 30
+      }
+    },
+    "tiktok": {
+      "note": "No official API, use TikTok Creative Center manually",
+      "creative_center_url": "https://ads.tiktok.com/business/creativecenter",
+      "tier": "tier1_viral",
+      "reliability_score": 0.5,
+      "data_type": "manual_input"
+    }
+  },
+
+  "paid_apis": {
+    "tavily": {
+      "name": "Tavily Search API",
+      "url": "https://tavily.com/",
+      "api_key_env": "TAVILY_API_KEY",
+      "estimated_cost": "$10/month",
+      "use_case": "global news search",
+      "enabled": false,
+      "note": "Enable when budget allows (~$10/month)"
+    },
+    "serper": {
+      "name": "Serper Google Search API",
+      "url": "https://serper.dev/",
+      "api_key_env": "SERPER_API_KEY",
+      "estimated_cost": "$5/month",
+      "use_case": "google news backup",
+      "enabled": false,
+      "note": "Backup for Tavily"
+    }
+  },
+
+  "keywords": {
+    "kbeauty": [
+      "k-beauty", "korean beauty", "korean cosmetics", "korean skincare",
+      "laneige", "amorepacific", "cosrx", "sulwhasoo", "innisfree",
+      "tirtir", "medicube", "biodance", "skin1004", "anua",
+      "korea", "korean", "seoul"
+    ],
+    "laneige": [
+      "laneige", "라네즈", "lip sleeping mask", "water bank",
+      "cream skin", "bouncy sleeping mask", "neo cushion"
+    ],
+    "competitors": [
+      "cosrx", "tirtir", "medicube", "biodance", "skin1004", "anua",
+      "summer fridays", "rare beauty", "glow recipe", "drunk elephant",
+      "tatcha", "the ordinary", "cerave", "la roche posay"
+    ],
+    "industry": [
+      "cosmetics export", "beauty market", "cosmetics industry",
+      "beauty brand", "beauty growth", "beauty sales",
+      "prime day", "amazon beauty", "sephora"
+    ]
+  },
+
+  "reliability_tiers": {
+    "ir": {
+      "score": 1.0,
+      "description": "IR/공시 - 최고 신뢰도"
+    },
+    "government": {
+      "score": 0.95,
+      "description": "정부 공식 데이터"
+    },
+    "research": {
+      "score": 0.9,
+      "description": "전문기관 연구"
+    },
+    "analyst": {
+      "score": 0.85,
+      "description": "증권사 리포트"
+    },
+    "news": {
+      "score": 0.7,
+      "description": "뉴스 매체"
+    },
+    "sns": {
+      "score": 0.5,
+      "description": "SNS"
+    }
+  },
+
+  "country_codes": {
+    "US": {"name": "미국", "name_en": "United States"},
+    "CN": {"name": "중국", "name_en": "China"},
+    "JP": {"name": "일본", "name_en": "Japan"},
+    "VN": {"name": "베트남", "name_en": "Vietnam"},
+    "HK": {"name": "홍콩", "name_en": "Hong Kong"},
+    "TH": {"name": "태국", "name_en": "Thailand"},
+    "RU": {"name": "러시아", "name_en": "Russia"},
+    "SG": {"name": "싱가포르", "name_en": "Singapore"},
+    "MY": {"name": "말레이시아", "name_en": "Malaysia"},
+    "ID": {"name": "인도네시아", "name_en": "Indonesia"}
+  }
+}
