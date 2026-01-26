@@ -464,6 +464,19 @@ class MyWorkflow:
 - Main dashboard: `dashboard/amore_unified_dashboard_v4.html`
 - API data source: `dashboard_api.py` → `/api/data`
 
+#### SoS UI 변경 기록 (v2026.01.26)
+
+**변경 배경:**
+- SoS % (0.7%)와 제품 개수 (0개)가 불일치하는 문제 발견
+- 원인: `laneige_count`에 정수 나눗셈(`//`) 사용으로 소수점 손실
+
+**변경 내용:**
+1. **제품 개수**: 정수 → 소수점 1자리 (일 평균)
+2. **출현율 추가**: Top 100 진입 일수 / 선택 기간 (%)
+3. **툴팁 개선**: 계산 기준 명확히 설명
+
+**참고:** Digital Shelf Analytics 업계 표준 (DataWeave, 42signals)
+
 ---
 
 ## Code Conventions

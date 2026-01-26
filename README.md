@@ -253,6 +253,32 @@ docker run -p 8001:8001 -e OPENAI_API_KEY=sk-... amore-agent
 
 ## 8. 업데이트 히스토리
 
+### 2026-01-26: SoS UI 일관성 개선
+
+**문제 발견:**
+- 카테고리별 시장점유율에서 SoS %(0.7%)와 제품 개수(0개)가 불일치
+- 원인: `laneige_count`에 정수 나눗셈(`//`) 사용으로 소수점 손실 (0.67 → 0)
+
+**해결 방안:**
+| 변경 항목 | 변경 전 | 변경 후 |
+|----------|--------|--------|
+| 제품 개수 | 정수 (0개) | 소수점 1자리 (0.7개) - 일 평균 |
+| 출현율 | 미표시 | 추가 (67% 출현) - Top 100 진입 일수/기간 |
+| 툴팁 | 기본 설명 | 계산 기준 상세 안내 |
+
+**업계 표준 참고:**
+- DataWeave: Digital Shelf Analytics Guide
+- 42signals: Shelf Analytics Dashboard
+- Toptal: Dashboard Design Best Practices
+
+**관련 파일:**
+| 파일 | 변경 내용 |
+|------|----------|
+| `dashboard_api.py` | laneige_count 소수점 + 출현율 필드 추가 |
+| `amore_unified_dashboard_v4.html` | 툴팁 개편 + 카테고리 트리 표시 형식 변경 |
+
+---
+
 ### 2026-01-25: SQLite 동기화 누락 이슈 해결
 
 **문제 발견:**
