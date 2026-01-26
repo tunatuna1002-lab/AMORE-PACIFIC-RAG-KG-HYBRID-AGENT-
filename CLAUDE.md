@@ -31,7 +31,7 @@
 | LLM | OpenAI GPT-4.1-mini via LiteLLM |
 | Scraping | Playwright, playwright-stealth, browserforge |
 | Storage | SQLite, Google Sheets |
-| RAG | BM25, ChromaDB (비활성화) |
+| RAG | ChromaDB + OpenAI Embeddings |
 | Ontology | owlready2, Rule-based Reasoner |
 | Test | pytest, pytest-cov (60% 최소 커버리지) |
 
@@ -303,4 +303,3 @@ class Product(BaseModel):
 | Webhook 서명검증 | Medium |
 | Document chunk_id | Medium |
 | Prompt injection 방어 | High |
-| Vector search 활성화 | Medium |

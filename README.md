@@ -136,7 +136,7 @@ Amazon Bestsellers (Top 100 × 5 categories)
 |------|------|
 | Backend | Python 3.11+, FastAPI, Uvicorn |
 | LLM | OpenAI GPT-4.1-mini (via LiteLLM) |
-| RAG | BM25 + ChromaDB (비활성화) |
+| RAG | ChromaDB + OpenAI Embeddings |
 | Ontology | owlready2, Rule-based Reasoner |
 | 크롤링 | Playwright, playwright-stealth |
 | 데이터 | SQLite, Google Sheets, Pandas |
