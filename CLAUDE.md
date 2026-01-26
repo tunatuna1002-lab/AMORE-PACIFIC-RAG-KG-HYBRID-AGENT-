@@ -267,7 +267,7 @@ class Product(BaseModel):
 ## 13. E2E 감사 체크리스트
 
 ### Security
-- [ ] API Key 로그 마스킹 (`sk-`, `apify_api_` 패턴)
+- [ ] API Key 로그 마스킹 (`sk-` 패턴)
 - [ ] Prompt injection 방어 (시스템 프롬프트 노출 방지)
 
 ### Data Integrity

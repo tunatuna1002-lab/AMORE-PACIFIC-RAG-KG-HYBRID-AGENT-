@@ -76,9 +76,8 @@ rdflib>=7.0.0
 # Entity Linking - NER
 spacy>=3.7.0
 
-# Data Collection Enhancement (Phase 1 & 2) - 2026-01
+# Data Collection Enhancement - 2026-01
 pytrends>=4.9.0           # Google Trends API
-apify-client>=1.6.0       # Apify API client for YouTube/Amazon
 
 # Email Service (E2E Audit Action Item - 2026-01-27)
 resend>=2.0.0             # Resend Email API (3,000 free/month)

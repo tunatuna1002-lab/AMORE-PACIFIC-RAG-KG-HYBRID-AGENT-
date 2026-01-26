@@ -51,19 +51,6 @@ except ImportError as e:
     )
     GOOGLE_TRENDS_AVAILABLE = False
 
-try:
-    from src.tools.youtube_collector import YouTubeCollector
-
-    YOUTUBE_AVAILABLE = True
-except ImportError as e:
-    from src.monitoring.logger import get_logger
-
-    _logger = get_logger("hybrid_insight")
-    _logger.warning(
-        f"YouTubeCollector not available - YouTube signals will be skipped: {e}"
-    )
-    YOUTUBE_AVAILABLE = False
-
 
 class HybridInsightAgent:
     """
@@ -154,9 +141,8 @@ class HybridInsightAgent:
         self._market_intelligence: Optional[MarketIntelligenceEngine] = None
         self._insight_source_builder: Optional[InsightSourceBuilder] = None
 
-        # New collectors (Phase 1 & 2)
+        # New collectors (Phase 1)
         self._google_trends: Optional[GoogleTrendsCollector] = None
-        self._youtube_collector: Optional[YouTubeCollector] = None
 
     async def execute(
         self,
@@ -289,9 +275,7 @@ class HybridInsightAgent:
             if self.tracer:
                 self.tracer.start_span("extract_actions")
 
-            action_items = self._extract_action_items(
-                hybrid_context.inferences, metrics_data
-            )
+            action_items = self._extract_action_items(hybrid_context.inferences, metrics_data)
             results["action_items"] = action_items
 
             if self.tracer:
@@ -318,9 +302,7 @@ class HybridInsightAgent:
                     "rag_chunks_count": len(hybrid_context.rag_chunks),
                     "ontology_facts_count": len(hybrid_context.ontology_facts),
                     "external_signals_count": len(external_signals.get("signals", [])),
-                    "market_intelligence_sources": len(
-                        market_intelligence.get("sources", [])
-                    ),
+                    "market_intelligence_sources": len(market_intelligence.get("sources", [])),
                 }
             )
 
@@ -342,8 +324,7 @@ class HybridInsightAgent:
             self.logger.agent_complete(
                 "HybridInsightAgent",
                 duration,
-                f"{len(results['inferences'])} inferences, "
-                f"{len(results['action_items'])} actions",
+                f"{len(results['inferences'])} inferences, {len(results['action_items'])} actions",
             )
 
             return results
@@ -368,15 +349,11 @@ class HybridInsightAgent:
 
         if crawl_data:
             stats["crawl_relations"] = self.kg.load_from_crawl_data(crawl_data)
-            self.logger.debug(
-                f"KG updated from crawl: {stats['crawl_relations']} relations"
-            )
+            self.logger.debug(f"KG updated from crawl: {stats['crawl_relations']} relations")
 
         if metrics_data:
             stats["metrics_relations"] = self.kg.load_from_metrics_data(metrics_data)
-            self.logger.debug(
-                f"KG updated from metrics: {stats['metrics_relations']} relations"
-            )
+            self.logger.debug(f"KG updated from metrics: {stats['metrics_relations']} relations")
 
         return stats
 
@@ -397,9 +374,7 @@ class HybridInsightAgent:
 
         return context
 
-    def _generate_explanations(
-        self, inferences: List[InferenceResult]
-    ) -> List[Dict[str, Any]]:
+    def _generate_explanations(self, inferences: List[InferenceResult]) -> List[Dict[str, Any]]:
         """추론 설명 생성"""
         explanations = []
 
@@ -457,9 +432,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 """
 
         # 시스템 프롬프트
-        system_prompt = self.context_builder.build_system_prompt(
-            include_guardrails=True
-        )
+        system_prompt = self.context_builder.build_system_prompt(include_guardrails=True)
 
         # 사용자 프롬프트 (4-Layer Why 분석 템플릿)
         reference_section = self._build_reference_section(
@@ -556,12 +529,8 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                 warning_section = "\n\n---\n"
                 warning_section += f"⚠️ **외부 트렌드 정보 일부 미반영**\n"
                 warning_section += f"- **수집 실패**: {', '.join(failed_signals)}\n"
-                warning_section += (
-                    "- **영향**: 본 리포트는 크롤링/KG 데이터 기준으로 작성됨\n"
-                )
-                warning_section += (
-                    "- **권장**: 1-2시간 후 재시도 또는 수동으로 트렌드 확인"
-                )
+                warning_section += "- **영향**: 본 리포트는 크롤링/KG 데이터 기준으로 작성됨\n"
+                warning_section += "- **권장**: 1-2시간 후 재시도 또는 수동으로 트렌드 확인"
                 insight += warning_section
 
             return insight
@@ -570,9 +539,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             self.logger.error(f"LLM call failed: {e}")
             return self._generate_fallback_insight(hybrid_context, metrics_data)
 
-    def _generate_fallback_insight(
-        self, hybrid_context: HybridContext, metrics_data: Dict
-    ) -> str:
+    def _generate_fallback_insight(self, hybrid_context: HybridContext, metrics_data: Dict) -> str:
         """폴백 인사이트 생성"""
         summary = metrics_data.get("summary", {})
         inferences = hybrid_context.inferences
@@ -695,9 +662,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         for signal in (external_signals or {}).get("signals", [])[:3]:
             source = signal.get("source", "").replace("_", " ").title()
             title = signal.get("title", "")[:50]
-            collected_at = signal.get("collected_at", "") or signal.get(
-                "published_at", ""
-            )
+            collected_at = signal.get("collected_at", "") or signal.get("published_at", "")
             if collected_at:
                 collected_at = collected_at[:10]  # YYYY-MM-DD만
             entries.append(f'[{idx}] {source}, "{title}...", {collected_at}')
@@ -717,16 +682,10 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         # 4. KG 근거 (요약)
         if hybrid_context.ontology_facts:
             fact_types = sorted(
-                {
-                    fact.get("type")
-                    for fact in hybrid_context.ontology_facts
-                    if fact.get("type")
-                }
+                {fact.get("type") for fact in hybrid_context.ontology_facts if fact.get("type")}
             )
             if fact_types:
-                entries.append(
-                    f"[{idx}] KnowledgeGraph: 온톨로지 추론 ({', '.join(fact_types)})"
-                )
+                entries.append(f"[{idx}] KnowledgeGraph: 온톨로지 추론 ({', '.join(fact_types)})")
 
         if not entries:
             return ""
@@ -795,9 +754,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         # 순위 상승
         improving = [
-            p
-            for p in product_metrics
-            if p.get("rank_change_1d") and p.get("rank_change_1d") < -3
+            p for p in product_metrics if p.get("rank_change_1d") and p.get("rank_change_1d") < -3
         ]
         for p in improving[:3]:
             highlights.append(
@@ -853,17 +810,11 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
             # 기존 수집된 신호 확인
             if self._signal_collector.signals:
-                result["signals"] = [
-                    s.to_dict() for s in self._signal_collector.signals[-20:]
-                ]
-                result["report_section"] = (
-                    self._signal_collector.generate_report_section(days=7)
-                )
+                result["signals"] = [s.to_dict() for s in self._signal_collector.signals[-20:]]
+                result["report_section"] = self._signal_collector.generate_report_section(days=7)
                 result["stats"] = self._signal_collector.get_stats()
 
-            self.logger.debug(
-                f"External signals: {len(result['signals'])} signals loaded"
-            )
+            self.logger.debug(f"External signals: {len(result['signals'])} signals loaded")
 
         except Exception as e:
             self.logger.warning(f"External signal collection failed: {e}")
@@ -881,9 +832,6 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         if not GOOGLE_TRENDS_AVAILABLE:
             failed.append("Google Trends")
-
-        if not YOUTUBE_AVAILABLE:
-            failed.append("YouTube")
 
         # ExternalSignalCollector 체크
         try:
@@ -944,32 +892,16 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                 result["sources"].extend(layer_data[DataLayer.LAYER_2_CONSUMER].sources)
 
             # 인사이트 섹션 생성
-            result["insight_section"] = (
-                self._market_intelligence.generate_layered_insight()
-            )
+            result["insight_section"] = self._market_intelligence.generate_layered_insight()
 
-            # Google Trends 수집 (Phase 1)
+            # Google Trends 수집
             google_trends = await self._collect_google_trends()
             if google_trends.get("trends"):
                 result["google_trends"] = google_trends["trends"]
                 if google_trends.get("insight_section"):
-                    result["insight_section"] += (
-                        "\n\n" + google_trends["insight_section"]
-                    )
+                    result["insight_section"] += "\n\n" + google_trends["insight_section"]
 
-            # YouTube 리뷰 수집 (Phase 2)
-            youtube_reviews = await self._collect_youtube_reviews()
-            if youtube_reviews.get("videos"):
-                result["youtube_reviews"] = youtube_reviews["videos"]
-                result["youtube_signals"] = youtube_reviews["signals"]
-                if youtube_reviews.get("insight_section"):
-                    result["insight_section"] += (
-                        "\n\n" + youtube_reviews["insight_section"]
-                    )
-
-            self.logger.info(
-                f"Market Intelligence collected: {len(result['sources'])} sources"
-            )
+            self.logger.info(f"Market Intelligence collected: {len(result['sources'])} sources")
 
         except Exception as e:
             self.logger.warning(f"Market Intelligence collection failed: {e}")
@@ -995,18 +927,14 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         try:
             if not self._google_trends:
-                self._google_trends = GoogleTrendsCollector(
-                    geo="US", timeframe="today 3-m"
-                )
+                self._google_trends = GoogleTrendsCollector(geo="US", timeframe="today 3-m")
 
             # 뷰티 트렌드 수집
             trends = await self._google_trends.fetch_beauty_trends()
 
             if trends:
                 result["trends"] = [t.to_dict() for t in trends]
-                result["insight_section"] = (
-                    self._google_trends.generate_insight_section(trends)
-                )
+                result["insight_section"] = self._google_trends.generate_insight_section(trends)
                 result["collected_at"] = trends[0].collected_at if trends else ""
 
                 # 데이터 저장
@@ -1016,54 +944,6 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         except Exception as e:
             self.logger.warning(f"Google Trends collection failed: {e}")
-
-        return result
-
-    async def _collect_youtube_reviews(self) -> Dict[str, Any]:
-        """
-        YouTube 리뷰 데이터 수집
-
-        Returns:
-            {
-                "videos": [...],
-                "signals": [...],  # ExternalSignal 형식
-                "insight_section": "### YouTube 리뷰 트렌드\n...",
-                "collected_at": str
-            }
-        """
-        result = {
-            "videos": [],
-            "signals": [],
-            "insight_section": "",
-            "collected_at": "",
-        }
-
-        if not YOUTUBE_AVAILABLE:
-            self.logger.debug("YouTube collector not available")
-            return result
-
-        try:
-            if not self._youtube_collector:
-                self._youtube_collector = YouTubeCollector()
-
-            # LANEIGE 리뷰 수집
-            videos = await self._youtube_collector.fetch_laneige_reviews(max_results=30)
-
-            if videos:
-                result["videos"] = [v.to_dict() for v in videos]
-                result["signals"] = self._youtube_collector.to_external_signals(videos)
-                result["insight_section"] = (
-                    self._youtube_collector.generate_insight_section(videos)
-                )
-                result["collected_at"] = videos[0].collected_at if videos else ""
-
-                # 데이터 저장
-                await self._youtube_collector.save_videos(videos)
-
-            self.logger.info(f"YouTube reviews collected: {len(videos)} videos")
-
-        except Exception as e:
-            self.logger.warning(f"YouTube collection failed: {e}")
 
         return result
 
@@ -1119,10 +999,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             # 제품 수
             if not source_info["total_products"]:
                 total = (
-                    sum(
-                        len(cat_data.get("rank_records", []))
-                        for cat_data in categories.values()
-                    )
+                    sum(len(cat_data.get("rank_records", [])) for cat_data in categories.values())
                     if categories
                     else 0
                 )
@@ -1142,9 +1019,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             target_brand = metadata.get("target_brand")
             brands_covered = metadata.get("brands_covered", [])
 
-            subject = (
-                self._normalize_brand_name(target_brand) if target_brand else "MARKET"
-            )
+            subject = self._normalize_brand_name(target_brand) if target_brand else "MARKET"
             if not target_brand and brands_covered:
                 subject = self._normalize_brand_name(brands_covered[0])
 
@@ -1190,9 +1065,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         return stats
 
-    def _ingest_external_signals(
-        self, external_signals: Dict[str, Any]
-    ) -> Dict[str, int]:
+    def _ingest_external_signals(self, external_signals: Dict[str, Any]) -> Dict[str, int]:
         """External Signal을 KG에 적재"""
         stats = {"trend_relations": 0}
         signals = external_signals.get("signals", []) if external_signals else []
