@@ -96,7 +96,7 @@ class SignalSource(Enum):
     YOUTUBE = "youtube"
     REDDIT = "reddit"
 
-    # Tier 3: 전문 매체
+    # Tier 3: 전문 매체 (글로벌)
     ALLURE = "allure"
     VOGUE_BEAUTY = "vogue_beauty"
     WWD_BEAUTY = "wwd_beauty"
@@ -106,6 +106,14 @@ class SignalSource(Enum):
     COSMETICS_BUSINESS = "cosmetics_business"
     BEAUTY_INDEPENDENT = "beauty_independent"
     GLOSSY = "glossy"
+
+    # Tier 3: 뷰티 산업 전문 매체 (추가)
+    COSMETICS_DESIGN_ASIA = "cosmetics_design_asia"
+    COSMETICS_DESIGN_EUROPE = "cosmetics_design_europe"
+    KEDGLOBAL = "kedglobal"
+    KOREA_HERALD = "korea_herald"
+    COSINKOREA = "cosinkorea"
+    COSMORNING = "cosmorning"
 
     # Tier 4: PR
     TWITTER = "twitter"
@@ -174,30 +182,64 @@ RSS_FEEDS = {
     SignalSource.ALLURE: "https://www.allure.com/feed/rss",
     SignalSource.BYRDIE: "https://www.byrdie.com/feed",
     SignalSource.REFINERY29: "https://www.refinery29.com/en-us/beauty/rss.xml",
+
+    # 뷰티 산업 전문 매체 (추가) - 인사이트 시스템 고도화
+    SignalSource.COSMETICS_DESIGN_ASIA: "https://www.cosmeticsdesign-asia.com/Info/RSS/",
+    SignalSource.COSMETICS_DESIGN_EUROPE: "https://www.cosmeticsdesign-europe.com/Info/RSS/",
+    SignalSource.KEDGLOBAL: "https://www.kedglobal.com/rss/all.xml",
+    SignalSource.KOREA_HERALD: "https://www.koreaherald.com/rss/028040600.xml",  # Business & Economy
+
     # 일부 매체는 RSS를 제공하지 않거나 제한적
     # WWD, People, Vogue는 RSS가 없거나 유료 구독 필요
+    # COSINKOREA, COSMORNING - 한국 매체는 RSS 없음, 스크래핑 필요
 }
 
 # 뷰티 관련 키워드 (필터링용)
 BEAUTY_KEYWORDS = [
-    # 브랜드
-    "laneige", "k-beauty", "korean beauty", "k beauty",
-    "cosrx", "tirtir", "summer fridays", "rare beauty",
-    "glow recipe", "drunk elephant", "tatcha",
+    # 아모레퍼시픽 브랜드 (우선순위)
+    "laneige", "라네즈", "amorepacific", "아모레퍼시픽",
+    "sulwhasoo", "설화수", "hera", "헤라", "iope", "아이오페",
+    "illiyoon", "일리윤", "cosrx", "코스알엑스", "aestura", "에스트라",
+    "mise en scene", "미장센", "hanyul", "한율",
+
+    # K-Beauty 키워드
+    "k-beauty", "korean beauty", "k beauty", "korean cosmetics",
+    "korean skincare", "korean makeup",
+
+    # 경쟁 브랜드
+    "tirtir", "medicube", "biodance", "skin1004", "anua",
+    "summer fridays", "rare beauty", "glow recipe", "drunk elephant", "tatcha",
+    "the ordinary", "cerave", "la roche posay",
 
     # 제품 카테고리
     "lip care", "lip mask", "lip balm", "lip sleeping",
     "skin care", "skincare", "moisturizer", "serum",
     "sunscreen", "spf", "toner", "essence",
+    "sleeping mask", "sheet mask", "face mask",
 
     # 트렌드/성분
     "glass skin", "peptide", "niacinamide", "retinol",
     "vitamin c", "hyaluronic", "ceramide", "snail mucin",
-    "pdrn", "centella", "cica",
+    "pdrn", "centella", "cica", "collagen", "probiotics",
+    "slow aging", "pre-aging", "skin barrier",
 
     # 트렌드 키워드
     "beauty trend", "skincare trend", "tiktok beauty",
-    "viral beauty", "best seller", "bestseller"
+    "viral beauty", "best seller", "bestseller",
+    "amazon beauty", "prime day", "sephora",
+
+    # 시장/산업 키워드
+    "cosmetics export", "beauty market", "cosmetics industry",
+    "beauty brand", "beauty growth", "beauty sales"
+]
+
+# K-Beauty 전용 키워드 (글로벌 매체에서 한국 관련 기사 필터링)
+KBEAUTY_KEYWORDS = [
+    "k-beauty", "korean beauty", "korean cosmetics", "korean skincare",
+    "laneige", "amorepacific", "cosrx", "sulwhasoo", "innisfree",
+    "tirtir", "medicube", "biodance", "skin1004", "anua",
+    "korea", "korean", "seoul", "gangnam",
+    "k beauty", "k-skincare"
 ]
 
 
@@ -836,6 +878,170 @@ class ExternalSignalCollector:
             sections.append("")
 
         return "\n".join(sections) if sections else "수집된 외부 신호가 없습니다."
+
+    # =========================================================================
+    # K-Beauty 전용 메서드 (인사이트 시스템 고도화)
+    # =========================================================================
+
+    async def fetch_kbeauty_news(
+        self,
+        max_articles: int = 20
+    ) -> List[ExternalSignal]:
+        """
+        K-Beauty 관련 뉴스만 필터링하여 수집
+
+        글로벌 뷰티 매체에서 K-Beauty 관련 기사만 추출합니다.
+
+        Args:
+            max_articles: 최대 수집 기사 수
+
+        Returns:
+            ExternalSignal 리스트
+        """
+        all_signals = []
+
+        # K-Beauty 전용 매체 우선
+        kbeauty_sources = [
+            SignalSource.COSMETICS_DESIGN_ASIA,
+            SignalSource.KEDGLOBAL,
+            SignalSource.KOREA_HERALD,
+        ]
+
+        for source in kbeauty_sources:
+            if source in RSS_FEEDS:
+                signals = await self.fetch_rss_articles(
+                    source,
+                    keywords=KBEAUTY_KEYWORDS,
+                    max_articles=max_articles // len(kbeauty_sources)
+                )
+                all_signals.extend(signals)
+                await asyncio.sleep(1)
+
+        # 글로벌 매체에서도 K-Beauty 키워드로 필터링
+        global_sources = [
+            SignalSource.ALLURE,
+            SignalSource.BYRDIE,
+            SignalSource.COSMETICS_DESIGN_EUROPE,
+        ]
+
+        for source in global_sources:
+            if source in RSS_FEEDS:
+                signals = await self.fetch_rss_articles(
+                    source,
+                    keywords=KBEAUTY_KEYWORDS,
+                    max_articles=5
+                )
+                all_signals.extend(signals)
+                await asyncio.sleep(1)
+
+        logger.info(f"Fetched {len(all_signals)} K-Beauty news articles")
+        return all_signals
+
+    async def fetch_industry_signals(
+        self,
+        keywords: Optional[List[str]] = None
+    ) -> List[ExternalSignal]:
+        """
+        뷰티 산업 전반의 신호 수집
+
+        Args:
+            keywords: 필터링 키워드 (없으면 기본 뷰티 키워드)
+
+        Returns:
+            ExternalSignal 리스트
+        """
+        all_signals = []
+
+        # 모든 산업 매체에서 수집
+        industry_sources = [
+            SignalSource.COSMETICS_DESIGN_ASIA,
+            SignalSource.COSMETICS_DESIGN_EUROPE,
+            SignalSource.KEDGLOBAL,
+        ]
+
+        for source in industry_sources:
+            if source in RSS_FEEDS:
+                signals = await self.fetch_rss_articles(
+                    source,
+                    keywords=keywords,
+                    max_articles=10
+                )
+                all_signals.extend(signals)
+                await asyncio.sleep(1)
+
+        # Reddit에서도 수집
+        reddit_signals = await self.fetch_reddit_trends(
+            subreddits=["SkincareAddiction", "AsianBeauty"],
+            keywords=keywords,
+            max_posts=10
+        )
+        all_signals.extend(reddit_signals)
+
+        logger.info(f"Fetched {len(all_signals)} industry signals")
+        return all_signals
+
+    def get_source_reliability(self, source: str) -> float:
+        """
+        매체별 신뢰도 점수 반환
+
+        출처 관리 시스템 연동용
+
+        Args:
+            source: 매체 이름
+
+        Returns:
+            신뢰도 점수 (0.0 ~ 1.0)
+        """
+        reliability_map = {
+            # 전문 매체 (Tier 3)
+            "allure": 0.8,
+            "byrdie": 0.8,
+            "refinery29": 0.75,
+            "cosmetics_design_asia": 0.85,
+            "cosmetics_design_europe": 0.85,
+            "kedglobal": 0.8,
+            "korea_herald": 0.8,
+            "cosinkorea": 0.8,
+            "wwd_beauty": 0.85,
+            "vogue_beauty": 0.8,
+
+            # 검증/리뷰 (Tier 2)
+            "youtube": 0.6,
+            "reddit": 0.5,
+
+            # 바이럴 (Tier 1)
+            "tiktok": 0.5,
+            "instagram": 0.5,
+
+            # PR (Tier 4)
+            "twitter": 0.4,
+
+            # 수동 입력
+            "manual": 0.9,
+            "trend_radar": 0.9,
+        }
+
+        return reliability_map.get(source.lower(), 0.5)
+
+    def create_source_reference(self, signal: ExternalSignal) -> Dict[str, Any]:
+        """
+        출처 참조 객체 생성 (SourceManager 연동용)
+
+        Args:
+            signal: ExternalSignal 객체
+
+        Returns:
+            Source 형식 딕셔너리
+        """
+        return {
+            "id": signal.signal_id,
+            "title": signal.title,
+            "publisher": signal.source.replace("_", " ").title(),
+            "date": signal.published_at,
+            "url": signal.url,
+            "source_type": "news" if signal.tier == SignalTier.TIER3_AUTHORITY.value else "sns",
+            "reliability_score": self.get_source_reliability(signal.source)
+        }
 
     # =========================================================================
     # 유틸리티
