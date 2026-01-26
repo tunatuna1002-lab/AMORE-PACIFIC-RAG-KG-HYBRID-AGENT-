@@ -15,6 +15,10 @@
 - Gray: #7D7D7D (텍스트)
 """
 
+# Headless 서버 환경을 위해 Agg 백엔드 설정 (pyplot import 전에 필수)
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from matplotlib.ticker import MaxNLocator
