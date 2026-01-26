@@ -1,0 +1,10 @@
+{"query": "LANEIGE Lip Care SoS는?", "expected_facts": ["SoS"], "expected_brands": ["LANEIGE"], "expected_categories": ["lip_care"], "expected_source_types": ["Crawled", "KG"]}
+{"query": "COSRX vs LANEIGE 비교", "expected_facts": ["SoS", "rank"], "expected_brands": ["COSRX", "LANEIGE"], "expected_categories": [], "expected_source_types": ["Crawled", "KG", "Ontology"]}
+{"query": "Lip Care 시장 집중도 분석", "expected_facts": ["HHI"], "expected_brands": [], "expected_categories": ["lip_care"], "expected_source_types": ["Ontology", "RAG"]}
+{"query": "오늘 LANEIGE 랭킹 변동 원인은?", "expected_facts": ["rank", "trend"], "expected_brands": ["LANEIGE"], "expected_categories": [], "expected_source_types": ["Crawled", "External"]}
+{"query": "K-Beauty 브랜드 경쟁 현황", "expected_facts": ["SoS", "competition"], "expected_brands": ["LANEIGE", "COSRX"], "expected_categories": [], "expected_source_types": ["KG", "Ontology"]}
+{"query": "Lip Sleeping Mask 제품 분석", "expected_facts": ["product", "rank"], "expected_brands": ["LANEIGE"], "expected_categories": ["lip_care"], "expected_source_types": ["Crawled", "KG"]}
+{"query": "경쟁사 대응 전략 추천", "expected_facts": ["strategy", "recommendation"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["RAG", "Ontology"]}
+{"query": "Skin Care 카테고리 상위 브랜드", "expected_facts": ["rank", "SoS"], "expected_brands": [], "expected_categories": ["skin_care"], "expected_source_types": ["Crawled", "KG"]}
+{"query": "TIRTIR 시장 포지션", "expected_facts": ["SoS", "rank"], "expected_brands": ["TIRTIR"], "expected_categories": [], "expected_source_types": ["Crawled", "KG", "Ontology"]}
+{"query": "지표 해석 가이드", "expected_facts": ["SoS", "HHI", "CPI"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["RAG"]}

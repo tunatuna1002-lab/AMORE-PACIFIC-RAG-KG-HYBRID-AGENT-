@@ -14,11 +14,9 @@ Clean Architecture에서 내부 레이어(Domain, Application)는 외부 레이�
         def __init__(self, repo: ProductRepository):
             self.repo = repo  # 구현체가 아닌 Protocol에 의존
 
-    # Infrastructure layer에서
-    from src.infrastructure.persistence.sheets_repository import GoogleSheetsRepository
-
-    # GoogleSheetsRepository는 ProductRepository Protocol을 구현
-    repo = GoogleSheetsRepository(credentials)
+    # Infrastructure layer에서 (실제 구현체 import)
+    # 구현체는 Infrastructure 레이어에서만 import합니다
+    # repo = ConcreteRepository(...)  # ProductRepository Protocol 구현체
     workflow = BatchWorkflow(repo)  # Protocol 만족하면 주입 가능
 """
 

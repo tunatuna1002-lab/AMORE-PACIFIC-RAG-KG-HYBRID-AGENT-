@@ -1,0 +1,101 @@
+# pyproject.toml - Project Configuration
+# AMORE Pacific RAG-KG Hybrid Agent
+
+[project]
+name = "amore-rag-agent"
+version = "1.0.0"
+description = "Amazon US LANEIGE Brand Competitiveness Monitoring Agent with RAG-KG Hybrid Architecture"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "AMORE Pacific", email = "tech@amorepacific.com"}
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = """
+    --cov=src
+    --cov-report=term-missing
+    --cov-report=html:coverage_html
+    --cov-fail-under=60
+    -v
+"""
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@abstractmethod",
+    "pass",
+]
+show_missing = true
+precision = 2
+fail_under = 60
+
+[tool.coverage.html]
+directory = "coverage_html"
+
+# Black formatter (optional)
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.venv
+    | venv
+    | __pycache__
+    | \.mypy_cache
+    | coverage_html
+)/
+'''
+
+# Ruff linter (optional, fast Python linter)
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "coverage_html",
+]

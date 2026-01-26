@@ -1,0 +1,3 @@
+{"input_date": "2026-01-27", "expected_sections": ["핵심 요약", "시장 현황", "경쟁사 동향", "권장 액션", "참고자료"], "expected_kpis": ["SoS", "HHI", "CPI"], "expected_brands_mentioned": ["LANEIGE"]}
+{"input_date": "2026-01-26", "expected_sections": ["핵심 요약", "시장 현황", "경쟁사 동향", "권장 액션", "참고자료"], "expected_kpis": ["SoS", "HHI", "CPI"], "expected_brands_mentioned": ["LANEIGE"]}
+{"input_date": "2026-01-25", "expected_sections": ["핵심 요약", "시장 현황", "경쟁사 동향", "권장 액션", "참고자료"], "expected_kpis": ["SoS", "HHI", "CPI"], "expected_brands_mentioned": ["LANEIGE"]}
