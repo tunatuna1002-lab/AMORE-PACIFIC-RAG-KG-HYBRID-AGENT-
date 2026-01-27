@@ -10,6 +10,12 @@ Includes:
   - IR report parser
   - External signal collector
   - Source manager
+- Social Media Collectors (v2026.01.27)
+  - TikTok (Playwright)
+  - Instagram (Instaloader)
+  - YouTube (yt-dlp)
+  - Reddit (JSON API)
+  - Google Trends (trendspyg/pytrends)
 """
 
 from .amazon_scraper import AmazonScraper
@@ -23,19 +29,42 @@ from .external_signal_collector import ExternalSignalCollector, ExternalSignal
 from .source_manager import SourceManager, Source, InsightSourceBuilder
 from .market_intelligence import MarketIntelligenceEngine
 
-# New Collectors (Phase 1 & 2) - 2026-01
+# Google Trends Collector (trendspyg or pytrends)
 try:
     from .google_trends_collector import GoogleTrendsCollector, TrendData
 except ImportError:
     GoogleTrendsCollector = None
     TrendData = None
 
+# YouTube Collector (yt-dlp based)
 try:
     from .youtube_collector import YouTubeCollector, YouTubeVideo
 except ImportError:
     YouTubeCollector = None
     YouTubeVideo = None
 
+# TikTok Collector (Playwright based) - v2026.01.27
+try:
+    from .tiktok_collector import TikTokCollector, TikTokPost
+except ImportError:
+    TikTokCollector = None
+    TikTokPost = None
+
+# Instagram Collector (Instaloader based) - v2026.01.27
+try:
+    from .instagram_collector import InstagramCollector, InstagramPost
+except ImportError:
+    InstagramCollector = None
+    InstagramPost = None
+
+# Reddit Collector (JSON API based) - v2026.01.27
+try:
+    from .reddit_collector import RedditCollector, RedditPost
+except ImportError:
+    RedditCollector = None
+    RedditPost = None
+
+# Legacy Apify (removed, kept for backward compatibility)
 try:
     from .apify_amazon_scraper import ApifyAmazonScraper
 except ImportError:
@@ -77,10 +106,18 @@ __all__ = [
     # Market Intelligence Engine
     "MarketIntelligenceEngine",
 
-    # New Collectors (Phase 1 & 2)
+    # Social Media Collectors (v2026.01.27)
     "GoogleTrendsCollector",
     "TrendData",
     "YouTubeCollector",
     "YouTubeVideo",
+    "TikTokCollector",
+    "TikTokPost",
+    "InstagramCollector",
+    "InstagramPost",
+    "RedditCollector",
+    "RedditPost",
+
+    # Legacy
     "ApifyAmazonScraper",
 ]

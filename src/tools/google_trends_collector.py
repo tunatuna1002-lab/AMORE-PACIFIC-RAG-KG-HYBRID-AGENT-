@@ -1,7 +1,11 @@
 """
 Google Trends Collector
 ========================
-trendspyg 기반 Google Trends 수집기
+Google Trends 데이터 수집기
+
+## 사용 기술 (우선순위)
+1. trendspyg (pytrends 대체, 무료, 오픈소스)
+2. pytrends (레거시 fallback)
 
 ## 기능
 - 뷰티/화장품 키워드 트렌드 수집
@@ -14,6 +18,10 @@ collector = GoogleTrendsCollector()
 trends = await collector.fetch_beauty_trends()
 print(trends)
 ```
+
+## 주의사항
+- pytrends는 2025년 4월 archived됨
+- trendspyg 우선 사용 권장
 """
 
 import asyncio
@@ -27,13 +35,21 @@ from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-# pytrends 라이브러리 (Google Trends 접근)
+# trendspyg (pytrends 대체, 권장)
+try:
+    from trendspyg import TrendsPyG
+    TRENDSPYG_AVAILABLE = True
+except ImportError:
+    TRENDSPYG_AVAILABLE = False
+    logger.debug("trendspyg not installed. Install with: pip install trendspyg")
+
+# pytrends (레거시 fallback)
 try:
     from pytrends.request import TrendReq
     PYTRENDS_AVAILABLE = True
 except ImportError:
     PYTRENDS_AVAILABLE = False
-    logger.warning("pytrends not installed. Install with: pip install pytrends")
+    logger.debug("pytrends not installed (archived April 2025)")
 
 
 # 한국 시간대 (UTC+9)
@@ -96,22 +112,44 @@ class GoogleTrendsCollector:
         self.geo = geo
         self.timeframe = timeframe
         self._pytrends: Optional[TrendReq] = None
+        self._trendspyg: Optional[TrendsPyG] = None
         self._enabled = os.getenv("ENABLE_GOOGLE_TRENDS", "true").lower() == "true"
+
+        # 사용 가능한 백엔드 확인
+        if TRENDSPYG_AVAILABLE:
+            self._backend = "trendspyg"
+        elif PYTRENDS_AVAILABLE:
+            self._backend = "pytrends"
+        else:
+            self._backend = None
 
         # 데이터 저장 경로
         self.data_dir = Path("data/market_intelligence/trends")
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
+        logger.info(f"Google Trends collector initialized with backend: {self._backend}")
+
     def _get_pytrends(self) -> Optional[TrendReq]:
-        """TrendReq 인스턴스 반환 (lazy initialization)"""
+        """TrendReq 인스턴스 반환 (legacy fallback)"""
         if not PYTRENDS_AVAILABLE:
-            logger.error("trendspyg not available")
+            logger.warning("pytrends not available")
             return None
 
         if self._pytrends is None:
             self._pytrends = TrendReq(hl='en-US', tz=360)
 
         return self._pytrends
+
+    def _get_trendspyg(self) -> Optional[TrendsPyG]:
+        """TrendsPyG 인스턴스 반환 (권장)"""
+        if not TRENDSPYG_AVAILABLE:
+            logger.warning("trendspyg not available")
+            return None
+
+        if self._trendspyg is None:
+            self._trendspyg = TrendsPyG()
+
+        return self._trendspyg
 
     async def fetch_trends(self, keywords: List[str], geo: Optional[str] = None) -> List[TrendData]:
         """
@@ -128,8 +166,8 @@ class GoogleTrendsCollector:
             logger.info("Google Trends collector disabled")
             return []
 
-        if not PYTRENDS_AVAILABLE:
-            logger.warning("trendspyg not installed, returning empty trends")
+        if self._backend is None:
+            logger.warning("No Google Trends backend available (install trendspyg or pytrends)")
             return []
 
         # Google Trends는 최대 5개 키워드만 비교 가능
@@ -140,58 +178,13 @@ class GoogleTrendsCollector:
         now = datetime.now(KST).isoformat()
 
         try:
-            pytrends = self._get_pytrends()
-            if pytrends is None:
-                return []
+            # trendspyg 우선 사용
+            if self._backend == "trendspyg":
+                trends = await self._fetch_with_trendspyg(keywords, geo, now)
+            elif self._backend == "pytrends":
+                trends = await self._fetch_with_pytrends(keywords, geo, now)
 
-            # 동기 API를 비동기로 래핑
-            def _fetch():
-                pytrends.build_payload(
-                    kw_list=keywords,
-                    cat=0,  # All categories
-                    timeframe=self.timeframe,
-                    geo=geo
-                )
-
-                # Interest over time
-                interest_df = pytrends.interest_over_time()
-
-                # Related queries
-                related = pytrends.related_queries()
-
-                return interest_df, related
-
-            interest_df, related = await asyncio.get_event_loop().run_in_executor(
-                None, _fetch
-            )
-
-            # DataFrame을 TrendData로 변환
-            for keyword in keywords:
-                interest_data = []
-                if not interest_df.empty and keyword in interest_df.columns:
-                    for date, row in interest_df.iterrows():
-                        interest_data.append({
-                            "date": str(date.date()),
-                            "value": int(row[keyword])
-                        })
-
-                # Related queries 추출
-                related_queries = []
-                if keyword in related and related[keyword].get('top') is not None:
-                    top_queries = related[keyword]['top']
-                    if hasattr(top_queries, 'head'):
-                        related_queries = top_queries.head(10)['query'].tolist()
-
-                trends.append(TrendData(
-                    keyword=keyword,
-                    interest_over_time=interest_data,
-                    related_queries=related_queries,
-                    geo=geo,
-                    timeframe=self.timeframe,
-                    collected_at=now
-                ))
-
-            logger.info(f"Fetched trends for {len(keywords)} keywords (geo={geo})")
+            logger.info(f"Fetched trends for {len(keywords)} keywords (geo={geo}, backend={self._backend})")
 
         except Exception as e:
             logger.error(f"Error fetching Google Trends: {e}")
@@ -203,6 +196,101 @@ class GoogleTrendsCollector:
                     timeframe=self.timeframe,
                     collected_at=now
                 ))
+
+        return trends
+
+    async def _fetch_with_trendspyg(self, keywords: List[str], geo: str, now: str) -> List[TrendData]:
+        """trendspyg로 트렌드 수집 (권장)"""
+        trends = []
+        trendspyg = self._get_trendspyg()
+
+        if trendspyg is None:
+            return trends
+
+        def _fetch():
+            result = {}
+            for keyword in keywords:
+                try:
+                    # trendspyg는 키워드별로 개별 조회
+                    data = trendspyg.interest_over_time(
+                        keyword=keyword,
+                        geo=geo if geo else "US",
+                        timeframe=self.timeframe
+                    )
+                    result[keyword] = data
+                except Exception as e:
+                    logger.debug(f"trendspyg error for {keyword}: {e}")
+                    result[keyword] = None
+            return result
+
+        results = await asyncio.get_event_loop().run_in_executor(None, _fetch)
+
+        for keyword in keywords:
+            interest_data = []
+            data = results.get(keyword)
+
+            if data is not None and hasattr(data, 'iterrows'):
+                for date, row in data.iterrows():
+                    interest_data.append({
+                        "date": str(date.date()) if hasattr(date, 'date') else str(date),
+                        "value": int(row.get(keyword, row.iloc[0]) if hasattr(row, 'get') else row)
+                    })
+
+            trends.append(TrendData(
+                keyword=keyword,
+                interest_over_time=interest_data,
+                related_queries=[],  # trendspyg는 related queries 별도 조회 필요
+                geo=geo,
+                timeframe=self.timeframe,
+                collected_at=now
+            ))
+
+        return trends
+
+    async def _fetch_with_pytrends(self, keywords: List[str], geo: str, now: str) -> List[TrendData]:
+        """pytrends로 트렌드 수집 (레거시 fallback)"""
+        trends = []
+        pytrends = self._get_pytrends()
+
+        if pytrends is None:
+            return trends
+
+        def _fetch():
+            pytrends.build_payload(
+                kw_list=keywords,
+                cat=0,
+                timeframe=self.timeframe,
+                geo=geo
+            )
+            interest_df = pytrends.interest_over_time()
+            related = pytrends.related_queries()
+            return interest_df, related
+
+        interest_df, related = await asyncio.get_event_loop().run_in_executor(None, _fetch)
+
+        for keyword in keywords:
+            interest_data = []
+            if not interest_df.empty and keyword in interest_df.columns:
+                for date, row in interest_df.iterrows():
+                    interest_data.append({
+                        "date": str(date.date()),
+                        "value": int(row[keyword])
+                    })
+
+            related_queries = []
+            if keyword in related and related[keyword].get('top') is not None:
+                top_queries = related[keyword]['top']
+                if hasattr(top_queries, 'head'):
+                    related_queries = top_queries.head(10)['query'].tolist()
+
+            trends.append(TrendData(
+                keyword=keyword,
+                interest_over_time=interest_data,
+                related_queries=related_queries,
+                geo=geo,
+                timeframe=self.timeframe,
+                collected_at=now
+            ))
 
         return trends
 

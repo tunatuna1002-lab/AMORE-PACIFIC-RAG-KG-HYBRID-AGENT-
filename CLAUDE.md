@@ -34,6 +34,8 @@
 | RAG | ChromaDB + OpenAI Embeddings |
 | Ontology | owlready2, Rule-based Reasoner |
 | Test | pytest, pytest-cov (60% 최소 커버리지) |
+| Social Media | Playwright (TikTok), Instaloader (IG), yt-dlp (YT) |
+| Public Data | 관세청 수출입통계, 식약처 기능성화장품 API |
 
 ---
 
@@ -58,7 +60,13 @@
 │   ├── tools/                   # 유틸리티
 │   │   ├── amazon_scraper.py    # Playwright 크롤러
 │   │   ├── kg_backup.py         # KG 백업 관리
-│   │   └── metric_calculator.py # KPI 계산
+│   │   ├── metric_calculator.py # KPI 계산
+│   │   ├── tiktok_collector.py  # TikTok 수집 (Playwright)
+│   │   ├── instagram_collector.py # Instagram 수집 (Instaloader)
+│   │   ├── youtube_collector.py # YouTube 수집 (yt-dlp)
+│   │   ├── reddit_collector.py  # Reddit 수집 (JSON API)
+│   │   ├── google_trends_collector.py # Google Trends
+│   │   └── public_data_collector.py # 공공데이터 API
 │   ├── domain/                  # Clean Architecture Layer 1
 │   │   ├── entities/
 │   │   └── interfaces/
@@ -112,13 +120,24 @@ python scripts/sync_sheets_to_sqlite.py       # Sheets → SQLite
 # 필수
 OPENAI_API_KEY=sk-...
 
-# 선택
+# 선택 - 서버 설정
 API_KEY=...                        # API 인증
 AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작
+
+# 선택 - Google Sheets
 GOOGLE_SPREADSHEET_ID=...          # Google Sheets ID
+GOOGLE_SHEETS_CREDENTIALS_JSON=... # 서비스 계정 JSON
+
+# 선택 - LLM 설정
 LLM_TEMPERATURE_CHAT=0.4           # 챗봇 temperature
 LLM_TEMPERATURE_INSIGHT=0.6        # 인사이트 temperature
-TAVILY_API_KEY=tvly-...            # Tavily 뉴스 API
+
+# 선택 - 뉴스/외부 신호 (무료 티어)
+TAVILY_API_KEY=tvly-...            # Tavily 뉴스 (월 1,000건 무료)
+GNEWS_API_KEY=...                  # GNews (일 100건 무료)
+
+# 선택 - 공공데이터 (완전 무료)
+DATA_GO_KR_API_KEY=...             # 관세청/식약처 API
 ```
 
 ---
@@ -238,6 +257,41 @@ ENV_FILE=.env.test python -m pytest tests/
 | HybridChatbotAgent | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
 | KGBackupManager | `src/tools/kg_backup.py` | KG 백업 관리 (7일 보관) |
 
+### 소셜 미디어 수집기 (v2026.01.27)
+
+| 모듈 | 파일 | 기술 | 비용 |
+|------|------|------|------|
+| TikTokCollector | `src/tools/tiktok_collector.py` | Playwright | 무료 |
+| InstagramCollector | `src/tools/instagram_collector.py` | Instaloader | 무료 |
+| YouTubeCollector | `src/tools/youtube_collector.py` | yt-dlp | 무료 |
+| RedditCollector | `src/tools/reddit_collector.py` | JSON API | 무료 |
+| GoogleTrendsCollector | `src/tools/google_trends_collector.py` | trendspyg/pytrends | 무료 |
+| PublicDataCollector | `src/tools/public_data_collector.py` | 관세청/식약처 | 무료 |
+
+### 사용 예시
+
+```python
+# TikTok
+from src.tools.tiktok_collector import TikTokCollector
+collector = TikTokCollector()
+posts = await collector.search_hashtag("laneige", limit=50)
+
+# Instagram
+from src.tools.instagram_collector import InstagramCollector
+collector = InstagramCollector()
+posts = await collector.search_kbeauty(limit=100)
+
+# YouTube
+from src.tools.youtube_collector import YouTubeCollector
+collector = YouTubeCollector()
+videos = await collector.search("LANEIGE review", limit=20)
+
+# Reddit
+from src.tools.reddit_collector import RedditCollector
+collector = RedditCollector()
+posts = await collector.search("LANEIGE", subreddit="AsianBeauty")
+```
+
 ---
 
 ## 12. 코드 컨벤션
@@ -284,7 +338,19 @@ class Product(BaseModel):
 
 ---
 
-## 14. 구현 완료 내역 (2026-01-27)
+## 14. 구현 완료 내역
+
+### 2026-01-27 (v2) - 소셜 미디어 수집기
+
+| 항목 | 파일 |
+|------|------|
+| TikTok 수집기 | `src/tools/tiktok_collector.py` |
+| Instagram 수집기 | `src/tools/instagram_collector.py` |
+| YouTube 수집기 | `src/tools/youtube_collector.py` |
+| Reddit 수집기 | `src/tools/reddit_collector.py` |
+| Google Trends 업데이트 | `src/tools/google_trends_collector.py` (trendspyg 지원) |
+
+### 2026-01-27 (v1)
 
 | 항목 | 파일 |
 |------|------|
@@ -303,3 +369,4 @@ class Product(BaseModel):
 | Webhook 서명검증 | Medium |
 | Document chunk_id | Medium |
 | Prompt injection 방어 | High |
+| 아마존 리뷰 감성분석 | Medium |

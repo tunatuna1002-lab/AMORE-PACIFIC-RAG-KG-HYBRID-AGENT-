@@ -79,10 +79,20 @@ rdflib>=7.0.0
 spacy>=3.7.0
 
 # Data Collection Enhancement - 2026-01
-pytrends>=4.9.0           # Google Trends API
+pytrends>=4.9.0           # Google Trends API (legacy fallback)
+
+# Social Media Collectors (Free, Open Source) - 2026-01-27
+instaloader>=4.15         # Instagram scraper (no API key)
+yt-dlp>=2024.0.0          # YouTube metadata (no API key)
+# trendspyg>=0.1.0        # Google Trends (pytrends 대체, 선택)
+# Note: TikTok-Api 제외 (불안정, Playwright 직접 사용)
+# Note: Reddit는 JSON API 사용 (추가 패키지 불필요)
 
 # Email Service (E2E Audit Action Item - 2026-01-27)
 resend>=2.0.0             # Resend Email API (3,000 free/month)
+
+# News API (Free Tier)
+# gnews (API key 필요, 100건/일 무료)
 
 # Testing (TDD + Coverage)
 pytest>=7.4.0             # Test framework

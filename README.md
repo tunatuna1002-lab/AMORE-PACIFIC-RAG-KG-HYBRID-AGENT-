@@ -128,6 +128,23 @@ Amazon Bestsellers (Top 100 × 5 categories)
 - RSS 피드 (Allure, Byrdie, WWD)
 - Reddit API (r/SkincareAddiction, r/AsianBeauty)
 
+### 3.5 소셜 미디어 수집 (v2026.01.27)
+
+| 플랫폼 | 기술 | 비용 | 수집 대상 |
+|--------|------|------|----------|
+| **TikTok** | Playwright | 무료 | #laneige, #kbeauty 해시태그 |
+| **Instagram** | Instaloader | 무료 | #라네즈, #skincare 해시태그 |
+| **YouTube** | yt-dlp | 무료 | LANEIGE 리뷰 비디오 메타데이터 |
+| **Reddit** | JSON API | 무료 | r/AsianBeauty, r/SkincareAddiction |
+| **Google Trends** | trendspyg | 무료 | 브랜드 검색 관심도 추이 |
+
+### 3.6 공공데이터 API
+
+| API | 용도 | 비용 |
+|-----|------|------|
+| **관세청 수출입통계** | 화장품 HS 3304 수출입 | 무료 |
+| **식약처 기능성화장품** | 신규 등록 현황 | 무료 |
+
 ---
 
 ## 4. 기술 스택
@@ -164,12 +181,21 @@ Amazon Bestsellers (Top 100 × 5 categories)
 ### Railway
 
 ```bash
-# 환경 변수 설정
+# 필수 환경 변수
 OPENAI_API_KEY=sk-...
 API_KEY=your-api-key
 AUTO_START_SCHEDULER=true
+
+# Google Sheets (선택)
 GOOGLE_SHEETS_SPREADSHEET_ID=...
 GOOGLE_SHEETS_CREDENTIALS_JSON=...
+
+# 뉴스 수집 (선택, 무료 티어 제공)
+TAVILY_API_KEY=tvly-...         # 월 1,000건 무료
+GNEWS_API_KEY=...               # 일 100건 무료
+
+# 공공데이터 (선택, 무료)
+DATA_GO_KR_API_KEY=...          # 관세청/식약처 API
 ```
 
 ### Docker
@@ -226,6 +252,11 @@ ENV_FILE=.env.test python -m pytest tests/
 ---
 
 ## 업데이트 히스토리
+
+### 2026-01-27 (v2)
+- **소셜 미디어 수집기 추가**: TikTok, Instagram, YouTube, Reddit (모두 무료)
+- **Google Trends 업데이트**: trendspyg 지원 (pytrends archived 대응)
+- **공공데이터 API**: 관세청 수출입통계, 식약처 기능성화장품
 
 ### 2026-01-27
 - **TDD 권장안 구현**: KG Railway Volume 연결, 자동 백업 (7일), 커버리지 측정 환경
