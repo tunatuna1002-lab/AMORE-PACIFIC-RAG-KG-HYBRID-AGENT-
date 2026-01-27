@@ -118,8 +118,8 @@ class GoogleTrendsCollector:
         """
         self.geo = geo
         self.timeframe = timeframe
-        self._pytrends: Optional[TrendReq] = None
-        self._trendspyg: Optional[TrendsPyG] = None
+        self._pytrends: Optional["TrendReq"] = None
+        self._trendspyg: Optional["TrendsPyG"] = None
         self._enabled = os.getenv("ENABLE_GOOGLE_TRENDS", "true").lower() == "true"
 
         # 사용 가능한 백엔드 확인
@@ -136,7 +136,7 @@ class GoogleTrendsCollector:
 
         logger.info(f"Google Trends collector initialized with backend: {self._backend}")
 
-    def _get_pytrends(self) -> Optional[TrendReq]:
+    def _get_pytrends(self) -> Optional["TrendReq"]:
         """TrendReq 인스턴스 반환 (legacy fallback)"""
         if not PYTRENDS_AVAILABLE:
             logger.warning("pytrends not available")
@@ -147,7 +147,7 @@ class GoogleTrendsCollector:
 
         return self._pytrends
 
-    def _get_trendspyg(self) -> Optional[TrendsPyG]:
+    def _get_trendspyg(self) -> Optional["TrendsPyG"]:
         """TrendsPyG 인스턴스 반환 (권장)"""
         if not TRENDSPYG_AVAILABLE:
             logger.warning("trendspyg not available")
