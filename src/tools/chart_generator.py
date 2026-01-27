@@ -64,22 +64,48 @@ class ChartGenerator:
         self._setup_korean_font()
 
     def _setup_korean_font(self):
-        """한글 폰트 설정"""
-        # macOS 기본 한글 폰트
+        """한글 폰트 설정 (macOS, Linux/Docker 환경 모두 지원)"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # 폰트 우선순위: Docker (Noto Sans CJK) > macOS > Windows > fallback
         korean_fonts = [
-            "AppleGothic",
-            "Malgun Gothic",
-            "NanumGothic",
-            "Arial Unicode MS"
+            "Noto Sans CJK JP",     # Docker/Linux (fonts-noto-cjk)
+            "Noto Sans CJK KR",     # Docker/Linux 대체
+            "Noto Sans CJK SC",     # Docker/Linux 대체
+            "AppleGothic",          # macOS
+            "Malgun Gothic",        # Windows
+            "NanumGothic",          # 설치된 경우
+            "DejaVu Sans",          # fallback (한글 제한)
         ]
 
+        font_found = False
         for font_name in korean_fonts:
             try:
-                fm.findfont(fm.FontProperties(family=font_name))
-                plt.rcParams["font.family"] = font_name
-                break
-            except:
+                # 폰트 존재 여부 확인
+                font_path = fm.findfont(fm.FontProperties(family=font_name), fallback_to_default=False)
+                if font_path and "DejaVuSans" not in font_path:  # fallback 아닌 경우만
+                    plt.rcParams["font.family"] = font_name
+                    logger.info(f"Korean font set: {font_name}")
+                    font_found = True
+                    break
+            except Exception:
                 continue
+
+        if not font_found:
+            # 시스템 폰트 캐시에서 한글 지원 폰트 직접 탐색
+            try:
+                for font in fm.fontManager.ttflist:
+                    if "Noto" in font.name and "CJK" in font.name:
+                        plt.rcParams["font.family"] = font.name
+                        logger.info(f"Korean font found via fontManager: {font.name}")
+                        font_found = True
+                        break
+            except Exception as e:
+                logger.warning(f"Font search failed: {e}")
+
+        if not font_found:
+            logger.warning("No Korean font found. Charts may show broken characters.")
 
         plt.rcParams["axes.unicode_minus"] = False
 

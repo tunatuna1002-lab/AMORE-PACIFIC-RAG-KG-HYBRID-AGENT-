@@ -4,11 +4,14 @@ FROM python:3.11-slim
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 시스템 패키지 설치 (Playwright용)
+# 시스템 패키지 설치 (Playwright용 + 한글 폰트)
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
-    && rm -rf /var/lib/apt/lists/*
+    fonts-noto-cjk \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -fv
 
 # requirements.txt 복사 및 의존성 설치
 COPY requirements.txt .
