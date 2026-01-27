@@ -31,15 +31,21 @@ import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
+
+# Type hints only (런타임에 import되지 않음)
+if TYPE_CHECKING:
+    from trendspyg import TrendsPyG
+    from pytrends.request import TrendReq
 
 # trendspyg (pytrends 대체, 권장)
 try:
     from trendspyg import TrendsPyG
     TRENDSPYG_AVAILABLE = True
 except ImportError:
+    TrendsPyG = None  # type: ignore
     TRENDSPYG_AVAILABLE = False
     logger.debug("trendspyg not installed. Install with: pip install trendspyg")
 
@@ -48,6 +54,7 @@ try:
     from pytrends.request import TrendReq
     PYTRENDS_AVAILABLE = True
 except ImportError:
+    TrendReq = None  # type: ignore
     PYTRENDS_AVAILABLE = False
     logger.debug("pytrends not installed (archived April 2025)")
 
