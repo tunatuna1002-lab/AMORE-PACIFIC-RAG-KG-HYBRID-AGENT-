@@ -2859,24 +2859,26 @@ async def get_alert_settings():
     }
 
 
-@app.post("/api/v3/alert-settings", dependencies=[Depends(verify_api_key)])
-async def save_alert_settings(request: AlertSettingsRequest):
+@app.post("/api/v3/alert-settings")
+@limiter.limit("5/minute")  # 분당 5회 제한 (스팸 방지)
+async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
     """
-    알림 설정 저장 (API Key 필요)
+    알림 설정 저장
 
+    보안: API Key 대신 Rate Limiting으로 남용 방지 (IP당 분당 5회)
     중요: consent가 True일 때만 이메일 등록
     """
     state_manager = get_app_state_manager()
 
-    if not request.email:
+    if not settings.email:
         raise HTTPException(status_code=400, detail="이메일 주소가 필요합니다.")
 
-    if request.consent:
+    if settings.consent:
         # 이메일 등록 (명시적 동의)
         success = state_manager.register_email(
-            email=request.email,
+            email=settings.email,
             consent=True,
-            alert_types=request.alert_types
+            alert_types=settings.alert_types
         )
 
         if not success:
@@ -2886,18 +2888,20 @@ async def save_alert_settings(request: AlertSettingsRequest):
     else:
         # 동의 없으면 업데이트만 (알림 유형 변경)
         success = state_manager.update_email_subscription(
-            email=request.email,
-            alert_types=request.alert_types
+            email=settings.email,
+            alert_types=settings.alert_types
         )
 
         return {"status": "ok", "message": "설정이 업데이트되었습니다."}
 
 
-@app.post("/api/v3/alert-settings/revoke", dependencies=[Depends(verify_api_key)])
-async def revoke_alert_consent():
+@app.post("/api/v3/alert-settings/revoke")
+@limiter.limit("5/minute")  # 분당 5회 제한
+async def revoke_alert_consent(request: Request):
     """
-    알림 동의 철회 (API Key 필요)
+    알림 동의 철회
 
+    보안: API Key 대신 Rate Limiting으로 남용 방지
     첫 번째 등록된 이메일의 동의를 철회합니다.
     """
     state_manager = get_app_state_manager()
@@ -3658,6 +3662,168 @@ async def send_test_alert():
             "success": False,
             "error": str(e)
         }
+
+
+# ============= Email Verification API =============
+
+import secrets
+import hashlib
+from typing import Dict
+
+# 인증 토큰 저장소 (메모리 기반, 실제 운영 시 Redis 등 사용 권장)
+email_verification_tokens: Dict[str, dict] = {}
+
+
+@app.post("/api/alerts/send-verification")
+async def send_verification_email(request: Request):
+    """
+    이메일 인증 요청 - 인증 이메일 발송
+
+    사용자가 이메일을 입력하고 '인증하기' 버튼을 누르면
+    해당 이메일로 인증 링크가 포함된 테스트 이메일을 발송합니다.
+    """
+    try:
+        body = await request.json()
+        email = body.get("email", "").strip()
+
+        # 이메일 형식 검증
+        import re
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not email or not re.match(email_regex, email):
+            raise HTTPException(status_code=400, detail="올바른 이메일 주소를 입력해주세요.")
+
+        # 인증 토큰 생성 (6자리 랜덤 + timestamp)
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+        # 토큰 저장 (10분 유효)
+        email_verification_tokens[token_hash] = {
+            "email": email,
+            "created_at": datetime.now(),
+            "expires_at": datetime.now() + timedelta(minutes=10),
+            "verified": False
+        }
+
+        # 대시보드 URL 생성 (Railway 또는 로컬)
+        base_url = os.getenv("DASHBOARD_URL", "http://localhost:8001")
+        verify_url = f"{base_url}/?verify_email={token}&email={email}"
+
+        # 이메일 발송
+        alert_service = get_alert_service()
+
+        # EmailSender 직접 사용
+        from src.tools.email_sender import EmailSender
+        email_sender = EmailSender()
+
+        if not email_sender.is_enabled():
+            raise HTTPException(status_code=503, detail="이메일 서비스가 설정되지 않았습니다.")
+
+        # 인증 이메일 발송
+        from src.tools.email_sender import SendResult
+        result = await email_sender.send_verification_email(
+            recipient=email,
+            verify_url=verify_url,
+            token=token
+        )
+
+        if result.success:
+            logging.info(f"Verification email sent to {email}")
+            return {
+                "success": True,
+                "message": "인증 이메일이 발송되었습니다.",
+                "token": token_hash[:8]  # 디버깅용 일부 토큰만 반환
+            }
+        else:
+            raise HTTPException(status_code=500, detail=f"이메일 발송 실패: {result.message}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Send verification email error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/alerts/verify-email")
+async def verify_email_token(request: Request):
+    """
+    이메일 인증 토큰 검증
+
+    사용자가 이메일의 인증 버튼을 클릭하면
+    토큰을 검증하고 이메일 인증 상태를 업데이트합니다.
+    """
+    try:
+        body = await request.json()
+        token = body.get("token", "")
+        email = body.get("email", "").strip()
+
+        if not token or not email:
+            raise HTTPException(status_code=400, detail="토큰과 이메일이 필요합니다.")
+
+        # 토큰 해시 계산
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+        # 토큰 검증
+        if token_hash not in email_verification_tokens:
+            raise HTTPException(status_code=400, detail="유효하지 않은 인증 토큰입니다.")
+
+        token_data = email_verification_tokens[token_hash]
+
+        # 이메일 일치 확인
+        if token_data["email"] != email:
+            raise HTTPException(status_code=400, detail="이메일이 일치하지 않습니다.")
+
+        # 만료 확인
+        if datetime.now() > token_data["expires_at"]:
+            del email_verification_tokens[token_hash]
+            raise HTTPException(status_code=400, detail="인증 토큰이 만료되었습니다. 다시 인증해주세요.")
+
+        # 인증 완료
+        token_data["verified"] = True
+
+        # 알림 설정에 이메일 자동 등록
+        try:
+            state_manager = get_state_manager()
+            state_manager.update_alert_settings(
+                email=email,
+                consent=True,
+                alert_types=["rank_change", "important_insight", "error", "daily_summary"]
+            )
+            logging.info(f"Email verified and settings updated: {email}")
+        except Exception as e:
+            logging.warning(f"Failed to update alert settings: {e}")
+
+        return {
+            "verified": True,
+            "email": email,
+            "message": "이메일 인증이 완료되었습니다!"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Verify email error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/alerts/verification-status")
+async def get_verification_status(email: str):
+    """이메일 인증 상태 확인"""
+    try:
+        # 토큰 저장소에서 해당 이메일의 인증 상태 확인
+        for token_hash, data in email_verification_tokens.items():
+            if data["email"] == email:
+                if datetime.now() > data["expires_at"]:
+                    return {"verified": False, "status": "expired"}
+                return {
+                    "verified": data["verified"],
+                    "status": "verified" if data["verified"] else "pending"
+                }
+
+        return {"verified": False, "status": "not_found"}
+
+    except Exception as e:
+        logging.error(f"Get verification status error: {e}")
+        return {"verified": False, "status": "error", "error": str(e)}
 
 
 # ============= Category KPI API =============

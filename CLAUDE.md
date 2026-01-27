@@ -138,6 +138,13 @@ GNEWS_API_KEY=...                  # GNews (일 100건 무료)
 
 # 선택 - 공공데이터 (완전 무료)
 DATA_GO_KR_API_KEY=...             # 관세청/식약처 API
+
+# 선택 - 이메일 알림 (Gmail SMTP, 무료)
+SMTP_SERVER=smtp.gmail.com         # Gmail SMTP 서버
+SMTP_PORT=587                      # TLS 포트
+SENDER_EMAIL=your@gmail.com        # 발신자 Gmail
+SENDER_PASSWORD=xxxx xxxx xxxx xxxx # Gmail 앱 비밀번호 (16자리)
+ALERT_RECIPIENTS=alert@email.com   # 수신자 (쉼표로 복수 가능)
 ```
 
 ---
@@ -340,6 +347,21 @@ class Product(BaseModel):
 
 ## 14. 구현 완료 내역
 
+### 2026-01-27 (v3) - 이메일 알림 시스템
+
+| 항목 | 파일 |
+|------|------|
+| AlertAgent-Brain 통합 | `src/core/brain.py` |
+| Gmail SMTP 발송 | `src/tools/email_sender.py` |
+| 알림 조건 (순위 ±10, SoS 변동) | `src/agents/alert_agent.py` |
+
+**동작 흐름:**
+```
+크롤링 → 순위 변동 감지 → AlertAgent → EmailSender → Gmail SMTP → 수신자
+```
+
+**테스트 완료:** 2026-01-27 23:01 KST
+
 ### 2026-01-27 (v2) - 소셜 미디어 수집기
 
 | 항목 | 파일 |
@@ -370,3 +392,4 @@ class Product(BaseModel):
 | Document chunk_id | Medium |
 | Prompt injection 방어 | High |
 | 아마존 리뷰 감성분석 | Medium |
+| ~~이메일 알림 통합~~ | ~~High~~ → **완료 (v3)** |

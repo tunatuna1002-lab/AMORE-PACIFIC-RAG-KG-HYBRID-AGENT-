@@ -548,6 +548,128 @@ class EmailSender:
             recipients=recipients
         )
 
+    async def send_verification_email(
+        self,
+        recipient: str,
+        verify_url: str,
+        token: str
+    ) -> SendResult:
+        """
+        이메일 인증 이메일 발송
+
+        사용자가 알림 설정에서 이메일을 입력하면
+        인증 버튼이 포함된 이메일을 발송합니다.
+
+        Args:
+            recipient: 수신자 이메일
+            verify_url: 인증 URL (대시보드로 리다이렉트)
+            token: 인증 토큰
+
+        Returns:
+            SendResult
+        """
+        subject = "[AMORE Agent] 이메일 인증을 완료해주세요"
+
+        # AMOREPACIFIC CI 색상 적용
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+                <!-- Header -->
+                <div style="background: linear-gradient(135deg, #001C58 0%, #1F5795 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
+                    <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 700;">
+                        AMORE Market Agent
+                    </h1>
+                    <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">
+                        Amazon US Market Intelligence
+                    </p>
+                </div>
+
+                <!-- Body -->
+                <div style="background: white; padding: 40px 30px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(0,28,88,0.1);">
+                    <h2 style="margin: 0 0 16px 0; color: #001C58; font-size: 20px;">
+                        이메일 인증 요청
+                    </h2>
+
+                    <p style="color: #64748b; font-size: 15px; line-height: 1.7; margin: 0 0 24px 0;">
+                        AMORE Market Agent 알림 서비스를 이용해 주셔서 감사합니다.<br>
+                        아래 버튼을 클릭하여 이메일 인증을 완료해주세요.
+                    </p>
+
+                    <!-- CTA Button -->
+                    <div style="text-align: center; margin: 32px 0;">
+                        <a href="{verify_url}"
+                           style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #001C58, #1F5795); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(0,28,88,0.3);">
+                            ✓ 이메일 인증하기
+                        </a>
+                    </div>
+
+                    <p style="color: #94a3b8; font-size: 13px; margin: 24px 0 0 0; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                        이 링크는 10분간 유효합니다.<br>
+                        본인이 요청하지 않았다면 이 이메일을 무시해주세요.
+                    </p>
+
+                    <!-- Alternate Link -->
+                    <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+                        <p style="color: #64748b; font-size: 12px; margin: 0 0 8px 0;">
+                            버튼이 작동하지 않으면 아래 링크를 복사하여 브라우저에 붙여넣기 해주세요:
+                        </p>
+                        <p style="color: #1F5795; font-size: 11px; word-break: break-all; margin: 0;">
+                            {verify_url}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 12px;">
+                    <p style="margin: 0;">
+                        © 2026 AMORE Market Agent | Powered by AI
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # 발송
+        try:
+            if self.config.provider == "resend" and RESEND_AVAILABLE:
+                result = await self._send_via_resend(
+                    to_emails=[recipient],
+                    subject=subject,
+                    html_content=html_content
+                )
+            else:
+                result = await self._send_via_smtp(
+                    to_emails=[recipient],
+                    subject=subject,
+                    html_content=html_content
+                )
+
+            # 기록
+            self._send_history.append({
+                "type": "verification",
+                "recipient": recipient,
+                "timestamp": datetime.now().isoformat(),
+                "success": result.success
+            })
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {recipient}: {e}")
+            return SendResult(
+                success=False,
+                sent_to=[],
+                failed=[recipient],
+                message=str(e)
+            )
+
     # =========================================================================
     # 유틸리티
     # =========================================================================

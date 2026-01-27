@@ -1331,7 +1331,7 @@
             }
         }
 
-        /* 모바일 가로 / 작은 태블릿 (768px 이하) */
+        /* 모바일 가로 / 작은 태블릿 (768px 이하) - 기본 레이아웃 조정 */
         @media (max-width: 768px) {
             .kpi-grid {
                 grid-template-columns: 1fr;
@@ -1346,75 +1346,8 @@
                 flex-wrap: wrap;
                 justify-content: flex-start;
             }
-            .sidebar {
-                position: fixed;
-                left: -240px;
-                top: 0;
-                height: 100vh;
-                width: 240px;
-                z-index: 1001;
-                transition: left 0.3s ease;
-            }
-            .sidebar.open {
-                left: 0;
-            }
-            .sidebar-overlay {
-                display: block;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 1000;
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.25s ease;
-            }
-            .sidebar-overlay.active {
-                opacity: 1;
-                visibility: visible;
-            }
-            .main-content {
-                margin-left: 0 !important;
-                width: 100%;
-            }
-            .mobile-header {
-                display: flex !important;
-                position: sticky;
-                top: 0;
-                z-index: 100;
-                background: var(--pacific-blue);
-                padding: 12px 16px;
-                align-items: center;
-                justify-content: space-between;
-            }
-            .mobile-header .menu-btn {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 24px;
-                cursor: pointer;
-                padding: 4px;
-            }
-            .mobile-header .logo-text {
-                color: white;
-                font-size: 14px;
-                font-weight: 600;
-            }
-            .mobile-header .chat-toggle-btn {
-                background: var(--amore-blue);
-                border: none;
-                color: white;
-                padding: 8px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                cursor: pointer;
-            }
             .category-tabs {
                 flex-wrap: wrap;
-            }
-            .chatbot-panel.open {
-                width: 100%;
-                max-width: 100%;
-                min-width: 100%;
             }
             .page-header {
                 flex-direction: column;
@@ -1437,29 +1370,13 @@
             }
         }
 
-        /* 모바일 세로 (576px 이하) */
+        /* 모바일 세로 (576px 이하) - 추가 조정 */
         @media (max-width: 576px) {
-            .sidebar {
-                width: 280px;
-                left: -280px;
-            }
-            .main-content {
-                padding: 12px !important;
-            }
             .kpi-card {
                 padding: 16px;
             }
             .kpi-value {
                 font-size: 24px;
-            }
-            .card {
-                border-radius: 8px;
-            }
-            .card-header {
-                padding: 12px 16px;
-            }
-            .card-body {
-                padding: 12px 16px;
             }
             .chart-date-range input[type="date"] {
                 width: 110px;
@@ -1528,6 +1445,279 @@
         /* 사이드바/챗봇 오버레이 기본 숨김 */
         .sidebar-overlay,
         .chatbot-overlay {
+            display: none;
+        }
+
+        /* ========================================
+           ENHANCED MOBILE RESPONSIVE (2026 업데이트)
+           ======================================== */
+
+        /* 앱 컨테이너 - 모바일에서 column 레이아웃 */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            /* 모바일 헤더 - 최상단 고정 */
+            .mobile-header {
+                display: flex !important;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 56px;
+                background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue));
+                padding: 0 16px;
+                align-items: center;
+                justify-content: space-between;
+                z-index: 1002;
+                box-shadow: 0 2px 8px rgba(0, 28, 88, 0.15);
+            }
+
+            .mobile-header .menu-btn {
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            }
+
+            .mobile-header .menu-btn:active {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .mobile-header .mobile-logo {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .mobile-header .mobile-logo img {
+                height: 24px;
+                filter: brightness(0) invert(1);
+            }
+
+            .mobile-header .logo-text {
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                letter-spacing: 0.3px;
+            }
+
+            .mobile-header .chat-toggle-btn {
+                background: rgba(255, 255, 255, 0.15);
+                border: none;
+                color: white;
+                padding: 8px 14px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                transition: background 0.2s;
+            }
+
+            .mobile-header .chat-toggle-btn:active {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            /* 메인 래퍼 - 모바일 헤더 아래로 */
+            .main-wrapper {
+                margin-top: 56px;
+                height: calc(100vh - 56px);
+            }
+
+            /* 데스크톱 헤더 숨김 */
+            .header {
+                display: none !important;
+            }
+
+            /* 사이드바 오버레이 */
+            .sidebar-overlay {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 28, 88, 0.5);
+                z-index: 1000;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+                backdrop-filter: blur(2px);
+            }
+
+            .sidebar-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            /* 사이드바 - 좌측 슬라이드 */
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                width: 280px;
+                z-index: 1001;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 4px 0 20px rgba(0, 28, 88, 0.2);
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            /* 사이드바 닫기 버튼 */
+            .sidebar .mobile-close-btn {
+                display: flex !important;
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 32px;
+                height: 32px;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 6px;
+                color: white;
+                font-size: 18px;
+                cursor: pointer;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* 콘텐츠 영역 패딩 */
+            .content-area {
+                padding: 16px !important;
+            }
+
+            /* 챗봇 패널 - 전체 화면 */
+            .chatbot-panel.open {
+                position: fixed;
+                top: 56px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 100% !important;
+                height: calc(100vh - 56px) !important;
+                z-index: 999;
+                border-radius: 0;
+            }
+        }
+
+        /* 576px 이하 추가 최적화 */
+        @media (max-width: 576px) {
+            .mobile-header {
+                padding: 0 12px;
+            }
+
+            .mobile-header .logo-text {
+                font-size: 13px;
+            }
+
+            .mobile-header .chat-toggle-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .content-area {
+                padding: 12px !important;
+            }
+
+            /* 상태 그리드 1열 */
+            .status-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            /* 카드 패딩 축소 */
+            .card {
+                border-radius: 10px !important;
+            }
+
+            .card-header {
+                padding: 14px 16px !important;
+            }
+
+            .card-body {
+                padding: 14px 16px !important;
+            }
+
+            /* 테이블 스크롤 */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* 인사이트 배너 */
+            .insight-banner {
+                padding: 16px !important;
+                border-radius: 12px !important;
+            }
+
+            .insight-content {
+                flex-direction: column !important;
+                text-align: center;
+            }
+
+            .insight-icon {
+                margin-bottom: 12px;
+            }
+
+            .insight-message {
+                font-size: 13px !important;
+                line-height: 1.6 !important;
+            }
+        }
+
+        /* 400px 이하 - 아주 작은 화면 */
+        @media (max-width: 400px) {
+            .mobile-header {
+                height: 52px;
+            }
+
+            .mobile-header .menu-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .mobile-header .logo-text {
+                font-size: 12px;
+            }
+
+            .main-wrapper {
+                margin-top: 52px;
+                height: calc(100vh - 52px);
+            }
+
+            .content-area {
+                padding: 8px !important;
+            }
+
+            .status-card {
+                padding: 14px !important;
+            }
+
+            .status-value {
+                font-size: 22px !important;
+            }
+        }
+
+        /* 사이드바 닫기 버튼 - 데스크톱에서 숨김 */
+        .sidebar .mobile-close-btn {
             display: none;
         }
 
@@ -2701,9 +2891,20 @@
     <div class="app-container">
         <!-- MOBILE HEADER (768px 이하에서 표시) -->
         <div class="mobile-header">
-            <button class="menu-btn" onclick="toggleMobileSidebar()">☰</button>
-            <span class="logo-text">AMORE INSIGHT</span>
-            <button class="chat-toggle-btn" onclick="toggleChatbot()">💬 AI</button>
+            <button class="menu-btn" onclick="toggleMobileSidebar()" aria-label="메뉴 열기">
+                <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+            </button>
+            <div class="mobile-logo">
+                <!-- AMOREPACIFIC 로고 (흰색 버전) -->
+                <svg viewBox="0 0 200 24" height="20" fill="white" xmlns="http://www.w3.org/2000/svg">
+                    <text x="0" y="18" font-family="'Noto Sans KR', sans-serif" font-size="14" font-weight="600" letter-spacing="1">AMORE</text>
+                    <text x="58" y="18" font-family="'Noto Sans KR', sans-serif" font-size="14" font-weight="300" letter-spacing="1">PACIFIC</text>
+                </svg>
+            </div>
+            <button class="chat-toggle-btn" onclick="toggleChatbot()" aria-label="AI 챗봇">
+                <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i>
+                <span>AI</span>
+            </button>
         </div>
 
         <!-- SIDEBAR OVERLAY (모바일용) -->
@@ -2714,10 +2915,21 @@
 
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
+            <!-- 모바일 닫기 버튼 -->
+            <button class="mobile-close-btn" onclick="toggleMobileSidebar()" aria-label="메뉴 닫기">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
             <div class="logo-section">
                 <div class="logo">
                     <div class="logo-icon"><i data-lucide="sparkles" style="color: white; width: 22px; height: 22px;"></i></div>
                     <div class="logo-text"><h1>AMORE INSIGHT</h1><span>AI Intelligence v2.0</span></div>
+                </div>
+                <!-- AMOREPACIFIC 로고 (사이드바 하단 또는 별도 위치) -->
+                <div class="ap-logo-container" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <svg viewBox="0 0 180 20" height="16" fill="rgba(255,255,255,0.6)" xmlns="http://www.w3.org/2000/svg">
+                        <text x="0" y="15" font-family="'Noto Sans KR', sans-serif" font-size="11" font-weight="600" letter-spacing="0.5">AMORE</text>
+                        <text x="48" y="15" font-family="'Noto Sans KR', sans-serif" font-size="11" font-weight="300" letter-spacing="0.5">PACIFIC</text>
+                    </svg>
                 </div>
             </div>
             <nav class="nav-section">
@@ -9388,6 +9600,136 @@
             });
         }
 
+        // 이메일 인증 상태 관리
+        let emailVerificationState = {
+            verified: false,
+            email: null,
+            token: null
+        };
+
+        // 이메일 인증 요청
+        async function sendVerificationEmail() {
+            const email = document.getElementById('alert-email').value.trim();
+            const btn = document.getElementById('verify-email-btn');
+            const statusDiv = document.getElementById('email-verification-status');
+            const pendingSpan = document.getElementById('verification-pending');
+            const successSpan = document.getElementById('verification-success');
+            const errorSpan = document.getElementById('verification-error');
+            const errorMsg = document.getElementById('verification-error-msg');
+
+            // 이메일 형식 검증
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                statusDiv.style.display = 'block';
+                pendingSpan.style.display = 'none';
+                successSpan.style.display = 'none';
+                errorSpan.style.display = 'inline';
+                errorMsg.textContent = '올바른 이메일 주소를 입력해주세요.';
+                return;
+            }
+
+            // 버튼 비활성화 및 로딩 상태
+            btn.disabled = true;
+            btn.textContent = '발송 중...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/alerts/send-verification`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const data = await response.json();
+
+                statusDiv.style.display = 'block';
+
+                if (response.ok) {
+                    pendingSpan.style.display = 'inline';
+                    successSpan.style.display = 'none';
+                    errorSpan.style.display = 'none';
+                    btn.textContent = '재발송';
+                    emailVerificationState.email = email;
+                    emailVerificationState.token = data.token;
+
+                    // 아이콘 초기화
+                    if (window.lucide) lucide.createIcons();
+                } else {
+                    pendingSpan.style.display = 'none';
+                    successSpan.style.display = 'none';
+                    errorSpan.style.display = 'inline';
+                    errorMsg.textContent = data.detail || '인증 이메일 발송 실패';
+                    btn.textContent = '인증하기';
+                }
+            } catch (error) {
+                console.error('Email verification error:', error);
+                statusDiv.style.display = 'block';
+                pendingSpan.style.display = 'none';
+                successSpan.style.display = 'none';
+                errorSpan.style.display = 'inline';
+                errorMsg.textContent = '서버 연결 오류';
+                btn.textContent = '인증하기';
+            }
+
+            btn.disabled = false;
+        }
+
+        // 이메일 인증 상태 확인 (페이지 로드 시 URL 파라미터 체크)
+        function checkEmailVerification() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const verifyToken = urlParams.get('verify_email');
+            const verifyEmail = urlParams.get('email');
+
+            if (verifyToken && verifyEmail) {
+                // URL에서 인증 토큰 발견 시 서버에 검증 요청
+                verifyEmailToken(verifyToken, verifyEmail);
+            }
+        }
+
+        // 이메일 토큰 검증
+        async function verifyEmailToken(token, email) {
+            try {
+                const response = await fetch(`${API_BASE}/api/alerts/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, email: email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.verified) {
+                    // 인증 성공 - 모달 열고 성공 상태 표시
+                    openAlertSettings();
+                    setTimeout(() => {
+                        const statusDiv = document.getElementById('email-verification-status');
+                        const pendingSpan = document.getElementById('verification-pending');
+                        const successSpan = document.getElementById('verification-success');
+                        const errorSpan = document.getElementById('verification-error');
+
+                        statusDiv.style.display = 'block';
+                        pendingSpan.style.display = 'none';
+                        successSpan.style.display = 'inline';
+                        errorSpan.style.display = 'none';
+
+                        emailVerificationState.verified = true;
+                        emailVerificationState.email = email;
+
+                        // 아이콘 초기화
+                        if (window.lucide) lucide.createIcons();
+
+                        // URL에서 파라미터 제거
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }, 300);
+                } else {
+                    alert('이메일 인증 실패: ' + (data.detail || '토큰이 만료되었거나 유효하지 않습니다.'));
+                }
+            } catch (error) {
+                console.error('Email verification error:', error);
+            }
+        }
+
+        // 페이지 로드 시 인증 체크
+        document.addEventListener('DOMContentLoaded', checkEmailVerification);
+
         async function saveAlertSettings() {
             const email = document.getElementById('alert-email').value;
             const consent = document.getElementById('alert-consent').checked;
@@ -9453,31 +9795,54 @@
 
     </script>
 
-    <!-- Alert Settings Modal -->
+    <!-- Alert Settings Modal - AMOREPACIFIC CI -->
     <div id="alert-settings-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
                 <h3><i data-lucide="bell" style="width: 20px; height: 20px; display: inline;"></i> 알림 설정</h3>
                 <button onclick="closeAlertSettings()" class="modal-close">&times;</button>
             </div>
             <div class="modal-body" style="padding: 24px;">
-                <!-- 이메일 입력 -->
+                <!-- 이메일 입력 + 인증 버튼 -->
                 <div class="form-group" style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--pacific-blue);">
                         이메일 주소
                     </label>
-                    <input type="email" id="alert-email"
-                           placeholder="your-email@example.com"
-                           style="width: 100%; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px;">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="email" id="alert-email"
+                               placeholder="your-email@example.com"
+                               style="flex: 1; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; transition: border-color 0.2s;"
+                               onfocus="this.style.borderColor='var(--amore-blue)'"
+                               onblur="this.style.borderColor='#e2e8f0'">
+                        <button onclick="sendVerificationEmail()" id="verify-email-btn"
+                                style="padding: 12px 20px; background: var(--amore-blue); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                            인증하기
+                        </button>
+                    </div>
+                    <!-- 인증 상태 표시 -->
+                    <div id="email-verification-status" style="margin-top: 8px; font-size: 13px; display: none;">
+                        <span id="verification-pending" style="color: #f59e0b; display: none;">
+                            <i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
+                            인증 이메일이 발송되었습니다. 메일함을 확인해주세요.
+                        </span>
+                        <span id="verification-success" style="color: #10b981; display: none;">
+                            <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
+                            이메일 인증 완료
+                        </span>
+                        <span id="verification-error" style="color: #ef4444; display: none;">
+                            <i data-lucide="x-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
+                            <span id="verification-error-msg">인증 실패</span>
+                        </span>
+                    </div>
                 </div>
 
-                <!-- 동의 체크박스 (중요!) -->
-                <div class="consent-box" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <!-- 동의 체크박스 (AMOREPACIFIC CI) -->
+                <div class="consent-box" style="background: rgba(31, 87, 149, 0.05); border: 1px solid rgba(31, 87, 149, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                     <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
                         <input type="checkbox" id="alert-consent" onchange="toggleAlertOptions()"
-                               style="width: 20px; height: 20px; margin-top: 2px; accent-color: #0284c7;">
+                               style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--amore-blue);">
                         <div>
-                            <span style="font-weight: 600; color: #0369a1;">이메일 알림 수신에 동의합니다</span>
+                            <span style="font-weight: 600; color: var(--pacific-blue);">이메일 알림 수신에 동의합니다</span>
                             <p style="font-size: 12px; color: #64748b; margin-top: 4px;">
                                 순위 변동, 중요 인사이트, 시스템 에러 등의 알림을 이메일로 받습니다.<br>
                                 언제든지 동의를 철회할 수 있습니다.
@@ -9488,41 +9853,41 @@
 
                 <!-- 알림 유형 선택 -->
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #1e293b;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 12px; color: var(--pacific-blue);">
                         알림 유형 선택
                     </label>
                     <div class="alert-type-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="alert-rank-change" disabled>
-                            <span style="font-size: 13px;">순위 변동</span>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                            <input type="checkbox" id="alert-rank-change" disabled style="accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">순위 변동</span>
                         </label>
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="alert-insight" disabled>
-                            <span style="font-size: 13px;">중요 인사이트</span>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                            <input type="checkbox" id="alert-insight" disabled style="accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">중요 인사이트</span>
                         </label>
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="alert-error" disabled>
-                            <span style="font-size: 13px;">에러 알림</span>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                            <input type="checkbox" id="alert-error" disabled style="accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">에러 알림</span>
                         </label>
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer;">
-                            <input type="checkbox" id="alert-daily" disabled>
-                            <span style="font-size: 13px;">일일 요약</span>
+                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                            <input type="checkbox" id="alert-daily" disabled style="accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">일일 요약</span>
                         </label>
                     </div>
                 </div>
 
                 <!-- 버튼 -->
                 <div style="display: flex; gap: 12px;">
-                    <button onclick="saveAlertSettings()"
-                            style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <button onclick="saveAlertSettings()" id="save-alert-btn"
+                            style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         저장
                     </button>
                     <button onclick="revokeConsent()"
-                            style="padding: 12px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            style="padding: 12px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         동의 철회
                     </button>
                     <button onclick="closeAlertSettings()"
-                            style="padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            style="padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         취소
                     </button>
                 </div>
@@ -9531,14 +9896,14 @@
     </div>
 
     <style>
-        /* Alert Settings Modal - 별도 ID 선택자 사용 */
+        /* Alert Settings Modal - AMOREPACIFIC CI 통일 */
         #alert-settings-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 28, 88, 0.4);
             align-items: center;
             justify-content: center;
             z-index: 10000;
@@ -9547,7 +9912,7 @@
         #alert-settings-modal .modal-content {
             background: white;
             border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 28, 88, 0.25);
             max-height: 90vh;
             overflow-y: auto;
             animation: modalSlideIn 0.3s ease;
@@ -9561,7 +9926,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 20px 24px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid rgba(31, 87, 149, 0.15);
+            background: linear-gradient(135deg, rgba(0, 28, 88, 0.03), rgba(31, 87, 149, 0.05));
         }
         #alert-settings-modal .modal-header h3 {
             display: flex;
@@ -9569,20 +9935,38 @@
             gap: 8px;
             font-size: 18px;
             font-weight: 700;
-            color: #1e293b;
+            color: var(--pacific-blue);
         }
-        .modal-close {
+        #alert-settings-modal .modal-close {
             width: 32px;
             height: 32px;
             border: none;
-            background: #f1f5f9;
+            background: rgba(31, 87, 149, 0.1);
             border-radius: 8px;
             font-size: 20px;
             cursor: pointer;
             transition: all 0.2s;
+            color: var(--pacific-blue);
         }
-        .modal-close:hover {
-            background: #e2e8f0;
+        #alert-settings-modal .modal-close:hover {
+            background: rgba(31, 87, 149, 0.2);
+        }
+        #alert-settings-modal .alert-type-option:hover {
+            border-color: var(--amore-blue);
+            background: rgba(31, 87, 149, 0.05);
+        }
+        #alert-settings-modal button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 28, 88, 0.15);
+        }
+        #verify-email-btn:hover {
+            background: var(--pacific-blue) !important;
+        }
+        #verify-email-btn:disabled {
+            background: #94a3b8 !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
         }
     </style>
 </body>

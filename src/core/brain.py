@@ -56,9 +56,12 @@ from .scheduler import AutonomousScheduler
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
-    from ..agents.alert_agent import AlertAgent
     from .batch_workflow import BatchWorkflow
     from ..tools.market_intelligence import MarketIntelligenceEngine
+
+# AlertAgent 관련 임포트 (실제 사용)
+from ..agents.alert_agent import AlertAgent, AlertPriority
+from ..core.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
 
@@ -292,6 +295,15 @@ class UnifiedBrain:
         if not self.response_pipeline:
             self.response_pipeline = ResponsePipeline()
 
+        # AlertAgent 초기화
+        try:
+            state_manager = StateManager()
+            self._alert_agent = AlertAgent(state_manager)
+            logger.info("AlertAgent initialized successfully")
+        except Exception as e:
+            logger.warning(f"AlertAgent initialization failed: {e}")
+            self._alert_agent = None
+
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode)")
 
@@ -347,15 +359,49 @@ class UnifiedBrain:
             await self._process_alert(alert)
 
     async def _process_alert(self, alert: Dict[str, Any]) -> None:
-        """알림 처리"""
+        """알림 처리 및 이메일 발송"""
         self._stats["alerts_generated"] += 1
 
         # 알림 이벤트 발생
         await self.emit_event("alert_generated", alert)
 
-        # AlertAgent 호출 (구현되어 있으면)
+        # Lazy initialization if not already initialized
+        if not self._alert_agent:
+            try:
+                state_manager = StateManager()
+                self._alert_agent = AlertAgent(state_manager)
+                logger.info("AlertAgent lazy initialized")
+            except Exception as e:
+                logger.warning(f"AlertAgent lazy init failed: {e}")
+
+        # AlertAgent로 알림 처리 및 이메일 발송
         if self._alert_agent:
-            await self._alert_agent.process_alert(alert)
+            try:
+                # 알림 타입에 따른 우선순위 매핑
+                priority_map = {
+                    "rank_drop": AlertPriority.HIGH,
+                    "rank_surge": AlertPriority.NORMAL,
+                    "sos_drop": AlertPriority.HIGH,
+                    "sos_surge": AlertPriority.NORMAL,
+                    "error": AlertPriority.CRITICAL,
+                    "crawl_complete": AlertPriority.LOW,
+                }
+                priority = priority_map.get(alert.get("type"), AlertPriority.NORMAL)
+
+                # AlertAgent를 통해 알림 생성
+                self._alert_agent.create_alert(
+                    alert_type=alert.get("type", "unknown"),
+                    title=alert.get("message", "알림"),
+                    message=alert.get("details", alert.get("message", "")),
+                    data=alert,
+                    priority=priority
+                )
+
+                # 즉시 발송 (pending alerts 포함)
+                send_result = await self._alert_agent.send_pending_alerts()
+                logger.info(f"Alert processed: {alert.get('type')} - sent: {send_result.get('sent', 0)}")
+            except Exception as e:
+                logger.error(f"Failed to send alert: {e}")
 
     # =========================================================================
     # 사용자 질문 처리 (최우선)
