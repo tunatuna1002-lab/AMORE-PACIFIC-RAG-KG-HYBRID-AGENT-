@@ -1720,6 +1720,46 @@ async def _calculate_brand_metrics_for_period(
             # 다시 정렬 후 상위 11개 유지 (LANEIGE 포함 보장)
             top_10.sort(key=lambda x: x["sos"], reverse=True)
 
+    # Summer Fridays 특별 처리 (고객 요청 tracked competitor)
+    # top_10에 없으면 강제 추가
+    TRACKED_COMPETITORS = ["Summer Fridays"]
+    for tracked_brand in TRACKED_COMPETITORS:
+        tracked_in_top = any(b.get("brand") == tracked_brand for b in top_10)
+        if not tracked_in_top and tracked_brand in brand_data:
+            tracked_data = brand_data[tracked_brand]
+            if tracked_data["ranks"]:
+                sos = round(tracked_data["product_count"] / max(total_products, 100) * 100, 2)
+                avg_rank = round(sum(tracked_data["ranks"]) / len(tracked_data["ranks"]), 1)
+                bubble_size = max(5, min(25, tracked_data["product_count"] * 2))
+                top_10.append(
+                    {
+                        "brand": tracked_brand,
+                        "sos": sos,
+                        "avg_rank": avg_rank,
+                        "product_count": tracked_data["product_count"],
+                        "bubble_size": bubble_size,
+                        "is_laneige": False,
+                        "is_tracked": True,  # tracked competitor 표시
+                    }
+                )
+        # 데이터가 없어도 placeholder 추가 (UI에서 "-" 대신 "데이터 없음" 표시 가능)
+        elif not tracked_in_top:
+            top_10.append(
+                {
+                    "brand": tracked_brand,
+                    "sos": 0,
+                    "avg_rank": None,
+                    "product_count": 0,
+                    "bubble_size": 5,
+                    "is_laneige": False,
+                    "is_tracked": True,
+                    "no_data": True,  # 해당 기간 데이터 없음 표시
+                }
+            )
+
+    # 최종 정렬 (SoS 내림차순, tracked는 하단에 유지)
+    top_10.sort(key=lambda x: (not x.get("is_tracked", False), x["sos"]), reverse=True)
+
     return top_10
 
 

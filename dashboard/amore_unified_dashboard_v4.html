@@ -6762,6 +6762,20 @@
                 avg_price: 0
             };
 
+            // 해당 기간에 경쟁사 데이터가 없는 경우 안내
+            if (competitor.no_data || (competitor.sos === 0 && competitor.product_count === 0 && !competitor.avg_rank)) {
+                bodyDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                        <i data-lucide="calendar-x" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3;"></i>
+                        <p style="margin-bottom: 8px; font-weight: 500;">${competitorName} 데이터 없음</p>
+                        <p style="font-size: 13px;">선택한 기간에 ${competitorName} 제품이<br>Top 100에 진입하지 않았습니다.</p>
+                        <p style="font-size: 12px; margin-top: 12px; color: var(--text-tertiary);">다른 기간을 선택하거나 전체 기간을 조회해 보세요.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
             // Helper function to compare values
             function compareValues(val1, val2, lowerIsBetter = false) {
                 if (!val1 || !val2) return 'same';
