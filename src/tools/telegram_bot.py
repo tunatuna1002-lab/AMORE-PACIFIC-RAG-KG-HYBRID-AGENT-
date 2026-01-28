@@ -458,13 +458,23 @@ async def telegram_webhook(request: Request):
 
     try:
         data = await request.json()
+        logger.info(f"Telegram webhook received: {data}")
+
         message = data.get("message", {})
         chat_id = message.get("chat", {}).get("id")
         text = message.get("text", "")
 
+        logger.info(f"Parsed: chat_id={chat_id}, text={text!r}")
+        logger.info(f"Bot enabled: {bot.is_enabled()}, admin_ids: {bot.admin_chat_ids}")
+
         if chat_id and text and text.startswith("/"):
+            logger.info(f"Processing command: {text}")
             response = await bot.handle_command(chat_id, text)
-            await bot.send_message(chat_id, response)
+            logger.info(f"Command response: {response[:100]}...")
+            result = await bot.send_message(chat_id, response)
+            logger.info(f"Send result: {result}")
+        else:
+            logger.info(f"Skipping: no command (text={text!r})")
 
         return {"ok": True}
 
