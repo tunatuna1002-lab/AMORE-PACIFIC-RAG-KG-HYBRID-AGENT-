@@ -28,14 +28,13 @@ report = await agent.generate_report(analysis, external_signals=signals)
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
 from datetime import datetime
-import json
+from typing import Any
 
 from litellm import acompletion
 
 from src.monitoring.logger import AgentLogger
-
+from src.tools.insight_formatter import format_insight
 
 logger = AgentLogger(__name__)
 
@@ -46,10 +45,10 @@ class SectionInsight:
     section_id: str
     section_title: str
     content: str
-    key_points: List[str] = field(default_factory=list)
-    data_highlights: Dict[str, Any] = field(default_factory=dict)
+    key_points: list[str] = field(default_factory=list)
+    data_highlights: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
         return {
             "section_id": self.section_id,
@@ -67,19 +66,19 @@ class PeriodReport:
     end_date: str
     generated_at: str
 
-    executive_summary: Optional[SectionInsight] = None
-    laneige_analysis: Optional[SectionInsight] = None
-    competitive_analysis: Optional[SectionInsight] = None
-    market_trends: Optional[SectionInsight] = None
-    external_signals: Optional[SectionInsight] = None
-    risks_opportunities: Optional[SectionInsight] = None
-    strategic_recommendations: Optional[SectionInsight] = None
-    references: Optional[SectionInsight] = None  # 참고자료 섹션 추가
+    executive_summary: SectionInsight | None = None
+    laneige_analysis: SectionInsight | None = None
+    competitive_analysis: SectionInsight | None = None
+    market_trends: SectionInsight | None = None
+    external_signals: SectionInsight | None = None
+    risks_opportunities: SectionInsight | None = None
+    strategic_recommendations: SectionInsight | None = None
+    references: SectionInsight | None = None  # 참고자료 섹션 추가
 
     # 메타데이터
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
         return {
             "start_date": self.start_date,
@@ -115,8 +114,19 @@ class PeriodInsightAgent:
     MAX_TOKENS = 2000
     TEMPERATURE = 0.7
 
-    # 시스템 프롬프트
-    SYSTEM_PROMPT = """당신은 화장품 산업 전문 애널리스트입니다.
+    # 시스템 프롬프트 템플릿 (날짜 컨텍스트 동적 주입)
+    SYSTEM_PROMPT_TEMPLATE = """당신은 화장품 산업 전문 애널리스트입니다.
+
+### ⏰ 시점 정보 (매우 중요!)
+- 오늘 날짜: {current_date}
+- 분석 기간: {start_date} ~ {end_date}
+- "현재", "최근" 등의 표현은 반드시 분석 종료일({end_date}) 기준
+
+⚠️ 날짜 관련 필수 규칙:
+- 분석 기간 외의 날짜(예: 2024년 6월)는 절대 언급 금지
+- 미래 날짜는 언급하지 않음
+- "현재 시점", "최근" 등은 {end_date} 기준으로 해석
+- 모든 시점 언급은 위 날짜 정보 기준으로 작성
 
 역할:
 - 아모레퍼시픽 LANEIGE 브랜드의 Amazon US 시장 경쟁력 분석
@@ -129,11 +139,12 @@ class PeriodInsightAgent:
 - CPI (Competitive Price Index): 가격 경쟁력
 
 브랜드 해석 가이드:
-- "Unknown" 또는 "기타 브랜드": 데이터 인식 실패가 아님
-  - Top 100에 진입했으나 주요 브랜드(220+개 트래킹 리스트)에 포함되지 않은 브랜드
-  - 소규모/신규/지역 브랜드, 프라이빗 라벨, 아마존 자체 브랜드 등 포함
-  - 분석 시 "기타 브랜드" 또는 "Non-major Brands"로 표현 권장
-- 브랜드 점유율 분석 시 Unknown/기타 브랜드의 비중이 높으면:
+- 주요 브랜드 리스트(220+개)에 포함되지 않은 브랜드:
+  - Top 100에 진입했으나 트래킹 대상이 아닌 소규모/신흥 브랜드
+  - 프라이빗 라벨, 아마존 자체 브랜드, 지역 브랜드 등 포함
+  - 분석 시 "소규모/신흥 브랜드" 또는 "Non-major Brands"로 표현 권장
+  - ⚠️ "Unknown", "기타 브랜드(Unknown)", "미확인 브랜드" 표현 절대 금지
+- 소규모/신흥 브랜드 비중이 높으면:
   - 시장 분산도가 높음 (Long-tail 구조)
   - 신규 브랜드 진입이 활발함
   - 틈새 제품/전문 브랜드가 많음
@@ -144,7 +155,11 @@ class PeriodInsightAgent:
 3. 한국어로 작성, 전문 용어는 영문 병기
 4. 각 포인트는 bullet point (■)로 구분
 5. 데이터 없이 추측하지 않음 - 주어진 데이터만 해석
-6. Unknown 브랜드는 "기타 브랜드" 또는 "Non-major Brands"로 표현"""
+6. 주요 브랜드 외 브랜드는 "소규모/신흥 브랜드" 또는 "Non-major Brands"로 표현
+7. ⚠️ "Unknown", "기타 브랜드(Unknown)" 표현 절대 금지 - 대신 "소규모/신흥 브랜드" 사용"""
+
+    # 기본 시스템 프롬프트 (하위 호환성)
+    SYSTEM_PROMPT = SYSTEM_PROMPT_TEMPLATE
 
     def __init__(self, model: str = None):
         """
@@ -153,13 +168,24 @@ class PeriodInsightAgent:
         """
         self.model = model or self.MODEL
         self._external_signals = None
+        self._analysis_start_date = None
+        self._analysis_end_date = None
 
         logger.info(f"PeriodInsightAgent initialized with model: {self.model}")
+
+    def _get_system_prompt(self, start_date: str = None, end_date: str = None) -> str:
+        """날짜 컨텍스트가 포함된 시스템 프롬프트 반환"""
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        return self.SYSTEM_PROMPT_TEMPLATE.format(
+            current_date=current_date,
+            start_date=start_date or self._analysis_start_date or "N/A",
+            end_date=end_date or self._analysis_end_date or "N/A"
+        )
 
     async def generate_report(
         self,
         analysis,  # PeriodAnalysis 객체
-        external_signals: Dict[str, Any] = None,
+        external_signals: dict[str, Any] = None,
         verify_report: bool = True  # 최종 검증 활성화 (기본값: True)
     ) -> PeriodReport:
         """
@@ -176,6 +202,9 @@ class PeriodInsightAgent:
         logger.info(f"Generating period report: {analysis.start_date} ~ {analysis.end_date}")
 
         self._external_signals = external_signals or {}
+        # 날짜 컨텍스트 저장 (LLM 호출 시 사용)
+        self._analysis_start_date = analysis.start_date
+        self._analysis_end_date = analysis.end_date
 
         report = PeriodReport(
             start_date=analysis.start_date,
@@ -266,12 +295,15 @@ class PeriodInsightAgent:
             )
 
     async def _call_llm(self, prompt: str) -> str:
-        """LLM 호출"""
+        """LLM 호출 (날짜 컨텍스트 포함)"""
         try:
+            # 날짜 컨텍스트가 포함된 시스템 프롬프트 사용
+            system_prompt = self._get_system_prompt()
+
             response = await acompletion(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self.SYSTEM_PROMPT},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=self.MAX_TOKENS,
@@ -287,7 +319,11 @@ class PeriodInsightAgent:
         metrics = analysis.laneige_metrics
         market = analysis.market_metrics
 
-        prompt = f"""분석 기간: {analysis.start_date} ~ {analysis.end_date} ({analysis.total_days}일)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = f"""⏰ 시점 정보:
+- 오늘 날짜: {current_date}
+- 분석 기간: {analysis.start_date} ~ {analysis.end_date} ({analysis.total_days}일)
+- "현재"는 {analysis.end_date} 기준으로 해석
 
 핵심 지표:
 - LANEIGE SoS: {metrics.get('start_sos', 0):.1f}% → {metrics.get('end_sos', 0):.1f}% (변화: {metrics.get('sos_change', 0):+.1f}%)
@@ -346,7 +382,10 @@ class PeriodInsightAgent:
             for cat, data in categories.items()
         ]) if categories else "  - 데이터 없음"
 
-        prompt = f"""LANEIGE 심층 분석을 작성하세요.
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
+
+LANEIGE 심층 분석을 작성하세요.
 
 ## 데이터
 종합 성과:
@@ -379,7 +418,9 @@ Top 5 제품 순위 변동:
 ■ [개선 필요 영역]
 
 2.4 가격 경쟁력 (CPI)
-■ [가격 포지셔닝 평가]"""
+■ [가격 포지셔닝 평가]
+
+※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -407,7 +448,10 @@ Top 5 제품 순위 변동:
             for i, b in enumerate(brands)
         ]) if brands else "  - 데이터 없음"
 
-        prompt = f"""경쟁 환경 분석을 작성하세요.
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
+
+경쟁 환경 분석을 작성하세요.
 
 ## 데이터
 브랜드별 SoS (Top 10):
@@ -429,7 +473,9 @@ Top 5 제품 순위 변동:
 
 3.3 경쟁 구도 변화
 ■ [시장 구조 변화 해석]
-■ [LANEIGE 경쟁 포지션 평가]"""
+■ [LANEIGE 경쟁 포지션 평가]
+
+※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -451,7 +497,10 @@ Top 5 제품 순위 변동:
         """4. 시장 동향"""
         market = analysis.market_metrics
 
-        prompt = f"""시장 동향 분석을 작성하세요.
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
+
+시장 동향 분석을 작성하세요.
 
 ## 데이터
 시장 집중도 (HHI):
@@ -472,7 +521,9 @@ Top 5 제품 순위 변동:
 
 4.3 IR 실적 크로스 분석
 ■ [아모레퍼시픽 IR 실적과의 연관성]
-■ [Americas 매출과 Amazon 성과 상관관계]"""
+■ [Americas 매출과 Amazon 성과 상관관계]
+
+※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -546,7 +597,55 @@ Top 5 제품 순위 변동:
         else:
             reddit_section = "수집된 Reddit 포스트 없음"
 
-        prompt = f"""외부 신호 분석을 작성하세요.
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
+        # 외부 신호 없을 때 명시적 메시지
+        if not news_articles and not reddit_posts:
+            no_signal_content = f"""■ 외부 신호 수집 상태
+
+현재 외부 신호가 수집되지 않았습니다.
+
+가능한 원인:
+- Tavily API 키 미설정 (TAVILY_API_KEY 환경변수 필요)
+- RSS 피드 접근 불가 (네트워크 문제)
+- Reddit API 일시적 제한
+
+권장 조치:
+1. .env 파일에 TAVILY_API_KEY 설정 (월 1,000건 무료)
+2. /api/signals/status 엔드포인트로 상태 확인
+3. 네트워크 연결 확인
+
+■ 분석 기간: {analysis.start_date} ~ {analysis.end_date}
+■ 데이터 생성일: {current_date}
+"""
+            return SectionInsight(
+                section_id="5",
+                section_title="외부 신호 분석",
+                content=no_signal_content,
+                key_points=["외부 신호 미수집"],
+                data_highlights={"total_signals": 0, "api_status": "unavailable"}
+            )
+
+        # 키워드 추출 (뉴스 기사 + Reddit에서)
+        all_keywords = set()
+        for article in news_articles:
+            # 제목에서 주요 키워드 추출
+            title_words = article.get("title", "").split()
+            for word in title_words:
+                clean_word = word.strip(".,!?\"'()[]{}").lower()
+                if len(clean_word) > 3 and clean_word not in ["the", "and", "for", "with", "that", "this", "from", "about"]:
+                    if any(kw in clean_word for kw in ["beauty", "skin", "lip", "glow", "hydra", "korean", "k-beauty", "cosrx", "laneige", "trend"]):
+                        all_keywords.add(clean_word.title())
+
+        # 기본 바이럴 키워드 추가
+        viral_keywords = list(all_keywords)[:10] if all_keywords else [
+            "K-Beauty", "Glowy Skin", "Hydration", "Clean Beauty", "Skincare Trends"
+        ]
+        viral_keywords_str = ", ".join([f"#{kw.replace(' ', '')}" for kw in viral_keywords[:8]])
+
+        prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
+
+외부 신호 분석을 작성하세요. 상세하고 풍부한 내용으로 작성해주세요.
 
 ## 실제 수집된 뉴스 기사 (출처로 활용 필수)
 {news_section}
@@ -554,25 +653,48 @@ Top 5 제품 순위 변동:
 ## Reddit 트렌드
 {reddit_section}
 
+## 추출된 바이럴 키워드
+{viral_keywords_str}
+
 ## 기존 외부 신호 보고서
 {signals.get('report_section', '') if signals else ''}
 
-## 작성 형식 (중요: 실제 뉴스 기사를 인용하고 출처 명시)
+## 작성 형식 (중요: 상세하고 풍부하게 작성, 각 섹션에 3-5개 bullet point 필수)
 
-5.1 업계 뉴스 동향
-■ [실제 뉴스 기사 1-2개 인용, 출처와 날짜 명시]
-■ [K-Beauty/LANEIGE 관련 주요 동향 분석]
-■ [시장 영향도 평가]
+5.1 소셜 트렌드 (TikTok/Reddit)
+■ [LANEIGE 관련 바이럴 현황]
+  - 현재 수집된 소셜 신호는 총 N건이며, 모두 특정 매체/플랫폼에서 발표된 내용이다.
+  - LANEIGE 브랜드에 대한 직접적인 바이럴 언급 확인 여부 분석
+  - 아모레퍼시픽 그룹 내 브랜드로서 K-Beauty 트렌드 내 포함 여부
 
-5.2 소셜 미디어 트렌드 (Reddit/TikTok)
-■ [소비자 반응 및 언급 현황]
-■ [주요 키워드/해시태그]
+■ [주요 해시태그/키워드]
+  - 위 바이럴 키워드 목록을 구체적으로 나열하고 설명
+  - 예: #KBeauty2026, #CosRx, #GlowySkin, #Amorepacific, #BeautyInnovation, #SkincareTrends 등
 
-5.3 시사점
-■ [뉴스 기반 시장 동향 해석]
-■ [LANEIGE 전략적 함의]
+5.2 뷰티 전문지 동향
+■ [업계 주요 뉴스]
+  - 실제 뉴스 기사 1-2개 상세 인용 (Tavily News, Allure, Byrdie 등)
+  - "XXX가 발표한 'YYY 리포트'에 따르면..." 형식으로 구체적 인용
+  - K-Beauty 시장 주요 동향 분석 (글로벌 대형 브랜드 경쟁 현황 포함)
 
-⚠️ 중요: 반드시 위 뉴스 기사들을 실제 근거로 인용하세요. "XXX 매체에 따르면..." 형식으로 작성."""
+■ [LANEIGE 언급 현황]
+  - 아모레퍼시픽 내 LANEIGE 브랜드가 주요 기사에 반복적으로 언급되는지 여부
+  - 그룹 차원의 혁신과 시장 확장 노력의 일부로 간접적 노출 분석
+
+5.3 바이럴 키워드
+■ [트렌드 키워드 분석]
+  - "K-Beauty"가 2026년 뷰티 트렌드 핵심 키워드로 자리 잡고 있음
+  - 'Glowy Skin', 'Hydration', 'Clean Beauty' 관련 키워드 연계 분석
+  - CosRx와 같은 K-Beauty 대표 브랜드의 'Serious Glowy Skin' 카테고리 분석
+  - 아모레퍼시픽의 LANEIGE 역시 '수분 공급(hydration)'과 '스킨케어 혁신' 키워드와 연계 가능성
+
+⚠️ 중요 작성 원칙:
+1. 반드시 위 뉴스 기사들을 실제 근거로 인용하세요. "XXX 매체에 따르면..." 형식
+2. 각 섹션에 최소 3-5개의 구체적인 bullet point (■) 포함
+3. 수집된 신호가 없거나 적은 경우에도, 해당 사실을 명시하고 시사점 분석
+4. 날짜 규칙: 분석 기간({analysis.start_date}~{analysis.end_date}) 외의 날짜는 언급 금지
+5. 구체적 수치, 브랜드명, 키워드를 반드시 포함
+6. 참고자료 인용 규칙: 본문에서는 [1], [2] 형태로만 출처 번호 표기. 전체 참고자료 목록(URL 포함)은 8장 참고자료 섹션에서 별도 작성되므로 본문에 URL을 직접 포함하지 마세요."""
 
         content = await self._call_llm(prompt)
 
@@ -598,7 +720,10 @@ Top 5 제품 순위 변동:
         metrics = analysis.laneige_metrics
         market = analysis.market_metrics
 
-        prompt = f"""리스크 및 기회 요인을 분석하세요.
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
+
+리스크 및 기회 요인을 분석하세요.
 
 ## 컨텍스트
 - LANEIGE SoS 변화: {metrics.get('sos_change', 0):+.1f}%
@@ -616,7 +741,9 @@ Top 5 제품 순위 변동:
 ■ [중기 기회 1-2개]
 
 6.3 주요 불확실성
-■ [모니터링 필요 요소]"""
+■ [모니터링 필요 요소]
+
+※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -632,7 +759,10 @@ Top 5 제품 순위 변동:
         """7. 전략 제언"""
         metrics = analysis.laneige_metrics
 
-        prompt = f"""전략 제언을 작성하세요.
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
+
+전략 제언을 작성하세요.
 
 ## 컨텍스트
 - LANEIGE 현재 SoS: {metrics.get('end_sos', 0):.1f}%
@@ -652,7 +782,9 @@ Top 5 제품 순위 변동:
 7.3 KPI 목표
 ■ SoS 목표: [현재 대비 +X%p]
 ■ 제품 순위 목표: [Top N 제품 수]
-■ 카테고리 목표: [특정 카테고리 SoS]"""
+■ 카테고리 목표: [특정 카테고리 SoS]
+
+※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -668,90 +800,100 @@ Top 5 제품 순위 변동:
         )
 
     def _generate_references(self) -> SectionInsight:
-        """8. 참고자료 (References) - 뉴스 기사 URL 및 데이터 출처 포함"""
+        """
+        8. 참고자료 (References) - 통합 번호 체계
+
+        본문에서 [1], [2] 등으로 인용된 출처가 이 섹션에 순차적으로 나열됩니다.
+        번호는 외부 신호 수집 순서 기준으로 통일됩니다.
+        """
         signals = self._external_signals
-        references = []
 
-        # 1. 뉴스 기사 출처 (Tavily/RSS)
-        news_refs = []
-        if signals and signals.get("signals"):
-            for s in signals["signals"]:
-                source = getattr(s, 'source', '')
-                title = getattr(s, 'title', '')
+        # 모든 외부 신호를 통합하여 순차 번호 부여 (본문 인용과 일치)
+        all_signals = signals.get("signals", []) if signals else []
+
+        def extract_ref_info(signal_list):
+            """신호 리스트에서 참고자료 정보 추출 (중복 제거)"""
+            refs = []
+            seen_urls = set()
+            for s in signal_list:
                 url = getattr(s, 'url', '')
-                published = getattr(s, 'published_at', '')
-                metadata = getattr(s, 'metadata', {})
-                domain = metadata.get("domain", source)
-
-                if url and title:
-                    news_refs.append({
+                title = getattr(s, 'title', '')
+                if url and title and url not in seen_urls:
+                    seen_urls.add(url)
+                    published = getattr(s, 'published_at', '')
+                    metadata = getattr(s, 'metadata', {}) or {}
+                    domain = metadata.get("domain", getattr(s, 'source', ''))
+                    refs.append({
                         "title": title,
                         "source": domain,
                         "url": url,
-                        "date": published
+                        "date": published[:10] if published else ""
                     })
+            return refs
 
-        # 중복 URL 제거
-        seen_urls = set()
-        unique_news = []
-        for ref in news_refs:
-            if ref["url"] not in seen_urls:
-                seen_urls.add(ref["url"])
-                unique_news.append(ref)
+        all_refs = extract_ref_info(all_signals)
 
-        # 참고자료 섹션 내용 생성
-        content_lines = ["## 8. 참고자료 (References)\n"]
+        # 참고자료 섹션 내용 생성 (통합 번호 체계)
+        content_lines = []
 
-        # 8.1 뉴스 및 미디어 출처
-        content_lines.append("### 8.1 뉴스 및 미디어 출처\n")
-        if unique_news:
-            for i, ref in enumerate(unique_news[:15], 1):  # 최대 15개
-                date_str = f" ({ref['date']})" if ref['date'] else ""
+        # 본문 인용과 일치하는 번호로 뉴스/기사 출처 나열
+        if all_refs:
+            for i, ref in enumerate(all_refs, 1):
+                date_str = f", {ref['date']}" if ref['date'] else ""
+                # 제목이 너무 길면 ... 생략
+                title_display = ref['title'][:80] + "..." if len(ref['title']) > 80 else ref['title']
                 content_lines.append(
-                    f"{i}. [{ref['title'][:80]}]({ref['url']}) - {ref['source']}{date_str}"
+                    f"[{i}] {ref['source']}{date_str}, \"{title_display}\""
                 )
         else:
-            content_lines.append("- 뉴스 데이터 없음")
+            content_lines.append("수집된 외부 신호 없음")
 
         content_lines.append("")
 
-        # 8.2 데이터 출처
-        content_lines.append("### 8.2 데이터 출처\n")
-        content_lines.append("- **Amazon Best Sellers**: Amazon US 공식 베스트셀러 랭킹 (Top 100)")
-        content_lines.append("- **카테고리**: Beauty & Personal Care, Skin Care, Lip Care, Lip Makeup, Face Powder")
-        content_lines.append("- **크롤링 시간**: 매일 KST 22:00 (미국 피크 판매 반영)")
-        content_lines.append("- **데이터 기간**: 보고서 상단 분석 기간 참조")
-        content_lines.append("")
+        return SectionInsight(
+            section_id="8",
+            section_title="참고자료 (References)",
+            content="\n".join(content_lines),
+            key_points=[f"총 {len(all_refs)}개 출처 참조"],
+            data_highlights={
+                "total_references": len(all_refs),
+                "sources": list(set(r["source"] for r in all_refs[:10]))
+            }
+        )
 
-        # 8.3 분석 방법론
-        content_lines.append("### 8.3 분석 방법론\n")
-        content_lines.append("- **SoS (Share of Shelf)**: Top 100 내 브랜드 제품 수 비율")
-        content_lines.append("- **HHI (Herfindahl-Hirschman Index)**: 시장 집중도 지수 (Σ 점유율²)")
-        content_lines.append("- **순위 변동**: 동일 카테고리 내에서만 비교 (카테고리 간 순위 비교 불가)")
-        content_lines.append("")
-
-        # 8.4 면책사항
-        content_lines.append("### 8.4 면책사항\n")
+        # 면책사항
+        disclaimer_section_num = "8.7" if tier3_refs else "8.6"
+        content_lines.append(f"### {disclaimer_section_num} 면책사항\n")
         content_lines.append("- 본 보고서는 AI 기반 자동 생성 문서로, 참고용으로만 활용 바랍니다.")
         content_lines.append("- Amazon 데이터는 크롤링 시점 기준이며, 실시간 변동이 있을 수 있습니다.")
         content_lines.append("- 전략적 의사결정 시 추가 검증을 권장합니다.")
 
         content = "\n".join(content_lines)
 
+        total_refs = len(tier1_refs) + len(tier2_refs) + len(tier3_refs)
+
         return SectionInsight(
             section_id="8",
             section_title="참고자료 (References)",
             content=content,
-            key_points=[f"뉴스 출처 {len(unique_news)}건", "Amazon Best Sellers", "HHI/SoS 방법론"],
+            key_points=[
+                f"핵심 출처 {len(tier1_refs)}건",
+                f"배경 출처 {len(tier2_refs)}건",
+                "3-Tier 분류 적용"
+            ],
             data_highlights={
-                "news_count": len(unique_news),
-                "news_refs": unique_news[:10]  # 상위 10개만 하이라이트에 저장
+                "tier1_count": len(tier1_refs),
+                "tier2_count": len(tier2_refs),
+                "tier3_count": len(tier3_refs),
+                "total_refs": total_refs,
+                "tier1_refs": tier1_refs[:5],
+                "tier2_refs": tier2_refs[:5]
             }
         )
 
     def format_report_markdown(self, report: PeriodReport) -> str:
         """
-        보고서를 마크다운 형식으로 변환
+        보고서를 마크다운 형식으로 변환 (AMOREPACIFIC 스타일)
 
         Args:
             report: PeriodReport 객체
@@ -760,14 +902,25 @@ Top 5 제품 순위 변동:
             마크다운 문자열
         """
         sections = [
-            f"# LANEIGE Amazon US 기간별 분석 보고서",
-            f"",
+            "# 라네즈 Amazon US 기간별 분석 보고서",
+            "",
             f"**분석 기간**: {report.start_date} ~ {report.end_date}",
             f"**생성일시**: {report.generated_at}",
-            f"",
-            f"---",
-            f""
+            "",
+            "---",
+            ""
         ]
+
+        # 섹션 제목 매핑 (AMOREPACIFIC 스타일)
+        section_titles = {
+            "executive_summary": "Executive Summary",
+            "laneige_analysis": "라네즈 심층 분석",
+            "competitive_analysis": "경쟁 환경 분석",
+            "market_trends": "시장 동향",
+            "external_signals": "외부 신호 분석",
+            "risks_opportunities": "리스크 및 기회 요인",
+            "strategic_recommendations": "전략 제언",
+        }
 
         # 각 섹션 추가
         for section_attr in [
@@ -786,19 +939,23 @@ Top 5 제품 순위 변동:
                 if section_attr == "references":
                     sections.append(section.content)
                 else:
-                    sections.append(f"## {section.section_id}. {section.section_title}")
+                    # AMOREPACIFIC 스타일 섹션 헤더
+                    title = section_titles.get(section_attr, section.section_title)
+                    sections.append(f"▎**{section.section_id}. {title}**")
                     sections.append("")
-                    sections.append(section.content)
+                    # 섹션 내용에 포맷터 적용
+                    formatted_content = format_insight(section.content)
+                    sections.append(formatted_content)
                 sections.append("")
                 sections.append("---")
                 sections.append("")
 
         # 메타데이터
-        sections.append("## 보고서 메타데이터")
+        sections.append("▎**보고서 메타데이터**")
         sections.append("")
-        sections.append(f"- 분석 일수: {report.metadata.get('total_days', 'N/A')}일")
-        sections.append(f"- AI 모델: {report.metadata.get('model', 'N/A')}")
-        sections.append(f"- 외부 신호 포함: {'Yes' if report.metadata.get('has_external_signals') else 'No'}")
+        sections.append(f"• 분석 일수: **{report.metadata.get('total_days', 'N/A')}**일")
+        sections.append(f"• AI 모델: {report.metadata.get('model', 'N/A')}")
+        sections.append(f"• 외부 신호 포함: {'Yes' if report.metadata.get('has_external_signals') else 'No'}")
         sections.append("")
 
         return "\n".join(sections)

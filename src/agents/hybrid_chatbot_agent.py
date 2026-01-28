@@ -11,28 +11,24 @@ Flow:
 """
 
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-import asyncio
+from typing import Any
 
 from litellm import acompletion
 
+from src.domain.entities.relations import InferenceResult
+from src.memory.context import ContextManager
+from src.monitoring.logger import AgentLogger
+from src.monitoring.metrics import QualityMetrics
+from src.monitoring.tracer import ExecutionTracer
+from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.ontology.business_rules import register_all_rules
-from src.domain.entities.relations import InferenceResult
-
-from src.rag.hybrid_retriever import HybridRetriever, HybridContext, EntityExtractor
-from src.rag.context_builder import ContextBuilder, CompactContextBuilder
-from src.rag.router import RAGRouter, QueryType
-from src.rag.retriever import DocumentRetriever
-from src.rag.templates import ResponseTemplates
+from src.rag.context_builder import CompactContextBuilder, ContextBuilder
+from src.rag.hybrid_retriever import HybridContext, HybridRetriever
 from src.rag.query_rewriter import QueryRewriter, RewriteResult, create_rewrite_result_no_change
-
-from src.memory.context import ContextManager
-
-from src.monitoring.logger import AgentLogger
-from src.monitoring.tracer import ExecutionTracer
-from src.monitoring.metrics import QualityMetrics
+from src.rag.retriever import DocumentRetriever
+from src.rag.router import QueryType, RAGRouter
+from src.rag.templates import ResponseTemplates
 
 
 class HybridChatbotAgent:
@@ -91,7 +87,7 @@ class HybridChatbotAgent:
 
         if config_path.exists():
             try:
-                with open(config_path, 'r', encoding='utf-8') as f:
+                with open(config_path, encoding='utf-8') as f:
                     config = json.load(f)
                     return config.get("system", {}).get("chatbot", {})
             except Exception:
@@ -103,12 +99,12 @@ class HybridChatbotAgent:
         self,
         model: str = None,
         docs_dir: str = ".",
-        knowledge_graph: Optional[KnowledgeGraph] = None,
-        reasoner: Optional[OntologyReasoner] = None,
-        logger: Optional[AgentLogger] = None,
-        tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None,
-        context_manager: Optional[ContextManager] = None
+        knowledge_graph: KnowledgeGraph | None = None,
+        reasoner: OntologyReasoner | None = None,
+        logger: AgentLogger | None = None,
+        tracer: ExecutionTracer | None = None,
+        metrics: QualityMetrics | None = None,
+        context_manager: ContextManager | None = None
     ):
         """
         Args:
@@ -172,19 +168,19 @@ class HybridChatbotAgent:
         self.metrics = metrics
 
         # 현재 데이터 컨텍스트
-        self._current_data: Dict[str, Any] = {}
+        self._current_data: dict[str, Any] = {}
 
         # 마지막 하이브리드 컨텍스트
-        self._last_hybrid_context: Optional[HybridContext] = None
+        self._last_hybrid_context: HybridContext | None = None
 
         # Query Rewriter (대화 맥락 기반 질문 재구성)
         self.query_rewriter = QueryRewriter(model=model)
 
         # 외부 신호 수집기 (Tavily + RSS + Reddit)
         self._external_signal_collector = None
-        self._last_external_signals: List[Any] = []
+        self._last_external_signals: list[Any] = []
 
-    def set_data_context(self, data: Dict[str, Any]) -> None:
+    def set_data_context(self, data: dict[str, Any]) -> None:
         """
         현재 데이터 컨텍스트 설정
 
@@ -202,9 +198,9 @@ class HybridChatbotAgent:
     async def chat(
         self,
         user_message: str,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         include_reasoning: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         사용자 질문에 응답
 
@@ -436,7 +432,7 @@ class HybridChatbotAgent:
         user_message: str,
         query_type: QueryType,
         context: str,
-        inferences: List[InferenceResult]
+        inferences: list[InferenceResult]
     ) -> str:
         """LLM 응답 생성"""
         # 시스템 프롬프트 (카테고리 계층 인식 추가)
@@ -473,7 +469,8 @@ class HybridChatbotAgent:
 - "Drunk" → "Drunk Elephant"
 - "Paula's" → "Paula's Choice"
 - "The" (단독 사용 시) → "The Ordinary"
-- "Unknown" 브랜드는 "미확인 브랜드" 또는 "기타 브랜드"로 표현하세요
+- 주요 브랜드 외 브랜드는 "소규모/신흥 브랜드" 또는 "Non-major Brands"로 표현
+- ⚠️ "Unknown", "기타 브랜드(Unknown)", "미확인 브랜드" 표현 절대 금지
 """
 
         # 대화 히스토리
@@ -568,7 +565,7 @@ class HybridChatbotAgent:
 
     def _generate_fallback_response(
         self,
-        inferences: List[InferenceResult]
+        inferences: list[InferenceResult]
     ) -> str:
         """폴백 응답 생성"""
         if inferences:
@@ -584,10 +581,10 @@ class HybridChatbotAgent:
     def _generate_suggestions(
         self,
         query_type: QueryType,
-        entities: Dict[str, List[str]],
-        inferences: List[InferenceResult],
+        entities: dict[str, list[str]],
+        inferences: list[InferenceResult],
         response: str = ""
-    ) -> List[str]:
+    ) -> list[str]:
         """
         후속 질문 제안 (v2 - 개선 버전)
 
@@ -633,7 +630,7 @@ class HybridChatbotAgent:
         unique_suggestions = list(dict.fromkeys(suggestions))
         return unique_suggestions[:SUGGESTION_MAX_COUNT]
 
-    def _extract_response_keywords(self, response: str) -> List[str]:
+    def _extract_response_keywords(self, response: str) -> list[str]:
         """응답에서 후속 질문 관련 키워드 추출 (Phase 3)"""
         import re
         keywords = []
@@ -660,7 +657,7 @@ class HybridChatbotAgent:
 
         return keywords
 
-    def _generate_entity_suggestions(self, entities: Dict[str, List[str]]) -> List[str]:
+    def _generate_entity_suggestions(self, entities: dict[str, list[str]]) -> list[str]:
         """엔티티 기반 동적 제안 생성 (Phase 2 - KG 경쟁사 활용)"""
         suggestions = []
 
@@ -701,7 +698,7 @@ class HybridChatbotAgent:
 
         return suggestions
 
-    def _generate_inference_suggestions(self, inferences: List[InferenceResult]) -> List[str]:
+    def _generate_inference_suggestions(self, inferences: list[InferenceResult]) -> list[str]:
         """추론 결과 기반 제안"""
         suggestions = []
 
@@ -724,8 +721,8 @@ class HybridChatbotAgent:
     def _generate_type_suggestions(
         self,
         query_type: QueryType,
-        entities: Dict[str, List[str]]
-    ) -> List[str]:
+        entities: dict[str, list[str]]
+    ) -> list[str]:
         """쿼리 유형 기반 폴백 제안"""
         suggestions = []
         indicators = entities.get("indicators", [])
@@ -773,7 +770,7 @@ class HybridChatbotAgent:
 
         return suggestions
 
-    def _get_fallback_suggestions(self) -> List[str]:
+    def _get_fallback_suggestions(self) -> list[str]:
         """폴백 제안"""
         return [
             "SoS(점유율)에 대해 알려주세요",
@@ -785,8 +782,8 @@ class HybridChatbotAgent:
         self,
         user_query: str,
         response_summary: str,
-        entities: Dict[str, List[str]]
-    ) -> List[str]:
+        entities: dict[str, list[str]]
+    ) -> list[str]:
         """
         LLM 기반 후속 질문 생성 (Phase 4)
 
@@ -800,8 +797,9 @@ class HybridChatbotAgent:
         Returns:
             3개의 후속 질문 리스트 (실패 시 빈 리스트)
         """
-        from src.shared.constants import SUGGESTION_TEMPERATURE, SUGGESTION_MAX_TOKENS
         import json
+
+        from src.shared.constants import SUGGESTION_MAX_TOKENS, SUGGESTION_TEMPERATURE
 
         prompt = f"""당신은 AMORE Pacific 시장 분석 챗봇입니다.
 사용자와의 대화를 이어가기 위한 후속 질문 3개를 생성하세요.
@@ -887,7 +885,7 @@ class HybridChatbotAgent:
 
     def _build_category_hierarchy_context(
         self,
-        entities: Dict[str, List[str]]
+        entities: dict[str, list[str]]
     ) -> str:
         """
         카테고리 계층 컨텍스트 생성
@@ -946,8 +944,8 @@ class HybridChatbotAgent:
     def _extract_sources(
         self,
         hybrid_context: HybridContext,
-        external_signals: Optional[List[Any]] = None
-    ) -> List[Dict[str, Any]]:
+        external_signals: list[Any] | None = None
+    ) -> list[dict[str, Any]]:
         """
         출처 정보 추출 (Perplexity/Liner 스타일 상세 출처 제공)
 
@@ -1132,7 +1130,7 @@ class HybridChatbotAgent:
 
         return sources
 
-    def _extract_entity_names(self, ontology_facts) -> List[str]:
+    def _extract_entity_names(self, ontology_facts) -> list[str]:
         """
         KG facts에서 엔티티 이름 추출
 
@@ -1165,7 +1163,7 @@ class HybridChatbotAgent:
         # None이나 빈 문자열 제거 후 최대 5개 반환
         return list(filter(None, entities))[:5]
 
-    def _extract_relation_types(self, ontology_facts) -> List[str]:
+    def _extract_relation_types(self, ontology_facts) -> list[str]:
         """
         KG facts에서 관계 유형 추출
 
@@ -1195,8 +1193,8 @@ class HybridChatbotAgent:
     def _extract_mentioned_asins(
         self,
         hybrid_context: HybridContext,
-        categories: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        categories: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         질의에서 언급된 제품의 ASIN 정보 추출 (E2E Audit - 2026-01-27)
 
@@ -1251,7 +1249,7 @@ class HybridChatbotAgent:
         mentioned_products.sort(key=lambda x: x.get("rank", 999))
         return mentioned_products[:5]
 
-    def _format_sources_for_response(self, sources: List[Dict[str, Any]]) -> str:
+    def _format_sources_for_response(self, sources: list[dict[str, Any]]) -> str:
         """
         출처를 응답에 포함할 형식으로 변환 (Perplexity 스타일)
 
@@ -1297,7 +1295,7 @@ class HybridChatbotAgent:
 
                 # ASIN 기반 제품 추적 정보 표시 (E2E Audit - 2026-01-27)
                 if mentioned_products:
-                    lines.append(f"   - 📦 관련 제품 (ASIN 기준):")
+                    lines.append("   - 📦 관련 제품 (ASIN 기준):")
                     for prod in mentioned_products[:3]:  # 최대 3개 표시
                         asin = prod.get("asin", "")
                         name = prod.get("name", "")
@@ -1400,8 +1398,8 @@ class HybridChatbotAgent:
     async def _collect_external_signals(
         self,
         query: str,
-        entities: Optional[Dict[str, List[str]]] = None
-    ) -> List[Any]:
+        entities: dict[str, list[str]] | None = None
+    ) -> list[Any]:
         """
         외부 신호 수집 (Tavily 뉴스, RSS, Reddit)
 
@@ -1490,7 +1488,7 @@ class HybridChatbotAgent:
         output_cost = (completion_tokens / 1_000_000) * 1.60
         return round(input_cost + output_cost, 6)
 
-    def get_conversation_history(self, limit: int = 10) -> List[Dict]:
+    def get_conversation_history(self, limit: int = 10) -> list[dict]:
         """대화 기록 조회"""
         return self.context.get_conversation_history(limit)
 
@@ -1499,7 +1497,7 @@ class HybridChatbotAgent:
         self.context.reset()
         self.query_rewriter.clear_cache()
 
-    def _get_failed_signal_collectors(self) -> List[str]:
+    def _get_failed_signal_collectors(self) -> list[str]:
         """
         사용 불가능한 외부 신호 수집기 목록 반환
 
@@ -1546,7 +1544,7 @@ class HybridChatbotAgent:
         # LLM으로 재구성
         return await self.query_rewriter.rewrite(query, history)
 
-    def get_last_hybrid_context(self) -> Optional[HybridContext]:
+    def get_last_hybrid_context(self) -> HybridContext | None:
         """마지막 하이브리드 컨텍스트"""
         return self._last_hybrid_context
 
@@ -1571,15 +1569,15 @@ class HybridChatbotSession:
 
     def __init__(
         self,
-        knowledge_graph: Optional[KnowledgeGraph] = None,
-        reasoner: Optional[OntologyReasoner] = None
+        knowledge_graph: KnowledgeGraph | None = None,
+        reasoner: OntologyReasoner | None = None
     ):
         """
         Args:
             knowledge_graph: 공유 지식 그래프
             reasoner: 공유 추론기
         """
-        self._sessions: Dict[str, HybridChatbotAgent] = {}
+        self._sessions: dict[str, HybridChatbotAgent] = {}
         self._shared_kg = knowledge_graph
         self._shared_reasoner = reasoner
 
@@ -1602,6 +1600,6 @@ class HybridChatbotSession:
         if session_id in self._sessions:
             del self._sessions[session_id]
 
-    def list_sessions(self) -> List[str]:
+    def list_sessions(self) -> list[str]:
         """활성 세션 목록"""
         return list(self._sessions.keys())
