@@ -451,9 +451,12 @@ def get_bot() -> TelegramAdminBot:
 @telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
     """Telegram Webhook 엔드포인트"""
+    logger.info("=== Telegram webhook called ===")
     bot = get_bot()
+    logger.info(f"Bot token exists: {bool(bot.token)}, admin_ids: {bot.admin_chat_ids}")
 
     if not bot.is_enabled():
+        logger.warning("Bot not enabled - returning early")
         return {"ok": False, "error": "Bot not configured"}
 
     try:
