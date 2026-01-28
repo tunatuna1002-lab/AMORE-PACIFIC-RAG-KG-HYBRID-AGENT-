@@ -9379,6 +9379,38 @@
             }
         }
 
+        // 작업 시작 시간 및 예상 시간 추적
+        const exportJobTimings = {};
+        const ESTIMATED_TOTAL_SECONDS = 60; // 예상 총 소요 시간 (초)
+
+        // 예상 남은 시간 계산
+        function calculateRemainingTime(jobId, progress) {
+            if (!exportJobTimings[jobId]) {
+                exportJobTimings[jobId] = { startTime: Date.now(), lastProgress: 0 };
+            }
+
+            const timing = exportJobTimings[jobId];
+            const elapsedSeconds = (Date.now() - timing.startTime) / 1000;
+
+            if (progress <= 0) return ESTIMATED_TOTAL_SECONDS;
+            if (progress >= 100) return 0;
+
+            // 진행률 기반 예상 남은 시간 계산
+            const estimatedTotal = (elapsedSeconds / progress) * 100;
+            const remaining = Math.max(0, estimatedTotal - elapsedSeconds);
+
+            // 최소값과 경험적 보정 적용
+            return Math.ceil(Math.min(remaining, ESTIMATED_TOTAL_SECONDS * 2));
+        }
+
+        // 시간 포맷팅 (초 → "약 X초" 또는 "약 X분")
+        function formatRemainingTime(seconds) {
+            if (seconds <= 0) return '거의 완료';
+            if (seconds < 60) return `약 ${seconds}초`;
+            const minutes = Math.ceil(seconds / 60);
+            return `약 ${minutes}분`;
+        }
+
         // 작업 상태 폴링
         async function pollExportStatus(jobId, formatLabel, retryCount = 0) {
             const MAX_RETRIES = 300; // 최대 10분 (2초 × 300)
@@ -9395,6 +9427,7 @@
 
                 if (status.status === 'completed') {
                     // 완료! 파일 다운로드
+                    delete exportJobTimings[jobId];
                     removeStoredExportJob(jobId);
                     showExportToast(`✅ ${formatLabel} 준비 완료! 다운로드 중...`, 'success');
 
@@ -9413,20 +9446,30 @@
 
                 } else if (status.status === 'failed') {
                     // 실패
+                    delete exportJobTimings[jobId];
                     removeStoredExportJob(jobId);
                     const errorMsg = status.error_message || 'Unknown error';
                     showExportToast(`❌ ${formatLabel} 생성 실패: ${errorMsg.substring(0, 100)}`, 'error');
 
                 } else if (status.status === 'running' || status.status === 'pending') {
-                    // 진행 중 - 진행률 업데이트
+                    // 진행 중 - 진행률 및 예상 시간 업데이트
                     const progress = status.progress || 0;
                     const progressMsg = status.progress_message || '처리 중...';
-                    showExportToast(`📄 ${formatLabel} 생성 중... (${progress}%) - ${progressMsg}`, 'progress', jobId);
+                    const remainingSeconds = calculateRemainingTime(jobId, progress);
+                    const remainingText = formatRemainingTime(remainingSeconds);
+
+                    showExportToast(
+                        `📄 ${formatLabel} 생성 중... (${progress}%) - ${progressMsg}`,
+                        'progress',
+                        jobId,
+                        remainingText
+                    );
 
                     // 계속 폴링
                     if (retryCount < MAX_RETRIES) {
                         setTimeout(() => pollExportStatus(jobId, formatLabel, retryCount + 1), POLL_INTERVAL);
                     } else {
+                        delete exportJobTimings[jobId];
                         removeStoredExportJob(jobId);
                         showExportToast(`⚠️ ${formatLabel} 생성 시간 초과. 나중에 다시 시도해 주세요.`, 'error');
                     }
@@ -9439,6 +9482,7 @@
                 if (retryCount < 5) {
                     setTimeout(() => pollExportStatus(jobId, formatLabel, retryCount + 1), POLL_INTERVAL * 2);
                 } else {
+                    delete exportJobTimings[jobId];
                     removeStoredExportJob(jobId);
                     showExportToast(`❌ 상태 확인 실패: ${error.message}`, 'error');
                 }
@@ -9452,7 +9496,7 @@
 
         // Export 전용 토스트 (진행 중 상태 지원, jobId로 취소 가능)
         // ARITA 디자인 토스트 - "단아하고 지적이며, 건강한 아름다움"
-        function showExportToast(message, type = 'info', jobId = null) {
+        function showExportToast(message, type = 'info', jobId = null, remainingTime = null) {
             const existing = document.getElementById('export-toast');
 
             // 진행률 추출 (메시지에서 "XX%" 패턴 찾기)
@@ -9466,8 +9510,10 @@
             if (existing && type === 'progress' && existing.dataset.type === 'progress') {
                 const messageSpan = existing.querySelector('div[style*="flex: 1"] > span');
                 const progressBar = existing.querySelector('#export-progress-bar');
+                const timeSpan = existing.querySelector('#export-remaining-time');
                 if (messageSpan) messageSpan.textContent = message;
                 if (progressBar) progressBar.style.width = `${progressPercent}%`;
+                if (timeSpan && remainingTime) timeSpan.textContent = remainingTime;
                 return;
             }
 
@@ -9546,10 +9592,15 @@
                 </div>
             ` : '';
 
+            // 예상 남은 시간 표시 텍스트
+            const remainingTimeHtml = (type === 'progress' && remainingTime)
+                ? `<span id="export-remaining-time" style="font-size: 11px; opacity: 0.7; margin-left: 8px;">${remainingTime}</span>`
+                : '';
+
             toast.innerHTML = `
                 <span style="display: flex; align-items: center; justify-content: center; opacity: 0.95;">${iconHtml}</span>
                 <div style="flex: 1;">
-                    <span>${message}</span>
+                    <span>${message}</span>${remainingTimeHtml}
                     ${type === 'progress' ? `<div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">잠시만 기다려 주세요...</div>` : ''}
                 </div>
                 ${progressBarHtml}

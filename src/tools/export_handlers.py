@@ -143,7 +143,7 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
     if not start_date or not end_date:
         raise ValueError("start_date and end_date are required")
 
-    await queue.update_progress(job_id, 5, "기간 분석 시작...")
+    await queue.update_progress(job_id, 5, "기간 분석 중...")
 
     # 1. Period Analysis
     analyzer = PeriodAnalyzer()
@@ -152,7 +152,7 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
     if analysis.total_days == 0:
         raise ValueError(f"No data found for period {start_date} ~ {end_date}")
 
-    await queue.update_progress(job_id, 15, "외부 신호 수집 중...")
+    await queue.update_progress(job_id, 15, "데이터 처리 중...")
 
     # 2. External Signals
     external_signals = None
