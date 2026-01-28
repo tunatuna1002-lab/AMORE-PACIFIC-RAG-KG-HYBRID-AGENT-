@@ -2883,7 +2883,7 @@ async def export_excel(request: Request):
         raise
     except Exception as e:
         logger.error(f"Excel export error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Excel 내보내기 중 오류가 발생했습니다")
+        raise HTTPException(status_code=500, detail="Excel 내보내기 중 오류가 발생했습니다") from e
 
 
 # ============= Competitor Comparison API =============
@@ -2929,7 +2929,7 @@ async def get_competitor_data(brand: str | None = None):
                     result["competitors"][brand_name]["products"].append(p)
 
                 # 브랜드별 집계
-                for brand_name, brand_data in result["competitors"].items():
+                for _brand_name, brand_data in result["competitors"].items():
                     products = brand_data["products"]
                     brand_data["product_count"] = len(products)
                     prices = [p["price"] for p in products if p.get("price")]
@@ -3026,7 +3026,9 @@ async def get_competitor_data(brand: str | None = None):
 
     except Exception as e:
         logger.error(f"Competitor data error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="경쟁사 데이터 조회 중 오류가 발생했습니다")
+        raise HTTPException(
+            status_code=500, detail="경쟁사 데이터 조회 중 오류가 발생했습니다"
+        ) from e
 
 
 def _detect_product_type(product_name: str) -> str:
@@ -3899,7 +3901,7 @@ async def export_deals_report(days: int = 7, format: str = "excel"):
         raise
     except Exception as e:
         logger.error(f"Deals export error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Deals 내보내기 중 오류가 발생했습니다")
+        raise HTTPException(status_code=500, detail="Deals 내보내기 중 오류가 발생했습니다") from e
 
 
 # ============= 알림 서비스 API =============
@@ -4088,7 +4090,7 @@ async def send_verification_email(request: Request):
         raise
     except Exception as e:
         logging.error(f"Send verification email error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/alerts/verify-email", dependencies=[Depends(verify_api_key)])
@@ -4149,7 +4151,7 @@ async def verify_email_token(request: Request):
         raise
     except Exception as e:
         logging.error(f"Verify email error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/alerts/verification-status")
@@ -4969,7 +4971,7 @@ async def sync_status():
             }
     except Exception as e:
         logging.error(f"Sync status error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/sync/dates")
@@ -4998,7 +5000,7 @@ async def sync_dates():
         return {"success": True, "dates": dates, "count": len(dates)}
     except Exception as e:
         logging.error(f"Sync dates error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/sync/download/{date}")
@@ -5055,7 +5057,7 @@ async def sync_download(date: str):
         raise
     except Exception as e:
         logging.error(f"Sync download error for {date}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/sync/upload")
@@ -5174,7 +5176,7 @@ async def sync_upload(request: Request):
         raise
     except Exception as e:
         logging.error(f"Sync upload error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # =============================================================================
@@ -5209,7 +5211,7 @@ async def get_market_intelligence_status():
         )
     except Exception as e:
         logger.error(f"Market Intelligence status error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/market-intelligence/layers")
@@ -5256,7 +5258,7 @@ async def get_market_intelligence_layers(layer: int | None = None):
         return result
     except Exception as e:
         logger.error(f"Market Intelligence layers error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/market-intelligence/collect", dependencies=[Depends(verify_api_key)])
@@ -5304,7 +5306,7 @@ async def collect_market_intelligence(layers: list[int] | None = None):
         return {"status": "success", "collected": results, "timestamp": datetime.now().isoformat()}
     except Exception as e:
         logger.error(f"Market Intelligence collection error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/market-intelligence/insight")
@@ -5345,7 +5347,7 @@ async def get_market_intelligence_insight(include_amazon: bool = False):
         }
     except Exception as e:
         logger.error(f"Market Intelligence insight error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/insights/sources")
@@ -5377,7 +5379,7 @@ async def get_insight_sources():
         }
     except Exception as e:
         logger.error(f"Insight sources error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ============= 서버 실행 =============
