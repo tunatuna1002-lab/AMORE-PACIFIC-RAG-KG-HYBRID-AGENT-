@@ -121,6 +121,35 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
+# 글로벌 예외 핸들러 - 에러 발생 시 Telegram 알림
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """모든 예외를 잡아서 Telegram 알림 전송"""
+
+    error_detail = f"{type(exc).__name__}: {str(exc)[:200]}"
+    endpoint = f"{request.method} {request.url.path}"
+
+    # 로깅
+    logger.error(f"Unhandled exception at {endpoint}: {error_detail}")
+
+    # Telegram 알림 (비동기, 실패해도 무시)
+    try:
+        from src.tools.telegram_bot import notify_error
+
+        asyncio.create_task(notify_error(exc, context=f"API: {endpoint}"))
+    except Exception:
+        pass  # Telegram 알림 실패는 무시
+
+    # 클라이언트에게는 일반 에러 응답
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "detail": error_detail},
+    )
+
+
 # CORS 설정 (환경변수로 허용 도메인 설정 가능)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(
     ","
@@ -154,6 +183,15 @@ app.include_router(signals_router)
 
 # Export Router 등록 (비동기 DOCX/Excel 내보내기)
 app.include_router(export_router)
+
+# Telegram Admin Bot Router (관리자 전용)
+try:
+    from src.tools.telegram_bot import telegram_router
+
+    app.include_router(telegram_router)
+    logger.info("Telegram Admin Bot router enabled")
+except ImportError as e:
+    logger.warning(f"Telegram Bot not available: {e}")
 
 # Static Files 서빙 (폰트, 이미지 등)
 # Arita 폰트 파일: /fonts/AritaDotumKR-Medium.ttf 등으로 접근 가능
@@ -220,6 +258,17 @@ async def startup_event():
         logging.info("Export Job Queue Worker 시작 완료")
     except Exception as e:
         logging.error(f"Export Job Queue Worker 시작 실패: {e}")
+
+    # 4. Telegram Admin Bot 알림 (서버 시작)
+    try:
+        from src.tools.telegram_bot import get_bot
+
+        bot = get_bot()
+        if bot.is_enabled():
+            await bot.send_alert("🚀 서버 시작됨", level="info")
+            logging.info("Telegram Admin Bot 활성화됨")
+    except Exception as e:
+        logging.debug(f"Telegram Bot 알림 실패 (무시): {e}")
 
 
 # 데이터 경로

@@ -14,12 +14,29 @@
 - **AI Chatbot**: RAG + KG + Ontology 하이브리드
 - **Insight Generation**: LLM 기반 전략적 인사이트
 
-### 모니터링 카테고리
-1. Beauty & Personal Care
-2. Skin Care
-3. Lip Care
-4. Lip Makeup
-5. Face Powder
+### 모니터링 카테고리 (계층 구조)
+
+```
+Beauty & Personal Care (L0) ✅
+├── Skin Care (L1) ✅
+│   └── Lip Care (L2) ✅ ← 스킨케어 (립밤, 립마스크, LANEIGE Lip Sleeping Mask)
+└── Makeup (L1)
+    ├── Lips (L2) ✅ ← 색조 (립스틱, 립글로스)
+    └── Face (L2)
+        └── Powder (L3) ✅
+```
+
+| 카테고리 | Node ID | Level | Parent | 제품 유형 |
+|----------|---------|-------|--------|-----------|
+| Beauty & Personal Care | `beauty` | 0 | - | 전체 |
+| Skin Care | `11060451` | 1 | beauty | 스킨케어 |
+| Lip Care | `3761351` | 2 | skin_care | 립밤, 립마스크 |
+| Lip Makeup | `11059031` | 2 | makeup | 립스틱, 립글로스 |
+| Face Powder | `11058971` | 3 | face_makeup | 파우더 |
+
+> **중요**: Lip Care(스킨케어)와 Lip Makeup(색조)은 다른 카테고리입니다.
+> - LANEIGE Lip Sleeping Mask → **Lip Care** (Skin Care 하위)
+> - 립스틱, 립글로스 → **Lip Makeup** (Makeup 하위)
 
 ---
 
@@ -145,7 +162,37 @@ SMTP_PORT=587                      # TLS 포트
 SENDER_EMAIL=your@gmail.com        # 발신자 Gmail
 SENDER_PASSWORD=xxxx xxxx xxxx xxxx # Gmail 앱 비밀번호 (16자리)
 ALERT_RECIPIENTS=alert@email.com   # 수신자 (쉼표로 복수 가능)
+
+# 선택 - Telegram 관리자 봇 (로그 모니터링)
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF  # BotFather에서 발급
+TELEGRAM_ADMIN_CHAT_ID=123456789   # 관리자 Chat ID (쉼표로 복수 가능)
 ```
+
+### Telegram Admin Bot 설정 방법
+
+1. **BotFather에서 봇 생성**
+   - Telegram에서 @BotFather 검색
+   - `/newbot` 명령으로 봇 생성
+   - 발급받은 토큰을 `TELEGRAM_BOT_TOKEN`에 설정
+
+2. **Chat ID 확인**
+   - 생성한 봇에게 아무 메시지 전송
+   - `https://api.telegram.org/bot{TOKEN}/getUpdates` 접속
+   - `chat.id` 값을 `TELEGRAM_ADMIN_CHAT_ID`에 설정
+
+3. **Webhook 설정 (Railway 배포 후)**
+   ```bash
+   curl "https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://your-app.railway.app/webhook/telegram"
+   ```
+
+4. **사용 가능한 명령어**
+   - `/logs [type] [lines]` - 로그 조회 (crawler, insight, chatbot)
+   - `/errors [lines]` - 에러 로그만 조회
+   - `/status` - 시스템 상태 (메모리, CPU, 디스크)
+   - `/jobs` - 백그라운드 작업 현황
+   - `/crawl` - 크롤링 상태
+   - `/kg` - Knowledge Graph 상태
+   - `/db` - 데이터베이스 통계
 
 ---
 
@@ -347,6 +394,23 @@ class Product(BaseModel):
 
 ## 14. 구현 완료 내역
 
+### 2026-01-28 - 카테고리 계층 구조 정비
+
+| 항목 | 파일 |
+|------|------|
+| 카테고리 URL 형식 통일 | `config/thresholds.json` |
+| 계층 구조 정의 | `config/category_hierarchy.json` |
+| 대시보드 카테고리 탭 | `dashboard/amore_unified_dashboard_v4.html` |
+| 도메인 엔티티 예시 | `src/domain/entities/market.py` |
+| 테스트 데이터 | `tests/unit/domain/test_entities.py` |
+| 크롤러 에러 핸들링 | `src/tools/amazon_scraper.py` |
+
+**주요 변경:**
+- URL 형식: `zgbs/beauty/{node_id}` 통일
+- Lip Care: `parent_id: "skin_care"` (기존 "beauty" 오류 수정)
+- AWS WAF 대응: Stealth 컨텍스트, 지수 백오프, 디버그 스크린샷
+- `_is_blocked_detailed()`: 상세 차단 사유 로깅
+
 ### 2026-01-27 (v3) - 이메일 알림 시스템
 
 | 항목 | 파일 |
@@ -393,3 +457,36 @@ class Product(BaseModel):
 | Prompt injection 방어 | High |
 | 아마존 리뷰 감성분석 | Medium |
 | ~~이메일 알림 통합~~ | ~~High~~ → **완료 (v3)** |
+
+---
+
+## 15. Claude Code 워크플로우 최적화
+
+### 컨텍스트 관리
+- `/clear` 명령어로 작업 간 컨텍스트 리셋
+- `Escape` 키로 진행 중 작업 중단 (컨텍스트 유지)
+- `Escape` 두 번: 이전 프롬프트 수정
+- 토큰 효율: 불필요한 파일/명령어 출력 누적 방지
+
+### 추천 워크플로우 (Explore-Plan-Code-Commit)
+1. **Explore**: 관련 파일 읽기만 (코드 작성 X)
+2. **Plan**: "think hard" 모드로 상세 계획 요청
+3. **Code**: 승인된 계획 기반 구현
+4. **Commit**: 설명적 커밋 메시지 작성
+
+### TDD 워크플로우
+1. 테스트 먼저 작성 (mock 최소화)
+2. 테스트 실패 확인
+3. 테스트 커밋
+4. 구현 → 테스트 통과 반복
+
+### Hooks 자동화 (.claude/settings.json)
+- **PreToolUse**: 민감 파일 수정 차단 (.env, credentials, .secret)
+- **PostToolUse**: Python 파일 자동 Ruff 린팅
+- **Notification**: macOS 알림 (입력 대기 시)
+
+### Pre-commit 자동화 (.pre-commit-config.yaml)
+- Ruff 포맷팅 및 린팅
+- trailing-whitespace 제거
+- private key 감지
+- 대용량 파일 (1MB+) 차단
