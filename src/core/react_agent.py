@@ -9,6 +9,10 @@ ReAct Loop:
 3. Observation - 결과 관찰
 4. Reflection - 자체 평가
 
+Security:
+- ALLOWED_ACTIONS: 허용된 도구만 실행 가능
+- ACTION_SCHEMAS: 각 도구별 파라미터 스키마 검증
+
 Usage:
     agent = ReActAgent()
     result = await agent.run(query, context)
@@ -22,6 +26,76 @@ from typing import Any
 from litellm import acompletion
 
 logger = logging.getLogger(__name__)
+
+
+# Security: 허용된 액션 목록
+ALLOWED_ACTIONS: frozenset[str] = frozenset(
+    {
+        "query_data",
+        "query_knowledge_graph",
+        "calculate_metrics",
+        "final_answer",
+    }
+)
+
+# Security: 각 액션별 허용 파라미터 스키마
+ACTION_SCHEMAS: dict[str, dict[str, type]] = {
+    "query_data": {
+        "category": str,
+        "brand": str,
+        "date_range": str,
+        "limit": int,
+    },
+    "query_knowledge_graph": {
+        "entity": str,
+        "relation": str,
+        "depth": int,
+    },
+    "calculate_metrics": {
+        "metric_type": str,
+        "brands": list,
+        "period": str,
+    },
+    "final_answer": {
+        "answer": str,
+        "confidence": float,
+    },
+}
+
+
+def validate_action(action: str, action_input: dict[str, Any] | None) -> tuple[bool, str]:
+    """
+    액션 및 파라미터 검증
+
+    Returns:
+        (is_valid, error_message)
+    """
+    # 1. 허용된 액션인지 확인
+    if action not in ALLOWED_ACTIONS:
+        return False, f"Action '{action}' is not allowed. Allowed: {list(ALLOWED_ACTIONS)}"
+
+    # 2. action_input 검증
+    if action_input is None:
+        return True, ""
+
+    # 3. 스키마 검증 (존재하는 경우)
+    schema = ACTION_SCHEMAS.get(action, {})
+    for key, value in action_input.items():
+        # 허용되지 않은 파라미터 확인
+        if key not in schema:
+            logger.warning(f"Unknown parameter '{key}' for action '{action}'")
+            # 엄격 모드가 아니므로 warning만
+            continue
+
+        # 타입 검증
+        expected_type = schema[key]
+        if not isinstance(value, expected_type):
+            return (
+                False,
+                f"Parameter '{key}' must be {expected_type.__name__}, got {type(value).__name__}",
+            )
+
+    return True, ""
 
 
 @dataclass
@@ -131,8 +205,15 @@ JSON으로 응답:
                 final_answer = step.observation or ""
                 break
 
-            # 3. 도구 실행 (있다면)
+            # 3. 도구 실행 (있다면) - Security: 허용 액션 및 파라미터 검증
             if step.action and self.tool_executor:
+                # Security: 액션 검증
+                is_valid, error_msg = validate_action(step.action, step.action_input)
+                if not is_valid:
+                    logger.warning(f"Action validation failed: {error_msg}")
+                    step.observation = f"Security Error: {error_msg}"
+                    continue
+
                 try:
                     result = await self.tool_executor.execute(step.action, step.action_input or {})
                     step.observation = str(result.data) if result.success else result.error
