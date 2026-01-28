@@ -2,34 +2,52 @@
 Export Routes - Document and data export endpoints
 """
 import logging
-from datetime import datetime, timedelta
+import os
+import re
+import tempfile
+from datetime import datetime
+from enum import Enum
 from io import BytesIO
 from pathlib import Path
-import tempfile
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse, FileResponse
-from pydantic import BaseModel
-from typing import Optional
-from docx import Document
-from docx.shared import Inches, Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT
 
-from src.api.dependencies import load_dashboard_data
-from src.tools.sqlite_storage import get_sqlite_storage
-from src.tools.external_signal_collector import ExternalSignalCollector, SignalTier
-from src.tools.period_analyzer import PeriodAnalyzer
-from src.tools.chart_generator import ChartGenerator
-from src.tools.reference_tracker import ReferenceTracker, ReferenceType
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt, RGBColor
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
+
 from src.agents.period_insight_agent import PeriodInsightAgent
+from src.api.dependencies import load_dashboard_data
+from src.tools.chart_generator import ChartGenerator
+from src.tools.external_signal_collector import ExternalSignalCollector
+from src.tools.period_analyzer import PeriodAnalyzer
+from src.tools.reference_tracker import ReferenceTracker
+from src.tools.sqlite_storage import get_sqlite_storage
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
 
+class SignalRelevance(Enum):
+    """외부 신호 시간적 관련성 분류"""
+    TIER1_CORE = "core"           # 분석 기간 ±7일 - 직접 관련
+    TIER2_BACKGROUND = "background"  # ±30일 또는 구조적 트렌드
+    TIER3_ARCHIVE = "archive"     # 30일+ 이전, 장기 트렌드만
+
+
+# 구조적 트렌드 키워드 (시간 민감도 낮음)
+STRUCTURAL_TREND_KEYWORDS = [
+    "trend", "growth", "market size", "industry", "expansion",
+    "k-beauty", "clean beauty", "sustainable", "global",
+    "market report", "forecast", "analysis"
+]
+
+
 class ExportRequest(BaseModel):
     """내보내기 요청"""
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    start_date: str | None = None
+    end_date: str | None = None
     include_strategy: bool = True
     include_external_signals: bool = True  # External Signal 포함 여부
 
@@ -42,22 +60,102 @@ class AnalystReportRequest(BaseModel):
     include_external_signals: bool = True
 
 
+def _classify_signal_relevance(
+    signal,
+    analysis_start: datetime,
+    analysis_end: datetime
+) -> SignalRelevance:
+    """
+    외부 신호의 시간적 관련성 분류 (3-Tier)
+
+    Args:
+        signal: ExternalSignal 객체
+        analysis_start: 분석 시작일
+        analysis_end: 분석 종료일
+
+    Returns:
+        SignalRelevance enum
+    """
+    # 신호 날짜 파싱
+    signal_date = None
+    published_at = getattr(signal, 'published_at', None)
+
+    if published_at:
+        try:
+            if isinstance(published_at, str):
+                # ISO 형식 또는 다양한 형식 처리
+                published_at = published_at.replace('Z', '+00:00')
+                if 'T' in published_at:
+                    signal_date = datetime.fromisoformat(published_at).replace(tzinfo=None)
+                else:
+                    signal_date = datetime.strptime(published_at[:10], "%Y-%m-%d")
+            elif isinstance(published_at, datetime):
+                signal_date = published_at.replace(tzinfo=None)
+        except Exception:
+            signal_date = None
+
+    # 구조적 트렌드 여부 확인
+    title = getattr(signal, 'title', '').lower()
+    content = getattr(signal, 'content', '').lower()
+    combined_text = title + " " + content
+
+    is_structural = any(
+        keyword.lower() in combined_text
+        for keyword in STRUCTURAL_TREND_KEYWORDS
+    )
+
+    # 날짜 기반 분류
+    if signal_date:
+        days_from_end = (signal_date.date() - analysis_end.date()).days
+
+        # TIER 1: 분석 기간 ±7일
+        if -7 <= days_from_end <= 7:
+            return SignalRelevance.TIER1_CORE
+
+        # TIER 2: ±30일 또는 구조적 트렌드
+        if -30 <= days_from_end <= 30 or is_structural:
+            return SignalRelevance.TIER2_BACKGROUND
+
+        # TIER 3: 30일+ 이전이지만 구조적 트렌드인 경우만
+        if is_structural:
+            return SignalRelevance.TIER3_ARCHIVE
+
+        # 이벤트성 뉴스 30일+ 외는 None 반환 (제외 대상)
+        return None
+
+    # 날짜 없으면 구조적 트렌드인 경우만 TIER 2
+    if is_structural:
+        return SignalRelevance.TIER2_BACKGROUND
+
+    # 날짜 없고 구조적도 아니면 TIER 2로 분류 (보수적 접근)
+    return SignalRelevance.TIER2_BACKGROUND
+
+
 async def _get_external_signals(
     days: int = 7,
     brands: list = None,
-    include_tavily: bool = True
+    include_tavily: bool = True,
+    start_date: str = None,
+    end_date: str = None
 ) -> dict:
     """
-    External Signal 수집 및 보고서 섹션 생성
+    External Signal 수집 및 3-Tier 분류
 
     Args:
         days: 검색 기간 (일)
         brands: 검색할 브랜드 리스트
         include_tavily: Tavily 뉴스 검색 포함 여부
+        start_date: 분석 시작일 (YYYY-MM-DD) - 3-Tier 분류용
+        end_date: 분석 종료일 (YYYY-MM-DD) - 3-Tier 분류용
 
     Returns:
         {
             "signals": List[ExternalSignal],
+            "classified": {
+                "tier1_core": List[ExternalSignal],
+                "tier2_background": List[ExternalSignal],
+                "tier3_archive": List[ExternalSignal]
+            },
             "report_section": str
         }
     """
@@ -121,6 +219,47 @@ async def _get_external_signals(
             elif not url:
                 unique_signals.append(signal)
 
+        # 3-Tier 분류
+        classified = {
+            "tier1_core": [],      # 본문 인용 + 참고자료
+            "tier2_background": [], # 참고자료만
+            "tier3_archive": []    # 배경 자료 섹션
+        }
+
+        if start_date and end_date:
+            try:
+                analysis_start = datetime.strptime(start_date, "%Y-%m-%d")
+                analysis_end = datetime.strptime(end_date, "%Y-%m-%d")
+
+                filtered_signals = []
+                for signal in unique_signals:
+                    relevance = _classify_signal_relevance(signal, analysis_start, analysis_end)
+
+                    if relevance == SignalRelevance.TIER1_CORE:
+                        classified["tier1_core"].append(signal)
+                        filtered_signals.append(signal)
+                    elif relevance == SignalRelevance.TIER2_BACKGROUND:
+                        classified["tier2_background"].append(signal)
+                        filtered_signals.append(signal)
+                    elif relevance == SignalRelevance.TIER3_ARCHIVE:
+                        classified["tier3_archive"].append(signal)
+                        # TIER3는 참고자료에만 포함, 본문 분석에서는 제외
+                    # relevance가 None이면 제외 (이벤트성 + 30일+ 외)
+
+                logger.info(
+                    f"Signal classification: TIER1={len(classified['tier1_core'])}, "
+                    f"TIER2={len(classified['tier2_background'])}, "
+                    f"TIER3={len(classified['tier3_archive'])}"
+                )
+
+                # 필터링된 신호로 교체 (TIER3 제외)
+                unique_signals = filtered_signals
+
+            except Exception as e:
+                logger.warning(f"Signal classification failed: {e}")
+                # 분류 실패 시 전체를 TIER2로 처리
+                classified["tier2_background"] = unique_signals
+
         # 보고서 섹션 생성
         if unique_signals:
             # 컬렉터에 신호 추가 후 보고서 생성
@@ -133,12 +272,13 @@ async def _get_external_signals(
 
         return {
             "signals": unique_signals,
+            "classified": classified,
             "report_section": report_section
         }
 
     except Exception as e:
         logger.warning(f"External signal collection failed: {e}")
-        return {"signals": [], "report_section": ""}
+        return {"signals": [], "classified": {"tier1_core": [], "tier2_background": [], "tier3_archive": []}, "report_section": ""}
     finally:
         try:
             await collector.close()
@@ -342,7 +482,11 @@ async def export_docx(request: ExportRequest):
         else:
             days = 7
 
-        signals_result = await _get_external_signals(days=days)
+        signals_result = await _get_external_signals(
+            days=days,
+            start_date=request.start_date,
+            end_date=request.end_date
+        )
         external_signals_text = signals_result.get("report_section", "")
 
         if external_signals_text:
@@ -371,7 +515,7 @@ async def export_docx(request: ExportRequest):
     doc.add_paragraph()
     footer = doc.add_paragraph()
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("© 2025 AMORE Pacific - Confidential").italic = True
+    footer.add_run(f"© {datetime.now().year} AMORE Pacific - Confidential").italic = True
 
     # BytesIO로 저장
     buffer = BytesIO()
@@ -418,21 +562,29 @@ async def export_analyst_report(request: AnalystReportRequest):
                 detail=f"No data found for period {request.start_date} ~ {request.end_date}"
             )
 
-        # 2. External Signals (optional) - Tavily 뉴스 포함
+        # 2. External Signals (optional) - Tavily 뉴스 포함 + 3-Tier 분류
         external_signals = None
         external_signals_list = []
         if request.include_external_signals:
             try:
-                # 새로운 통합 함수 사용 (Tavily + RSS + Reddit)
+                # 새로운 통합 함수 사용 (Tavily + RSS + Reddit + 3-Tier 분류)
                 signals_result = await _get_external_signals(
                     days=analysis.total_days,
                     brands=["LANEIGE", "COSRX", "K-Beauty"],
-                    include_tavily=True
+                    include_tavily=True,
+                    start_date=request.start_date,  # 3-Tier 분류용
+                    end_date=request.end_date       # 3-Tier 분류용
                 )
                 if signals_result.get("signals"):
                     external_signals = signals_result
                     external_signals_list = signals_result.get("signals", [])
-                    logger.info(f"Collected {len(external_signals_list)} external signals for report")
+                    classified = signals_result.get("classified", {})
+                    logger.info(
+                        f"Collected {len(external_signals_list)} signals: "
+                        f"TIER1={len(classified.get('tier1_core', []))}, "
+                        f"TIER2={len(classified.get('tier2_background', []))}, "
+                        f"TIER3={len(classified.get('tier3_archive', []))}"
+                    )
             except Exception as e:
                 logger.warning(f"External signal collection failed: {e}")
 
@@ -470,25 +622,45 @@ async def export_analyst_report(request: AnalystReportRequest):
         font.name = 'Arial'
         font.size = Pt(11)
 
-        # ===== 표지 (Cover Page) =====
+        # ===== 표지 + 목차 (Cover Page with TOC - 같은 페이지) =====
+        # 제목
         title = doc.add_heading('LANEIGE Amazon US 경쟁력 분석 보고서', 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = title.runs[0]
-        run.font.color.rgb = PACIFIC_BLUE
+        for run in title.runs:
+            run.font.color.rgb = PACIFIC_BLUE
+            run.font.size = Pt(24)
+            run.font.bold = True
 
-        subtitle = doc.add_paragraph(f'분석 기간: {request.start_date} ~ {request.end_date}')
-        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # 구분선 (Pacific Blue)
+        divider = doc.add_paragraph()
+        divider.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        divider_run = divider.add_run('─' * 40)
+        divider_run.font.color.rgb = PACIFIC_BLUE
+        divider_run.font.size = Pt(10)
 
-        date_para = doc.add_paragraph()
-        date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        date_para.add_run(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        # 분석 기간 & 생성일시 (간결하게)
+        meta_para = doc.add_paragraph()
+        meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        meta_run1 = meta_para.add_run(f'분석 기간: {request.start_date} ~ {request.end_date}')
+        meta_run1.font.size = Pt(12)
+        meta_run1.font.color.rgb = GRAY
+        meta_para.add_run('\n')
+        meta_run2 = meta_para.add_run(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        meta_run2.font.size = Pt(11)
+        meta_run2.font.color.rgb = GRAY
 
-        doc.add_page_break()
+        # ===== 목차 (Table of Contents) - 같은 페이지에 배치 =====
+        # add_heading 대신 add_paragraph로 여백 최소화
+        toc_heading = doc.add_paragraph()
+        toc_heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        toc_heading.paragraph_format.space_before = Pt(18)  # 제목과 목차 사이 최소 여백
+        toc_heading.paragraph_format.space_after = Pt(8)
+        toc_run = toc_heading.add_run('목차')
+        toc_run.font.size = Pt(14)
+        toc_run.font.bold = True
+        toc_run.font.color.rgb = PACIFIC_BLUE
 
-        # ===== 목차 (Table of Contents) =====
-        toc_heading = doc.add_heading('목차', 1)
-        toc_heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
+        # 목차 항목 - 여백 최소화
         toc_items = [
             "1. Executive Summary",
             "2. LANEIGE 심층 분석",
@@ -500,7 +672,13 @@ async def export_analyst_report(request: AnalystReportRequest):
             "8. 참고자료 (References)"
         ]
         for item in toc_items:
-            doc.add_paragraph(item, style='List Bullet')
+            toc_para = doc.add_paragraph()
+            toc_para.paragraph_format.space_before = Pt(2)
+            toc_para.paragraph_format.space_after = Pt(2)
+            toc_para.paragraph_format.left_indent = Inches(0.3)
+            toc_run = toc_para.add_run(f"• {item}")
+            toc_run.font.size = Pt(11)
+            toc_run.font.color.rgb = PACIFIC_BLUE
 
         doc.add_page_break()
 
@@ -661,22 +839,73 @@ async def export_analyst_report(request: AnalystReportRequest):
 
         # ===== Section 8: 참고자료 (References) =====
         ref_heading = doc.add_heading('8. 참고자료 (References)', 1)
-        ref_heading.runs[0].font.color.rgb = PACIFIC_BLUE
+        for run in ref_heading.runs:
+            run.font.color.rgb = PACIFIC_BLUE
+            run.font.size = Pt(14)
 
-        # Format reference section
+        # 8.1 외부 신호 출처 (본문 인용 [1], [2] 와 매칭)
+        if report.references and report.references.content:
+            sub_heading1 = doc.add_heading('8.1 외부 신호 출처 (External Sources)', 2)
+            for run in sub_heading1.runs:
+                run.font.color.rgb = AMORE_BLUE
+                run.font.size = Pt(12)
+
+            # report.references.content에서 참고자료 추출
+            for line in report.references.content.split('\n'):
+                if line.strip():
+                    para = doc.add_paragraph()
+                    para.paragraph_format.space_before = Pt(3)
+                    para.paragraph_format.space_after = Pt(3)
+                    # [1], [2] 등으로 시작하는 참조 번호는 볼드 처리
+                    if line.strip().startswith('['):
+                        # 번호 부분과 내용 분리
+                        match = re.match(r'(\[\d+\])\s*(.*)', line.strip())
+                        if match:
+                            ref_num = match.group(1)
+                            ref_content = match.group(2)
+                            run_num = para.add_run(ref_num + " ")
+                            run_num.font.bold = True
+                            run_num.font.color.rgb = PACIFIC_BLUE
+                            run_num.font.size = Pt(10)
+                            run_content = para.add_run(ref_content)
+                            run_content.font.size = Pt(10)
+                            run_content.font.color.rgb = GRAY
+                        else:
+                            run = para.add_run(line)
+                            run.font.size = Pt(10)
+                    else:
+                        run = para.add_run(line)
+                        run.font.size = Pt(10)
+
+            doc.add_paragraph()  # 간격
+
+        # 8.2 데이터 출처 (Amazon, IR 등)
+        sub_heading2 = doc.add_heading('8.2 데이터 출처 (Data Sources)', 2)
+        for run in sub_heading2.runs:
+            run.font.color.rgb = AMORE_BLUE
+            run.font.size = Pt(12)
+
+        # tracker에서 데이터 출처 포맷
         ref_section = tracker.format_section()
         for line in ref_section.split('\n'):
             if line.strip():
-                if line.startswith('8.'):
-                    doc.add_heading(line, 2)
+                # 하위 섹션 번호 재조정 (8.1 → 건너뛰기)
+                if line.startswith('8.1') or line.startswith('8.2'):
+                    continue  # 이미 외부 신호로 처리됨
+                elif line.startswith('8.'):
+                    # 나머지 하위 섹션
+                    doc.add_heading(line, 3)
                 else:
-                    doc.add_paragraph(line)
+                    para = doc.add_paragraph(line)
+                    para.paragraph_format.left_indent = Inches(0.25)
+                    for run in para.runs:
+                        run.font.size = Pt(10)
 
         # ===== Footer =====
         doc.add_paragraph()
         footer = doc.add_paragraph()
         footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = footer.add_run("© 2025 AMORE Pacific - Confidential")
+        run = footer.add_run(f"© {datetime.now().year} AMORE Pacific - Confidential")
         run.italic = True
         run.font.color.rgb = GRAY
 
@@ -760,3 +989,208 @@ async def export_excel(request: Request):
     except Exception as e:
         logging.error(f"Excel export error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/signals/status")
+async def get_signal_status():
+    """
+    외부 신호 API 상태 확인
+
+    Returns:
+        각 외부 데이터 소스의 설정/사용 가능 상태
+    """
+    return {
+        "tavily": {
+            "configured": bool(os.getenv("TAVILY_API_KEY")),
+            "description": "뉴스 검색 API (월 1,000건 무료)",
+            "docs": "https://tavily.com"
+        },
+        "gnews": {
+            "configured": bool(os.getenv("GNEWS_API_KEY")),
+            "description": "뉴스 API (일 100건 무료)",
+            "docs": "https://gnews.io"
+        },
+        "rss_feeds": {
+            "available": True,
+            "count": 10,
+            "sources": [
+                "Allure", "Byrdie", "Cosmetics Design Asia",
+                "Cosmetics Business", "Vogue Beauty", "WWD Beauty",
+                "Beautyindependent", "Global Cosmetics News",
+                "Happi", "CosmeticsDesign Europe"
+            ]
+        },
+        "reddit": {
+            "available": True,
+            "description": "JSON API (무료, 인증 불필요)",
+            "subreddits": ["AsianBeauty", "SkincareAddiction", "MakeupAddiction"]
+        },
+        "public_data": {
+            "customs_korea": {
+                "configured": bool(os.getenv("DATA_GO_KR_API_KEY")),
+                "description": "관세청 수출입통계"
+            },
+            "mfds_korea": {
+                "configured": bool(os.getenv("DATA_GO_KR_API_KEY")),
+                "description": "식약처 기능성화장품 DB"
+            }
+        },
+        "signal_classification": {
+            "tier1_core": "분석 기간 ±7일 - 직접 관련 뉴스",
+            "tier2_background": "±30일 또는 구조적 트렌드",
+            "tier3_archive": "30일+ 이전, 장기 트렌드만 포함"
+        }
+    }
+
+
+# ============================================================
+# 비동기 작업 API (페이지 새로고침에도 다운로드 지속)
+# ============================================================
+
+class AsyncExportRequest(BaseModel):
+    """비동기 내보내기 요청"""
+    job_type: str  # "export_docx", "export_analyst_report", "export_excel"
+    start_date: str | None = None
+    end_date: str | None = None
+    include_charts: bool = True
+    include_external_signals: bool = True
+    include_metrics: bool = True
+
+
+@router.post("/async/start")
+async def start_async_export(request: AsyncExportRequest):
+    """
+    비동기 내보내기 작업 시작
+
+    페이지 새로고침에도 다운로드가 지속됩니다.
+    작업 ID를 반환하며, /async/status/{job_id}로 진행 상태 확인 가능.
+
+    Args:
+        request: AsyncExportRequest
+
+    Returns:
+        {
+            "job_id": "abc12345",
+            "status": "pending",
+            "message": "작업이 큐에 추가되었습니다."
+        }
+    """
+    from src.tools.job_queue import get_job_queue
+
+    queue = get_job_queue()
+    await queue.initialize()
+
+    # 파라미터 준비
+    params = {
+        "start_date": request.start_date,
+        "end_date": request.end_date,
+        "include_charts": request.include_charts,
+        "include_external_signals": request.include_external_signals,
+        "include_metrics": request.include_metrics,
+    }
+
+    # 작업 생성
+    job_id = await queue.create_job(request.job_type, params)
+
+    return {
+        "job_id": job_id,
+        "status": "pending",
+        "message": "작업이 큐에 추가되었습니다. 진행 상태는 /api/export/async/status/{job_id}에서 확인하세요."
+    }
+
+
+@router.get("/async/status/{job_id}")
+async def get_async_export_status(job_id: str):
+    """
+    비동기 내보내기 작업 상태 조회
+
+    Args:
+        job_id: 작업 ID
+
+    Returns:
+        {
+            "id": "abc12345",
+            "status": "running" | "completed" | "failed" | "pending",
+            "progress": 50,
+            "progress_message": "차트 생성 중...",
+            "download_url": "/api/export/download/abc12345" (완료 시)
+        }
+    """
+    from src.tools.job_queue import get_job_queue
+
+    queue = get_job_queue()
+    status = await queue.get_job_status(job_id)
+
+    if not status:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+
+    return status
+
+
+@router.get("/download/{job_id}")
+async def download_export_file(job_id: str):
+    """
+    완료된 내보내기 파일 다운로드
+
+    Args:
+        job_id: 작업 ID
+
+    Returns:
+        FileResponse with the generated file
+    """
+    from src.tools.job_queue import JobStatus, get_job_queue
+
+    queue = get_job_queue()
+    status = await queue.get_job_status(job_id)
+
+    if not status:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+
+    if status["status"] != JobStatus.COMPLETED.value:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Job not completed yet. Current status: {status['status']}"
+        )
+
+    file_path = status.get("result_file")
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found or expired")
+
+    filename = os.path.basename(file_path)
+
+    # MIME type 결정
+    if filename.endswith('.docx'):
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif filename.endswith('.xlsx'):
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        media_type = "application/octet-stream"
+
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/async/jobs")
+async def list_export_jobs(status: str | None = None, limit: int = 20):
+    """
+    내보내기 작업 목록 조회
+
+    Args:
+        status: 필터링할 상태 (pending, running, completed, failed)
+        limit: 최대 개수
+
+    Returns:
+        작업 목록
+    """
+    from src.tools.job_queue import get_job_queue
+
+    queue = get_job_queue()
+    jobs = await queue.get_all_jobs(status=status, limit=limit)
+
+    return {
+        "jobs": jobs,
+        "total": len(jobs)
+    }
