@@ -17,14 +17,16 @@ Usage:
     storage.export_to_excel("./exports/report.xlsx")
 """
 
-import os
-import sqlite3
 import json
 import logging
-from datetime import date, datetime, timedelta, timezone
-from typing import List, Dict, Any, Optional
+import os
+import sqlite3
+from contextlib import asynccontextmanager, contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from contextlib import contextmanager
+from typing import Any
+
+import aiosqlite
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +209,7 @@ class SQLiteStorage:
     CREATE INDEX IF NOT EXISTS idx_competitor_asin ON competitor_products(asin);
     """
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         """
         Args:
             db_path: SQLite 데이터베이스 파일 경로
@@ -228,7 +230,7 @@ class SQLiteStorage:
 
     @contextmanager
     def get_connection(self):
-        """컨텍스트 매니저로 DB 연결 관리"""
+        """컨텍스트 매니저로 DB 연결 관리 (동기 - 하위 호환)"""
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row  # 딕셔너리 형태로 결과 반환
         try:
@@ -239,6 +241,20 @@ class SQLiteStorage:
             raise e
         finally:
             conn.close()
+
+    @asynccontextmanager
+    async def get_async_connection(self):
+        """비동기 컨텍스트 매니저로 DB 연결 관리"""
+        conn = await aiosqlite.connect(str(self.db_path))
+        conn.row_factory = aiosqlite.Row  # 딕셔너리 형태로 결과 반환
+        try:
+            yield conn
+            await conn.commit()
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        finally:
+            await conn.close()
 
     async def initialize(self) -> bool:
         """
@@ -251,9 +267,9 @@ class SQLiteStorage:
             # 디렉토리 생성
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # 스키마 생성
-            with self.get_connection() as conn:
-                conn.executescript(self.SCHEMA)
+            # 스키마 생성 (비동기)
+            async with self.get_async_connection() as conn:
+                await conn.executescript(self.SCHEMA)
 
             self._initialized = True
             logger.info(f"SQLite database initialized: {self.db_path}")
@@ -263,7 +279,7 @@ class SQLiteStorage:
             logger.error(f"SQLite 초기화 실패: {e}")
             return False
 
-    async def append_rank_records(self, records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def append_rank_records(self, records: list[dict[str, Any]]) -> dict[str, Any]:
         """
         순위 기록 추가 (SheetsWriter와 동일한 인터페이스)
 
@@ -291,47 +307,44 @@ class SQLiteStorage:
 
         rows_added = 0
         try:
-            with self.get_connection() as conn:
+            async with self.get_async_connection() as conn:
                 for record in records:
-                    conn.execute(sql, (
-                        record.get("snapshot_date"),
-                        record.get("category_id"),
-                        record.get("rank"),
-                        record.get("asin"),
-                        record.get("product_name"),
-                        record.get("brand"),
-                        self._to_float(record.get("price")),
-                        self._to_float(record.get("list_price")),
-                        self._to_float(record.get("discount_percent")),
-                        self._to_float(record.get("rating")),
-                        record.get("reviews_count"),
-                        record.get("badge"),
-                        record.get("coupon_text"),
-                        1 if record.get("is_subscribe_save") else 0,
-                        json.dumps(record.get("promo_badges", [])) if record.get("promo_badges") else None,
-                        record.get("product_url")
-                    ))
+                    await conn.execute(
+                        sql,
+                        (
+                            record.get("snapshot_date"),
+                            record.get("category_id"),
+                            record.get("rank"),
+                            record.get("asin"),
+                            record.get("product_name"),
+                            record.get("brand"),
+                            self._to_float(record.get("price")),
+                            self._to_float(record.get("list_price")),
+                            self._to_float(record.get("discount_percent")),
+                            self._to_float(record.get("rating")),
+                            record.get("reviews_count"),
+                            record.get("badge"),
+                            record.get("coupon_text"),
+                            1 if record.get("is_subscribe_save") else 0,
+                            json.dumps(record.get("promo_badges", []))
+                            if record.get("promo_badges")
+                            else None,
+                            record.get("product_url"),
+                        ),
+                    )
                     rows_added += 1
 
                 # 제품 마스터 테이블도 업데이트
-                await self._update_products(conn, records)
+                await self._update_products_async(conn, records)
 
             logger.info(f"SQLite: {rows_added} rows added to raw_data")
-            return {
-                "success": True,
-                "rows_added": rows_added,
-                "table": "raw_data"
-            }
+            return {"success": True, "rows_added": rows_added, "table": "raw_data"}
 
         except Exception as e:
             logger.error(f"SQLite append failed: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "rows_added": rows_added
-            }
+            return {"success": False, "error": str(e), "rows_added": rows_added}
 
-    def _to_float(self, value) -> Optional[float]:
+    def _to_float(self, value) -> float | None:
         """값을 float로 변환 (None, 빈 문자열, 잘못된 형식 처리)"""
         if value is None or value == "" or value == "N/A":
             return None
@@ -343,8 +356,10 @@ class SQLiteStorage:
         except (ValueError, TypeError):
             return None
 
-    async def _update_products(self, conn: sqlite3.Connection, records: List[Dict[str, Any]]) -> int:
-        """제품 마스터 테이블 업데이트"""
+    async def _update_products(
+        self, conn: sqlite3.Connection, records: list[dict[str, Any]]
+    ) -> int:
+        """제품 마스터 테이블 업데이트 (동기 - 하위 호환)"""
         sql = """
         INSERT OR IGNORE INTO products (asin, product_name, brand, first_seen_date, product_url)
         VALUES (?, ?, ?, ?, ?)
@@ -356,25 +371,57 @@ class SQLiteStorage:
         for record in records:
             asin = record.get("asin")
             if asin:
-                conn.execute(sql, (
-                    asin,
-                    record.get("product_name"),
-                    record.get("brand"),
-                    today,
-                    record.get("product_url")
-                ))
+                conn.execute(
+                    sql,
+                    (
+                        asin,
+                        record.get("product_name"),
+                        record.get("brand"),
+                        today,
+                        record.get("product_url"),
+                    ),
+                )
+                updated += 1
+
+        return updated
+
+    async def _update_products_async(
+        self, conn: aiosqlite.Connection, records: list[dict[str, Any]]
+    ) -> int:
+        """제품 마스터 테이블 업데이트 (비동기)"""
+        sql = """
+        INSERT OR IGNORE INTO products (asin, product_name, brand, first_seen_date, product_url)
+        VALUES (?, ?, ?, ?, ?)
+        """
+
+        today = datetime.now(KST).strftime("%Y-%m-%d")
+        updated = 0
+
+        for record in records:
+            asin = record.get("asin")
+            if asin:
+                await conn.execute(
+                    sql,
+                    (
+                        asin,
+                        record.get("product_name"),
+                        record.get("brand"),
+                        today,
+                        record.get("product_url"),
+                    ),
+                )
                 updated += 1
 
         return updated
 
     async def get_raw_data(
         self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        category_id: Optional[str] = None,
-        brand: Optional[str] = None,
-        limit: int = 1000
-    ) -> List[Dict[str, Any]]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+        category_id: str | None = None,
+        brand: str | None = None,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
         """
         원본 데이터 조회
 
@@ -417,19 +464,20 @@ class SQLiteStorage:
         LIMIT ?
         """
 
-        with self.get_connection() as conn:
-            cursor = conn.execute(sql, params)
-            return [dict(row) for row in cursor.fetchall()]
+        async with self.get_async_connection() as conn:
+            cursor = await conn.execute(sql, params)
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
-    async def get_latest_data(self, category_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_latest_data(self, category_id: str | None = None) -> list[dict[str, Any]]:
         """가장 최근 날짜의 데이터 조회"""
         if not self._initialized:
             await self.initialize()
 
-        with self.get_connection() as conn:
+        async with self.get_async_connection() as conn:
             # 최근 날짜 조회
-            cursor = conn.execute("SELECT MAX(snapshot_date) as latest FROM raw_data")
-            row = cursor.fetchone()
+            cursor = await conn.execute("SELECT MAX(snapshot_date) as latest FROM raw_data")
+            row = await cursor.fetchone()
             if not row or not row["latest"]:
                 return []
 
@@ -437,24 +485,22 @@ class SQLiteStorage:
 
             # 해당 날짜 데이터 조회
             if category_id:
-                cursor = conn.execute(
+                cursor = await conn.execute(
                     "SELECT * FROM raw_data WHERE snapshot_date = ? AND category_id = ? ORDER BY rank",
-                    (latest_date, category_id)
+                    (latest_date, category_id),
                 )
             else:
-                cursor = conn.execute(
+                cursor = await conn.execute(
                     "SELECT * FROM raw_data WHERE snapshot_date = ? ORDER BY category_id, rank",
-                    (latest_date,)
+                    (latest_date,),
                 )
 
-            return [dict(row) for row in cursor.fetchall()]
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
     async def get_historical_data(
-        self,
-        days: int = 30,
-        category_id: Optional[str] = None,
-        brand: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, days: int = 30, category_id: str | None = None, brand: str | None = None
+    ) -> list[dict[str, Any]]:
         """히스토리컬 데이터 조회 (최근 N일)"""
         end_date = datetime.now(KST).strftime("%Y-%m-%d")
         start_date = (datetime.now(KST) - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -464,10 +510,10 @@ class SQLiteStorage:
             end_date=end_date,
             category_id=category_id,
             brand=brand,
-            limit=10000
+            limit=10000,
         )
 
-    async def save_brand_metrics(self, metrics: List[Dict[str, Any]]) -> int:
+    async def save_brand_metrics(self, metrics: list[dict[str, Any]]) -> int:
         """브랜드 메트릭 저장"""
         if not self._initialized:
             await self.initialize()
@@ -479,22 +525,25 @@ class SQLiteStorage:
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        with self.get_connection() as conn:
+        async with self.get_async_connection() as conn:
             for m in metrics:
-                conn.execute(sql, (
-                    m.get("snapshot_date"),
-                    m.get("category_id"),
-                    m.get("brand"),
-                    m.get("sos"),
-                    m.get("brand_avg_rank"),
-                    m.get("product_count"),
-                    m.get("cpi"),
-                    m.get("avg_rating_gap")
-                ))
+                await conn.execute(
+                    sql,
+                    (
+                        m.get("snapshot_date"),
+                        m.get("category_id"),
+                        m.get("brand"),
+                        m.get("sos"),
+                        m.get("brand_avg_rank"),
+                        m.get("product_count"),
+                        m.get("cpi"),
+                        m.get("avg_rating_gap"),
+                    ),
+                )
 
         return len(metrics)
 
-    async def save_market_metrics(self, metrics: List[Dict[str, Any]]) -> int:
+    async def save_market_metrics(self, metrics: list[dict[str, Any]]) -> int:
         """시장 메트릭 저장"""
         if not self._initialized:
             await self.initialize()
@@ -506,20 +555,23 @@ class SQLiteStorage:
         ) VALUES (?, ?, ?, ?, ?, ?)
         """
 
-        with self.get_connection() as conn:
+        async with self.get_async_connection() as conn:
             for m in metrics:
-                conn.execute(sql, (
-                    m.get("snapshot_date"),
-                    m.get("category_id"),
-                    m.get("hhi"),
-                    m.get("churn_rate"),
-                    m.get("category_avg_price"),
-                    m.get("category_avg_rating")
-                ))
+                await conn.execute(
+                    sql,
+                    (
+                        m.get("snapshot_date"),
+                        m.get("category_id"),
+                        m.get("hhi"),
+                        m.get("churn_rate"),
+                        m.get("category_avg_price"),
+                        m.get("category_avg_rating"),
+                    ),
+                )
 
         return len(metrics)
 
-    async def save_competitor_products(self, products: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def save_competitor_products(self, products: list[dict[str, Any]]) -> dict[str, Any]:
         """
         경쟁사 추적 제품 저장
 
@@ -542,23 +594,26 @@ class SQLiteStorage:
 
         rows_added = 0
         try:
-            with self.get_connection() as conn:
+            async with self.get_async_connection() as conn:
                 for p in products:
-                    conn.execute(sql, (
-                        p.get("snapshot_date"),
-                        p.get("asin"),
-                        p.get("product_name"),
-                        p.get("brand"),
-                        self._to_float(p.get("price")),
-                        self._to_float(p.get("rating")),
-                        p.get("reviews_count"),
-                        p.get("availability"),
-                        p.get("image_url"),
-                        p.get("product_url"),
-                        p.get("category_id"),
-                        p.get("product_type"),
-                        p.get("laneige_competitor")
-                    ))
+                    await conn.execute(
+                        sql,
+                        (
+                            p.get("snapshot_date"),
+                            p.get("asin"),
+                            p.get("product_name"),
+                            p.get("brand"),
+                            self._to_float(p.get("price")),
+                            self._to_float(p.get("rating")),
+                            p.get("reviews_count"),
+                            p.get("availability"),
+                            p.get("image_url"),
+                            p.get("product_url"),
+                            p.get("category_id"),
+                            p.get("product_type"),
+                            p.get("laneige_competitor"),
+                        ),
+                    )
                     rows_added += 1
 
             logger.info(f"SQLite: saved {rows_added} competitor products")
@@ -569,10 +624,8 @@ class SQLiteStorage:
             return {"success": False, "error": str(e), "rows_added": rows_added}
 
     async def get_competitor_products(
-        self,
-        brand: Optional[str] = None,
-        snapshot_date: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, brand: str | None = None, snapshot_date: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         경쟁사 제품 조회
 
@@ -598,7 +651,9 @@ class SQLiteStorage:
             params.append(snapshot_date)
         else:
             # 최신 날짜
-            conditions.append("snapshot_date = (SELECT MAX(snapshot_date) FROM competitor_products)")
+            conditions.append(
+                "snapshot_date = (SELECT MAX(snapshot_date) FROM competitor_products)"
+            )
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
@@ -609,14 +664,15 @@ class SQLiteStorage:
         """
 
         try:
-            with self.get_connection() as conn:
-                cursor = conn.execute(sql, params)
-                return [dict(row) for row in cursor.fetchall()]
+            async with self.get_async_connection() as conn:
+                cursor = await conn.execute(sql, params)
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
         except Exception as e:
             logger.error(f"Failed to get competitor products: {e}")
             return []
 
-    def get_data_date(self) -> Optional[str]:
+    def get_data_date(self) -> str | None:
         """가장 최근 데이터 날짜 반환"""
         try:
             with self.get_connection() as conn:
@@ -626,7 +682,7 @@ class SQLiteStorage:
         except Exception:
             return None
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """데이터베이스 통계"""
         try:
             with self.get_connection() as conn:
@@ -645,7 +701,7 @@ class SQLiteStorage:
                 row = cursor.fetchone()
                 stats["date_range"] = {
                     "min": row["min_date"] if row else None,
-                    "max": row["max_date"] if row else None
+                    "max": row["max_date"] if row else None,
                 }
 
                 # 파일 크기
@@ -664,10 +720,10 @@ class SQLiteStorage:
     def export_to_excel(
         self,
         output_path: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        include_metrics: bool = True
-    ) -> Dict[str, Any]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+        include_metrics: bool = True,
+    ) -> dict[str, Any]:
         """
         데이터를 엑셀 파일로 내보내기
 
@@ -720,7 +776,7 @@ class SQLiteStorage:
                         "skin_care": "Skin Care",
                         "lip_care": "Lip Care",
                         "lip_makeup": "Lip Makeup",
-                        "face_powder": "Face Powder"
+                        "face_powder": "Face Powder",
                     }
 
                     for cat_id, cat_name in categories.items():
@@ -733,7 +789,7 @@ class SQLiteStorage:
                             ORDER BY snapshot_date DESC, rank
                             """,
                             conn,
-                            params=(cat_id, start_date, end_date)
+                            params=(cat_id, start_date, end_date),
                         )
 
                         if not df.empty:
@@ -752,7 +808,7 @@ class SQLiteStorage:
                             ORDER BY snapshot_date DESC, sos DESC
                             """,
                             conn,
-                            params=(start_date, end_date)
+                            params=(start_date, end_date),
                         )
 
                         if not df_brand.empty:
@@ -773,8 +829,11 @@ class SQLiteStorage:
                         no_data_info = [
                             {"항목": "요청 기간", "값": f"{start_date} ~ {end_date}"},
                             {"항목": "결과", "값": "해당 기간에 데이터가 없습니다"},
-                            {"항목": "사용 가능한 데이터 기간", "값": f"{available_min} ~ {available_max}"},
-                            {"항목": "안내", "값": "날짜 범위를 조정하여 다시 시도해주세요"}
+                            {
+                                "항목": "사용 가능한 데이터 기간",
+                                "값": f"{available_min} ~ {available_max}",
+                            },
+                            {"항목": "안내", "값": "날짜 범위를 조정하여 다시 시도해주세요"},
                         ]
                         df_no_data = pd.DataFrame(no_data_info)
                         df_no_data.to_excel(writer, sheet_name="No Data", index=False)
@@ -786,7 +845,7 @@ class SQLiteStorage:
                 "file_path": str(output_path),
                 "sheets": sheets_created,
                 "total_rows": total_rows,
-                "date_range": {"start": start_date, "end": end_date}
+                "date_range": {"start": start_date, "end": end_date},
             }
 
         except Exception as e:
@@ -794,11 +853,8 @@ class SQLiteStorage:
             return {"success": False, "error": str(e)}
 
     def _create_summary_data(
-        self,
-        conn: sqlite3.Connection,
-        start_date: str,
-        end_date: str
-    ) -> List[Dict[str, Any]]:
+        self, conn: sqlite3.Connection, start_date: str, end_date: str
+    ) -> list[dict[str, Any]]:
         """Summary 시트용 데이터 생성 (기간 내 브랜드별 집계)"""
         # 브랜드별 SoS 집계 - 지정된 기간의 데이터 사용
         cursor = conn.execute(
@@ -820,7 +876,7 @@ class SQLiteStorage:
             ORDER BY product_count DESC
             LIMIT 20
             """,
-            (start_date, end_date, start_date, end_date)
+            (start_date, end_date, start_date, end_date),
         )
 
         return [dict(row) for row in cursor.fetchall()]
@@ -829,7 +885,9 @@ class SQLiteStorage:
     # Deals 관련 메서드
     # =========================================================================
 
-    async def save_deals(self, deals: List[Dict[str, Any]], is_competitor: bool = False) -> Dict[str, Any]:
+    async def save_deals(
+        self, deals: list[dict[str, Any]], is_competitor: bool = False
+    ) -> dict[str, Any]:
         """
         Deals 데이터 저장
 
@@ -854,28 +912,31 @@ class SQLiteStorage:
 
         rows_added = 0
         try:
-            with self.get_connection() as conn:
+            async with self.get_async_connection() as conn:
                 for deal in deals:
-                    conn.execute(sql, (
-                        deal.get("snapshot_datetime"),
-                        deal.get("asin"),
-                        deal.get("product_name"),
-                        deal.get("brand"),
-                        deal.get("category"),
-                        deal.get("deal_price"),
-                        deal.get("original_price"),
-                        deal.get("discount_percent"),
-                        deal.get("deal_type"),
-                        deal.get("deal_badge"),
-                        deal.get("time_remaining"),
-                        deal.get("time_remaining_seconds"),
-                        deal.get("claimed_percent"),
-                        deal.get("deal_end_time"),
-                        deal.get("product_url"),
-                        deal.get("rating"),
-                        deal.get("reviews_count"),
-                        1 if is_competitor else 0
-                    ))
+                    await conn.execute(
+                        sql,
+                        (
+                            deal.get("snapshot_datetime"),
+                            deal.get("asin"),
+                            deal.get("product_name"),
+                            deal.get("brand"),
+                            deal.get("category"),
+                            deal.get("deal_price"),
+                            deal.get("original_price"),
+                            deal.get("discount_percent"),
+                            deal.get("deal_type"),
+                            deal.get("deal_badge"),
+                            deal.get("time_remaining"),
+                            deal.get("time_remaining_seconds"),
+                            deal.get("claimed_percent"),
+                            deal.get("deal_end_time"),
+                            deal.get("product_url"),
+                            deal.get("rating"),
+                            deal.get("reviews_count"),
+                            1 if is_competitor else 0,
+                        ),
+                    )
                     rows_added += 1
 
             logger.info(f"SQLite: {rows_added} deals saved")
@@ -885,7 +946,7 @@ class SQLiteStorage:
             logger.error(f"Deals save failed: {e}")
             return {"success": False, "error": str(e), "rows_added": rows_added}
 
-    async def save_deals_history(self, history: Dict[str, Any]) -> bool:
+    async def save_deals_history(self, history: dict[str, Any]) -> bool:
         """일별 Deals 히스토리 저장"""
         if not self._initialized:
             await self.initialize()
@@ -898,22 +959,25 @@ class SQLiteStorage:
         """
 
         try:
-            with self.get_connection() as conn:
-                conn.execute(sql, (
-                    history.get("snapshot_date"),
-                    history.get("brand"),
-                    history.get("total_deals", 0),
-                    history.get("lightning_deals", 0),
-                    history.get("avg_discount_percent"),
-                    history.get("max_discount_percent"),
-                    json.dumps(history.get("products_on_deal", []))
-                ))
+            async with self.get_async_connection() as conn:
+                await conn.execute(
+                    sql,
+                    (
+                        history.get("snapshot_date"),
+                        history.get("brand"),
+                        history.get("total_deals", 0),
+                        history.get("lightning_deals", 0),
+                        history.get("avg_discount_percent"),
+                        history.get("max_discount_percent"),
+                        json.dumps(history.get("products_on_deal", [])),
+                    ),
+                )
             return True
         except Exception as e:
             logger.error(f"Deals history save failed: {e}")
             return False
 
-    async def save_deal_alert(self, alert: Dict[str, Any]) -> int:
+    async def save_deal_alert(self, alert: dict[str, Any]) -> int:
         """할인 알림 저장 (ID 반환)"""
         if not self._initialized:
             await self.initialize()
@@ -926,27 +990,28 @@ class SQLiteStorage:
         """
 
         try:
-            with self.get_connection() as conn:
-                cursor = conn.execute(sql, (
-                    alert.get("alert_datetime", datetime.now(KST).isoformat()),
-                    alert.get("brand"),
-                    alert.get("asin"),
-                    alert.get("product_name"),
-                    alert.get("deal_type"),
-                    alert.get("discount_percent"),
-                    alert.get("alert_type"),
-                    alert.get("alert_message")
-                ))
+            async with self.get_async_connection() as conn:
+                cursor = await conn.execute(
+                    sql,
+                    (
+                        alert.get("alert_datetime", datetime.now(KST).isoformat()),
+                        alert.get("brand"),
+                        alert.get("asin"),
+                        alert.get("product_name"),
+                        alert.get("deal_type"),
+                        alert.get("discount_percent"),
+                        alert.get("alert_type"),
+                        alert.get("alert_message"),
+                    ),
+                )
                 return cursor.lastrowid
         except Exception as e:
             logger.error(f"Deal alert save failed: {e}")
             return -1
 
     async def get_competitor_deals(
-        self,
-        brand: Optional[str] = None,
-        hours: int = 24
-    ) -> List[Dict[str, Any]]:
+        self, brand: str | None = None, hours: int = 24
+    ) -> list[dict[str, Any]]:
         """경쟁사 딜 조회"""
         if not self._initialized:
             await self.initialize()
@@ -968,20 +1033,22 @@ class SQLiteStorage:
             """
             params = (cutoff_time,)
 
-        with self.get_connection() as conn:
-            cursor = conn.execute(sql, params)
-            return [dict(row) for row in cursor.fetchall()]
+        async with self.get_async_connection() as conn:
+            cursor = await conn.execute(sql, params)
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
-    async def get_deals_summary(self, days: int = 7) -> Dict[str, Any]:
+    async def get_deals_summary(self, days: int = 7) -> dict[str, Any]:
         """Deals 요약 통계"""
         if not self._initialized:
             await self.initialize()
 
         cutoff_date = (datetime.now(KST) - timedelta(days=days)).strftime("%Y-%m-%d")
 
-        with self.get_connection() as conn:
+        async with self.get_async_connection() as conn:
             # 브랜드별 딜 현황
-            cursor = conn.execute("""
+            cursor = await conn.execute(
+                """
                 SELECT
                     brand,
                     COUNT(*) as total_deals,
@@ -993,12 +1060,16 @@ class SQLiteStorage:
                 GROUP BY brand
                 ORDER BY total_deals DESC
                 LIMIT 20
-            """, (cutoff_date,))
+            """,
+                (cutoff_date,),
+            )
 
-            by_brand = [dict(row) for row in cursor.fetchall()]
+            rows = await cursor.fetchall()
+            by_brand = [dict(row) for row in rows]
 
             # 일별 추이
-            cursor = conn.execute("""
+            cursor = await conn.execute(
+                """
                 SELECT
                     DATE(snapshot_datetime) as date,
                     COUNT(*) as total_deals,
@@ -1008,44 +1079,43 @@ class SQLiteStorage:
                 WHERE DATE(snapshot_datetime) >= ?
                 GROUP BY DATE(snapshot_datetime)
                 ORDER BY date DESC
-            """, (cutoff_date,))
+            """,
+                (cutoff_date,),
+            )
 
-            by_date = [dict(row) for row in cursor.fetchall()]
+            rows = await cursor.fetchall()
+            by_date = [dict(row) for row in rows]
 
-            return {
-                "by_brand": by_brand,
-                "by_date": by_date,
-                "period_days": days
-            }
+            return {"by_brand": by_brand, "by_date": by_date, "period_days": days}
 
-    async def get_unsent_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_unsent_alerts(self, limit: int = 50) -> list[dict[str, Any]]:
         """미발송 알림 조회"""
         if not self._initialized:
             await self.initialize()
 
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
+        async with self.get_async_connection() as conn:
+            cursor = await conn.execute(
+                """
                 SELECT * FROM deals_alerts
                 WHERE is_sent = 0
                 ORDER BY alert_datetime DESC
                 LIMIT ?
-            """, (limit,))
-            return [dict(row) for row in cursor.fetchall()]
+            """,
+                (limit,),
+            )
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
     async def mark_alert_sent(self, alert_id: int) -> bool:
         """알림 발송 완료 표시"""
         try:
-            with self.get_connection() as conn:
-                conn.execute("UPDATE deals_alerts SET is_sent = 1 WHERE id = ?", (alert_id,))
+            async with self.get_async_connection() as conn:
+                await conn.execute("UPDATE deals_alerts SET is_sent = 1 WHERE id = ?", (alert_id,))
             return True
         except Exception:
             return False
 
-    def export_deals_report(
-        self,
-        output_path: str,
-        days: int = 7
-    ) -> Dict[str, Any]:
+    def export_deals_report(self, output_path: str, days: int = 7) -> dict[str, Any]:
         """
         Deals 분석 리포트 Excel 내보내기
 
@@ -1071,7 +1141,8 @@ class SQLiteStorage:
             with pd.ExcelWriter(str(output_path), engine="openpyxl") as writer:
                 with self.get_connection() as conn:
                     # 1. Summary 시트
-                    df_summary = pd.read_sql_query("""
+                    df_summary = pd.read_sql_query(
+                        """
                         SELECT
                             brand as "브랜드",
                             COUNT(*) as "총 딜 수",
@@ -1083,14 +1154,18 @@ class SQLiteStorage:
                         WHERE DATE(snapshot_datetime) >= ?
                         GROUP BY brand
                         ORDER BY COUNT(*) DESC
-                    """, conn, params=(cutoff_date,))
+                    """,
+                        conn,
+                        params=(cutoff_date,),
+                    )
 
                     if not df_summary.empty:
                         df_summary.to_excel(writer, sheet_name="Summary", index=False)
                         sheets_created.append("Summary")
 
                     # 2. 일별 추이
-                    df_daily = pd.read_sql_query("""
+                    df_daily = pd.read_sql_query(
+                        """
                         SELECT
                             DATE(snapshot_datetime) as "날짜",
                             COUNT(*) as "총 딜",
@@ -1100,14 +1175,18 @@ class SQLiteStorage:
                         WHERE DATE(snapshot_datetime) >= ?
                         GROUP BY DATE(snapshot_datetime)
                         ORDER BY DATE(snapshot_datetime) DESC
-                    """, conn, params=(cutoff_date,))
+                    """,
+                        conn,
+                        params=(cutoff_date,),
+                    )
 
                     if not df_daily.empty:
                         df_daily.to_excel(writer, sheet_name="Daily Trend", index=False)
                         sheets_created.append("Daily Trend")
 
                     # 3. 경쟁사 딜 상세
-                    df_competitor = pd.read_sql_query("""
+                    df_competitor = pd.read_sql_query(
+                        """
                         SELECT
                             snapshot_datetime as "수집시각",
                             brand as "브랜드",
@@ -1122,14 +1201,18 @@ class SQLiteStorage:
                         WHERE is_competitor = 1 AND DATE(snapshot_datetime) >= ?
                         ORDER BY snapshot_datetime DESC
                         LIMIT 500
-                    """, conn, params=(cutoff_date,))
+                    """,
+                        conn,
+                        params=(cutoff_date,),
+                    )
 
                     if not df_competitor.empty:
                         df_competitor.to_excel(writer, sheet_name="Competitor Deals", index=False)
                         sheets_created.append("Competitor Deals")
 
                     # 4. Lightning Deals
-                    df_lightning = pd.read_sql_query("""
+                    df_lightning = pd.read_sql_query(
+                        """
                         SELECT
                             snapshot_datetime as "수집시각",
                             brand as "브랜드",
@@ -1143,7 +1226,10 @@ class SQLiteStorage:
                         WHERE deal_type = 'lightning' AND DATE(snapshot_datetime) >= ?
                         ORDER BY snapshot_datetime DESC
                         LIMIT 200
-                    """, conn, params=(cutoff_date,))
+                    """,
+                        conn,
+                        params=(cutoff_date,),
+                    )
 
                     if not df_lightning.empty:
                         df_lightning.to_excel(writer, sheet_name="Lightning Deals", index=False)
@@ -1154,7 +1240,7 @@ class SQLiteStorage:
                         no_data_info = [
                             {"항목": "분석 기간", "값": f"최근 {days}일"},
                             {"항목": "결과", "값": "해당 기간에 딜 데이터가 없습니다"},
-                            {"항목": "안내", "값": "딜 모니터링이 시작된 후 데이터가 수집됩니다"}
+                            {"항목": "안내", "값": "딜 모니터링이 시작된 후 데이터가 수집됩니다"},
                         ]
                         df_no_data = pd.DataFrame(no_data_info)
                         df_no_data.to_excel(writer, sheet_name="No Data", index=False)
@@ -1165,7 +1251,7 @@ class SQLiteStorage:
                 "success": True,
                 "file_path": str(output_path),
                 "sheets": sheets_created,
-                "period_days": days
+                "period_days": days,
             }
 
         except Exception as e:
@@ -1177,7 +1263,7 @@ class SQLiteStorage:
 # 싱글톤 인스턴스
 # =============================================================================
 
-_storage_instance: Optional[SQLiteStorage] = None
+_storage_instance: SQLiteStorage | None = None
 
 
 def get_sqlite_storage() -> SQLiteStorage:

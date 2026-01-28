@@ -1,11 +1,18 @@
 """Prompt management module"""
+
 from pathlib import Path
-from typing import Dict
+
+from prompts.version_manager import (
+    PromptVersion,
+    PromptVersionManager,
+    get_prompt_manager,
+)
+
 
 class PromptLoader:
     """Load and cache prompt templates"""
 
-    _cache: Dict[str, str] = {}
+    _cache: dict[str, str] = {}
     _prompts_dir = Path(__file__).parent
 
     @classmethod
@@ -14,7 +21,7 @@ class PromptLoader:
         if name not in cls._cache:
             prompt_file = cls._prompts_dir / f"{name}.txt"
             if prompt_file.exists():
-                cls._cache[name] = prompt_file.read_text(encoding='utf-8')
+                cls._cache[name] = prompt_file.read_text(encoding="utf-8")
             else:
                 raise FileNotFoundError(f"Prompt not found: {name}")
         return cls._cache[name]
@@ -24,3 +31,11 @@ class PromptLoader:
         """Get prompt and format with variables"""
         template = cls.get(name)
         return template.format(**kwargs)
+
+
+__all__ = [
+    "PromptLoader",
+    "PromptVersion",
+    "PromptVersionManager",
+    "get_prompt_manager",
+]

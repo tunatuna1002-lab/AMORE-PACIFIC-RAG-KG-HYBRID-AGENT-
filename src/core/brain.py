@@ -1,6 +1,6 @@
 """
-통합 두뇌 (Unified Brain)
-=========================
+통합 두뇌 (Unified Brain) - Facade Pattern
+==========================================
 Level 4 Autonomous Agent의 핵심 두뇌
 
 역할:
@@ -9,16 +9,17 @@ Level 4 Autonomous Agent의 핵심 두뇌
 3. 자율 작업과 사용자 요청 우선순위 관리
 4. 상태 관리 및 이벤트 처리
 
+아키텍처 (SRP 분해):
+- QueryProcessor: 사용자 질문 처리
+- DecisionMaker: LLM 의사결정
+- ToolCoordinator: 도구 실행 조율
+- AlertManager: 알림 처리
+- UnifiedBrain: Facade (위 컴포넌트 조율)
+
 동작 모드:
 - 자율 모드: 스케줄 기반 자동 작업 (크롤링, 분석, 알림)
 - 대화 모드: 사용자 질문 처리 (최우선)
 - 알림 모드: 이벤트 기반 알림 생성
-
-의사결정 흐름 (LLM-First):
-1. 컨텍스트 수집 (RAG + KG)
-2. LLM이 상황 분석 및 에이전트 선택
-3. 에이전트 실행
-4. 응답 생성
 
 Usage:
     brain = UnifiedBrain()
@@ -31,36 +32,39 @@ Usage:
     await brain.run_autonomous_cycle()
 """
 
-import logging
-import json
 import asyncio
-from datetime import datetime, time, timedelta, timezone
-from typing import Dict, List, Any, Optional, Callable, TYPE_CHECKING
-from enum import Enum
-from dataclasses import dataclass, field
 import heapq
+import json
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
 
-from litellm import acompletion
 
-from .models import Context, Response, ToolResult, ConfidenceLevel
-from .confidence import ConfidenceAssessor
+# SRP 분해된 컴포넌트
+from .alert_manager import AlertManager
 from .cache import ResponseCache
-from .state import OrchestratorState
+from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
-from .tools import ToolExecutor, AGENT_TOOLS
+from .decision_maker import DecisionMaker
+from .models import Context, Response, ToolResult
+from .query_processor import QueryProcessor
 from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
+from .state import OrchestratorState
+from .tool_coordinator import ErrorStrategy, ToolCoordinator
+from .tools import AGENT_TOOLS, ToolExecutor
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
-    from .batch_workflow import BatchWorkflow
     from ..tools.market_intelligence import MarketIntelligenceEngine
 
-# AlertAgent 관련 임포트 (실제 사용)
-from ..agents.alert_agent import AlertAgent, AlertPriority
+# AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
 from ..core.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
@@ -70,138 +74,80 @@ logger = logging.getLogger(__name__)
 # 타입 정의
 # =============================================================================
 
+
 class BrainMode(Enum):
     """두뇌 동작 모드"""
-    IDLE = "idle"                    # 대기
-    AUTONOMOUS = "autonomous"        # 자율 작업 중
-    RESPONDING = "responding"        # 사용자 응답 중
-    EXECUTING = "executing"          # 에이전트 실행 중
-    ALERTING = "alerting"            # 알림 처리 중
+
+    IDLE = "idle"  # 대기
+    AUTONOMOUS = "autonomous"  # 자율 작업 중
+    RESPONDING = "responding"  # 사용자 응답 중
+    EXECUTING = "executing"  # 에이전트 실행 중
+    ALERTING = "alerting"  # 알림 처리 중
 
 
 class TaskPriority(Enum):
     """작업 우선순위"""
-    USER_REQUEST = 0      # 사용자 요청 (최우선)
-    CRITICAL_ALERT = 1    # 중요 알림
-    SCHEDULED = 2         # 예약 작업
-    BACKGROUND = 3        # 백그라운드 작업
 
-
-class ErrorStrategy(Enum):
-    """에러 처리 전략"""
-    RETRY = "retry"
-    FALLBACK = "fallback"
-    SKIP = "skip"
-    NOTIFY_USER = "notify_user"
+    USER_REQUEST = 0  # 사용자 요청 (최우선)
+    CRITICAL_ALERT = 1  # 중요 알림
+    SCHEDULED = 2  # 예약 작업
+    BACKGROUND = 3  # 백그라운드 작업
 
 
 @dataclass
 class BrainTask:
     """두뇌가 처리할 작업"""
+
     id: str
-    type: str                       # query, scheduled, alert, autonomous
+    type: str  # query, scheduled, alert, autonomous
     priority: TaskPriority
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     created_at: datetime = field(default_factory=datetime.now)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    result: Optional[Any] = None
-    error: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    result: Any | None = None
+    error: str | None = None
 
     def __lt__(self, other):
         """우선순위 기반 정렬"""
         return self.priority.value < other.priority.value
 
 
-@dataclass
-class AgentError:
-    """에이전트 에러 정보"""
-    agent_name: str
-    error_message: str
-    error_type: str
-    timestamp: datetime = field(default_factory=datetime.now)
-    retry_count: int = 0
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "agent": self.agent_name,
-            "message": self.error_message,
-            "type": self.error_type,
-            "timestamp": self.timestamp.isoformat(),
-            "retry_count": self.retry_count
-        }
-
-
-# 에이전트별 에러 전략
-AGENT_ERROR_STRATEGIES: Dict[str, ErrorStrategy] = {
-    "crawl_amazon": ErrorStrategy.FALLBACK,
-    "calculate_metrics": ErrorStrategy.RETRY,
-    "query_data": ErrorStrategy.FALLBACK,
-    "query_knowledge_graph": ErrorStrategy.SKIP,
-    "generate_insight": ErrorStrategy.RETRY,
-    "send_alert": ErrorStrategy.RETRY,
-    "workflow": ErrorStrategy.RETRY,
-}
-
-
 # =============================================================================
-# 통합 두뇌
+# 통합 두뇌 (Facade Pattern)
 # =============================================================================
+
 
 class UnifiedBrain:
     """
     Level 4 Autonomous Agent의 통합 두뇌 (LLM-First)
 
-    모든 에이전트를 통제하고, 자율 작업과 사용자 요청을 관리합니다.
+    Facade 패턴으로 구현되어 내부 컴포넌트들을 조율합니다.
 
     핵심 원칙:
     1. 사용자 요청은 항상 최우선
     2. 모든 판단은 LLM이 담당 (LLM-First)
     3. 자율 스케줄링으로 데이터 자동 수집
     4. 이벤트 기반 알림 시스템
+
+    내부 컴포넌트 (SRP):
+    - DecisionMaker: LLM 의사결정 전담
+    - ToolCoordinator: 도구 실행 조율
+    - AlertManager: 알림 처리 전담
+    - QueryProcessor: 사용자 질문 처리 전담
     """
 
-    # LLM 판단 프롬프트
-    DECISION_PROMPT = """당신은 Amazon 마켓 분석 시스템의 자율 에이전트입니다.
-
-## 현재 시스템 상태
-{system_state}
-
-## 사용 가능한 도구
-{tools_description}
-
-## 수집된 컨텍스트
-{context_summary}
-
-## 사용자 질문
-{query}
-
-## 지시사항
-1. 시스템 상태와 컨텍스트를 분석하세요
-2. 질문에 답하기 위해 필요한 것을 파악하세요
-3. 컨텍스트만으로 답변 가능하면 "direct_answer"를 선택하세요
-4. 추가 데이터가 필요하면 적절한 도구를 선택하세요
-5. 데이터가 오래됐으면 크롤링을 권장하세요
-
-반드시 다음 JSON 형식으로만 응답하세요:
-```json
-{{
-    "tool": "도구명 또는 direct_answer",
-    "tool_params": {{}},
-    "reason": "선택 이유",
-    "confidence": 0.0~1.0,
-    "key_points": ["핵심 포인트1", "핵심 포인트2"]
-}}
-```"""
+    # LLM 판단 프롬프트 (DecisionMaker와 공유, 하위호환성 유지)
+    DECISION_PROMPT = DecisionMaker.DECISION_PROMPT
 
     def __init__(
         self,
-        context_gatherer: Optional[ContextGatherer] = None,
-        tool_executor: Optional[ToolExecutor] = None,
-        response_pipeline: Optional[ResponsePipeline] = None,
-        cache: Optional[ResponseCache] = None,
+        context_gatherer: ContextGatherer | None = None,
+        tool_executor: ToolExecutor | None = None,
+        response_pipeline: ResponsePipeline | None = None,
+        cache: ResponseCache | None = None,
         model: str = "gpt-4o-mini",
-        max_retries: int = 2
+        max_retries: int = 2,
     ):
         """
         Args:
@@ -212,43 +158,47 @@ class UnifiedBrain:
             model: LLM 모델
             max_retries: 최대 재시도 횟수
         """
-        # 핵심 컴포넌트
-        self.context_gatherer = context_gatherer
-        self.tool_executor = tool_executor or ToolExecutor()
-        self.response_pipeline = response_pipeline
+        # 공유 컴포넌트
         self.cache = cache or ResponseCache()
         self.confidence_assessor = ConfidenceAssessor()
+        self.state = OrchestratorState()
 
         # LLM 설정
         self.model = model
         self.max_retries = max_retries
 
-        # 상태 관리
-        self.state = OrchestratorState()
-        self.mode = BrainMode.IDLE
-        self._current_task: Optional[BrainTask] = None
+        # 외부 주입 또는 기본 컴포넌트
+        self._context_gatherer = context_gatherer
+        self._tool_executor = tool_executor or ToolExecutor()
+        self._response_pipeline = response_pipeline
+
+        # SRP 분해된 내부 컴포넌트 (lazy init)
+        self._decision_maker: DecisionMaker | None = None
+        self._tool_coordinator: ToolCoordinator | None = None
+        self._alert_manager: AlertManager | None = None
+        self._query_processor: QueryProcessor | None = None
 
         # 자율 스케줄러
         self.scheduler = AutonomousScheduler()
 
-        # 작업 큐 (우선순위 힙)
-        self._task_queue: List[BrainTask] = []
-        self._task_history: List[BrainTask] = []
+        # 모드 및 상태
+        self.mode = BrainMode.IDLE
+        self._current_task: BrainTask | None = None
 
-        # 에러 추적
-        self._error_history: List[AgentError] = []
-        self._failed_agents: Dict[str, datetime] = {}
+        # 작업 큐 (우선순위 힙)
+        self._task_queue: list[BrainTask] = []
+        self._task_history: list[BrainTask] = []
 
         # 이벤트 콜백
-        self._event_handlers: Dict[str, List[Callable]] = {}
+        self._event_handlers: dict[str, list[Callable]] = {}
 
         # 에이전트 (lazy init)
-        self._query_agent = None
         self._workflow_agent = None
         self._alert_agent = None
+        self._react_agent = None
 
         # Market Intelligence Engine (lazy init)
-        self._market_intelligence: Optional['MarketIntelligenceEngine'] = None
+        self._market_intelligence: MarketIntelligenceEngine | None = None
 
         # 통계
         self._stats = {
@@ -257,11 +207,75 @@ class UnifiedBrain:
             "cache_hits": 0,
             "autonomous_tasks": 0,
             "alerts_generated": 0,
-            "errors": 0
+            "errors": 0,
         }
 
         # 초기화 플래그
         self._initialized = False
+
+    # =========================================================================
+    # Properties - SRP 컴포넌트 접근 (lazy init)
+    # =========================================================================
+
+    @property
+    def context_gatherer(self) -> ContextGatherer | None:
+        """컨텍스트 수집기"""
+        return self._context_gatherer
+
+    @context_gatherer.setter
+    def context_gatherer(self, value: ContextGatherer | None) -> None:
+        """컨텍스트 수집기 설정"""
+        self._context_gatherer = value
+
+    @property
+    def tool_executor(self) -> ToolExecutor:
+        """도구 실행기"""
+        return self._tool_executor
+
+    @property
+    def response_pipeline(self) -> ResponsePipeline | None:
+        """응답 파이프라인"""
+        return self._response_pipeline
+
+    @property
+    def decision_maker(self) -> DecisionMaker:
+        """의사결정 컴포넌트 (lazy init)"""
+        if self._decision_maker is None:
+            self._decision_maker = DecisionMaker(model=self.model)
+        return self._decision_maker
+
+    @property
+    def tool_coordinator(self) -> ToolCoordinator:
+        """도구 조율 컴포넌트 (lazy init)"""
+        if self._tool_coordinator is None:
+            self._tool_coordinator = ToolCoordinator(
+                tool_executor=self._tool_executor,
+                state=self.state,
+                cache=self.cache,
+                max_retries=self.max_retries,
+            )
+        return self._tool_coordinator
+
+    @property
+    def alert_manager(self) -> AlertManager:
+        """알림 관리 컴포넌트 (lazy init)"""
+        if self._alert_manager is None:
+            self._alert_manager = AlertManager()
+        return self._alert_manager
+
+    @property
+    def query_processor(self) -> QueryProcessor:
+        """질문 처리 컴포넌트 (lazy init)"""
+        if self._query_processor is None:
+            self._query_processor = QueryProcessor(
+                decision_maker=self.decision_maker,
+                tool_coordinator=self.tool_coordinator,
+                response_pipeline=self._response_pipeline or ResponsePipeline(),
+                context_gatherer=self._context_gatherer,
+                cache=self.cache,
+                state=self.state,
+            )
+        return self._query_processor
 
     # =========================================================================
     # 초기화
@@ -273,30 +287,31 @@ class UnifiedBrain:
             return
 
         # Context Gatherer 초기화
-        if self.context_gatherer:
-            await self.context_gatherer.initialize()
+        if self._context_gatherer:
+            await self._context_gatherer.initialize()
         else:
             # 기본 Context Gatherer 생성
-            from ..rag.hybrid_retriever import HybridRetriever
             from ..ontology.knowledge_graph import KnowledgeGraph
             from ..ontology.reasoner import OntologyReasoner
+            from ..rag.hybrid_retriever import HybridRetriever
 
             kg = KnowledgeGraph(persist_path="./data/knowledge_graph.json")
             reasoner = OntologyReasoner(kg)
             hybrid_retriever = HybridRetriever(kg, reasoner)
 
-            self.context_gatherer = ContextGatherer(
-                hybrid_retriever=hybrid_retriever,
-                orchestrator_state=self.state
+            self._context_gatherer = ContextGatherer(
+                hybrid_retriever=hybrid_retriever, orchestrator_state=self.state
             )
-            await self.context_gatherer.initialize()
+            await self._context_gatherer.initialize()
 
         # Response Pipeline 초기화
-        if not self.response_pipeline:
-            self.response_pipeline = ResponsePipeline()
+        if not self._response_pipeline:
+            self._response_pipeline = ResponsePipeline()
 
-        # AlertAgent 초기화
+        # AlertAgent 초기화 (지연 임포트로 순환 import 방지)
         try:
+            from ..agents.alert_agent import AlertAgent
+
             state_manager = StateManager()
             self._alert_agent = AlertAgent(state_manager)
             logger.info("AlertAgent initialized successfully")
@@ -304,8 +319,22 @@ class UnifiedBrain:
             logger.warning(f"AlertAgent initialization failed: {e}")
             self._alert_agent = None
 
+        # AlertManager 초기화
+        await self.alert_manager.initialize()
+
+        # ReActAgent 초기화 (있으면)
+        try:
+            from ..agents.react_agent import get_react_agent
+
+            self._react_agent = get_react_agent()
+            self._react_agent.set_tool_executor(self._tool_executor)
+            logger.info("ReActAgent initialized")
+        except Exception as e:
+            logger.debug(f"ReActAgent not available: {e}")
+            self._react_agent = None
+
         self._initialized = True
-        logger.info("UnifiedBrain initialized (LLM-First mode)")
+        logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
 
     # =========================================================================
     # 이벤트 시스템
@@ -317,7 +346,7 @@ class UnifiedBrain:
             self._event_handlers[event_name] = []
         self._event_handlers[event_name].append(handler)
 
-    async def emit_event(self, event_name: str, data: Dict[str, Any] = None) -> None:
+    async def emit_event(self, event_name: str, data: dict[str, Any] | None = None) -> None:
         """이벤트 발생"""
         data = data or {}
         logger.debug(f"Event emitted: {event_name}")
@@ -333,75 +362,23 @@ class UnifiedBrain:
             except Exception as e:
                 logger.error(f"Event handler error: {e}")
 
-        # 알림 조건 체크
+        # 알림 조건 체크 (AlertManager에 위임)
         if event_name in ["crawl_complete", "metrics_calculated", "rank_changed"]:
-            await self._check_alert_conditions(event_name, data)
+            alerts = await self.alert_manager.check_conditions(event_name, data)
+            for alert in alerts:
+                await self._process_alert(alert)
 
-    async def _check_alert_conditions(self, event_name: str, data: Dict[str, Any]) -> None:
-        """알림 조건 체크 및 알림 생성"""
-        alerts = []
-
-        if event_name == "rank_changed":
-            product = data.get("product", {})
-            change = data.get("change", 0)
-
-            # 급락/급등 체크
-            if abs(change) >= 10:
-                alert_type = "rank_drop" if change > 0 else "rank_surge"
-                alerts.append({
-                    "type": alert_type,
-                    "product": product.get("name"),
-                    "change": change,
-                    "message": f"{product.get('name')} 순위 {'급락' if change > 0 else '급등'}: {abs(change)}단계"
-                })
-
+    async def _check_alert_conditions(self, event_name: str, data: dict[str, Any]) -> None:
+        """알림 조건 체크 (하위호환성 유지, AlertManager에 위임)"""
+        alerts = await self.alert_manager.check_conditions(event_name, data)
         for alert in alerts:
             await self._process_alert(alert)
 
-    async def _process_alert(self, alert: Dict[str, Any]) -> None:
-        """알림 처리 및 이메일 발송"""
+    async def _process_alert(self, alert: dict[str, Any]) -> None:
+        """알림 처리 (AlertManager에 위임)"""
         self._stats["alerts_generated"] += 1
-
-        # 알림 이벤트 발생
         await self.emit_event("alert_generated", alert)
-
-        # Lazy initialization if not already initialized
-        if not self._alert_agent:
-            try:
-                state_manager = StateManager()
-                self._alert_agent = AlertAgent(state_manager)
-                logger.info("AlertAgent lazy initialized")
-            except Exception as e:
-                logger.warning(f"AlertAgent lazy init failed: {e}")
-
-        # AlertAgent로 알림 처리 및 이메일 발송
-        if self._alert_agent:
-            try:
-                # 알림 타입에 따른 우선순위 매핑
-                priority_map = {
-                    "rank_drop": AlertPriority.HIGH,
-                    "rank_surge": AlertPriority.NORMAL,
-                    "sos_drop": AlertPriority.HIGH,
-                    "sos_surge": AlertPriority.NORMAL,
-                    "error": AlertPriority.CRITICAL,
-                    "crawl_complete": AlertPriority.LOW,
-                }
-                priority = priority_map.get(alert.get("type"), AlertPriority.NORMAL)
-
-                # AlertAgent를 통해 알림 생성
-                self._alert_agent.create_alert(
-                    alert_type=alert.get("type", "unknown"),
-                    title=alert.get("message", "알림"),
-                    message=alert.get("details", alert.get("message", "")),
-                    data=alert,
-                    priority=priority
-                )
-
-                # 즉시 발송 (pending alerts 포함)
-                send_result = await self._alert_agent.send_pending_alerts()
-                logger.info(f"Alert processed: {alert.get('type')} - sent: {send_result.get('sent', 0)}")
-            except Exception as e:
-                logger.error(f"Failed to send alert: {e}")
+        await self.alert_manager.process_alert(alert)
 
     # =========================================================================
     # 사용자 질문 처리 (최우선)
@@ -410,9 +387,9 @@ class UnifiedBrain:
     async def process_query(
         self,
         query: str,
-        session_id: Optional[str] = None,
-        current_metrics: Optional[Dict[str, Any]] = None,
-        skip_cache: bool = False
+        session_id: str | None = None,
+        current_metrics: dict[str, Any] | None = None,
+        skip_cache: bool = False,
     ) -> Response:
         """
         사용자 질문 처리 (최우선)
@@ -457,30 +434,31 @@ class UnifiedBrain:
             system_state = self._get_system_state(current_metrics)
 
             # 3. 컨텍스트 수집
-            context = await self.context_gatherer.gather(
-                query=query,
-                current_metrics=current_metrics
+            context = await self._context_gatherer.gather(
+                query=query, current_metrics=current_metrics
             )
 
-            # 4. LLM 의사결정 (LLM-First)
-            decision = await self._make_llm_decision(query, context, system_state)
+            # 4. 복잡도 판단 및 ReAct 모드 활성화
+            if self._react_agent and self._is_complex_query(query, context):
+                logger.info(f"Complex query detected, using ReAct mode: {query[:50]}...")
+                response = await self._process_with_react(query, context)
+            else:
+                # 4. LLM 의사결정 (DecisionMaker에 위임)
+                decision = await self.decision_maker.decide(query, context, system_state)
+                self._stats["llm_decisions"] += 1
 
-            # 5. 도구 실행 (필요시)
-            tool_result = None
-            if decision.get("tool") and decision["tool"] != "direct_answer":
-                self.mode = BrainMode.EXECUTING
-                tool_result = await self._execute_tool(
-                    tool_name=decision["tool"],
-                    params=decision.get("tool_params", {})
+                # 5. 도구 실행 (필요시, ToolCoordinator에 위임)
+                tool_result = None
+                if decision.get("tool") and decision["tool"] != "direct_answer":
+                    self.mode = BrainMode.EXECUTING
+                    tool_result = await self.tool_coordinator.execute(
+                        tool_name=decision["tool"], params=decision.get("tool_params", {})
+                    )
+
+                # 6. 응답 생성
+                response = await self._generate_response(
+                    query=query, context=context, decision=decision, tool_result=tool_result
                 )
-
-            # 6. 응답 생성
-            response = await self._generate_response(
-                query=query,
-                context=context,
-                decision=decision,
-                tool_result=tool_result
-            )
 
             # 처리 시간
             response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
@@ -501,50 +479,22 @@ class UnifiedBrain:
             self.mode = previous_mode
 
     # =========================================================================
-    # LLM 의사결정 (LLM-First)
+    # LLM 의사결정 (하위호환성 유지, DecisionMaker에 위임)
     # =========================================================================
 
     async def _make_llm_decision(
-        self,
-        query: str,
-        context: Context,
-        system_state: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, query: str, context: Context, system_state: dict[str, Any]
+    ) -> dict[str, Any]:
         """
-        LLM 기반 의사결정 (LLM-First)
+        LLM 기반 의사결정 (DecisionMaker에 위임)
 
-        모든 판단을 LLM이 담당합니다.
+        하위호환성을 위해 유지합니다.
         """
         self._stats["llm_decisions"] += 1
+        return await self.decision_maker.decide(query, context, system_state)
 
-        try:
-            prompt = self.DECISION_PROMPT.format(
-                system_state=self._format_system_state(system_state),
-                tools_description=self._format_tools_description(system_state),
-                context_summary=context.summary or "컨텍스트 없음",
-                query=query
-            )
-
-            response = await acompletion(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=500,
-                temperature=0.1
-            )
-
-            return self._parse_decision(response.choices[0].message.content)
-
-        except Exception as e:
-            logger.error(f"LLM decision failed: {e}")
-            return {
-                "tool": "direct_answer",
-                "reason": f"LLM 오류: {e}",
-                "confidence": 0.3,
-                "key_points": []
-            }
-
-    def _parse_decision(self, response_text: str) -> Dict[str, Any]:
-        """LLM 응답 파싱"""
+    def _parse_decision(self, response_text: str) -> dict[str, Any]:
+        """LLM 응답 파싱 (하위호환성)"""
         try:
             json_start = response_text.find("{")
             json_end = response_text.rfind("}") + 1
@@ -554,128 +504,33 @@ class UnifiedBrain:
         except json.JSONDecodeError:
             logger.warning("Failed to parse LLM decision")
 
-        return {
-            "tool": "direct_answer",
-            "reason": "파싱 실패",
-            "confidence": 0.5,
-            "key_points": []
-        }
+        return {"tool": "direct_answer", "reason": "파싱 실패", "confidence": 0.5, "key_points": []}
 
     # =========================================================================
-    # 도구 실행
+    # 도구 실행 (하위호환성 유지, ToolCoordinator에 위임)
     # =========================================================================
 
-    async def _execute_tool(
-        self,
-        tool_name: str,
-        params: Dict[str, Any]
-    ) -> ToolResult:
-        """에러 처리가 포함된 도구 실행"""
-        strategy = AGENT_ERROR_STRATEGIES.get(tool_name, ErrorStrategy.NOTIFY_USER)
-        retry_count = 0
+    async def _execute_tool(self, tool_name: str, params: dict[str, Any]) -> ToolResult:
+        """
+        도구 실행 (ToolCoordinator에 위임)
 
-        while retry_count <= self.max_retries:
-            try:
-                self.state.start_tool(tool_name)
-                result = await self.tool_executor.execute(tool_name, params)
-                self.state.end_tool(tool_name)
-
-                if result.success:
-                    self._failed_agents.pop(tool_name, None)
-                    return result
-
-                # 실패 처리
-                error = AgentError(
-                    agent_name=tool_name,
-                    error_message=result.error or "Unknown error",
-                    error_type="execution",
-                    retry_count=retry_count
-                )
-                return await self._handle_error(error, strategy, params)
-
-            except asyncio.TimeoutError:
-                self.state.end_tool(tool_name)
-                error = AgentError(
-                    agent_name=tool_name,
-                    error_message="Timeout",
-                    error_type="timeout",
-                    retry_count=retry_count
-                )
-
-                if strategy == ErrorStrategy.RETRY and retry_count < self.max_retries:
-                    retry_count += 1
-                    await asyncio.sleep(1)
-                    continue
-
-                return await self._handle_error(error, strategy, params)
-
-            except Exception as e:
-                self.state.end_tool(tool_name)
-                error = AgentError(
-                    agent_name=tool_name,
-                    error_message=str(e),
-                    error_type="exception",
-                    retry_count=retry_count
-                )
-
-                if strategy == ErrorStrategy.RETRY and retry_count < self.max_retries:
-                    retry_count += 1
-                    await asyncio.sleep(1)
-                    continue
-
-                return await self._handle_error(error, strategy, params)
-
-        return ToolResult(
-            tool_name=tool_name,
-            success=False,
-            error=f"최대 재시도 초과 ({self.max_retries}회)"
-        )
+        하위호환성을 위해 유지합니다.
+        """
+        return await self.tool_coordinator.execute(tool_name, params)
 
     async def _handle_error(
-        self,
-        error: AgentError,
-        strategy: ErrorStrategy,
-        params: Dict[str, Any]
+        self, error: Any, strategy: ErrorStrategy, params: dict[str, Any]
     ) -> ToolResult:
-        """에러 전략에 따른 처리"""
+        """
+        에러 처리 (하위호환성)
+
+        ToolCoordinator가 내부적으로 처리합니다.
+        """
         self._stats["errors"] += 1
-        self._error_history.append(error)
-        self._failed_agents[error.agent_name] = error.timestamp
-
-        # 히스토리 크기 제한
-        if len(self._error_history) > 100:
-            self._error_history = self._error_history[-50:]
-
-        logger.warning(f"Error in {error.agent_name}: {error.error_message}")
-
-        # 에러 이벤트 발생
-        await self.emit_event("error_occurred", {
-            "agent": error.agent_name,
-            "error": error.error_message,
-            "strategy": strategy.value
-        })
-
-        if strategy == ErrorStrategy.FALLBACK:
-            cached = self.cache.get_tool_result(error.agent_name)
-            if cached:
-                return ToolResult(
-                    tool_name=error.agent_name,
-                    success=True,
-                    data={**cached, "_from_cache": True}
-                )
-
-        elif strategy == ErrorStrategy.SKIP:
-            return ToolResult(
-                tool_name=error.agent_name,
-                success=True,
-                data={"_skipped": True}
-            )
-
-        # NOTIFY_USER 또는 기타
         return ToolResult(
-            tool_name=error.agent_name,
+            tool_name=error.agent_name if hasattr(error, "agent_name") else "unknown",
             success=False,
-            error=error.error_message
+            error=str(error),
         )
 
     # =========================================================================
@@ -686,39 +541,107 @@ class UnifiedBrain:
         self,
         query: str,
         context: Context,
-        decision: Dict[str, Any],
-        tool_result: Optional[ToolResult] = None
+        decision: dict[str, Any],
+        tool_result: ToolResult | None = None,
     ) -> Response:
         """응답 생성"""
-        if self.response_pipeline:
-            return await self.response_pipeline.generate(
-                query=query,
-                context=context,
-                decision=decision,
-                tool_result=tool_result
+        if self._response_pipeline:
+            return await self._response_pipeline.generate(
+                query=query, context=context, decision=decision, tool_result=tool_result
             )
 
         # 폴백 응답 생성
         content = ""
         if tool_result and tool_result.success:
-            content = f"도구 실행 결과:\n{json.dumps(tool_result.data, ensure_ascii=False, indent=2)}"
+            content = (
+                f"도구 실행 결과:\n{json.dumps(tool_result.data, ensure_ascii=False, indent=2)}"
+            )
         elif context.summary:
             content = context.summary
         else:
             content = "관련 정보를 찾을 수 없습니다."
 
         return Response(
-            content=content,
-            confidence=decision.get("confidence", 0.5),
+            text=content,
+            confidence_score=decision.get("confidence", 0.5),
             sources=context.rag_docs[:3] if context.rag_docs else [],
-            tools_called=[decision.get("tool")] if decision.get("tool") != "direct_answer" else []
+            tools_called=[decision.get("tool")] if decision.get("tool") != "direct_answer" else [],
         )
+
+    # =========================================================================
+    # ReAct 처리
+    # =========================================================================
+
+    def _is_complex_query(self, query: str, context: Context) -> bool:
+        """
+        복잡한 질문인지 판단
+
+        복잡한 질문의 특징:
+        - 여러 단계 추론 필요
+        - 다중 데이터 소스 필요
+        - "왜", "어떻게", "비교" 등 분석적 질문
+        - 컨텍스트가 불충분
+        """
+        # 복잡도 키워드
+        complex_keywords = ["왜", "어떻게", "비교", "분석", "추천", "전략", "예측", "원인"]
+        has_complex_keyword = any(keyword in query for keyword in complex_keywords)
+
+        # 컨텍스트 부족
+        has_kg_triples = hasattr(context, "kg_triples") and context.kg_triples
+        low_context = not context.rag_docs or len(context.rag_docs) < 2 or not has_kg_triples
+
+        # 다단계 질문 (여러 개의 의문사 또는 접속사)
+        multi_step = query.count("?") > 1 or any(
+            conj in query for conj in ["그리고", "또한", "하지만", "그러나"]
+        )
+
+        return has_complex_keyword or (low_context and multi_step)
+
+    async def _process_with_react(self, query: str, context: Context) -> Response:
+        """
+        ReAct 모드로 질문 처리
+
+        Args:
+            query: 사용자 질문
+            context: 수집된 컨텍스트
+
+        Returns:
+            Response 객체
+        """
+        if not self._react_agent:
+            return Response.fallback("ReAct 에이전트를 사용할 수 없습니다.")
+
+        try:
+            # ReAct 실행
+            react_result = await self._react_agent.run(
+                query=query, context=context.summary or "컨텍스트 없음"
+            )
+
+            # 응답 생성
+            response = Response(
+                text=react_result.final_answer,
+                confidence_score=react_result.confidence,
+                sources=context.rag_docs[:3] if context.rag_docs else [],
+                tools_called=[step.action for step in react_result.steps if step.action],
+            )
+
+            # 개선 필요 시 로깅
+            if react_result.needs_improvement:
+                logger.warning(
+                    f"ReAct result needs improvement (confidence: {react_result.confidence:.2f})"
+                )
+
+            return response
+
+        except Exception as e:
+            logger.error(f"ReAct processing failed: {e}")
+            return Response.fallback(f"ReAct 처리 실패: {str(e)}")
 
     # =========================================================================
     # 자율 작업 (Autonomous)
     # =========================================================================
 
-    async def run_autonomous_cycle(self) -> Dict[str, Any]:
+    async def run_autonomous_cycle(self) -> dict[str, Any]:
         """
         자율 작업 사이클 실행
 
@@ -734,7 +657,7 @@ class UnifiedBrain:
         results = {
             "started_at": datetime.now().isoformat(),
             "tasks_executed": [],
-            "status": "completed"
+            "status": "completed",
         }
 
         try:
@@ -766,7 +689,7 @@ class UnifiedBrain:
 
         return results
 
-    async def _execute_scheduled_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_scheduled_task(self, task: dict[str, Any]) -> dict[str, Any]:
         """스케줄된 작업 실행"""
         action = task.get("action")
         task_name = task.get("name", action)
@@ -775,9 +698,10 @@ class UnifiedBrain:
 
         try:
             if action == "crawl_workflow":
-                # BatchWorkflow 호출 (리팩토링: WorkflowAgent → BatchWorkflow)
+                # BatchWorkflow 호출
                 if not self._workflow_agent:
                     from .batch_workflow import BatchWorkflow
+
                     self._workflow_agent = BatchWorkflow()
 
                 result = await self._workflow_agent.run_daily_workflow()
@@ -785,7 +709,7 @@ class UnifiedBrain:
                 # 크롤링 완료 이벤트
                 await self.emit_event("crawl_complete", {"result": result})
 
-                # Market Intelligence 데이터 수집 (크롤링 후 자동 실행)
+                # Market Intelligence 데이터 수집
                 mi_result = await self.collect_market_intelligence()
                 result["market_intelligence"] = mi_result
 
@@ -793,37 +717,27 @@ class UnifiedBrain:
                     "task": task_name,
                     "status": "completed",
                     "result": result.get("summary"),
-                    "market_intelligence": mi_result
+                    "market_intelligence": mi_result,
                 }
 
             elif action == "check_data":
-                # 데이터 신선도 체크
                 needs_crawl = self.state.is_crawl_needed()
-                return {
-                    "task": task_name,
-                    "status": "completed",
-                    "needs_crawl": needs_crawl
-                }
+                return {"task": task_name, "status": "completed", "needs_crawl": needs_crawl}
 
             else:
                 return {
                     "task": task_name,
                     "status": "skipped",
-                    "reason": f"Unknown action: {action}"
+                    "reason": f"Unknown action: {action}",
                 }
 
         except Exception as e:
             logger.error(f"Scheduled task failed: {e}")
-            return {
-                "task": task_name,
-                "status": "failed",
-                "error": str(e)
-            }
+            return {"task": task_name, "status": "failed", "error": str(e)}
 
     async def _process_task_queue(self) -> None:
         """작업 큐 처리"""
         while self._task_queue:
-            # 사용자 요청 모드면 중단
             if self.mode == BrainMode.RESPONDING:
                 break
 
@@ -855,36 +769,27 @@ class UnifiedBrain:
         heapq.heappush(self._task_queue, task)
 
     # =========================================================================
-    # 알림 처리
+    # 알림 처리 (AlertManager에 위임)
     # =========================================================================
 
-    async def collect_market_intelligence(self) -> Dict[str, Any]:
-        """
-        Market Intelligence 데이터 수집 (Layer 2-4)
-
-        크롤링 완료 후 자동 호출됩니다.
-
-        Returns:
-            수집 결과
-        """
+    async def collect_market_intelligence(self) -> dict[str, Any]:
+        """Market Intelligence 데이터 수집"""
         logger.info("Starting Market Intelligence collection...")
 
         try:
             if not self._market_intelligence:
                 from ..tools.market_intelligence import MarketIntelligenceEngine
+
                 self._market_intelligence = MarketIntelligenceEngine()
                 await self._market_intelligence.initialize()
 
-            # 모든 레이어 수집
             layer_data = await self._market_intelligence.collect_all_layers()
-
-            # 데이터 저장
             self._market_intelligence.save_data()
 
             result = {
                 "status": "success",
                 "layers_collected": list(layer_data.keys()),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
             logger.info(f"Market Intelligence collection completed: {result['layers_collected']}")
@@ -894,15 +799,11 @@ class UnifiedBrain:
 
         except Exception as e:
             logger.error(f"Market Intelligence collection failed: {e}")
-            return {
-                "status": "error",
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
+            return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
 
-    async def check_alerts(self, metrics_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def check_alerts(self, metrics_data: dict[str, Any]) -> list[dict[str, Any]]:
         """
-        지표 데이터에서 알림 조건 확인
+        지표 데이터에서 알림 조건 확인 (AlertManager에 위임)
 
         Args:
             metrics_data: 지표 데이터
@@ -910,57 +811,13 @@ class UnifiedBrain:
         Returns:
             발생한 알림 목록
         """
-        alerts = []
-
-        # 제품별 순위 변동 확인
-        products = metrics_data.get("products", {})
-        for asin, product in products.items():
-            rank_delta = product.get("rank_delta", "")
-
-            # 급락 체크 (순위가 올라가면 음수)
-            if rank_delta:
-                try:
-                    change = int(rank_delta.replace("+", "").replace("-", ""))
-                    if "-" in rank_delta:  # 순위 하락
-                        change = -change
-
-                    if abs(change) >= 10:
-                        alerts.append({
-                            "type": "rank_change",
-                            "severity": "critical" if abs(change) >= 20 else "warning",
-                            "product": product.get("name"),
-                            "asin": asin,
-                            "change": change,
-                            "current_rank": product.get("rank"),
-                            "message": f"{product.get('name')} 순위 {'급락' if change > 0 else '급등'}: {abs(change)}단계"
-                        })
-                except ValueError:
-                    pass
-
-        # SoS 변동 확인
-        brand_kpis = metrics_data.get("brand", {}).get("kpis", {})
-        sos_delta = brand_kpis.get("sos_delta", "")
-        if sos_delta:
-            try:
-                sos_change = float(sos_delta.replace("+", "").replace("%", "").replace("p", ""))
-                if sos_change <= -2:  # 2%p 이상 하락
-                    alerts.append({
-                        "type": "sos_drop",
-                        "severity": "warning",
-                        "change": sos_change,
-                        "current_sos": brand_kpis.get("sos"),
-                        "message": f"LANEIGE SoS {sos_change}%p 하락"
-                    })
-            except ValueError:
-                pass
-
-        return alerts
+        return await self.alert_manager.check_metrics_alerts(metrics_data)
 
     # =========================================================================
     # 유틸리티
     # =========================================================================
 
-    def _get_system_state(self, current_metrics: Optional[Dict] = None) -> Dict[str, Any]:
+    def _get_system_state(self, current_metrics: dict | None = None) -> dict[str, Any]:
         """시스템 상태 수집"""
         data_status = "없음"
         data_date = None
@@ -972,33 +829,30 @@ class UnifiedBrain:
                 today = datetime.now().strftime("%Y-%m-%d")
                 data_status = "최신" if data_date == today else f"오래됨 ({data_date})"
 
-        available_tools = self.tool_executor.get_available_tools()
-        failed_recently = [
-            name for name, time in self._failed_agents.items()
-            if (datetime.now() - time).seconds < 300
-        ]
+        available_tools = self.tool_coordinator.get_available_tools()
+        failed_tools = self.tool_coordinator.get_failed_tools()
 
         return {
             "data_status": data_status,
             "data_date": data_date,
-            "available_tools": [t for t in available_tools if t not in failed_recently],
-            "failed_tools": failed_recently,
+            "available_tools": available_tools,
+            "failed_tools": failed_tools,
             "mode": self.mode.value,
-            "cache_stats": self.cache.get_stats()
+            "cache_stats": self.cache.get_stats(),
         }
 
-    def _format_system_state(self, state: Dict[str, Any]) -> str:
+    def _format_system_state(self, state: dict[str, Any]) -> str:
         """시스템 상태 포맷"""
         lines = [
             f"- 데이터 상태: {state['data_status']}",
             f"- 동작 모드: {state['mode']}",
             f"- 사용 가능 도구: {', '.join(state['available_tools'])}",
         ]
-        if state['failed_tools']:
+        if state["failed_tools"]:
             lines.append(f"- 실패 도구: {', '.join(state['failed_tools'])}")
         return "\n".join(lines)
 
-    def _format_tools_description(self, state: Dict[str, Any]) -> str:
+    def _format_tools_description(self, state: dict[str, Any]) -> str:
         """도구 설명 포맷"""
         available = state.get("available_tools", [])
         lines = []
@@ -1012,20 +866,25 @@ class UnifiedBrain:
     # 상태 및 통계
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """통계 반환"""
         return {
             **self._stats,
             "mode": self.mode.value,
             "queue_size": len(self._task_queue),
-            "error_count": len(self._error_history),
-            "failed_agents": list(self._failed_agents.keys()),
-            "scheduled_tasks": len(self.scheduler.schedules)
+            "scheduled_tasks": len(self.scheduler.schedules),
+            "components": {
+                "decision_maker": self.decision_maker.get_stats() if self._decision_maker else {},
+                "tool_coordinator": self.tool_coordinator.get_stats()
+                if self._tool_coordinator
+                else {},
+                "alert_manager": self.alert_manager.get_stats() if self._alert_manager else {},
+            },
         }
 
-    def get_recent_errors(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_recent_errors(self, limit: int = 10) -> list[dict[str, Any]]:
         """최근 에러 목록"""
-        return [e.to_dict() for e in self._error_history[-limit:]]
+        return self.tool_coordinator.get_recent_errors(limit)
 
     def get_state_summary(self) -> str:
         """상태 요약"""
@@ -1033,7 +892,7 @@ class UnifiedBrain:
 
     def reset_failed_agents(self) -> None:
         """실패한 에이전트 목록 초기화"""
-        self._failed_agents.clear()
+        self.tool_coordinator.reset_failed_tools()
         logger.info("Failed agents list cleared")
 
     # =========================================================================
@@ -1041,36 +900,26 @@ class UnifiedBrain:
     # =========================================================================
 
     async def start_scheduler(self) -> None:
-        """
-        자율 스케줄러 시작
-
-        스케줄러가 시작되면:
-        - 매일 UTC 21:00 (한국 06:00)에 크롤링 실행
-        - 1시간마다 데이터 신선도 체크
-        """
+        """자율 스케줄러 시작"""
         if self.scheduler.running:
             logger.info("Scheduler already running")
             return
 
-        async def _handle_scheduled_task(task: Dict[str, Any]):
+        async def _handle_scheduled_task(task: dict[str, Any]):
             """스케줄된 작업 처리"""
             action = task.get("action")
             logger.info(f"Executing scheduled task: {task['name']} ({action})")
 
             try:
                 if action == "crawl_workflow":
-                    # 크롤링 실행
                     from src.core.crawl_manager import get_crawl_manager
+
                     crawl_manager = await get_crawl_manager()
 
                     if not crawl_manager.is_crawling():
                         await crawl_manager.start_crawl()
                         logger.info("Scheduled crawl started")
 
-                        # 크롤링 완료 대기 후 Market Intelligence 수집
-                        # Note: start_crawl은 백그라운드로 실행되므로,
-                        # 실제 수집은 crawl_complete 이벤트에서 트리거됨
-                        # 여기서는 별도로 MI 수집 시작 (API가 없어도 동작하도록)
                         brain = await get_brain()
                         asyncio.create_task(brain.collect_market_intelligence())
                         logger.info("Market Intelligence collection queued")
@@ -1078,8 +927,8 @@ class UnifiedBrain:
                         logger.info("Crawl already in progress, skipping")
 
                 elif action == "check_data":
-                    # 데이터 신선도 체크
                     from src.core.crawl_manager import get_crawl_manager
+
                     crawl_manager = await get_crawl_manager()
 
                     if crawl_manager.needs_crawl():
@@ -1110,7 +959,7 @@ class UnifiedBrain:
 # 싱글톤 (스레드 안전)
 # =============================================================================
 
-_brain_instance: Optional[UnifiedBrain] = None
+_brain_instance: UnifiedBrain | None = None
 _brain_lock = asyncio.Lock()
 
 
@@ -1121,7 +970,7 @@ async def get_brain() -> UnifiedBrain:
     async with _brain_lock:
         if _brain_instance is None:
             _brain_instance = UnifiedBrain()
-            logger.info("UnifiedBrain singleton created (LLM-First)")
+            logger.info("UnifiedBrain singleton created (LLM-First, SRP)")
 
     return _brain_instance
 

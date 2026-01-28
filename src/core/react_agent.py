@@ -1,0 +1,240 @@
+"""
+ReAct Self-Reflection Agent
+============================
+Reasoning + Acting 패턴으로 복잡한 질문 처리
+
+ReAct Loop:
+1. Thought - 현재 상황 분석
+2. Action - 도구 선택
+3. Observation - 결과 관찰
+4. Reflection - 자체 평가
+
+Usage:
+    agent = ReActAgent()
+    result = await agent.run(query, context)
+"""
+
+import json
+import logging
+from dataclasses import dataclass, field
+from typing import Any
+
+from litellm import acompletion
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ReActStep:
+    """ReAct 단계 기록"""
+
+    thought: str
+    action: str | None = None
+    action_input: dict[str, Any] | None = None
+    observation: str | None = None
+    reflection: str | None = None
+
+
+@dataclass
+class ReActResult:
+    """ReAct 실행 결과"""
+
+    final_answer: str
+    steps: list[ReActStep] = field(default_factory=list)
+    iterations: int = 0
+    confidence: float = 0.0
+    needs_improvement: bool = False
+
+
+class ReActAgent:
+    """ReAct Self-Reflection Agent"""
+
+    REACT_PROMPT = """당신은 분석적 사고를 하는 AI입니다.
+
+## 현재 컨텍스트
+{context}
+
+## 질문
+{query}
+
+## 지금까지의 단계
+{steps}
+
+## 지시사항
+ReAct 패턴으로 사고하세요:
+
+1. **Thought**: 현재 상황을 분석하세요. 무엇을 알고 있고, 무엇이 필요한가요?
+2. **Action**: 필요한 행동을 선택하세요 (query_data, query_knowledge_graph, calculate_metrics, final_answer 중 하나)
+3. **Action Input**: 행동에 필요한 파라미터 (JSON)
+
+JSON 형식으로 응답:
+```json
+{{
+    "thought": "현재 상황 분석...",
+    "action": "action_name",
+    "action_input": {{}}
+}}
+```
+
+"final_answer" action을 선택하면 루프가 종료됩니다."""
+
+    REFLECTION_PROMPT = """## 자체 평가
+다음 응답의 품질을 평가하세요:
+
+질문: {query}
+응답: {answer}
+
+평가 기준:
+1. 질문에 완전히 답변했는가?
+2. 누락된 중요 정보가 있는가?
+3. 데이터/근거가 충분한가?
+
+JSON으로 응답:
+```json
+{{
+    "quality_score": 0.0-1.0,
+    "missing_info": ["누락1", "누락2"],
+    "needs_improvement": true/false,
+    "improvement_suggestion": "개선 방향"
+}}
+```"""
+
+    def __init__(
+        self, model: str = "gpt-4o-mini", max_iterations: int = 3, min_confidence: float = 0.7
+    ):
+        self.model = model
+        self.max_iterations = max_iterations
+        self.min_confidence = min_confidence
+        self.tool_executor = None  # 외부 주입
+
+    def set_tool_executor(self, executor) -> None:
+        """도구 실행기 설정"""
+        self.tool_executor = executor
+
+    async def run(
+        self, query: str, context: str, initial_data: dict[str, Any] | None = None
+    ) -> ReActResult:
+        """ReAct 루프 실행"""
+        steps: list[ReActStep] = []
+        iterations = 0
+        final_answer = ""
+
+        while iterations < self.max_iterations:
+            iterations += 1
+
+            # 1. ReAct 단계 실행
+            step = await self._execute_step(query, context, steps)
+            steps.append(step)
+
+            # 2. Final Answer 체크
+            if step.action == "final_answer":
+                final_answer = step.observation or ""
+                break
+
+            # 3. 도구 실행 (있다면)
+            if step.action and self.tool_executor:
+                try:
+                    result = await self.tool_executor.execute(step.action, step.action_input or {})
+                    step.observation = str(result.data) if result.success else result.error
+                except Exception as e:
+                    step.observation = f"Error: {e}"
+
+        # 4. Self-Reflection
+        reflection_result = await self._reflect(query, final_answer)
+
+        return ReActResult(
+            final_answer=final_answer,
+            steps=steps,
+            iterations=iterations,
+            confidence=reflection_result.get("quality_score", 0.5),
+            needs_improvement=reflection_result.get("needs_improvement", False),
+        )
+
+    async def _execute_step(
+        self, query: str, context: str, previous_steps: list[ReActStep]
+    ) -> ReActStep:
+        """단일 ReAct 단계 실행"""
+        steps_text = self._format_steps(previous_steps)
+
+        prompt = self.REACT_PROMPT.format(context=context, query=query, steps=steps_text or "없음")
+
+        try:
+            response = await acompletion(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500,
+                temperature=0.2,
+            )
+
+            return self._parse_step(response.choices[0].message.content)
+
+        except Exception as e:
+            logger.error(f"ReAct step failed: {e}")
+            return ReActStep(thought=f"Error: {e}")
+
+    async def _reflect(self, query: str, answer: str) -> dict[str, Any]:
+        """Self-Reflection 실행"""
+        prompt = self.REFLECTION_PROMPT.format(query=query, answer=answer)
+
+        try:
+            response = await acompletion(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=300,
+                temperature=0.1,
+            )
+
+            content = response.choices[0].message.content
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            if json_start >= 0:
+                return json.loads(content[json_start:json_end])
+        except Exception as e:
+            logger.error(f"Reflection failed: {e}")
+
+        return {"quality_score": 0.5, "needs_improvement": False}
+
+    def _format_steps(self, steps: list[ReActStep]) -> str:
+        """단계 포맷"""
+        if not steps:
+            return ""
+
+        lines = []
+        for i, step in enumerate(steps, 1):
+            lines.append(f"### Step {i}")
+            lines.append(f"Thought: {step.thought}")
+            if step.action:
+                lines.append(f"Action: {step.action}")
+            if step.observation:
+                lines.append(f"Observation: {step.observation[:200]}...")
+
+        return "\n".join(lines)
+
+    def _parse_step(self, content: str) -> ReActStep:
+        """응답 파싱"""
+        try:
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            if json_start >= 0:
+                data = json.loads(content[json_start:json_end])
+                return ReActStep(
+                    thought=data.get("thought", ""),
+                    action=data.get("action"),
+                    action_input=data.get("action_input"),
+                )
+        except Exception:
+            pass
+
+        return ReActStep(thought=content)
+
+
+# 싱글톤
+_react_agent: ReActAgent | None = None
+
+
+def get_react_agent() -> ReActAgent:
+    """ReActAgent 싱글톤"""
+    global _react_agent
+    if _react_agent is None:
+        _react_agent = ReActAgent()
+    return _react_agent

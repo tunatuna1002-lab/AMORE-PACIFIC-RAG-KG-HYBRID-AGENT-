@@ -12,10 +12,10 @@ Two-Stage Retrieval:
 2. Stage 2 (Precision): Cross-Encoder로 정밀 재순위화 (Top-5)
 """
 
-import os
-from typing import List, Dict, Any, Optional, Tuple, Union
-from dataclasses import dataclass
 import logging
+import os
+from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +23,20 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RankedDocument:
     """재순위화된 문서"""
+
     content: str
     score: float
     original_rank: int
     new_rank: int
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "content": self.content,
             "score": self.score,
             "original_rank": self.original_rank,
             "new_rank": self.new_rank,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -56,20 +57,22 @@ class CrossEncoderReranker:
         "ms-marco-MiniLM-L-6-v2": "cross-encoder/ms-marco-MiniLM-L-6-v2",
         "ms-marco-MiniLM-L-12-v2": "cross-encoder/ms-marco-MiniLM-L-12-v2",
         "ms-marco-TinyBERT-L-6": "cross-encoder/ms-marco-TinyBERT-L-6",
-        "stsb-roberta-base": "cross-encoder/stsb-roberta-base"
+        "stsb-roberta-base": "cross-encoder/stsb-roberta-base",
+        "bge-reranker-base": "BAAI/bge-reranker-base",
+        "bge-reranker-large": "BAAI/bge-reranker-large",
     }
 
     def __init__(
         self,
         model_name: str = "ms-marco-MiniLM-L-6-v2",
-        use_openai: bool = True,
+        use_openai: bool = False,
         openai_model: str = "gpt-4.1-mini",
-        device: str = "cpu"
+        device: str = "cpu",
     ):
         """
         Args:
             model_name: Cross-Encoder 모델명 (sentence-transformers용)
-            use_openai: OpenAI API 사용 여부 (True 권장 - 더 정확함)
+            use_openai: OpenAI API 사용 여부 (기본 False - 로컬 Cross-Encoder 우선)
             openai_model: OpenAI 모델명
             device: PyTorch 디바이스 (cpu, cuda, mps)
         """
@@ -83,46 +86,64 @@ class CrossEncoderReranker:
         self._initialized = False
 
     def _initialize(self) -> bool:
-        """모델 초기화"""
+        """모델 초기화 (로컬 Cross-Encoder 우선)"""
         if self._initialized:
             return True
 
-        if self.use_openai:
-            # OpenAI 클라이언트 초기화
+        # 우선순위 1: 로컬 Cross-Encoder (use_openai=False일 때 우선)
+        if not self.use_openai:
             try:
-                import openai
-                api_key = os.getenv("OPENAI_API_KEY")
-                if api_key:
-                    self.openai_client = openai.OpenAI(api_key=api_key)
-                    self._initialized = True
-                    logger.info("Reranker initialized with OpenAI")
-                    return True
-            except ImportError:
-                logger.warning("openai package not installed")
-            except Exception as e:
-                logger.warning(f"OpenAI initialization failed: {e}")
+                from sentence_transformers import CrossEncoder
 
-        # 폴백: sentence-transformers CrossEncoder
+                model_path = self.SUPPORTED_MODELS.get(self.model_name, self.model_name)
+
+                logger.info(f"Initializing local CrossEncoder: {model_path}")
+                logger.info("First-time model download may take a few minutes...")
+
+                self.cross_encoder = CrossEncoder(model_path, device=self.device)
+                self._initialized = True
+                logger.info(f"Reranker initialized with local CrossEncoder: {model_path}")
+                return True
+            except ImportError:
+                logger.warning("sentence-transformers not installed, falling back to OpenAI")
+            except Exception as e:
+                logger.warning(f"CrossEncoder initialization failed: {e}, falling back to OpenAI")
+
+        # 우선순위 2: OpenAI (use_openai=True 또는 로컬 실패 시)
         try:
-            from sentence_transformers import CrossEncoder
-            model_path = self.SUPPORTED_MODELS.get(self.model_name, self.model_name)
-            self.cross_encoder = CrossEncoder(model_path, device=self.device)
-            self._initialized = True
-            logger.info(f"Reranker initialized with CrossEncoder: {model_path}")
-            return True
+            import openai
+
+            api_key = os.getenv("OPENAI_API_KEY")
+            if api_key:
+                self.openai_client = openai.OpenAI(api_key=api_key)
+                self._initialized = True
+                logger.info("Reranker initialized with OpenAI")
+                return True
         except ImportError:
-            logger.warning("sentence-transformers not installed")
+            logger.warning("openai package not installed")
         except Exception as e:
-            logger.warning(f"CrossEncoder initialization failed: {e}")
+            logger.warning(f"OpenAI initialization failed: {e}")
+
+        # 최종 폴백: 로컬 Cross-Encoder 재시도
+        if not self.cross_encoder:
+            try:
+                from sentence_transformers import CrossEncoder
+
+                model_path = self.SUPPORTED_MODELS.get(self.model_name, self.model_name)
+
+                logger.info(f"Final attempt: Initializing local CrossEncoder: {model_path}")
+                self.cross_encoder = CrossEncoder(model_path, device=self.device)
+                self._initialized = True
+                logger.info(f"Reranker initialized with local CrossEncoder: {model_path}")
+                return True
+            except Exception as e:
+                logger.error(f"Final CrossEncoder initialization failed: {e}")
 
         return False
 
     def _rerank_with_openai(
-        self,
-        query: str,
-        documents: List[str],
-        top_k: int
-    ) -> List[Tuple[str, float]]:
+        self, query: str, documents: list[str], top_k: int
+    ) -> list[tuple[str, float]]:
         """
         OpenAI API를 사용한 재순위화
 
@@ -154,10 +175,10 @@ Do not include any explanation, just the JSON array."""
                 model=self.openai_model,
                 messages=[
                     {"role": "system", "content": "You are a precise relevance scoring system."},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0,
-                max_tokens=200
+                max_tokens=200,
             )
 
             # 응답 파싱
@@ -168,12 +189,12 @@ Do not include any explanation, just the JSON array."""
             import re
 
             # [숫자, 숫자, ...] 패턴 찾기
-            match = re.search(r'\[[\d.,\s]+\]', content)
+            match = re.search(r"\[[\d.,\s]+\]", content)
             if match:
                 scores = json.loads(match.group())
 
                 # 점수와 문서 매칭
-                for i, (doc, score) in enumerate(zip(documents, scores)):
+                for doc, score in zip(documents, scores, strict=False):
                     scored_docs.append((doc, float(score) / 10.0))  # 0-1 정규화
             else:
                 # 파싱 실패 시 원래 순서 유지
@@ -190,13 +211,16 @@ Do not include any explanation, just the JSON array."""
         return scored_docs[:top_k]
 
     def _rerank_with_cross_encoder(
-        self,
-        query: str,
-        documents: List[str],
-        top_k: int
-    ) -> List[Tuple[str, float]]:
+        self, query: str, documents: list[str], top_k: int, batch_size: int = 32
+    ) -> list[tuple[str, float]]:
         """
-        CrossEncoder 모델을 사용한 재순위화
+        CrossEncoder 모델을 사용한 재순위화 (배치 처리 최적화)
+
+        Args:
+            query: 검색 쿼리
+            documents: 문서 리스트
+            top_k: 반환할 상위 K개
+            batch_size: 배치 처리 크기 (기본 32)
         """
         if not self.cross_encoder:
             return [(doc, 0.0) for doc in documents]
@@ -205,11 +229,13 @@ Do not include any explanation, just the JSON array."""
         pairs = [(query, doc) for doc in documents]
 
         try:
-            # Cross-Encoder 점수 계산
-            scores = self.cross_encoder.predict(pairs)
+            # Cross-Encoder 점수 계산 (배치 처리)
+            scores = self.cross_encoder.predict(
+                pairs, batch_size=batch_size, show_progress_bar=False
+            )
 
             # 점수와 문서 매칭
-            scored_docs = list(zip(documents, scores))
+            scored_docs = list(zip(documents, scores, strict=False))
 
             # 점수순 정렬
             scored_docs.sort(key=lambda x: x[1], reverse=True)
@@ -221,11 +247,8 @@ Do not include any explanation, just the JSON array."""
             return [(doc, 0.0) for doc in documents[:top_k]]
 
     def rerank(
-        self,
-        query: str,
-        documents: Union[List[str], List[Dict[str, Any]]],
-        top_k: int = 5
-    ) -> List[RankedDocument]:
+        self, query: str, documents: list[str] | list[dict[str, Any]], top_k: int = 5
+    ) -> list[RankedDocument]:
         """
         검색 결과 재순위화
 
@@ -277,23 +300,25 @@ Do not include any explanation, just the JSON array."""
                 original_rank = -1
                 metadata = {}
 
-            results.append(RankedDocument(
-                content=content,
-                score=float(score),
-                original_rank=original_rank,
-                new_rank=new_rank,
-                metadata=metadata
-            ))
+            results.append(
+                RankedDocument(
+                    content=content,
+                    score=float(score),
+                    original_rank=original_rank,
+                    new_rank=new_rank,
+                    metadata=metadata,
+                )
+            )
 
         return results
 
     def rerank_with_scores(
         self,
         query: str,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         top_k: int = 5,
-        score_field: str = "score"
-    ) -> List[Dict[str, Any]]:
+        score_field: str = "score",
+    ) -> list[dict[str, Any]]:
         """
         기존 검색 점수와 재순위화 점수를 결합
 
@@ -336,7 +361,7 @@ Do not include any explanation, just the JSON array."""
 
 
 # 싱글톤 인스턴스
-_reranker_instance: Optional[CrossEncoderReranker] = None
+_reranker_instance: CrossEncoderReranker | None = None
 
 
 def get_reranker() -> CrossEncoderReranker:

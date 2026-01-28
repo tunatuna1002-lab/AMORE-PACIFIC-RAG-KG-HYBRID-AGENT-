@@ -29,20 +29,23 @@ RAG를 위한 문서 검색 모듈
 - AP_3Q25_EN.md (아모레퍼시픽 2025 Q3)
 """
 
+import hashlib
 import os
 import re
 import time
-from typing import List, Dict, Any, Optional
 from pathlib import Path
+from typing import Any
 
 try:
     from .reranker import get_reranker
+
     RERANKER_AVAILABLE = True
 except ImportError:
     RERANKER_AVAILABLE = False
 
 try:
     from .chunker import get_semantic_chunker
+
     SEMANTIC_CHUNKER_AVAILABLE = True
 except ImportError:
     SEMANTIC_CHUNKER_AVAILABLE = False
@@ -58,20 +61,21 @@ class DocumentRetriever:
     CONFIG_PATH = "config/thresholds.json"
 
     # 검색 결과 캐시 (maxsize=100, TTL=5분)
-    _search_cache: Dict[str, Any] = {}
-    _cache_timestamps: Dict[str, float] = {}
+    _search_cache: dict[str, Any] = {}
+    _cache_timestamps: dict[str, float] = {}
     _CACHE_TTL = None  # 설정에서 로드
 
     @classmethod
     def _load_config(cls) -> dict:
         """설정 파일에서 RAG 관련 설정 로드"""
         import json
+
         project_root = Path(__file__).parent.parent.parent
         config_path = project_root / cls.CONFIG_PATH
 
         if config_path.exists():
             try:
-                with open(config_path, 'r', encoding='utf-8') as f:
+                with open(config_path, encoding="utf-8") as f:
                     config = json.load(f)
                     return config.get("system", {}).get("rag", {})
             except Exception:
@@ -96,7 +100,7 @@ class DocumentRetriever:
             "doc_type": "metric_guide",
             "keywords": ["정의", "산출식", "SoS", "HHI", "CPI", "계산", "공식"],
             "intent_triggers": ["정의", "공식", "계산", "산출"],
-            "freshness": "static"
+            "freshness": "static",
         },
         "metric_interpretation": {
             "filename": "Metric Interpretation Guide.md",
@@ -104,7 +108,7 @@ class DocumentRetriever:
             "doc_type": "metric_guide",
             "keywords": ["해석", "의미", "높음", "낮음", "주의사항", "함께 봐야"],
             "intent_triggers": ["의미", "해석", "뜻"],
-            "freshness": "static"
+            "freshness": "static",
         },
         "indicator_combination": {
             "filename": "Indicator Combination Playbook.md",
@@ -112,7 +116,7 @@ class DocumentRetriever:
             "doc_type": "metric_guide",
             "keywords": ["조합", "시나리오", "액션", "전략", "상승", "하락"],
             "intent_triggers": ["조합", "같이", "함께", "시나리오"],
-            "freshness": "static"
+            "freshness": "static",
         },
         "home_insight_rules": {
             "filename": "Home Page Insight Rules.md",
@@ -120,125 +124,277 @@ class DocumentRetriever:
             "doc_type": "metric_guide",
             "keywords": ["인사이트", "요약", "문구", "템플릿", "톤", "안전장치"],
             "intent_triggers": ["인사이트", "요약", "규칙"],
-            "freshness": "static"
+            "freshness": "static",
         },
-        
         # ========== Type A: 분석 플레이북 (docs/market/) ==========
         "amazon_ranking_diagnosis": {
             "filename": "아마존 랭킹 급등 원인 역추적 보고서.md",
             "description": "BSR 급변 원인 진단 체크리스트 및 If-Then 가설 트리",
             "doc_type": "playbook",
-            "keywords": ["순위", "BSR", "급등", "급락", "원인", "분석", "체크리스트",
-                        "가설", "재고", "광고", "프로모션", "리뷰", "가격"],
+            "keywords": [
+                "순위",
+                "BSR",
+                "급등",
+                "급락",
+                "원인",
+                "분석",
+                "체크리스트",
+                "가설",
+                "재고",
+                "광고",
+                "프로모션",
+                "리뷰",
+                "가격",
+            ],
             "intent_triggers": ["왜", "원인", "갑자기", "급변", "떨어", "올라", "변동"],
-            "freshness": "quarterly"
+            "freshness": "quarterly",
         },
         "amazon_algorithm_guide": {
             "filename": "아마존 랭킹 변동 원인 분석 가이드.md",
             "description": "COSMO/Rufus 알고리즘 대응 및 심층 진단",
             "doc_type": "playbook",
-            "keywords": ["알고리즘", "COSMO", "Rufus", "A10", "검색", "억제",
-                        "외부트래픽", "틱톡", "바이럴", "지식그래프", "BSR"],
+            "keywords": [
+                "알고리즘",
+                "COSMO",
+                "Rufus",
+                "A10",
+                "검색",
+                "억제",
+                "외부트래픽",
+                "틱톡",
+                "바이럴",
+                "지식그래프",
+                "BSR",
+            ],
             "intent_triggers": ["알고리즘", "검색", "노출", "억제", "틱톡", "자세히"],
-            "freshness": "quarterly"
+            "freshness": "quarterly",
         },
-        
         # ========== Type B: 시장 인텔리전스 (docs/market/) ==========
         "kbeauty_industry": {
             "filename": "(1) K-뷰티 초격차의 서막 [풀영상] _ 창 534회 (KBS 26.1.20.) - YouTube.md",
             "description": "K-뷰티 산업 배경 (ODM, 글로벌 확장, 중국 위협)",
             "doc_type": "knowledge_base",
-            "keywords": ["K-뷰티", "ODM", "글로벌", "중국", "미용기기", "맞춤화장품",
-                        "콘텐츠", "편집숍", "아마존", "초격차", "한국 화장품"],
+            "keywords": [
+                "K-뷰티",
+                "ODM",
+                "글로벌",
+                "중국",
+                "미용기기",
+                "맞춤화장품",
+                "콘텐츠",
+                "편집숍",
+                "아마존",
+                "초격차",
+                "한국 화장품",
+            ],
             "intent_triggers": ["K-뷰티", "한국 화장품", "산업", "배경", "ODM"],
-            "freshness": "static"
+            "freshness": "static",
         },
         "us_beauty_trends_weekly": {
             "filename": "미국 뷰티 트렌드 레이더.md",
             "description": "미국 주간 뷰티 트렌드 Top 10 및 LANEIGE 연결 가설",
             "doc_type": "intelligence",
-            "keywords": ["트렌드", "펩타이드", "PDRN", "립케어", "글래스스킨",
-                        "세라마이드", "스네일뮤신", "나이아신아마이드", "키워드", "TikTok"],
+            "keywords": [
+                "트렌드",
+                "펩타이드",
+                "PDRN",
+                "립케어",
+                "글래스스킨",
+                "세라마이드",
+                "스네일뮤신",
+                "나이아신아마이드",
+                "키워드",
+                "TikTok",
+            ],
             "intent_triggers": ["트렌드", "요즘", "최근", "인기", "바이럴", "키워드"],
             "freshness": "weekly",
-            "valid_period": "2025-12-21 ~ 2026-01-20"
+            "valid_period": "2025-12-21 ~ 2026-01-20",
         },
         "laneige_strategy_2026": {
             "filename": "뷰티 트렌드 분석 및 판매 전략 제안.md",
             "description": "2026년 1월 LANEIGE 아마존 판매 전략 (모닝쉐드, PDRN, 립케어)",
             "doc_type": "intelligence",
-            "keywords": ["전략", "판매", "모닝쉐드", "슬리핑마스크", "번들",
-                        "립베이스팅", "핑크펩타이드", "워터뱅크", "크림스킨", "LANEIGE"],
+            "keywords": [
+                "전략",
+                "판매",
+                "모닝쉐드",
+                "슬리핑마스크",
+                "번들",
+                "립베이스팅",
+                "핑크펩타이드",
+                "워터뱅크",
+                "크림스킨",
+                "LANEIGE",
+            ],
             "intent_triggers": ["전략", "어떻게", "제안", "추천", "LANEIGE"],
             "freshness": "monthly",
-            "target_brand": "laneige"
+            "target_brand": "laneige",
         },
-        
         # ========== Type C: 대응 가이드 (docs/market/) ==========
         "negative_issue_response": {
             "filename": "부정 이슈 조기경보 및 대응 프롬프트.md",
             "description": "브랜드별 부정 이슈 분석 및 대응 문구 (라운드랩, 아누아, 티르티르)",
             "doc_type": "response_guide",
-            "keywords": ["부정", "위기", "리뷰", "대응", "라운드랩", "아누아",
-                        "티르티르", "가품", "리포뮬레이션", "끈적임", "산화", "트러블"],
+            "keywords": [
+                "부정",
+                "위기",
+                "리뷰",
+                "대응",
+                "라운드랩",
+                "아누아",
+                "티르티르",
+                "가품",
+                "리포뮬레이션",
+                "끈적임",
+                "산화",
+                "트러블",
+            ],
             "intent_triggers": ["부정", "문제", "이슈", "대응", "어떻게 해", "위기"],
             "freshness": "monthly",
-            "brands_covered": ["round_lab", "anua", "tirtir", "beef_tallow"]
+            "brands_covered": ["round_lab", "anua", "tirtir", "beef_tallow"],
         },
         "laneige_influencer_map": {
             "filename": "인플루언서 맵 & 메시지 맵 생성.md",
             "description": "LANEIGE 채널별 인플루언서 분류 및 크리에이티브 훅 5선",
             "doc_type": "response_guide",
-            "keywords": ["인플루언서", "틱톡", "유튜브", "레딧", "인스타그램",
-                        "메시지", "크리에이티브", "훅", "리스크", "LANEIGE", "마케팅"],
+            "keywords": [
+                "인플루언서",
+                "틱톡",
+                "유튜브",
+                "레딧",
+                "인스타그램",
+                "메시지",
+                "크리에이티브",
+                "훅",
+                "리스크",
+                "LANEIGE",
+                "마케팅",
+            ],
             "intent_triggers": ["인플루언서", "마케팅", "메시지", "콘텐츠", "크리에이터"],
             "freshness": "monthly",
-            "target_brand": "laneige"
+            "target_brand": "laneige",
         },
-
         # ========== Type E: IR 분기 실적 보고서 (docs/ir/) ==========
         "ir_2025_q1": {
             "filename": "AP_1Q25_EN.md",
             "description": "아모레퍼시픽 2025 Q1 실적 (COSRX 편입, Americas +102%)",
             "doc_type": "ir_report",
-            "keywords": ["매출", "영업이익", "Revenue", "Operating Profit",
-                        "Americas", "COSRX", "LANEIGE", "Sulwhasoo", "Prime Day",
-                        "Western Region", "Greater China", "Q1", "1분기", "실적",
-                        "아모레퍼시픽", "Amorepacific", "IR", "earnings"],
-            "intent_triggers": ["Q1", "1분기", "2025", "실적", "매출", "Americas",
-                               "COSRX 편입", "IR", "분기", "earnings"],
+            "keywords": [
+                "매출",
+                "영업이익",
+                "Revenue",
+                "Operating Profit",
+                "Americas",
+                "COSRX",
+                "LANEIGE",
+                "Sulwhasoo",
+                "Prime Day",
+                "Western Region",
+                "Greater China",
+                "Q1",
+                "1분기",
+                "실적",
+                "아모레퍼시픽",
+                "Amorepacific",
+                "IR",
+                "earnings",
+            ],
+            "intent_triggers": [
+                "Q1",
+                "1분기",
+                "2025",
+                "실적",
+                "매출",
+                "Americas",
+                "COSRX 편입",
+                "IR",
+                "분기",
+                "earnings",
+            ],
             "freshness": "quarterly",
             "quarter": "2025-Q1",
-            "parent_company": "amorepacific"
+            "parent_company": "amorepacific",
         },
         "ir_2025_q2": {
             "filename": "AP_2Q25_EN.md",
             "description": "아모레퍼시픽 2025 Q2 실적 (Greater China 턴어라운드, OP +1673%)",
             "doc_type": "ir_report",
-            "keywords": ["매출", "영업이익", "Revenue", "Operating Profit",
-                        "Americas", "Greater China", "턴어라운드", "LANEIGE",
-                        "Neo Cushion", "Aestura", "Q2", "2분기", "실적",
-                        "아모레퍼시픽", "Amorepacific", "IR", "earnings", "중국"],
-            "intent_triggers": ["Q2", "2분기", "2025", "중국", "Greater China",
-                               "실적", "IR", "분기", "earnings", "턴어라운드"],
+            "keywords": [
+                "매출",
+                "영업이익",
+                "Revenue",
+                "Operating Profit",
+                "Americas",
+                "Greater China",
+                "턴어라운드",
+                "LANEIGE",
+                "Neo Cushion",
+                "Aestura",
+                "Q2",
+                "2분기",
+                "실적",
+                "아모레퍼시픽",
+                "Amorepacific",
+                "IR",
+                "earnings",
+                "중국",
+            ],
+            "intent_triggers": [
+                "Q2",
+                "2분기",
+                "2025",
+                "중국",
+                "Greater China",
+                "실적",
+                "IR",
+                "분기",
+                "earnings",
+                "턴어라운드",
+            ],
             "freshness": "quarterly",
             "quarter": "2025-Q2",
-            "parent_company": "amorepacific"
+            "parent_company": "amorepacific",
         },
         "ir_2025_q3": {
             "filename": "AP_3Q25_EN.md",
             "description": "아모레퍼시픽 2025 Q3 실적 (Prime Day 2배, Americas +6.9%)",
             "doc_type": "ir_report",
-            "keywords": ["매출", "영업이익", "Revenue", "Operating Profit",
-                        "Americas", "Prime Day", "아마존", "Amazon", "LANEIGE",
-                        "Illiyoon", "Mise-en-scène", "Q3", "3분기", "실적",
-                        "아모레퍼시픽", "Amorepacific", "IR", "earnings"],
-            "intent_triggers": ["Q3", "3분기", "2025", "Prime Day", "아마존",
-                               "실적", "IR", "분기", "earnings", "최근"],
+            "keywords": [
+                "매출",
+                "영업이익",
+                "Revenue",
+                "Operating Profit",
+                "Americas",
+                "Prime Day",
+                "아마존",
+                "Amazon",
+                "LANEIGE",
+                "Illiyoon",
+                "Mise-en-scène",
+                "Q3",
+                "3분기",
+                "실적",
+                "아모레퍼시픽",
+                "Amorepacific",
+                "IR",
+                "earnings",
+            ],
+            "intent_triggers": [
+                "Q3",
+                "3분기",
+                "2025",
+                "Prime Day",
+                "아마존",
+                "실적",
+                "IR",
+                "분기",
+                "earnings",
+                "최근",
+            ],
             "freshness": "quarterly",
             "quarter": "2025-Q3",
-            "parent_company": "amorepacific"
-        }
+            "parent_company": "amorepacific",
+        },
     }
 
     def __init__(
@@ -246,7 +402,7 @@ class DocumentRetriever:
         docs_path: str = "./docs",
         use_semantic_chunking: bool = False,
         use_reranker: bool = True,
-        use_query_expansion: bool = True
+        use_query_expansion: bool = True,
     ):
         """
         Args:
@@ -256,9 +412,9 @@ class DocumentRetriever:
             use_query_expansion: Query Expansion 사용 여부 (기본값: True)
         """
         self.docs_path = Path(docs_path)
-        self.documents: Dict[str, str] = {}
-        self.chunks: List[Dict[str, Any]] = []
-        self._chunk_index: Dict[str, Dict[str, Any]] = {}
+        self.documents: dict[str, str] = {}
+        self.chunks: list[dict[str, Any]] = []
+        self._chunk_index: dict[str, dict[str, Any]] = {}
         self.embedding_model = None
         self.openai_client = None
         self.embedding_model_name = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
@@ -273,16 +429,24 @@ class DocumentRetriever:
         # Reranker 인스턴스 (lazy loading)
         self._reranker = None
 
+        # Embedding 캐시
+        self._embedding_cache: dict[str, list[float]] = {}
+        self._EMBEDDING_CACHE_MAX = 1000
+        self._embedding_cache_hits = 0
+        self._embedding_cache_misses = 0
+
     def _check_vector_search(self) -> bool:
         """벡터 검색 가능 여부 확인 (OpenAI Embeddings + ChromaDB)"""
         global VECTOR_SEARCH_AVAILABLE
         if VECTOR_SEARCH_AVAILABLE is None:
             try:
-                import chromadb
-                import openai
+                import importlib.util
+
+                chromadb_spec = importlib.util.find_spec("chromadb")
+                openai_spec = importlib.util.find_spec("openai")
 
                 api_key = os.getenv("OPENAI_API_KEY")
-                VECTOR_SEARCH_AVAILABLE = bool(api_key)
+                VECTOR_SEARCH_AVAILABLE = bool(chromadb_spec and openai_spec and api_key)
             except ImportError:
                 VECTOR_SEARCH_AVAILABLE = False
             except Exception:
@@ -337,12 +501,12 @@ class DocumentRetriever:
                 market_path / doc_info["filename"],  # docs/market/
                 ir_path / doc_info["filename"],  # docs/ir/ (IR 보고서)
                 self.docs_path / doc_info["filename"],  # docs/
-                root_path / doc_info["filename"]  # 프로젝트 루트
+                root_path / doc_info["filename"],  # 프로젝트 루트
             ]
 
             for file_path in possible_paths:
                 if file_path.exists():
-                    with open(file_path, "r", encoding="utf-8") as f:
+                    with open(file_path, encoding="utf-8") as f:
                         content = f.read()
                         self.documents[doc_id] = content
 
@@ -361,29 +525,25 @@ class DocumentRetriever:
 
         # 청크 인덱스 갱신 (벡터 검색 결과 메타데이터 보강용)
         self._chunk_index = {chunk["id"]: chunk for chunk in self.chunks}
-    
+
     def _get_chunk_size_by_type(self, doc_type: str) -> int:
         """문서 유형별 청크 크기 반환"""
         chunk_sizes = {
-            "playbook": 800,      # Type A: 분석 플레이북 - 큰 청크
+            "playbook": 800,  # Type A: 분석 플레이북 - 큰 청크
             "intelligence": 600,  # Type B: 시장 인텔리전스
             "knowledge_base": 600,  # Type B: 지식 베이스
             "response_guide": 500,  # Type C: 대응 가이드
             "metric_guide": 500,  # Type D: 기존 지표 가이드
-            "ir_report": 700      # Type E: IR 분기 실적 - 테이블 포함 큰 청크
+            "ir_report": 700,  # Type E: IR 분기 실적 - 테이블 포함 큰 청크
         }
         return chunk_sizes.get(doc_type, 500)
 
     def _split_into_chunks(
-        self,
-        content: str,
-        doc_id: str,
-        doc_info: Dict,
-        chunk_size: int = 500
-    ) -> List[Dict[str, Any]]:
+        self, content: str, doc_id: str, doc_info: dict, chunk_size: int = 500
+    ) -> list[dict[str, Any]]:
         """
         문서를 청크로 분할
-        
+
         - 표(Table)는 별도 청크로 분리하여 완전성 유지
         - 섹션 기반 분할 후 크기 초과 시 추가 분할
         """
@@ -392,49 +552,51 @@ class DocumentRetriever:
         source_filename = doc_info.get("filename", "")
         target_brand = doc_info.get("target_brand")
         brands_covered = doc_info.get("brands_covered", [])
-        
+
         # 1. 표(Table) 추출 및 별도 청크 생성
-        table_pattern = r'(\|[^\n]+\|\n(?:\|[-:| ]+\|\n)?(?:\|[^\n]+\|\n)+)'
+        table_pattern = r"(\|[^\n]+\|\n(?:\|[-:| ]+\|\n)?(?:\|[^\n]+\|\n)+)"
         tables = re.findall(table_pattern, content)
-        
+
         for t_idx, table in enumerate(tables):
             table_text = table.strip()
             if table_text:
                 # 표 주변 컨텍스트 찾기 (표 바로 위의 제목)
                 table_pos = content.find(table)
                 context_before = content[:table_pos].strip()
-                lines_before = context_before.split('\n')
-                
+                lines_before = context_before.split("\n")
+
                 # 표 제목 추출 (### 또는 **로 시작하는 마지막 라인)
                 table_title = ""
                 for line in reversed(lines_before[-5:]):
                     line_stripped = line.strip()
-                    if line_stripped.startswith('#') or line_stripped.startswith('**'):
-                        table_title = line_stripped.replace('#', '').replace('*', '').strip()
+                    if line_stripped.startswith("#") or line_stripped.startswith("**"):
+                        table_title = line_stripped.replace("#", "").replace("*", "").strip()
                         break
-                
-                chunks.append({
-                    "id": f"{doc_id}_table_{t_idx}",
-                    "doc_id": doc_id,
-                    "doc_type": doc_type,
-                    "title": table_title or f"Table {t_idx + 1}",
-                    "content": table_text,
-                    "content_type": "table",
-                    "source_filename": source_filename,
-                    "target_brand": target_brand,
-                    "brands_covered": brands_covered,
-                    "keywords": doc_info["keywords"],
-                    "description": doc_info["description"]
-                })
-        
+
+                chunks.append(
+                    {
+                        "id": f"{doc_id}_table_{t_idx}",
+                        "doc_id": doc_id,
+                        "doc_type": doc_type,
+                        "title": table_title or f"Table {t_idx + 1}",
+                        "content": table_text,
+                        "content_type": "table",
+                        "source_filename": source_filename,
+                        "target_brand": target_brand,
+                        "brands_covered": brands_covered,
+                        "keywords": doc_info["keywords"],
+                        "description": doc_info["description"],
+                    }
+                )
+
         # 2. 표를 플레이스홀더로 대체한 후 섹션 분할
-        content_without_tables = re.sub(table_pattern, '\n[TABLE]\n', content)
+        content_without_tables = re.sub(table_pattern, "\n[TABLE]\n", content)
         sections = content_without_tables.split("\n## ")
 
         for i, section in enumerate(sections):
             if not section.strip():
                 continue
-            
+
             # [TABLE] 플레이스홀더만 있는 섹션은 스킵
             if section.strip() == "[TABLE]":
                 continue
@@ -445,81 +607,85 @@ class DocumentRetriever:
 
             # 청크 생성
             text = section.strip()
-            
+
             # [TABLE] 플레이스홀더 제거
-            text = re.sub(r'\n*\[TABLE\]\n*', '\n', text).strip()
-            
+            text = re.sub(r"\n*\[TABLE\]\n*", "\n", text).strip()
+
             if not text:
                 continue
-            
+
             if len(text) > chunk_size:
                 # 긴 섹션은 추가 분할
                 sub_chunks = self._smart_split(text, chunk_size)
                 for k, sub_chunk in enumerate(sub_chunks):
                     if sub_chunk.strip():
-                        chunks.append({
-                            "id": f"{doc_id}_{i}_{k}",
-                            "doc_id": doc_id,
-                            "doc_type": doc_type,
-                            "title": title,
-                            "content": sub_chunk,
-                            "content_type": "text",
-                            "source_filename": source_filename,
-                            "target_brand": target_brand,
-                            "brands_covered": brands_covered,
-                            "keywords": doc_info["keywords"],
-                            "description": doc_info["description"]
-                        })
+                        chunks.append(
+                            {
+                                "id": f"{doc_id}_{i}_{k}",
+                                "doc_id": doc_id,
+                                "doc_type": doc_type,
+                                "title": title,
+                                "content": sub_chunk,
+                                "content_type": "text",
+                                "source_filename": source_filename,
+                                "target_brand": target_brand,
+                                "brands_covered": brands_covered,
+                                "keywords": doc_info["keywords"],
+                                "description": doc_info["description"],
+                            }
+                        )
             else:
-                chunks.append({
-                    "id": f"{doc_id}_{i}",
-                    "doc_id": doc_id,
-                    "doc_type": doc_type,
-                    "title": title,
-                    "content": text,
-                    "content_type": "text",
-                    "source_filename": source_filename,
-                    "target_brand": target_brand,
-                    "brands_covered": brands_covered,
-                    "keywords": doc_info["keywords"],
-                    "description": doc_info["description"]
-                })
+                chunks.append(
+                    {
+                        "id": f"{doc_id}_{i}",
+                        "doc_id": doc_id,
+                        "doc_type": doc_type,
+                        "title": title,
+                        "content": text,
+                        "content_type": "text",
+                        "source_filename": source_filename,
+                        "target_brand": target_brand,
+                        "brands_covered": brands_covered,
+                        "keywords": doc_info["keywords"],
+                        "description": doc_info["description"],
+                    }
+                )
 
         return chunks
-    
-    def _smart_split(self, text: str, chunk_size: int) -> List[str]:
+
+    def _smart_split(self, text: str, chunk_size: int) -> list[str]:
         """
         텍스트를 의미 단위로 분할
-        
+
         - 단락(\n\n) 기준으로 우선 분할
         - 단락이 chunk_size보다 크면 문장 단위로 분할
         """
-        paragraphs = text.split('\n\n')
+        paragraphs = text.split("\n\n")
         chunks = []
         current_chunk = ""
-        
+
         for para in paragraphs:
             para = para.strip()
             if not para:
                 continue
-                
+
             if len(current_chunk) + len(para) + 2 <= chunk_size:
                 current_chunk = f"{current_chunk}\n\n{para}".strip()
             else:
                 if current_chunk:
                     chunks.append(current_chunk)
-                
+
                 if len(para) <= chunk_size:
                     current_chunk = para
                 else:
                     # 단락이 chunk_size보다 크면 강제 분할
                     for j in range(0, len(para), chunk_size):
-                        chunks.append(para[j:j+chunk_size])
+                        chunks.append(para[j : j + chunk_size])
                     current_chunk = ""
-        
+
         if current_chunk:
             chunks.append(current_chunk)
-        
+
         return chunks
 
     async def _initialize_vector_search(self) -> None:
@@ -544,8 +710,7 @@ class DocumentRetriever:
         # OpenAI 클라이언트 초기화
         self.openai_client = openai.OpenAI(api_key=api_key)
         self.embedding_model_name = os.getenv(
-            "OPENAI_EMBEDDING_MODEL",
-            self.embedding_model_name or "text-embedding-3-small"
+            "OPENAI_EMBEDDING_MODEL", self.embedding_model_name or "text-embedding-3-small"
         )
 
         # ChromaDB 초기화 (modern API - persistent client)
@@ -556,8 +721,7 @@ class DocumentRetriever:
 
         # 컬렉션 생성/로드
         self.collection = self.client.get_or_create_collection(
-            name="amore_docs",
-            metadata={"hnsw:space": "cosine"}
+            name="amore_docs", metadata={"hnsw:space": "cosine"}
         )
 
         # 문서 인덱싱 (컬렉션이 비어있을 때만)
@@ -566,17 +730,63 @@ class DocumentRetriever:
 
         print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
 
-    def _embed_texts(self, texts: List[str]) -> List[List[float]]:
-        """OpenAI Embeddings API로 텍스트 임베딩 생성"""
+    def _get_text_hash(self, text: str) -> str:
+        """텍스트 해시 생성"""
+        return hashlib.md5(text.encode()).hexdigest()
+
+    def _embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """OpenAI Embeddings API로 텍스트 임베딩 생성 (캐시 적용)"""
         if not self.openai_client:
             return []
-        response = self.openai_client.embeddings.create(
-            model=self.embedding_model_name,
-            input=texts
-        )
-        return [item.embedding for item in response.data]
 
-    async def expand_query(self, query: str) -> List[str]:
+        results = []
+        texts_to_embed = []
+        indices_to_embed = []
+
+        # 캐시 확인
+        for i, text in enumerate(texts):
+            text_hash = self._get_text_hash(text)
+            if text_hash in self._embedding_cache:
+                results.append(self._embedding_cache[text_hash])
+                self._embedding_cache_hits += 1
+            else:
+                results.append(None)  # placeholder
+                texts_to_embed.append(text)
+                indices_to_embed.append(i)
+                self._embedding_cache_misses += 1
+
+        # 캐시 미스 텍스트만 임베딩
+        if texts_to_embed:
+            response = self.openai_client.embeddings.create(
+                model=self.embedding_model_name, input=texts_to_embed
+            )
+
+            for j, embedding_data in enumerate(response.data):
+                idx = indices_to_embed[j]
+                embedding = embedding_data.embedding
+                results[idx] = embedding
+
+                # 캐시 저장 (크기 제한)
+                text_hash = self._get_text_hash(texts_to_embed[j])
+                if len(self._embedding_cache) >= self._EMBEDDING_CACHE_MAX:
+                    # 가장 오래된 항목 제거 (FIFO)
+                    oldest_key = next(iter(self._embedding_cache))
+                    del self._embedding_cache[oldest_key]
+                self._embedding_cache[text_hash] = embedding
+
+        return results
+
+    def get_embedding_cache_stats(self) -> dict:
+        """캐시 통계 반환"""
+        total_requests = self._embedding_cache_hits + self._embedding_cache_misses
+        return {
+            "size": len(self._embedding_cache),
+            "hits": self._embedding_cache_hits,
+            "misses": self._embedding_cache_misses,
+            "hit_rate": self._embedding_cache_hits / max(1, total_requests),
+        }
+
+    async def expand_query(self, query: str) -> list[str]:
         """
         LLM을 사용하여 쿼리 확장
 
@@ -590,8 +800,6 @@ class DocumentRetriever:
             return [query]
 
         try:
-            import openai
-
             prompt = f"""You are a search query expansion assistant. Given a user query, generate 2-3 alternative phrasings or related queries that would help retrieve relevant documents.
 
 Original query: {query}
@@ -608,16 +816,17 @@ Do not include any explanation."""
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a search query expansion system."},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=200
+                max_tokens=200,
             )
 
             content = response.choices[0].message.content.strip()
 
             # JSON 파싱
             import json
+
             expanded = json.loads(content)
 
             # 원본 쿼리를 리스트 맨 앞에 추가
@@ -642,22 +851,24 @@ Do not include any explanation."""
         for chunk in self.chunks:
             ids.append(chunk["id"])
             documents.append(chunk["content"])
-            metadatas.append({
-                "doc_id": chunk["doc_id"],
-                "doc_type": chunk.get("doc_type", "metric_guide"),
-                "title": chunk["title"],
-                "description": chunk["description"],
-                "content_type": chunk.get("content_type", "text"),
-                "source_filename": chunk.get("source_filename", "")
-            })
+            metadatas.append(
+                {
+                    "doc_id": chunk["doc_id"],
+                    "doc_type": chunk.get("doc_type", "metric_guide"),
+                    "title": chunk["title"],
+                    "description": chunk["description"],
+                    "content_type": chunk.get("content_type", "text"),
+                    "source_filename": chunk.get("source_filename", ""),
+                }
+            )
 
         if documents:
             batch_size = 100
             total_batches = (len(documents) - 1) // batch_size + 1
             for i in range(0, len(documents), batch_size):
-                batch_docs = documents[i:i + batch_size]
-                batch_ids = ids[i:i + batch_size]
-                batch_metadatas = metadatas[i:i + batch_size]
+                batch_docs = documents[i : i + batch_size]
+                batch_ids = ids[i : i + batch_size]
+                batch_metadatas = metadatas[i : i + batch_size]
 
                 try:
                     embeddings = self._embed_texts(batch_docs)
@@ -666,18 +877,18 @@ Do not include any explanation."""
                             ids=batch_ids,
                             documents=batch_docs,
                             embeddings=embeddings,
-                            metadatas=batch_metadatas
+                            metadatas=batch_metadatas,
                         )
                         print(f"Indexed batch {i // batch_size + 1}/{total_batches}")
                 except Exception as e:
                     print(f"Indexing batch failed: {e}")
 
     def _get_cache_key(
-        self, 
-        query: str, 
-        top_k: int, 
-        doc_filter: Optional[str],
-        doc_type_filter: Optional[List[str]] = None
+        self,
+        query: str,
+        top_k: int,
+        doc_filter: str | None,
+        doc_type_filter: list[str] | None = None,
     ) -> str:
         """캐시 키 생성"""
         type_key = ",".join(doc_type_filter) if doc_type_filter else "all_types"
@@ -695,7 +906,8 @@ Do not include any explanation."""
         current_time = time.time()
         cache_ttl = self.get_cache_ttl()
         expired_keys = [
-            key for key, timestamp in self._cache_timestamps.items()
+            key
+            for key, timestamp in self._cache_timestamps.items()
             if current_time - timestamp >= cache_ttl
         ]
         for key in expired_keys:
@@ -706,11 +918,11 @@ Do not include any explanation."""
         self,
         query: str,
         top_k: int = 3,
-        doc_filter: Optional[str] = None,
-        doc_type_filter: Optional[List[str]] = None,
-        use_query_expansion: Optional[bool] = None,
-        use_reranking: Optional[bool] = None
-    ) -> List[Dict[str, Any]]:
+        doc_filter: str | None = None,
+        doc_type_filter: list[str] | None = None,
+        use_query_expansion: bool | None = None,
+        use_reranking: bool | None = None,
+    ) -> list[dict[str, Any]]:
         """
         쿼리 기반 문서 검색 (TTL 캐싱 적용)
 
@@ -760,7 +972,7 @@ Do not include any explanation."""
                     q,
                     top_k * 3 if use_reranking else top_k,  # reranking 시 더 많은 후보 검색
                     doc_filter,
-                    doc_type_filter
+                    doc_type_filter,
                 )
             else:
                 raise RuntimeError("Vector search is required but not available")
@@ -784,7 +996,7 @@ Do not include any explanation."""
                         "id": doc.metadata.get("chunk_id", ""),
                         "content": doc.content,
                         "metadata": doc.metadata,
-                        "score": doc.score
+                        "score": doc.score,
                     }
                     for doc in ranked
                 ]
@@ -803,9 +1015,9 @@ Do not include any explanation."""
         self,
         query: str,
         top_k: int,
-        doc_filter: Optional[str],
-        doc_type_filter: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        doc_filter: str | None,
+        doc_type_filter: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """벡터 유사도 검색"""
         if not self.openai_client:
             return []
@@ -818,10 +1030,7 @@ Do not include any explanation."""
         if doc_filter and doc_type_filter:
             # doc_id와 doc_type 모두 필터링
             where_filter = {
-                "$and": [
-                    {"doc_id": doc_filter},
-                    {"doc_type": {"$in": doc_type_filter}}
-                ]
+                "$and": [{"doc_id": doc_filter}, {"doc_type": {"$in": doc_type_filter}}]
             }
         elif doc_filter:
             where_filter = {"doc_id": doc_filter}
@@ -832,7 +1041,7 @@ Do not include any explanation."""
             query_embeddings=query_embedding,
             n_results=top_k,
             where=where_filter,
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances"],
         )
 
         search_results = []
@@ -851,17 +1060,19 @@ Do not include any explanation."""
                         "chunk_id": chunk_id,
                         "source_filename": chunk.get("source_filename", ""),
                         "target_brand": chunk.get("target_brand"),
-                        "brands_covered": chunk.get("brands_covered", [])
+                        "brands_covered": chunk.get("brands_covered", []),
                     }
                 else:
                     metadata = results["metadatas"][0][i]
 
-                search_results.append({
-                    "id": chunk_id,
-                    "content": results["documents"][0][i],
-                    "metadata": metadata,
-                    "score": 1 - results["distances"][0][i]  # 거리를 유사도로 변환
-                })
+                search_results.append(
+                    {
+                        "id": chunk_id,
+                        "content": results["documents"][0][i],
+                        "metadata": metadata,
+                        "score": 1 - results["distances"][0][i],  # 거리를 유사도로 변환
+                    }
+                )
 
         return search_results
 
@@ -869,9 +1080,9 @@ Do not include any explanation."""
         self,
         query: str,
         top_k: int,
-        doc_filter: Optional[str],
-        doc_type_filter: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        doc_filter: str | None,
+        doc_type_filter: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """키워드 기반 검색 (폴백)"""
         query_lower = query.lower()
         scored_chunks = []
@@ -880,7 +1091,7 @@ Do not include any explanation."""
             # doc_id 필터
             if doc_filter and chunk["doc_id"] != doc_filter:
                 continue
-            
+
             # doc_type 필터
             if doc_type_filter and chunk.get("doc_type") not in doc_type_filter:
                 continue
@@ -900,41 +1111,39 @@ Do not include any explanation."""
                     score += 1
 
             if score > 0:
-                scored_chunks.append({
-                    "id": chunk["id"],
-                    "content": chunk["content"],
-                    "metadata": {
-                        "doc_id": chunk["doc_id"],
-                        "doc_type": chunk.get("doc_type", "metric_guide"),
-                        "title": chunk["title"],
-                        "description": chunk["description"],
-                        "keywords": chunk.get("keywords", []),
-                        "content_type": chunk.get("content_type", "text"),
-                        "chunk_id": chunk["id"],
-                        "source_filename": chunk.get("source_filename", ""),
-                        "target_brand": chunk.get("target_brand"),
-                        "brands_covered": chunk.get("brands_covered", [])
-                    },
-                    "score": score
-                })
+                scored_chunks.append(
+                    {
+                        "id": chunk["id"],
+                        "content": chunk["content"],
+                        "metadata": {
+                            "doc_id": chunk["doc_id"],
+                            "doc_type": chunk.get("doc_type", "metric_guide"),
+                            "title": chunk["title"],
+                            "description": chunk["description"],
+                            "keywords": chunk.get("keywords", []),
+                            "content_type": chunk.get("content_type", "text"),
+                            "chunk_id": chunk["id"],
+                            "source_filename": chunk.get("source_filename", ""),
+                            "target_brand": chunk.get("target_brand"),
+                            "brands_covered": chunk.get("brands_covered", []),
+                        },
+                        "score": score,
+                    }
+                )
 
         # 점수순 정렬
         scored_chunks.sort(key=lambda x: x["score"], reverse=True)
 
         return scored_chunks[:top_k]
 
-    async def get_document(self, doc_id: str) -> Optional[str]:
+    async def get_document(self, doc_id: str) -> str | None:
         """특정 문서 전체 반환"""
         if not self._initialized:
             await self.initialize()
 
         return self.documents.get(doc_id)
 
-    async def get_relevant_context(
-        self,
-        query: str,
-        max_tokens: int = 2000
-    ) -> str:
+    async def get_relevant_context(self, query: str, max_tokens: int = 2000) -> str:
         """
         쿼리에 관련된 컨텍스트 반환 (LLM 프롬프트용)
 

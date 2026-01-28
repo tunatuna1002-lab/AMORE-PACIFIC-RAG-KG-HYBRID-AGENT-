@@ -11,6 +11,9 @@ license = {text = "MIT"}
 authors = [
     {name = "AMORE Pacific", email = "tech@amorepacific.com"}
 ]
+dependencies = [
+    "aiosqlite>=0.19.0",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -79,6 +82,8 @@ exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -90,8 +95,15 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "E402",  # module level import not at top (needed for logging setup)
     "B008",  # do not perform function calls in argument defaults
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["F841", "E712"]  # Unused variables and == True/False ok in tests
+"scripts/**/*.py" = ["F841"]  # Unused variables ok in scripts
+
+[tool.ruff.format]
 exclude = [
     ".git",
     ".venv",

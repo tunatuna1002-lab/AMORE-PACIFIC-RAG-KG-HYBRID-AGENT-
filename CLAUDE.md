@@ -305,7 +305,8 @@ ENV_FILE=.env.test python -m pytest tests/
 
 | 모듈 | 파일 | 역할 |
 |------|------|------|
-| UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 |
+| UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
+| ReActAgent | `src/core/react_agent.py` | ReAct Self-Reflection (복잡한 질문 처리) |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (Railway Volume 자동 연결) |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG + Ontology 통합 |
 | HybridChatbotAgent | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
@@ -394,7 +395,50 @@ class Product(BaseModel):
 
 ## 14. 구현 완료 내역
 
-### 2026-01-28 - 카테고리 계층 구조 정비
+### 2026-01-28 (v3) - ReAct Self-Reflection Agent
+
+| 항목 | 파일 |
+|------|------|
+| ReAct Agent 구현 | `src/core/react_agent.py` |
+| UnifiedBrain 통합 | `src/core/brain.py` (복잡도 판단 로직) |
+| 단위 테스트 | `tests/unit/core/test_react_agent.py` |
+| 데모 스크립트 | `examples/react_agent_demo.py` |
+| 가이드 문서 | `docs/guides/react_agent_guide.md` |
+
+**주요 변경:**
+- ReAct Loop: Thought → Action → Observation → Reflection (최대 3회)
+- Self-Reflection: 응답 품질 자체 평가 (confidence, needs_improvement)
+- 자동 활성화: 복잡한 질문 감지 시 ReAct 모드 자동 전환
+- 복잡도 판단: 분석 키워드, 컨텍스트 부족, 다단계 질문 기준
+
+**사용 예시:**
+```python
+# UnifiedBrain이 자동으로 복잡도 판단 및 ReAct 활성화
+response = await brain.process_query("LANEIGE가 경쟁사 대비 어떤 위치에 있는지 분석해줘")
+print(response.metadata.get('mode'))  # "react"
+```
+
+### 2026-01-28 (v2) - Embedding 캐시 구현
+
+| 항목 | 파일 |
+|------|------|
+| Embedding 캐시 로직 | `src/rag/retriever.py` |
+| 캐시 통계 API | `get_embedding_cache_stats()` |
+| 테스트 스크립트 | `test_embedding_cache.py` |
+| 가이드 문서 | `docs/embedding_cache_guide.md` |
+
+**주요 기능:**
+- MD5 해시 기반 캐시 키 생성
+- FIFO 방식 자동 eviction (최대 1000개)
+- Hit/Miss 카운터 및 Hit Rate 계산
+- 동일 텍스트 재임베딩 방지 (OpenAI API 비용 절감)
+
+**성능 개선:**
+- 캐시 히트 시 OpenAI API 호출 생략
+- 반복 쿼리 대응 시 33%+ API 비용 절감 가능
+- 메모리 사용량: ~6 KB/entry (1000개 ≈ 6 MB)
+
+### 2026-01-28 (v1) - 카테고리 계층 구조 정비
 
 | 항목 | 파일 |
 |------|------|
@@ -490,3 +534,63 @@ class Product(BaseModel):
 - trailing-whitespace 제거
 - private key 감지
 - 대용량 파일 (1MB+) 차단
+
+---
+
+## 16. Railway 배포 Healthcheck 가이드
+
+> 참조: https://docs.railway.com/guides/healthchecks
+
+### 기본 설정
+
+1. `/api/health` 엔드포인트에서 HTTP 200 반환 (이미 구현됨)
+2. Railway가 자동 주입하는 `PORT` 환경변수로 서버 listen
+
+### 주요 설정값
+
+| 설정 | 기본값 | 환경변수/설정 |
+|------|--------|---------------|
+| 타임아웃 | 300초 (5분) | `RAILWAY_HEALTHCHECK_TIMEOUT_SEC` |
+| 포트 | 자동 주입 | `PORT` |
+| Hostname | `healthcheck.railway.app` | 허용 필요 |
+
+### 흔한 Healthcheck 실패 원인
+
+| 에러 메시지 | 원인 | 해결책 |
+|-------------|------|--------|
+| `service unavailable` | `PORT` 환경변수로 listen하지 않음 | `os.environ.get("PORT", "8001")` 사용 |
+| `status 400` | hostname 제한 | `healthcheck.railway.app` 허용 |
+| `timeout` | 앱 시작 > 300초 | 타임아웃 증가 또는 시작 최적화 |
+
+### Volume 연결 시 주의사항
+
+- **데이터 무결성 보호**: Railway는 동일 Volume에 동시 마운트 방지
+- **결과**: healthcheck 설정해도 **약간의 다운타임 발생**
+- 이 프로젝트의 `/data` Volume이 해당됨
+
+### 현재 프로젝트 설정 (dashboard_api.py)
+
+```python
+# Health endpoint (이미 구현됨)
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# PORT 환경변수 사용 (start.py)
+port = int(os.environ.get("PORT", 8001))
+```
+
+### 디버깅 명령어
+
+```bash
+# 로컬에서 healthcheck 테스트
+curl http://localhost:8001/api/health
+
+# Railway 로그 확인
+railway logs --tail 100
+```
+
+### 참고
+
+- Railway healthcheck은 **배포 시에만 호출** (지속 모니터링 X)
+- 지속 모니터링 필요 시: Uptime Kuma 템플릿 또는 Telegram Admin Bot 활용
