@@ -5099,13 +5099,20 @@ async def sync_upload(request: Request):
         updated = 0
 
         with sqlite.get_connection() as conn:
-            # 스키마 마이그레이션: image_url 컬럼 추가 (없으면)
-            try:
-                conn.execute("ALTER TABLE raw_data ADD COLUMN image_url TEXT")
-                conn.commit()
-                logging.info("Added image_url column to raw_data table")
-            except Exception:
-                pass  # 이미 존재하면 무시
+            # 스키마 마이그레이션: 누락된 컬럼 추가
+            migration_columns = [
+                ("image_url", "TEXT"),
+                ("is_best_seller", "INTEGER DEFAULT 0"),
+                ("is_amazon_choice", "INTEGER DEFAULT 0"),
+            ]
+            for col_name, col_type in migration_columns:
+                try:
+                    conn.execute(f"ALTER TABLE raw_data ADD COLUMN {col_name} {col_type}")
+                    conn.commit()
+                    logging.info(f"Added {col_name} column to raw_data table")
+                except Exception:
+                    pass  # 이미 존재하면 무시
+
             for record in records:
                 # UPSERT: snapshot_date + category_id + asin 조합이 unique key
                 cursor = conn.execute(
