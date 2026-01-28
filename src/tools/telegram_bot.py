@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
 
 # Router for webhook
-telegram_router = APIRouter(prefix="/webhook", tags=["telegram"])
+telegram_router = APIRouter(prefix="/api/telegram", tags=["telegram"])
 
 
 class TelegramAdminBot:
@@ -448,7 +448,7 @@ def get_bot() -> TelegramAdminBot:
     return _bot
 
 
-@telegram_router.post("/telegram")
+@telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
     """Telegram Webhook 엔드포인트"""
     bot = get_bot()
