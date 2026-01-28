@@ -679,54 +679,26 @@ async def export_analyst_report(request: AnalystReportRequest):
             added_refs = tracker.add_external_signals(external_signals_list)
             logger.info(f"Added {added_refs} external signal references")
 
-        # 6. Create DOCX Document
+        # 6. Create DOCX Document with IR Cover Design (본문은 기존 스타일 유지)
+        from src.tools.report_generator import DocxReportGenerator
+
+        design_gen = DocxReportGenerator()
         doc = Document()
 
-        # Style setup
-        style = doc.styles["Normal"]
-        font = style.font
-        font.name = "Arial"
-        font.size = Pt(11)
+        # 표지/목차에만 Arita 폰트 적용, 페이지 여백 설정
+        design_gen._setup_document_styles(doc)
+        design_gen._setup_page_margins(doc)
 
-        # ===== 표지 + 목차 (Cover Page with TOC - 같은 페이지) =====
-        # 제목
-        title = doc.add_heading("LANEIGE Amazon US 경쟁력 분석 보고서", 0)
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in title.runs:
-            run.font.color.rgb = PACIFIC_BLUE
-            run.font.size = Pt(24)
-            run.font.bold = True
+        # ===== 표지 페이지 (별도) - Pacific Blue 헤더바 + 로고 =====
+        design_gen._add_cover_page(
+            doc,
+            title="LANEIGE Amazon US 경쟁력 분석 보고서",
+            subtitle="Weekly Insight Report",
+            date_range=f"{request.start_date} ~ {request.end_date}",
+            generation_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        )
 
-        # 구분선 (Pacific Blue)
-        divider = doc.add_paragraph()
-        divider.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        divider_run = divider.add_run("─" * 40)
-        divider_run.font.color.rgb = PACIFIC_BLUE
-        divider_run.font.size = Pt(10)
-
-        # 분석 기간 & 생성일시 (간결하게)
-        meta_para = doc.add_paragraph()
-        meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        meta_run1 = meta_para.add_run(f"분석 기간: {request.start_date} ~ {request.end_date}")
-        meta_run1.font.size = Pt(12)
-        meta_run1.font.color.rgb = GRAY
-        meta_para.add_run("\n")
-        meta_run2 = meta_para.add_run(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-        meta_run2.font.size = Pt(11)
-        meta_run2.font.color.rgb = GRAY
-
-        # ===== 목차 (Table of Contents) - 같은 페이지에 배치 =====
-        # add_heading 대신 add_paragraph로 여백 최소화
-        toc_heading = doc.add_paragraph()
-        toc_heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        toc_heading.paragraph_format.space_before = Pt(18)  # 제목과 목차 사이 최소 여백
-        toc_heading.paragraph_format.space_after = Pt(8)
-        toc_run = toc_heading.add_run("목차")
-        toc_run.font.size = Pt(14)
-        toc_run.font.bold = True
-        toc_run.font.color.rgb = PACIFIC_BLUE
-
-        # 목차 항목 - 여백 최소화
+        # ===== 목차 페이지 (별도) - Pacific Blue 헤더바 + 로고 =====
         toc_items = [
             "1. Executive Summary",
             "2. LANEIGE 심층 분석",
@@ -737,16 +709,7 @@ async def export_analyst_report(request: AnalystReportRequest):
             "7. 전략 제언",
             "8. 참고자료 (References)",
         ]
-        for item in toc_items:
-            toc_para = doc.add_paragraph()
-            toc_para.paragraph_format.space_before = Pt(2)
-            toc_para.paragraph_format.space_after = Pt(2)
-            toc_para.paragraph_format.left_indent = Inches(0.3)
-            toc_run = toc_para.add_run(f"• {item}")
-            toc_run.font.size = Pt(11)
-            toc_run.font.color.rgb = PACIFIC_BLUE
-
-        doc.add_page_break()
+        design_gen._add_toc_page(doc, toc_items)
 
         # ===== Section 1: Executive Summary =====
         if report.executive_summary:
