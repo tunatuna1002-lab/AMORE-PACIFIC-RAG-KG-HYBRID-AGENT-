@@ -233,11 +233,11 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
         f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     ).font.color.rgb = GRAY
 
-    # 목차 (제목과 같은 페이지에 배치 - 빈 줄 최소화)
+    # 목차 (제목과 충분한 간격 확보)
     toc_heading = doc.add_paragraph()
     toc_heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    toc_heading.paragraph_format.space_before = Pt(24)
-    toc_heading.paragraph_format.space_after = Pt(12)
+    toc_heading.paragraph_format.space_before = Pt(72)  # 제목과 목차 사이 여백 증가
+    toc_heading.paragraph_format.space_after = Pt(18)
     toc_run = toc_heading.add_run("목차")
     toc_run.font.size = Pt(16)
     toc_run.font.bold = True
