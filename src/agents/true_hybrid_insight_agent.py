@@ -16,31 +16,31 @@ Flow:
 4. 추론 결과 + RAG 컨텍스트 + 신뢰도로 LLM 인사이트 생성
 """
 
-import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 from litellm import acompletion
 
-# True Hybrid 컴포넌트
-from src.rag.true_hybrid_retriever import TrueHybridRetriever, HybridResult, get_true_hybrid_retriever
-from src.rag.entity_linker import EntityLinker, LinkedEntity, get_entity_linker
-from src.rag.confidence_fusion import ConfidenceFusion, FusedResult
-from src.ontology.owl_reasoner import OWLReasoner, get_owl_reasoner
+from src.monitoring.logger import AgentLogger
+from src.monitoring.metrics import QualityMetrics
+from src.monitoring.tracer import ExecutionTracer
+from src.ontology.business_rules import register_all_rules
 
 # 기존 컴포넌트 (호환성 유지)
 from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.owl_reasoner import OWLReasoner, get_owl_reasoner
 from src.ontology.reasoner import OntologyReasoner
-from src.ontology.business_rules import register_all_rules
-from src.domain.entities.relations import InferenceResult, InsightType, RelationType, Relation
-
 from src.rag.context_builder import ContextBuilder
+from src.rag.entity_linker import EntityLinker, get_entity_linker
 from src.rag.retriever import DocumentRetriever
 from src.rag.templates import ResponseTemplates
 
-from src.monitoring.logger import AgentLogger
-from src.monitoring.tracer import ExecutionTracer
-from src.monitoring.metrics import QualityMetrics
+# True Hybrid 컴포넌트
+from src.rag.true_hybrid_retriever import (
+    HybridResult,
+    TrueHybridRetriever,
+    get_true_hybrid_retriever,
+)
 from src.tools.external_signal_collector import ExternalSignalCollector
 
 
@@ -64,15 +64,15 @@ class TrueHybridInsightAgent:
         self,
         model: str = "gpt-4.1-mini",
         docs_dir: str = ".",
-        owl_reasoner: Optional[OWLReasoner] = None,
-        true_hybrid_retriever: Optional[TrueHybridRetriever] = None,
-        entity_linker: Optional[EntityLinker] = None,
+        owl_reasoner: OWLReasoner | None = None,
+        true_hybrid_retriever: TrueHybridRetriever | None = None,
+        entity_linker: EntityLinker | None = None,
         # 호환성: 기존 컴포넌트도 지원
-        knowledge_graph: Optional[KnowledgeGraph] = None,
-        legacy_reasoner: Optional[OntologyReasoner] = None,
-        logger: Optional[AgentLogger] = None,
-        tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None
+        knowledge_graph: KnowledgeGraph | None = None,
+        legacy_reasoner: OntologyReasoner | None = None,
+        logger: AgentLogger | None = None,
+        tracer: ExecutionTracer | None = None,
+        metrics: QualityMetrics | None = None,
     ):
         """
         Args:
@@ -112,12 +112,12 @@ class TrueHybridInsightAgent:
         self.metrics = metrics
 
         # 결과 캐시
-        self._results: Dict[str, Any] = {}
-        self._last_hybrid_result: Optional[HybridResult] = None
-        self._last_owl_inferences: List[Dict[str, Any]] = []
+        self._results: dict[str, Any] = {}
+        self._last_hybrid_result: HybridResult | None = None
+        self._last_owl_inferences: list[dict[str, Any]] = []
 
         # External Signal Collector
-        self._signal_collector: Optional[ExternalSignalCollector] = None
+        self._signal_collector: ExternalSignalCollector | None = None
 
     def _initialize_true_hybrid(self) -> bool:
         """True Hybrid 컴포넌트 지연 초기화"""
@@ -138,9 +138,7 @@ class TrueHybridInsightAgent:
             # True Hybrid Retriever
             if not self.true_hybrid_retriever:
                 self.true_hybrid_retriever = get_true_hybrid_retriever(
-                    owl_reasoner=self.owl_reasoner,
-                    knowledge_graph=self.kg,
-                    docs_path=self.docs_dir
+                    owl_reasoner=self.owl_reasoner, knowledge_graph=self.kg, docs_path=self.docs_dir
                 )
             self.logger.info("True Hybrid Retriever initialized")
 
@@ -154,11 +152,11 @@ class TrueHybridInsightAgent:
 
     async def execute(
         self,
-        metrics_data: Dict[str, Any],
-        crawl_data: Optional[Dict[str, Any]] = None,
-        crawl_summary: Optional[Dict] = None,
-        use_true_hybrid: bool = True
-    ) -> Dict[str, Any]:
+        metrics_data: dict[str, Any],
+        crawl_data: dict[str, Any] | None = None,
+        crawl_summary: dict | None = None,
+        use_true_hybrid: bool = True,
+    ) -> dict[str, Any]:
         """
         하이브리드 인사이트 생성
 
@@ -211,7 +209,7 @@ class TrueHybridInsightAgent:
                 "owl_inferences": [],
                 "entity_links": [],
                 "explanations": [],
-                "hybrid_stats": {}
+                "hybrid_stats": {},
             }
 
             if true_hybrid_available:
@@ -232,16 +230,19 @@ class TrueHybridInsightAgent:
                 self.tracer.end_span("completed")
 
             if self.metrics:
-                self.metrics.record_agent_complete("true_hybrid_insight", {
-                    "mode": mode,
-                    "confidence": results["confidence"],
-                    "action_items": len(results["action_items"])
-                })
+                self.metrics.record_agent_complete(
+                    "true_hybrid_insight",
+                    {
+                        "mode": mode,
+                        "confidence": results["confidence"],
+                        "action_items": len(results["action_items"]),
+                    },
+                )
 
             self.logger.agent_complete(
                 "TrueHybridInsightAgent",
                 duration,
-                f"mode={mode}, confidence={results['confidence']:.2f}"
+                f"mode={mode}, confidence={results['confidence']:.2f}",
             )
 
             return results
@@ -260,11 +261,11 @@ class TrueHybridInsightAgent:
 
     async def _execute_true_hybrid_mode(
         self,
-        results: Dict[str, Any],
-        metrics_data: Dict[str, Any],
-        crawl_data: Optional[Dict[str, Any]],
-        crawl_summary: Optional[Dict]
-    ) -> Dict[str, Any]:
+        results: dict[str, Any],
+        metrics_data: dict[str, Any],
+        crawl_data: dict[str, Any] | None,
+        crawl_summary: dict | None,
+    ) -> dict[str, Any]:
         """True Hybrid 모드 실행"""
 
         # 1. OWL Ontology 업데이트
@@ -302,7 +303,7 @@ class TrueHybridInsightAgent:
                 "text": el.text,
                 "concept": el.concept_name,
                 "concept_type": el.concept_type,
-                "confidence": el.confidence
+                "confidence": el.confidence,
             }
             for el in hybrid_result.entity_links
         ]
@@ -310,7 +311,7 @@ class TrueHybridInsightAgent:
         results["hybrid_stats"]["retrieval"] = {
             "documents_count": len(hybrid_result.documents),
             "entity_links_count": len(hybrid_result.entity_links),
-            "confidence": hybrid_result.confidence
+            "confidence": hybrid_result.confidence,
         }
 
         if self.tracer:
@@ -357,20 +358,17 @@ class TrueHybridInsightAgent:
 
         # 9. 경고 수집
         alerts = metrics_data.get("alerts", [])
-        results["warnings"] = [
-            a for a in alerts
-            if a.get("severity") in ["warning", "critical"]
-        ]
+        results["warnings"] = [a for a in alerts if a.get("severity") in ["warning", "critical"]]
 
         return results
 
     async def _execute_legacy_mode(
         self,
-        results: Dict[str, Any],
-        metrics_data: Dict[str, Any],
-        crawl_data: Optional[Dict[str, Any]],
-        crawl_summary: Optional[Dict]
-    ) -> Dict[str, Any]:
+        results: dict[str, Any],
+        metrics_data: dict[str, Any],
+        crawl_data: dict[str, Any] | None,
+        crawl_summary: dict | None,
+    ) -> dict[str, Any]:
         """Legacy 모드 실행 (기존 HybridInsightAgent 로직)"""
         from src.rag.hybrid_retriever import HybridRetriever
 
@@ -380,7 +378,7 @@ class TrueHybridInsightAgent:
             knowledge_graph=self.kg,
             reasoner=self.legacy_reasoner,
             doc_retriever=doc_retriever,
-            auto_init_rules=False
+            auto_init_rules=False,
         )
 
         # 1. KG 업데이트
@@ -392,9 +390,7 @@ class TrueHybridInsightAgent:
         # 2. 하이브리드 검색
         query = "LANEIGE 오늘의 Amazon 베스트셀러 성과 분석"
         hybrid_context = await hybrid_retriever.retrieve(
-            query=query,
-            current_metrics=metrics_data,
-            include_explanations=True
+            query=query, current_metrics=metrics_data, include_explanations=True
         )
 
         results["confidence"] = 0.5  # Legacy 모드 기본 신뢰도
@@ -404,7 +400,7 @@ class TrueHybridInsightAgent:
             hybrid_context=hybrid_context,
             current_metrics=metrics_data,
             query=query,
-            knowledge_graph=self.kg
+            knowledge_graph=self.kg,
         )
 
         system_prompt = self.context_builder.build_system_prompt(include_guardrails=True)
@@ -421,10 +417,10 @@ class TrueHybridInsightAgent:
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.3,
-                max_tokens=1200
+                max_tokens=1200,
             )
             results["daily_insight"] = response.choices[0].message.content
         except Exception as e:
@@ -434,21 +430,19 @@ class TrueHybridInsightAgent:
         # 4. 액션 아이템
         for inf in hybrid_context.inferences:
             if inf.recommendation:
-                results["action_items"].append({
-                    "priority": "medium",
-                    "type": inf.insight_type.value,
-                    "action": inf.recommendation,
-                    "source": "legacy_inference",
-                    "confidence": inf.confidence
-                })
+                results["action_items"].append(
+                    {
+                        "priority": "medium",
+                        "type": inf.insight_type.value,
+                        "action": inf.recommendation,
+                        "source": "legacy_inference",
+                        "confidence": inf.confidence,
+                    }
+                )
 
         return results
 
-    def _update_owl_ontology(
-        self,
-        crawl_data: Optional[Dict],
-        metrics_data: Dict
-    ) -> Dict[str, int]:
+    def _update_owl_ontology(self, crawl_data: dict | None, metrics_data: dict) -> dict[str, int]:
         """OWL Ontology 업데이트"""
         stats = {"brands_added": 0, "competitors_added": 0}
 
@@ -457,9 +451,9 @@ class TrueHybridInsightAgent:
 
         # 카테고리별 SoS 데이터에서 브랜드 추출
         categories = metrics_data.get("categories", {})
-        brand_sos_map: Dict[str, List[float]] = {}
+        brand_sos_map: dict[str, list[float]] = {}
 
-        for cat_id, cat_data in categories.items():
+        for _cat_id, cat_data in categories.items():
             sos_data = cat_data.get("sos", {}).get("daily", {})
             for brand, sos in sos_data.items():
                 if brand not in brand_sos_map:
@@ -473,19 +467,21 @@ class TrueHybridInsightAgent:
                 stats["brands_added"] += 1
 
         # 경쟁사 관계 추가 (동일 카테고리 내 상위 5개 브랜드)
-        for cat_id, cat_data in categories.items():
+        for _cat_id, cat_data in categories.items():
             sos_data = cat_data.get("sos", {}).get("daily", {})
             top_brands = sorted(sos_data.items(), key=lambda x: x[1], reverse=True)[:5]
 
             for i, (brand1, _) in enumerate(top_brands):
-                for brand2, _ in top_brands[i+1:]:
+                for brand2, _ in top_brands[i + 1 :]:
                     if self.owl_reasoner.add_competitor_relation(brand1, brand2):
                         stats["competitors_added"] += 1
 
-        self.logger.info(f"OWL updated: {stats['brands_added']} brands, {stats['competitors_added']} competitors")
+        self.logger.info(
+            f"OWL updated: {stats['brands_added']} brands, {stats['competitors_added']} competitors"
+        )
         return stats
 
-    def _run_owl_reasoning(self) -> List[Dict[str, Any]]:
+    def _run_owl_reasoning(self) -> list[dict[str, Any]]:
         """OWL 추론 실행"""
         if not self.owl_reasoner:
             return []
@@ -504,33 +500,36 @@ class TrueHybridInsightAgent:
             sos = brand_info.get("share_of_shelf", 0)
 
             if position:
-                inferences.append({
-                    "type": "market_position",
-                    "brand": brand_name,
-                    "inferred_class": position,
-                    "share_of_shelf": sos,
-                    "confidence": 0.95,
-                    "reasoning": f"OWL DL inference: SoS {sos:.1%} → {position}"
-                })
+                inferences.append(
+                    {
+                        "type": "market_position",
+                        "brand": brand_name,
+                        "inferred_class": position,
+                        "share_of_shelf": sos,
+                        "confidence": 0.95,
+                        "reasoning": f"OWL DL inference: SoS {sos:.1%} → {position}",
+                    }
+                )
 
             # 경쟁사 관계
             competitors = brand_info.get("competitors", [])
             if competitors:
-                inferences.append({
-                    "type": "competitive_relation",
-                    "brand": brand_name,
-                    "competitors": competitors,
-                    "confidence": 0.90,
-                    "reasoning": f"OWL symmetric property: competitorOf"
-                })
+                inferences.append(
+                    {
+                        "type": "competitive_relation",
+                        "brand": brand_name,
+                        "competitors": competitors,
+                        "confidence": 0.90,
+                        "reasoning": "OWL symmetric property: competitorOf",
+                    }
+                )
 
         self.logger.info(f"OWL reasoning: {len(inferences)} inferences")
         return inferences
 
     def _generate_owl_explanations(
-        self,
-        owl_inferences: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, owl_inferences: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """OWL 추론 설명 생성"""
         explanations = []
 
@@ -548,7 +547,7 @@ class TrueHybridInsightAgent:
                         f"{inf['inferred_class']} 클래스에 분류됨. "
                         f"(DominantBrand: ≥30%, StrongBrand: 15-30%, NicheBrand: <15%)"
                     ),
-                    "confidence": inf["confidence"]
+                    "confidence": inf["confidence"],
                 }
             elif inf_type == "competitive_relation":
                 explanation = {
@@ -556,11 +555,11 @@ class TrueHybridInsightAgent:
                     "type": inf_type,
                     "insight": f"{inf['brand']}의 경쟁사: {', '.join(inf['competitors'])}",
                     "explanation": (
-                        f"OWL Symmetric Property 추론: "
-                        f"competitorOf 관계는 양방향 자동 추론됨. "
-                        f"A가 B의 경쟁사면 B도 A의 경쟁사."
+                        "OWL Symmetric Property 추론: "
+                        "competitorOf 관계는 양방향 자동 추론됨. "
+                        "A가 B의 경쟁사면 B도 A의 경쟁사."
                     ),
-                    "confidence": inf["confidence"]
+                    "confidence": inf["confidence"],
                 }
             else:
                 explanation = {
@@ -568,7 +567,7 @@ class TrueHybridInsightAgent:
                     "type": inf_type,
                     "insight": str(inf),
                     "explanation": "OWL 추론 결과",
-                    "confidence": inf.get("confidence", 0.5)
+                    "confidence": inf.get("confidence", 0.5),
                 }
 
             explanations.append(explanation)
@@ -578,10 +577,10 @@ class TrueHybridInsightAgent:
     async def _generate_true_hybrid_insight(
         self,
         hybrid_result: HybridResult,
-        owl_inferences: List[Dict[str, Any]],
-        metrics_data: Dict,
-        crawl_summary: Optional[Dict],
-        external_signals: Optional[Dict] = None
+        owl_inferences: list[dict[str, Any]],
+        metrics_data: dict,
+        crawl_summary: dict | None,
+        external_signals: dict | None = None,
     ) -> str:
         """True Hybrid 인사이트 생성 (LLM)"""
 
@@ -680,25 +679,24 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=1500,
             )
 
             insight = response.choices[0].message.content
 
             # 토큰 사용량 기록
-            if self.metrics and hasattr(response, 'usage'):
+            if self.metrics and hasattr(response, "usage"):
                 self.metrics.record_llm_call(
                     model=self.model,
                     prompt_tokens=response.usage.prompt_tokens,
                     completion_tokens=response.usage.completion_tokens,
                     latency_ms=0,
                     cost=self._estimate_cost(
-                        response.usage.prompt_tokens,
-                        response.usage.completion_tokens
-                    )
+                        response.usage.prompt_tokens, response.usage.completion_tokens
+                    ),
                 )
 
             # 가드레일 적용
@@ -711,9 +709,7 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
             return self._generate_fallback_insight(owl_inferences, metrics_data)
 
     def _generate_fallback_insight(
-        self,
-        owl_inferences: List[Dict[str, Any]],
-        metrics_data: Dict
+        self, owl_inferences: list[dict[str, Any]], metrics_data: dict
     ) -> str:
         """폴백 인사이트 생성"""
         summary = metrics_data.get("summary", {})
@@ -721,7 +717,7 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
         insight_parts = [
             "## 오늘의 LANEIGE Amazon 베스트셀러 분석\n",
             f"- 추적 중인 제품: {summary.get('laneige_products_tracked', 0)}개",
-            f"- 알림: {summary.get('alert_count', 0)}건"
+            f"- 알림: {summary.get('alert_count', 0)}건",
         ]
 
         if owl_inferences:
@@ -739,10 +735,8 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
         return "\n".join(insight_parts)
 
     def _extract_action_items_from_owl(
-        self,
-        owl_inferences: List[Dict[str, Any]],
-        metrics_data: Dict
-    ) -> List[Dict]:
+        self, owl_inferences: list[dict[str, Any]], metrics_data: dict
+    ) -> list[dict]:
         """OWL 추론 결과에서 액션 아이템 추출"""
         actions = []
 
@@ -753,33 +747,39 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
                 sos = inf.get("share_of_shelf", 0)
 
                 if position == "DominantBrand":
-                    actions.append({
-                        "priority": "low",
-                        "type": "market_dominance",
-                        "action": f"{brand} 시장 지배력 유지 전략 검토",
-                        "source": "owl_inference",
-                        "confidence": inf["confidence"]
-                    })
+                    actions.append(
+                        {
+                            "priority": "low",
+                            "type": "market_dominance",
+                            "action": f"{brand} 시장 지배력 유지 전략 검토",
+                            "source": "owl_inference",
+                            "confidence": inf["confidence"],
+                        }
+                    )
                 elif position == "NicheBrand" and brand == "LANEIGE":
-                    actions.append({
-                        "priority": "high",
-                        "type": "growth_opportunity",
-                        "action": f"{brand} 카테고리 확장 및 SoS 개선 필요 (현재 {sos:.1%})",
-                        "source": "owl_inference",
-                        "confidence": inf["confidence"]
-                    })
+                    actions.append(
+                        {
+                            "priority": "high",
+                            "type": "growth_opportunity",
+                            "action": f"{brand} 카테고리 확장 및 SoS 개선 필요 (현재 {sos:.1%})",
+                            "source": "owl_inference",
+                            "confidence": inf["confidence"],
+                        }
+                    )
 
         # 알림 기반 액션
         for alert in metrics_data.get("alerts", []):
             if alert.get("severity") == "critical":
-                actions.append({
-                    "priority": "high",
-                    "type": alert.get("type"),
-                    "action": f"[긴급] {alert.get('message')} - 즉시 확인 필요",
-                    "source": "alert",
-                    "product": alert.get("title"),
-                    "asin": alert.get("asin")
-                })
+                actions.append(
+                    {
+                        "priority": "high",
+                        "type": alert.get("type"),
+                        "action": f"[긴급] {alert.get('message')} - 즉시 확인 필요",
+                        "source": "alert",
+                        "product": alert.get("title"),
+                        "asin": alert.get("asin"),
+                    }
+                )
 
         # 우선순위 정렬
         priority_order = {"high": 0, "medium": 1, "low": 2}
@@ -788,10 +788,8 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
         return actions[:10]
 
     def _extract_highlights_from_owl(
-        self,
-        owl_inferences: List[Dict[str, Any]],
-        metrics_data: Dict
-    ) -> List[Dict]:
+        self, owl_inferences: list[dict[str, Any]], metrics_data: dict
+    ) -> list[dict]:
         """OWL 추론 결과에서 하이라이트 추출"""
         highlights = []
 
@@ -799,34 +797,34 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
             if inf["type"] == "market_position":
                 position = inf.get("inferred_class", "")
                 if position in ["DominantBrand", "StrongBrand"]:
-                    highlights.append({
-                        "type": "owl_inference",
-                        "title": f"{inf['brand']}: {position}",
-                        "detail": f"OWL 추론 (SoS {inf['share_of_shelf']:.1%})",
-                        "source": "owl_reasoner"
-                    })
+                    highlights.append(
+                        {
+                            "type": "owl_inference",
+                            "title": f"{inf['brand']}: {position}",
+                            "detail": f"OWL 추론 (SoS {inf['share_of_shelf']:.1%})",
+                            "source": "owl_reasoner",
+                        }
+                    )
 
         # 제품 메트릭에서 하이라이트
         product_metrics = metrics_data.get("product_metrics", [])
 
         for p in product_metrics:
             if p.get("current_rank", 100) <= 10:
-                highlights.append({
-                    "type": "top_rank",
-                    "title": f"Top 10: {p.get('product_title', '')[:30]}...",
-                    "detail": f"{p.get('category_id')} 카테고리 {p.get('current_rank')}위",
-                    "asin": p.get("asin")
-                })
+                highlights.append(
+                    {
+                        "type": "top_rank",
+                        "title": f"Top 10: {p.get('product_title', '')}",
+                        "detail": f"{p.get('category_id')} 카테고리 {p.get('current_rank')}위",
+                        "asin": p.get("asin"),
+                    }
+                )
 
         return highlights[:10]
 
-    async def _collect_external_signals(self) -> Dict[str, Any]:
+    async def _collect_external_signals(self) -> dict[str, Any]:
         """External Signal 수집"""
-        result = {
-            "signals": [],
-            "report_section": "",
-            "stats": {}
-        }
+        result = {"signals": [], "report_section": "", "stats": {}}
 
         try:
             if not self._signal_collector:
@@ -844,10 +842,8 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
         return result
 
     def _extract_data_source_info(
-        self,
-        metrics_data: Optional[Dict],
-        crawl_data: Optional[Dict]
-    ) -> Dict[str, Any]:
+        self, metrics_data: dict | None, crawl_data: dict | None
+    ) -> dict[str, Any]:
         """데이터 출처 정보 추출"""
         source_info = {
             "platform": "Amazon US Best Sellers",
@@ -855,7 +851,7 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
             "snapshot_date": None,
             "categories": [],
             "total_products": 0,
-            "disclaimer": "Amazon은 Best Sellers 순위를 매 시간 업데이트합니다."
+            "disclaimer": "Amazon은 Best Sellers 순위를 매 시간 업데이트합니다.",
         }
 
         if crawl_data:
@@ -880,25 +876,25 @@ OWL 온톨로지 추론 결과와 True Hybrid RAG 검색 결과를 바탕으로
 
     # === 접근자 메서드 ===
 
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """마지막 실행 결과"""
         return self._results
 
-    def get_last_hybrid_result(self) -> Optional[HybridResult]:
+    def get_last_hybrid_result(self) -> HybridResult | None:
         """마지막 True Hybrid 결과"""
         return self._last_hybrid_result
 
-    def get_last_owl_inferences(self) -> List[Dict[str, Any]]:
+    def get_last_owl_inferences(self) -> list[dict[str, Any]]:
         """마지막 OWL 추론 결과"""
         return self._last_owl_inferences
 
-    def get_owl_reasoner(self) -> Optional[OWLReasoner]:
+    def get_owl_reasoner(self) -> OWLReasoner | None:
         """OWL 추론기 반환"""
         return self.owl_reasoner
 
 
 # 싱글톤 인스턴스
-_agent_instance: Optional[TrueHybridInsightAgent] = None
+_agent_instance: TrueHybridInsightAgent | None = None
 
 
 def get_true_hybrid_insight_agent(**kwargs) -> TrueHybridInsightAgent:

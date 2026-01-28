@@ -29,12 +29,15 @@ report = await agent.generate_report(analysis, external_signals=signals)
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from litellm import acompletion
 
 from src.monitoring.logger import AgentLogger
 from src.tools.insight_formatter import format_insight
+
+if TYPE_CHECKING:
+    from src.tools.insight_verifier import VerificationResult
 
 logger = AgentLogger(__name__)
 
@@ -42,6 +45,7 @@ logger = AgentLogger(__name__)
 @dataclass
 class SectionInsight:
     """섹션별 인사이트"""
+
     section_id: str
     section_title: str
     content: str
@@ -55,13 +59,14 @@ class SectionInsight:
             "section_title": self.section_title,
             "content": self.content,
             "key_points": self.key_points,
-            "data_highlights": self.data_highlights
+            "data_highlights": self.data_highlights,
         }
 
 
 @dataclass
 class PeriodReport:
     """기간별 분석 보고서"""
+
     start_date: str
     end_date: str
     generated_at: str
@@ -84,14 +89,22 @@ class PeriodReport:
             "start_date": self.start_date,
             "end_date": self.end_date,
             "generated_at": self.generated_at,
-            "executive_summary": self.executive_summary.to_dict() if self.executive_summary else None,
+            "executive_summary": self.executive_summary.to_dict()
+            if self.executive_summary
+            else None,
             "laneige_analysis": self.laneige_analysis.to_dict() if self.laneige_analysis else None,
-            "competitive_analysis": self.competitive_analysis.to_dict() if self.competitive_analysis else None,
+            "competitive_analysis": self.competitive_analysis.to_dict()
+            if self.competitive_analysis
+            else None,
             "market_trends": self.market_trends.to_dict() if self.market_trends else None,
             "external_signals": self.external_signals.to_dict() if self.external_signals else None,
-            "risks_opportunities": self.risks_opportunities.to_dict() if self.risks_opportunities else None,
-            "strategic_recommendations": self.strategic_recommendations.to_dict() if self.strategic_recommendations else None,
-            "metadata": self.metadata
+            "risks_opportunities": self.risks_opportunities.to_dict()
+            if self.risks_opportunities
+            else None,
+            "strategic_recommendations": self.strategic_recommendations.to_dict()
+            if self.strategic_recommendations
+            else None,
+            "metadata": self.metadata,
         }
 
 
@@ -156,7 +169,13 @@ class PeriodInsightAgent:
 4. 각 포인트는 bullet point (■)로 구분
 5. 데이터 없이 추측하지 않음 - 주어진 데이터만 해석
 6. 주요 브랜드 외 브랜드는 "소규모/신흥 브랜드" 또는 "Non-major Brands"로 표현
-7. ⚠️ "Unknown", "기타 브랜드(Unknown)" 표현 절대 금지 - 대신 "소규모/신흥 브랜드" 사용"""
+7. ⚠️ "Unknown", "기타 브랜드(Unknown)" 표현 절대 금지 - 대신 "소규모/신흥 브랜드" 사용
+
+⚠️ 참고자료 인용 필수 규칙:
+- 본문에서는 [1], [2], [3] 형태로만 출처 번호 표기
+- URL, 기사 제목, 출처 전체 목록은 본문에 절대 포함 금지
+- 전체 참고자료 목록은 8장 '참고자료 (References)' 섹션에서만 별도 작성
+- 각 섹션(1~7장)에서 URL이나 기사 링크를 직접 나열하지 않음"""
 
     # 기본 시스템 프롬프트 (하위 호환성)
     SYSTEM_PROMPT = SYSTEM_PROMPT_TEMPLATE
@@ -179,14 +198,14 @@ class PeriodInsightAgent:
         return self.SYSTEM_PROMPT_TEMPLATE.format(
             current_date=current_date,
             start_date=start_date or self._analysis_start_date or "N/A",
-            end_date=end_date or self._analysis_end_date or "N/A"
+            end_date=end_date or self._analysis_end_date or "N/A",
         )
 
     async def generate_report(
         self,
         analysis,  # PeriodAnalysis 객체
         external_signals: dict[str, Any] = None,
-        verify_report: bool = True  # 최종 검증 활성화 (기본값: True)
+        verify_report: bool = True,  # 최종 검증 활성화 (기본값: True)
     ) -> PeriodReport:
         """
         전체 보고서 생성
@@ -209,14 +228,14 @@ class PeriodInsightAgent:
         report = PeriodReport(
             start_date=analysis.start_date,
             end_date=analysis.end_date,
-            generated_at=datetime.now().isoformat()
+            generated_at=datetime.now().isoformat(),
         )
 
         # 메타데이터 설정
         report.metadata = {
             "total_days": analysis.total_days,
             "model": self.model,
-            "has_external_signals": bool(external_signals)
+            "has_external_signals": bool(external_signals),
         }
 
         try:
@@ -240,7 +259,9 @@ class PeriodInsightAgent:
             report.risks_opportunities = await self._generate_risks_opportunities(analysis)
 
             logger.debug("Generating strategic recommendations...")
-            report.strategic_recommendations = await self._generate_strategic_recommendations(analysis)
+            report.strategic_recommendations = await self._generate_strategic_recommendations(
+                analysis
+            )
 
             logger.debug("Generating references...")
             report.references = self._generate_references()
@@ -252,7 +273,9 @@ class PeriodInsightAgent:
                 report.metadata["verification"] = verification_result.to_dict()
 
                 if verification_result.has_critical_issues:
-                    logger.warning(f"Report has {len(verification_result.issues)} verification issues")
+                    logger.warning(
+                        f"Report has {len(verification_result.issues)} verification issues"
+                    )
                 else:
                     logger.info("Report verification passed")
 
@@ -277,7 +300,7 @@ class PeriodInsightAgent:
                 "laneige_metrics": analysis.laneige_metrics,
                 "market_metrics": analysis.market_metrics,
                 "brand_performance": analysis.brand_performance,
-                "category_analysis": analysis.category_analysis
+                "category_analysis": analysis.category_analysis,
             }
 
             result = await verifier.verify_report(content, analysis_data)
@@ -287,11 +310,12 @@ class PeriodInsightAgent:
             logger.error(f"Verification failed: {e}")
             # 검증 실패해도 보고서 생성은 계속
             from src.tools.insight_verifier import VerificationResult
+
             return VerificationResult(
                 verified_at=datetime.now().isoformat(),
                 total_checks=0,
                 passed_checks=0,
-                confidence_score=0.0
+                confidence_score=0.0,
             )
 
     async def _call_llm(self, prompt: str) -> str:
@@ -304,10 +328,10 @@ class PeriodInsightAgent:
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 max_tokens=self.MAX_TOKENS,
-                temperature=self.TEMPERATURE
+                temperature=self.TEMPERATURE,
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -354,13 +378,13 @@ class PeriodInsightAgent:
             key_points=[
                 f"기간: {analysis.start_date} ~ {analysis.end_date}",
                 f"SoS 변화: {metrics.get('sos_change', 0):+.1f}%",
-                f"시장 집중도: {market.get('hhi_interpretation', 'N/A')}"
+                f"시장 집중도: {market.get('hhi_interpretation', 'N/A')}",
             ],
             data_highlights={
                 "avg_sos": metrics.get("avg_sos", 0),
                 "sos_change": metrics.get("sos_change", 0),
-                "avg_hhi": market.get("avg_hhi", 0)
-            }
+                "avg_hhi": market.get("avg_hhi", 0),
+            },
         )
 
     async def _generate_laneige_analysis(self, analysis) -> SectionInsight:
@@ -370,17 +394,26 @@ class PeriodInsightAgent:
 
         # Top 5 제품 정보 - 카테고리명 포함하여 혼동 방지
         top_products = metrics.get("top_products", [])[:5]
-        top_products_str = "\n".join([
-            f"  - {p['title'][:30]}... [{p.get('category_name', p.get('category', ''))}] "
-            f"(순위: {p['start_rank']} → {p['end_rank']}, 변동: {p['change']:+d})"
-            for p in top_products
-        ]) if top_products else "  - 데이터 없음"
+        top_products_str = (
+            "\n".join(
+                [
+                    f"  - {p['title']} [{p.get('category_name', p.get('category', ''))}] "
+                    f"(순위: {p['start_rank']} → {p['end_rank']}, 변동: {p['change']:+d})"
+                    for p in top_products
+                ]
+            )
+            if top_products
+            else "  - 데이터 없음"
+        )
 
         # 카테고리별 SoS
-        cat_str = "\n".join([
-            f"  - {cat}: {data.get('avg_sos', 0):.1f}%"
-            for cat, data in categories.items()
-        ]) if categories else "  - 데이터 없음"
+        cat_str = (
+            "\n".join(
+                [f"  - {cat}: {data.get('avg_sos', 0):.1f}%" for cat, data in categories.items()]
+            )
+            if categories
+            else "  - 데이터 없음"
+        )
 
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
@@ -420,7 +453,7 @@ Top 5 제품 순위 변동:
 2.4 가격 경쟁력 (CPI)
 ■ [가격 포지셔닝 평가]
 
-※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
+※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -434,8 +467,8 @@ Top 5 제품 순위 변동:
             ],
             data_highlights={
                 "top_products": top_products[:3],
-                "category_sos": {k: v.get("avg_sos", 0) for k, v in categories.items()}
-            }
+                "category_sos": {k: v.get("avg_sos", 0) for k, v in categories.items()},
+            },
         )
 
     async def _generate_competitive_analysis(self, analysis) -> SectionInsight:
@@ -443,10 +476,16 @@ Top 5 제품 순위 변동:
         brands = analysis.brand_performance[:10]
         shifts = analysis.competitive_shifts
 
-        brand_str = "\n".join([
-            f"  {i+1}. {b['brand']}: {b['avg_sos']:.1f}% (변화: {b['sos_change']:+.1f}%)"
-            for i, b in enumerate(brands)
-        ]) if brands else "  - 데이터 없음"
+        brand_str = (
+            "\n".join(
+                [
+                    f"  {i+1}. {b['brand']}: {b['avg_sos']:.1f}% (변화: {b['sos_change']:+.1f}%)"
+                    for i, b in enumerate(brands)
+                ]
+            )
+            if brands
+            else "  - 데이터 없음"
+        )
 
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
@@ -475,7 +514,7 @@ Top 5 제품 순위 변동:
 ■ [시장 구조 변화 해석]
 ■ [LANEIGE 경쟁 포지션 평가]
 
-※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
+※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -489,8 +528,8 @@ Top 5 제품 순위 변동:
             ],
             data_highlights={
                 "top_brands": brands[:5],
-                "new_entrants": shifts.get("new_entrants", [])[:5]
-            }
+                "new_entrants": shifts.get("new_entrants", [])[:5],
+            },
         )
 
     async def _generate_market_trends(self, analysis) -> SectionInsight:
@@ -523,7 +562,7 @@ Top 5 제품 순위 변동:
 ■ [아모레퍼시픽 IR 실적과의 연관성]
 ■ [Americas 매출과 Amazon 성과 상관관계]
 
-※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
+※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -533,9 +572,9 @@ Top 5 제품 순위 변동:
             content=content,
             key_points=[
                 f"HHI: {market.get('avg_hhi', 0):.0f}",
-                market.get("hhi_interpretation", "N/A")
+                market.get("hhi_interpretation", "N/A"),
             ],
-            data_highlights={"market_metrics": market}
+            data_highlights={"market_metrics": market},
         )
 
     async def _generate_external_signals(self, analysis) -> SectionInsight:
@@ -549,12 +588,12 @@ Top 5 제품 순위 변동:
 
         if signals and signals.get("signals"):
             for s in signals["signals"]:
-                source = getattr(s, 'source', '')
-                title = getattr(s, 'title', '')
-                url = getattr(s, 'url', '')
-                content = getattr(s, 'content', '')[:200]
-                published = getattr(s, 'published_at', '')
-                metadata = getattr(s, 'metadata', {})
+                source = getattr(s, "source", "")
+                title = getattr(s, "title", "")
+                url = getattr(s, "url", "")
+                content = getattr(s, "content", "")[:200]
+                published = getattr(s, "published_at", "")
+                metadata = getattr(s, "metadata", {})
 
                 signal_info = {
                     "title": title,
@@ -562,11 +601,18 @@ Top 5 제품 순위 변동:
                     "url": url,
                     "content": content,
                     "date": published,
-                    "domain": metadata.get("domain", source)
+                    "domain": metadata.get("domain", source),
                 }
 
-                if source in ["tavily_news", "allure", "byrdie", "cosmetics_design_asia",
-                              "cosmetics_business", "vogue_beauty", "wwd_beauty"]:
+                if source in [
+                    "tavily_news",
+                    "allure",
+                    "byrdie",
+                    "cosmetics_design_asia",
+                    "cosmetics_business",
+                    "vogue_beauty",
+                    "wwd_beauty",
+                ]:
                     news_articles.append(signal_info)
                 elif source == "reddit":
                     reddit_posts.append(signal_info)
@@ -579,9 +625,9 @@ Top 5 제품 순위 변동:
             news_items = []
             for i, article in enumerate(news_articles[:8], 1):  # 최대 8개
                 news_items.append(
-                    f"{i}. [{article['title'][:80]}]({article['url']})\n"
+                    f"{i}. [{article['title']}]({article['url']})\n"
                     f"   - 출처: {article['domain']}, 날짜: {article['date']}\n"
-                    f"   - 요약: {article['content'][:150]}..."
+                    f"   - 요약: {article['content']}"
                 )
             news_section = "\n".join(news_items)
         else:
@@ -592,7 +638,7 @@ Top 5 제품 순위 변동:
         if reddit_posts:
             reddit_items = []
             for post in reddit_posts[:5]:
-                reddit_items.append(f"- {post['title'][:60]}... (r/{post.get('subreddit', 'unknown')})")
+                reddit_items.append(f"- {post['title']} (r/{post.get('subreddit', 'unknown')})")
             reddit_section = "\n".join(reddit_items)
         else:
             reddit_section = "수집된 Reddit 포스트 없음"
@@ -623,7 +669,7 @@ Top 5 제품 순위 변동:
                 section_title="외부 신호 분석",
                 content=no_signal_content,
                 key_points=["외부 신호 미수집"],
-                data_highlights={"total_signals": 0, "api_status": "unavailable"}
+                data_highlights={"total_signals": 0, "api_status": "unavailable"},
             )
 
         # 키워드 추출 (뉴스 기사 + Reddit에서)
@@ -633,14 +679,39 @@ Top 5 제품 순위 변동:
             title_words = article.get("title", "").split()
             for word in title_words:
                 clean_word = word.strip(".,!?\"'()[]{}").lower()
-                if len(clean_word) > 3 and clean_word not in ["the", "and", "for", "with", "that", "this", "from", "about"]:
-                    if any(kw in clean_word for kw in ["beauty", "skin", "lip", "glow", "hydra", "korean", "k-beauty", "cosrx", "laneige", "trend"]):
+                if len(clean_word) > 3 and clean_word not in [
+                    "the",
+                    "and",
+                    "for",
+                    "with",
+                    "that",
+                    "this",
+                    "from",
+                    "about",
+                ]:
+                    if any(
+                        kw in clean_word
+                        for kw in [
+                            "beauty",
+                            "skin",
+                            "lip",
+                            "glow",
+                            "hydra",
+                            "korean",
+                            "k-beauty",
+                            "cosrx",
+                            "laneige",
+                            "trend",
+                        ]
+                    ):
                         all_keywords.add(clean_word.title())
 
         # 기본 바이럴 키워드 추가
-        viral_keywords = list(all_keywords)[:10] if all_keywords else [
-            "K-Beauty", "Glowy Skin", "Hydration", "Clean Beauty", "Skincare Trends"
-        ]
+        viral_keywords = (
+            list(all_keywords)[:10]
+            if all_keywords
+            else ["K-Beauty", "Glowy Skin", "Hydration", "Clean Beauty", "Skincare Trends"]
+        )
         viral_keywords_str = ", ".join([f"#{kw.replace(' ', '')}" for kw in viral_keywords[:8]])
 
         prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
@@ -669,7 +740,7 @@ Top 5 제품 순위 변동:
 
 ■ [주요 해시태그/키워드]
   - 위 바이럴 키워드 목록을 구체적으로 나열하고 설명
-  - 예: #KBeauty2026, #CosRx, #GlowySkin, #Amorepacific, #BeautyInnovation, #SkincareTrends 등
+  - 예: #KBeauty2026, #COSRX, #GlowySkin, #Amorepacific, #BeautyInnovation, #SkincareTrends 등
 
 5.2 뷰티 전문지 동향
 ■ [업계 주요 뉴스]
@@ -685,7 +756,7 @@ Top 5 제품 순위 변동:
 ■ [트렌드 키워드 분석]
   - "K-Beauty"가 2026년 뷰티 트렌드 핵심 키워드로 자리 잡고 있음
   - 'Glowy Skin', 'Hydration', 'Clean Beauty' 관련 키워드 연계 분석
-  - CosRx와 같은 K-Beauty 대표 브랜드의 'Serious Glowy Skin' 카테고리 분석
+  - COSRX와 같은 K-Beauty 대표 브랜드의 'Serious Glowy Skin' 카테고리 분석
   - 아모레퍼시픽의 LANEIGE 역시 '수분 공급(hydration)'과 '스킨케어 혁신' 키워드와 연계 가능성
 
 ⚠️ 중요 작성 원칙:
@@ -694,7 +765,16 @@ Top 5 제품 순위 변동:
 3. 수집된 신호가 없거나 적은 경우에도, 해당 사실을 명시하고 시사점 분석
 4. 날짜 규칙: 분석 기간({analysis.start_date}~{analysis.end_date}) 외의 날짜는 언급 금지
 5. 구체적 수치, 브랜드명, 키워드를 반드시 포함
-6. 참고자료 인용 규칙: 본문에서는 [1], [2] 형태로만 출처 번호 표기. 전체 참고자료 목록(URL 포함)은 8장 참고자료 섹션에서 별도 작성되므로 본문에 URL을 직접 포함하지 마세요."""
+
+⚠️⚠️ 참고자료 인용 규칙 (매우 중요! 필독!):
+- 본문에서는 [1], [2] 형태의 **번호만** 표기
+- **URL을 본문에 직접 포함하지 마세요** (절대 금지!)
+- **기사 제목 전체 목록을 본문에 나열하지 마세요** (절대 금지!)
+- 전체 참고자료 목록(URL 포함)은 8장 참고자료 섹션에서만 별도 작성
+- 예시:
+  ✅ 올바름: "Allure에 따르면 K-Beauty 트렌드가 확대되고 있다[1]."
+  ❌ 잘못됨: "참고: [1] https://allure.com/article/... [2] https://wwd.com/..."
+  ❌ 잘못됨: 섹션 끝에 "참고 자료:" 목록 작성"""
 
         content = await self._call_llm(prompt)
 
@@ -711,8 +791,8 @@ Top 5 제품 순위 변동:
             data_highlights={
                 "news_articles": news_articles[:5],
                 "reddit_posts": reddit_posts[:3],
-                "total_signals": len(signals.get("signals", [])) if signals else 0
-            }
+                "total_signals": len(signals.get("signals", [])) if signals else 0,
+            },
         )
 
     async def _generate_risks_opportunities(self, analysis) -> SectionInsight:
@@ -743,7 +823,7 @@ Top 5 제품 순위 변동:
 6.3 주요 불확실성
 ■ [모니터링 필요 요소]
 
-※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
+※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -752,7 +832,7 @@ Top 5 제품 순위 변동:
             section_title="리스크 및 기회 요인",
             content=content,
             key_points=["리스크", "기회", "불확실성"],
-            data_highlights={}
+            data_highlights={},
         )
 
     async def _generate_strategic_recommendations(self, analysis) -> SectionInsight:
@@ -784,7 +864,7 @@ Top 5 제품 순위 변동:
 ■ 제품 순위 목표: [Top N 제품 수]
 ■ 카테고리 목표: [특정 카테고리 SoS]
 
-※ 참고자료 인용 시 본문에서는 [1], [2] 형태로만 출처 번호 표기. URL은 8장 참고자료 섹션에서 별도 작성."""
+※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
         content = await self._call_llm(prompt)
 
@@ -795,8 +875,8 @@ Top 5 제품 순위 변동:
             key_points=["단기 액션", "중기 전략", "KPI"],
             data_highlights={
                 "current_sos": metrics.get("end_sos", 0),
-                "target_sos": metrics.get("end_sos", 0) * 1.1  # +10% 목표 예시
-            }
+                "target_sos": metrics.get("end_sos", 0) * 1.1,  # +10% 목표 예시
+            },
         )
 
     def _generate_references(self) -> SectionInsight:
@@ -816,19 +896,21 @@ Top 5 제품 순위 변동:
             refs = []
             seen_urls = set()
             for s in signal_list:
-                url = getattr(s, 'url', '')
-                title = getattr(s, 'title', '')
+                url = getattr(s, "url", "")
+                title = getattr(s, "title", "")
                 if url and title and url not in seen_urls:
                     seen_urls.add(url)
-                    published = getattr(s, 'published_at', '')
-                    metadata = getattr(s, 'metadata', {}) or {}
-                    domain = metadata.get("domain", getattr(s, 'source', ''))
-                    refs.append({
-                        "title": title,
-                        "source": domain,
-                        "url": url,
-                        "date": published[:10] if published else ""
-                    })
+                    published = getattr(s, "published_at", "")
+                    metadata = getattr(s, "metadata", {}) or {}
+                    domain = metadata.get("domain", getattr(s, "source", ""))
+                    refs.append(
+                        {
+                            "title": title,
+                            "source": domain,
+                            "url": url,
+                            "date": published[:10] if published else "",
+                        }
+                    )
             return refs
 
         all_refs = extract_ref_info(all_signals)
@@ -839,16 +921,22 @@ Top 5 제품 순위 변동:
         # 본문 인용과 일치하는 번호로 뉴스/기사 출처 나열
         if all_refs:
             for i, ref in enumerate(all_refs, 1):
-                date_str = f", {ref['date']}" if ref['date'] else ""
-                # 제목이 너무 길면 ... 생략
-                title_display = ref['title'][:80] + "..." if len(ref['title']) > 80 else ref['title']
-                content_lines.append(
-                    f"[{i}] {ref['source']}{date_str}, \"{title_display}\""
-                )
+                date_str = f", {ref['date']}" if ref["date"] else ""
+                # 제목 전체 표시 (절대 축약하지 않음)
+                content_lines.append(f"[{i}] {ref['source']}{date_str}, \"{ref['title']}\"")
         else:
             content_lines.append("수집된 외부 신호 없음")
 
         content_lines.append("")
+
+        # 면책사항 추가
+        content_lines.append("")
+        content_lines.append("### 면책사항")
+        content_lines.append("- 본 보고서는 AI 기반 자동 생성 문서로, 참고용으로만 활용 바랍니다.")
+        content_lines.append(
+            "- Amazon 데이터는 크롤링 시점 기준이며, 실시간 변동이 있을 수 있습니다."
+        )
+        content_lines.append("- 전략적 의사결정 시 추가 검증을 권장합니다.")
 
         return SectionInsight(
             section_id="8",
@@ -857,38 +945,8 @@ Top 5 제품 순위 변동:
             key_points=[f"총 {len(all_refs)}개 출처 참조"],
             data_highlights={
                 "total_references": len(all_refs),
-                "sources": list(set(r["source"] for r in all_refs[:10]))
-            }
-        )
-
-        # 면책사항
-        disclaimer_section_num = "8.7" if tier3_refs else "8.6"
-        content_lines.append(f"### {disclaimer_section_num} 면책사항\n")
-        content_lines.append("- 본 보고서는 AI 기반 자동 생성 문서로, 참고용으로만 활용 바랍니다.")
-        content_lines.append("- Amazon 데이터는 크롤링 시점 기준이며, 실시간 변동이 있을 수 있습니다.")
-        content_lines.append("- 전략적 의사결정 시 추가 검증을 권장합니다.")
-
-        content = "\n".join(content_lines)
-
-        total_refs = len(tier1_refs) + len(tier2_refs) + len(tier3_refs)
-
-        return SectionInsight(
-            section_id="8",
-            section_title="참고자료 (References)",
-            content=content,
-            key_points=[
-                f"핵심 출처 {len(tier1_refs)}건",
-                f"배경 출처 {len(tier2_refs)}건",
-                "3-Tier 분류 적용"
-            ],
-            data_highlights={
-                "tier1_count": len(tier1_refs),
-                "tier2_count": len(tier2_refs),
-                "tier3_count": len(tier3_refs),
-                "total_refs": total_refs,
-                "tier1_refs": tier1_refs[:5],
-                "tier2_refs": tier2_refs[:5]
-            }
+                "sources": list({r["source"] for r in all_refs[:10]}),
+            },
         )
 
     def format_report_markdown(self, report: PeriodReport) -> str:
@@ -908,7 +966,7 @@ Top 5 제품 순위 변동:
             f"**생성일시**: {report.generated_at}",
             "",
             "---",
-            ""
+            "",
         ]
 
         # 섹션 제목 매핑 (AMOREPACIFIC 스타일)
@@ -931,7 +989,7 @@ Top 5 제품 순위 변동:
             "external_signals",
             "risks_opportunities",
             "strategic_recommendations",
-            "references"  # 참고자료 섹션 추가
+            "references",  # 참고자료 섹션 추가
         ]:
             section = getattr(report, section_attr)
             if section:
@@ -955,7 +1013,9 @@ Top 5 제품 순위 변동:
         sections.append("")
         sections.append(f"• 분석 일수: **{report.metadata.get('total_days', 'N/A')}**일")
         sections.append(f"• AI 모델: {report.metadata.get('model', 'N/A')}")
-        sections.append(f"• 외부 신호 포함: {'Yes' if report.metadata.get('has_external_signals') else 'No'}")
+        sections.append(
+            f"• 외부 신호 포함: {'Yes' if report.metadata.get('has_external_signals') else 'No'}"
+        )
         sections.append("")
 
         return "\n".join(sections)

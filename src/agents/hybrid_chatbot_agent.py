@@ -87,7 +87,7 @@ class HybridChatbotAgent:
 
         if config_path.exists():
             try:
-                with open(config_path, encoding='utf-8') as f:
+                with open(config_path, encoding="utf-8") as f:
                     config = json.load(f)
                     return config.get("system", {}).get("chatbot", {})
             except Exception:
@@ -104,7 +104,7 @@ class HybridChatbotAgent:
         logger: AgentLogger | None = None,
         tracer: ExecutionTracer | None = None,
         metrics: QualityMetrics | None = None,
-        context_manager: ContextManager | None = None
+        context_manager: ContextManager | None = None,
     ):
         """
         Args:
@@ -126,10 +126,13 @@ class HybridChatbotAgent:
         # Temperature: 챗봇 전용 환경변수 > 일반 환경변수 > 설정파일 > 기본값(0.4)
         # 챗봇은 사실적/일관된 답변을 위해 낮은 temperature 사용 (E2E Audit - 2026-01-27)
         from src.shared.constants import CHATBOT_TEMPERATURE
-        self.temperature = float(os.getenv(
-            "LLM_CHATBOT_TEMPERATURE",
-            os.getenv("LLM_TEMPERATURE", config.get("temperature", CHATBOT_TEMPERATURE))
-        ))
+
+        self.temperature = float(
+            os.getenv(
+                "LLM_CHATBOT_TEMPERATURE",
+                os.getenv("LLM_TEMPERATURE", config.get("temperature", CHATBOT_TEMPERATURE)),
+            )
+        )
         self.max_context_tokens = config.get("max_context_tokens", 8000)
 
         # 온톨로지 컴포넌트
@@ -149,7 +152,7 @@ class HybridChatbotAgent:
             knowledge_graph=self.kg,
             reasoner=self.reasoner,
             doc_retriever=self.doc_retriever,
-            auto_init_rules=False
+            auto_init_rules=False,
         )
 
         # 컨텍스트 빌더
@@ -191,15 +194,10 @@ class HybridChatbotAgent:
 
         # 지식 그래프 업데이트
         if data:
-            self.hybrid_retriever.update_knowledge_graph(
-                metrics_data=data
-            )
+            self.hybrid_retriever.update_knowledge_graph(metrics_data=data)
 
     async def chat(
-        self,
-        user_message: str,
-        session_id: str | None = None,
-        include_reasoning: bool = True
+        self, user_message: str, session_id: str | None = None, include_reasoning: bool = True
     ) -> dict[str, Any]:
         """
         사용자 질문에 응답
@@ -219,16 +217,11 @@ class HybridChatbotAgent:
             }
         """
         # 감사 로깅 시작
-        audit_context = self.logger.chat_request(
-            query=user_message,
-            session_id=session_id
-        )
+        audit_context = self.logger.chat_request(query=user_message, session_id=session_id)
         start_time = datetime.now()
 
         if self.tracer:
-            self.tracer.start_span("hybrid_chatbot_response", {
-                "query_length": len(user_message)
-            })
+            self.tracer.start_span("hybrid_chatbot_response", {"query_length": len(user_message)})
 
         try:
             # 1. 쿼리 라우팅 (의도 분류)
@@ -246,7 +239,7 @@ class HybridChatbotAgent:
                     "is_fallback": True,
                     "inferences": [],
                     "sources": [],
-                    "suggestions": self._get_fallback_suggestions()
+                    "suggestions": self._get_fallback_suggestions(),
                 }
 
             # 2.5 질문 재구성 (대화 맥락 기반)
@@ -262,13 +255,17 @@ class HybridChatbotAgent:
                     "is_fallback": True,
                     "inferences": [],
                     "sources": [],
-                    "suggestions": ["특정 브랜드를 지정해주세요", "어떤 지표가 궁금하신가요?", "제품명을 알려주세요"],
+                    "suggestions": [
+                        "특정 브랜드를 지정해주세요",
+                        "어떤 지표가 궁금하신가요?",
+                        "제품명을 알려주세요",
+                    ],
                     "query_info": {
                         "original": user_message,
                         "rewritten": None,
                         "was_rewritten": False,
-                        "needs_clarification": True
-                    }
+                        "needs_clarification": True,
+                    },
                 }
 
             # 재구성된 쿼리 사용 (검색용)
@@ -284,7 +281,7 @@ class HybridChatbotAgent:
             hybrid_context = await self.hybrid_retriever.retrieve(
                 query=search_query,  # 재구성된 쿼리 사용
                 current_metrics=self._current_data,
-                include_explanations=include_reasoning
+                include_explanations=include_reasoning,
             )
             self._last_hybrid_context = hybrid_context
 
@@ -293,8 +290,7 @@ class HybridChatbotAgent:
 
             # 3.5. 외부 신호 수집 (Tavily 뉴스, RSS, Reddit)
             external_signals = await self._collect_external_signals(
-                query=search_query,
-                entities=hybrid_context.entities
+                query=search_query, entities=hybrid_context.entities
             )
             self._last_external_signals = external_signals
 
@@ -312,7 +308,7 @@ class HybridChatbotAgent:
                     hybrid_context=hybrid_context,
                     current_metrics=self._current_data,
                     query=user_message,
-                    knowledge_graph=self.kg
+                    knowledge_graph=self.kg,
                 )
             else:
                 # 분석 질문은 풀 빌더 (카테고리 계층 인식 포함)
@@ -320,7 +316,7 @@ class HybridChatbotAgent:
                     hybrid_context=hybrid_context,
                     current_metrics=self._current_data,
                     query=user_message,
-                    knowledge_graph=self.kg
+                    knowledge_graph=self.kg,
                 )
 
             if self.tracer:
@@ -334,7 +330,7 @@ class HybridChatbotAgent:
                 user_message=user_message,
                 query_type=query_type,
                 context=context,
-                inferences=hybrid_context.inferences
+                inferences=hybrid_context.inferences,
             )
 
             if self.tracer:
@@ -347,7 +343,9 @@ class HybridChatbotAgent:
             # 실패한 신호 수집기 경고 추가
             failed_signal_warning = ""
             if failed_signals:
-                failed_signal_warning = f"\n\n> ⚠️ **외부 신호 수집 실패**: {', '.join(failed_signals)}"
+                failed_signal_warning = (
+                    f"\n\n> ⚠️ **외부 신호 수집 실패**: {', '.join(failed_signals)}"
+                )
                 failed_signal_warning += "\n> *(위 데이터 소스는 현재 사용할 수 없습니다. 응답은 나머지 데이터를 기반으로 생성되었습니다.)*"
 
             # 7. 응답에 출처 섹션 및 경고 추가
@@ -362,7 +360,7 @@ class HybridChatbotAgent:
                 query_type=query_type,
                 entities=hybrid_context.entities,
                 inferences=hybrid_context.inferences,
-                response=full_response
+                response=full_response,
             )
 
             duration = (datetime.now() - start_time).total_seconds()
@@ -376,16 +374,18 @@ class HybridChatbotAgent:
                 response=full_response,
                 model=self.model,
                 entities_extracted=hybrid_context.entities,
-                intent_detected=query_type.value if hasattr(query_type, 'value') else str(query_type),
+                intent_detected=query_type.value
+                if hasattr(query_type, "value")
+                else str(query_type),
                 kg_facts_count=len(hybrid_context.ontology_facts),
                 rag_chunks_count=len(hybrid_context.rag_chunks),
                 inferences_count=len(hybrid_context.inferences),
-                success=True
+                success=True,
             )
 
             return {
                 "response": full_response,
-                "query_type": query_type.value if hasattr(query_type, 'value') else str(query_type),
+                "query_type": query_type.value if hasattr(query_type, "value") else str(query_type),
                 "is_fallback": False,
                 "inferences": [inf.to_dict() for inf in hybrid_context.inferences],
                 "sources": sources,
@@ -394,14 +394,14 @@ class HybridChatbotAgent:
                 "query_info": {
                     "original": user_message,
                     "rewritten": search_query if rewrite_result.was_rewritten else None,
-                    "was_rewritten": rewrite_result.was_rewritten
+                    "was_rewritten": rewrite_result.was_rewritten,
                 },
                 "stats": {
                     "inferences_count": len(hybrid_context.inferences),
                     "rag_chunks_count": len(hybrid_context.rag_chunks),
                     "kg_facts_count": len(hybrid_context.ontology_facts),
-                    "response_time_ms": duration * 1000
-                }
+                    "response_time_ms": duration * 1000,
+                },
             }
 
         except Exception as e:
@@ -414,7 +414,7 @@ class HybridChatbotAgent:
                 response="",
                 model=self.model,
                 success=False,
-                error=str(e)
+                error=str(e),
             )
 
             return {
@@ -424,7 +424,7 @@ class HybridChatbotAgent:
                 "error": str(e),
                 "inferences": [],
                 "sources": [],
-                "suggestions": self._get_fallback_suggestions()
+                "suggestions": self._get_fallback_suggestions(),
             }
 
     async def _generate_response(
@@ -432,13 +432,11 @@ class HybridChatbotAgent:
         user_message: str,
         query_type: QueryType,
         context: str,
-        inferences: list[InferenceResult]
+        inferences: list[InferenceResult],
     ) -> str:
         """LLM 응답 생성"""
         # 시스템 프롬프트 (카테고리 계층 인식 추가)
-        system_prompt = self.context_builder.build_system_prompt(
-            include_guardrails=True
-        )
+        system_prompt = self.context_builder.build_system_prompt(include_guardrails=True)
 
         # 카테고리 계층 및 순위 비교 규칙 추가
         system_prompt += """
@@ -527,10 +525,10 @@ class HybridChatbotAgent:
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
                 temperature=self.temperature,
-                max_tokens=800
+                max_tokens=800,
             )
 
             if response.choices:
@@ -539,16 +537,15 @@ class HybridChatbotAgent:
                 answer = "죄송합니다. 응답을 생성하지 못했습니다."
 
             # 토큰 사용량 기록
-            if self.metrics and hasattr(response, 'usage'):
+            if self.metrics and hasattr(response, "usage"):
                 self.metrics.record_llm_call(
                     model=self.model,
                     prompt_tokens=response.usage.prompt_tokens,
                     completion_tokens=response.usage.completion_tokens,
                     latency_ms=0,
                     cost=self._estimate_cost(
-                        response.usage.prompt_tokens,
-                        response.usage.completion_tokens
-                    )
+                        response.usage.prompt_tokens, response.usage.completion_tokens
+                    ),
                 )
 
             # 가드레일 적용
@@ -563,10 +560,7 @@ class HybridChatbotAgent:
             self.logger.error(f"LLM call failed: {e}")
             return self._generate_fallback_response(inferences)
 
-    def _generate_fallback_response(
-        self,
-        inferences: list[InferenceResult]
-    ) -> str:
+    def _generate_fallback_response(self, inferences: list[InferenceResult]) -> str:
         """폴백 응답 생성"""
         if inferences:
             lines = ["분석 결과를 바탕으로 답변드립니다:\n"]
@@ -583,7 +577,7 @@ class HybridChatbotAgent:
         query_type: QueryType,
         entities: dict[str, list[str]],
         inferences: list[InferenceResult],
-        response: str = ""
+        response: str = "",
     ) -> list[str]:
         """
         후속 질문 제안 (v2 - 개선 버전)
@@ -604,6 +598,7 @@ class HybridChatbotAgent:
             3개의 후속 질문 리스트
         """
         from src.shared.constants import SUGGESTION_MAX_COUNT
+
         suggestions = []
 
         # 1순위: 응답 키워드 기반 제안
@@ -633,6 +628,7 @@ class HybridChatbotAgent:
     def _extract_response_keywords(self, response: str) -> list[str]:
         """응답에서 후속 질문 관련 키워드 추출 (Phase 3)"""
         import re
+
         keywords = []
 
         # 패턴 매칭 - 응답 내용에 따라 관련 후속 질문 생성
@@ -672,7 +668,11 @@ class HybridChatbotAgent:
             try:
                 competitors = self.kg.get_related_brands(brand, limit=2)
                 if competitors:
-                    comp = competitors[0] if isinstance(competitors[0], str) else competitors[0].get("name", "")
+                    comp = (
+                        competitors[0]
+                        if isinstance(competitors[0], str)
+                        else competitors[0].get("name", "")
+                    )
                     if comp:
                         suggestions.append(f"{brand} vs {comp} 비교 분석")
             except Exception:
@@ -704,7 +704,11 @@ class HybridChatbotAgent:
 
         for inf in inferences[:2]:
             insight_lower = inf.insight.lower()
-            insight_type_val = inf.insight_type.value if hasattr(inf.insight_type, 'value') else str(inf.insight_type)
+            insight_type_val = (
+                inf.insight_type.value
+                if hasattr(inf.insight_type, "value")
+                else str(inf.insight_type)
+            )
 
             if "경쟁" in insight_lower or "COMPETITIVE" in insight_type_val:
                 suggestions.append("주요 경쟁사 분석")
@@ -714,14 +718,12 @@ class HybridChatbotAgent:
                 suggestions.append("성장 기회 구체화")
             if inf.recommendation:
                 # 권장 액션이 있으면 관련 질문
-                suggestions.append(f"'{inf.recommendation[:15]}...' 실행 방법")
+                suggestions.append(f"'{inf.recommendation}' 실행 방법")
 
         return suggestions
 
     def _generate_type_suggestions(
-        self,
-        query_type: QueryType,
-        entities: dict[str, list[str]]
+        self, query_type: QueryType, entities: dict[str, list[str]]
     ) -> list[str]:
         """쿼리 유형 기반 폴백 제안"""
         suggestions = []
@@ -731,58 +733,32 @@ class HybridChatbotAgent:
             if indicators:
                 ind = indicators[0].upper()
                 suggestions.append(f"{ind}가 높으면 어떤 의미?")
-            suggestions.extend([
-                "관련된 다른 지표는?",
-                "실제 데이터에 적용해주세요"
-            ])
+            suggestions.extend(["관련된 다른 지표는?", "실제 데이터에 적용해주세요"])
 
         elif query_type == QueryType.INTERPRETATION:
-            suggestions.extend([
-                "이 수치가 좋은 건가요?",
-                "개선을 위한 액션은?"
-            ])
+            suggestions.extend(["이 수치가 좋은 건가요?", "개선을 위한 액션은?"])
 
         elif query_type == QueryType.ANALYSIS:
-            suggestions.extend([
-                "시계열 트렌드 분석",
-                "경쟁사와 비교해주세요"
-            ])
+            suggestions.extend(["시계열 트렌드 분석", "경쟁사와 비교해주세요"])
 
         elif query_type == QueryType.DATA_QUERY:
-            suggestions.extend([
-                "최근 7일 추이 분석",
-                "경쟁사 대비 현황"
-            ])
+            suggestions.extend(["최근 7일 추이 분석", "경쟁사 대비 현황"])
 
         elif query_type == QueryType.COMBINATION:
-            suggestions.extend([
-                "다른 시나리오 분석",
-                "현재 해당 상황 존재 여부"
-            ])
+            suggestions.extend(["다른 시나리오 분석", "현재 해당 상황 존재 여부"])
 
         else:
             # 기본 제안
-            suggestions = [
-                "SoS(점유율) 설명",
-                "LANEIGE 현재 순위",
-                "전략적 권고사항"
-            ]
+            suggestions = ["SoS(점유율) 설명", "LANEIGE 현재 순위", "전략적 권고사항"]
 
         return suggestions
 
     def _get_fallback_suggestions(self) -> list[str]:
         """폴백 제안"""
-        return [
-            "SoS(점유율)에 대해 알려주세요",
-            "오늘의 주요 인사이트는?",
-            "LANEIGE 현재 순위는?"
-        ]
+        return ["SoS(점유율)에 대해 알려주세요", "오늘의 주요 인사이트는?", "LANEIGE 현재 순위는?"]
 
     async def _generate_llm_suggestions(
-        self,
-        user_query: str,
-        response_summary: str,
-        entities: dict[str, list[str]]
+        self, user_query: str, response_summary: str, entities: dict[str, list[str]]
     ) -> list[str]:
         """
         LLM 기반 후속 질문 생성 (Phase 4)
@@ -828,7 +804,7 @@ class HybridChatbotAgent:
                 model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=SUGGESTION_TEMPERATURE,
-                max_tokens=SUGGESTION_MAX_TOKENS
+                max_tokens=SUGGESTION_MAX_TOKENS,
             )
 
             content = response.choices[0].message.content.strip()
@@ -865,7 +841,7 @@ class HybridChatbotAgent:
             "Paula's": ("Paula's Choice", r"(?i)\bPaula's(?!\s*Choice)"),
         }
 
-        for truncated, (full, pattern) in special_brands.items():
+        for _truncated, (full, pattern) in special_brands.items():
             if full.lower() not in response.lower():
                 response = re.sub(pattern, full, response)
 
@@ -876,17 +852,14 @@ class HybridChatbotAgent:
                 continue
 
             # 단어 경계를 사용하여 정확히 매칭 (대소문자 무시)
-            pattern = rf'\b{re.escape(truncated)}\b'
+            pattern = rf"\b{re.escape(truncated)}\b"
             # 이미 전체 브랜드명이 포함된 경우는 제외
             if full.lower() not in response.lower():
                 response = re.sub(pattern, full, response, flags=re.IGNORECASE)
 
         return response
 
-    def _build_category_hierarchy_context(
-        self,
-        entities: dict[str, list[str]]
-    ) -> str:
+    def _build_category_hierarchy_context(self, entities: dict[str, list[str]]) -> str:
         """
         카테고리 계층 컨텍스트 생성
 
@@ -915,13 +888,13 @@ class HybridChatbotAgent:
             context_parts.append(f"**{hierarchy['name']}** (Level {hierarchy['level']})")
 
             # 상위 카테고리 경로
-            if hierarchy.get('ancestors'):
-                path = " > ".join([a['name'] for a in reversed(hierarchy['ancestors'])])
+            if hierarchy.get("ancestors"):
+                path = " > ".join([a["name"] for a in reversed(hierarchy["ancestors"])])
                 context_parts.append(f"  - 상위 경로: {path} > {hierarchy['name']}")
 
             # 하위 카테고리
-            if hierarchy.get('descendants'):
-                children = ", ".join([d['name'] for d in hierarchy['descendants'][:5]])
+            if hierarchy.get("descendants"):
+                children = ", ".join([d["name"] for d in hierarchy["descendants"][:5]])
                 context_parts.append(f"  - 하위 카테고리: {children}")
 
             context_parts.append("")
@@ -942,9 +915,7 @@ class HybridChatbotAgent:
         return "\n".join(context_parts) if context_parts else ""
 
     def _extract_sources(
-        self,
-        hybrid_context: HybridContext,
-        external_signals: list[Any] | None = None
+        self, hybrid_context: HybridContext, external_signals: list[Any] | None = None
     ) -> list[dict[str, Any]]:
         """
         출처 정보 추출 (Perplexity/Liner 스타일 상세 출처 제공)
@@ -964,10 +935,11 @@ class HybridChatbotAgent:
             data_date = metadata.get("data_date", "")
             categories = self._current_data.get("categories", {})
 
-            total_products = sum(
-                len(cat_data.get("rank_records", []))
-                for cat_data in categories.values()
-            ) if categories else 0
+            total_products = (
+                sum(len(cat_data.get("rank_records", [])) for cat_data in categories.values())
+                if categories
+                else 0
+            )
 
             # 질의에서 언급된 제품의 ASIN 추출 (provenance chain 강화)
             mentioned_asins = self._extract_mentioned_asins(hybrid_context, categories)
@@ -981,8 +953,8 @@ class HybridChatbotAgent:
                 "details": {
                     "categories": list(categories.keys()) if categories else [],
                     "total_products": total_products,
-                    "snapshot_date": data_date
-                }
+                    "snapshot_date": data_date,
+                },
             }
 
             # 관련 제품의 ASIN 정보 추가
@@ -993,35 +965,38 @@ class HybridChatbotAgent:
 
         # 2. Knowledge Graph 출처 - 엔티티 및 관계 정보 추가
         if hybrid_context.ontology_facts:
-            sources.append({
-                "type": "knowledge_graph",
-                "icon": "🔗",
-                "description": "지식 그래프 관계 데이터",
-                "fact_count": len(hybrid_context.ontology_facts),
-                "entities": self._extract_entity_names(hybrid_context.ontology_facts),
-                "relations": self._extract_relation_types(hybrid_context.ontology_facts),
-                "details": {
-                    "source": "Amazon US 실시간 데이터 기반 지식 그래프",
-                    "fact_count": len(hybrid_context.ontology_facts)
+            sources.append(
+                {
+                    "type": "knowledge_graph",
+                    "icon": "🔗",
+                    "description": "지식 그래프 관계 데이터",
+                    "fact_count": len(hybrid_context.ontology_facts),
+                    "entities": self._extract_entity_names(hybrid_context.ontology_facts),
+                    "relations": self._extract_relation_types(hybrid_context.ontology_facts),
+                    "details": {
+                        "source": "Amazon US 실시간 데이터 기반 지식 그래프",
+                        "fact_count": len(hybrid_context.ontology_facts),
+                    },
                 }
-            })
+            )
 
         # 3. 온톨로지 추론 출처 - 규칙 상세 정보
         if hybrid_context.inferences:
             for inf in hybrid_context.inferences:
-                sources.append({
-                    "type": "ontology_inference",
-                    "icon": "🧠",
-                    "description": f"온톨로지 규칙: {inf.rule_name}",
-                    "rule_name": inf.rule_name,
-                    "confidence": inf.confidence,
-                    "evidence": inf.evidence,
-                    "insight_type": inf.insight_type.value if hasattr(inf.insight_type, 'value') else str(inf.insight_type),
-                    "details": {
-                        "insight": inf.insight,
-                        "recommendation": inf.recommendation
+                sources.append(
+                    {
+                        "type": "ontology_inference",
+                        "icon": "🧠",
+                        "description": f"온톨로지 규칙: {inf.rule_name}",
+                        "rule_name": inf.rule_name,
+                        "confidence": inf.confidence,
+                        "evidence": inf.evidence,
+                        "insight_type": inf.insight_type.value
+                        if hasattr(inf.insight_type, "value")
+                        else str(inf.insight_type),
+                        "details": {"insight": inf.insight, "recommendation": inf.recommendation},
                     }
-                })
+                )
 
         # 4. RAG 문서 출처 - 파일 경로 및 관련성 점수
         rag_sources_map = {}
@@ -1036,7 +1011,9 @@ class HybridChatbotAgent:
             if doc_id or title:
                 doc_key = doc_id or title
                 # 같은 문서의 여러 청크 중 가장 높은 점수만 유지
-                if doc_key not in rag_sources_map or score > rag_sources_map[doc_key].get("relevance_score", 0):
+                if doc_key not in rag_sources_map or score > rag_sources_map[doc_key].get(
+                    "relevance_score", 0
+                ):
                     rag_sources_map[doc_key] = {
                         "type": "rag_document",
                         "icon": "📄",
@@ -1044,10 +1021,7 @@ class HybridChatbotAgent:
                         "file_path": file_path,
                         "section": section,
                         "relevance_score": score,
-                        "details": {
-                            "doc_id": doc_id,
-                            "title": title
-                        }
+                        "details": {"doc_id": doc_id, "title": title},
                     }
 
         sources.extend(rag_sources_map.values())
@@ -1062,71 +1036,76 @@ class HybridChatbotAgent:
                         path = [a["name"] for a in reversed(hierarchy["ancestors"])]
                     path.append(hierarchy.get("name", category))
 
-                    sources.append({
-                        "type": "category_hierarchy",
-                        "icon": "🗂️",
-                        "description": "카테고리 계층 구조",
-                        "path": path,
-                        "level": hierarchy.get("level", 0),
-                        "url": hierarchy.get("url", ""),
-                        "details": {
-                            "category": category,
-                            "hierarchy_depth": len(path)
+                    sources.append(
+                        {
+                            "type": "category_hierarchy",
+                            "icon": "🗂️",
+                            "description": "카테고리 계층 구조",
+                            "path": path,
+                            "level": hierarchy.get("level", 0),
+                            "url": hierarchy.get("url", ""),
+                            "details": {"category": category, "hierarchy_depth": len(path)},
                         }
-                    })
+                    )
 
         # 6. 외부 신호 출처 (Tavily 뉴스, RSS, Reddit 등)
         if external_signals:
             for signal in external_signals[:5]:  # 상위 5개만
                 # ExternalSignal 객체에서 정보 추출
-                signal_source = getattr(signal, 'source', 'unknown')
+                signal_source = getattr(signal, "source", "unknown")
                 reliability = 0.7  # 기본값
 
                 # 메타데이터에서 신뢰도 추출
-                if hasattr(signal, 'metadata') and signal.metadata:
-                    reliability = signal.metadata.get('reliability_score', 0.7)
+                if hasattr(signal, "metadata") and signal.metadata:
+                    reliability = signal.metadata.get("reliability_score", 0.7)
 
                 # 소스 유형에 따라 아이콘 결정
-                if 'tavily' in signal_source.lower() or 'news' in signal_source.lower():
+                if "tavily" in signal_source.lower() or "news" in signal_source.lower():
                     icon = "📰"
                     source_type = "external_news"
-                elif 'reddit' in signal_source.lower():
+                elif "reddit" in signal_source.lower():
                     icon = "💬"
                     source_type = "social_media"
-                elif 'rss' in signal_source.lower():
+                elif "rss" in signal_source.lower():
                     icon = "📡"
                     source_type = "rss_feed"
-                elif 'youtube' in signal_source.lower():
+                elif "youtube" in signal_source.lower():
                     icon = "📺"
                     source_type = "social_media"
                 else:
                     icon = "🌐"
                     source_type = "external_source"
 
-                sources.append({
-                    "type": source_type,
-                    "icon": icon,
-                    "description": getattr(signal, 'title', 'Unknown'),
-                    "source": signal_source,
-                    "url": getattr(signal, 'url', ''),
-                    "published_at": getattr(signal, 'published_at', ''),
-                    "reliability_score": reliability,
-                    "relevance_score": getattr(signal, 'relevance_score', 0.5),
-                    "details": {
-                        "content_preview": getattr(signal, 'content', '')[:200] if hasattr(signal, 'content') else '',
-                        "tier": getattr(signal, 'tier', 'unknown')
+                sources.append(
+                    {
+                        "type": source_type,
+                        "icon": icon,
+                        "description": getattr(signal, "title", "Unknown"),
+                        "source": signal_source,
+                        "url": getattr(signal, "url", ""),
+                        "published_at": getattr(signal, "published_at", ""),
+                        "reliability_score": reliability,
+                        "relevance_score": getattr(signal, "relevance_score", 0.5),
+                        "details": {
+                            "content_preview": getattr(signal, "content", "")[:200]
+                            if hasattr(signal, "content")
+                            else "",
+                            "tier": getattr(signal, "tier", "unknown"),
+                        },
                     }
-                })
+                )
 
         # 7. AI 모델 출처 (항상 포함)
-        sources.append({
-            "type": "ai_model",
-            "icon": "🤖",
-            "description": f"AI 분석: {self.model}",
-            "model": self.model,
-            "disclaimer": "AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.",
-            "generated_at": datetime.now().isoformat()
-        })
+        sources.append(
+            {
+                "type": "ai_model",
+                "icon": "🤖",
+                "description": f"AI 분석: {self.model}",
+                "model": self.model,
+                "disclaimer": "AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.",
+                "generated_at": datetime.now().isoformat(),
+            }
+        )
 
         return sources
 
@@ -1191,9 +1170,7 @@ class HybridChatbotAgent:
         return list(filter(None, relations))
 
     def _extract_mentioned_asins(
-        self,
-        hybrid_context: HybridContext,
-        categories: dict[str, Any]
+        self, hybrid_context: HybridContext, categories: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """
         질의에서 언급된 제품의 ASIN 정보 추출 (E2E Audit - 2026-01-27)
@@ -1230,14 +1207,16 @@ class HybridChatbotAgent:
                 # 언급된 브랜드의 제품만 포함 (최대 5개)
                 if brand in mentioned_brands:
                     seen_asins.add(asin)
-                    mentioned_products.append({
-                        "asin": asin,
-                        "name": product_name[:50] + "..." if len(product_name) > 50 else product_name,
-                        "brand": brand,
-                        "rank": rank,
-                        "category": category_id,
-                        "url": f"https://www.amazon.com/dp/{asin}" if asin else ""
-                    })
+                    mentioned_products.append(
+                        {
+                            "asin": asin,
+                            "name": product_name,
+                            "brand": brand,
+                            "rank": rank,
+                            "category": category_id,
+                            "url": f"https://www.amazon.com/dp/{asin}" if asin else "",
+                        }
+                    )
 
                     if len(mentioned_products) >= 5:
                         break
@@ -1396,9 +1375,7 @@ class HybridChatbotAgent:
         return "\n".join(lines)
 
     async def _collect_external_signals(
-        self,
-        query: str,
-        entities: dict[str, list[str]] | None = None
+        self, query: str, entities: dict[str, list[str]] | None = None
     ) -> list[Any]:
         """
         외부 신호 수집 (Tavily 뉴스, RSS, Reddit)
@@ -1415,6 +1392,7 @@ class HybridChatbotAgent:
             if self._external_signal_collector is None:
                 try:
                     from src.tools.external_signal_collector import ExternalSignalCollector
+
                     self._external_signal_collector = ExternalSignalCollector()
                     await self._external_signal_collector.initialize()
                 except ImportError as e:
@@ -1448,7 +1426,7 @@ class HybridChatbotAgent:
                     brands=brands[:3],  # 최대 3개 브랜드
                     topics=topics[:2],  # 최대 2개 토픽
                     days=14,  # 2주로 확장 (더 많은 뉴스 수집)
-                    max_results=8  # 최대 8개로 증가
+                    max_results=8,  # 최대 8개로 증가
                 )
                 all_signals.extend(tavily_signals)
                 self.logger.info(f"Collected {len(tavily_signals)} Tavily news signals")
@@ -1470,10 +1448,10 @@ class HybridChatbotAgent:
             # 신뢰도 * 관련성 점수로 정렬하여 상위 8개 반환
             all_signals.sort(
                 key=lambda s: (
-                    getattr(s, 'metadata', {}).get('reliability_score', 0.7) *
-                    getattr(s, 'relevance_score', 0.5)
+                    getattr(s, "metadata", {}).get("reliability_score", 0.7)
+                    * getattr(s, "relevance_score", 0.5)
                 ),
-                reverse=True
+                reverse=True,
             )
 
             return all_signals[:8]
@@ -1509,7 +1487,10 @@ class HybridChatbotAgent:
         # ExternalSignalCollector 체크
         if self._external_signal_collector is None:
             try:
-                from src.tools.external_signal_collector import ExternalSignalCollector
+                import importlib.util
+
+                if importlib.util.find_spec("src.tools.external_signal_collector") is None:
+                    failed.append("External Signals (Tavily/RSS/Reddit)")
             except ImportError:
                 failed.append("External Signals (Tavily/RSS/Reddit)")
 
@@ -1570,7 +1551,7 @@ class HybridChatbotSession:
     def __init__(
         self,
         knowledge_graph: KnowledgeGraph | None = None,
-        reasoner: OntologyReasoner | None = None
+        reasoner: OntologyReasoner | None = None,
     ):
         """
         Args:
@@ -1581,17 +1562,11 @@ class HybridChatbotSession:
         self._shared_kg = knowledge_graph
         self._shared_reasoner = reasoner
 
-    def get_or_create(
-        self,
-        session_id: str,
-        **kwargs
-    ) -> HybridChatbotAgent:
+    def get_or_create(self, session_id: str, **kwargs) -> HybridChatbotAgent:
         """세션별 챗봇 인스턴스 반환"""
         if session_id not in self._sessions:
             self._sessions[session_id] = HybridChatbotAgent(
-                knowledge_graph=self._shared_kg,
-                reasoner=self._shared_reasoner,
-                **kwargs
+                knowledge_graph=self._shared_kg, reasoner=self._shared_reasoner, **kwargs
             )
         return self._sessions[session_id]
 

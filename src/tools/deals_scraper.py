@@ -15,15 +15,17 @@ Playwright 기반 Amazon Deals 페이지 크롤러
 """
 
 import asyncio
-import re
-import logging
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Optional, Any
-from dataclasses import dataclass, field, asdict
-from enum import Enum
-from playwright.async_api import async_playwright, Page, Browser, TimeoutError as PlaywrightTimeout
 import json
+import logging
 import os
+import re
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any
+
+from playwright.async_api import Browser, Page, async_playwright
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -33,44 +35,46 @@ KST = timezone(timedelta(hours=9))
 
 class DealType(Enum):
     """딜 타입"""
-    LIGHTNING = "lightning"          # 시간 한정 Lightning Deal
+
+    LIGHTNING = "lightning"  # 시간 한정 Lightning Deal
     DEAL_OF_THE_DAY = "deal_of_day"  # 오늘의 딜
-    BEST_DEAL = "best_deal"          # Best Deal
-    COUPON = "coupon"                # 쿠폰 할인
-    REGULAR = "regular"              # 일반 할인
+    BEST_DEAL = "best_deal"  # Best Deal
+    COUPON = "coupon"  # 쿠폰 할인
+    REGULAR = "regular"  # 일반 할인
 
 
 @dataclass
 class DealRecord:
     """할인 정보 레코드"""
-    snapshot_datetime: str          # 수집 시각 (ISO format)
-    asin: str                       # Amazon 상품 ID
-    product_name: str               # 상품명
-    brand: str                      # 브랜드
-    category: str                   # 카테고리 (Beauty 등)
+
+    snapshot_datetime: str  # 수집 시각 (ISO format)
+    asin: str  # Amazon 상품 ID
+    product_name: str  # 상품명
+    brand: str  # 브랜드
+    category: str  # 카테고리 (Beauty 등)
 
     # 가격 정보
-    deal_price: float               # 할인가
-    original_price: Optional[float] = None  # 원가
-    discount_percent: Optional[float] = None  # 할인율
+    deal_price: float  # 할인가
+    original_price: float | None = None  # 원가
+    discount_percent: float | None = None  # 할인율
 
     # 딜 정보
-    deal_type: str = "regular"      # DealType
-    deal_badge: Optional[str] = None  # "Limited time deal" 등
+    deal_type: str = "regular"  # DealType
+    deal_badge: str | None = None  # "Limited time deal" 등
 
     # Lightning Deal 전용
-    time_remaining: Optional[str] = None   # "2h 30m" 남은 시간
-    time_remaining_seconds: Optional[int] = None  # 초 단위
-    claimed_percent: Optional[int] = None  # 판매된 비율 (%)
-    deal_end_time: Optional[str] = None    # 종료 예정 시각
+    time_remaining: str | None = None  # "2h 30m" 남은 시간
+    time_remaining_seconds: int | None = None  # 초 단위
+    claimed_percent: int | None = None  # 판매된 비율 (%)
+    deal_end_time: str | None = None  # 종료 예정 시각
 
     # 메타데이터
-    product_url: Optional[str] = None
-    image_url: Optional[str] = None
-    rating: Optional[float] = None
-    reviews_count: Optional[int] = None
+    product_url: str | None = None
+    image_url: str | None = None
+    rating: float | None = None
+    reviews_count: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -82,32 +86,43 @@ class AmazonDealsScraper:
         "all_deals": "https://www.amazon.com/gp/goldbox",
         "beauty_deals": "https://www.amazon.com/gp/goldbox?ref=nav_cs_gb&deals-widget=%257B%2522version%2522%253A1%252C%2522viewIndex%2522%253A0%252C%2522presetId%2522%253A%2522deals-collection-all-702324011%2522%252C%2522sorting%2522%253A%2522BY_SCORE%2522%257D",
         # 뷰티 카테고리 node ID: 3760911
-        "beauty_lightning": "https://www.amazon.com/gp/goldbox?ref_=nav_cs_gb&gb_f_deal_c=1&gb_f_c=1&gb_f_h=1&gb_s=RELEVANCE&gb_f_nc=3760911"
+        "beauty_lightning": "https://www.amazon.com/gp/goldbox?ref_=nav_cs_gb&gb_f_deal_c=1&gb_f_c=1&gb_f_h=1&gb_s=RELEVANCE&gb_f_nc=3760911",
     }
 
     # 관심 브랜드 (경쟁사)
     WATCH_BRANDS = [
-        "e.l.f.", "elf", "E.L.F.",
-        "Maybelline", "MAYBELLINE",
-        "L'Oreal", "L'OREAL", "Loreal",
-        "NYX", "nyx",
-        "Neutrogena", "NEUTROGENA",
-        "CeraVe", "CERAVE",
-        "COSRX", "Cosrx",
+        "e.l.f.",
+        "elf",
+        "E.L.F.",
+        "Maybelline",
+        "MAYBELLINE",
+        "L'Oreal",
+        "L'OREAL",
+        "Loreal",
+        "NYX",
+        "nyx",
+        "Neutrogena",
+        "NEUTROGENA",
+        "CeraVe",
+        "CERAVE",
+        "COSRX",
+        "cosrx",  # 대소문자 변형 매칭
         "La Roche-Posay",
-        "Cetaphil", "CETAPHIL",
+        "Cetaphil",
+        "CETAPHIL",
         "The Ordinary",
-        "LANEIGE", "Laneige",  # 자사 브랜드도 모니터링
+        "LANEIGE",
+        "Laneige",  # 자사 브랜드도 모니터링
     ]
 
     def __init__(self, config_path: str = "./config/thresholds.json"):
         self.config = self._load_config(config_path)
-        self.browser: Optional[Browser] = None
+        self.browser: Browser | None = None
         self.delay_seconds = float(os.getenv("DEALS_SCRAPE_DELAY", "3"))
 
     def _load_config(self, config_path: str) -> dict:
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return {}
@@ -120,8 +135,8 @@ class AmazonDealsScraper:
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
-                "--disable-dev-shm-usage"
-            ]
+                "--disable-dev-shm-usage",
+            ],
         )
         logger.info("DealsScraper browser initialized")
 
@@ -132,11 +147,8 @@ class AmazonDealsScraper:
             logger.info("DealsScraper browser closed")
 
     async def scrape_deals(
-        self,
-        url: Optional[str] = None,
-        max_items: int = 50,
-        beauty_only: bool = True
-    ) -> Dict[str, Any]:
+        self, url: str | None = None, max_items: int = 50, beauty_only: bool = True
+    ) -> dict[str, Any]:
         """
         Amazon Deals 페이지 크롤링
 
@@ -169,7 +181,7 @@ class AmazonDealsScraper:
             "competitor_deals": [],
             "snapshot_datetime": snapshot_time,
             "success": False,
-            "error": None
+            "error": None,
         }
 
         context = None
@@ -179,7 +191,7 @@ class AmazonDealsScraper:
             # 브라우저 컨텍스트 생성
             context = await self.browser.new_context(
                 viewport={"width": 1920, "height": 1080},
-                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             )
             page = await context.new_page()
 
@@ -206,7 +218,8 @@ class AmazonDealsScraper:
 
             # 경쟁사 딜 필터링
             competitor_deals = [
-                d for d in deals
+                d
+                for d in deals
                 if any(brand.lower() in d.brand.lower() for brand in self.WATCH_BRANDS)
             ]
 
@@ -219,7 +232,9 @@ class AmazonDealsScraper:
             result["competitor_deals"] = [d.to_dict() for d in competitor_deals]
             result["success"] = True
 
-            logger.info(f"Scraped {len(deals)} deals, {lightning_count} lightning, {len(competitor_deals)} competitors")
+            logger.info(
+                f"Scraped {len(deals)} deals, {lightning_count} lightning, {len(competitor_deals)} competitors"
+            )
 
         except PlaywrightTimeout:
             result["error"] = "TIMEOUT"
@@ -242,22 +257,19 @@ class AmazonDealsScraper:
             "Enter the characters you see below",
             "Sorry, we just need to make sure",
             "Type the characters you see in this image",
-            "Robot Check"
+            "Robot Check",
         ]
         return any(indicator in content for indicator in blocked_indicators)
 
     async def _scroll_page(self, page: Page, scroll_count: int = 3) -> None:
         """페이지 스크롤하여 더 많은 콘텐츠 로드"""
-        for i in range(scroll_count):
+        for _i in range(scroll_count):
             await page.evaluate("window.scrollBy(0, window.innerHeight)")
             await asyncio.sleep(1)
 
     async def _parse_deal_cards(
-        self,
-        page: Page,
-        max_items: int,
-        snapshot_time: str
-    ) -> List[DealRecord]:
+        self, page: Page, max_items: int, snapshot_time: str
+    ) -> list[DealRecord]:
         """딜 카드 파싱"""
         deals = []
 
@@ -267,7 +279,7 @@ class AmazonDealsScraper:
             ".DealCard-module__dealCard",
             ".a-section.octopus-dlp-asin-section",
             "[data-component-type='s-search-result']",
-            ".DealGridItem-module__dealItem"
+            ".DealGridItem-module__dealItem",
         ]
 
         for selector in card_selectors:
@@ -291,7 +303,7 @@ class AmazonDealsScraper:
 
         return deals
 
-    async def _parse_single_deal(self, card, snapshot_time: str) -> Optional[DealRecord]:
+    async def _parse_single_deal(self, card, snapshot_time: str) -> DealRecord | None:
         """단일 딜 카드 파싱"""
         # ASIN 추출
         asin = await card.get_attribute("data-asin")
@@ -299,7 +311,7 @@ class AmazonDealsScraper:
             asin_link = await card.query_selector("a[href*='/dp/']")
             if asin_link:
                 href = await asin_link.get_attribute("href")
-                asin_match = re.search(r'/dp/([A-Z0-9]{10})', href or "")
+                asin_match = re.search(r"/dp/([A-Z0-9]{10})", href or "")
                 asin = asin_match.group(1) if asin_match else None
 
         if not asin:
@@ -312,7 +324,7 @@ class AmazonDealsScraper:
             ".a-link-normal span.a-text-normal",
             ".DealContent-module__title",
             "h2 a span",
-            ".a-size-base-plus"
+            ".a-size-base-plus",
         ]
         for selector in name_selectors:
             elem = await card.query_selector(selector)
@@ -332,7 +344,7 @@ class AmazonDealsScraper:
         price_selectors = [
             ".a-price:not([data-a-strike]) .a-offscreen",
             ".DealPrice-module__dealPrice",
-            ".a-color-price .a-offscreen"
+            ".a-color-price .a-offscreen",
         ]
         for selector in price_selectors:
             elem = await card.query_selector(selector)
@@ -346,7 +358,7 @@ class AmazonDealsScraper:
         orig_selectors = [
             ".a-price[data-a-strike] .a-offscreen",
             ".a-text-price .a-offscreen",
-            ".DealPrice-module__originalPrice"
+            ".DealPrice-module__originalPrice",
         ]
         for selector in orig_selectors:
             elem = await card.query_selector(selector)
@@ -369,7 +381,9 @@ class AmazonDealsScraper:
         claimed_percent = None
 
         # Lightning Deal 확인
-        lightning_elem = await card.query_selector(".Lightning, [data-component-type='lightning-deal']")
+        lightning_elem = await card.query_selector(
+            ".Lightning, [data-component-type='lightning-deal']"
+        )
         if lightning_elem:
             deal_type = DealType.LIGHTNING.value
 
@@ -377,7 +391,7 @@ class AmazonDealsScraper:
         badge_selectors = [
             ".DealBadge-module__badge",
             ".a-badge-text",
-            "[data-component-type='s-deal-badge']"
+            "[data-component-type='s-deal-badge']",
         ]
         for selector in badge_selectors:
             elem = await card.query_selector(selector)
@@ -390,15 +404,12 @@ class AmazonDealsScraper:
                 break
 
         # 남은 시간 (Lightning Deal)
-        time_selectors = [
-            ".DealTimer-module__timer",
-            ".a-size-mini.a-color-secondary"
-        ]
+        time_selectors = [".DealTimer-module__timer", ".a-size-mini.a-color-secondary"]
         for selector in time_selectors:
             elem = await card.query_selector(selector)
             if elem:
                 time_text = (await elem.inner_text()).strip()
-                if re.search(r'\d+[hm]', time_text):
+                if re.search(r"\d+[hm]", time_text):
                     time_remaining = time_text
                     time_remaining_seconds = self._parse_time_remaining(time_text)
                     deal_type = DealType.LIGHTNING.value
@@ -408,7 +419,7 @@ class AmazonDealsScraper:
         claimed_elem = await card.query_selector(".DealProgressBar-module__text, .a-meter-bar")
         if claimed_elem:
             claimed_text = await claimed_elem.inner_text()
-            claimed_match = re.search(r'(\d+)%', claimed_text)
+            claimed_match = re.search(r"(\d+)%", claimed_text)
             if claimed_match:
                 claimed_percent = int(claimed_match.group(1))
 
@@ -417,7 +428,7 @@ class AmazonDealsScraper:
         rating_elem = await card.query_selector(".a-icon-alt, [data-a-popover*='rating']")
         if rating_elem:
             rating_text = await rating_elem.inner_text()
-            rating_match = re.search(r'([\d.]+)\s*out of', rating_text)
+            rating_match = re.search(r"([\d.]+)\s*out of", rating_text)
             if rating_match:
                 rating = float(rating_match.group(1))
 
@@ -427,7 +438,7 @@ class AmazonDealsScraper:
         if reviews_elem:
             reviews_text = await reviews_elem.inner_text()
             reviews_text = reviews_text.replace(",", "")
-            reviews_match = re.search(r'([\d,]+)', reviews_text)
+            reviews_match = re.search(r"([\d,]+)", reviews_text)
             if reviews_match:
                 reviews_count = int(reviews_match.group(1).replace(",", ""))
 
@@ -462,7 +473,7 @@ class AmazonDealsScraper:
             deal_end_time=deal_end_time,
             product_url=product_url,
             rating=rating,
-            reviews_count=reviews_count
+            reviews_count=reviews_count,
         )
 
     def _extract_brand(self, product_name: str) -> str:
@@ -479,12 +490,12 @@ class AmazonDealsScraper:
         words = product_name.split()
         return words[0] if words else "Unknown"
 
-    def _parse_price(self, price_text: str) -> Optional[float]:
+    def _parse_price(self, price_text: str) -> float | None:
         """가격 문자열 파싱"""
-        if not price_text or '$' not in price_text:
+        if not price_text or "$" not in price_text:
             return None
         try:
-            match = re.search(r'\$([\d,]+\.?\d*)', price_text)
+            match = re.search(r"\$([\d,]+\.?\d*)", price_text)
             if match:
                 price = float(match.group(1).replace(",", ""))
                 if 0.50 <= price <= 1000:
@@ -493,23 +504,23 @@ class AmazonDealsScraper:
             pass
         return None
 
-    def _parse_time_remaining(self, time_text: str) -> Optional[int]:
+    def _parse_time_remaining(self, time_text: str) -> int | None:
         """남은 시간을 초 단위로 변환"""
         try:
             total_seconds = 0
 
             # 시간 파싱
-            hours_match = re.search(r'(\d+)\s*h', time_text)
+            hours_match = re.search(r"(\d+)\s*h", time_text)
             if hours_match:
                 total_seconds += int(hours_match.group(1)) * 3600
 
             # 분 파싱
-            mins_match = re.search(r'(\d+)\s*m', time_text)
+            mins_match = re.search(r"(\d+)\s*m", time_text)
             if mins_match:
                 total_seconds += int(mins_match.group(1)) * 60
 
             # 초 파싱
-            secs_match = re.search(r'(\d+)\s*s', time_text)
+            secs_match = re.search(r"(\d+)\s*s", time_text)
             if secs_match:
                 total_seconds += int(secs_match.group(1))
 
@@ -521,16 +532,35 @@ class AmazonDealsScraper:
     def _is_beauty_product(self, deal: DealRecord) -> bool:
         """뷰티 카테고리 제품인지 확인"""
         beauty_keywords = [
-            "lip", "skin", "face", "beauty", "makeup", "cream", "serum",
-            "moisturizer", "cleanser", "toner", "mask", "lotion", "powder",
-            "foundation", "concealer", "mascara", "eyeliner", "lipstick",
-            "blush", "bronzer", "primer", "sunscreen", "spf"
+            "lip",
+            "skin",
+            "face",
+            "beauty",
+            "makeup",
+            "cream",
+            "serum",
+            "moisturizer",
+            "cleanser",
+            "toner",
+            "mask",
+            "lotion",
+            "powder",
+            "foundation",
+            "concealer",
+            "mascara",
+            "eyeliner",
+            "lipstick",
+            "blush",
+            "bronzer",
+            "primer",
+            "sunscreen",
+            "spf",
         ]
 
         name_lower = deal.product_name.lower()
         return any(kw in name_lower for kw in beauty_keywords)
 
-    async def scrape_competitor_deals(self) -> Dict[str, Any]:
+    async def scrape_competitor_deals(self) -> dict[str, Any]:
         """경쟁사 딜만 수집"""
         result = await self.scrape_deals(beauty_only=True, max_items=100)
 
@@ -555,7 +585,7 @@ class AmazonDealsScraper:
 # 싱글톤 인스턴스
 # =============================================================================
 
-_deals_scraper: Optional[AmazonDealsScraper] = None
+_deals_scraper: AmazonDealsScraper | None = None
 
 
 async def get_deals_scraper() -> AmazonDealsScraper:
@@ -572,21 +602,22 @@ async def get_deals_scraper() -> AmazonDealsScraper:
 # =============================================================================
 
 if __name__ == "__main__":
+
     async def test():
         scraper = AmazonDealsScraper()
         await scraper.initialize()
 
         try:
             result = await scraper.scrape_deals(max_items=20, beauty_only=True)
-            print(f"\n=== Deals Scraping Result ===")
+            print("\n=== Deals Scraping Result ===")
             print(f"Success: {result['success']}")
             print(f"Total deals: {result['count']}")
             print(f"Lightning deals: {result['lightning_count']}")
             print(f"Competitor deals: {len(result['competitor_deals'])}")
 
-            if result['deals']:
-                print(f"\nSample deal:")
-                print(json.dumps(result['deals'][0], indent=2, ensure_ascii=False))
+            if result["deals"]:
+                print("\nSample deal:")
+                print(json.dumps(result["deals"][0], indent=2, ensure_ascii=False))
         finally:
             await scraper.close()
 

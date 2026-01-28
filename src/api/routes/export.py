@@ -1,6 +1,7 @@
 """
 Export Routes - Document and data export endpoints
 """
+
 import logging
 import os
 import re
@@ -31,21 +32,32 @@ router = APIRouter(prefix="/api/export", tags=["export"])
 
 class SignalRelevance(Enum):
     """외부 신호 시간적 관련성 분류"""
-    TIER1_CORE = "core"           # 분석 기간 ±7일 - 직접 관련
+
+    TIER1_CORE = "core"  # 분석 기간 ±7일 - 직접 관련
     TIER2_BACKGROUND = "background"  # ±30일 또는 구조적 트렌드
-    TIER3_ARCHIVE = "archive"     # 30일+ 이전, 장기 트렌드만
+    TIER3_ARCHIVE = "archive"  # 30일+ 이전, 장기 트렌드만
 
 
 # 구조적 트렌드 키워드 (시간 민감도 낮음)
 STRUCTURAL_TREND_KEYWORDS = [
-    "trend", "growth", "market size", "industry", "expansion",
-    "k-beauty", "clean beauty", "sustainable", "global",
-    "market report", "forecast", "analysis"
+    "trend",
+    "growth",
+    "market size",
+    "industry",
+    "expansion",
+    "k-beauty",
+    "clean beauty",
+    "sustainable",
+    "global",
+    "market report",
+    "forecast",
+    "analysis",
 ]
 
 
 class ExportRequest(BaseModel):
     """내보내기 요청"""
+
     start_date: str | None = None
     end_date: str | None = None
     include_strategy: bool = True
@@ -54,16 +66,71 @@ class ExportRequest(BaseModel):
 
 class AnalystReportRequest(BaseModel):
     """애널리스트 리포트 요청"""
+
     start_date: str  # Required: YYYY-MM-DD
-    end_date: str    # Required: YYYY-MM-DD
+    end_date: str  # Required: YYYY-MM-DD
     include_charts: bool = True
     include_external_signals: bool = True
 
 
+# 참고자료가 본문에 포함된 경우 필터링할 패턴
+REFERENCE_LINE_PATTERNS = [
+    r"^\s*참고\s*자료\s*:?\s*$",  # "참고자료:" 단독 라인
+    r"^\s*참고\s*:?\s*$",  # "참고:" 단독 라인
+    r"^\s*References?\s*:?\s*$",  # "Reference(s):" 단독 라인
+    r"^\s*출처\s*:?\s*$",  # "출처:" 단독 라인
+    r"^\s*\[\d+\]\s*https?://",  # "[1] https://..." 형태
+    r"^\s*-\s*\[\d+\]\s*https?://",  # "- [1] https://..." 형태
+    r"^\s*\d+\.\s*https?://",  # "1. https://..." 형태
+    r"^\s*•\s*https?://",  # "• https://..." 형태
+    r"^\s*-\s*https?://",  # "- https://..." 형태
+    r"^\s*https?://\S+\s*$",  # URL만 있는 라인
+]
+
+
+def _filter_reference_lines(content: str) -> str:
+    """
+    LLM 출력에서 참고자료 관련 라인을 필터링
+
+    Args:
+        content: LLM 생성 텍스트
+
+    Returns:
+        참고자료 라인이 제거된 텍스트
+    """
+    import re
+
+    filtered_lines = []
+    skip_until_section = False
+
+    for line in content.split("\n"):
+        # 참고자료 섹션 시작 감지
+        if re.match(r"^\s*(참고\s*자료|References?|출처)\s*:?\s*$", line, re.IGNORECASE):
+            skip_until_section = True
+            continue
+
+        # 새 섹션 시작 시 스킵 해제
+        if skip_until_section and re.match(r"^[■\d]", line.strip()):
+            skip_until_section = False
+
+        if skip_until_section:
+            continue
+
+        # 개별 참고자료 라인 패턴 체크
+        is_reference_line = False
+        for pattern in REFERENCE_LINE_PATTERNS:
+            if re.match(pattern, line, re.IGNORECASE):
+                is_reference_line = True
+                break
+
+        if not is_reference_line:
+            filtered_lines.append(line)
+
+    return "\n".join(filtered_lines)
+
+
 def _classify_signal_relevance(
-    signal,
-    analysis_start: datetime,
-    analysis_end: datetime
+    signal, analysis_start: datetime, analysis_end: datetime
 ) -> SignalRelevance:
     """
     외부 신호의 시간적 관련성 분류 (3-Tier)
@@ -78,14 +145,14 @@ def _classify_signal_relevance(
     """
     # 신호 날짜 파싱
     signal_date = None
-    published_at = getattr(signal, 'published_at', None)
+    published_at = getattr(signal, "published_at", None)
 
     if published_at:
         try:
             if isinstance(published_at, str):
                 # ISO 형식 또는 다양한 형식 처리
-                published_at = published_at.replace('Z', '+00:00')
-                if 'T' in published_at:
+                published_at = published_at.replace("Z", "+00:00")
+                if "T" in published_at:
                     signal_date = datetime.fromisoformat(published_at).replace(tzinfo=None)
                 else:
                     signal_date = datetime.strptime(published_at[:10], "%Y-%m-%d")
@@ -95,14 +162,11 @@ def _classify_signal_relevance(
             signal_date = None
 
     # 구조적 트렌드 여부 확인
-    title = getattr(signal, 'title', '').lower()
-    content = getattr(signal, 'content', '').lower()
+    title = getattr(signal, "title", "").lower()
+    content = getattr(signal, "content", "").lower()
     combined_text = title + " " + content
 
-    is_structural = any(
-        keyword.lower() in combined_text
-        for keyword in STRUCTURAL_TREND_KEYWORDS
-    )
+    is_structural = any(keyword.lower() in combined_text for keyword in STRUCTURAL_TREND_KEYWORDS)
 
     # 날짜 기반 분류
     if signal_date:
@@ -136,7 +200,7 @@ async def _get_external_signals(
     brands: list = None,
     include_tavily: bool = True,
     start_date: str = None,
-    end_date: str = None
+    end_date: str = None,
 ) -> dict:
     """
     External Signal 수집 및 3-Tier 분류
@@ -179,10 +243,12 @@ async def _get_external_signals(
                     brands=brands[:3],
                     topics=["K-Beauty skincare", "Amazon beauty bestseller"],
                     days=search_days,
-                    max_results=15  # 더 많은 결과 수집
+                    max_results=15,  # 더 많은 결과 수집
                 )
                 all_signals.extend(tavily_signals)
-                logger.info(f"Collected {len(tavily_signals)} Tavily news signals (search_days={search_days})")
+                logger.info(
+                    f"Collected {len(tavily_signals)} Tavily news signals (search_days={search_days})"
+                )
             except Exception as e:
                 logger.warning(f"Tavily news fetch failed: {e}")
 
@@ -212,7 +278,7 @@ async def _get_external_signals(
         seen_urls = set()
         unique_signals = []
         for signal in all_signals:
-            url = getattr(signal, 'url', '')
+            url = getattr(signal, "url", "")
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 unique_signals.append(signal)
@@ -221,9 +287,9 @@ async def _get_external_signals(
 
         # 3-Tier 분류
         classified = {
-            "tier1_core": [],      # 본문 인용 + 참고자료
-            "tier2_background": [], # 참고자료만
-            "tier3_archive": []    # 배경 자료 섹션
+            "tier1_core": [],  # 본문 인용 + 참고자료
+            "tier2_background": [],  # 참고자료만
+            "tier3_archive": [],  # 배경 자료 섹션
         }
 
         if start_date and end_date:
@@ -273,12 +339,16 @@ async def _get_external_signals(
         return {
             "signals": unique_signals,
             "classified": classified,
-            "report_section": report_section
+            "report_section": report_section,
         }
 
     except Exception as e:
         logger.warning(f"External signal collection failed: {e}")
-        return {"signals": [], "classified": {"tier1_core": [], "tier2_background": [], "tier3_archive": []}, "report_section": ""}
+        return {
+            "signals": [],
+            "classified": {"tier1_core": [], "tier2_background": [], "tier3_archive": []},
+            "report_section": "",
+        }
     finally:
         try:
             await collector.close()
@@ -299,48 +369,50 @@ async def export_docx(request: ExportRequest):
     doc = Document()
 
     # 스타일 설정
-    style = doc.styles['Normal']
+    style = doc.styles["Normal"]
     font = style.font
-    font.name = 'Arial'
+    font.name = "Arial"
     font.size = Pt(11)
 
     # ===== 표지 =====
-    title = doc.add_heading('AMORE INSIGHT Report', 0)
+    title = doc.add_heading("AMORE INSIGHT Report", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    subtitle = doc.add_paragraph('LANEIGE Amazon US 분석 리포트')
+    subtitle = doc.add_paragraph("LANEIGE Amazon US 분석 리포트")
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     # 날짜
     metadata = data.get("metadata", {})
     date_para = doc.add_paragraph()
     date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    date_para.add_run(f"분석 기준일: {metadata.get('data_date', datetime.now().strftime('%Y-%m-%d'))}")
+    date_para.add_run(
+        f"분석 기준일: {metadata.get('data_date', datetime.now().strftime('%Y-%m-%d'))}"
+    )
     date_para.add_run(f"\n생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
     doc.add_page_break()
 
     # ===== 목차 =====
-    doc.add_heading('목차', 1)
+    doc.add_heading("목차", 1)
     toc_items = [
         "1. 요약 통계",
         "2. 브랜드별 성과",
         "3. 카테고리별 분석",
         "4. 주요 제품",
         "5. AI 인사이트 및 전략 제언",
-        "6. 외부 트렌드 신호"
+        "6. 외부 트렌드 신호",
     ]
     for item in toc_items:
-        doc.add_paragraph(item, style='List Bullet')
+        doc.add_paragraph(item, style="List Bullet")
 
     doc.add_page_break()
 
     # ===== 1. 요약 통계 =====
-    doc.add_heading('1. 요약 통계', 1)
+    doc.add_heading("1. 요약 통계", 1)
     summary = data.get("summary", {})
 
     table = doc.add_table(rows=5, cols=2)
-    table.style = 'Light Grid Accent 1'
+    table.style = "Light Grid Accent 1"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
     stats = [
@@ -348,7 +420,7 @@ async def export_docx(request: ExportRequest):
         ("크롤링 카테고리", summary.get("categories_count", 0)),
         ("LANEIGE 제품 수", summary.get("laneige_products", 0)),
         ("평균 가격", f"${summary.get('avg_price', 0):.2f}"),
-        ("데이터 날짜", metadata.get("data_date", "N/A"))
+        ("데이터 날짜", metadata.get("data_date", "N/A")),
     ]
 
     for i, (label, value) in enumerate(stats):
@@ -358,7 +430,7 @@ async def export_docx(request: ExportRequest):
     doc.add_paragraph()
 
     # ===== 2. 브랜드별 성과 =====
-    doc.add_heading('2. 브랜드별 성과', 1)
+    doc.add_heading("2. 브랜드별 성과", 1)
 
     brand_data = data.get("brand_metrics", [])
     if brand_data:
@@ -366,7 +438,7 @@ async def export_docx(request: ExportRequest):
         top_brands = sorted(brand_data, key=lambda x: x.get("product_count", 0), reverse=True)[:10]
 
         brand_table = doc.add_table(rows=len(top_brands) + 1, cols=4)
-        brand_table.style = 'Light Grid Accent 1'
+        brand_table.style = "Light Grid Accent 1"
 
         # 헤더
         headers = brand_table.rows[0].cells
@@ -388,7 +460,7 @@ async def export_docx(request: ExportRequest):
     doc.add_page_break()
 
     # ===== 3. 카테고리별 분석 =====
-    doc.add_heading('3. 카테고리별 분석', 1)
+    doc.add_heading("3. 카테고리별 분석", 1)
 
     category_data = data.get("category_metrics", [])
     if category_data:
@@ -401,7 +473,7 @@ async def export_docx(request: ExportRequest):
                 ("LANEIGE 제품 수", category.get("laneige_products", 0)),
                 ("평균 가격", f"${category.get('avg_price', 0):.2f}"),
                 ("HHI", f"{category.get('hhi', 0):.2f}"),
-                ("CPI", f"{category.get('cpi', 0):.2f}")
+                ("CPI", f"{category.get('cpi', 0):.2f}"),
             ]
 
             for label, value in cat_stats:
@@ -414,7 +486,7 @@ async def export_docx(request: ExportRequest):
     doc.add_page_break()
 
     # ===== 4. 주요 제품 =====
-    doc.add_heading('4. 주요 제품 (LANEIGE Top 10)', 1)
+    doc.add_heading("4. 주요 제품 (LANEIGE Top 10)", 1)
 
     products = data.get("products", [])
     laneige_products = [p for p in products if p.get("brand", "").upper() == "LANEIGE"]
@@ -422,7 +494,7 @@ async def export_docx(request: ExportRequest):
 
     if laneige_products:
         product_table = doc.add_table(rows=len(laneige_products) + 1, cols=5)
-        product_table.style = 'Light Grid Accent 1'
+        product_table.style = "Light Grid Accent 1"
 
         # 헤더
         headers = product_table.rows[0].cells
@@ -447,7 +519,7 @@ async def export_docx(request: ExportRequest):
 
     # ===== 5. AI 인사이트 및 전략 제언 =====
     if request.include_strategy:
-        doc.add_heading('5. AI 인사이트 및 전략 제언', 1)
+        doc.add_heading("5. AI 인사이트 및 전략 제언", 1)
 
         insights = data.get("ai_insights", {})
         strategic_insights = insights.get("strategic_insights", [])
@@ -469,7 +541,7 @@ async def export_docx(request: ExportRequest):
 
     # ===== 6. 외부 트렌드 신호 =====
     if request.include_external_signals:
-        doc.add_heading('6. 외부 트렌드 신호', 1)
+        doc.add_heading("6. 외부 트렌드 신호", 1)
 
         # 분석 기간 계산
         if request.start_date and request.end_date:
@@ -483,9 +555,7 @@ async def export_docx(request: ExportRequest):
             days = 7
 
         signals_result = await _get_external_signals(
-            days=days,
-            start_date=request.start_date,
-            end_date=request.end_date
+            days=days, start_date=request.start_date, end_date=request.end_date
         )
         external_signals_text = signals_result.get("report_section", "")
 
@@ -498,7 +568,7 @@ async def export_docx(request: ExportRequest):
                 if line.startswith("■"):
                     doc.add_heading(line.replace("■ ", ""), 2)
                 elif line.startswith("•"):
-                    doc.add_paragraph(line, style='List Bullet')
+                    doc.add_paragraph(line, style="List Bullet")
                 elif line.strip():
                     doc.add_paragraph(line)
         else:
@@ -528,7 +598,7 @@ async def export_docx(request: ExportRequest):
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
@@ -549,7 +619,7 @@ async def export_analyst_report(request: AnalystReportRequest):
     # AMOREPACIFIC colors
     PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
     AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795
-    GRAY = RGBColor(125, 125, 125)      # #7D7D7D
+    GRAY = RGBColor(125, 125, 125)  # #7D7D7D
 
     try:
         # 1. Period Analysis
@@ -559,7 +629,7 @@ async def export_analyst_report(request: AnalystReportRequest):
         if analysis.total_days == 0:
             raise HTTPException(
                 status_code=404,
-                detail=f"No data found for period {request.start_date} ~ {request.end_date}"
+                detail=f"No data found for period {request.start_date} ~ {request.end_date}",
             )
 
         # 2. External Signals (optional) - Tavily 뉴스 포함 + 3-Tier 분류
@@ -573,7 +643,7 @@ async def export_analyst_report(request: AnalystReportRequest):
                     brands=["LANEIGE", "COSRX", "K-Beauty"],
                     include_tavily=True,
                     start_date=request.start_date,  # 3-Tier 분류용
-                    end_date=request.end_date       # 3-Tier 분류용
+                    end_date=request.end_date,  # 3-Tier 분류용
                 )
                 if signals_result.get("signals"):
                     external_signals = signals_result
@@ -593,7 +663,6 @@ async def export_analyst_report(request: AnalystReportRequest):
         report = await insight_agent.generate_report(analysis, external_signals=external_signals)
 
         # 4. Generate Charts
-        charts = {}
         chart_paths = {}
         if request.include_charts:
             temp_dir = tempfile.mkdtemp()
@@ -603,10 +672,7 @@ async def export_analyst_report(request: AnalystReportRequest):
 
         # 5. Reference Tracker
         tracker = ReferenceTracker()
-        tracker.auto_add_amazon_sources(
-            start_date=request.start_date,
-            end_date=request.end_date
-        )
+        tracker.auto_add_amazon_sources(start_date=request.start_date, end_date=request.end_date)
 
         # 외부 신호를 참고자료에 자동 추가 (Tavily 뉴스, RSS, Reddit 등)
         if external_signals_list:
@@ -617,14 +683,14 @@ async def export_analyst_report(request: AnalystReportRequest):
         doc = Document()
 
         # Style setup
-        style = doc.styles['Normal']
+        style = doc.styles["Normal"]
         font = style.font
-        font.name = 'Arial'
+        font.name = "Arial"
         font.size = Pt(11)
 
         # ===== 표지 + 목차 (Cover Page with TOC - 같은 페이지) =====
         # 제목
-        title = doc.add_heading('LANEIGE Amazon US 경쟁력 분석 보고서', 0)
+        title = doc.add_heading("LANEIGE Amazon US 경쟁력 분석 보고서", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for run in title.runs:
             run.font.color.rgb = PACIFIC_BLUE
@@ -634,17 +700,17 @@ async def export_analyst_report(request: AnalystReportRequest):
         # 구분선 (Pacific Blue)
         divider = doc.add_paragraph()
         divider.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        divider_run = divider.add_run('─' * 40)
+        divider_run = divider.add_run("─" * 40)
         divider_run.font.color.rgb = PACIFIC_BLUE
         divider_run.font.size = Pt(10)
 
         # 분석 기간 & 생성일시 (간결하게)
         meta_para = doc.add_paragraph()
         meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        meta_run1 = meta_para.add_run(f'분석 기간: {request.start_date} ~ {request.end_date}')
+        meta_run1 = meta_para.add_run(f"분석 기간: {request.start_date} ~ {request.end_date}")
         meta_run1.font.size = Pt(12)
         meta_run1.font.color.rgb = GRAY
-        meta_para.add_run('\n')
+        meta_para.add_run("\n")
         meta_run2 = meta_para.add_run(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         meta_run2.font.size = Pt(11)
         meta_run2.font.color.rgb = GRAY
@@ -655,7 +721,7 @@ async def export_analyst_report(request: AnalystReportRequest):
         toc_heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
         toc_heading.paragraph_format.space_before = Pt(18)  # 제목과 목차 사이 최소 여백
         toc_heading.paragraph_format.space_after = Pt(8)
-        toc_run = toc_heading.add_run('목차')
+        toc_run = toc_heading.add_run("목차")
         toc_run.font.size = Pt(14)
         toc_run.font.bold = True
         toc_run.font.color.rgb = PACIFIC_BLUE
@@ -669,7 +735,7 @@ async def export_analyst_report(request: AnalystReportRequest):
             "5. 외부 신호 분석",
             "6. 리스크 및 기회 요인",
             "7. 전략 제언",
-            "8. 참고자료 (References)"
+            "8. 참고자료 (References)",
         ]
         for item in toc_items:
             toc_para = doc.add_paragraph()
@@ -685,38 +751,44 @@ async def export_analyst_report(request: AnalystReportRequest):
         # ===== Section 1: Executive Summary =====
         if report.executive_summary:
             section = report.executive_summary
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
+            # 참고자료 라인 필터링
+            filtered_content = _filter_reference_lines(section.content)
+
             # Content
-            for line in section.content.split('\n'):
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
                     else:
                         doc.add_paragraph(line)
 
             # Insert SoS chart if available
-            if request.include_charts and 'sos_trend' in chart_paths:
+            if request.include_charts and "sos_trend" in chart_paths:
                 doc.add_paragraph()
-                doc.add_picture(str(chart_paths['sos_trend']), width=Inches(6))
+                doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
 
             doc.add_page_break()
 
         # ===== Section 2: LANEIGE 심층 분석 =====
         if report.laneige_analysis:
             section = report.laneige_analysis
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
+            # 참고자료 라인 필터링
+            filtered_content = _filter_reference_lines(section.content)
+
             # Content
-            for line in section.content.split('\n'):
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith('2.'):
+                    elif line.startswith("2."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
@@ -724,77 +796,86 @@ async def export_analyst_report(request: AnalystReportRequest):
             # Insert charts
             if request.include_charts:
                 doc.add_paragraph()
-                if 'sos_trend' in chart_paths:
-                    doc.add_heading('일별 SoS 추이', 3)
-                    doc.add_picture(str(chart_paths['sos_trend']), width=Inches(6))
+                if "sos_trend" in chart_paths:
+                    doc.add_heading("일별 SoS 추이", 3)
+                    doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
                     doc.add_paragraph()
 
-                if 'product_ranks' in chart_paths:
-                    doc.add_heading('제품별 순위 변동', 3)
-                    doc.add_picture(str(chart_paths['product_ranks']), width=Inches(6))
+                if "product_ranks" in chart_paths:
+                    doc.add_heading("제품별 순위 변동", 3)
+                    doc.add_picture(str(chart_paths["product_ranks"]), width=Inches(6))
 
             doc.add_page_break()
 
         # ===== Section 3: 경쟁 환경 분석 =====
         if report.competitive_analysis:
             section = report.competitive_analysis
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
-            for line in section.content.split('\n'):
+            # 참고자료 라인 필터링
+            filtered_content = _filter_reference_lines(section.content)
+
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith('3.'):
+                    elif line.startswith("3."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
 
             # Insert brand comparison chart
-            if request.include_charts and 'brand_comparison' in chart_paths:
+            if request.include_charts and "brand_comparison" in chart_paths:
                 doc.add_paragraph()
-                doc.add_heading('브랜드별 점유율', 3)
-                doc.add_picture(str(chart_paths['brand_comparison']), width=Inches(6))
+                doc.add_heading("브랜드별 점유율", 3)
+                doc.add_picture(str(chart_paths["brand_comparison"]), width=Inches(6))
 
             doc.add_page_break()
 
         # ===== Section 4: 시장 동향 =====
         if report.market_trends:
             section = report.market_trends
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
-            for line in section.content.split('\n'):
+            # 참고자료 라인 필터링
+            filtered_content = _filter_reference_lines(section.content)
+
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith('4.'):
+                    elif line.startswith("4."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
 
             # Insert HHI chart
-            if request.include_charts and 'hhi_trend' in chart_paths:
+            if request.include_charts and "hhi_trend" in chart_paths:
                 doc.add_paragraph()
-                doc.add_heading('HHI 추이', 3)
-                doc.add_picture(str(chart_paths['hhi_trend']), width=Inches(6))
+                doc.add_heading("HHI 추이", 3)
+                doc.add_picture(str(chart_paths["hhi_trend"]), width=Inches(6))
 
             doc.add_page_break()
 
         # ===== Section 5: 외부 신호 분석 =====
         if report.external_signals:
             section = report.external_signals
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
-            for line in section.content.split('\n'):
+            # 참고자료 라인 필터링 (URL, 출처 목록 등이 본문에 포함된 경우 제거)
+            filtered_content = _filter_reference_lines(section.content)
+
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith('5.'):
+                    elif line.startswith("5."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
@@ -804,15 +885,18 @@ async def export_analyst_report(request: AnalystReportRequest):
         # ===== Section 6: 리스크 및 기회 요인 =====
         if report.risks_opportunities:
             section = report.risks_opportunities
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
-            for line in section.content.split('\n'):
+            # 참고자료 라인 필터링
+            filtered_content = _filter_reference_lines(section.content)
+
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith('6.'):
+                    elif line.startswith("6."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
@@ -822,15 +906,18 @@ async def export_analyst_report(request: AnalystReportRequest):
         # ===== Section 7: 전략 제언 =====
         if report.strategic_recommendations:
             section = report.strategic_recommendations
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
-            for line in section.content.split('\n'):
+            # 참고자료 라인 필터링
+            filtered_content = _filter_reference_lines(section.content)
+
+            for line in filtered_content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith('7.'):
+                    elif line.startswith("7."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
@@ -838,28 +925,28 @@ async def export_analyst_report(request: AnalystReportRequest):
             doc.add_page_break()
 
         # ===== Section 8: 참고자료 (References) =====
-        ref_heading = doc.add_heading('8. 참고자료 (References)', 1)
+        ref_heading = doc.add_heading("8. 참고자료 (References)", 1)
         for run in ref_heading.runs:
             run.font.color.rgb = PACIFIC_BLUE
             run.font.size = Pt(14)
 
         # 8.1 외부 신호 출처 (본문 인용 [1], [2] 와 매칭)
         if report.references and report.references.content:
-            sub_heading1 = doc.add_heading('8.1 외부 신호 출처 (External Sources)', 2)
+            sub_heading1 = doc.add_heading("8.1 외부 신호 출처 (External Sources)", 2)
             for run in sub_heading1.runs:
                 run.font.color.rgb = AMORE_BLUE
                 run.font.size = Pt(12)
 
             # report.references.content에서 참고자료 추출
-            for line in report.references.content.split('\n'):
+            for line in report.references.content.split("\n"):
                 if line.strip():
                     para = doc.add_paragraph()
                     para.paragraph_format.space_before = Pt(3)
                     para.paragraph_format.space_after = Pt(3)
                     # [1], [2] 등으로 시작하는 참조 번호는 볼드 처리
-                    if line.strip().startswith('['):
+                    if line.strip().startswith("["):
                         # 번호 부분과 내용 분리
-                        match = re.match(r'(\[\d+\])\s*(.*)', line.strip())
+                        match = re.match(r"(\[\d+\])\s*(.*)", line.strip())
                         if match:
                             ref_num = match.group(1)
                             ref_content = match.group(2)
@@ -880,19 +967,19 @@ async def export_analyst_report(request: AnalystReportRequest):
             doc.add_paragraph()  # 간격
 
         # 8.2 데이터 출처 (Amazon, IR 등)
-        sub_heading2 = doc.add_heading('8.2 데이터 출처 (Data Sources)', 2)
+        sub_heading2 = doc.add_heading("8.2 데이터 출처 (Data Sources)", 2)
         for run in sub_heading2.runs:
             run.font.color.rgb = AMORE_BLUE
             run.font.size = Pt(12)
 
         # tracker에서 데이터 출처 포맷
         ref_section = tracker.format_section()
-        for line in ref_section.split('\n'):
+        for line in ref_section.split("\n"):
             if line.strip():
                 # 하위 섹션 번호 재조정 (8.1 → 건너뛰기)
-                if line.startswith('8.1') or line.startswith('8.2'):
+                if line.startswith("8.1") or line.startswith("8.2"):
                     continue  # 이미 외부 신호로 처리됨
-                elif line.startswith('8.'):
+                elif line.startswith("8."):
                     # 나머지 하위 섹션
                     doc.add_heading(line, 3)
                 else:
@@ -933,14 +1020,14 @@ async def export_analyst_report(request: AnalystReportRequest):
         return StreamingResponse(
             buffer,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Analyst report generation failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}") from e
 
 
 @router.post("/excel")
@@ -968,7 +1055,7 @@ async def export_excel(request: Request):
             output_path=output_path,
             start_date=start_date,
             end_date=end_date,
-            include_metrics=include_metrics
+            include_metrics=include_metrics,
         )
 
         if not result.get("success"):
@@ -981,14 +1068,14 @@ async def export_excel(request: Request):
         return FileResponse(
             path=str(file_path),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={file_path.name}"}
+            headers={"Content-Disposition": f"attachment; filename={file_path.name}"},
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Excel export error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/signals/status")
@@ -1003,43 +1090,49 @@ async def get_signal_status():
         "tavily": {
             "configured": bool(os.getenv("TAVILY_API_KEY")),
             "description": "뉴스 검색 API (월 1,000건 무료)",
-            "docs": "https://tavily.com"
+            "docs": "https://tavily.com",
         },
         "gnews": {
             "configured": bool(os.getenv("GNEWS_API_KEY")),
             "description": "뉴스 API (일 100건 무료)",
-            "docs": "https://gnews.io"
+            "docs": "https://gnews.io",
         },
         "rss_feeds": {
             "available": True,
             "count": 10,
             "sources": [
-                "Allure", "Byrdie", "Cosmetics Design Asia",
-                "Cosmetics Business", "Vogue Beauty", "WWD Beauty",
-                "Beautyindependent", "Global Cosmetics News",
-                "Happi", "CosmeticsDesign Europe"
-            ]
+                "Allure",
+                "Byrdie",
+                "Cosmetics Design Asia",
+                "Cosmetics Business",
+                "Vogue Beauty",
+                "WWD Beauty",
+                "Beautyindependent",
+                "Global Cosmetics News",
+                "Happi",
+                "CosmeticsDesign Europe",
+            ],
         },
         "reddit": {
             "available": True,
             "description": "JSON API (무료, 인증 불필요)",
-            "subreddits": ["AsianBeauty", "SkincareAddiction", "MakeupAddiction"]
+            "subreddits": ["AsianBeauty", "SkincareAddiction", "MakeupAddiction"],
         },
         "public_data": {
             "customs_korea": {
                 "configured": bool(os.getenv("DATA_GO_KR_API_KEY")),
-                "description": "관세청 수출입통계"
+                "description": "관세청 수출입통계",
             },
             "mfds_korea": {
                 "configured": bool(os.getenv("DATA_GO_KR_API_KEY")),
-                "description": "식약처 기능성화장품 DB"
-            }
+                "description": "식약처 기능성화장품 DB",
+            },
         },
         "signal_classification": {
             "tier1_core": "분석 기간 ±7일 - 직접 관련 뉴스",
             "tier2_background": "±30일 또는 구조적 트렌드",
-            "tier3_archive": "30일+ 이전, 장기 트렌드만 포함"
-        }
+            "tier3_archive": "30일+ 이전, 장기 트렌드만 포함",
+        },
     }
 
 
@@ -1047,8 +1140,10 @@ async def get_signal_status():
 # 비동기 작업 API (페이지 새로고침에도 다운로드 지속)
 # ============================================================
 
+
 class AsyncExportRequest(BaseModel):
     """비동기 내보내기 요청"""
+
     job_type: str  # "export_docx", "export_analyst_report", "export_excel"
     start_date: str | None = None
     end_date: str | None = None
@@ -1095,7 +1190,7 @@ async def start_async_export(request: AsyncExportRequest):
     return {
         "job_id": job_id,
         "status": "pending",
-        "message": "작업이 큐에 추가되었습니다. 진행 상태는 /api/export/async/status/{job_id}에서 확인하세요."
+        "message": "작업이 큐에 추가되었습니다. 진행 상태는 /api/export/async/status/{job_id}에서 확인하세요.",
     }
 
 
@@ -1148,8 +1243,7 @@ async def download_export_file(job_id: str):
 
     if status["status"] != JobStatus.COMPLETED.value:
         raise HTTPException(
-            status_code=400,
-            detail=f"Job not completed yet. Current status: {status['status']}"
+            status_code=400, detail=f"Job not completed yet. Current status: {status['status']}"
         )
 
     file_path = status.get("result_file")
@@ -1159,9 +1253,9 @@ async def download_export_file(job_id: str):
     filename = os.path.basename(file_path)
 
     # MIME type 결정
-    if filename.endswith('.docx'):
+    if filename.endswith(".docx"):
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    elif filename.endswith('.xlsx'):
+    elif filename.endswith(".xlsx"):
         media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     else:
         media_type = "application/octet-stream"
@@ -1169,7 +1263,7 @@ async def download_export_file(job_id: str):
     return FileResponse(
         path=file_path,
         media_type=media_type,
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
@@ -1190,7 +1284,4 @@ async def list_export_jobs(status: str | None = None, limit: int = 20):
     queue = get_job_queue()
     jobs = await queue.get_all_jobs(status=status, limit=limit)
 
-    return {
-        "jobs": jobs,
-        "total": len(jobs)
-    }
+    return {"jobs": jobs, "total": len(jobs)}

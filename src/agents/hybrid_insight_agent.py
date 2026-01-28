@@ -911,7 +911,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                 highlights.append(
                     {
                         "type": "top_rank",
-                        "title": f"Top 10: {p.get('product_title', '')[:30]}...",
+                        "title": f"Top 10: {p.get('product_title', '')}",
                         "detail": f"{p.get('category_id')} 카테고리 {p.get('current_rank')}위",
                         "asin": p.get("asin"),
                     }
@@ -925,7 +925,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             highlights.append(
                 {
                     "type": "rank_up",
-                    "title": f"순위 상승: {p.get('product_title', '')[:30]}...",
+                    "title": f"순위 상승: {p.get('product_title', '')}",
                     "detail": f"{abs(p.get('rank_change_1d'))}단계 상승 → 현재 {p.get('current_rank')}위",
                     "asin": p.get("asin"),
                 }
