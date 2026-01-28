@@ -62,12 +62,12 @@ config/thresholds.json 참조
 """
 
 import json
-import numpy as np
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from datetime import date
 
-from src.domain.entities import BrandMetrics, ProductMetrics, MarketMetrics
+import numpy as np
+
+from src.domain.entities import BrandMetrics, MarketMetrics, ProductMetrics
 
 
 class MetricCalculator:
@@ -87,7 +87,7 @@ class MetricCalculator:
     def _load_config(self, config_path: str) -> dict:
         """설정 파일 로드"""
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return self._default_thresholds()
@@ -98,22 +98,17 @@ class MetricCalculator:
             "ranking": {
                 "top_n_tiers": [3, 5, 10, 20, 50, 100],
                 "significant_drop": 5,
-                "significant_rise": 10
+                "significant_rise": 10,
             },
-            "streak": {
-                "weekly_highlight": 5,
-                "monthly_highlight": 30
-            },
-            "monitoring": {
-                "trend_analysis_window": 7
-            }
+            "streak": {"weekly_highlight": 5, "monthly_highlight": 30},
+            "monitoring": {"trend_analysis_window": 7},
         }
 
     # =========================================================================
     # Level 1: Market & Brand 지표
     # =========================================================================
 
-    def calculate_sos(self, records: List[Dict], brand: str, top_n: int = 100) -> float:
+    def calculate_sos(self, records: list[dict], brand: str, top_n: int = 100) -> float:
         """
         SoS (Share of Shelf) 계산
 
@@ -131,14 +126,11 @@ class MetricCalculator:
         if not top_records:
             return 0.0
 
-        brand_count = sum(
-            1 for r in top_records
-            if r.get("brand", "").lower() == brand.lower()
-        )
+        brand_count = sum(1 for r in top_records if r.get("brand", "").lower() == brand.lower())
 
         return (brand_count / len(top_records)) * 100
 
-    def calculate_hhi(self, records: List[Dict], top_n: int = 100) -> float:
+    def calculate_hhi(self, records: list[dict], top_n: int = 100) -> float:
         """
         HHI (Herfindahl Index) 계산
 
@@ -157,10 +149,14 @@ class MetricCalculator:
         if not top_records:
             return 0.0
 
-        # 브랜드별 카운트
+        # 브랜드별 카운트 (Unknown/빈 브랜드 제외)
         brand_counts = defaultdict(int)
         for r in top_records:
-            brand = r.get("brand", "Unknown")
+            brand = r.get("brand", "")
+            # Unknown 및 빈 브랜드는 HHI 계산에서 제외
+            # (시장 집중도 측정 시 미확인 브랜드는 의미 없음)
+            if not brand or brand.lower() == "unknown":
+                continue
             brand_counts[brand] += 1
 
         total = len(top_records)
@@ -170,7 +166,7 @@ class MetricCalculator:
 
         return round(hhi, 4)
 
-    def calculate_brand_avg_rank(self, records: List[Dict], brand: str) -> Optional[float]:
+    def calculate_brand_avg_rank(self, records: list[dict], brand: str) -> float | None:
         """
         Brand Avg Rank 계산
 
@@ -183,10 +179,7 @@ class MetricCalculator:
         Returns:
             평균 순위 (낮을수록 상위권)
         """
-        brand_records = [
-            r for r in records
-            if r.get("brand", "").lower() == brand.lower()
-        ]
+        brand_records = [r for r in records if r.get("brand", "").lower() == brand.lower()]
 
         if not brand_records:
             return None
@@ -201,7 +194,7 @@ class MetricCalculator:
     # Level 2: Category & Price 지표
     # =========================================================================
 
-    def calculate_cpi(self, records: List[Dict], brand: str) -> Optional[float]:
+    def calculate_cpi(self, records: list[dict], brand: str) -> float | None:
         """
         CPI (Category Price Index) 계산
 
@@ -233,7 +226,8 @@ class MetricCalculator:
             float(r.get("price", 0))
             for r in records
             if r.get("brand", "").lower() == brand.lower()
-            and r.get("price") and float(r.get("price", 0)) > 0
+            and r.get("price")
+            and float(r.get("price", 0)) > 0
         ]
 
         if not brand_prices:
@@ -244,10 +238,7 @@ class MetricCalculator:
         return round((brand_avg / category_avg) * 100, 2)
 
     def calculate_churn_rate(
-        self,
-        today_records: List[Dict],
-        yesterday_records: List[Dict],
-        top_n: int = 100
+        self, today_records: list[dict], yesterday_records: list[dict], top_n: int = 100
     ) -> float:
         """
         Churn Rate (순위 교체율) 계산
@@ -262,16 +253,10 @@ class MetricCalculator:
         Returns:
             교체율 (0-1)
         """
-        today_asins = {
-            r.get("asin")
-            for r in today_records
-            if int(r.get("rank", 999)) <= top_n
-        }
+        today_asins = {r.get("asin") for r in today_records if int(r.get("rank", 999)) <= top_n}
 
         yesterday_asins = {
-            r.get("asin")
-            for r in yesterday_records
-            if int(r.get("rank", 999)) <= top_n
+            r.get("asin") for r in yesterday_records if int(r.get("rank", 999)) <= top_n
         }
 
         if not yesterday_asins:
@@ -285,7 +270,7 @@ class MetricCalculator:
 
         return round(churn, 4)
 
-    def calculate_avg_rating_gap(self, records: List[Dict], brand: str) -> Optional[float]:
+    def calculate_avg_rating_gap(self, records: list[dict], brand: str) -> float | None:
         """
         Avg Rating Gap 계산
 
@@ -317,7 +302,8 @@ class MetricCalculator:
             float(r.get("rating", 0))
             for r in records
             if r.get("brand", "").lower() == brand.lower()
-            and r.get("rating") and float(r.get("rating", 0)) > 0
+            and r.get("rating")
+            and float(r.get("rating", 0)) > 0
         ]
 
         if not brand_ratings:
@@ -331,7 +317,7 @@ class MetricCalculator:
     # Level 3: Product & Risk 지표
     # =========================================================================
 
-    def calculate_rank_volatility(self, rank_history: List[int], window: int = 7) -> Optional[float]:
+    def calculate_rank_volatility(self, rank_history: list[int], window: int = 7) -> float | None:
         """
         Rank Volatility 계산
 
@@ -351,10 +337,7 @@ class MetricCalculator:
         return round(float(np.std(recent_ranks)), 2)
 
     def calculate_rank_shock(
-        self,
-        today_rank: int,
-        yesterday_rank: int,
-        threshold: Optional[int] = None
+        self, today_rank: int, yesterday_rank: int, threshold: int | None = None
     ) -> bool:
         """
         Rank Shock 판단
@@ -391,12 +374,7 @@ class MetricCalculator:
         """
         return today_rank - yesterday_rank
 
-    def calculate_streak_days(
-        self,
-        rank_history: List[Dict],
-        asin: str,
-        top_n: int = 10
-    ) -> int:
+    def calculate_streak_days(self, rank_history: list[dict], asin: str, top_n: int = 10) -> int:
         """
         Streak Days 계산
 
@@ -424,7 +402,7 @@ class MetricCalculator:
 
         return streak
 
-    def calculate_rating_trend(self, rating_history: List[float], window: int = 7) -> Optional[float]:
+    def calculate_rating_trend(self, rating_history: list[float], window: int = 7) -> float | None:
         """
         Rating Trend 계산
 
@@ -452,17 +430,15 @@ class MetricCalculator:
         slope = np.polyfit(x, y, 1)[0]
         return round(float(slope), 4)
 
-    def calculate_best_rank(self, rank_history: List[int]) -> Optional[int]:
+    def calculate_best_rank(self, rank_history: list[int]) -> int | None:
         """최고 순위 계산"""
         if not rank_history:
             return None
         return min(rank_history)
 
     def calculate_days_in_top_n(
-        self,
-        rank_history: List[int],
-        top_n_tiers: Optional[List[int]] = None
-    ) -> Dict[int, int]:
+        self, rank_history: list[int], top_n_tiers: list[int] | None = None
+    ) -> dict[int, int]:
         """
         Top N별 체류일 계산
 
@@ -474,7 +450,9 @@ class MetricCalculator:
             {3: 5, 5: 10, 10: 20, ...}
         """
         if top_n_tiers is None:
-            top_n_tiers = self.thresholds.get("ranking", {}).get("top_n_tiers", [3, 5, 10, 20, 50, 100])
+            top_n_tiers = self.thresholds.get("ranking", {}).get(
+                "top_n_tiers", [3, 5, 10, 20, 50, 100]
+            )
 
         result = {}
         for n in top_n_tiers:
@@ -488,10 +466,7 @@ class MetricCalculator:
     # =========================================================================
 
     def calculate_brand_metrics(
-        self,
-        records: List[Dict],
-        brand: str,
-        category_id: str
+        self, records: list[dict], brand: str, category_id: str
     ) -> BrandMetrics:
         """
         브랜드별 전체 지표 계산
@@ -504,10 +479,7 @@ class MetricCalculator:
         Returns:
             BrandMetrics 객체
         """
-        brand_records = [
-            r for r in records
-            if r.get("brand", "").lower() == brand.lower()
-        ]
+        brand_records = [r for r in records if r.get("brand", "").lower() == brand.lower()]
 
         return BrandMetrics(
             brand=brand,
@@ -516,14 +488,11 @@ class MetricCalculator:
             brand_avg_rank=self.calculate_brand_avg_rank(records, brand),
             product_count=len(brand_records),
             cpi=self.calculate_cpi(records, brand),
-            avg_rating_gap=self.calculate_avg_rating_gap(records, brand)
+            avg_rating_gap=self.calculate_avg_rating_gap(records, brand),
         )
 
     def calculate_product_metrics(
-        self,
-        rank_history: List[Dict],
-        asin: str,
-        category_id: str
+        self, rank_history: list[dict], asin: str, category_id: str
     ) -> ProductMetrics:
         """
         제품별 전체 지표 계산
@@ -553,20 +522,24 @@ class MetricCalculator:
             asin=asin,
             category_id=category_id,
             rank_volatility=self.calculate_rank_volatility(ranks),
-            rank_shock=self.calculate_rank_shock(today_rank, yesterday_rank) if today_rank and yesterday_rank else False,
-            rank_change=self.calculate_rank_change(today_rank, yesterday_rank) if today_rank and yesterday_rank else None,
+            rank_shock=self.calculate_rank_shock(today_rank, yesterday_rank)
+            if today_rank and yesterday_rank
+            else False,
+            rank_change=self.calculate_rank_change(today_rank, yesterday_rank)
+            if today_rank and yesterday_rank
+            else None,
             streak_days=self.calculate_streak_days(rank_history, asin),
             rating_trend=self.calculate_rating_trend(ratings),
             best_rank=self.calculate_best_rank(ranks),
-            days_in_top_n=self.calculate_days_in_top_n(ranks)
+            days_in_top_n=self.calculate_days_in_top_n(ranks),
         )
 
     def calculate_market_metrics(
         self,
-        today_records: List[Dict],
-        yesterday_records: List[Dict],
+        today_records: list[dict],
+        yesterday_records: list[dict],
         category_id: str,
-        snapshot_date: date
+        snapshot_date: date,
     ) -> MarketMetrics:
         """
         시장(카테고리) 전체 지표 계산
@@ -602,5 +575,5 @@ class MetricCalculator:
             hhi=self.calculate_hhi(today_records),
             churn_rate=self.calculate_churn_rate(today_records, yesterday_records),
             category_avg_price=round(category_avg_price, 2) if category_avg_price else None,
-            category_avg_rating=round(category_avg_rating, 2) if category_avg_rating else None
+            category_avg_rating=round(category_avg_rating, 2) if category_avg_rating else None,
         )

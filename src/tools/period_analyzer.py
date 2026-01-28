@@ -4,12 +4,11 @@
 Amazon 크롤링 데이터를 기간별로 분석하여 인사이트 추출
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, date
-from collections import defaultdict
-import statistics
 import logging
+import statistics
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -17,30 +16,31 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PeriodAnalysis:
     """기간별 분석 결과"""
+
     start_date: str
     end_date: str
     total_days: int
 
     # LANEIGE 성과
-    laneige_metrics: Dict[str, Any] = field(default_factory=dict)
+    laneige_metrics: dict[str, Any] = field(default_factory=dict)
 
     # 시장 지표
-    market_metrics: Dict[str, Any] = field(default_factory=dict)
+    market_metrics: dict[str, Any] = field(default_factory=dict)
 
     # 브랜드별 성과
-    brand_performance: List[Dict[str, Any]] = field(default_factory=list)
+    brand_performance: list[dict[str, Any]] = field(default_factory=list)
 
     # 카테고리별 분석
-    category_analysis: Dict[str, Any] = field(default_factory=dict)
+    category_analysis: dict[str, Any] = field(default_factory=dict)
 
     # 제품별 분석 (급등/급락)
-    top_movers: Dict[str, List[Dict]] = field(default_factory=dict)
+    top_movers: dict[str, list[dict]] = field(default_factory=dict)
 
     # 경쟁 구도 변화
-    competitive_shifts: Dict[str, Any] = field(default_factory=dict)
+    competitive_shifts: dict[str, Any] = field(default_factory=dict)
 
     # 일별 추이 데이터 (차트용)
-    daily_trends: List[Dict[str, Any]] = field(default_factory=list)
+    daily_trends: list[dict[str, Any]] = field(default_factory=list)
 
 
 class PeriodAnalyzer:
@@ -57,7 +57,7 @@ class PeriodAnalyzer:
             "skin_care",
             "lip_care",
             "lip_makeup",
-            "face_powder"
+            "face_powder",
         ]
 
     async def analyze(self, start_date: str, end_date: str) -> PeriodAnalysis:
@@ -76,20 +76,14 @@ class PeriodAnalyzer:
 
         if not raw_data:
             logger.warning(f"No data found for period {start_date} ~ {end_date}")
-            return PeriodAnalysis(
-                start_date=start_date,
-                end_date=end_date,
-                total_days=0
-            )
+            return PeriodAnalysis(start_date=start_date, end_date=end_date, total_days=0)
 
         # 2. 일별로 그룹핑
         daily_data = self._group_by_date(raw_data)
 
         # 3. 각 분석 수행
         analysis = PeriodAnalysis(
-            start_date=start_date,
-            end_date=end_date,
-            total_days=len(daily_data)
+            start_date=start_date, end_date=end_date, total_days=len(daily_data)
         )
 
         # LANEIGE 분석
@@ -113,21 +107,24 @@ class PeriodAnalyzer:
         # 일별 추이 (차트용)
         analysis.daily_trends = self._build_daily_trends(daily_data)
 
-        logger.info(f"Period analysis completed: {start_date} ~ {end_date} ({len(daily_data)} days)")
+        logger.info(
+            f"Period analysis completed: {start_date} ~ {end_date} ({len(daily_data)} days)"
+        )
 
         return analysis
 
-    async def _load_period_data(self, start_date: str, end_date: str) -> List[Dict]:
+    async def _load_period_data(self, start_date: str, end_date: str) -> list[dict]:
         """SQLite에서 기간 데이터 로드"""
         if self.storage is None:
             from src.tools.sqlite_storage import SQLiteStorage
+
             self.storage = SQLiteStorage()
             await self.storage.initialize()
 
         return await self.storage.get_raw_data(
             start_date=start_date,
             end_date=end_date,
-            limit=100000  # 대량 데이터 조회
+            limit=100000,  # 대량 데이터 조회
         )
 
     # 브랜드 정규화 매핑 (잘린 브랜드명 → 전체 브랜드명)
@@ -172,13 +169,13 @@ class PeriodAnalyzer:
         # product_name 기반 보정 시도
         if product_name:
             product_lower = product_name.lower()
-            for key, full_brand in self.BRAND_NORMALIZATION.items():
+            for _key, full_brand in self.BRAND_NORMALIZATION.items():
                 if full_brand.lower() in product_lower:
                     return full_brand
 
         return brand
 
-    def _group_by_date(self, data: List[Dict]) -> Dict[str, List[Dict]]:
+    def _group_by_date(self, data: list[dict]) -> dict[str, list[dict]]:
         """데이터를 날짜별로 그룹핑"""
         grouped = defaultdict(list)
         for item in data:
@@ -208,7 +205,7 @@ class PeriodAnalyzer:
 
         return dict(sorted(grouped.items()))
 
-    def _analyze_laneige(self, daily_data: Dict[str, List[Dict]]) -> Dict[str, Any]:
+    def _analyze_laneige(self, daily_data: dict[str, list[dict]]) -> dict[str, Any]:
         """LANEIGE 브랜드 심층 분석"""
         daily_sos = []
         daily_product_counts = []
@@ -232,12 +229,14 @@ class PeriodAnalyzer:
                 if asin and rank and category:
                     # 복합 키 (ASIN, 카테고리)로 순위 추적
                     key = (asin, category)
-                    all_products[key].append({
-                        "date": date_str,
-                        "rank": rank,
-                        "title": p.get("title", ""),
-                        "category": category
-                    })
+                    all_products[key].append(
+                        {
+                            "date": date_str,
+                            "rank": rank,
+                            "title": p.get("title", ""),
+                            "category": category,
+                        }
+                    )
 
         # 기간 평균/변화율 계산
         sos_values = [d["sos"] for d in daily_sos]
@@ -247,7 +246,6 @@ class PeriodAnalyzer:
 
         # 제품별 순위 변동 - 동일 카테고리 내에서만 비교
         product_changes = []
-        seen_asins = set()  # 중복 ASIN 방지 (가장 좋은 카테고리만 표시)
 
         for (asin, category), ranks in all_products.items():
             if len(ranks) >= 2:
@@ -258,16 +256,18 @@ class PeriodAnalyzer:
                 # 카테고리 한글명 변환
                 category_name = self._get_category_name(category)
 
-                product_changes.append({
-                    "asin": asin,
-                    "title": ranks[-1]["title"],
-                    "category": category,
-                    "category_name": category_name,
-                    "start_rank": first_rank,
-                    "end_rank": last_rank,
-                    "change": change,
-                    "avg_rank": statistics.mean([r["rank"] for r in ranks])
-                })
+                product_changes.append(
+                    {
+                        "asin": asin,
+                        "title": ranks[-1]["title"],
+                        "category": category,
+                        "category_name": category_name,
+                        "start_rank": first_rank,
+                        "end_rank": last_rank,
+                        "change": change,
+                        "avg_rank": statistics.mean([r["rank"] for r in ranks]),
+                    }
+                )
 
         # 순위 변동 기준 정렬
         product_changes.sort(key=lambda x: x["change"], reverse=True)
@@ -278,29 +278,37 @@ class PeriodAnalyzer:
             "start_sos": round(start_sos, 2),
             "end_sos": round(end_sos, 2),
             "sos_change": round(end_sos - start_sos, 2),
-            "sos_change_pct": round((end_sos - start_sos) / start_sos * 100, 1) if start_sos > 0 else 0,
-            "avg_product_count": round(statistics.mean(daily_product_counts), 1) if daily_product_counts else 0,
+            "sos_change_pct": round((end_sos - start_sos) / start_sos * 100, 1)
+            if start_sos > 0
+            else 0,
+            "avg_product_count": round(statistics.mean(daily_product_counts), 1)
+            if daily_product_counts
+            else 0,
             "top_products": product_changes[:10],  # Top 10
             "rising_products": [p for p in product_changes if p["change"] > 5][:5],  # 5위 이상 상승
-            "falling_products": [p for p in product_changes if p["change"] < -5][-5:],  # 5위 이상 하락
+            "falling_products": [p for p in product_changes if p["change"] < -5][
+                -5:
+            ],  # 5위 이상 하락
         }
 
-    def _analyze_market(self, daily_data: Dict[str, List[Dict]]) -> Dict[str, Any]:
+    def _analyze_market(self, daily_data: dict[str, list[dict]]) -> dict[str, Any]:
         """시장 전체 지표 분석 (HHI 등)"""
         daily_hhi = []
 
         for date_str, products in daily_data.items():
-            # 브랜드별 점유율 계산
+            # 브랜드별 점유율 계산 (Unknown/빈 브랜드 제외)
             brand_counts = defaultdict(int)
             for p in products:
-                brand = p.get("brand", "Unknown")
-                if brand:  # 빈 문자열 제외
-                    brand_counts[brand] += 1
+                brand = p.get("brand", "")
+                # Unknown 및 빈 브랜드는 HHI 계산에서 제외
+                if not brand or brand.lower() == "unknown":
+                    continue
+                brand_counts[brand] += 1
 
             total = sum(brand_counts.values())
             if total > 0:
                 # HHI = Σ(share^2) * 10000
-                hhi = sum((count/total * 100) ** 2 for count in brand_counts.values())
+                hhi = sum((count / total * 100) ** 2 for count in brand_counts.values())
                 daily_hhi.append({"date": date_str, "hhi": round(hhi, 2)})
 
         hhi_values = [d["hhi"] for d in daily_hhi]
@@ -322,15 +330,17 @@ class PeriodAnalyzer:
             "end_hhi": daily_hhi[-1]["hhi"] if daily_hhi else 0,
         }
 
-    def _analyze_brands(self, daily_data: Dict[str, List[Dict]]) -> List[Dict[str, Any]]:
+    def _analyze_brands(self, daily_data: dict[str, list[dict]]) -> list[dict[str, Any]]:
         """브랜드별 성과 분석"""
         brand_daily = defaultdict(lambda: defaultdict(int))
 
         for date_str, products in daily_data.items():
             for p in products:
-                brand = p.get("brand", "Unknown")
-                if brand:  # 빈 문자열 제외
-                    brand_daily[brand][date_str] += 1
+                brand = p.get("brand", "")
+                # Unknown 및 빈 브랜드는 브랜드 분석에서 제외
+                if not brand or brand.lower() == "unknown":
+                    continue
+                brand_daily[brand][date_str] += 1
 
         # 브랜드별 SoS 계산
         results = []
@@ -347,21 +357,23 @@ class PeriodAnalyzer:
                 daily_sos.append(sos)
 
             if daily_sos:
-                results.append({
-                    "brand": brand,
-                    "avg_sos": round(statistics.mean(daily_sos), 2),
-                    "start_sos": round(daily_sos[0], 2),
-                    "end_sos": round(daily_sos[-1], 2),
-                    "sos_change": round(daily_sos[-1] - daily_sos[0], 2),
-                    "avg_count": round(statistics.mean(counts), 1),
-                    "total_appearances": sum(counts)
-                })
+                results.append(
+                    {
+                        "brand": brand,
+                        "avg_sos": round(statistics.mean(daily_sos), 2),
+                        "start_sos": round(daily_sos[0], 2),
+                        "end_sos": round(daily_sos[-1], 2),
+                        "sos_change": round(daily_sos[-1] - daily_sos[0], 2),
+                        "avg_count": round(statistics.mean(counts), 1),
+                        "total_appearances": sum(counts),
+                    }
+                )
 
         # SoS 기준 내림차순 정렬
         results.sort(key=lambda x: x["avg_sos"], reverse=True)
         return results[:20]  # Top 20 브랜드
 
-    def _analyze_categories(self, daily_data: Dict[str, List[Dict]]) -> Dict[str, Any]:
+    def _analyze_categories(self, daily_data: dict[str, list[dict]]) -> dict[str, Any]:
         """카테고리별 분석"""
         category_data = defaultdict(lambda: {"laneige": [], "total": [], "dates": []})
 
@@ -383,8 +395,10 @@ class PeriodAnalyzer:
         for cat, data in category_data.items():
             if data["total"]:
                 daily_sos = [
-                    (l / t * 100) if t > 0 else 0
-                    for l, t in zip(data["laneige"], data["total"])
+                    (laneige_count / total_count * 100) if total_count > 0 else 0
+                    for laneige_count, total_count in zip(
+                        data["laneige"], data["total"], strict=False
+                    )
                 ]
                 result[cat] = {
                     "avg_sos": round(statistics.mean(daily_sos), 2) if daily_sos else 0,
@@ -396,7 +410,7 @@ class PeriodAnalyzer:
 
         return result
 
-    def _identify_top_movers(self, daily_data: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+    def _identify_top_movers(self, daily_data: dict[str, list[dict]]) -> dict[str, list[dict]]:
         """급등/급락 제품 식별 - 동일 카테고리 내에서만 비교"""
         # (ASIN, category) 복합 키로 추적
         product_ranks = defaultdict(list)
@@ -407,13 +421,15 @@ class PeriodAnalyzer:
                 category = p.get("category", "")
                 if asin and category:
                     key = (asin, category)
-                    product_ranks[key].append({
-                        "date": date_str,
-                        "rank": p.get("rank", 0),
-                        "title": p.get("title", ""),
-                        "brand": p.get("brand", ""),
-                        "category": category
-                    })
+                    product_ranks[key].append(
+                        {
+                            "date": date_str,
+                            "rank": p.get("rank", 0),
+                            "title": p.get("title", ""),
+                            "brand": p.get("brand", ""),
+                            "category": category,
+                        }
+                    )
 
         movers = []
         for (asin, category), ranks in product_ranks.items():
@@ -424,17 +440,19 @@ class PeriodAnalyzer:
 
                 category_name = self._get_category_name(category)
 
-                movers.append({
-                    "asin": asin,
-                    "title": last["title"],
-                    "brand": last["brand"],
-                    "category": category,
-                    "category_name": category_name,
-                    "start_rank": first["rank"],
-                    "end_rank": last["rank"],
-                    "change": change,
-                    "is_laneige": self._is_laneige(last)
-                })
+                movers.append(
+                    {
+                        "asin": asin,
+                        "title": last["title"],
+                        "brand": last["brand"],
+                        "category": category,
+                        "category_name": category_name,
+                        "start_rank": first["rank"],
+                        "end_rank": last["rank"],
+                        "change": change,
+                        "is_laneige": self._is_laneige(last),
+                    }
+                )
 
         # 정렬
         movers.sort(key=lambda x: x["change"], reverse=True)
@@ -446,7 +464,7 @@ class PeriodAnalyzer:
             "laneige_fallers": [m for m in movers if m["is_laneige"] and m["change"] < 0][-5:],
         }
 
-    def _analyze_competitive_shifts(self, daily_data: Dict[str, List[Dict]]) -> Dict[str, Any]:
+    def _analyze_competitive_shifts(self, daily_data: dict[str, list[dict]]) -> dict[str, Any]:
         """경쟁 구도 변화 분석"""
         dates = sorted(daily_data.keys())
         if len(dates) < 2:
@@ -461,8 +479,8 @@ class PeriodAnalyzer:
         last_date = dates[-1]
 
         # 첫날/마지막날 브랜드 비교
-        first_brands = set(p.get("brand", "") for p in daily_data[first_date] if p.get("brand"))
-        last_brands = set(p.get("brand", "") for p in daily_data[last_date] if p.get("brand"))
+        first_brands = {p.get("brand", "") for p in daily_data[first_date] if p.get("brand")}
+        last_brands = {p.get("brand", "") for p in daily_data[last_date] if p.get("brand")}
 
         new_entrants = last_brands - first_brands
         exits = first_brands - last_brands
@@ -474,7 +492,7 @@ class PeriodAnalyzer:
             "total_brands_end": len(last_brands),
         }
 
-    def _build_daily_trends(self, daily_data: Dict[str, List[Dict]]) -> List[Dict[str, Any]]:
+    def _build_daily_trends(self, daily_data: dict[str, list[dict]]) -> list[dict[str, Any]]:
         """일별 추이 데이터 생성 (차트용)"""
         trends = []
 
@@ -490,20 +508,22 @@ class PeriodAnalyzer:
                 if brand:
                     brand_counts[brand] += 1
 
-            hhi = sum((c/total * 100) ** 2 for c in brand_counts.values()) if total > 0 else 0
+            hhi = sum((c / total * 100) ** 2 for c in brand_counts.values()) if total > 0 else 0
 
-            trends.append({
-                "date": date_str,
-                "laneige_sos": round(sos, 2),
-                "laneige_count": laneige_count,
-                "total_products": total,
-                "hhi": round(hhi, 2),
-                "brand_count": len(brand_counts)
-            })
+            trends.append(
+                {
+                    "date": date_str,
+                    "laneige_sos": round(sos, 2),
+                    "laneige_count": laneige_count,
+                    "total_products": total,
+                    "hhi": round(hhi, 2),
+                    "brand_count": len(brand_counts),
+                }
+            )
 
         return trends
 
-    def _is_laneige(self, product: Dict) -> bool:
+    def _is_laneige(self, product: dict) -> bool:
         """제품이 LANEIGE 브랜드인지 확인"""
         brand = (product.get("brand") or "").upper()
         title = (product.get("title") or "").upper()
