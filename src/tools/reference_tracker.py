@@ -44,34 +44,35 @@ print(tracker.format_section())
 ```
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-from enum import Enum
 import json
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
 
 
 class ReferenceType(Enum):
     """참고자료 유형"""
-    DATA = "data"           # 데이터 출처
-    ARTICLE = "article"     # 기사
-    REPORT = "report"       # 리서치 보고서
-    SOCIAL = "social"       # 소셜 미디어
-    ACADEMIC = "academic"   # 학술 자료
+
+    DATA = "data"  # 데이터 출처
+    ARTICLE = "article"  # 기사
+    REPORT = "report"  # 리서치 보고서
+    SOCIAL = "social"  # 소셜 미디어
+    ACADEMIC = "academic"  # 학술 자료
 
 
 @dataclass
 class Reference:
     """단일 참고자료"""
+
     ref_type: ReferenceType
     title: str
-    source: str               # 출처 기관/사이트
-    date: Optional[str] = None      # YYYY-MM-DD or YYYY-MM
-    url: Optional[str] = None
-    author: Optional[str] = None
+    source: str  # 출처 기관/사이트
+    date: str | None = None  # YYYY-MM-DD or YYYY-MM
+    url: str | None = None
+    author: str | None = None
 
     # 추가 메타데이터
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # 내부 ID (자동 생성)
     ref_id: str = ""
@@ -84,7 +85,7 @@ class Reference:
                 ReferenceType.ARTICLE: "A",
                 ReferenceType.REPORT: "R",
                 ReferenceType.SOCIAL: "S",
-                ReferenceType.ACADEMIC: "P"
+                ReferenceType.ACADEMIC: "P",
             }
             self.ref_id = f"{prefix_map.get(self.ref_type, 'X')}{id(self) % 1000:03d}"
 
@@ -146,18 +147,18 @@ class ReferenceTracker:
     """참고자료 추적기"""
 
     def __init__(self):
-        self.references: List[Reference] = []
-        self._id_counter = {t: 0 for t in ReferenceType}
+        self.references: list[Reference] = []
+        self._id_counter = dict.fromkeys(ReferenceType, 0)
 
     def add_reference(
         self,
         ref_type: ReferenceType,
         title: str,
         source: str,
-        date: Optional[str] = None,
-        url: Optional[str] = None,
-        author: Optional[str] = None,
-        **metadata
+        date: str | None = None,
+        url: str | None = None,
+        author: str | None = None,
+        **metadata,
     ) -> Reference:
         """참고자료 추가"""
         self._id_counter[ref_type] += 1
@@ -166,7 +167,7 @@ class ReferenceTracker:
             ReferenceType.ARTICLE: "A",
             ReferenceType.REPORT: "R",
             ReferenceType.SOCIAL: "S",
-            ReferenceType.ACADEMIC: "P"
+            ReferenceType.ACADEMIC: "P",
         }
         ref_id = f"{prefix_map[ref_type]}{self._id_counter[ref_type]}"
 
@@ -178,56 +179,32 @@ class ReferenceTracker:
             url=url,
             author=author,
             metadata=metadata,
-            ref_id=ref_id
+            ref_id=ref_id,
         )
         self.references.append(ref)
         return ref
 
     # Convenience methods for each type
     def add_data_source(
-        self,
-        title: str,
-        source: str,
-        date_range: str = None,
-        **kwargs
+        self, title: str, source: str, date_range: str = None, **kwargs
     ) -> Reference:
         """데이터 출처 추가"""
-        return self.add_reference(
-            ReferenceType.DATA, title, source, date=date_range, **kwargs
-        )
+        return self.add_reference(ReferenceType.DATA, title, source, date=date_range, **kwargs)
 
     def add_article(
-        self,
-        title: str,
-        source: str,
-        date: str,
-        url: str = None,
-        **kwargs
+        self, title: str, source: str, date: str, url: str = None, **kwargs
     ) -> Reference:
         """기사 추가"""
         return self.add_reference(
             ReferenceType.ARTICLE, title, source, date=date, url=url, **kwargs
         )
 
-    def add_report(
-        self,
-        title: str,
-        source: str,
-        date: str = None,
-        **kwargs
-    ) -> Reference:
+    def add_report(self, title: str, source: str, date: str = None, **kwargs) -> Reference:
         """리서치 보고서 추가"""
-        return self.add_reference(
-            ReferenceType.REPORT, title, source, date=date, **kwargs
-        )
+        return self.add_reference(ReferenceType.REPORT, title, source, date=date, **kwargs)
 
     def add_social(
-        self,
-        title: str,
-        platform: str,
-        date: str = None,
-        url: str = None,
-        **kwargs
+        self, title: str, platform: str, date: str = None, url: str = None, **kwargs
     ) -> Reference:
         """소셜 미디어 추가"""
         return self.add_reference(
@@ -235,23 +212,57 @@ class ReferenceTracker:
         )
 
     def add_academic(
-        self,
-        title: str,
-        journal: str,
-        author: str = None,
-        year: str = None,
-        **kwargs
+        self, title: str, journal: str, author: str = None, year: str = None, **kwargs
     ) -> Reference:
         """학술 자료 추가"""
         return self.add_reference(
             ReferenceType.ACADEMIC, title, journal, date=year, author=author, **kwargs
         )
 
-    def get_by_type(self, ref_type: ReferenceType) -> List[Reference]:
+    def get_by_type(self, ref_type: ReferenceType) -> list[Reference]:
         """유형별 참고자료 조회"""
         return [r for r in self.references if r.ref_type == ref_type]
 
-    def get_by_id(self, ref_id: str) -> Optional[Reference]:
+    def get_formatted_references(self, source_type: str = "all") -> str:
+        """
+        형식화된 참고자료 문자열 반환
+
+        Args:
+            source_type: "external" (기사/보고서/소셜/학술),
+                        "data" (데이터 소스),
+                        "all" (전체)
+
+        Returns:
+            줄바꿈으로 구분된 참고자료 문자열
+        """
+        refs = []
+
+        if source_type == "external":
+            # 외부 자료: 기사, 보고서, 소셜, 학술
+            refs.extend(self.get_by_type(ReferenceType.ARTICLE))
+            refs.extend(self.get_by_type(ReferenceType.REPORT))
+            refs.extend(self.get_by_type(ReferenceType.SOCIAL))
+            refs.extend(self.get_by_type(ReferenceType.ACADEMIC))
+        elif source_type == "data":
+            # 데이터 소스
+            refs = self.get_by_type(ReferenceType.DATA)
+        else:
+            # 전체
+            refs = self.references
+
+        if not refs:
+            return ""
+
+        lines = []
+        for ref in refs:
+            citation = ref.format_citation()
+            lines.append(citation)
+            if ref.url:
+                lines.append(f"  URL: {ref.url}")
+
+        return "\n".join(lines)
+
+    def get_by_id(self, ref_id: str) -> Reference | None:
         """ID로 참고자료 조회"""
         for r in self.references:
             if r.ref_id == ref_id:
@@ -314,7 +325,7 @@ class ReferenceTracker:
 
         return "\n\n".join(sections)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리로 변환 (JSON 직렬화용)"""
         return {
             "references": [
@@ -326,14 +337,14 @@ class ReferenceTracker:
                     "date": r.date,
                     "url": r.url,
                     "author": r.author,
-                    "metadata": r.metadata
+                    "metadata": r.metadata,
                 }
                 for r in self.references
             ]
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ReferenceTracker":
+    def from_dict(cls, data: dict[str, Any]) -> "ReferenceTracker":
         """딕셔너리에서 복원"""
         tracker = cls()
         for ref_data in data.get("references", []):
@@ -345,29 +356,22 @@ class ReferenceTracker:
                 date=ref_data.get("date"),
                 url=ref_data.get("url"),
                 author=ref_data.get("author"),
-                **ref_data.get("metadata", {})
+                **ref_data.get("metadata", {}),
             )
         return tracker
 
-    def auto_add_amazon_sources(
-        self,
-        start_date: str,
-        end_date: str,
-        categories: List[str] = None
-    ):
+    def auto_add_amazon_sources(self, start_date: str, end_date: str, categories: list[str] = None):
         """Amazon 데이터 소스 자동 추가"""
         categories = categories or [
             "Beauty & Personal Care",
             "Skin Care",
             "Lip Care",
             "Lip Makeup",
-            "Face Powder"
+            "Face Powder",
         ]
         for cat in categories:
             self.add_data_source(
-                title=cat,
-                source="Amazon Best Sellers",
-                date_range=f"{start_date} ~ {end_date}"
+                title=cat, source="Amazon Best Sellers", date_range=f"{start_date} ~ {end_date}"
             )
 
     def auto_add_ir_report(self, quarter: str, year: str = "2025"):
@@ -375,10 +379,10 @@ class ReferenceTracker:
         self.add_data_source(
             title=f"아모레퍼시픽 {year}년 {quarter} 실적 발표",
             source="AMOREPACIFIC IR",
-            date_range=f"{year}-{quarter}"
+            date_range=f"{year}-{quarter}",
         )
 
-    def add_external_signals(self, signals: List[Any]) -> int:
+    def add_external_signals(self, signals: list[Any]) -> int:
         """
         외부 신호를 참고자료에 자동 추가
 
@@ -419,13 +423,13 @@ class ReferenceTracker:
 
         for signal in signals:
             # URL 중복 체크
-            signal_url = getattr(signal, 'url', '')
+            signal_url = getattr(signal, "url", "")
             if signal_url and self._is_duplicate(signal_url):
                 continue
 
             # Tier 또는 Source에서 ReferenceType 결정
-            tier = getattr(signal, 'tier', 'unknown')
-            source = getattr(signal, 'source', 'unknown').lower()
+            tier = getattr(signal, "tier", "unknown")
+            source = getattr(signal, "source", "unknown").lower()
 
             ref_type = tier_to_type.get(tier)
             if not ref_type:
@@ -440,39 +444,39 @@ class ReferenceTracker:
                 ref_type = ReferenceType.ARTICLE
 
             # 메타데이터에서 추가 정보 추출
-            metadata = getattr(signal, 'metadata', {}) or {}
-            reliability_score = metadata.get('reliability_score')
+            metadata = getattr(signal, "metadata", {}) or {}
+            reliability_score = metadata.get("reliability_score")
 
             # 소셜 미디어 특화 메타데이터
             extra_metadata = {}
             if ref_type == ReferenceType.SOCIAL:
-                if 'reddit' in source:
+                if "reddit" in source:
                     # Reddit 게시물
-                    if 'subreddit' in metadata:
-                        extra_metadata['subreddit'] = metadata['subreddit']
-                    extra_metadata['platform'] = 'Reddit'
-                elif 'youtube' in source:
-                    extra_metadata['platform'] = 'YouTube'
-                    if 'views' in metadata:
-                        extra_metadata['views'] = metadata['views']
-                elif 'tiktok' in source:
-                    extra_metadata['platform'] = 'TikTok'
-                    if 'views' in metadata:
-                        extra_metadata['views'] = metadata['views']
+                    if "subreddit" in metadata:
+                        extra_metadata["subreddit"] = metadata["subreddit"]
+                    extra_metadata["platform"] = "Reddit"
+                elif "youtube" in source:
+                    extra_metadata["platform"] = "YouTube"
+                    if "views" in metadata:
+                        extra_metadata["views"] = metadata["views"]
+                elif "tiktok" in source:
+                    extra_metadata["platform"] = "TikTok"
+                    if "views" in metadata:
+                        extra_metadata["views"] = metadata["views"]
                 else:
-                    extra_metadata['platform'] = source.replace('_', ' ').title()
+                    extra_metadata["platform"] = source.replace("_", " ").title()
 
             if reliability_score is not None:
-                extra_metadata['reliability_score'] = reliability_score
+                extra_metadata["reliability_score"] = reliability_score
 
             # 참고자료 추가
             self.add_reference(
                 ref_type=ref_type,
-                title=getattr(signal, 'title', 'Unknown'),
-                source=source.replace('_', ' ').title(),
-                date=getattr(signal, 'published_at', None),
+                title=getattr(signal, "title", "Unknown"),
+                source=source.replace("_", " ").title(),
+                date=getattr(signal, "published_at", None),
                 url=signal_url,
-                **extra_metadata
+                **extra_metadata,
             )
             added += 1
 
@@ -494,9 +498,7 @@ if __name__ == "__main__":
 
     # Add data sources
     tracker.add_data_source(
-        title="Skin Care",
-        source="Amazon Best Sellers",
-        date_range="2026-01-14 ~ 2026-01-25"
+        title="Skin Care", source="Amazon Best Sellers", date_range="2026-01-14 ~ 2026-01-25"
     )
 
     # Add article
@@ -504,7 +506,7 @@ if __name__ == "__main__":
         title="2026 Beauty Trends: What to Watch",
         source="Allure",
         date="2026-01-10",
-        url="https://www.allure.com/story/2026-beauty-trends"
+        url="https://www.allure.com/story/2026-beauty-trends",
     )
 
     # Add social media
@@ -514,7 +516,7 @@ if __name__ == "__main__":
         date="2026-01-15",
         subreddit="SkincareAddiction",
         upvotes=2400,
-        url="https://reddit.com/r/SkincareAddiction/..."
+        url="https://reddit.com/r/SkincareAddiction/...",
     )
 
     # Auto-add Amazon sources
@@ -524,5 +526,5 @@ if __name__ == "__main__":
     print(tracker.format_section())
 
     # Export to JSON
-    print("\n" + "="*60 + "\n")
+    print("\n" + "=" * 60 + "\n")
     print(json.dumps(tracker.to_dict(), indent=2, ensure_ascii=False))
