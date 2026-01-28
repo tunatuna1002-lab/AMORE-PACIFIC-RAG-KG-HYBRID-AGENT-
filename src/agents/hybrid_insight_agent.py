@@ -9,33 +9,31 @@ Flow:
 4. 추론 결과 + RAG 컨텍스트로 LLM 인사이트 생성
 """
 
-import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 from litellm import acompletion
 
-from src.ontology.knowledge_graph import KnowledgeGraph
-from src.ontology.reasoner import OntologyReasoner
-from src.ontology.business_rules import register_all_rules
 from src.domain.entities.relations import (
     InferenceResult,
     InsightType,
-    RelationType,
     Relation,
+    RelationType,
 )
-
-from src.rag.hybrid_retriever import HybridRetriever, HybridContext
+from src.monitoring.logger import AgentLogger
+from src.monitoring.metrics import QualityMetrics
+from src.monitoring.tracer import ExecutionTracer
+from src.ontology.business_rules import register_all_rules
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
 from src.rag.context_builder import ContextBuilder
+from src.rag.hybrid_retriever import HybridContext, HybridRetriever
 from src.rag.retriever import DocumentRetriever
 from src.rag.templates import ResponseTemplates
-
-from src.monitoring.logger import AgentLogger
-from src.monitoring.tracer import ExecutionTracer
-from src.monitoring.metrics import QualityMetrics
 from src.tools.external_signal_collector import ExternalSignalCollector
-from src.tools.market_intelligence import MarketIntelligenceEngine, DataLayer
-from src.tools.source_manager import SourceManager, InsightSourceBuilder
+from src.tools.insight_formatter import format_insight
+from src.tools.market_intelligence import DataLayer, MarketIntelligenceEngine
+from src.tools.source_manager import InsightSourceBuilder
 
 # New collectors (Phase 1 & 2)
 try:
@@ -70,11 +68,11 @@ class HybridInsightAgent:
         self,
         model: str = "gpt-4.1-mini",
         docs_dir: str = ".",
-        knowledge_graph: Optional[KnowledgeGraph] = None,
-        reasoner: Optional[OntologyReasoner] = None,
-        logger: Optional[AgentLogger] = None,
-        tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None,
+        knowledge_graph: KnowledgeGraph | None = None,
+        reasoner: OntologyReasoner | None = None,
+        logger: AgentLogger | None = None,
+        tracer: ExecutionTracer | None = None,
+        metrics: QualityMetrics | None = None,
     ):
         """
         Args:
@@ -131,25 +129,25 @@ class HybridInsightAgent:
         self.metrics = metrics
 
         # 결과 캐시
-        self._results: Dict[str, Any] = {}
-        self._last_hybrid_context: Optional[HybridContext] = None
+        self._results: dict[str, Any] = {}
+        self._last_hybrid_context: HybridContext | None = None
 
         # External Signal Collector
-        self._signal_collector: Optional[ExternalSignalCollector] = None
+        self._signal_collector: ExternalSignalCollector | None = None
 
         # Market Intelligence Engine
-        self._market_intelligence: Optional[MarketIntelligenceEngine] = None
-        self._insight_source_builder: Optional[InsightSourceBuilder] = None
+        self._market_intelligence: MarketIntelligenceEngine | None = None
+        self._insight_source_builder: InsightSourceBuilder | None = None
 
         # New collectors (Phase 1)
-        self._google_trends: Optional[GoogleTrendsCollector] = None
+        self._google_trends: GoogleTrendsCollector | None = None
 
     async def execute(
         self,
-        metrics_data: Dict[str, Any],
-        crawl_data: Optional[Dict[str, Any]] = None,
-        crawl_summary: Optional[Dict] = None,
-    ) -> Dict[str, Any]:
+        metrics_data: dict[str, Any],
+        crawl_data: dict[str, Any] | None = None,
+        crawl_summary: dict | None = None,
+    ) -> dict[str, Any]:
         """
         하이브리드 인사이트 생성
 
@@ -342,8 +340,8 @@ class HybridInsightAgent:
             raise
 
     def _update_knowledge_graph(
-        self, crawl_data: Optional[Dict], metrics_data: Dict
-    ) -> Dict[str, int]:
+        self, crawl_data: dict | None, metrics_data: dict
+    ) -> dict[str, int]:
         """Knowledge Graph 업데이트"""
         stats = {"crawl_relations": 0, "metrics_relations": 0}
 
@@ -357,7 +355,7 @@ class HybridInsightAgent:
 
         return stats
 
-    async def _run_hybrid_retrieval(self, metrics_data: Dict) -> HybridContext:
+    async def _run_hybrid_retrieval(self, metrics_data: dict) -> HybridContext:
         """하이브리드 검색 수행"""
         # 일일 인사이트용 쿼리
         query = "LANEIGE 오늘의 Amazon 베스트셀러 성과 분석"
@@ -374,7 +372,7 @@ class HybridInsightAgent:
 
         return context
 
-    def _generate_explanations(self, inferences: List[InferenceResult]) -> List[Dict[str, Any]]:
+    def _generate_explanations(self, inferences: list[InferenceResult]) -> list[dict[str, Any]]:
         """추론 설명 생성"""
         explanations = []
 
@@ -393,11 +391,11 @@ class HybridInsightAgent:
     async def _generate_daily_insight(
         self,
         hybrid_context: HybridContext,
-        metrics_data: Dict,
-        crawl_summary: Optional[Dict],
-        external_signals: Optional[Dict] = None,
-        market_intelligence: Optional[Dict] = None,
-        failed_signals: Optional[List[str]] = None,
+        metrics_data: dict,
+        crawl_summary: dict | None,
+        external_signals: dict | None = None,
+        market_intelligence: dict | None = None,
+        failed_signals: list[str] | None = None,
     ) -> str:
         """일일 인사이트 생성 (LLM)"""
         # 컨텍스트 구성
@@ -449,51 +447,90 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
 위 분석 결과와 데이터를 바탕으로 오늘의 LANEIGE Amazon US 일일 인사이트를 작성해주세요.
 
-### 출력 형식 (반드시 이 구조를 따르세요):
+### 출력 형식 (AMOREPACIFIC 스타일 - 반드시 이 구조와 순서를 따르세요):
 
 ```markdown
-# LANEIGE Amazon US 일일 인사이트
+# LANEIGE Amazon US 경쟁력 분석 보고서
 
-## 📌 오늘의 핵심
-[가장 중요한 변화 1-2가지 + 그 원인을 연결하여 설명]
-예: "Lip Sleeping Mask 순위 상승은 Q3 Americas 매출 +6.9% 성장[2]과 최근 TikTok 바이럴[3]의 복합 효과로 판단됩니다."
+분석 기간: 2026-01-01 ~ 2026-01-28
+생성일시: 2026-01-28 04:30
 
-## 🔍 원인 분석 (Why?)
+---
 
-### Layer 4: 거시경제/무역
-• [관세청 수출입 데이터 기반 분석] [1]
-• [환율/관세 영향 분석]
+## 목차
+1. 오늘의 핵심
+2. 원인 분석 (Why?)
+   - Layer 4: 거시경제/무역
+   - Layer 3: 산업/기업 동향
+   - Layer 2: 소비자 트렌드
+   - Layer 1: Amazon 성과
+3. 주의 사항
+4. 전략 제언
+5. 참고자료
 
-### Layer 3: 산업/기업 동향
-• [아모레퍼시픽 IR 실적 기반 분석] [2]
-• [브랜드 전략/캠페인 영향]
+---
 
-### Layer 2: 소비자 트렌드
-• [Reddit/SNS 트렌드 분석] [3]
-• [뷰티 매체 보도 내용]
+▎**1. 오늘의 핵심**
+• 라네즈 립 슬리핑 마스크 순위 상승 (**+3**단계 → 현재 **#4**) [1]
+• SoS **+2.1%p** 증가 (전일 대비)
+[가장 중요한 변화 1-2가지를 구체적 수치와 함께 작성]
 
-### Layer 1: Amazon 성과
-• [순위 변동, SoS, 가격 등 핵심 지표]
-• [경쟁사 동향]
+▎**2. 원인 분석 (Why?)**
 
-## ⚠️ 주의 사항
+**Layer 4: 거시경제/무역**
+• 관세청 수출입 데이터: 화장품 수출 전월비 **+12.3%** [1]
+• 원/달러 환율 안정세 유지
+
+**Layer 3: 산업/기업 동향**
+• 아모레퍼시픽 3Q 영업이익 **+41%** YoY [2]
+• Americas 매출 **+6.9%** 성장
+
+**Layer 2: 소비자 트렌드**
+• Reddit r/AsianBeauty 라네즈 언급 **+34%** [3]
+• TikTok #LipSleepingMask 조회수 2.4M
+
+**Layer 1: Amazon 성과**
+• Lip Care 카테고리 SoS: **8.2%** (전주 7.1%)
+• Top 10 진입 제품: **3개** (유지)
+• 코스알엑스 대비 가격 경쟁력 유지
+
+▎**3. 주의 사항**
+• 코스알엑스 신제품 출시 예정 - 점유율 변동 모니터링 필요
 • [리스크 또는 모니터링 필요 사항]
 
-## 💡 권장 액션
-1. [즉시 실행] 구체적 액션 1
-2. [모니터링] 구체적 액션 2
-3. [검토 필요] 구체적 액션 3
+▎**4. 전략 제언**
+1. [즉시 실행] 재고 확보 - 립 슬리핑 마스크 수요 증가 대비
+2. [모니터링] 코스알엑스 신제품 출시 동향 주시
+3. [검토 필요] 홀리데이 시즌 프로모션 전략 수립
 
-## 📚 참고자료
-[제공된 참고자료 목록을 그대로 사용]
+▎**5. 참고자료**
+
+**5.1 데이터 출처 (Data Sources)**
+[D1] Amazon Best Sellers - Beauty & Personal Care, 2026-01-01 ~ 2026-01-28
+[D2] Amazon Best Sellers - Skin Care, 2026-01-01 ~ 2026-01-28
+[D3] Amazon Best Sellers - Lip Care, 2026-01-01 ~ 2026-01-28
+[D4] Amazon Best Sellers - Lip Makeup, 2026-01-01 ~ 2026-01-28
+[D5] Amazon Best Sellers - Face Powder, 2026-01-01 ~ 2026-01-28
+
+**5.2 참고 문헌 (References)**
+[제공된 참고자료 목록 - 링크 URL 전체 표시, 축약 금지]
 ```
 
-### 작성 원칙:
-1. **인과관계 중심**: "A가 발생했다" → "A는 B 때문에 발생한 것으로 판단된다"
-2. **출처 필수 인용**: 모든 사실 주장에 [1], [2] 형태로 출처 인용
-3. **계층적 분석**: Layer 4(거시) → Layer 1(Amazon)으로 원인-결과 연결
-4. **정량적 표현**: "증가" 대신 "+12%", "많음" 대신 "2,400 업보트"
-5. **가설적 표현**: 확실하지 않은 내용은 "~로 판단됩니다", "~가능성이 있습니다" 사용
+### 중요: 참고자료 작성 규칙
+1. **참고자료는 반드시 문서 맨 마지막에 위치** (전략 제언 이후)
+2. **링크 URL은 절대 축약하지 말 것** (... 사용 금지, 전체 URL 표시)
+3. **제목도 축약 금지** (전체 제목 표시)
+4. **목차는 반드시 제목 바로 아래에 위치**
+
+### 작성 원칙 (AMOREPACIFIC 스타일):
+1. **섹션 헤더**: `▎**제목**` 형식 사용 (이모지 사용 금지)
+2. **브랜드명 한글화**: LANEIGE → 라네즈, COSRX → 코스알엑스, SULWHASOO → 설화수
+3. **수치 강조**: 모든 수치에 **볼드** 적용 (예: **+12%**, **#4**, **3개**)
+4. **불릿 포인트**: 최상위는 • 사용, 하위는 - 사용
+5. **인과관계 중심**: "A가 발생했다" → "A는 B 때문에 발생한 것으로 판단된다"
+6. **출처 필수 인용**: 모든 사실 주장에 [1], [2] 형태로 출처 인용
+7. **계층적 분석**: Layer 4(거시) → Layer 1(Amazon)으로 원인-결과 연결
+8. **정량적 표현**: "증가" 대신 "+12%", "많음" 대신 "2,400 업보트"
 """
 
         try:
@@ -524,13 +561,19 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             # 가드레일 적용
             insight = self.templates.apply_guardrails(insight)
 
+            # LLM이 생성한 참고자료 섹션 제거 후 우리 참고자료로 교체 (URL 포함)
+            insight = self._replace_reference_section(insight, reference_section)
+
+            # AMOREPACIFIC 스타일 포맷팅 적용
+            insight = format_insight(insight)
+
             # 실패한 신호 수집기 경고 추가
             if failed_signals:
                 warning_section = "\n\n---\n"
-                warning_section += f"⚠️ **외부 트렌드 정보 일부 미반영**\n"
-                warning_section += f"- **수집 실패**: {', '.join(failed_signals)}\n"
-                warning_section += "- **영향**: 본 리포트는 크롤링/KG 데이터 기준으로 작성됨\n"
-                warning_section += "- **권장**: 1-2시간 후 재시도 또는 수동으로 트렌드 확인"
+                warning_section += "▎**외부 트렌드 정보 일부 미반영**\n"
+                warning_section += f"• **수집 실패**: {', '.join(failed_signals)}\n"
+                warning_section += "• **영향**: 본 리포트는 크롤링/KG 데이터 기준으로 작성됨\n"
+                warning_section += "• **권장**: 1-2시간 후 재시도 또는 수동으로 트렌드 확인"
                 insight += warning_section
 
             return insight
@@ -539,13 +582,13 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             self.logger.error(f"LLM call failed: {e}")
             return self._generate_fallback_insight(hybrid_context, metrics_data)
 
-    def _generate_fallback_insight(self, hybrid_context: HybridContext, metrics_data: Dict) -> str:
+    def _generate_fallback_insight(self, hybrid_context: HybridContext, metrics_data: dict) -> str:
         """폴백 인사이트 생성"""
         summary = metrics_data.get("summary", {})
         inferences = hybrid_context.inferences
 
         insight_parts = [
-            f"## 오늘의 LANEIGE Amazon 베스트셀러 분석\n",
+            "## 오늘의 LANEIGE Amazon 베스트셀러 분석\n",
             f"- 추적 중인 제품: {summary.get('laneige_products_tracked', 0)}개",
             f"- 알림: {summary.get('alert_count', 0)}건",
         ]
@@ -567,8 +610,8 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         return "\n".join(insight_parts)
 
     def _extract_action_items(
-        self, inferences: List[InferenceResult], metrics_data: Dict
-    ) -> List[Dict]:
+        self, inferences: list[InferenceResult], metrics_data: dict
+    ) -> list[dict]:
         """액션 아이템 추출"""
         actions = []
 
@@ -621,18 +664,49 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
     def _build_reference_section(
         self,
         hybrid_context: HybridContext,
-        external_signals: Optional[Dict[str, Any]],
-        market_intelligence: Optional[Dict[str, Any]] = None,
+        external_signals: dict[str, Any] | None,
+        market_intelligence: dict[str, Any] | None = None,
     ) -> str:
         """
-        참고자료 섹션 생성 (숫자 인용용)
+        참고자료 섹션 생성 (숫자 인용용) - URL 포함
+
+        구조:
+        ▎**5. 참고자료**
+        **5.1 데이터 출처 (Data Sources)**
+        [D1] Amazon Best Sellers - Beauty & Personal Care, 2026-01-01 ~ 2026-01-28
+        ...
+        **5.2 참고 문헌 (References)**
+        [1] 출처명, "제목", 날짜
+            URL (전체 표시, 축약 금지)
+        ...
 
         출처 우선순위:
         1. Market Intelligence (Layer 4 → Layer 3 → Layer 2)
-        2. External Signals
+        2. External Signals (뉴스, Reddit, TikTok 등)
         3. RAG Documents
         4. Knowledge Graph
+
+        각 출처에 URL이 있는 경우 참고자료에 포함됩니다.
         """
+        from datetime import datetime
+
+        # 날짜 범위 계산 (오늘 기준 28일)
+        today = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - __import__("datetime").timedelta(days=27)).strftime(
+            "%Y-%m-%d"
+        )
+
+        # 5.1 데이터 출처 섹션
+        data_sources = [
+            f"[D1] Amazon Best Sellers - Beauty & Personal Care, {start_date} ~ {today}",
+            f"[D2] Amazon Best Sellers - Skin Care, {start_date} ~ {today}",
+            f"[D3] Amazon Best Sellers - Lip Care, {start_date} ~ {today}",
+            f"[D4] Amazon Best Sellers - Lip Makeup, {start_date} ~ {today}",
+            f"[D5] Amazon Best Sellers - Face Powder, {start_date} ~ {today}",
+        ]
+        data_source_section = "**5.1 데이터 출처 (Data Sources)**\n" + "\n".join(data_sources)
+
+        # 5.2 참고 문헌 섹션
         entries = []
         idx = 1
 
@@ -643,29 +717,47 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                 publisher = source.get("publisher", "")
                 title = source.get("title", "")
                 date = source.get("date", "")
+                url = source.get("url", "")
                 source_type = source.get("source_type", "")
-                reliability = source.get("reliability_score", 0)
 
-                # 출처 유형별 포맷
+                # 날짜 포맷팅
+                date_str = self._format_date(date)
+
+                # 기본 참고자료 라인
                 if source_type == "government":
-                    entries.append(f"[{idx}] {publisher}, {title}, {date}")
+                    entry = f"[{idx}] {publisher}, {title}, {date_str}"
                 elif source_type == "ir":
-                    url = source.get("url", "")
-                    entries.append(f'[{idx}] {publisher}, "{title}", {date}')
+                    entry = f'[{idx}] {publisher}, "{title}", {date_str}'
                 elif source_type == "news":
-                    entries.append(f'[{idx}] {publisher}, "{title}", {date}')
+                    entry = f'[{idx}] {publisher}, "{title}", {date_str}'
                 else:
-                    entries.append(f"[{idx}] {publisher}: {title} ({date})")
+                    entry = f"[{idx}] {publisher}: {title} ({date_str})"
+
+                # URL 추가 (있는 경우)
+                if url:
+                    entry += f"\n    {url}"
+
+                entries.append(entry)
                 idx += 1
 
-        # 2. External Signal 출처 (Reddit, TikTok 등)
-        for signal in (external_signals or {}).get("signals", [])[:3]:
-            source = signal.get("source", "").replace("_", " ").title()
-            title = signal.get("title", "")[:50]
+        # 2. External Signal 출처 (뉴스, Reddit, TikTok 등) - URL 포함
+        for signal in (external_signals or {}).get("signals", [])[:5]:  # 최대 5개로 증가
+            source_name = signal.get("source", "").replace("_", " ").title()
+            title = signal.get("title", "")
+            url = signal.get("url", "")
             collected_at = signal.get("collected_at", "") or signal.get("published_at", "")
-            if collected_at:
-                collected_at = collected_at[:10]  # YYYY-MM-DD만
-            entries.append(f'[{idx}] {source}, "{title}...", {collected_at}')
+
+            # 날짜 포맷팅
+            date_str = self._format_date(collected_at)
+
+            # 제목 전체 표시 (축약 금지)
+            entry = f'[{idx}] {source_name}, "{title}", {date_str}'
+
+            # URL 추가 (있는 경우)
+            if url:
+                entry += f"\n    {url}"
+
+            entries.append(entry)
             idx += 1
 
         # 3. RAG 문서 출처
@@ -673,10 +765,17 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             metadata = chunk.get("metadata", {})
             title = metadata.get("title") or metadata.get("doc_id", "가이드 문서")
             source_filename = metadata.get("source_filename", "")
+            doc_url = metadata.get("url", "")
+
             if source_filename:
-                entries.append(f"[{idx}] 내부 가이드: {title} ({source_filename})")
+                entry = f"[{idx}] 내부 가이드: {title} ({source_filename})"
             else:
-                entries.append(f"[{idx}] 내부 가이드: {title}")
+                entry = f"[{idx}] 내부 가이드: {title}"
+
+            if doc_url:
+                entry += f"\n    {doc_url}"
+
+            entries.append(entry)
             idx += 1
 
         # 4. KG 근거 (요약)
@@ -687,10 +786,76 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             if fact_types:
                 entries.append(f"[{idx}] KnowledgeGraph: 온톨로지 추론 ({', '.join(fact_types)})")
 
-        if not entries:
-            return ""
+        # 참고자료 전체 섹션 구성
+        # 항상 데이터 출처는 포함, 참고 문헌은 있을 때만
+        reference_parts = ["▎**5. 참고자료**\n", data_source_section]
 
-        return "## 참고자료\n" + "\n".join(entries)
+        if entries:
+            reference_parts.append("\n\n**5.2 참고 문헌 (References)**\n" + "\n".join(entries))
+
+        return "\n".join(reference_parts)
+
+    def _format_date(self, date_str: str) -> str:
+        """날짜 문자열 포맷팅"""
+        if not date_str:
+            return "날짜 미상"
+
+        # ISO 형식에서 날짜만 추출
+        date_only = date_str[:10] if len(date_str) >= 10 else date_str
+
+        # YYYY-MM-DD → YYYY.MM.DD
+        if len(date_only) == 10 and "-" in date_only:
+            parts = date_only.split("-")
+            return f"{parts[0]}.{parts[1]}.{parts[2]}"
+        # YYYY-MM → YYYY.MM
+        elif len(date_only) == 7 and "-" in date_only:
+            parts = date_only.split("-")
+            return f"{parts[0]}.{parts[1]}"
+
+        return date_only
+
+    def _replace_reference_section(self, insight: str, reference_section: str) -> str:
+        """
+        LLM이 생성한 참고자료 섹션을 우리가 생성한 참고자료 섹션(URL 포함)으로 교체
+
+        Args:
+            insight: LLM이 생성한 인사이트 텍스트
+            reference_section: URL이 포함된 참고자료 섹션
+
+        Returns:
+            참고자료가 교체된 인사이트 텍스트
+        """
+        import re
+
+        if not reference_section:
+            return insight
+
+        # LLM이 생성한 참고자료 섹션 패턴들
+        # "## 참고자료", "## 📚 참고자료", "## References", "5. 참고자료", "**5.2 참고 문헌**" 등
+        patterns = [
+            r"##\s*📚?\s*참고자료.*?(?=\n##|\n---|\Z)",  # ## 참고자료 or ## 📚 참고자료
+            r"##\s*References.*?(?=\n##|\n---|\Z)",  # ## References
+            r"\*\*참고자료\*\*.*?(?=\n##|\n---|\Z)",  # **참고자료**
+            r"\*\*\d+\.\s*참고자료\*\*.*?(?=\n\*\*\d+\.|\n---|\Z)",  # **5. 참고자료**
+            r"\*\*\d+\.\d+\s*참고\s*문헌.*?\*\*.*?(?=\n\*\*\d+\.|\n---|\Z)",  # **5.2 참고 문헌**
+            r"▎\*\*\d+\.\s*참고자료\*\*.*?(?=\n▎|\n---|\Z)",  # ▎**5. 참고자료**
+            # 번호 붙은 섹션: "5. 참고자료" 또는 "5. 참고자료 (References)"
+            # 다음 번호 섹션, ---, 또는 문서 끝까지 매칭
+            r"\n\d+\.\s*참고자료[^\n]*\n.*?(?=\n\d+\.|\n---|\Z)",
+        ]
+
+        # 기존 참고자료 섹션 제거
+        cleaned_insight = insight
+        for pattern in patterns:
+            cleaned_insight = re.sub(pattern, "", cleaned_insight, flags=re.DOTALL | re.IGNORECASE)
+
+        # 후행 공백/줄바꿈 정리
+        cleaned_insight = cleaned_insight.rstrip()
+
+        # 새 참고자료 섹션 추가
+        cleaned_insight += "\n\n" + reference_section
+
+        return cleaned_insight
 
     def _get_priority_from_insight(self, inference: InferenceResult) -> str:
         """인사이트 유형에서 우선순위 결정"""
@@ -713,8 +878,8 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
             return "low"
 
     def _extract_highlights(
-        self, inferences: List[InferenceResult], metrics_data: Dict
-    ) -> List[Dict]:
+        self, inferences: list[InferenceResult], metrics_data: dict
+    ) -> list[dict]:
         """하이라이트 추출"""
         highlights = []
 
@@ -774,11 +939,11 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         output_cost = (completion_tokens / 1_000_000) * 1.60
         return round(input_cost + output_cost, 6)
 
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """마지막 실행 결과"""
         return self._results
 
-    def get_last_hybrid_context(self) -> Optional[HybridContext]:
+    def get_last_hybrid_context(self) -> HybridContext | None:
         """마지막 하이브리드 컨텍스트"""
         return self._last_hybrid_context
 
@@ -790,7 +955,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         """추론기 반환"""
         return self.reasoner
 
-    async def _collect_external_signals(self) -> Dict[str, Any]:
+    async def _collect_external_signals(self) -> dict[str, Any]:
         """
         External Signal 수집
 
@@ -821,7 +986,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         return result
 
-    def _get_failed_signal_collectors(self) -> List[str]:
+    def _get_failed_signal_collectors(self) -> list[str]:
         """
         사용 불가능한 외부 신호 수집기 목록 반환
 
@@ -835,19 +1000,23 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         # ExternalSignalCollector 체크
         try:
-            from src.tools.external_signal_collector import ExternalSignalCollector
+            import importlib.util
+
+            if importlib.util.find_spec("src.tools.external_signal_collector") is None:
+                failed.append("External Signals (Tavily/RSS/Reddit)")
         except ImportError:
             failed.append("External Signals (Tavily/RSS/Reddit)")
 
         # Market Intelligence 체크
         try:
-            from src.tools.market_intelligence import MarketIntelligenceEngine
+            if importlib.util.find_spec("src.tools.market_intelligence") is None:
+                failed.append("Market Intelligence")
         except ImportError:
             failed.append("Market Intelligence")
 
         return failed
 
-    async def _collect_market_intelligence(self) -> Dict[str, Any]:
+    async def _collect_market_intelligence(self) -> dict[str, Any]:
         """
         Market Intelligence 데이터 수집 (Layer 2-4)
 
@@ -908,7 +1077,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         return result
 
-    async def _collect_google_trends(self) -> Dict[str, Any]:
+    async def _collect_google_trends(self) -> dict[str, Any]:
         """
         Google Trends 데이터 수집
 
@@ -948,8 +1117,8 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         return result
 
     def _extract_data_source_info(
-        self, metrics_data: Optional[Dict], crawl_data: Optional[Dict]
-    ) -> Dict[str, Any]:
+        self, metrics_data: dict | None, crawl_data: dict | None
+    ) -> dict[str, Any]:
         """
         데이터 출처 정보 추출
 
@@ -1007,7 +1176,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         return source_info
 
-    def _ingest_rag_knowledge(self, rag_chunks: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _ingest_rag_knowledge(self, rag_chunks: list[dict[str, Any]]) -> dict[str, int]:
         """RAG 청크에서 지식 추출 후 KG에 적재"""
         stats = {"trend_relations": 0, "action_relations": 0}
 
@@ -1065,7 +1234,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         return stats
 
-    def _ingest_external_signals(self, external_signals: Dict[str, Any]) -> Dict[str, int]:
+    def _ingest_external_signals(self, external_signals: dict[str, Any]) -> dict[str, int]:
         """External Signal을 KG에 적재"""
         stats = {"trend_relations": 0}
         signals = external_signals.get("signals", []) if external_signals else []
@@ -1095,7 +1264,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 
         return stats
 
-    def _extract_action_lines(self, content: str) -> List[str]:
+    def _extract_action_lines(self, content: str) -> list[str]:
         """문서 본문에서 액션 항목 추출"""
         actions = []
         for line in content.splitlines():
@@ -1108,7 +1277,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                 actions.append(stripped[3:].strip())
         return [a for a in actions if 5 <= len(a) <= 140]
 
-    def _infer_signal_subject(self, keywords: List[str]) -> str:
+    def _infer_signal_subject(self, keywords: list[str]) -> str:
         """External Signal 키워드에서 대상 엔티티 추정"""
         brand_keywords = {
             "laneige": "LANEIGE",
@@ -1126,7 +1295,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                 return brand_keywords[normalized]
         return "MARKET"
 
-    def _normalize_brand_name(self, brand: Optional[str]) -> str:
+    def _normalize_brand_name(self, brand: str | None) -> str:
         if not brand:
             return "MARKET"
         return brand.upper() if brand.isalpha() else brand

@@ -52,60 +52,58 @@ Dashboard API Server
 - AUTO_START_SCHEDULER: 서버 시작 시 스케줄러 자동 시작 (default: true)
 """
 
-import json
-import os
 import asyncio
+import json
 import logging
-from datetime import datetime
-
-logger = logging.getLogger(__name__)
-from typing import Dict, Any, List, Optional
-from io import BytesIO
+import os
 from collections import defaultdict
+from datetime import datetime
+from io import BytesIO
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Depends, Security, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.security import APIKeyHeader
-from starlette.middleware.base import BaseHTTPMiddleware
-from pydantic import BaseModel, Field
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt, RGBColor
 from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Request, Security
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from litellm import acompletion
+from pydantic import BaseModel, Field
 
 # Rate Limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from docx import Document
-from docx.shared import Inches, Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT
-
-# RAG 시스템 연동
-from src.rag.router import RAGRouter, QueryType
-from src.rag.retriever import DocumentRetriever
-
-# Ontology 스키마
-from src.domain.entities import ProductMetrics, BrandMetrics, MarketMetrics
-
-# 통합 오케스트레이터 (deprecated - use UnifiedBrain instead)
-from src.core.brain import UnifiedBrain, get_brain
-from src.core.crawl_manager import get_crawl_manager, CrawlStatus
-
-# SQLite Storage
-from src.tools.sqlite_storage import SQLiteStorage, get_sqlite_storage
-
-# Level 4 Brain (LLM-First Autonomous Agent)
-from src.core.brain import UnifiedBrain, get_brain, get_initialized_brain, BrainMode, TaskPriority
-
-# Market Intelligence Engine
-from src.tools.market_intelligence import MarketIntelligenceEngine, DataLayer, create_market_intelligence_engine
+# Export Routes (DOCX, Excel 비동기 내보내기)
+from src.api.routes.export import router as export_router
 
 # External Signal Routes
 from src.api.routes.signals import router as signals_router
+
+# Ontology 스키마
+# 통합 오케스트레이터 (deprecated - use UnifiedBrain instead)
+# Level 4 Brain (LLM-First Autonomous Agent)
+from src.core.brain import BrainMode, get_brain, get_initialized_brain
+from src.core.crawl_manager import get_crawl_manager
+from src.rag.retriever import DocumentRetriever
+
+# RAG 시스템 연동
+from src.rag.router import QueryType, RAGRouter
+
+logger = logging.getLogger(__name__)
+
+# Market Intelligence Engine
+from src.tools.market_intelligence import MarketIntelligenceEngine
+
+# SQLite Storage
+from src.tools.sqlite_storage import get_sqlite_storage
 
 # 환경 변수 로드
 load_dotenv()
@@ -116,7 +114,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="AMORE Dashboard API",
     description="LANEIGE Amazon 대시보드 백엔드 API (RAG + Ontology 통합)",
-    version="2.0.0"
+    version="2.0.0",
 )
 
 # Rate Limit 초과 시 에러 핸들러
@@ -124,7 +122,9 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS 설정 (환경변수로 허용 도메인 설정 가능)
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(
+    ","
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -138,6 +138,7 @@ app.add_middleware(
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """보안 헤더 추가 미들웨어"""
+
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -150,6 +151,24 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # External Signals Router 등록
 app.include_router(signals_router)
+
+# Export Router 등록 (비동기 DOCX/Excel 내보내기)
+app.include_router(export_router)
+
+# Static Files 서빙 (폰트, 이미지 등)
+# Arita 폰트 파일: /fonts/AritaDotumKR-Medium.ttf 등으로 접근 가능
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    # 편의를 위해 /fonts 경로도 별도 마운트
+    FONTS_DIR = STATIC_DIR / "fonts"
+    if FONTS_DIR.exists():
+        app.mount("/fonts", StaticFiles(directory=str(FONTS_DIR)), name="fonts")
+
+# Dashboard 폴더 서빙
+DASHBOARD_DIR = Path(__file__).parent / "dashboard"
+if DASHBOARD_DIR.exists():
+    app.mount("/dashboard", StaticFiles(directory=str(DASHBOARD_DIR), html=True), name="dashboard")
 
 # ============= 서버 시작 시 자동 스케줄러 =============
 
@@ -168,11 +187,15 @@ async def startup_event():
     try:
         crawl_manager = await get_crawl_manager()
         if crawl_manager.needs_crawl():
-            logging.info(f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 백그라운드 시작")
+            logging.info(
+                f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 백그라운드 시작"
+            )
             # ⚠️ await 대신 create_task로 백그라운드 실행 (healthcheck 블로킹 방지)
             asyncio.create_task(crawl_manager.start_crawl())
         else:
-            logging.info(f"서버 시작: 오늘 데이터 있음 또는 크롤링 중 (data_date={crawl_manager.get_data_date()})")
+            logging.info(
+                f"서버 시작: 오늘 데이터 있음 또는 크롤링 중 (data_date={crawl_manager.get_data_date()})"
+            )
     except Exception as e:
         logging.error(f"서버 시작 크롤링 체크 실패: {e}")
 
@@ -185,6 +208,20 @@ async def startup_event():
         except Exception as e:
             logging.error(f"자율 스케줄러 자동 시작 실패: {e}")
 
+    # 3. Export Job Queue Worker 시작 (비동기 내보내기용)
+    try:
+        from src.tools.export_handlers import register_all_handlers
+        from src.tools.job_queue import get_job_queue
+
+        queue = get_job_queue()
+        await queue.initialize()
+        register_all_handlers(queue)
+        await queue.start_worker()
+        logging.info("Export Job Queue Worker 시작 완료")
+    except Exception as e:
+        logging.error(f"Export Job Queue Worker 시작 실패: {e}")
+
+
 # 데이터 경로
 DATA_PATH = "./data/dashboard_data.json"
 DOCS_PATH = "./"  # MD 파일들이 루트에 있음
@@ -195,7 +232,9 @@ AUDIT_LOG_DIR = "./logs"
 # API_KEY: 환경변수 필수 - 기본값 없음 (보안상 하드코딩 금지)
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:
-    logging.warning("⚠️ API_KEY 환경변수가 설정되지 않았습니다. 보호된 엔드포인트에 접근할 수 없습니다.")
+    logging.warning(
+        "⚠️ API_KEY 환경변수가 설정되지 않았습니다. 보호된 엔드포인트에 접근할 수 없습니다."
+    )
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
@@ -207,18 +246,15 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
     """
     if api_key is None:
         raise HTTPException(
-            status_code=401,
-            detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요."
+            status_code=401, detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요."
         )
     if api_key != API_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail="유효하지 않은 API Key입니다."
-        )
+        raise HTTPException(status_code=403, detail="유효하지 않은 API Key입니다.")
     return api_key
 
 
 # ============= Audit Trail Logger 설정 =============
+
 
 def setup_audit_logger():
     """Audit Trail 로거 설정"""
@@ -241,16 +277,15 @@ def setup_audit_logger():
     file_handler.setLevel(logging.INFO)
 
     # 포맷 설정
-    formatter = logging.Formatter(
-        '%(asctime)s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    formatter = logging.Formatter("%(asctime)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     file_handler.setFormatter(formatter)
     audit_logger.addHandler(file_handler)
 
     return audit_logger
 
+
 audit_logger = setup_audit_logger()
+
 
 def log_chat_interaction(
     session_id: str,
@@ -258,9 +293,9 @@ def log_chat_interaction(
     ai_response: str,
     query_type: str,
     confidence: float,
-    entities: Dict,
-    sources: List[str],
-    response_time_ms: float
+    entities: dict,
+    sources: list[str],
+    response_time_ms: float,
 ):
     """챗봇 대화 Audit Trail 기록"""
     audit_entry = {
@@ -272,11 +307,12 @@ def log_chat_interaction(
         "confidence": round(confidence, 4),
         "entities": entities,
         "sources": sources,
-        "response_time_ms": round(response_time_ms, 2)
+        "response_time_ms": round(response_time_ms, 2),
     }
 
     # JSON 형식으로 로그 기록
     audit_logger.info(json.dumps(audit_entry, ensure_ascii=False))
+
 
 # ============= Global Instances =============
 
@@ -285,8 +321,8 @@ rag_router = RAGRouter()
 doc_retriever = DocumentRetriever(DOCS_PATH)
 
 # 세션별 대화 메모리 (TTL 기반 자동 정리)
-conversation_memory: Dict[str, List[Dict[str, str]]] = defaultdict(list)
-session_last_activity: Dict[str, datetime] = {}  # 세션별 마지막 활동 시간
+conversation_memory: dict[str, list[dict[str, str]]] = defaultdict(list)
+session_last_activity: dict[str, datetime] = {}  # 세션별 마지막 활동 시간
 MAX_MEMORY_TURNS = 10
 SESSION_TTL_HOURS = 1  # 세션 만료 시간 (1시간)
 MAX_SESSIONS = 1000  # 최대 세션 수
@@ -296,7 +332,8 @@ def cleanup_expired_sessions() -> int:
     """만료된 세션 정리 (TTL 기반)"""
     now = datetime.now()
     expired = [
-        sid for sid, last_time in session_last_activity.items()
+        sid
+        for sid, last_time in session_last_activity.items()
         if (now - last_time).total_seconds() > SESSION_TTL_HOURS * 3600
     ]
     for sid in expired:
@@ -306,10 +343,12 @@ def cleanup_expired_sessions() -> int:
             del session_last_activity[sid]
     return len(expired)
 
+
 # 통합 시스템은 UnifiedBrain (get_brain())으로 관리됨
 
 # Market Intelligence Engine 싱글톤
-_market_intelligence_engine: Optional[MarketIntelligenceEngine] = None
+_market_intelligence_engine: MarketIntelligenceEngine | None = None
+
 
 async def get_market_intelligence() -> MarketIntelligenceEngine:
     """Market Intelligence Engine 싱글톤 반환"""
@@ -322,53 +361,60 @@ async def get_market_intelligence() -> MarketIntelligenceEngine:
 
 # ============= Pydantic Models =============
 
+
 class ChatRequest(BaseModel):
     """챗봇 요청"""
+
     message: str = Field(..., max_length=10000, description="최대 10,000자")
-    session_id: Optional[str] = Field(default="default", max_length=100)
-    context: Optional[Dict] = None
+    session_id: str | None = Field(default="default", max_length=100)
+    context: dict | None = None
 
 
 class ChatResponse(BaseModel):
     """챗봇 응답"""
+
     response: str
     query_type: str
     confidence: float
-    sources: List[str]
-    suggestions: List[str]
-    entities: Dict[str, Any]
+    sources: list[str]
+    suggestions: list[str]
+    entities: dict[str, Any]
 
 
 class ExportRequest(BaseModel):
     """내보내기 요청"""
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+
+    start_date: str | None = None
+    end_date: str | None = None
     include_strategy: bool = True
 
 
 class MarketIntelligenceStatusResponse(BaseModel):
     """Market Intelligence 상태 응답"""
+
     initialized: bool
-    layers_collected: List[int]
-    last_collection: Optional[str] = None
-    stats: Dict[str, Any]
+    layers_collected: list[int]
+    last_collection: str | None = None
+    stats: dict[str, Any]
 
 
 class LayerDataResponse(BaseModel):
     """레이어 데이터 응답"""
+
     layer: int
     layer_name: str
     collected_at: str
-    data: Dict[str, Any]
-    sources: List[Dict[str, Any]]
+    data: dict[str, Any]
+    sources: list[dict[str, Any]]
 
 
 # ============= Helper Functions =============
 
-def load_dashboard_data() -> Dict[str, Any]:
+
+def load_dashboard_data() -> dict[str, Any]:
     """대시보드 데이터 로드"""
     try:
-        with open(DATA_PATH, "r", encoding="utf-8") as f:
+        with open(DATA_PATH, encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
@@ -400,17 +446,15 @@ def add_to_memory(session_id: str, role: str, content: str) -> None:
     # 마지막 활동 시간 업데이트
     session_last_activity[session_id] = now
 
-    conversation_memory[session_id].append({
-        "role": role,
-        "content": content,
-        "timestamp": now.isoformat()
-    })
+    conversation_memory[session_id].append(
+        {"role": role, "content": content, "timestamp": now.isoformat()}
+    )
     # 최대 개수 유지
     if len(conversation_memory[session_id]) > MAX_MEMORY_TURNS * 2:
-        conversation_memory[session_id] = conversation_memory[session_id][-MAX_MEMORY_TURNS * 2:]
+        conversation_memory[session_id] = conversation_memory[session_id][-MAX_MEMORY_TURNS * 2 :]
 
 
-def build_data_context(data: Dict, query_type: QueryType, entities: Dict) -> str:
+def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str:
     """
     데이터 컨텍스트 구성 (Ontology 기반)
 
@@ -432,7 +476,12 @@ def build_data_context(data: Dict, query_type: QueryType, entities: Dict) -> str
     brand_kpis = data.get("brand", {}).get("kpis", {})
 
     # 시장/브랜드 지표 (DEFINITION, INTERPRETATION, ANALYSIS)
-    if query_type in [QueryType.DEFINITION, QueryType.INTERPRETATION, QueryType.ANALYSIS, QueryType.COMBINATION]:
+    if query_type in [
+        QueryType.DEFINITION,
+        QueryType.INTERPRETATION,
+        QueryType.ANALYSIS,
+        QueryType.COMBINATION,
+    ]:
         if brand_kpis:
             context_parts.append(f"""
 [LANEIGE 브랜드 KPI] (Ontology: BrandMetrics)
@@ -445,10 +494,15 @@ def build_data_context(data: Dict, query_type: QueryType, entities: Dict) -> str
     competitors = data.get("brand", {}).get("competitors", [])
     brands_mentioned = entities.get("brands", [])
 
-    if query_type == QueryType.ANALYSIS or any(b for b in brands_mentioned if b.lower() != "laneige"):
+    if query_type == QueryType.ANALYSIS or any(
+        b for b in brands_mentioned if b.lower() != "laneige"
+    ):
         if competitors:
             top_comps = competitors[:5]
-            comp_lines = [f"  - {c['brand']}: SoS {c['sos']}%, 평균 순위 {c['avg_rank']}위, 제품 {c['product_count']}개" for c in top_comps]
+            comp_lines = [
+                f"  - {c['brand']}: SoS {c['sos']}%, 평균 순위 {c['avg_rank']}위, 제품 {c['product_count']}개"
+                for c in top_comps
+            ]
             context_parts.append("[경쟁사 현황]\n" + "\n".join(comp_lines))
 
     # 제품 정보 (DATA_QUERY, 특정 제품 언급 시)
@@ -461,7 +515,9 @@ def build_data_context(data: Dict, query_type: QueryType, entities: Dict) -> str
             for asin, p in list(products.items())[:5]:
                 prod_lines.append(f"""  - {p['name'][:40]}
     순위: #{p['rank']} ({p['rank_delta']}), 평점: {p['rating']}, 변동성: {p.get('volatility_status', 'N/A')}""")
-            context_parts.append("[LANEIGE 제품 현황] (Ontology: ProductMetrics)\n" + "\n".join(prod_lines))
+            context_parts.append(
+                "[LANEIGE 제품 현황] (Ontology: ProductMetrics)\n" + "\n".join(prod_lines)
+            )
 
     # 카테고리 정보
     categories = data.get("categories", {})
@@ -471,20 +527,27 @@ def build_data_context(data: Dict, query_type: QueryType, entities: Dict) -> str
         if categories:
             cat_lines = []
             for cat_id, cat in categories.items():
-                cat_lines.append(f"  - {cat['name']}: SoS {cat['sos']}%, 최고 순위 #{cat['best_rank']}, CPI {cat.get('cpi', 100)}")
-            context_parts.append("[카테고리 현황] (Ontology: MarketMetrics)\n" + "\n".join(cat_lines))
+                cat_lines.append(
+                    f"  - {cat['name']}: SoS {cat['sos']}%, 최고 순위 #{cat['best_rank']}, CPI {cat.get('cpi', 100)}"
+                )
+            context_parts.append(
+                "[카테고리 현황] (Ontology: MarketMetrics)\n" + "\n".join(cat_lines)
+            )
 
     # 액션 아이템 (전략 질문)
     if query_type == QueryType.ANALYSIS:
         action_items = data.get("home", {}).get("action_items", [])
         if action_items:
-            action_lines = [f"  - [{a['priority']}] {a['product_name']}: {a['signal']} → {a['action_tag']}" for a in action_items[:4]]
+            action_lines = [
+                f"  - [{a['priority']}] {a['product_name']}: {a['signal']} → {a['action_tag']}"
+                for a in action_items[:4]
+            ]
             context_parts.append("[현재 액션 아이템]\n" + "\n".join(action_lines))
 
     return "\n\n".join(context_parts)
 
 
-async def get_rag_context(query: str, query_type: QueryType) -> tuple[str, List[str]]:
+async def get_rag_context(query: str, query_type: QueryType) -> tuple[str, list[str]]:
     """
     RAG 컨텍스트 검색
 
@@ -521,7 +584,7 @@ async def get_rag_context(query: str, query_type: QueryType) -> tuple[str, List[
             "strategic_indicators": "Strategic Indicators Definition",
             "metric_interpretation": "Metric Interpretation Guide",
             "indicator_combination": "Indicator Combination Playbook",
-            "home_insight_rules": "Home Page Insight Rules"
+            "home_insight_rules": "Home Page Insight Rules",
         }
         if doc_id in doc_name_map and doc_name_map[doc_id] not in sources:
             sources.append(doc_name_map[doc_id])
@@ -530,11 +593,8 @@ async def get_rag_context(query: str, query_type: QueryType) -> tuple[str, List[
 
 
 def generate_dynamic_suggestions(
-    query_type: QueryType,
-    entities: Dict,
-    response: str,
-    user_query: str = ""
-) -> List[str]:
+    query_type: QueryType, entities: dict, response: str, user_query: str = ""
+) -> list[str]:
     """
     동적 후속 질문 제안 (v2 - 개선 버전)
 
@@ -554,7 +614,6 @@ def generate_dynamic_suggestions(
     Returns:
         3개의 후속 질문 리스트
     """
-    import re
     suggestions = []
 
     # 엔티티 추출
@@ -582,9 +641,10 @@ def generate_dynamic_suggestions(
     return unique[:3]
 
 
-def _extract_response_keywords(response: str) -> List[str]:
+def _extract_response_keywords(response: str) -> list[str]:
     """응답에서 후속 질문 관련 키워드 추출"""
     import re
+
     keywords = []
 
     # 패턴 매칭 - 응답 내용에 따라 관련 후속 질문 생성
@@ -611,10 +671,8 @@ def _extract_response_keywords(response: str) -> List[str]:
 
 
 def _generate_entity_suggestions(
-    brands: List[str],
-    categories: List[str],
-    indicators: List[str]
-) -> List[str]:
+    brands: list[str], categories: list[str], indicators: list[str]
+) -> list[str]:
     """엔티티 기반 동적 제안 생성"""
     suggestions = []
 
@@ -639,10 +697,8 @@ def _generate_entity_suggestions(
 
 
 def _generate_type_suggestions(
-    query_type: QueryType,
-    brands: List[str],
-    indicators: List[str]
-) -> List[str]:
+    query_type: QueryType, brands: list[str], indicators: list[str]
+) -> list[str]:
     """쿼리 유형 기반 폴백 제안"""
     suggestions = []
 
@@ -650,50 +706,31 @@ def _generate_type_suggestions(
         if indicators:
             ind = indicators[0].upper()
             suggestions.append(f"{ind}가 높으면 어떤 의미인가요?")
-        suggestions.extend([
-            "관련된 다른 지표는?",
-            "실제 데이터에 적용해주세요"
-        ])
+        suggestions.extend(["관련된 다른 지표는?", "실제 데이터에 적용해주세요"])
 
     elif query_type == QueryType.INTERPRETATION:
-        suggestions.extend([
-            "현재 LANEIGE 수치 분석",
-            "경쟁사와 비교해주세요",
-            "개선 액션 아이템은?"
-        ])
+        suggestions.extend(
+            ["현재 LANEIGE 수치 분석", "경쟁사와 비교해주세요", "개선 액션 아이템은?"]
+        )
 
     elif query_type == QueryType.DATA_QUERY:
-        suggestions.extend([
-            "이 수치가 좋은 건가요?",
-            "최근 7일 추이 분석",
-            "경쟁사 대비 현황"
-        ])
+        suggestions.extend(["이 수치가 좋은 건가요?", "최근 7일 추이 분석", "경쟁사 대비 현황"])
 
     elif query_type == QueryType.ANALYSIS:
-        suggestions.extend([
-            "가장 시급한 액션은?",
-            "Top 10 진입 전략",
-            "리스크 요인 분석"
-        ])
+        suggestions.extend(["가장 시급한 액션은?", "Top 10 진입 전략", "리스크 요인 분석"])
 
     elif query_type == QueryType.COMBINATION:
-        suggestions.extend([
-            "다른 시나리오 분석",
-            "현재 해당 상황 존재 여부"
-        ])
+        suggestions.extend(["다른 시나리오 분석", "현재 해당 상황 존재 여부"])
 
     else:
         # 기본 제안
-        suggestions = [
-            "SoS(점유율) 설명해주세요",
-            "LANEIGE 현재 순위는?",
-            "전략적 권고사항"
-        ]
+        suggestions = ["SoS(점유율) 설명해주세요", "LANEIGE 현재 순위는?", "전략적 권고사항"]
 
     return suggestions
 
 
 # ============= API Endpoints =============
+
 
 @app.get("/")
 async def root():
@@ -701,7 +738,7 @@ async def root():
     return {
         "status": "ok",
         "message": "AMORE Dashboard API v2.0 (RAG + Ontology)",
-        "features": ["chatbot", "rag", "ontology", "memory", "docx_export"]
+        "features": ["chatbot", "rag", "ontology", "memory", "docx_export"],
     }
 
 
@@ -714,8 +751,8 @@ async def get_data():
     return data
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-@limiter.limit("30/minute")  # 분당 30회 제한
+@app.post("/api/chat", response_model=ChatResponse, dependencies=[Depends(verify_api_key)])
+@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
 async def chat(request: Request, body: ChatRequest):
     """
     ChatGPT + RAG + Ontology 통합 챗봇 API
@@ -729,6 +766,7 @@ async def chat(request: Request, body: ChatRequest):
     7. Audit Trail 로깅
     """
     import time
+
     start_time = time.time()
 
     message = body.message.strip()
@@ -754,11 +792,15 @@ async def chat(request: Request, body: ChatRequest):
 
         return ChatResponse(
             response=clarification,
-            query_type=query_type.value if hasattr(query_type, 'value') else str(query_type),
+            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
             confidence=confidence,
             sources=[],
-            suggestions=["예, 전체 브랜드 분석해주세요", "LANEIGE만 분석해주세요", "Lip Care 카테고리만"],
-            entities=entities
+            suggestions=[
+                "예, 전체 브랜드 분석해주세요",
+                "LANEIGE만 분석해주세요",
+                "Lip Care 카테고리만",
+            ],
+            entities=entities,
         )
 
     # 4. RAG 컨텍스트 검색
@@ -838,10 +880,10 @@ Ontology 엔티티 이해:
             model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
             temperature=0.3,
-            max_tokens=1000
+            max_tokens=1000,
         )
 
         answer = response.choices[0].message.content
@@ -859,27 +901,29 @@ Ontology 엔티티 이해:
             session_id=session_id,
             user_query=message,
             ai_response=answer,
-            query_type=query_type.value if hasattr(query_type, 'value') else str(query_type),
+            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
             confidence=confidence,
             entities=entities,
             sources=sources,
-            response_time_ms=response_time_ms
+            response_time_ms=response_time_ms,
         )
 
         return ChatResponse(
             response=answer,
-            query_type=query_type.value if hasattr(query_type, 'value') else str(query_type),
+            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
             confidence=confidence,
             sources=sources,
             suggestions=suggestions,
-            entities=entities
+            entities=entities,
         )
 
     except Exception as e:
         logger.error(f"LLM Error: {e}")
 
         # Fallback 응답
-        fallback = route_result.get("fallback_message") or rag_router.get_fallback_response("unknown")
+        fallback = route_result.get("fallback_message") or rag_router.get_fallback_response(
+            "unknown"
+        )
 
         # 데이터 기반 기본 응답 추가
         if data and query_type == QueryType.DATA_QUERY:
@@ -897,20 +941,20 @@ Ontology 엔티티 이해:
             session_id=session_id,
             user_query=message,
             ai_response=f"[ERROR] {str(e)[:100]} | Fallback: {fallback[:200]}",
-            query_type=query_type.value if hasattr(query_type, 'value') else str(query_type),
+            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
             confidence=0.0,
             entities=entities,
             sources=["fallback"],
-            response_time_ms=response_time_ms
+            response_time_ms=response_time_ms,
         )
 
         return ChatResponse(
             response=fallback,
-            query_type=query_type.value if hasattr(query_type, 'value') else str(query_type),
+            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
             confidence=0.0,
             sources=[],
             suggestions=["다시 질문해주세요", "SoS가 뭔가요?", "현재 순위 알려주세요"],
-            entities=entities
+            entities=entities,
         )
 
 
@@ -929,22 +973,24 @@ from src.core.simple_chat import get_chat_service
 
 class SimpleChatRequest(BaseModel):
     """Simple Chat 요청"""
+
     message: str
-    session_id: Optional[str] = "default"
+    session_id: str | None = "default"
 
 
 class SimpleChatResponse(BaseModel):
     """Simple Chat 응답"""
+
     text: str
-    suggestions: List[str]
-    tools_used: List[str]
-    sources: List[Dict[str, Any]] = []  # AI 출처 정보 추가
+    suggestions: list[str]
+    tools_used: list[str]
+    sources: list[dict[str, Any]] = []  # AI 출처 정보 추가
     data_date: str
     processing_time_ms: float
 
 
-@app.post("/api/v3/chat", response_model=SimpleChatResponse)
-@limiter.limit("30/minute")  # 분당 30회 제한
+@app.post("/api/v3/chat", response_model=SimpleChatResponse, dependencies=[Depends(verify_api_key)])
+@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
 async def chat_v3(request: Request, body: SimpleChatRequest):
     """
     Simple LLM Chat API (v3)
@@ -994,12 +1040,12 @@ async def chat_v3(request: Request, body: SimpleChatRequest):
         tools_used=result.get("tools_used", []),
         sources=result.get("sources", []),  # AI 출처 정보 전달
         data_date=result.get("data_date", "N/A"),
-        processing_time_ms=result.get("processing_time_ms", 0)
+        processing_time_ms=result.get("processing_time_ms", 0),
     )
 
 
-@app.post("/api/v3/chat/stream")
-@limiter.limit("30/minute")
+@app.post("/api/v3/chat/stream", dependencies=[Depends(verify_api_key)])
+@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
 async def chat_v3_stream(request: Request, body: SimpleChatRequest):
     """
     Simple LLM Chat API with SSE Streaming (v3)
@@ -1052,37 +1098,42 @@ async def chat_v3_stream(request: Request, body: SimpleChatRequest):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"  # nginx 버퍼링 비활성화
-        }
+            "X-Accel-Buffering": "no",  # nginx 버퍼링 비활성화
+        },
     )
 
 
 # ============= LLM Orchestrator API (v2 - 기존, deprecated) =============
 
+
 class OrchestratorChatRequest(BaseModel):
     """LLM Orchestrator 챗봇 요청"""
+
     message: str
-    session_id: Optional[str] = "default"
+    session_id: str | None = "default"
     skip_cache: bool = False
 
 
 class OrchestratorChatResponse(BaseModel):
     """LLM Orchestrator 챗봇 응답"""
+
     text: str
     query_type: str
     confidence_level: str
     confidence_score: float
-    sources: List[str]
-    entities: Dict[str, Any]
-    tools_called: List[str]
-    suggestions: List[str]
+    sources: list[str]
+    entities: dict[str, Any]
+    tools_called: list[str]
+    suggestions: list[str]
     is_fallback: bool
     is_clarification: bool
     processing_time_ms: float
 
 
-@app.post("/api/v2/chat", response_model=OrchestratorChatResponse)
-@limiter.limit("30/minute")  # 분당 30회 제한
+@app.post(
+    "/api/v2/chat", response_model=OrchestratorChatResponse, dependencies=[Depends(verify_api_key)]
+)
+@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
 async def chat_v2(request: Request, body: OrchestratorChatRequest):
     """
     통합 오케스트레이터 기반 챗봇 API (v2)
@@ -1101,6 +1152,7 @@ async def chat_v2(request: Request, body: OrchestratorChatRequest):
     - ABORT: 중단 + 사용자 알림
     """
     import time
+
     start_time = time.time()
 
     message = body.message.strip()
@@ -1138,14 +1190,14 @@ async def chat_v2(request: Request, body: OrchestratorChatRequest):
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
-            skip_cache=body.skip_cache
+            skip_cache=body.skip_cache,
         )
 
         # 응답 변환 (UnifiedBrain response 처리)
-        response_dict = response.to_dict() if hasattr(response, 'to_dict') else response
+        response_dict = response.to_dict() if hasattr(response, "to_dict") else response
 
         # 응답 텍스트 구성
-        response_text = response_dict.get('text', response_dict.get('content', ''))
+        response_text = response_dict.get("text", response_dict.get("content", ""))
 
         # 크롤링 알림 추가
         if crawl_notification:
@@ -1162,16 +1214,18 @@ async def chat_v2(request: Request, body: OrchestratorChatRequest):
         # 응답 변환
         return OrchestratorChatResponse(
             text=response_text,
-            query_type=response_dict.get('query_type', 'unknown'),
-            confidence_level=response_dict.get('confidence_level', 'medium'),
-            confidence_score=response_dict.get('confidence_score', response_dict.get('confidence', 0.5)),
-            sources=response_dict.get('sources', []),
-            entities=response_dict.get('entities', {}),
-            tools_called=response_dict.get('tools_called', response_dict.get('tools_used', [])),
-            suggestions=response_dict.get('suggestions', []),
-            is_fallback=response_dict.get('is_fallback', False),
-            is_clarification=response_dict.get('is_clarification', False),
-            processing_time_ms=response_dict.get('processing_time_ms', 0)
+            query_type=response_dict.get("query_type", "unknown"),
+            confidence_level=response_dict.get("confidence_level", "medium"),
+            confidence_score=response_dict.get(
+                "confidence_score", response_dict.get("confidence", 0.5)
+            ),
+            sources=response_dict.get("sources", []),
+            entities=response_dict.get("entities", {}),
+            tools_called=response_dict.get("tools_called", response_dict.get("tools_used", [])),
+            suggestions=response_dict.get("suggestions", []),
+            is_fallback=response_dict.get("is_fallback", False),
+            is_clarification=response_dict.get("is_clarification", False),
+            processing_time_ms=response_dict.get("processing_time_ms", 0),
         )
 
     except Exception as e:
@@ -1187,7 +1241,7 @@ async def chat_v2(request: Request, body: OrchestratorChatRequest):
             suggestions=["다시 질문해주세요"],
             is_fallback=True,
             is_clarification=False,
-            processing_time_ms=(time.time() - start_time) * 1000
+            processing_time_ms=(time.time() - start_time) * 1000,
         )
 
 
@@ -1195,7 +1249,7 @@ async def chat_v2(request: Request, body: OrchestratorChatRequest):
 async def get_orchestrator_stats():
     """UnifiedBrain 통계 조회"""
     brain = get_brain()
-    return brain.get_stats() if hasattr(brain, 'get_stats') else {"status": "ok"}
+    return brain.get_stats() if hasattr(brain, "get_stats") else {"status": "ok"}
 
 
 @app.get("/api/v2/state")
@@ -1203,8 +1257,10 @@ async def get_orchestrator_state():
     """UnifiedBrain 상태 조회"""
     brain = get_brain()
     return {
-        "summary": brain.get_state_summary() if hasattr(brain, 'get_state_summary') else {},
-        "state": brain.state.to_dict() if hasattr(brain, 'state') and hasattr(brain.state, 'to_dict') else {}
+        "summary": brain.get_state_summary() if hasattr(brain, "get_state_summary") else {},
+        "state": brain.state.to_dict()
+        if hasattr(brain, "state") and hasattr(brain.state, "to_dict")
+        else {},
     }
 
 
@@ -1213,8 +1269,10 @@ async def get_orchestrator_errors():
     """UnifiedBrain 최근 에러 조회"""
     brain = get_brain()
     return {
-        "recent_errors": brain.get_recent_errors(limit=20) if hasattr(brain, 'get_recent_errors') else [],
-        "stats": brain.get_stats() if hasattr(brain, 'get_stats') else {}
+        "recent_errors": brain.get_recent_errors(limit=20)
+        if hasattr(brain, "get_recent_errors")
+        else [],
+        "stats": brain.get_stats() if hasattr(brain, "get_stats") else {},
     }
 
 
@@ -1222,7 +1280,7 @@ async def get_orchestrator_errors():
 async def reset_orchestrator_errors():
     """실패한 에이전트 목록 초기화"""
     brain = get_brain()
-    if hasattr(brain, 'reset_failed_agents'):
+    if hasattr(brain, "reset_failed_agents"):
         brain.reset_failed_agents()
     return {"status": "ok", "message": "Failed agents list cleared"}
 
@@ -1245,7 +1303,7 @@ async def get_crawl_status():
         "data_date": crawl_manager.get_data_date(),
         "needs_crawl": crawl_manager.needs_crawl(),
         "is_today_available": crawl_manager.is_today_data_available(),
-        "status_message": crawl_manager.get_status_message()
+        "status_message": crawl_manager.get_status_message(),
     }
 
 
@@ -1264,31 +1322,32 @@ async def start_crawl():
         return {
             "started": False,
             "message": "크롤링이 이미 진행 중입니다.",
-            "status": crawl_manager.state.to_dict()
+            "status": crawl_manager.state.to_dict(),
         }
 
     if crawl_manager.is_today_data_available():
         return {
             "started": False,
             "message": "오늘 데이터가 이미 존재합니다.",
-            "status": crawl_manager.state.to_dict()
+            "status": crawl_manager.state.to_dict(),
         }
 
     started = await crawl_manager.start_crawl()
     return {
         "started": started,
         "message": "크롤링을 시작했습니다." if started else "크롤링 시작 실패",
-        "status": crawl_manager.state.to_dict()
+        "status": crawl_manager.state.to_dict(),
     }
 
 
 # ============= Historical Data API =============
 
-from src.tools.sheets_writer import SheetsWriter
 from datetime import timedelta
 
+from src.tools.sheets_writer import SheetsWriter
+
 # SheetsWriter 싱글톤 인스턴스
-_sheets_writer: Optional[SheetsWriter] = None
+_sheets_writer: SheetsWriter | None = None
 
 
 def get_sheets_writer() -> SheetsWriter:
@@ -1301,10 +1360,7 @@ def get_sheets_writer() -> SheetsWriter:
 
 @app.get("/api/historical")
 async def get_historical_data(
-    start_date: str,
-    end_date: str,
-    category_id: Optional[str] = None,
-    brand: Optional[str] = "LANEIGE"
+    start_date: str, end_date: str, category_id: str | None = None, brand: str | None = "LANEIGE"
 ):
     """
     히스토리컬 데이터 조회 (SQLite 우선, Google Sheets fallback)
@@ -1332,11 +1388,13 @@ async def get_historical_data(
                 start_date=start_date,
                 end_date=end_date,
                 category_id=category_id,
-                limit=50000  # 충분히 큰 limit
+                limit=50000,  # 충분히 큰 limit
             )
             if records:
                 data_source = "sqlite"
-                logging.info(f"Historical: loaded {len(records)} records from SQLite ({start_date} ~ {end_date})")
+                logging.info(
+                    f"Historical: loaded {len(records)} records from SQLite ({start_date} ~ {end_date})"
+                )
         except Exception as sqlite_err:
             logging.warning(f"Historical: SQLite 조회 실패: {sqlite_err}")
 
@@ -1347,13 +1405,13 @@ async def get_historical_data(
                 if not sheets_writer._initialized:
                     await sheets_writer.initialize()
                 records = await sheets_writer.get_raw_data(
-                    start_date=start_date,
-                    end_date=end_date,
-                    category_id=category_id
+                    start_date=start_date, end_date=end_date, category_id=category_id
                 )
                 if records:
                     data_source = "sheets"
-                    logging.info(f"Historical: loaded {len(records)} records from Sheets ({start_date} ~ {end_date})")
+                    logging.info(
+                        f"Historical: loaded {len(records)} records from Sheets ({start_date} ~ {end_date})"
+                    )
             except Exception as sheets_err:
                 logging.warning(f"Historical: Google Sheets 조회 실패: {sheets_err}")
 
@@ -1384,18 +1442,20 @@ async def get_historical_data(
                     "date": snapshot_date,
                     "products": [],
                     "total_count": 0,
-                    "top10_count": 0
+                    "top10_count": 0,
                 }
 
             rank = int(record.get("rank", 0)) if record.get("rank") else 0
-            daily_data[snapshot_date]["products"].append({
-                "asin": record.get("asin", ""),
-                "product_name": record.get("product_name", ""),
-                "brand": record_brand,
-                "rank": rank,
-                "price": record.get("price", ""),
-                "rating": record.get("rating", "")
-            })
+            daily_data[snapshot_date]["products"].append(
+                {
+                    "asin": record.get("asin", ""),
+                    "product_name": record.get("product_name", ""),
+                    "brand": record_brand,
+                    "rank": rank,
+                    "price": record.get("price", ""),
+                    "rating": record.get("rating", ""),
+                }
+            )
             daily_data[snapshot_date]["total_count"] += 1
             if rank <= 10:
                 daily_data[snapshot_date]["top10_count"] += 1
@@ -1409,22 +1469,26 @@ async def get_historical_data(
 
             # SoS = (브랜드 제품 수 / 100) * 100
             sos = round(len(products) / 100 * 100, 1) if products else 0
-            sos_history.append({
-                "date": date_str,
-                "sos": sos,
-                "product_count": len(products),
-                "top10_count": day_data["top10_count"]
-            })
+            sos_history.append(
+                {
+                    "date": date_str,
+                    "sos": sos,
+                    "product_count": len(products),
+                    "top10_count": day_data["top10_count"],
+                }
+            )
 
             # 평균 순위 (있는 경우)
             if products:
                 avg_rank = round(sum(p["rank"] for p in products) / len(products), 1)
-                raw_data.append({
-                    "date": date_str,
-                    "rank": avg_rank,
-                    "best_rank": min(p["rank"] for p in products),
-                    "worst_rank": max(p["rank"] for p in products)
-                })
+                raw_data.append(
+                    {
+                        "date": date_str,
+                        "rank": avg_rank,
+                        "best_rank": min(p["rank"] for p in products),
+                        "worst_rank": max(p["rank"] for p in products),
+                    }
+                )
 
         # available_dates 계산
         available_dates = sorted(daily_data.keys())
@@ -1450,16 +1514,18 @@ async def get_historical_data(
             except (ValueError, TypeError):
                 price = 0
 
-            rank_history[snapshot_date]["products"].append({
-                "name": record.get("product_name", ""),
-                "product_name": record.get("product_name", ""),
-                "brand": record.get("brand", ""),
-                "asin": record.get("asin", ""),
-                "rank": rank,
-                "price": price,
-                "rating": record.get("rating", ""),
-                "discount_percent": record.get("discount_percent", 0)
-            })
+            rank_history[snapshot_date]["products"].append(
+                {
+                    "name": record.get("product_name", ""),
+                    "product_name": record.get("product_name", ""),
+                    "brand": record.get("brand", ""),
+                    "asin": record.get("asin", ""),
+                    "rank": rank,
+                    "price": price,
+                    "rating": record.get("rating", ""),
+                    "discount_percent": record.get("discount_percent", 0),
+                }
+            )
 
         # 전체 데이터의 사용 가능한 날짜 범위 조회 (SQLite에서)
         available_date_range = {"min": None, "max": None}
@@ -1482,13 +1548,9 @@ async def get_historical_data(
                 "sos_history": sos_history,
                 "raw_data": raw_data,
                 "daily_data": list(daily_data.values()),
-                "period": {
-                    "start": start_date,
-                    "end": end_date,
-                    "days": days
-                },
-                "brand": brand
-            }
+                "period": {"start": start_date, "end": end_date, "days": days},
+                "brand": brand,
+            },
         }
 
     except Exception as e:
@@ -1498,10 +1560,8 @@ async def get_historical_data(
 
 
 async def _calculate_brand_metrics_for_period(
-    records: List[Dict],
-    daily_data: Dict,
-    target_brand: str
-) -> List[Dict]:
+    records: list[dict], daily_data: dict, target_brand: str
+) -> list[dict]:
     """
     기간 내 모든 브랜드의 메트릭 계산 (SoS × Avg Rank 차트용)
 
@@ -1515,24 +1575,22 @@ async def _calculate_brand_metrics_for_period(
         brand_name = record.get("brand", "Unknown")
         rank = int(record.get("rank", 0)) if record.get("rank") else 0
 
-        if not brand_name or rank == 0:
+        # Unknown 브랜드 및 빈 브랜드 제외 (대시보드에서 의미 없음)
+        if not brand_name or brand_name.lower() == "unknown" or rank == 0:
             continue
 
         if brand_name not in brand_data:
-            brand_data[brand_name] = {
-                "brand": brand_name,
-                "ranks": [],
-                "product_count": 0
-            }
+            brand_data[brand_name] = {"brand": brand_name, "ranks": [], "product_count": 0}
 
         brand_data[brand_name]["ranks"].append(rank)
         brand_data[brand_name]["product_count"] += 1
 
-    # 총 제품 수 (모든 브랜드)
+    # 총 제품 수 (모든 브랜드 - Unknown 제외 후)
     total_products = sum(b["product_count"] for b in brand_data.values())
 
     # 메트릭 계산
     brand_metrics = []
+    laneige_found = False
     for brand_name, data in brand_data.items():
         if not data["ranks"]:
             continue
@@ -1543,24 +1601,65 @@ async def _calculate_brand_metrics_for_period(
         # 버블 크기: 제품 수 기반 (최소 5, 최대 25)
         bubble_size = max(5, min(25, data["product_count"] * 2))
 
-        brand_metrics.append({
-            "brand": brand_name,
-            "sos": sos,
-            "avg_rank": avg_rank,
-            "product_count": data["product_count"],
-            "bubble_size": bubble_size,
-            "is_laneige": target_brand.upper() in brand_name.upper()
-        })
+        is_laneige = target_brand.upper() in brand_name.upper()
+        if is_laneige:
+            laneige_found = True
 
-    # SoS 기준 내림차순 정렬, 상위 10개만
+        brand_metrics.append(
+            {
+                "brand": brand_name,
+                "sos": sos,
+                "avg_rank": avg_rank,
+                "product_count": data["product_count"],
+                "bubble_size": bubble_size,
+                "is_laneige": is_laneige,
+            }
+        )
+
+    # SoS 기준 내림차순 정렬
     brand_metrics.sort(key=lambda x: x["sos"], reverse=True)
-    return brand_metrics[:10]
+
+    # 상위 10개 추출
+    top_10 = brand_metrics[:10]
+
+    # LANEIGE가 top_10에 포함되어 있는지 확인 (brand_data에 있는지가 아니라 top_10에 있는지!)
+    laneige_in_top10 = any(b.get("is_laneige") for b in top_10)
+
+    # LANEIGE가 top_10에 없으면 추가 (데이터가 존재할 경우)
+    if not laneige_in_top10 and target_brand:
+        # brand_data에서 LANEIGE 찾기 (대소문자 변형 모두 시도)
+        laneige_data = None
+        for key in [
+            target_brand,
+            target_brand.upper(),
+            target_brand.lower(),
+            target_brand.capitalize(),
+        ]:
+            if key in brand_data:
+                laneige_data = brand_data[key]
+                break
+
+        if laneige_data and laneige_data["ranks"]:
+            sos = round(laneige_data["product_count"] / max(total_products, 100) * 100, 2)
+            avg_rank = round(sum(laneige_data["ranks"]) / len(laneige_data["ranks"]), 1)
+            bubble_size = max(5, min(25, laneige_data["product_count"] * 2))
+            top_10.append(
+                {
+                    "brand": target_brand,
+                    "sos": sos,
+                    "avg_rank": avg_rank,
+                    "product_count": laneige_data["product_count"],
+                    "bubble_size": bubble_size,
+                    "is_laneige": True,
+                }
+            )
+            # 다시 정렬 후 상위 11개 유지 (LANEIGE 포함 보장)
+            top_10.sort(key=lambda x: x["sos"], reverse=True)
+
+    return top_10
 
 
-def _get_brand_metrics_from_dashboard(
-    dashboard_data: Optional[Dict],
-    target_brand: str
-) -> List[Dict]:
+def _get_brand_metrics_from_dashboard(dashboard_data: dict | None, target_brand: str) -> list[dict]:
     """
     대시보드 데이터에서 브랜드 메트릭 추출 (로컬 폴백용)
     """
@@ -1579,23 +1678,23 @@ def _get_brand_metrics_from_dashboard(
 
     brand_metrics = []
     for comp in competitors:
-        brand_metrics.append({
-            "brand": comp.get("brand", "Unknown"),
-            "sos": comp.get("sos", 0),
-            "avg_rank": comp.get("avg_rank", 50),
-            "product_count": comp.get("product_count", 0),
-            "bubble_size": max(5, min(25, comp.get("product_count", 0) * 2)),
-            "is_laneige": target_brand.upper() in comp.get("brand", "").upper()
-        })
+        brand_metrics.append(
+            {
+                "brand": comp.get("brand", "Unknown"),
+                "sos": comp.get("sos", 0),
+                "avg_rank": comp.get("avg_rank", 50),
+                "product_count": comp.get("product_count", 0),
+                "bubble_size": max(5, min(25, comp.get("product_count", 0) * 2)),
+                "is_laneige": target_brand.upper() in comp.get("brand", "").upper(),
+            }
+        )
 
     return brand_metrics
 
 
 async def _get_historical_from_local(
-    start_date: str,
-    end_date: str,
-    brand: str = "LANEIGE"
-) -> Dict[str, Any]:
+    start_date: str, end_date: str, brand: str = "LANEIGE"
+) -> dict[str, Any]:
     """
     로컬 JSON 파일에서 히스토리컬 데이터 조회 (폴백)
 
@@ -1611,31 +1710,37 @@ async def _get_historical_from_local(
         if data:
             brand_kpis = data.get("brand", {}).get("kpis", {})
             current_sos = brand_kpis.get("sos", 0)
-            data_date = data.get("metadata", {}).get("data_date", datetime.now().strftime("%Y-%m-%d"))
+            data_date = data.get("metadata", {}).get(
+                "data_date", datetime.now().strftime("%Y-%m-%d")
+            )
 
             # 현재 날짜가 요청 범위에 포함되면 추가
             if start_date <= data_date <= end_date:
-                sos_history.append({
-                    "date": data_date,
-                    "sos": current_sos,
-                    "product_count": brand_kpis.get("product_count", 0),
-                    "top10_count": brand_kpis.get("top10_count", 0)
-                })
+                sos_history.append(
+                    {
+                        "date": data_date,
+                        "sos": current_sos,
+                        "product_count": brand_kpis.get("product_count", 0),
+                        "top10_count": brand_kpis.get("top10_count", 0),
+                    }
+                )
 
                 avg_rank = brand_kpis.get("avg_rank", 0)
                 if avg_rank:
-                    raw_data.append({
-                        "date": data_date,
-                        "rank": avg_rank,
-                        "best_rank": brand_kpis.get("best_rank", avg_rank),
-                        "worst_rank": brand_kpis.get("worst_rank", avg_rank)
-                    })
+                    raw_data.append(
+                        {
+                            "date": data_date,
+                            "rank": avg_rank,
+                            "best_rank": brand_kpis.get("best_rank", avg_rank),
+                            "worst_rank": brand_kpis.get("worst_rank", avg_rank),
+                        }
+                    )
 
         # 2. latest_crawl_result.json에서 데이터 추출
         latest_crawl_path = Path("./data/latest_crawl_result.json")
         if latest_crawl_path.exists():
             try:
-                with open(latest_crawl_path, "r", encoding="utf-8") as f:
+                with open(latest_crawl_path, encoding="utf-8") as f:
                     crawl_data = json.load(f)
 
                 # 모든 카테고리에서 브랜드 제품 찾기
@@ -1648,7 +1753,10 @@ async def _get_historical_from_local(
                         product_name = product.get("product_name", "")
 
                         # 브랜드 매칭 (대소문자 무시, 부분 매칭)
-                        if brand.upper() in product_brand.upper() or brand.upper() in product_name.upper():
+                        if (
+                            brand.upper() in product_brand.upper()
+                            or brand.upper() in product_name.upper()
+                        ):
                             brand_products.append(product)
                             if not crawl_date:
                                 crawl_date = product.get("snapshot_date")
@@ -1663,20 +1771,28 @@ async def _get_historical_from_local(
                         )
 
                         sos = round(len(brand_products) / max(total_products, 100) * 100, 2)
-                        avg_rank = round(sum(p.get("rank", 0) for p in brand_products) / len(brand_products), 1)
+                        avg_rank = round(
+                            sum(p.get("rank", 0) for p in brand_products) / len(brand_products), 1
+                        )
 
-                        sos_history.append({
-                            "date": crawl_date,
-                            "sos": sos,
-                            "product_count": len(brand_products),
-                            "top10_count": sum(1 for p in brand_products if p.get("rank", 100) <= 10)
-                        })
-                        raw_data.append({
-                            "date": crawl_date,
-                            "rank": avg_rank,
-                            "best_rank": min(p.get("rank", 100) for p in brand_products),
-                            "worst_rank": max(p.get("rank", 100) for p in brand_products)
-                        })
+                        sos_history.append(
+                            {
+                                "date": crawl_date,
+                                "sos": sos,
+                                "product_count": len(brand_products),
+                                "top10_count": sum(
+                                    1 for p in brand_products if p.get("rank", 100) <= 10
+                                ),
+                            }
+                        )
+                        raw_data.append(
+                            {
+                                "date": crawl_date,
+                                "rank": avg_rank,
+                                "best_rank": min(p.get("rank", 100) for p in brand_products),
+                                "worst_rank": max(p.get("rank", 100) for p in brand_products),
+                            }
+                        )
 
             except (json.JSONDecodeError, ValueError) as e:
                 logging.warning(f"Failed to parse latest_crawl_result.json: {e}")
@@ -1688,33 +1804,48 @@ async def _get_historical_from_local(
                 try:
                     file_date = json_file.stem  # 파일명이 YYYY-MM-DD 형식이라고 가정
                     if start_date <= file_date <= end_date:
-                        with open(json_file, "r", encoding="utf-8") as f:
+                        with open(json_file, encoding="utf-8") as f:
                             daily_raw = json.load(f)
 
                         # 브랜드 제품만 필터링
                         brand_products = [
-                            p for p in daily_raw
-                            if brand.upper() in p.get("brand", "").upper() or brand.upper() in p.get("product_name", "").upper()
+                            p
+                            for p in daily_raw
+                            if brand.upper() in p.get("brand", "").upper()
+                            or brand.upper() in p.get("product_name", "").upper()
                         ]
 
                         if brand_products:
                             sos = round(len(brand_products) / 100 * 100, 1)
-                            avg_rank = round(sum(p.get("rank", 0) for p in brand_products) / len(brand_products), 1)
+                            avg_rank = round(
+                                sum(p.get("rank", 0) for p in brand_products) / len(brand_products),
+                                1,
+                            )
 
                             # 중복 제거
                             if not any(h["date"] == file_date for h in sos_history):
-                                sos_history.append({
-                                    "date": file_date,
-                                    "sos": sos,
-                                    "product_count": len(brand_products),
-                                    "top10_count": sum(1 for p in brand_products if p.get("rank", 100) <= 10)
-                                })
-                                raw_data.append({
-                                    "date": file_date,
-                                    "rank": avg_rank,
-                                    "best_rank": min(p.get("rank", 100) for p in brand_products),
-                                    "worst_rank": max(p.get("rank", 100) for p in brand_products)
-                                })
+                                sos_history.append(
+                                    {
+                                        "date": file_date,
+                                        "sos": sos,
+                                        "product_count": len(brand_products),
+                                        "top10_count": sum(
+                                            1 for p in brand_products if p.get("rank", 100) <= 10
+                                        ),
+                                    }
+                                )
+                                raw_data.append(
+                                    {
+                                        "date": file_date,
+                                        "rank": avg_rank,
+                                        "best_rank": min(
+                                            p.get("rank", 100) for p in brand_products
+                                        ),
+                                        "worst_rank": max(
+                                            p.get("rank", 100) for p in brand_products
+                                        ),
+                                    }
+                                )
                 except (json.JSONDecodeError, ValueError):
                     continue
 
@@ -1734,7 +1865,7 @@ async def _get_historical_from_local(
                 "error": "No historical data found for the specified period",
                 "available_dates": [],
                 "brand_metrics": [],
-                "data": None
+                "data": None,
             }
 
         return {
@@ -1744,13 +1875,10 @@ async def _get_historical_from_local(
             "data": {
                 "sos_history": sos_history,
                 "raw_data": raw_data,
-                "period": {
-                    "start": start_date,
-                    "end": end_date
-                },
+                "period": {"start": start_date, "end": end_date},
                 "brand": brand,
-                "source": "local"
-            }
+                "source": "local",
+            },
         }
 
     except Exception as e:
@@ -1760,7 +1888,7 @@ async def _get_historical_from_local(
             "error": str(e),
             "available_dates": [],
             "brand_metrics": [],
-            "data": None
+            "data": None,
         }
 
 
@@ -1777,29 +1905,31 @@ async def export_docx(request: ExportRequest):
     doc = Document()
 
     # 스타일 설정
-    style = doc.styles['Normal']
+    style = doc.styles["Normal"]
     font = style.font
-    font.name = 'Arial'
+    font.name = "Arial"
     font.size = Pt(11)
 
     # ===== 표지 =====
-    title = doc.add_heading('AMORE INSIGHT Report', 0)
+    title = doc.add_heading("AMORE INSIGHT Report", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    subtitle = doc.add_paragraph('LANEIGE Amazon US 분석 리포트')
+    subtitle = doc.add_paragraph("LANEIGE Amazon US 분석 리포트")
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     # 날짜
     metadata = data.get("metadata", {})
     date_para = doc.add_paragraph()
     date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    date_para.add_run(f"분석 기준일: {metadata.get('data_date', datetime.now().strftime('%Y-%m-%d'))}")
+    date_para.add_run(
+        f"분석 기준일: {metadata.get('data_date', datetime.now().strftime('%Y-%m-%d'))}"
+    )
     date_para.add_run(f"\n생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
     doc.add_page_break()
 
     # ===== 1. Executive Summary =====
-    doc.add_heading('1. Executive Summary', level=1)
+    doc.add_heading("1. Executive Summary", level=1)
 
     brand_kpis = data.get("brand", {}).get("kpis", {})
     home_status = data.get("home", {}).get("status", {})
@@ -1818,18 +1948,18 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
     doc.add_paragraph(summary_text)
 
     # ===== 2. 제품별 현황 =====
-    doc.add_heading('2. LANEIGE 제품 현황', level=1)
+    doc.add_heading("2. LANEIGE 제품 현황", level=1)
 
     products = data.get("products", {})
     if products:
         # 테이블 생성
         table = doc.add_table(rows=1, cols=5)
-        table.style = 'Table Grid'
+        table.style = "Table Grid"
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
         # 헤더
         header_cells = table.rows[0].cells
-        headers = ['제품명', '순위', '변동', '평점', '변동성']
+        headers = ["제품명", "순위", "변동", "평점", "변동성"]
         for i, header in enumerate(headers):
             header_cells[i].text = header
             header_cells[i].paragraphs[0].runs[0].bold = True
@@ -1837,44 +1967,44 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
         # 데이터 행
         for asin, product in products.items():
             row = table.add_row().cells
-            row[0].text = product.get('name', '')[:40]
+            row[0].text = product.get("name", "")[:40]
             row[1].text = f"#{product.get('rank', 'N/A')}"
-            row[2].text = product.get('rank_delta', '-')
-            row[3].text = str(product.get('rating', '-'))
-            row[4].text = product.get('volatility_status', '-')
+            row[2].text = product.get("rank_delta", "-")
+            row[3].text = str(product.get("rating", "-"))
+            row[4].text = product.get("volatility_status", "-")
 
     doc.add_paragraph()
 
     # ===== 3. 경쟁사 분석 =====
-    doc.add_heading('3. 경쟁사 분석', level=1)
+    doc.add_heading("3. 경쟁사 분석", level=1)
 
     competitors = data.get("brand", {}).get("competitors", [])
     if competitors:
         table = doc.add_table(rows=1, cols=4)
-        table.style = 'Table Grid'
+        table.style = "Table Grid"
 
         header_cells = table.rows[0].cells
-        headers = ['브랜드', 'SoS (%)', '평균 순위', '제품 수']
+        headers = ["브랜드", "SoS (%)", "평균 순위", "제품 수"]
         for i, header in enumerate(headers):
             header_cells[i].text = header
             header_cells[i].paragraphs[0].runs[0].bold = True
 
         for comp in competitors[:10]:
             row = table.add_row().cells
-            row[0].text = comp.get('brand', '')
-            row[1].text = str(comp.get('sos', 0))
-            row[2].text = str(comp.get('avg_rank', '-'))
-            row[3].text = str(comp.get('product_count', 0))
+            row[0].text = comp.get("brand", "")
+            row[1].text = str(comp.get("sos", 0))
+            row[2].text = str(comp.get("avg_rank", "-"))
+            row[3].text = str(comp.get("product_count", 0))
 
     doc.add_paragraph()
 
     # ===== 4. 액션 아이템 =====
-    doc.add_heading('4. 액션 아이템', level=1)
+    doc.add_heading("4. 액션 아이템", level=1)
 
     action_items = data.get("home", {}).get("action_items", [])
     if action_items:
         for item in action_items:
-            priority_marker = "🔴" if item.get('priority') == 'P1' else "🟠"
+            priority_marker = "🔴" if item.get("priority") == "P1" else "🟠"
             para = doc.add_paragraph()
             para.add_run(f"{priority_marker} [{item.get('priority')}] ").bold = True
             para.add_run(f"{item.get('product_name', '')}\n")
@@ -1885,7 +2015,7 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
 
     # ===== 5. 전략적 권고사항 =====
     if request.include_strategy:
-        doc.add_heading('5. 전략적 권고사항', level=1)
+        doc.add_heading("5. 전략적 권고사항", level=1)
 
         # ChatGPT로 전략 생성 (RAG 컨텍스트 활용)
         try:
@@ -1908,17 +2038,20 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
             response = await acompletion(
                 model="gpt-4.1-mini",
                 messages=[
-                    {"role": "system", "content": "당신은 뷰티 이커머스 전문 컨설턴트입니다. 간결하고 실행 가능한 전략을 제안합니다."},
-                    {"role": "user", "content": strategy_prompt}
+                    {
+                        "role": "system",
+                        "content": "당신은 뷰티 이커머스 전문 컨설턴트입니다. 간결하고 실행 가능한 전략을 제안합니다.",
+                    },
+                    {"role": "user", "content": strategy_prompt},
                 ],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=500,
             )
 
             strategy_text = response.choices[0].message.content
             doc.add_paragraph(strategy_text)
 
-        except Exception as e:
+        except Exception:
             # 폴백 전략
             doc.add_paragraph("""
 1. Top 10 유지 전략: 현재 상위권 제품의 리뷰 관리 및 재고 확보를 통한 포지션 유지
@@ -1945,14 +2078,15 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
 class AnalystReportRequest(BaseModel):
     """애널리스트 리포트 요청"""
+
     start_date: str  # Required: YYYY-MM-DD
-    end_date: str    # Required: YYYY-MM-DD
+    end_date: str  # Required: YYYY-MM-DD
     include_charts: bool = True
     include_external_signals: bool = True
 
@@ -1971,21 +2105,21 @@ async def export_analyst_report(request: AnalystReportRequest):
         StreamingResponse with DOCX file
     """
     import tempfile
-    from docx.shared import RGBColor
+
+    from src.agents.period_insight_agent import PeriodInsightAgent
+    from src.tools.chart_generator import ChartGenerator
+    from src.tools.external_signal_collector import ExternalSignalCollector
 
     # 모듈 임포트
     from src.tools.period_analyzer import PeriodAnalyzer
-    from src.tools.chart_generator import ChartGenerator
     from src.tools.reference_tracker import ReferenceTracker
-    from src.agents.period_insight_agent import PeriodInsightAgent
-    from src.tools.external_signal_collector import ExternalSignalCollector
 
     logger.info(f"Generating analyst report: {request.start_date} ~ {request.end_date}")
 
     # AMOREPACIFIC colors
     PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
     AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795
-    GRAY = RGBColor(125, 125, 125)      # #7D7D7D
+    GRAY = RGBColor(125, 125, 125)  # #7D7D7D
 
     try:
         # 1. Period Analysis
@@ -1995,7 +2129,7 @@ async def export_analyst_report(request: AnalystReportRequest):
         if analysis.total_days == 0:
             raise HTTPException(
                 status_code=404,
-                detail=f"No data found for period {request.start_date} ~ {request.end_date}"
+                detail=f"No data found for period {request.start_date} ~ {request.end_date}",
             )
 
         # 2. External Signals (optional)
@@ -2007,7 +2141,9 @@ async def export_analyst_report(request: AnalystReportRequest):
                 if collector.signals:
                     external_signals = {
                         "signals": collector.signals,
-                        "report_section": collector.generate_report_section(days=analysis.total_days)
+                        "report_section": collector.generate_report_section(
+                            days=analysis.total_days
+                        ),
                     }
                 await collector.close()
             except Exception as e:
@@ -2028,27 +2164,24 @@ async def export_analyst_report(request: AnalystReportRequest):
 
         # 5. Reference Tracker
         tracker = ReferenceTracker()
-        tracker.auto_add_amazon_sources(
-            start_date=request.start_date,
-            end_date=request.end_date
-        )
+        tracker.auto_add_amazon_sources(start_date=request.start_date, end_date=request.end_date)
 
         # 6. Create DOCX Document
         doc = Document()
 
         # Style setup
-        style = doc.styles['Normal']
+        style = doc.styles["Normal"]
         font = style.font
-        font.name = 'Arial'
+        font.name = "Arial"
         font.size = Pt(11)
 
         # ===== 표지 (Cover Page) =====
-        title = doc.add_heading('LANEIGE Amazon US 경쟁력 분석 보고서', 0)
+        title = doc.add_heading("LANEIGE Amazon US 경쟁력 분석 보고서", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = title.runs[0]
         run.font.color.rgb = PACIFIC_BLUE
 
-        subtitle = doc.add_paragraph(f'분석 기간: {request.start_date} ~ {request.end_date}')
+        subtitle = doc.add_paragraph(f"분석 기간: {request.start_date} ~ {request.end_date}")
         subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         date_para = doc.add_paragraph()
@@ -2058,7 +2191,7 @@ async def export_analyst_report(request: AnalystReportRequest):
         doc.add_page_break()
 
         # ===== 목차 (Table of Contents) =====
-        toc_heading = doc.add_heading('목차', 1)
+        toc_heading = doc.add_heading("목차", 1)
         toc_heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
         toc_items = [
@@ -2069,97 +2202,97 @@ async def export_analyst_report(request: AnalystReportRequest):
             "5. 외부 신호 분석",
             "6. 리스크 및 기회 요인",
             "7. 전략 제언",
-            "8. 참고자료 (References)"
+            "8. 참고자료 (References)",
         ]
         for item in toc_items:
-            doc.add_paragraph(item, style='List Bullet')
+            doc.add_paragraph(item, style="List Bullet")
 
         doc.add_page_break()
 
         # Helper function for section content
         def add_section_content(section, section_prefix):
             """섹션 내용 추가 헬퍼"""
-            heading = doc.add_heading(f'{section.section_id}. {section.section_title}', 1)
+            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
             heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
-            for line in section.content.split('\n'):
+            for line in section.content.split("\n"):
                 if line.strip():
-                    if line.startswith('■'):
+                    if line.startswith("■"):
                         para = doc.add_paragraph(line)
                         para.runs[0].font.bold = True
-                    elif line.startswith(f'{section_prefix}.'):
+                    elif line.startswith(f"{section_prefix}."):
                         doc.add_heading(line, 2)
                     else:
                         doc.add_paragraph(line)
 
         # ===== Section 1: Executive Summary =====
         if report.executive_summary:
-            add_section_content(report.executive_summary, '1')
+            add_section_content(report.executive_summary, "1")
             # Insert SoS chart if available
-            if request.include_charts and 'sos_trend' in chart_paths:
+            if request.include_charts and "sos_trend" in chart_paths:
                 doc.add_paragraph()
-                doc.add_picture(str(chart_paths['sos_trend']), width=Inches(6))
+                doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
             doc.add_page_break()
 
         # ===== Section 2: LANEIGE 심층 분석 =====
         if report.laneige_analysis:
-            add_section_content(report.laneige_analysis, '2')
+            add_section_content(report.laneige_analysis, "2")
             # Insert charts
             if request.include_charts:
                 doc.add_paragraph()
-                if 'sos_trend' in chart_paths:
-                    doc.add_heading('일별 SoS 추이', 3)
-                    doc.add_picture(str(chart_paths['sos_trend']), width=Inches(6))
+                if "sos_trend" in chart_paths:
+                    doc.add_heading("일별 SoS 추이", 3)
+                    doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
                     doc.add_paragraph()
-                if 'product_ranks' in chart_paths:
-                    doc.add_heading('제품별 순위 변동', 3)
-                    doc.add_picture(str(chart_paths['product_ranks']), width=Inches(6))
+                if "product_ranks" in chart_paths:
+                    doc.add_heading("제품별 순위 변동", 3)
+                    doc.add_picture(str(chart_paths["product_ranks"]), width=Inches(6))
             doc.add_page_break()
 
         # ===== Section 3: 경쟁 환경 분석 =====
         if report.competitive_analysis:
-            add_section_content(report.competitive_analysis, '3')
+            add_section_content(report.competitive_analysis, "3")
             # Insert brand comparison chart
-            if request.include_charts and 'brand_comparison' in chart_paths:
+            if request.include_charts and "brand_comparison" in chart_paths:
                 doc.add_paragraph()
-                doc.add_heading('브랜드별 점유율', 3)
-                doc.add_picture(str(chart_paths['brand_comparison']), width=Inches(6))
+                doc.add_heading("브랜드별 점유율", 3)
+                doc.add_picture(str(chart_paths["brand_comparison"]), width=Inches(6))
             doc.add_page_break()
 
         # ===== Section 4: 시장 동향 =====
         if report.market_trends:
-            add_section_content(report.market_trends, '4')
+            add_section_content(report.market_trends, "4")
             # Insert HHI chart
-            if request.include_charts and 'hhi_trend' in chart_paths:
+            if request.include_charts and "hhi_trend" in chart_paths:
                 doc.add_paragraph()
-                doc.add_heading('HHI 추이', 3)
-                doc.add_picture(str(chart_paths['hhi_trend']), width=Inches(6))
+                doc.add_heading("HHI 추이", 3)
+                doc.add_picture(str(chart_paths["hhi_trend"]), width=Inches(6))
             doc.add_page_break()
 
         # ===== Section 5: 외부 신호 분석 =====
         if report.external_signals:
-            add_section_content(report.external_signals, '5')
+            add_section_content(report.external_signals, "5")
             doc.add_page_break()
 
         # ===== Section 6: 리스크 및 기회 요인 =====
         if report.risks_opportunities:
-            add_section_content(report.risks_opportunities, '6')
+            add_section_content(report.risks_opportunities, "6")
             doc.add_page_break()
 
         # ===== Section 7: 전략 제언 =====
         if report.strategic_recommendations:
-            add_section_content(report.strategic_recommendations, '7')
+            add_section_content(report.strategic_recommendations, "7")
             doc.add_page_break()
 
         # ===== Section 8: 참고자료 (References) =====
-        ref_heading = doc.add_heading('8. 참고자료 (References)', 1)
+        ref_heading = doc.add_heading("8. 참고자료 (References)", 1)
         ref_heading.runs[0].font.color.rgb = PACIFIC_BLUE
 
         # Format reference section
         ref_section = tracker.format_section()
-        for line in ref_section.split('\n'):
+        for line in ref_section.split("\n"):
             if line.strip():
-                if line.startswith('8.'):
+                if line.startswith("8."):
                     doc.add_heading(line, 2)
                 else:
                     doc.add_paragraph(line)
@@ -2195,7 +2328,7 @@ async def export_analyst_report(request: AnalystReportRequest):
         return StreamingResponse(
             buffer,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
     except HTTPException:
@@ -2214,8 +2347,8 @@ async def export_excel(request: Request):
     - Railway: /data/latest_crawl_result.json (Volume)
     - Local: ./data/latest_crawl_result.json
     """
+
     import pandas as pd
-    import os
 
     try:
         # Parse request body
@@ -2237,6 +2370,7 @@ async def export_excel(request: Request):
             # 1-1. SQLite 시도
             try:
                 from src.tools.sqlite_storage import get_sqlite_storage
+
                 sqlite = get_sqlite_storage()
                 await sqlite.initialize()
 
@@ -2247,15 +2381,15 @@ async def export_excel(request: Request):
                 max_records = 500 * days  # 충분한 여유
 
                 records = await sqlite.get_raw_data(
-                    start_date=start_date,
-                    end_date=end_date,
-                    limit=max_records
+                    start_date=start_date, end_date=end_date, limit=max_records
                 )
 
                 if records:
                     all_records = records
                     data_source = "sqlite"
-                    logging.info(f"Excel export: loaded {len(all_records)} records from SQLite ({start_date} ~ {end_date})")
+                    logging.info(
+                        f"Excel export: loaded {len(all_records)} records from SQLite ({start_date} ~ {end_date})"
+                    )
 
             except Exception as sqlite_err:
                 logging.warning(f"Excel export: SQLite 조회 실패: {sqlite_err}")
@@ -2277,7 +2411,9 @@ async def export_excel(request: Request):
 
                         if all_records:
                             data_source = "sheets"
-                            logging.info(f"Excel export: loaded {len(all_records)} records from Google Sheets ({start_date} ~ {end_date})")
+                            logging.info(
+                                f"Excel export: loaded {len(all_records)} records from Google Sheets ({start_date} ~ {end_date})"
+                            )
 
                 except Exception as sheets_err:
                     logging.warning(f"Excel export: Google Sheets 조회 실패: {sheets_err}")
@@ -2301,11 +2437,10 @@ async def export_excel(request: Request):
 
             if json_path is None:
                 raise HTTPException(
-                    status_code=404,
-                    detail=f"크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요."
+                    status_code=404, detail="크롤링 데이터가 없습니다. 먼저 크롤링을 실행해주세요."
                 )
 
-            with open(json_path, "r", encoding="utf-8") as f:
+            with open(json_path, encoding="utf-8") as f:
                 crawl_data = json.load(f)
 
             logging.info(f"Excel export: loaded data from {json_path}")
@@ -2340,16 +2475,28 @@ async def export_excel(request: Request):
             "skin_care": "Skin Care",
             "lip_care": "Lip Care",
             "lip_makeup": "Lip Makeup",
-            "face_powder": "Face Powder"
+            "face_powder": "Face Powder",
         }
 
         with pd.ExcelWriter(str(output_path), engine="openpyxl") as writer:
             # Google Sheets RawData와 동일한 컬럼 순서
             RAWDATA_COLUMNS = [
-                "snapshot_date", "category_id", "rank", "asin", "product_name",
-                "brand", "price", "list_price", "discount_percent", "rating",
-                "reviews_count", "badge", "coupon_text", "is_subscribe_save",
-                "promo_badges", "product_url"
+                "snapshot_date",
+                "category_id",
+                "rank",
+                "asin",
+                "product_name",
+                "brand",
+                "price",
+                "list_price",
+                "discount_percent",
+                "rating",
+                "reviews_count",
+                "badge",
+                "coupon_text",
+                "is_subscribe_save",
+                "promo_badges",
+                "product_url",
             ]
 
             # ========================================
@@ -2357,7 +2504,9 @@ async def export_excel(request: Request):
             # ========================================
             if data_source and all_records:
                 source_name = "SQLite" if data_source == "sqlite" else "Google Sheets"
-                logging.info(f"Excel export: using {source_name} data ({len(all_records)} records, {start_date} ~ {end_date})")
+                logging.info(
+                    f"Excel export: using {source_name} data ({len(all_records)} records, {start_date} ~ {end_date})"
+                )
 
                 df_all = pd.DataFrame(all_records)
 
@@ -2375,13 +2524,21 @@ async def export_excel(request: Request):
                         date_summary = []
                         for date in sorted(df_all["snapshot_date"].unique()):
                             df_date = df_all[df_all["snapshot_date"] == date]
-                            laneige_count = len(df_date[df_date["brand"].str.upper() == "LANEIGE"]) if "brand" in df_date.columns else 0
-                            date_summary.append({
-                                "날짜": date,
-                                "총 제품 수": len(df_date),
-                                "LANEIGE 제품 수": laneige_count,
-                                "LANEIGE SoS (%)": round(laneige_count / len(df_date) * 100, 1) if len(df_date) > 0 else 0
-                            })
+                            laneige_count = (
+                                len(df_date[df_date["brand"].str.upper() == "LANEIGE"])
+                                if "brand" in df_date.columns
+                                else 0
+                            )
+                            date_summary.append(
+                                {
+                                    "날짜": date,
+                                    "총 제품 수": len(df_date),
+                                    "LANEIGE 제품 수": laneige_count,
+                                    "LANEIGE SoS (%)": round(laneige_count / len(df_date) * 100, 1)
+                                    if len(df_date) > 0
+                                    else 0,
+                                }
+                            )
                         if date_summary:
                             df_summary = pd.DataFrame(date_summary)
                             df_summary.to_excel(writer, sheet_name="Daily Summary", index=False)
@@ -2395,10 +2552,21 @@ async def export_excel(request: Request):
                             if df_cat.empty:
                                 continue
 
-                            display_cols = ["snapshot_date", "rank", "asin", "product_name", "brand",
-                                            "price", "rating", "reviews_count", "badge"]
+                            display_cols = [
+                                "snapshot_date",
+                                "rank",
+                                "asin",
+                                "product_name",
+                                "brand",
+                                "price",
+                                "rating",
+                                "reviews_count",
+                                "badge",
+                            ]
                             available_display = [c for c in display_cols if c in df_cat.columns]
-                            df_display = df_cat[available_display].sort_values(["snapshot_date", "rank"])
+                            df_display = df_cat[available_display].sort_values(
+                                ["snapshot_date", "rank"]
+                            )
 
                             sheet_name = categories_info.get(cat_id, cat_id)[:31]
                             df_display.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -2409,10 +2577,21 @@ async def export_excel(request: Request):
                     if "brand" in df_all.columns:
                         df_laneige = df_all[df_all["brand"].str.upper() == "LANEIGE"].copy()
                         if not df_laneige.empty:
-                            laneige_cols = ["snapshot_date", "category_id", "rank", "asin",
-                                            "product_name", "price", "rating", "reviews_count", "badge"]
+                            laneige_cols = [
+                                "snapshot_date",
+                                "category_id",
+                                "rank",
+                                "asin",
+                                "product_name",
+                                "price",
+                                "rating",
+                                "reviews_count",
+                                "badge",
+                            ]
                             available_laneige = [c for c in laneige_cols if c in df_laneige.columns]
-                            df_laneige = df_laneige[available_laneige].sort_values(["snapshot_date", "category_id", "rank"])
+                            df_laneige = df_laneige[available_laneige].sort_values(
+                                ["snapshot_date", "category_id", "rank"]
+                            )
                             df_laneige.to_excel(writer, sheet_name="LANEIGE Products", index=False)
                             sheets_created.append("LANEIGE Products")
                             total_rows += len(df_laneige)
@@ -2462,9 +2641,11 @@ async def export_excel(request: Request):
                         "sos": "SoS (%)",
                         "avg_rank": "Avg Rank",
                         "product_count": "Product Count",
-                        "avg_price": "Avg Price ($)"
+                        "avg_price": "Avg Price ($)",
                     }
-                    existing_cols = {k: v for k, v in column_mapping.items() if k in df_comp.columns}
+                    existing_cols = {
+                        k: v for k, v in column_mapping.items() if k in df_comp.columns
+                    }
                     df_comp = df_comp.rename(columns=existing_cols)
                     df_comp.to_excel(writer, sheet_name="Competitors", index=False)
                     sheets_created.append("Competitors")
@@ -2534,8 +2715,16 @@ async def export_excel(request: Request):
                                 continue
 
                             # 핵심 컬럼만 선택하여 가독성 향상
-                            display_cols = ["rank", "asin", "product_name", "brand",
-                                            "price", "rating", "reviews_count", "badge"]
+                            display_cols = [
+                                "rank",
+                                "asin",
+                                "product_name",
+                                "brand",
+                                "price",
+                                "rating",
+                                "reviews_count",
+                                "badge",
+                            ]
                             available_display = [c for c in display_cols if c in df_cat.columns]
                             df_display = df_cat[available_display].sort_values("rank")
 
@@ -2548,10 +2737,21 @@ async def export_excel(request: Request):
                         # 3. LANEIGE 제품 전용 시트
                         df_laneige = df_all[df_all["brand"].str.upper() == "LANEIGE"].copy()
                         if not df_laneige.empty:
-                            laneige_cols = ["snapshot_date", "category_id", "rank", "asin",
-                                            "product_name", "price", "rating", "reviews_count", "badge"]
+                            laneige_cols = [
+                                "snapshot_date",
+                                "category_id",
+                                "rank",
+                                "asin",
+                                "product_name",
+                                "price",
+                                "rating",
+                                "reviews_count",
+                                "badge",
+                            ]
                             available_laneige = [c for c in laneige_cols if c in df_laneige.columns]
-                            df_laneige = df_laneige[available_laneige].sort_values(["category_id", "rank"])
+                            df_laneige = df_laneige[available_laneige].sort_values(
+                                ["category_id", "rank"]
+                            )
                             df_laneige.to_excel(writer, sheet_name="LANEIGE Products", index=False)
                             sheets_created.append("LANEIGE Products")
                             total_rows += len(df_laneige)
@@ -2587,12 +2787,20 @@ async def export_excel(request: Request):
 
             # 4. 시트가 하나도 없으면 안내 시트 생성
             if not sheets_created:
-                data_source_info = f"SQLite" if data_source == "sqlite" else ("Google Sheets" if data_source == "sheets" else (str(json_path) if json_path else "N/A"))
+                data_source_info = (
+                    "SQLite"
+                    if data_source == "sqlite"
+                    else (
+                        "Google Sheets"
+                        if data_source == "sheets"
+                        else (str(json_path) if json_path else "N/A")
+                    )
+                )
                 no_data_info = [
                     {"항목": "요청 기간", "값": f"{start_date or 'N/A'} ~ {end_date or 'N/A'}"},
                     {"항목": "결과", "값": "해당 기간에 데이터가 없습니다"},
                     {"항목": "데이터 소스", "값": data_source_info},
-                    {"항목": "안내", "값": "크롤링 실행 후 다시 시도해주세요"}
+                    {"항목": "안내", "값": "크롤링 실행 후 다시 시도해주세요"},
                 ]
                 df_no_data = pd.DataFrame(no_data_info)
                 df_no_data.to_excel(writer, sheet_name="No Data", index=False)
@@ -2604,7 +2812,7 @@ async def export_excel(request: Request):
         return FileResponse(
             path=str(output_path),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={output_path.name}"}
+            headers={"Content-Disposition": f"attachment; filename={output_path.name}"},
         )
 
     except HTTPException:
@@ -2616,8 +2824,9 @@ async def export_excel(request: Request):
 
 # ============= Competitor Comparison API =============
 
+
 @app.get("/api/competitors")
-async def get_competitor_data(brand: Optional[str] = None):
+async def get_competitor_data(brand: str | None = None):
     """
     경쟁사 추적 데이터 조회
 
@@ -2628,15 +2837,12 @@ async def get_competitor_data(brand: Optional[str] = None):
         경쟁사 제품 목록 및 LANEIGE 비교 데이터
     """
     try:
-        from src.tools.sqlite_storage import get_sqlite_storage
-        from pathlib import Path
         import json
+        from pathlib import Path
 
-        result = {
-            "competitors": {},
-            "laneige_products": {},
-            "comparison": []
-        }
+        from src.tools.sqlite_storage import get_sqlite_storage
+
+        result = {"competitors": {}, "laneige_products": {}, "comparison": []}
 
         # 1. SQLite에서 경쟁사 데이터 조회 시도
         try:
@@ -2654,7 +2860,7 @@ async def get_competitor_data(brand: Optional[str] = None):
                             "products": [],
                             "product_count": 0,
                             "avg_price": 0,
-                            "avg_rating": 0
+                            "avg_rating": 0,
                         }
                     result["competitors"][brand_name]["products"].append(p)
 
@@ -2665,7 +2871,9 @@ async def get_competitor_data(brand: Optional[str] = None):
                     prices = [p["price"] for p in products if p.get("price")]
                     ratings = [p["rating"] for p in products if p.get("rating")]
                     brand_data["avg_price"] = round(sum(prices) / len(prices), 2) if prices else 0
-                    brand_data["avg_rating"] = round(sum(ratings) / len(ratings), 1) if ratings else 0
+                    brand_data["avg_rating"] = (
+                        round(sum(ratings) / len(ratings), 1) if ratings else 0
+                    )
 
         except Exception as sqlite_err:
             logging.warning(f"SQLite competitor query failed: {sqlite_err}")
@@ -2674,7 +2882,7 @@ async def get_competitor_data(brand: Optional[str] = None):
         if not result["competitors"]:
             json_path = Path("./data/competitor_products.json")
             if json_path.exists():
-                with open(json_path, "r", encoding="utf-8") as f:
+                with open(json_path, encoding="utf-8") as f:
                     json_data = json.load(f)
                     for p in json_data.get("products", []):
                         brand_name = p.get("brand", "Unknown")
@@ -2684,7 +2892,7 @@ async def get_competitor_data(brand: Optional[str] = None):
                             result["competitors"][brand_name] = {
                                 "brand": brand_name,
                                 "products": [],
-                                "product_count": 0
+                                "product_count": 0,
                             }
                         result["competitors"][brand_name]["products"].append(p)
 
@@ -2698,11 +2906,9 @@ async def get_competitor_data(brand: Optional[str] = None):
                         product_type = _detect_product_type(product.get("product_name", ""))
                         if product_type not in result["laneige_products"]:
                             result["laneige_products"][product_type] = []
-                        result["laneige_products"][product_type].append({
-                            **product,
-                            "category_id": cat_id,
-                            "product_type": product_type
-                        })
+                        result["laneige_products"][product_type].append(
+                            {**product, "category_id": cat_id, "product_type": product_type}
+                        )
 
         # 4. 제품 타입별 비교 데이터 생성
         for brand_name, brand_data in result["competitors"].items():
@@ -2722,7 +2928,7 @@ async def get_competitor_data(brand: Optional[str] = None):
                     "laneige_rating": None,
                     "laneige_reviews": None,
                     "price_diff": None,
-                    "rating_diff": None
+                    "rating_diff": None,
                 }
 
                 # LANEIGE 매칭 제품 찾기
@@ -2735,11 +2941,18 @@ async def get_competitor_data(brand: Optional[str] = None):
                         # 차이 계산
                         if comparison_item["competitor_price"] and comparison_item["laneige_price"]:
                             comparison_item["price_diff"] = round(
-                                comparison_item["laneige_price"] - comparison_item["competitor_price"], 2
+                                comparison_item["laneige_price"]
+                                - comparison_item["competitor_price"],
+                                2,
                             )
-                        if comparison_item["competitor_rating"] and comparison_item["laneige_rating"]:
+                        if (
+                            comparison_item["competitor_rating"]
+                            and comparison_item["laneige_rating"]
+                        ):
                             comparison_item["rating_diff"] = round(
-                                comparison_item["laneige_rating"] - comparison_item["competitor_rating"], 1
+                                comparison_item["laneige_rating"]
+                                - comparison_item["competitor_rating"],
+                                1,
                             )
                         break
 
@@ -2776,23 +2989,25 @@ def _detect_product_type(product_name: str) -> str:
 async def get_tracked_brands():
     """추적 중인 경쟁사 브랜드 목록"""
     try:
-        from pathlib import Path
         import json
+        from pathlib import Path
 
         config_path = Path("./config/tracked_competitors.json")
         if not config_path.exists():
             return {"brands": []}
 
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             config = json.load(f)
 
         brands = []
         for brand_name, brand_config in config.get("competitors", {}).items():
-            brands.append({
-                "name": brand_name,
-                "tier": brand_config.get("tier", ""),
-                "product_count": len(brand_config.get("products", []))
-            })
+            brands.append(
+                {
+                    "name": brand_name,
+                    "tier": brand_config.get("tier", ""),
+                    "product_count": len(brand_config.get("products", [])),
+                }
+            )
 
         return {"brands": brands}
 
@@ -2806,7 +3021,8 @@ async def get_tracked_brands():
 from src.core.state_manager import StateManager, get_state_manager
 
 # 싱글톤 State Manager
-_state_manager: Optional[StateManager] = None
+_state_manager: StateManager | None = None
+
 
 def get_app_state_manager() -> StateManager:
     """앱 레벨 State Manager 반환"""
@@ -2818,17 +3034,19 @@ def get_app_state_manager() -> StateManager:
 
 class AlertSettingsRequest(BaseModel):
     """알림 설정 요청"""
+
     email: str
     consent: bool
-    alert_types: List[str] = []
+    alert_types: list[str] = []
 
 
 class AlertSettingsResponse(BaseModel):
     """알림 설정 응답"""
+
     email: str
     consent: bool
-    alert_types: List[str]
-    consent_date: Optional[str] = None
+    alert_types: list[str]
+    consent_date: str | None = None
 
 
 @app.get("/api/v3/alert-settings")
@@ -2842,12 +3060,7 @@ async def get_alert_settings():
     subscriptions = state_manager.get_all_subscriptions()
 
     if not subscriptions:
-        return {
-            "email": "",
-            "consent": False,
-            "alert_types": [],
-            "consent_date": None
-        }
+        return {"email": "", "consent": False, "alert_types": [], "consent_date": None}
 
     # 첫 번째 구독 반환
     email, sub = next(iter(subscriptions.items()))
@@ -2855,17 +3068,17 @@ async def get_alert_settings():
         "email": email,
         "consent": sub.consent,
         "alert_types": sub.alert_types,
-        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None
+        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
     }
 
 
-@app.post("/api/v3/alert-settings")
+@app.post("/api/v3/alert-settings", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")  # 분당 5회 제한 (스팸 방지)
 async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
     """
     알림 설정 저장
 
-    보안: API Key 대신 Rate Limiting으로 남용 방지 (IP당 분당 5회)
+    보안: API Key + Rate Limiting (IP당 분당 5회)
     중요: consent가 True일 때만 이메일 등록
     """
     state_manager = get_app_state_manager()
@@ -2876,9 +3089,7 @@ async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
     if settings.consent:
         # 이메일 등록 (명시적 동의)
         success = state_manager.register_email(
-            email=settings.email,
-            consent=True,
-            alert_types=settings.alert_types
+            email=settings.email, consent=True, alert_types=settings.alert_types
         )
 
         if not success:
@@ -2888,20 +3099,19 @@ async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
     else:
         # 동의 없으면 업데이트만 (알림 유형 변경)
         success = state_manager.update_email_subscription(
-            email=settings.email,
-            alert_types=settings.alert_types
+            email=settings.email, alert_types=settings.alert_types
         )
 
         return {"status": "ok", "message": "설정이 업데이트되었습니다."}
 
 
-@app.post("/api/v3/alert-settings/revoke")
+@app.post("/api/v3/alert-settings/revoke", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")  # 분당 5회 제한
 async def revoke_alert_consent(request: Request):
     """
     알림 동의 철회
 
-    보안: API Key 대신 Rate Limiting으로 남용 방지
+    보안: API Key + Rate Limiting
     첫 번째 등록된 이메일의 동의를 철회합니다.
     """
     state_manager = get_app_state_manager()
@@ -2918,7 +3128,7 @@ async def revoke_alert_consent(request: Request):
 
 
 @app.get("/api/v3/alerts")
-async def get_alerts(limit: int = 50, alert_type: Optional[str] = None):
+async def get_alerts(limit: int = 50, alert_type: str | None = None):
     """
     알림 목록 조회
 
@@ -2934,18 +3144,33 @@ async def get_alerts(limit: int = 50, alert_type: Optional[str] = None):
     return {
         "alerts": alert_agent.get_alerts(limit=limit, alert_type=alert_type),
         "pending_count": alert_agent.get_pending_count(),
-        "stats": alert_agent.get_stats()
+        "stats": alert_agent.get_stats(),
     }
 
 
 # ============= 대시보드 HTML 서빙 =============
 
+
 @app.get("/dashboard")
 async def serve_dashboard():
-    """대시보드 HTML 페이지 서빙"""
+    """
+    대시보드 HTML 페이지 서빙 (API 키 자동 주입)
+
+    서버의 API_KEY를 HTML에 자동으로 주입하여
+    프론트엔드에서 별도 설정 없이 인증된 API 호출 가능
+    """
     dashboard_path = Path("./dashboard/amore_unified_dashboard_v4.html")
     if not dashboard_path.exists():
         raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    # API_KEY가 설정된 경우 HTML에 자동 주입
+    if API_KEY:
+        html_content = dashboard_path.read_text(encoding="utf-8")
+        # </head> 직전에 API 키 설정 스크립트 삽입
+        api_key_script = f'<script>window.DASHBOARD_API_KEY = "{API_KEY}";</script>\n</head>'
+        html_content = html_content.replace("</head>", api_key_script)
+        return HTMLResponse(content=html_content, media_type="text/html")
+
     return FileResponse(dashboard_path, media_type="text/html")
 
 
@@ -2957,27 +3182,30 @@ async def health_check():
 
 # ============= Level 4 Brain API (v4) =============
 
+
 class BrainChatRequest(BaseModel):
     """Brain 챗봇 요청"""
+
     message: str
-    session_id: Optional[str] = "default"
+    session_id: str | None = "default"
     skip_cache: bool = False
 
 
 class BrainChatResponse(BaseModel):
     """Brain 챗봇 응답"""
+
     text: str
     confidence: float
-    sources: List[str]
-    reasoning: Optional[str] = None
-    tools_used: List[str]
+    sources: list[str]
+    reasoning: str | None = None
+    tools_used: list[str]
     processing_time_ms: float
     from_cache: bool
     brain_mode: str
 
 
-@app.post("/api/v4/chat", response_model=BrainChatResponse)
-@limiter.limit("30/minute")  # 분당 30회 제한
+@app.post("/api/v4/chat", response_model=BrainChatResponse, dependencies=[Depends(verify_api_key)])
+@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
 async def chat_v4(request: Request, body: BrainChatRequest):
     """
     Level 4 Brain 기반 챗봇 API (v4)
@@ -2989,6 +3217,7 @@ async def chat_v4(request: Request, body: BrainChatRequest):
     - 자율 스케줄러와 통합
     """
     import time
+
     start_time = time.time()
 
     message = body.message.strip()
@@ -3010,7 +3239,7 @@ async def chat_v4(request: Request, body: BrainChatRequest):
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
-            skip_cache=body.skip_cache
+            skip_cache=body.skip_cache,
         )
 
         processing_time = (time.time() - start_time) * 1000
@@ -3020,10 +3249,10 @@ async def chat_v4(request: Request, body: BrainChatRequest):
             confidence=response.confidence,
             sources=response.sources,
             reasoning=response.reasoning,
-            tools_used=response.tools_called if hasattr(response, 'tools_called') else [],
+            tools_used=response.tools_called if hasattr(response, "tools_called") else [],
             processing_time_ms=processing_time,
-            from_cache=response.from_cache if hasattr(response, 'from_cache') else False,
-            brain_mode=brain.mode.value
+            from_cache=response.from_cache if hasattr(response, "from_cache") else False,
+            brain_mode=brain.mode.value,
         )
 
     except Exception as e:
@@ -3036,7 +3265,7 @@ async def chat_v4(request: Request, body: BrainChatRequest):
             tools_used=[],
             processing_time_ms=(time.time() - start_time) * 1000,
             from_cache=False,
-            brain_mode="error"
+            brain_mode="error",
         )
 
 
@@ -3059,7 +3288,7 @@ async def get_brain_status():
             "scheduler_running": brain.scheduler.running if brain.scheduler else False,
             "pending_tasks": brain.scheduler.get_pending_count() if brain.scheduler else 0,
             "stats": brain.get_stats(),
-            "initialized": True
+            "initialized": True,
         }
     except Exception as e:
         return {
@@ -3068,7 +3297,7 @@ async def get_brain_status():
             "pending_tasks": 0,
             "stats": {},
             "initialized": False,
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -3088,22 +3317,14 @@ async def start_brain_scheduler():
             return {
                 "started": False,
                 "message": "스케줄러가 이미 실행 중입니다.",
-                "status": "running"
+                "status": "running",
             }
 
         await brain.start_scheduler()
 
-        return {
-            "started": True,
-            "message": "자율 스케줄러가 시작되었습니다.",
-            "status": "running"
-        }
+        return {"started": True, "message": "자율 스케줄러가 시작되었습니다.", "status": "running"}
     except Exception as e:
-        return {
-            "started": False,
-            "message": f"스케줄러 시작 실패: {str(e)}",
-            "status": "error"
-        }
+        return {"started": False, "message": f"스케줄러 시작 실패: {str(e)}", "status": "error"}
 
 
 @app.post("/api/v4/brain/scheduler/stop", dependencies=[Depends(verify_api_key)])
@@ -3115,17 +3336,9 @@ async def stop_brain_scheduler():
         if brain.scheduler:
             brain.scheduler.stop()
 
-        return {
-            "stopped": True,
-            "message": "스케줄러가 중지되었습니다.",
-            "status": "stopped"
-        }
+        return {"stopped": True, "message": "스케줄러가 중지되었습니다.", "status": "stopped"}
     except Exception as e:
-        return {
-            "stopped": False,
-            "message": f"스케줄러 중지 실패: {str(e)}",
-            "status": "error"
-        }
+        return {"stopped": False, "message": f"스케줄러 중지 실패: {str(e)}", "status": "error"}
 
 
 @app.post("/api/v4/brain/autonomous-cycle", dependencies=[Depends(verify_api_key)])
@@ -3143,15 +3356,9 @@ async def run_autonomous_cycle():
         brain = await get_initialized_brain()
         result = await brain.run_autonomous_cycle()
 
-        return {
-            "success": True,
-            "result": result
-        }
+        return {"success": True, "result": result}
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @app.post("/api/v4/brain/check-alerts")
@@ -3166,23 +3373,13 @@ async def check_brain_alerts():
         data = load_dashboard_data()
 
         if not data:
-            return {
-                "alerts": [],
-                "message": "데이터가 없습니다."
-            }
+            return {"alerts": [], "message": "데이터가 없습니다."}
 
         alerts = await brain.check_alerts(data)
 
-        return {
-            "alerts": alerts,
-            "count": len(alerts),
-            "checked_at": datetime.now().isoformat()
-        }
+        return {"alerts": alerts, "count": len(alerts), "checked_at": datetime.now().isoformat()}
     except Exception as e:
-        return {
-            "alerts": [],
-            "error": str(e)
-        }
+        return {"alerts": [], "error": str(e)}
 
 
 @app.get("/api/v4/brain/stats")
@@ -3209,21 +3406,17 @@ async def set_brain_mode(mode: str):
         mode_map = {
             "reactive": BrainMode.REACTIVE,
             "proactive": BrainMode.PROACTIVE,
-            "autonomous": BrainMode.AUTONOMOUS
+            "autonomous": BrainMode.AUTONOMOUS,
         }
 
         if mode not in mode_map:
             raise HTTPException(
-                status_code=400,
-                detail=f"Invalid mode. Valid modes: {list(mode_map.keys())}"
+                status_code=400, detail=f"Invalid mode. Valid modes: {list(mode_map.keys())}"
             )
 
         brain.mode = mode_map[mode]
 
-        return {
-            "mode": brain.mode.value,
-            "message": f"Brain 모드가 {mode}(으)로 변경되었습니다."
-        }
+        return {"mode": brain.mode.value, "message": f"Brain 모드가 {mode}(으)로 변경되었습니다."}
     except HTTPException:
         raise
     except Exception as e:
@@ -3232,33 +3425,31 @@ async def set_brain_mode(mode: str):
 
 # ============= Amazon Deals API =============
 
-from src.tools.deals_scraper import AmazonDealsScraper, get_deals_scraper
+from src.tools.deals_scraper import get_deals_scraper
 
 
 class DealsRequest(BaseModel):
     """Deals 크롤링 요청"""
+
     max_items: int = 50
     beauty_only: bool = True
 
 
 class DealsResponse(BaseModel):
     """Deals 응답"""
+
     success: bool
     count: int
     lightning_count: int
     competitor_count: int
     snapshot_datetime: str
-    deals: List[Dict[str, Any]]
-    competitor_deals: List[Dict[str, Any]]
-    error: Optional[str] = None
+    deals: list[dict[str, Any]]
+    competitor_deals: list[dict[str, Any]]
+    error: str | None = None
 
 
 @app.get("/api/deals")
-async def get_deals_data(
-    brand: Optional[str] = None,
-    hours: int = 24,
-    limit: int = 100
-):
+async def get_deals_data(brand: str | None = None, hours: int = 24, limit: int = 100):
     """
     저장된 Deals 데이터 조회
 
@@ -3289,20 +3480,12 @@ async def get_deals_data(
             "deals": deals,
             "count": len(deals),
             "summary": summary,
-            "filters": {
-                "brand": brand,
-                "hours": hours
-            }
+            "filters": {"brand": brand, "hours": hours},
         }
 
     except Exception as e:
         logging.error(f"Deals data error: {e}")
-        return {
-            "success": False,
-            "deals": [],
-            "count": 0,
-            "error": str(e)
-        }
+        return {"success": False, "deals": [], "count": 0, "error": str(e)}
 
 
 @app.get("/api/deals/summary")
@@ -3323,17 +3506,11 @@ async def get_deals_summary(days: int = 7):
 
         summary = await storage.get_deals_summary(days=days)
 
-        return {
-            "success": True,
-            **summary
-        }
+        return {"success": True, **summary}
 
     except Exception as e:
         logging.error(f"Deals summary error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @app.post("/api/deals/scrape", dependencies=[Depends(verify_api_key)])
@@ -3357,8 +3534,7 @@ async def scrape_deals(request: DealsRequest):
 
         # 크롤링 실행
         result = await scraper.scrape_deals(
-            max_items=request.max_items,
-            beauty_only=request.beauty_only
+            max_items=request.max_items, beauty_only=request.beauty_only
         )
 
         if result["success"]:
@@ -3377,18 +3553,24 @@ async def scrape_deals(request: DealsRequest):
                 # 알림 서비스로 알림 처리
                 try:
                     alert_service = get_alert_service()
-                    alerts = await alert_service.process_deals_for_alerts(result["competitor_deals"])
+                    alerts = await alert_service.process_deals_for_alerts(
+                        result["competitor_deals"]
+                    )
 
                     # DB에 알림 저장
                     for alert in alerts:
                         await storage.save_deal_alert(alert)
 
-                    logging.info(f"Processed {len(alerts)} alerts from {len(result['competitor_deals'])} competitor deals")
+                    logging.info(
+                        f"Processed {len(alerts)} alerts from {len(result['competitor_deals'])} competitor deals"
+                    )
                 except Exception as alert_err:
                     logging.error(f"Alert processing error: {alert_err}")
                     # 알림 실패해도 크롤링 결과는 반환
 
-            logging.info(f"Deals scraped: {result['count']} total, {len(result['competitor_deals'])} competitors")
+            logging.info(
+                f"Deals scraped: {result['count']} total, {len(result['competitor_deals'])} competitors"
+            )
 
         return DealsResponse(
             success=result["success"],
@@ -3398,7 +3580,7 @@ async def scrape_deals(request: DealsRequest):
             snapshot_datetime=result["snapshot_datetime"],
             deals=result["deals"],
             competitor_deals=result["competitor_deals"],
-            error=result.get("error")
+            error=result.get("error"),
         )
 
     except Exception as e:
@@ -3411,15 +3593,12 @@ async def scrape_deals(request: DealsRequest):
             snapshot_datetime=datetime.now().isoformat(),
             deals=[],
             competitor_deals=[],
-            error=str(e)
+            error=str(e),
         )
 
 
 @app.get("/api/deals/alerts")
-async def get_deals_alerts(
-    limit: int = 50,
-    unsent_only: bool = False
-):
+async def get_deals_alerts(limit: int = 50, unsent_only: bool = False):
     """
     Deals 알림 목록 조회
 
@@ -3440,34 +3619,25 @@ async def get_deals_alerts(
         else:
             # 모든 알림 조회 (최근 7일)
             with storage.get_connection() as conn:
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT * FROM deals_alerts
                     ORDER BY alert_datetime DESC
                     LIMIT ?
-                """, (limit,))
+                """,
+                    (limit,),
+                )
                 alerts = [dict(row) for row in cursor.fetchall()]
 
-        return {
-            "success": True,
-            "alerts": alerts,
-            "count": len(alerts)
-        }
+        return {"success": True, "alerts": alerts, "count": len(alerts)}
 
     except Exception as e:
         logging.error(f"Deals alerts error: {e}")
-        return {
-            "success": False,
-            "alerts": [],
-            "count": 0,
-            "error": str(e)
-        }
+        return {"success": False, "alerts": [], "count": 0, "error": str(e)}
 
 
 @app.post("/api/deals/export")
-async def export_deals_report(
-    days: int = 7,
-    format: str = "excel"
-):
+async def export_deals_report(days: int = 7, format: str = "excel"):
     """
     Deals 리포트 내보내기
 
@@ -3490,11 +3660,14 @@ async def export_deals_report(
             # 전체 딜 데이터
             with storage.get_connection() as conn:
                 cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT * FROM deals
                     WHERE DATE(snapshot_datetime) >= ?
                     ORDER BY snapshot_datetime DESC
-                """, (cutoff_date,))
+                """,
+                    (cutoff_date,),
+                )
                 all_deals = [dict(row) for row in cursor.fetchall()]
 
             return {
@@ -3502,7 +3675,7 @@ async def export_deals_report(
                 "summary": summary,
                 "deals": all_deals,
                 "export_date": datetime.now().isoformat(),
-                "period_days": days
+                "period_days": days,
             }
 
         else:  # Excel
@@ -3510,10 +3683,7 @@ async def export_deals_report(
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = f"./data/exports/Deals_Report_{timestamp}.xlsx"
 
-            result = storage.export_deals_report(
-                output_path=output_path,
-                days=days
-            )
+            result = storage.export_deals_report(output_path=output_path, days=days)
 
             if not result.get("success"):
                 raise HTTPException(status_code=500, detail=result.get("error", "Export failed"))
@@ -3525,7 +3695,7 @@ async def export_deals_report(
             return FileResponse(
                 path=str(file_path),
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                headers={"Content-Disposition": f"attachment; filename={file_path.name}"}
+                headers={"Content-Disposition": f"attachment; filename={file_path.name}"},
             )
 
     except HTTPException:
@@ -3537,12 +3707,13 @@ async def export_deals_report(
 
 # ============= 알림 서비스 API =============
 
-from src.tools.alert_service import AlertService, get_alert_service
+from src.tools.alert_service import get_alert_service
 
 
 class AlertSendRequest(BaseModel):
     """알림 발송 요청"""
-    alert_ids: Optional[List[int]] = None  # 발송할 알림 ID (없으면 미발송 전체)
+
+    alert_ids: list[int] | None = None  # 발송할 알림 ID (없으면 미발송 전체)
 
 
 @app.get("/api/alerts/status")
@@ -3550,20 +3721,14 @@ async def get_alert_service_status():
     """알림 서비스 상태 조회"""
     try:
         service = get_alert_service()
-        return {
-            "success": True,
-            **service.get_status()
-        }
+        return {"success": True, **service.get_status()}
     except Exception as e:
         logging.error(f"Alert service status error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @app.post("/api/alerts/send")
-async def send_pending_alerts(request: Optional[AlertSendRequest] = None):
+async def send_pending_alerts(request: AlertSendRequest | None = None):
     """
     미발송 알림 발송
 
@@ -3579,22 +3744,14 @@ async def send_pending_alerts(request: Optional[AlertSendRequest] = None):
         unsent_alerts = await storage.get_unsent_alerts(limit=50)
 
         if not unsent_alerts:
-            return {
-                "success": True,
-                "message": "No pending alerts to send",
-                "sent_count": 0
-            }
+            return {"success": True, "message": "No pending alerts to send", "sent_count": 0}
 
         # 특정 ID 필터링
         if request and request.alert_ids:
             unsent_alerts = [a for a in unsent_alerts if a.get("id") in request.alert_ids]
 
         if not unsent_alerts:
-            return {
-                "success": True,
-                "message": "No matching alerts found",
-                "sent_count": 0
-            }
+            return {"success": True, "message": "No matching alerts found", "sent_count": 0}
 
         # 알림 발송
         sent_count = 0
@@ -3612,17 +3769,13 @@ async def send_pending_alerts(request: Optional[AlertSendRequest] = None):
             "total_pending": len(unsent_alerts),
             "channels": {
                 "slack": alert_service._slack_enabled,
-                "email": alert_service._email_enabled
-            }
+                "email": alert_service._email_enabled,
+            },
         }
 
     except Exception as e:
         logging.error(f"Alert send error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "sent_count": 0
-        }
+        return {"success": False, "error": str(e), "sent_count": 0}
 
 
 @app.post("/api/alerts/test")
@@ -3644,7 +3797,7 @@ async def send_test_alert():
             "claimed_percent": 45,
             "product_url": "https://amazon.com/dp/B000TEST01",
             "alert_type": "lightning_deal",
-            "alert_message": "Test Alert - 시스템 테스트 알림입니다"
+            "alert_message": "Test Alert - 시스템 테스트 알림입니다",
         }
 
         result = await alert_service.send_single_alert(test_alert)
@@ -3653,32 +3806,31 @@ async def send_test_alert():
             "success": True,
             "test_alert": test_alert,
             "send_result": result,
-            "message": "Test alert sent successfully" if any(result.values()) else "No channels enabled"
+            "message": "Test alert sent successfully"
+            if any(result.values())
+            else "No channels enabled",
         }
 
     except Exception as e:
         logging.error(f"Test alert error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 # ============= Email Verification API =============
 
-import secrets
 import hashlib
-from typing import Dict
+import secrets
 
 # 인증 토큰 저장소 (메모리 기반, 실제 운영 시 Redis 등 사용 권장)
-email_verification_tokens: Dict[str, dict] = {}
+email_verification_tokens: dict[str, dict] = {}
 
 
-@app.post("/api/alerts/send-verification")
+@app.post("/api/alerts/send-verification", dependencies=[Depends(verify_api_key)])
 async def send_verification_email(request: Request):
     """
     이메일 인증 요청 - 인증 이메일 발송
 
+    보안: API Key 인증 필요
     사용자가 이메일을 입력하고 '인증하기' 버튼을 누르면
     해당 이메일로 인증 링크가 포함된 테스트 이메일을 발송합니다.
     """
@@ -3688,7 +3840,8 @@ async def send_verification_email(request: Request):
 
         # 이메일 형식 검증
         import re
-        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+
+        email_regex = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
         if not email or not re.match(email_regex, email):
             raise HTTPException(status_code=400, detail="올바른 이메일 주소를 입력해주세요.")
 
@@ -3701,7 +3854,7 @@ async def send_verification_email(request: Request):
             "email": email,
             "created_at": datetime.now(),
             "expires_at": datetime.now() + timedelta(minutes=10),
-            "verified": False
+            "verified": False,
         }
 
         # 대시보드 URL 생성 (Railway 또는 로컬)
@@ -3713,17 +3866,15 @@ async def send_verification_email(request: Request):
 
         # EmailSender 직접 사용
         from src.tools.email_sender import EmailSender
+
         email_sender = EmailSender()
 
         if not email_sender.is_enabled():
             raise HTTPException(status_code=503, detail="이메일 서비스가 설정되지 않았습니다.")
 
         # 인증 이메일 발송
-        from src.tools.email_sender import SendResult
         result = await email_sender.send_verification_email(
-            recipient=email,
-            verify_url=verify_url,
-            token=token
+            recipient=email, verify_url=verify_url, token=token
         )
 
         if result.success:
@@ -3731,7 +3882,7 @@ async def send_verification_email(request: Request):
             return {
                 "success": True,
                 "message": "인증 이메일이 발송되었습니다.",
-                "token": token_hash[:8]  # 디버깅용 일부 토큰만 반환
+                "token": token_hash[:8],  # 디버깅용 일부 토큰만 반환
             }
         else:
             raise HTTPException(status_code=500, detail=f"이메일 발송 실패: {result.message}")
@@ -3743,11 +3894,12 @@ async def send_verification_email(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/alerts/verify-email")
+@app.post("/api/alerts/verify-email", dependencies=[Depends(verify_api_key)])
 async def verify_email_token(request: Request):
     """
     이메일 인증 토큰 검증
 
+    보안: API Key 인증 필요
     사용자가 이메일의 인증 버튼을 클릭하면
     토큰을 검증하고 이메일 인증 상태를 업데이트합니다.
     """
@@ -3775,7 +3927,9 @@ async def verify_email_token(request: Request):
         # 만료 확인
         if datetime.now() > token_data["expires_at"]:
             del email_verification_tokens[token_hash]
-            raise HTTPException(status_code=400, detail="인증 토큰이 만료되었습니다. 다시 인증해주세요.")
+            raise HTTPException(
+                status_code=400, detail="인증 토큰이 만료되었습니다. 다시 인증해주세요."
+            )
 
         # 인증 완료
         token_data["verified"] = True
@@ -3786,17 +3940,13 @@ async def verify_email_token(request: Request):
             state_manager.update_alert_settings(
                 email=email,
                 consent=True,
-                alert_types=["rank_change", "important_insight", "error", "daily_summary"]
+                alert_types=["rank_change", "important_insight", "error", "daily_summary"],
             )
             logging.info(f"Email verified and settings updated: {email}")
         except Exception as e:
             logging.warning(f"Failed to update alert settings: {e}")
 
-        return {
-            "verified": True,
-            "email": email,
-            "message": "이메일 인증이 완료되었습니다!"
-        }
+        return {"verified": True, "email": email, "message": "이메일 인증이 완료되었습니다!"}
 
     except HTTPException:
         raise
@@ -3816,7 +3966,7 @@ async def get_verification_status(email: str):
                     return {"verified": False, "status": "expired"}
                 return {
                     "verified": data["verified"],
-                    "status": "verified" if data["verified"] else "pending"
+                    "status": "verified" if data["verified"] else "pending",
                 }
 
         return {"verified": False, "status": "not_found"}
@@ -3828,12 +3978,13 @@ async def get_verification_status(email: str):
 
 # ============= Category KPI API =============
 
+
 @app.get("/api/category/kpi")
 async def get_category_kpi(
     category_id: str,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    brand: str = "LANEIGE"
+    start_date: str | None = None,
+    end_date: str | None = None,
+    brand: str = "LANEIGE",
 ):
     """
     카테고리별 KPI 데이터 조회 (기간 필터링 지원)
@@ -3859,6 +4010,7 @@ async def get_category_kpi(
         # SQLite에서 데이터 조회
         try:
             from src.tools.sqlite_storage import get_sqlite_storage
+
             sqlite = get_sqlite_storage()
             await sqlite.initialize()
 
@@ -3882,19 +4034,21 @@ async def get_category_kpi(
                 cat_data = crawl_data["categories"][category_id]
                 snapshot_date = crawl_data.get("snapshot_date", end_date)
                 for product in cat_data.get("products", []):
-                    rows.append((
-                        snapshot_date,
-                        product.get("rank", 100),
-                        product.get("brand", "Unknown"),
-                        product.get("price")
-                    ))
+                    rows.append(
+                        (
+                            snapshot_date,
+                            product.get("rank", 100),
+                            product.get("brand", "Unknown"),
+                            product.get("price"),
+                        )
+                    )
 
         if not rows:
             return {
                 "success": True,
                 "message": f"해당 기간({start_date} ~ {end_date})에 데이터가 없습니다.",
                 "data": None,
-                "period": {"start": start_date, "end": end_date}
+                "period": {"start": start_date, "end": end_date},
             }
 
         # KPI 계산
@@ -3934,21 +4088,18 @@ async def get_category_kpi(
                 "new_competitors": new_competitors,
                 "brand": brand,
                 "product_count": brand_count,
-                "total_products": total_products
+                "total_products": total_products,
             },
-            "period": {"start": start_date, "end": end_date}
+            "period": {"start": start_date, "end": end_date},
         }
 
     except Exception as e:
         logging.error(f"Category KPI API error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "data": None
-        }
+        return {"success": False, "error": str(e), "data": None}
 
 
 # ============= SoS (Share of Shelf) API =============
+
 
 def _load_crawl_data_for_sos():
     """JSON 파일에서 크롤링 데이터 로드 (SQLite fallback)"""
@@ -3958,16 +4109,16 @@ def _load_crawl_data_for_sos():
     # latest_crawl_result.json에서 데이터 로드
     crawl_path = Path("./data/latest_crawl_result.json")
     if crawl_path.exists():
-        with open(crawl_path, 'r', encoding='utf-8') as f:
+        with open(crawl_path, encoding="utf-8") as f:
             return json.load(f)
     return None
 
 
 @app.get("/api/sos/category")
 async def get_sos_by_category(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    compare_brands: Optional[str] = None  # comma-separated brand names
+    start_date: str | None = None,
+    end_date: str | None = None,
+    compare_brands: str | None = None,  # comma-separated brand names
 ):
     """
     카테고리별 SoS (Share of Shelf) 데이터 조회
@@ -3998,6 +4149,7 @@ async def get_sos_by_category(
         rows = []
         try:
             from src.tools.sqlite_storage import get_sqlite_storage
+
             sqlite = get_sqlite_storage()
             await sqlite.initialize()
 
@@ -4030,7 +4182,7 @@ async def get_sos_by_category(
                 "success": True,
                 "message": f"해당 기간({start_date} ~ {end_date})에 데이터가 없습니다.",
                 "data": [],
-                "period": {"start": start_date, "end": end_date}
+                "period": {"start": start_date, "end": end_date},
             }
 
         # 데이터 집계
@@ -4061,16 +4213,46 @@ async def get_sos_by_category(
         hierarchy_path = Path("./config/category_hierarchy.json")
         hierarchy_data = {}
         if hierarchy_path.exists():
-            with open(hierarchy_path, 'r', encoding='utf-8') as f:
-                hierarchy_data = json.load(f).get('categories', {})
+            with open(hierarchy_path, encoding="utf-8") as f:
+                hierarchy_data = json.load(f).get("categories", {})
 
         # 카테고리 메타 정보 (계층 구조 포함)
         category_meta = {
-            "beauty": {"name": "Beauty & Personal Care", "level": 0, "parent_id": None, "indent": 0, "order": 0},
-            "skin_care": {"name": "Skin Care", "level": 1, "parent_id": "beauty", "indent": 1, "order": 1},
-            "lip_care": {"name": "Lip Care", "level": 2, "parent_id": "skin_care", "indent": 2, "order": 2},
-            "lip_makeup": {"name": "Lip Makeup", "level": 2, "parent_id": "makeup", "indent": 1, "order": 3},
-            "face_powder": {"name": "Face Powder", "level": 3, "parent_id": "face_makeup", "indent": 2, "order": 4}
+            "beauty": {
+                "name": "Beauty & Personal Care",
+                "level": 0,
+                "parent_id": None,
+                "indent": 0,
+                "order": 0,
+            },
+            "skin_care": {
+                "name": "Skin Care",
+                "level": 1,
+                "parent_id": "beauty",
+                "indent": 1,
+                "order": 1,
+            },
+            "lip_care": {
+                "name": "Lip Care",
+                "level": 2,
+                "parent_id": "skin_care",
+                "indent": 2,
+                "order": 2,
+            },
+            "lip_makeup": {
+                "name": "Lip Makeup",
+                "level": 2,
+                "parent_id": "makeup",
+                "indent": 1,
+                "order": 3,
+            },
+            "face_powder": {
+                "name": "Face Powder",
+                "level": 3,
+                "parent_id": "face_makeup",
+                "indent": 2,
+                "order": 4,
+            },
         }
 
         # hierarchy_data에서 정보 업데이트
@@ -4097,7 +4279,11 @@ async def get_sos_by_category(
                         laneige_dates.update(brands[variant]["dates"])
             laneige_appearance_days = len(laneige_dates)
 
-            laneige_sos = (laneige_count / total_products_in_category * 100) if total_products_in_category > 0 else 0
+            laneige_sos = (
+                (laneige_count / total_products_in_category * 100)
+                if total_products_in_category > 0
+                else 0
+            )
 
             # 평균 SoS (전체 브랜드 수 기준)
             num_brands = len(brands)
@@ -4110,63 +4296,68 @@ async def get_sos_by_category(
                 for brand_name, brand_data in brands.items():
                     if compare_brand.lower() in brand_name.lower():
                         brand_count += brand_data["total_count"]
-                compare_sos[compare_brand] = (brand_count / total_products_in_category * 100) if total_products_in_category > 0 else 0
+                compare_sos[compare_brand] = (
+                    (brand_count / total_products_in_category * 100)
+                    if total_products_in_category > 0
+                    else 0
+                )
 
             # LANEIGE 개별 제품 데이터 (해당 카테고리 내)
             laneige_products = []
             # 제품별 상세는 별도 쿼리 필요 - 여기서는 브랜드 레벨만
 
             # 카테고리 메타 정보 가져오기
-            meta = category_meta.get(category_id, {"name": category_id, "level": 0, "parent_id": None, "indent": 0, "order": 99})
+            meta = category_meta.get(
+                category_id,
+                {"name": category_id, "level": 0, "parent_id": None, "indent": 0, "order": 99},
+            )
 
-            result_data.append({
-                "category_id": category_id,
-                "category_name": meta["name"],
-                "level": meta["level"],
-                "parent_id": meta["parent_id"],
-                "indent": meta["indent"],
-                "order": meta["order"],
-                "total_products": total_products_in_category // num_dates if num_dates > 0 else 0,
-                "laneige_sos": round(laneige_sos, 2),
-                "laneige_count": round(laneige_count / num_dates, 1) if num_dates > 0 else 0,  # 소수점 1자리 (일 평균)
-                "laneige_appearance_days": laneige_appearance_days,  # 출현 일수
-                "laneige_appearance_rate": round(laneige_appearance_days / num_dates * 100, 1) if num_dates > 0 else 0,  # 출현율 %
-                "avg_sos": round(avg_sos, 2),
-                "compare_brands": compare_sos,
-                "num_dates": num_dates
-            })
+            result_data.append(
+                {
+                    "category_id": category_id,
+                    "category_name": meta["name"],
+                    "level": meta["level"],
+                    "parent_id": meta["parent_id"],
+                    "indent": meta["indent"],
+                    "order": meta["order"],
+                    "total_products": total_products_in_category // num_dates
+                    if num_dates > 0
+                    else 0,
+                    "laneige_sos": round(laneige_sos, 2),
+                    "laneige_count": round(laneige_count / num_dates, 1)
+                    if num_dates > 0
+                    else 0,  # 소수점 1자리 (일 평균)
+                    "laneige_appearance_days": laneige_appearance_days,  # 출현 일수
+                    "laneige_appearance_rate": round(laneige_appearance_days / num_dates * 100, 1)
+                    if num_dates > 0
+                    else 0,  # 출현율 %
+                    "avg_sos": round(avg_sos, 2),
+                    "compare_brands": compare_sos,
+                    "num_dates": num_dates,
+                }
+            )
 
         # 계층 구조 순서대로 정렬
         result_data.sort(key=lambda x: x.get("order", 99))
 
         return {
             "success": True,
-            "period": {
-                "start": start_date,
-                "end": end_date,
-                "days": num_dates
-            },
+            "period": {"start": start_date, "end": end_date, "days": num_dates},
             "data": result_data,
             "compare_brands": compare_brand_list,
             "hierarchy_info": {
                 "description": "각 카테고리는 자체 Top 100 기준으로 독립 계산됩니다.",
-                "note": "상위 카테고리와 하위 카테고리의 SoS는 서로 다른 랭킹에서 계산됩니다."
-            }
+                "note": "상위 카테고리와 하위 카테고리의 SoS는 서로 다른 랭킹에서 계산됩니다.",
+            },
         }
 
     except Exception as e:
         logging.error(f"SoS category API error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/sos/brands")
-async def get_available_brands(
-    category_id: Optional[str] = None,
-    min_count: int = 1
-):
+async def get_available_brands(category_id: str | None = None, min_count: int = 1):
     """
     비교 가능한 브랜드 목록 조회 (Top 100에 포함된 브랜드들)
 
@@ -4185,6 +4376,7 @@ async def get_available_brands(
         # SQLite 먼저 시도
         try:
             from src.tools.sqlite_storage import get_sqlite_storage
+
             sqlite = get_sqlite_storage()
             await sqlite.initialize()
 
@@ -4236,48 +4428,53 @@ async def get_available_brands(
 
                 for brand_name, count in sorted(brand_counts.items(), key=lambda x: -x[1]):
                     # Unknown 브랜드 제외
-                    if count >= min_count and brand_name.strip() and brand_name.lower() != 'unknown':
-                        brands.append({
-                            "name": brand_name,
-                            "product_count": count,
-                            "days_present": 1,
-                            "is_laneige": "laneige" in brand_name.lower()
-                        })
+                    if (
+                        count >= min_count
+                        and brand_name.strip()
+                        and brand_name.lower() != "unknown"
+                    ):
+                        brands.append(
+                            {
+                                "name": brand_name,
+                                "product_count": count,
+                                "days_present": 1,
+                                "is_laneige": "laneige" in brand_name.lower(),
+                            }
+                        )
         else:
             for row in rows:
                 brand_name, product_count, days_present = row
                 # Unknown 브랜드 제외 (SQL에서도 필터링하지만 이중 체크)
-                if brand_name and brand_name.strip() and brand_name.lower() != 'unknown':
-                    brands.append({
-                        "name": brand_name,
-                        "product_count": product_count,
-                        "days_present": days_present,
-                        "is_laneige": "laneige" in brand_name.lower()
-                    })
+                if brand_name and brand_name.strip() and brand_name.lower() != "unknown":
+                    brands.append(
+                        {
+                            "name": brand_name,
+                            "product_count": product_count,
+                            "days_present": days_present,
+                            "is_laneige": "laneige" in brand_name.lower(),
+                        }
+                    )
 
         return {
             "success": True,
             "period": {"start": start_date, "end": end_date},
             "category_id": category_id,
             "brands": brands,
-            "total_brands": len(brands)
+            "total_brands": len(brands),
         }
 
     except Exception as e:
         logging.error(f"SoS brands API error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/sos/trend")
 async def get_sos_trend(
     brand: str = "LANEIGE",
-    category_id: Optional[str] = None,
+    category_id: str | None = None,
     days: int = 7,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    start_date: str | None = None,
+    end_date: str | None = None,
 ):
     """
     브랜드의 SoS 추세 데이터 (일별)
@@ -4363,30 +4560,169 @@ async def get_sos_trend(
         for date, total in sorted(total_by_date.items()):
             brand_count = brand_by_date.get(date, 0)
             sos = (brand_count / total * 100) if total > 0 else 0
-            trend_data.append({
-                "date": date,
-                "total_products": total,
-                "brand_count": brand_count,
-                "sos": round(sos, 2)
-            })
+            trend_data.append(
+                {
+                    "date": date,
+                    "total_products": total,
+                    "brand_count": brand_count,
+                    "sos": round(sos, 2),
+                }
+            )
 
         return {
             "success": True,
             "brand": brand,
             "category_id": category_id,
             "period": {"start": start_date, "end": end_date, "days": days},
-            "trend": trend_data
+            "trend": trend_data,
         }
 
     except Exception as e:
         logging.error(f"SoS trend API error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/sos/trend/competitors-avg")
+async def get_competitors_avg_sos_trend(
+    category_id: str | None = None,
+    days: int = 7,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    top_n: int = 10,
+    exclude_brand: str = "LANEIGE",
+):
+    """
+    경쟁 브랜드 평균 SoS 추세 데이터 (일별)
+    Top N 브랜드(LANEIGE 제외)의 평균 시장점유율 추이
+
+    Args:
+        category_id: 카테고리 (선택, 없으면 전체)
+        days: 조회 기간 (기본: 7일)
+        start_date: 시작 날짜 (YYYY-MM-DD)
+        end_date: 종료 날짜 (YYYY-MM-DD)
+        top_n: 상위 몇 개 브랜드 (기본: 10)
+        exclude_brand: 제외할 브랜드 (기본: LANEIGE)
+
+    Returns:
+        경쟁 브랜드 평균 SoS 추세 데이터
+    """
+    try:
+        from src.tools.sqlite_storage import get_sqlite_storage
+
+        sqlite = get_sqlite_storage()
+        await sqlite.initialize()
+
+        # 날짜 범위 결정
+        if start_date and end_date:
+            pass
+        else:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # 일별 전체 제품 수 쿼리
+        if category_id:
+            total_query = """
+                SELECT snapshot_date, COUNT(*) as total_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND category_id = ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date
+            """
+            total_params = (start_date, end_date, category_id)
+
+            # 일별/브랜드별 제품 수 (LANEIGE 제외)
+            brand_daily_query = """
+                SELECT snapshot_date, brand, COUNT(*) as brand_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND category_id = ?
+                AND LOWER(brand) NOT LIKE ?
+                AND brand IS NOT NULL
+                AND brand != ''
+                GROUP BY snapshot_date, brand
+                ORDER BY snapshot_date, brand_count DESC
+            """
+            brand_daily_params = (start_date, end_date, category_id, f"%{exclude_brand.lower()}%")
+        else:
+            total_query = """
+                SELECT snapshot_date, COUNT(*) as total_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date
+            """
+            total_params = (start_date, end_date)
+
+            brand_daily_query = """
+                SELECT snapshot_date, brand, COUNT(*) as brand_count
+                FROM raw_data
+                WHERE snapshot_date BETWEEN ? AND ?
+                AND LOWER(brand) NOT LIKE ?
+                AND brand IS NOT NULL
+                AND brand != ''
+                GROUP BY snapshot_date, brand
+                ORDER BY snapshot_date, brand_count DESC
+            """
+            brand_daily_params = (start_date, end_date, f"%{exclude_brand.lower()}%")
+
+        with sqlite.get_connection() as conn:
+            # 전체 카운트
+            cursor = conn.execute(total_query, total_params)
+            total_rows = cursor.fetchall()
+            total_by_date = {row[0]: row[1] for row in total_rows}
+
+            # 일별/브랜드별 카운트
+            cursor = conn.execute(brand_daily_query, brand_daily_params)
+            brand_rows = cursor.fetchall()
+
+        # 일별로 Top N 브랜드의 평균 SoS 계산
+        from collections import defaultdict
+
+        # 일별 브랜드 데이터 그룹화
+        daily_brands: dict[str, list[tuple[str, int]]] = defaultdict(list)
+        for date, brand, count in brand_rows:
+            daily_brands[date].append((brand, count))
+
+        # 일별 경쟁 브랜드 평균 SoS 계산
+        trend_data = []
+        for date, total in sorted(total_by_date.items()):
+            brands_for_date = daily_brands.get(date, [])
+            # 이미 brand_count DESC로 정렬되어 있으므로 상위 N개 선택
+            top_brands = brands_for_date[:top_n]
+
+            if top_brands and total > 0:
+                # 각 브랜드의 SoS 계산
+                sos_values = [(count / total * 100) for _, count in top_brands]
+                avg_sos = sum(sos_values) / len(sos_values)
+            else:
+                avg_sos = 0
+
+            trend_data.append(
+                {
+                    "date": date,
+                    "total_products": total,
+                    "top_brands_count": len(top_brands),
+                    "avg_sos": round(avg_sos, 2),
+                }
+            )
+
         return {
-            "success": False,
-            "error": str(e)
+            "success": True,
+            "category_id": category_id,
+            "excluded_brand": exclude_brand,
+            "top_n": top_n,
+            "period": {"start": start_date, "end": end_date, "days": days},
+            "trend": trend_data,
         }
+
+    except Exception as e:
+        logging.error(f"Competitors avg SoS trend API error: {e}")
+        return {"success": False, "error": str(e)}
 
 
 # ============= 데이터 동기화 API =============
+
 
 @app.get("/api/sync/status")
 async def sync_status():
@@ -4425,7 +4761,7 @@ async def sync_status():
                     "oldest": None,
                     "total_days": 0,
                     "total_records": 0,
-                    "message": "No data available"
+                    "message": "No data available",
                 }
 
             return {
@@ -4433,7 +4769,7 @@ async def sync_status():
                 "latest": row[1],
                 "oldest": row[0],
                 "total_days": row[2],
-                "total_records": row[3]
+                "total_records": row[3],
             }
     except Exception as e:
         logging.error(f"Sync status error: {e}")
@@ -4463,11 +4799,7 @@ async def sync_dates():
             """)
             dates = [row[0] for row in cursor.fetchall()]
 
-        return {
-            "success": True,
-            "dates": dates,
-            "count": len(dates)
-        }
+        return {"success": True, "dates": dates, "count": len(dates)}
     except Exception as e:
         logging.error(f"Sync dates error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -4487,7 +4819,7 @@ async def sync_download(date: str):
     import re
 
     # 날짜 형식 검증
-    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
     try:
@@ -4503,11 +4835,14 @@ async def sync_download(date: str):
             columns = [row[1] for row in cursor.fetchall()]
 
             # 해당 날짜 데이터 조회
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT * FROM raw_data
                 WHERE snapshot_date = ?
                 ORDER BY category_id, rank
-            """, (date,))
+            """,
+                (date,),
+            )
             rows = cursor.fetchall()
 
         if not rows:
@@ -4516,15 +4851,10 @@ async def sync_download(date: str):
         # 딕셔너리 변환
         records = []
         for row in rows:
-            record = dict(zip(columns, row))
+            record = dict(zip(columns, row, strict=False))
             records.append(record)
 
-        return {
-            "success": True,
-            "date": date,
-            "count": len(records),
-            "records": records
-        }
+        return {"success": True, "date": date, "count": len(records), "records": records}
     except HTTPException:
         raise
     except Exception as e:
@@ -4535,6 +4865,7 @@ async def sync_download(date: str):
 # =============================================================================
 # Market Intelligence API (v2026.01.26)
 # =============================================================================
+
 
 @app.get("/api/market-intelligence/status", response_model=MarketIntelligenceStatusResponse)
 async def get_market_intelligence_status():
@@ -4559,7 +4890,7 @@ async def get_market_intelligence_status():
             initialized=engine._initialized,
             layers_collected=list(engine.layer_data.keys()),
             last_collection=last_collection,
-            stats=stats
+            stats=stats,
         )
     except Exception as e:
         logger.error(f"Market Intelligence status error: {e}")
@@ -4567,9 +4898,7 @@ async def get_market_intelligence_status():
 
 
 @app.get("/api/market-intelligence/layers")
-async def get_market_intelligence_layers(
-    layer: Optional[int] = None
-):
+async def get_market_intelligence_layers(layer: int | None = None):
     """
     4-Layer 데이터 조회
 
@@ -4585,14 +4914,17 @@ async def get_market_intelligence_layers(
         if layer is not None:
             layer_data = engine.layer_data.get(layer)
             if not layer_data:
-                return {"error": f"Layer {layer} 데이터가 없습니다.", "available_layers": list(engine.layer_data.keys())}
+                return {
+                    "error": f"Layer {layer} 데이터가 없습니다.",
+                    "available_layers": list(engine.layer_data.keys()),
+                }
 
             return {
                 "layer": layer_data.layer,
                 "layer_name": layer_data.layer_name,
                 "collected_at": layer_data.collected_at,
                 "data": layer_data.data,
-                "sources": layer_data.sources
+                "sources": layer_data.sources,
             }
 
         # 전체 레이어
@@ -4603,7 +4935,7 @@ async def get_market_intelligence_layers(
                 "layer_name": layer_data.layer_name,
                 "collected_at": layer_data.collected_at,
                 "data": layer_data.data,
-                "sources": layer_data.sources
+                "sources": layer_data.sources,
             }
 
         return result
@@ -4613,9 +4945,7 @@ async def get_market_intelligence_layers(
 
 
 @app.post("/api/market-intelligence/collect", dependencies=[Depends(verify_api_key)])
-async def collect_market_intelligence(
-    layers: Optional[List[int]] = None
-):
+async def collect_market_intelligence(layers: list[int] | None = None):
     """
     Market Intelligence 데이터 수집 트리거
 
@@ -4637,7 +4967,7 @@ async def collect_market_intelligence(
                     results[f"layer_{layer_num}"] = {
                         "status": "collected",
                         "collected_at": layer_data.collected_at,
-                        "sources_count": len(layer_data.sources)
+                        "sources_count": len(layer_data.sources),
                     }
                 else:
                     results[f"layer_{layer_num}"] = {"status": "skipped"}
@@ -4648,7 +4978,7 @@ async def collect_market_intelligence(
                 f"layer_{k}": {
                     "status": "collected",
                     "collected_at": v.collected_at,
-                    "sources_count": len(v.sources)
+                    "sources_count": len(v.sources),
                 }
                 for k, v in engine.layer_data.items()
             }
@@ -4656,20 +4986,14 @@ async def collect_market_intelligence(
         # 데이터 저장
         engine.save_data()
 
-        return {
-            "status": "success",
-            "collected": results,
-            "timestamp": datetime.now().isoformat()
-        }
+        return {"status": "success", "collected": results, "timestamp": datetime.now().isoformat()}
     except Exception as e:
         logger.error(f"Market Intelligence collection error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/market-intelligence/insight")
-async def get_market_intelligence_insight(
-    include_amazon: bool = False
-):
+async def get_market_intelligence_insight(include_amazon: bool = False):
     """
     4-Layer 기반 인사이트 생성
 
@@ -4702,7 +5026,7 @@ async def get_market_intelligence_insight(
         return {
             "insight": insight,
             "generated_at": datetime.now().isoformat(),
-            "layers_used": list(engine.layer_data.keys())
+            "layers_used": list(engine.layer_data.keys()),
         }
     except Exception as e:
         logger.error(f"Market Intelligence insight error: {e}")
@@ -4734,7 +5058,7 @@ async def get_insight_sources():
             "total_sources": len(all_sources),
             "by_type": by_type,
             "sources": all_sources[:20],  # 최근 20개
-            "source_manager_stats": engine.source_manager.get_stats()
+            "source_manager_stats": engine.source_manager.get_stats(),
         }
     except Exception as e:
         logger.error(f"Insight sources error: {e}")
@@ -4745,4 +5069,5 @@ async def get_insight_sources():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8001)
