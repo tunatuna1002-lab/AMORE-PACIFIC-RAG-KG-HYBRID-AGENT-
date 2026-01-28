@@ -135,7 +135,28 @@ class ChartGenerator:
 
         # 날짜 포맷팅: MM-DD 형식 (최소 7일 이상 표시 보장)
         dates = [d["date"][-5:] for d in sorted_trends]  # MM-DD 형식
+        full_dates = [d["date"] for d in sorted_trends]  # YYYY-MM-DD 형식 (기간 계산용)
         sos_values = [d.get("laneige_sos", 0) for d in sorted_trends]
+
+        # 제목에서 기간 추출하여 기대 일수 계산
+        expected_days = None
+        data_warning = None
+        import re
+        from datetime import datetime
+
+        date_match = re.search(r"(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})", title)
+        if date_match and full_dates:
+            try:
+                start = datetime.strptime(date_match.group(1), "%Y-%m-%d")
+                end = datetime.strptime(date_match.group(2), "%Y-%m-%d")
+                expected_days = (end - start).days + 1
+                actual_days = len(dates)
+
+                if actual_days < expected_days:
+                    missing = expected_days - actual_days
+                    data_warning = f"※ 데이터 {actual_days}일분만 존재 (기간 {expected_days}일 중 {missing}일 누락)"
+            except ValueError:
+                pass
 
         # 데이터가 없거나 적을 때 처리
         if not dates or not sos_values:
@@ -215,7 +236,21 @@ class ChartGenerator:
         ax.set_xticks([dates[i] for i in tick_indices])
         ax.set_xticklabels([dates[i] for i in tick_indices])
 
-        plt.tight_layout()
+        # 데이터 누락 경고 표시
+        if data_warning:
+            fig.text(
+                0.5,
+                0.02,
+                data_warning,
+                ha="center",
+                fontsize=9,
+                color="#E74C3C",
+                style="italic",
+                weight="bold",
+            )
+            plt.tight_layout(rect=[0, 0.05, 1, 1])
+        else:
+            plt.tight_layout()
 
         # 저장
         output_path = self.output_dir / filename
@@ -352,10 +387,29 @@ class ChartGenerator:
         filename: str = "hhi_trend.png",
     ) -> Path:
         """HHI 추이 차트"""
+        import re
+        from datetime import datetime
+
         fig, ax = plt.subplots(figsize=(10, 4))
 
         dates = [d["date"][-5:] for d in daily_trends]
+        full_dates = [d["date"] for d in daily_trends]
         hhi_values = [d.get("hhi", 0) for d in daily_trends]
+
+        # 데이터 누락 경고 계산
+        data_warning = None
+        date_match = re.search(r"(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})", title)
+        if date_match and full_dates:
+            try:
+                start = datetime.strptime(date_match.group(1), "%Y-%m-%d")
+                end = datetime.strptime(date_match.group(2), "%Y-%m-%d")
+                expected_days = (end - start).days + 1
+                actual_days = len(dates)
+                if actual_days < expected_days:
+                    missing = expected_days - actual_days
+                    data_warning = f"※ 데이터 {actual_days}일분만 존재 ({missing}일 누락)"
+            except ValueError:
+                pass
 
         ax.plot(dates, hhi_values, marker="s", color=self.AMORE_BLUE, linewidth=2, markersize=5)
 
@@ -374,7 +428,21 @@ class ChartGenerator:
         ax.legend(loc="upper right", fontsize=8)
         ax.grid(True, alpha=0.3)
 
-        plt.tight_layout()
+        # 데이터 누락 경고 표시
+        if data_warning:
+            fig.text(
+                0.5,
+                0.02,
+                data_warning,
+                ha="center",
+                fontsize=9,
+                color="#E74C3C",
+                style="italic",
+                weight="bold",
+            )
+            plt.tight_layout(rect=[0, 0.05, 1, 1])
+        else:
+            plt.tight_layout()
 
         output_path = self.output_dir / filename
         fig.savefig(
