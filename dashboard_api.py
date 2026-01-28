@@ -293,11 +293,14 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 
     사용법: 엔드포인트에 dependencies=[Depends(verify_api_key)] 추가
     """
+    import hmac
+
     if api_key is None:
         raise HTTPException(
             status_code=401, detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요."
         )
-    if api_key != API_KEY:
+    # 타이밍 공격 방어: hmac.compare_digest 사용
+    if not API_KEY or not hmac.compare_digest(api_key.encode(), API_KEY.encode()):
         raise HTTPException(status_code=403, detail="유효하지 않은 API Key입니다.")
     return api_key
 
@@ -561,7 +564,7 @@ def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str
     if query_type == QueryType.DATA_QUERY or products_mentioned:
         if products:
             prod_lines = []
-            for asin, p in list(products.items())[:5]:
+            for _asin, p in list(products.items())[:5]:
                 prod_lines.append(f"""  - {p['name'][:40]}
     순위: #{p['rank']} ({p['rank_delta']}), 평점: {p['rating']}, 변동성: {p.get('volatility_status', 'N/A')}""")
             context_parts.append(
@@ -575,7 +578,7 @@ def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str
     if categories_mentioned or query_type in [QueryType.ANALYSIS, QueryType.INTERPRETATION]:
         if categories:
             cat_lines = []
-            for cat_id, cat in categories.items():
+            for _cat_id, cat in categories.items():
                 cat_lines.append(
                     f"  - {cat['name']}: SoS {cat['sos']}%, 최고 순위 #{cat['best_rank']}, CPI {cat.get('cpi', 100)}"
                 )
@@ -1614,14 +1617,20 @@ async def _calculate_brand_metrics_for_period(
     """
     기간 내 모든 브랜드의 메트릭 계산 (SoS × Avg Rank 차트용)
 
+    Note:
+        기간 조회 시 동일 ASIN이 여러 날짜에 중복 등장하므로,
+        ASIN 기준 유니크 카운트를 적용하여 정확한 제품 수 계산
+
     Returns:
         브랜드별 SoS, 평균 순위, 제품 수 등
     """
     # 전체 제품 데이터 집계 (모든 브랜드)
     brand_data = {}
+    brand_unique_asins: dict[str, set] = {}  # ASIN 중복 제거용
 
     for record in records:
         brand_name = record.get("brand", "Unknown")
+        asin = record.get("asin", "")
         rank = int(record.get("rank", 0)) if record.get("rank") else 0
 
         # Unknown 브랜드 및 빈 브랜드 제외 (대시보드에서 의미 없음)
@@ -1630,16 +1639,24 @@ async def _calculate_brand_metrics_for_period(
 
         if brand_name not in brand_data:
             brand_data[brand_name] = {"brand": brand_name, "ranks": [], "product_count": 0}
+            brand_unique_asins[brand_name] = set()
 
+        # 순위는 모든 레코드에서 수집 (평균 계산용)
         brand_data[brand_name]["ranks"].append(rank)
-        brand_data[brand_name]["product_count"] += 1
 
-    # 총 제품 수 (모든 브랜드 - Unknown 제외 후)
+        # 제품 수는 ASIN 기준 유니크 카운트 (중복 제거)
+        if asin and asin not in brand_unique_asins[brand_name]:
+            brand_unique_asins[brand_name].add(asin)
+            brand_data[brand_name]["product_count"] += 1
+        elif not asin:
+            # ASIN이 없는 경우 기존 방식으로 카운트 (폴백)
+            brand_data[brand_name]["product_count"] += 1
+
+    # 총 유니크 제품 수 (모든 브랜드 - Unknown 제외 후)
     total_products = sum(b["product_count"] for b in brand_data.values())
 
     # 메트릭 계산
     brand_metrics = []
-    laneige_found = False
     for brand_name, data in brand_data.items():
         if not data["ranks"]:
             continue
@@ -1651,8 +1668,6 @@ async def _calculate_brand_metrics_for_period(
         bubble_size = max(5, min(25, data["product_count"] * 2))
 
         is_laneige = target_brand.upper() in brand_name.upper()
-        if is_laneige:
-            laneige_found = True
 
         brand_metrics.append(
             {
@@ -1796,7 +1811,7 @@ async def _get_historical_from_local(
                 brand_products = []
                 crawl_date = None
 
-                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                for _cat_id, cat_data in crawl_data.get("categories", {}).items():
                     for product in cat_data.get("products", []):
                         product_brand = product.get("brand", "")
                         product_name = product.get("product_name", "")
@@ -2014,7 +2029,7 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
             header_cells[i].paragraphs[0].runs[0].bold = True
 
         # 데이터 행
-        for asin, product in products.items():
+        for _asin, product in products.items():
             row = table.add_row().cells
             row[0].text = product.get("name", "")[:40]
             row[1].text = f"#{product.get('rank', 'N/A')}"
@@ -2167,7 +2182,7 @@ async def export_analyst_report(request: AnalystReportRequest):
 
     # AMOREPACIFIC colors
     PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
-    AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795
+    _AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795 (reserved for future use)
     GRAY = RGBColor(125, 125, 125)  # #7D7D7D
 
     try:
@@ -2384,7 +2399,7 @@ async def export_analyst_report(request: AnalystReportRequest):
         raise
     except Exception as e:
         logger.error(f"Analyst report generation failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}") from e
 
 
 @app.post("/api/export/excel")
@@ -2404,7 +2419,7 @@ async def export_excel(request: Request):
         body = await request.json()
         start_date = body.get("start_date")
         end_date = body.get("end_date")
-        include_metrics = body.get("include_metrics", True)
+        _include_metrics = body.get("include_metrics", True)  # reserved for future use
 
         # 데이터 디렉토리 경로 설정
         data_dir = Path("./data")
@@ -3225,8 +3240,141 @@ async def serve_dashboard():
 
 @app.get("/api/health")
 async def health_check():
-    """헬스 체크 엔드포인트"""
+    """기본 헬스 체크 엔드포인트 (Railway healthcheck용)"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/health/deep")
+async def deep_health_check():
+    """
+    Deep Health Check - 모든 서브시스템 상태 확인
+
+    Returns:
+        - database: SQLite 연결 상태
+        - knowledge_graph: KG 로드 상태 및 트리플 수
+        - llm: OpenAI API 연결 상태
+        - scheduler: 자율 스케줄러 상태
+        - memory: 시스템 메모리 사용량
+        - disk: 디스크 사용량 (Railway Volume)
+    """
+    import os
+    import sqlite3
+    from pathlib import Path
+
+    health = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "checks": {},
+        "warnings": [],
+    }
+
+    # 1. SQLite 연결 확인
+    try:
+        db_path = (
+            Path("/data/amore_data.db") if Path("/data").exists() else Path("data/amore_data.db")
+        )
+        if db_path.exists():
+            conn = sqlite3.connect(str(db_path), timeout=5)
+            cursor = conn.execute("SELECT COUNT(*) FROM raw_data")
+            count = cursor.fetchone()[0]
+            conn.close()
+            health["checks"]["database"] = {
+                "status": "healthy",
+                "records": count,
+                "path": str(db_path),
+            }
+        else:
+            health["checks"]["database"] = {"status": "missing", "path": str(db_path)}
+            health["warnings"].append("SQLite database not found")
+    except Exception as e:
+        health["checks"]["database"] = {"status": "unhealthy", "error": str(e)}
+        health["status"] = "degraded"
+
+    # 2. Knowledge Graph 상태
+    try:
+        from src.ontology.knowledge_graph import get_knowledge_graph
+
+        kg = get_knowledge_graph()
+        triple_count = len(kg.triples) if kg.triples else 0
+        health["checks"]["knowledge_graph"] = {
+            "status": "healthy" if triple_count > 0 else "empty",
+            "triples": triple_count,
+            "max_triples": kg.max_triples,
+        }
+        if triple_count == 0:
+            health["warnings"].append("Knowledge Graph is empty")
+    except Exception as e:
+        health["checks"]["knowledge_graph"] = {"status": "unhealthy", "error": str(e)}
+        health["status"] = "degraded"
+
+    # 3. LLM API 연결 (OpenAI)
+    try:
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if api_key and api_key.startswith("sk-"):
+            health["checks"]["llm"] = {
+                "status": "configured",
+                "provider": "openai",
+                "key_prefix": api_key[:10] + "...",
+            }
+        else:
+            health["checks"]["llm"] = {"status": "not_configured"}
+            health["warnings"].append("OPENAI_API_KEY not properly configured")
+    except Exception as e:
+        health["checks"]["llm"] = {"status": "error", "error": str(e)}
+
+    # 4. 스케줄러 상태
+    try:
+        brain = await get_initialized_brain()
+        scheduler_running = brain.scheduler.is_running if brain.scheduler else False
+        health["checks"]["scheduler"] = {
+            "status": "running" if scheduler_running else "stopped",
+            "mode": brain.mode.value if brain.mode else "unknown",
+        }
+    except Exception as e:
+        health["checks"]["scheduler"] = {"status": "error", "error": str(e)}
+
+    # 5. 메모리 사용량
+    try:
+        import psutil
+
+        memory = psutil.virtual_memory()
+        health["checks"]["memory"] = {
+            "status": "healthy" if memory.percent < 90 else "warning",
+            "used_percent": round(memory.percent, 1),
+            "available_gb": round(memory.available / (1024**3), 2),
+        }
+        if memory.percent > 90:
+            health["warnings"].append(f"High memory usage: {memory.percent}%")
+            health["status"] = "degraded"
+    except ImportError:
+        health["checks"]["memory"] = {"status": "unknown", "note": "psutil not installed"}
+
+    # 6. 디스크 사용량 (Railway Volume)
+    try:
+        import shutil
+
+        data_path = Path("/data") if Path("/data").exists() else Path("data")
+        if data_path.exists():
+            total, used, free = shutil.disk_usage(data_path)
+            used_percent = (used / total) * 100
+            health["checks"]["disk"] = {
+                "status": "healthy" if used_percent < 90 else "warning",
+                "used_percent": round(used_percent, 1),
+                "free_gb": round(free / (1024**3), 2),
+                "path": str(data_path),
+            }
+            if used_percent > 90:
+                health["warnings"].append(f"Low disk space: {100-used_percent:.1f}% free")
+                health["status"] = "degraded"
+    except Exception as e:
+        health["checks"]["disk"] = {"status": "error", "error": str(e)}
+
+    # 최종 상태 결정
+    unhealthy_checks = [k for k, v in health["checks"].items() if v.get("status") == "unhealthy"]
+    if unhealthy_checks:
+        health["status"] = "unhealthy"
+
+    return health
 
 
 # ============= Level 4 Brain API (v4) =============
@@ -3911,7 +4059,7 @@ async def send_verification_email(request: Request):
         verify_url = f"{base_url}/?verify_email={token}&email={email}"
 
         # 이메일 발송
-        alert_service = get_alert_service()
+        get_alert_service()
 
         # EmailSender 직접 사용
         from src.tools.email_sender import EmailSender
@@ -4009,7 +4157,7 @@ async def get_verification_status(email: str):
     """이메일 인증 상태 확인"""
     try:
         # 토큰 저장소에서 해당 이메일의 인증 상태 확인
-        for token_hash, data in email_verification_tokens.items():
+        for _token_hash, data in email_verification_tokens.items():
             if data["email"] == email:
                 if datetime.now() > data["expires_at"]:
                     return {"verified": False, "status": "expired"}
@@ -4352,7 +4500,6 @@ async def get_sos_by_category(
                 )
 
             # LANEIGE 개별 제품 데이터 (해당 카테고리 내)
-            laneige_products = []
             # 제품별 상세는 별도 쿼리 필요 - 여기서는 브랜드 레벨만
 
             # 카테고리 메타 정보 가져오기
@@ -4911,6 +5058,125 @@ async def sync_download(date: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/sync/upload")
+async def sync_upload(request: Request):
+    """
+    로컬에서 Railway로 raw_data 업로드
+
+    Request Body:
+        {
+            "records": [...],  # raw_data 레코드 배열
+            "api_key": "..."   # 인증 키 (선택)
+        }
+
+    Returns:
+        {"success": True, "inserted": N, "updated": M}
+    """
+    import os
+
+    try:
+        body = await request.json()
+        records = body.get("records", [])
+        api_key = body.get("api_key", "")
+
+        # API 키 검증 (설정된 경우)
+        expected_key = os.getenv("API_KEY", "")
+        if expected_key and api_key != expected_key:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+
+        if not records:
+            raise HTTPException(status_code=400, detail="No records provided")
+
+        sqlite = get_sqlite_storage()
+        if not sqlite:
+            raise HTTPException(status_code=500, detail="SQLite not available")
+
+        await sqlite.initialize()
+
+        inserted = 0
+        updated = 0
+
+        with sqlite.get_connection() as conn:
+            for record in records:
+                # UPSERT: snapshot_date + category_id + asin 조합이 unique key
+                cursor = conn.execute(
+                    """
+                    SELECT id FROM raw_data
+                    WHERE snapshot_date = ? AND category_id = ? AND asin = ?
+                """,
+                    (
+                        record.get("snapshot_date"),
+                        record.get("category_id"),
+                        record.get("asin"),
+                    ),
+                )
+                existing = cursor.fetchone()
+
+                if existing:
+                    # UPDATE
+                    conn.execute(
+                        """
+                        UPDATE raw_data SET
+                            rank = ?, product_name = ?, brand = ?, price = ?,
+                            rating = ?, reviews_count = ?, product_url = ?,
+                            image_url = ?, is_best_seller = ?, is_amazon_choice = ?
+                        WHERE id = ?
+                    """,
+                        (
+                            record.get("rank"),
+                            record.get("product_name"),
+                            record.get("brand"),
+                            record.get("price"),
+                            record.get("rating"),
+                            record.get("reviews_count"),
+                            record.get("product_url"),
+                            record.get("image_url"),
+                            record.get("is_best_seller", 0),
+                            record.get("is_amazon_choice", 0),
+                            existing[0],
+                        ),
+                    )
+                    updated += 1
+                else:
+                    # INSERT
+                    conn.execute(
+                        """
+                        INSERT INTO raw_data (
+                            snapshot_date, category_id, asin, rank, product_name,
+                            brand, price, rating, reviews_count, product_url,
+                            image_url, is_best_seller, is_amazon_choice
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                        (
+                            record.get("snapshot_date"),
+                            record.get("category_id"),
+                            record.get("asin"),
+                            record.get("rank"),
+                            record.get("product_name"),
+                            record.get("brand"),
+                            record.get("price"),
+                            record.get("rating"),
+                            record.get("reviews_count"),
+                            record.get("product_url"),
+                            record.get("image_url"),
+                            record.get("is_best_seller", 0),
+                            record.get("is_amazon_choice", 0),
+                        ),
+                    )
+                    inserted += 1
+
+            conn.commit()
+
+        logging.info(f"Sync upload: inserted={inserted}, updated={updated}")
+        return {"success": True, "inserted": inserted, "updated": updated}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Sync upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # =============================================================================
 # Market Intelligence API (v2026.01.26)
 # =============================================================================
@@ -5063,7 +5329,7 @@ async def get_market_intelligence_insight(include_amazon: bool = False):
         amazon_data = None
         if include_amazon:
             try:
-                storage = await get_sqlite_storage()
+                await get_sqlite_storage()
                 # 최신 LANEIGE 데이터 조회
                 # (실제 구현은 storage의 메서드에 따라 다름)
                 amazon_data = {"sos": 5.2, "laneige_rank": 15}  # placeholder
