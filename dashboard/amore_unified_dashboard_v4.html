@@ -9453,12 +9453,30 @@
         // Export 전용 토스트 (진행 중 상태 지원, jobId로 취소 가능)
         // ARITA 디자인 토스트 - "단아하고 지적이며, 건강한 아름다움"
         function showExportToast(message, type = 'info', jobId = null) {
-            // 기존 export 토스트 제거
             const existing = document.getElementById('export-toast');
+
+            // 진행률 추출 (메시지에서 "XX%" 패턴 찾기)
+            let progressPercent = 0;
+            const progressMatch = message.match(/\((\d+)%\)/);
+            if (progressMatch) {
+                progressPercent = parseInt(progressMatch[1], 10);
+            }
+
+            // 기존 progress 토스트가 있고 type도 progress면 내용만 업데이트 (깜빡임 방지)
+            if (existing && type === 'progress' && existing.dataset.type === 'progress') {
+                const messageSpan = existing.querySelector('div[style*="flex: 1"] > span');
+                const progressBar = existing.querySelector('#export-progress-bar');
+                if (messageSpan) messageSpan.textContent = message;
+                if (progressBar) progressBar.style.width = `${progressPercent}%`;
+                return;
+            }
+
+            // 기존 토스트 제거 (type이 다른 경우)
             if (existing) existing.remove();
 
             const toast = document.createElement('div');
             toast.id = 'export-toast';
+            toast.dataset.type = type;
 
             // ARITA 디자인 시스템: Pacific Blue + Amore Blue 조합
             let bgStyle, iconHtml, borderStyle;
@@ -9506,13 +9524,6 @@
                 ${bgStyle}
                 ${borderStyle}
             `;
-
-            // 진행률 추출 (메시지에서 "XX%" 패턴 찾기)
-            let progressPercent = 0;
-            const progressMatch = message.match(/\((\d+)%\)/);
-            if (progressMatch) {
-                progressPercent = parseInt(progressMatch[1], 10);
-            }
 
             // 진행 중일 때 프로그레스 바 추가
             const progressBarHtml = type === 'progress' ? `
