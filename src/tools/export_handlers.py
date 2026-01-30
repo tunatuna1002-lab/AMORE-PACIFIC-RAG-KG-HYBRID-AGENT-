@@ -21,7 +21,7 @@ from datetime import datetime
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Pt, RGBColor
 
 from src.agents.period_insight_agent import PeriodInsightAgent
 from src.api.dependencies import load_dashboard_data
@@ -201,48 +201,26 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
 
     await queue.update_progress(job_id, 70, "DOCX 문서 생성 중...")
 
-    # 6. Create DOCX
+    # 6. Create DOCX with IR Cover Design
+    from src.tools.report_generator import DocxReportGenerator
+
+    design_gen = DocxReportGenerator()
     doc = Document()
 
-    # Style
-    style = doc.styles["Normal"]
-    font = style.font
-    font.name = "Arial"
-    font.size = Pt(11)
+    # 표지/목차에 Arita 폰트 및 페이지 여백 설정
+    design_gen._setup_document_styles(doc)
+    design_gen._setup_page_margins(doc)
 
-    # ===== 표지 + 목차 =====
-    title = doc.add_heading("LANEIGE Amazon US 경쟁력 분석 보고서", 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    for run in title.runs:
-        run.font.color.rgb = PACIFIC_BLUE
-        run.font.size = Pt(24)
-        run.font.bold = True
+    # ===== 표지 페이지 - Pacific Blue 헤더바 + AMOREPACIFIC 로고 =====
+    design_gen._add_cover_page(
+        doc,
+        title="LANEIGE Amazon US 경쟁력 분석 보고서",
+        subtitle="Weekly Insight Report",
+        date_range=f"{start_date} ~ {end_date}",
+        generation_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    )
 
-    # 구분선
-    divider = doc.add_paragraph()
-    divider.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    divider_run = divider.add_run("─" * 40)
-    divider_run.font.color.rgb = PACIFIC_BLUE
-
-    # 메타 정보
-    meta_para = doc.add_paragraph()
-    meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    meta_para.add_run(f"분석 기간: {start_date} ~ {end_date}").font.color.rgb = GRAY
-    meta_para.add_run("\n")
-    meta_para.add_run(
-        f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    ).font.color.rgb = GRAY
-
-    # 목차 (제목과 충분한 간격 확보)
-    toc_heading = doc.add_paragraph()
-    toc_heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    toc_heading.paragraph_format.space_before = Pt(72)  # 제목과 목차 사이 여백 증가
-    toc_heading.paragraph_format.space_after = Pt(18)
-    toc_run = toc_heading.add_run("목차")
-    toc_run.font.size = Pt(16)
-    toc_run.font.bold = True
-    toc_run.font.color.rgb = PACIFIC_BLUE
-
+    # ===== 목차 페이지 - Pacific Blue 헤더바 + AMOREPACIFIC 로고 =====
     toc_items = [
         "1. Executive Summary",
         "2. LANEIGE 심층 분석",
@@ -253,152 +231,100 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
         "7. 전략 제언",
         "8. 참고자료 (References)",
     ]
-    for item in toc_items:
-        toc_para = doc.add_paragraph()
-        toc_para.paragraph_format.left_indent = Inches(0.5)
-        toc_para.paragraph_format.space_before = Pt(2)
-        toc_para.paragraph_format.space_after = Pt(2)
-        toc_run = toc_para.add_run(f"• {item}")
-        toc_run.font.size = Pt(12)
-        toc_run.font.color.rgb = PACIFIC_BLUE
-
-    doc.add_page_break()
+    design_gen._add_toc_page(doc, toc_items)
 
     await queue.update_progress(job_id, 80, "섹션 작성 중...")
 
-    # ===== Section 1: Executive Summary =====
-    if report.executive_summary:
-        section = report.executive_summary
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
+    # ===== 본문 섹션 처리 헬퍼 함수 =====
+    def add_section_content(section, section_charts: list[str] = None):
+        """DocxReportGenerator 스타일로 섹션 콘텐츠 추가"""
+        # 섹션 제목
+        design_gen._add_section_heading(doc, section.section_id, section.section_title)
 
-        for line in section.content.split("\n"):
-            if line.strip():
+        # 본문 내용
+        if section.content:
+            is_first_heading = True
+            for line in section.content.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+
                 if line.startswith("■"):
-                    para = doc.add_paragraph(line)
-                    para.runs[0].font.bold = True
+                    # 목차(■) - IR 스타일 적용
+                    design_gen._add_content_paragraph(
+                        doc, line, is_highlight=True, add_space_before=not is_first_heading
+                    )
+                    is_first_heading = False
+                elif line.startswith("•") or line.startswith("-"):
+                    # 불릿 포인트
+                    clean_line = line.lstrip("•- ")
+                    design_gen._add_content_paragraph(doc, clean_line, is_bullet=True)
                 else:
-                    doc.add_paragraph(line)
+                    design_gen._add_content_paragraph(doc, line)
 
-        if include_charts and "sos_trend" in chart_paths:
-            doc.add_paragraph()
-            doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
+        # 차트 추가
+        if section_charts and include_charts:
+            for chart_key in section_charts:
+                if chart_key in chart_paths:
+                    doc.add_paragraph()
+                    design_gen._add_chart_image(doc, chart_paths[chart_key])
 
         doc.add_page_break()
+
+    # ===== Section 1: Executive Summary =====
+    if report.executive_summary:
+        add_section_content(report.executive_summary, ["sos_trend"])
 
     # ===== Section 2: LANEIGE 심층 분석 =====
     if report.laneige_analysis:
-        section = report.laneige_analysis
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        for line in section.content.split("\n"):
-            if line.strip():
-                if line.startswith("■"):
-                    para = doc.add_paragraph(line)
-                    para.runs[0].font.bold = True
-                else:
-                    doc.add_paragraph(line)
-
-        if include_charts:
-            if "sos_trend" in chart_paths:
-                doc.add_heading("일별 SoS 추이", 3)
-                doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
-            if "product_ranks" in chart_paths:
-                doc.add_heading("제품별 순위 변동", 3)
-                doc.add_picture(str(chart_paths["product_ranks"]), width=Inches(6))
-
-        doc.add_page_break()
+        add_section_content(report.laneige_analysis, ["sos_trend", "product_ranks"])
 
     # ===== Section 3: 경쟁 환경 분석 =====
     if report.competitive_analysis:
-        section = report.competitive_analysis
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        for line in section.content.split("\n"):
-            if line.strip():
-                doc.add_paragraph(line)
-
-        if include_charts and "brand_comparison" in chart_paths:
-            doc.add_picture(str(chart_paths["brand_comparison"]), width=Inches(6))
-
-        doc.add_page_break()
+        add_section_content(report.competitive_analysis, ["brand_comparison"])
 
     # ===== Section 4: 시장 동향 =====
     if report.market_trends:
-        section = report.market_trends
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        for line in section.content.split("\n"):
-            if line.strip():
-                doc.add_paragraph(line)
-
-        if include_charts and "hhi_trend" in chart_paths:
-            doc.add_picture(str(chart_paths["hhi_trend"]), width=Inches(6))
-
-        doc.add_page_break()
+        add_section_content(report.market_trends, ["hhi_trend"])
 
     await queue.update_progress(job_id, 90, "외부 신호 및 전략 섹션 작성 중...")
 
     # ===== Section 5: 외부 신호 분석 =====
     if report.external_signals:
-        section = report.external_signals
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        for line in section.content.split("\n"):
-            if line.strip():
-                doc.add_paragraph(line)
-
-        doc.add_page_break()
+        add_section_content(report.external_signals)
 
     # ===== Section 6: 리스크 및 기회 =====
     if report.risks_opportunities:
-        section = report.risks_opportunities
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        for line in section.content.split("\n"):
-            if line.strip():
-                doc.add_paragraph(line)
-
-        doc.add_page_break()
+        add_section_content(report.risks_opportunities)
 
     # ===== Section 7: 전략 제언 =====
     if report.strategic_recommendations:
-        section = report.strategic_recommendations
-        heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-        heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        for line in section.content.split("\n"):
-            if line.strip():
-                doc.add_paragraph(line)
-
-        doc.add_page_break()
+        add_section_content(report.strategic_recommendations)
 
     # ===== Section 8: 참고자료 =====
-    heading = doc.add_heading("8. 참고자료 (References)", 1)
-    heading.runs[0].font.color.rgb = PACIFIC_BLUE
+    design_gen._add_section_heading(doc, 8, "참고자료 (References)")
 
     # 8.1 외부 자료
     doc.add_heading("8.1 외부 자료", 2)
+    for run in doc.paragraphs[-1].runs:
+        run.font.color.rgb = AMORE_BLUE
     external_refs = tracker.get_formatted_references(source_type="external")
     if external_refs:
         for ref in external_refs.split("\n"):
             if ref.strip():
-                doc.add_paragraph(ref, style="List Bullet")
+                design_gen._add_content_paragraph(doc, ref, is_bullet=True)
     else:
-        doc.add_paragraph("외부 자료 없음")
+        design_gen._add_content_paragraph(doc, "외부 자료 없음")
 
     # 8.2 데이터 소스
     doc.add_heading("8.2 데이터 소스", 2)
+    for run in doc.paragraphs[-1].runs:
+        run.font.color.rgb = AMORE_BLUE
     data_refs = tracker.get_formatted_references(source_type="data")
     if data_refs:
         for ref in data_refs.split("\n"):
             if ref.strip():
-                doc.add_paragraph(ref, style="List Bullet")
+                design_gen._add_content_paragraph(doc, ref, is_bullet=True)
 
     await queue.update_progress(job_id, 95, "파일 저장 중...")
 

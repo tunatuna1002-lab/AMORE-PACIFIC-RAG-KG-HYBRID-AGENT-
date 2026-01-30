@@ -349,22 +349,35 @@ class PeriodInsightAgent:
 - 분석 기간: {analysis.start_date} ~ {analysis.end_date} ({analysis.total_days}일)
 - "현재"는 {analysis.end_date} 기준으로 해석
 
-핵심 지표:
+📊 핵심 지표:
 - LANEIGE SoS: {metrics.get('start_sos', 0):.1f}% → {metrics.get('end_sos', 0):.1f}% (변화: {metrics.get('sos_change', 0):+.1f}%)
 - 평균 SoS: {metrics.get('avg_sos', 0):.1f}%
 - 평균 진입 제품 수: {metrics.get('avg_product_count', 0):.1f}개
 - 시장 HHI: {market.get('avg_hhi', 0):.0f} ({market.get('hhi_interpretation', '분석 중')})
 
-주요 변동:
+📈 주요 변동:
 - 상승 제품: {len(metrics.get('rising_products', []))}개
 - 하락 제품: {len(metrics.get('falling_products', []))}개
 
-다음 형식으로 Executive Summary를 작성하세요:
+🌍 글로벌 K-Beauty 맥락 (필수 참조):
+- K-Beauty가 2024년 미국 스킨케어 수입시장 1위 달성 (프랑스 추월)
+- 아모레퍼시픽 2025년 3Q IR: Americas 매출 $156.8B (+6.9% YoY)
+- LANEIGE는 그룹 내 글로벌 전략 브랜드로, Lip Sleeping Mask가 핵심 성장 동력
 
-■ 핵심 인사이트 (3줄 이내)
+다음 형식으로 Executive Summary를 작성하세요 (임원 보고용):
+
+■ 글로벌 맥락에서의 성과 (2-3줄)
+  [K-Beauty 산업 내 LANEIGE 위상 및 Amazon 성과 요약]
+  [아모레퍼시픽 IR 실적과의 연계성 - Americas 매출 성장과 Amazon 채널 기여도]
+
+■ 핵심 인사이트
   [1문장: 전체 기간 LANEIGE 성과 요약]
   [1문장: 가장 주목할 변화]
   [1문장: 시장 환경 요약]
+
+■ So What? (의사결정 포인트)
+  [bullet points로 2-3개 - 임원이 알아야 할 핵심 시사점]
+  [각 포인트에 "→ 권장 액션" 형태로 간단한 방향 제시]
 
 ■ 기간 내 주요 이벤트
   [bullet points로 2-3개]"""
@@ -418,9 +431,9 @@ class PeriodInsightAgent:
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
 
-LANEIGE 심층 분석을 작성하세요.
+LANEIGE 심층 분석을 작성하세요. (임원 보고용 - 전략적 관점 필수)
 
-## 데이터
+## 📊 데이터
 종합 성과:
 - 기간 평균 SoS: {metrics.get('avg_sos', 0):.1f}%
 - SoS 변화율: {metrics.get('sos_change_pct', 0):.1f}%
@@ -432,26 +445,39 @@ Top 5 제품 순위 변동:
 카테고리별 SoS:
 {cat_str}
 
+## 🏢 IR 전략 맥락 (2025년 3Q 기준, 분석 시 반드시 참조)
+- LANEIGE: 그룹 내 글로벌 전략 브랜드, "Premium Skincare" 포지셔닝
+- 핵심 제품: Lip Sleeping Mask (글로벌 히어로 아이템), Water Bank 라인
+- 채널 전략: Amazon (볼륨) vs Sephora (프리미엄) 이원화
+- Americas 매출: $156.8B (+6.9% YoY) - Amazon이 주요 기여 채널
+
 ## 작성 형식
 
 2.1 종합 성과 개요
 ■ [SoS 추이 해석 - 상승/하락/안정 판단 및 원인]
-■ [경쟁사 대비 포지션 평가]
+■ [경쟁사 대비 포지션 평가 - COSRX, TIRTIR 등과 비교]
+■ [IR 실적과의 정합성 - Americas 매출 성장률과 Amazon SoS 변동 비교]
 
-2.2 제품별 분석
+2.2 제품별 분석 (IR 전략 연계)
 ■ Top 5 제품 순위 변동 분석 (⚠️ 중요: 위 데이터에 표시된 [카테고리명] 기준으로 분석)
 ■ 급등/급락 제품 원인 분석
+■ Lip Sleeping Mask 성과 심층 분석 (히어로 제품 모니터링)
 ⚠️ 주의: 순위 비교는 반드시 동일 카테고리 내에서만 유효합니다.
 예: Lip Care 4위 → Lip Care 6위 = 2단계 하락 (유효)
 예: Lip Care 4위 → Beauty 67위 = 비교 불가 (서로 다른 카테고리)
 
 2.3 카테고리별 점유율
-■ [강점 카테고리]
+■ [강점 카테고리 - Lip Care vs Skin Care 비교]
 ■ [약점 카테고리]
 ■ [개선 필요 영역]
 
-2.4 가격 경쟁력 (CPI)
-■ [가격 포지셔닝 평가]
+2.4 가격 경쟁력 (CPI) 및 채널 전략
+■ [가격 포지셔닝 평가 - Premium 브랜드 포지션 유지 여부]
+■ [Amazon 채널 내 가격 경쟁력 분석]
+
+2.5 So What? (전략적 시사점)
+■ [현재 성과가 IR 목표 대비 어느 수준인지 평가]
+■ [향후 분기 실적에 미칠 영향 예측]
 
 ※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
@@ -539,28 +565,56 @@ Top 5 제품 순위 변동:
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
 
-시장 동향 분석을 작성하세요.
+시장 동향 분석을 작성하세요. (글로벌 K-Beauty 산업 맥락에서 분석)
 
-## 데이터
+## 📊 데이터
 시장 집중도 (HHI):
 - 평균: {market.get('avg_hhi', 0):.0f}
 - 시작일: {market.get('start_hhi', 0):.0f}
 - 종료일: {market.get('end_hhi', 0):.0f}
 - 해석: {market.get('hhi_interpretation', 'N/A')}
 
+## 🌍 글로벌 K-Beauty 산업 맥락 (필수 참조)
+1. K-Beauty 글로벌 위상:
+   - 2024년 미국 스킨케어 수입시장 1위 달성 (프랑스 추월)
+   - K-Beauty ODM/OEM 인프라가 글로벌 최고 수준
+   - 미국 소비자 K-Beauty 인지도 및 신뢰도 상승 중
+
+2. 아모레퍼시픽 IR (2025년 3Q):
+   - 전사 매출: 분기 기준 성장세 유지
+   - Americas: $156.8B (+6.9% YoY) - 전 지역 중 최고 성장률
+   - 채널별: Amazon (볼륨 채널), Sephora/Ulta (프리미엄 채널)
+
+3. 경쟁 구도:
+   - COSRX: 가성비 K-Beauty 대표, Amazon 강세
+   - TIRTIR: 신흥 브랜드, 빠른 성장세
+   - Anua, Beauty of Joseon: 중저가 시장 공략 중
+
 ## 작성 형식
 
-4.1 시장 집중도 (HHI)
-■ [HHI 추이 해석]
+4.1 시장 집중도 (HHI) 분석
+■ [HHI 추이 해석 - 경쟁 심화/완화 판단]
 ■ [시장 경쟁 강도 평가]
+■ [K-Beauty 브랜드 간 점유율 집중도 분석]
 
 4.2 카테고리 전체 트렌드
-■ [성장 카테고리]
+■ [성장 카테고리 - Lip Care, Skin Care 등]
 ■ [침체 카테고리]
+■ [K-Beauty 제품이 강세인 카테고리 분석]
 
-4.3 IR 실적 크로스 분석
+4.3 IR 실적 크로스 분석 (핵심 섹션)
 ■ [아모레퍼시픽 IR 실적과의 연관성]
-■ [Americas 매출과 Amazon 성과 상관관계]
+  - Americas 매출 +6.9% YoY vs Amazon SoS 변동 비교
+  - 분기 실적 추세와 일일 Amazon 순위 변동의 정합성
+■ [채널 믹스 전략 평가]
+  - Amazon (볼륨): 대중 시장 침투율
+  - Sephora (프리미엄): 브랜드 이미지 관리
+■ [IR 목표 달성도 평가]
+  - "Americas 지역 두자릿수 성장" 목표 대비 현재 진행 상황
+
+4.4 So What? (전략적 시사점)
+■ [시장 구조 변화가 LANEIGE에 미치는 영향]
+■ [다음 분기 실적 전망에 대한 시사점]
 
 ※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
@@ -842,27 +896,65 @@ Top 5 제품 순위 변동:
         current_date = datetime.now().strftime("%Y-%m-%d")
         prompt = f"""⏰ 시점 정보: 오늘={current_date}, 분석 기간={analysis.start_date}~{analysis.end_date}
 
-전략 제언을 작성하세요.
+전략 제언을 작성하세요. (임원 보고용 - 구체적이고 실행 가능한 제언 필수)
 
-## 컨텍스트
+## 📊 현황 데이터
 - LANEIGE 현재 SoS: {metrics.get('end_sos', 0):.1f}%
 - 상승 제품: {len(metrics.get('rising_products', []))}개
 - 하락 제품: {len(metrics.get('falling_products', []))}개
 
-## 작성 형식
+## 🎯 IR 전략 프레임워크 (2025년 3Q 기준)
+1. 그룹 전략 방향:
+   - "글로벌 리딩 K-Beauty 기업" 비전
+   - Americas 지역 두자릿수 성장 목표
+   - 채널 다각화: Amazon + Sephora + Ulta
 
-7.1 단기 액션 (1-2주)
-■ [즉시 실행 가능한 액션 2-3개]
-■ [담당 부서 명시]
+2. LANEIGE 브랜드 전략:
+   - 포지셔닝: "Premium K-Beauty Skincare"
+   - 히어로 제품: Lip Sleeping Mask (인지도 앵커)
+   - 확장 전략: Water Bank 라인 강화
 
-7.2 중기 전략 (1-3개월)
-■ [중기 전략 방향 2-3개]
-■ [예상 효과]
+3. 경쟁 환경:
+   - COSRX: 가성비 리더, Amazon 점유율 높음
+   - TIRTIR: 빠른 성장, 젊은 층 공략
+   - 대응 필요: 프리미엄 가치 차별화
 
-7.3 KPI 목표
-■ SoS 목표: [현재 대비 +X%p]
-■ 제품 순위 목표: [Top N 제품 수]
-■ 카테고리 목표: [특정 카테고리 SoS]
+## 작성 형식 (담당 부서 및 KPI 필수 명시)
+
+7.1 즉시 실행 액션 (1-2주)
+■ [액션 1: 구체적 내용]
+  - 담당: [부서명]
+  - KPI: [측정 가능한 지표]
+  - 예상 효과: [수치화된 기대치]
+■ [액션 2: 구체적 내용]
+  - 담당: [부서명]
+  - KPI: [측정 가능한 지표]
+
+7.2 단기 전략 (1개월)
+■ [전략 1: 채널 최적화]
+  - Amazon 리스팅 최적화 (키워드, 이미지, A+ 콘텐츠)
+  - 예상 SoS 개선: +X%p
+■ [전략 2: 제품 포트폴리오]
+  - 하락 제품 대응 방안
+  - 신제품 런칭 고려 여부
+
+7.3 중기 전략 (1-3개월)
+■ [전략 방향 1: IR 목표 달성]
+  - Americas 두자릿수 성장 기여 방안
+  - 채널 믹스 최적화 (Amazon vs Sephora 비중)
+■ [전략 방향 2: 경쟁 대응]
+  - COSRX 대비 차별화 포인트 강화
+  - 프리미엄 포지셔닝 유지 전략
+
+7.4 KPI 목표 (수치화 필수)
+■ SoS 목표: 현재 {metrics.get('end_sos', 0):.1f}% → 목표 [X%] (+X%p)
+■ 제품 순위: Top 10 진입 제품 [N]개 → 목표 [M]개
+■ 히어로 제품: Lip Sleeping Mask 순위 유지/개선 목표
+■ IR 기여도: Amazon 채널 매출 성장률 [X%] 기여
+
+7.5 리스크 대비
+■ [리스크 시나리오]: 경쟁 심화 시 대응 방안
+■ [플랜 B]: 목표 미달 시 대안 전략
 
 ※ 참고자료: 본문에서는 [1], [2] 번호만 표기. URL, 기사 목록은 본문에 절대 포함 금지. 8장에서만 별도 작성."""
 
