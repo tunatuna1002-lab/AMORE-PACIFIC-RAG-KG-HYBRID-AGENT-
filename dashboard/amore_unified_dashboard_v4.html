@@ -144,7 +144,7 @@
             display: flex;
             align-items: center;
             margin: 24px 0 16px 0;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--pacific-blue);
         }
@@ -152,7 +152,7 @@
         .insight-section-header::before {
             content: '';
             width: 4px;
-            height: 20px;
+            height: 22px;
             background: var(--pacific-blue);
             margin-right: 12px;
             border-radius: 2px;
@@ -160,12 +160,48 @@
         }
 
         .insight-layer-header {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--amore-blue);
             margin: 16px 0 8px 0;
             padding-left: 16px;
-            border-left: 2px solid var(--amore-blue);
+            border-left: 3px solid var(--amore-blue);
+        }
+
+        /* 목차 섹션 스타일 */
+        .insight-toc {
+            background: linear-gradient(135deg, rgba(0, 28, 88, 0.03) 0%, rgba(31, 87, 149, 0.05) 100%);
+            border-left: 4px solid var(--amore-blue);
+            padding: 16px 20px;
+            margin: 16px 0 24px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .insight-toc-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--pacific-blue);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .insight-toc-items {
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--pacific-blue);
+        }
+        .insight-toc-items .toc-number {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: var(--amore-blue);
+            color: white;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 20px;
+            margin-right: 8px;
         }
 
         .insight-metric-positive {
@@ -836,6 +872,31 @@
             flex: 1;
             position: relative;
             z-index: 1;
+        }
+        .insight-email-btn {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .insight-email-btn:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+        .insight-email-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         /* 좌측 브랜드 영역 */
         .insight-brand-area {
@@ -3442,15 +3503,21 @@
         .chat-message.bot .bubble strong { color: var(--amore-blue); }
         /* 인사이트 스타일 재정의 (채팅 버블 내부) */
         .chat-message.bot .bubble .insight-section-header {
-            margin: 16px 0 12px 0;
-            font-size: 15px;
+            margin: 20px 0 14px 0;
+            font-size: 17px;
+            border-bottom: 2px solid var(--amore-blue);
+            padding-bottom: 8px;
         }
         .chat-message.bot .bubble .insight-section-header:first-child {
             margin-top: 0;
         }
         .chat-message.bot .bubble .insight-layer-header {
-            margin: 12px 0 6px 0;
-            font-size: 13px;
+            margin: 14px 0 8px 0;
+            font-size: 15px;
+        }
+        .chat-message.bot .bubble .insight-toc {
+            margin: 12px 0 20px 0;
+            padding: 14px 16px;
         }
 
         /* === 스트리밍 커서 애니메이션 === */
@@ -4164,6 +4231,10 @@
                                     <div class="insight-label">Daily AI Insight — LANEIGE</div>
                                     <div class="insight-message">Amazon US 내 <strong>라네즈</strong> 브랜드는 안정적인 상위권을 유지 중입니다. <strong>Lip Sleeping Mask</strong>가 상승세를 보이고 있으며, Water Bank Cream의 평점 변동에 주의가 필요합니다.</div>
                                 </div>
+                                <button class="insight-email-btn" onclick="sendInsightEmail()" title="인사이트 리포트를 이메일로 받기">
+                                    <i data-lucide="mail" style="width: 16px; height: 16px;"></i>
+                                    <span>이메일로 받기</span>
+                                </button>
                             </div>
                         </div>
                         <div class="status-grid">
@@ -9105,6 +9176,20 @@
         // 마크다운 포매팅 헬퍼 (AMOREPACIFIC 인사이트 스타일 지원)
         function formatMarkdown(text) {
             let result = text
+                // 목차 섹션: ## 목차 → 스타일 적용 (줄바꿈 전에 처리)
+                .replace(/## 목차\n([\s\S]*?)(?=\n---|\n##|\n▎|$)/g, function(match, tocContent) {
+                    const items = tocContent.trim().split('\n')
+                        .filter(line => line.trim())
+                        .map(line => {
+                            const numMatch = line.match(/^(\d+)\.\s*(.+)/);
+                            if (numMatch) {
+                                return `<span class="toc-number">${numMatch[1]}</span>${numMatch[2]}`;
+                            }
+                            return line.replace(/^\s*-\s*/, '&nbsp;&nbsp;• ');
+                        })
+                        .join('<br>');
+                    return `<div class="insight-toc"><div class="insight-toc-title">📋 목차</div><div class="insight-toc-items">${items}</div></div>`;
+                })
                 // 섹션 헤더: ▎**제목** → <div class="insight-section-header">제목</div>
                 .replace(/▎\*\*(.+?)\*\*/g, '<div class="insight-section-header">$1</div>')
                 // Layer 헤더: **Layer N: 제목** → <div class="insight-layer-header">Layer N: 제목</div>
@@ -12973,6 +13058,57 @@
                 }
             } catch (error) {
                 console.error('Failed to revoke consent:', error);
+            }
+        }
+
+        // 인사이트 리포트 이메일 발송
+        async function sendInsightEmail() {
+            // 인증된 이메일 확인
+            if (!emailVerificationState.verified || !emailVerificationState.email) {
+                // 이메일 인증이 안 되어 있으면 알림 설정 모달 열기
+                alert('인사이트 리포트를 받으려면 먼저 이메일 인증이 필요합니다.');
+                openAlertSettings();
+                return;
+            }
+
+            const btn = document.querySelector('.insight-email-btn');
+            const originalContent = btn.innerHTML;
+
+            try {
+                // 버튼 로딩 상태
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite;"></i><span>발송 중...</span>';
+                if (window.lucide) lucide.createIcons();
+
+                const response = await fetch(`${API_BASE}/api/alerts/send-insight-report`, {
+                    method: 'POST',
+                    headers: getApiHeaders(),
+                    body: JSON.stringify({
+                        email: emailVerificationState.email
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // 성공
+                    btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i><span>발송 완료!</span>';
+                    if (window.lucide) lucide.createIcons();
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.disabled = false;
+                        if (window.lucide) lucide.createIcons();
+                    }, 3000);
+                } else {
+                    throw new Error(data.detail || '발송 실패');
+                }
+            } catch (error) {
+                console.error('Failed to send insight email:', error);
+                alert('이메일 발송 실패: ' + error.message);
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                if (window.lucide) lucide.createIcons();
             }
         }
 

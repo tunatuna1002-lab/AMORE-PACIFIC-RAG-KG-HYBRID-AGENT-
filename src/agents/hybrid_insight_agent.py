@@ -28,6 +28,7 @@ from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.rag.context_builder import ContextBuilder
 from src.rag.hybrid_retriever import HybridContext, HybridRetriever
+from src.rag.rag_kg_extractor import RAGKGExtractor
 from src.rag.retriever import DocumentRetriever
 from src.rag.templates import ResponseTemplates
 from src.tools.external_signal_collector import ExternalSignalCollector
@@ -141,6 +142,9 @@ class HybridInsightAgent:
 
         # New collectors (Phase 1)
         self._google_trends: GoogleTrendsCollector | None = None
+
+        # RAG-to-KG Extractor (Phase 2 - RAG Enhancement)
+        self._rag_kg_extractor = RAGKGExtractor(self.kg)
 
     async def execute(
         self,
@@ -1177,9 +1181,24 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         return source_info
 
     def _ingest_rag_knowledge(self, rag_chunks: list[dict[str, Any]]) -> dict[str, int]:
-        """RAG 청크에서 지식 추출 후 KG에 적재"""
-        stats = {"trend_relations": 0, "action_relations": 0}
+        """
+        RAG 청크에서 지식 추출 후 KG에 적재
 
+        2가지 추출 방식 사용:
+        1. Metadata 기반: keywords, doc_type 등 구조화된 정보 활용
+        2. Pattern 기반: RAGKGExtractor로 텍스트 패턴 매칭
+
+        Returns:
+            추출된 관계 수 통계
+        """
+        stats = {
+            "trend_relations": 0,
+            "action_relations": 0,
+            "state_relations": 0,
+            "pattern_extracted": 0,
+        }
+
+        # === 1. Metadata 기반 추출 (기존 로직) ===
         for chunk in rag_chunks or []:
             metadata = chunk.get("metadata", {})
             doc_type = metadata.get("doc_type", "")
@@ -1203,7 +1222,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                         predicate=RelationType.HAS_TREND,
                         object=keyword,
                         properties={
-                            "source": "rag",
+                            "source": "rag_metadata",
                             "doc_id": doc_id,
                             "chunk_id": chunk_id,
                             "doc_type": doc_type,
@@ -1222,7 +1241,7 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                         predicate=RelationType.REQUIRES_ACTION,
                         object=action,
                         properties={
-                            "source": "rag",
+                            "source": "rag_metadata",
                             "doc_id": doc_id,
                             "chunk_id": chunk_id,
                             "doc_type": doc_type,
@@ -1231,6 +1250,27 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
                     )
                     if self.kg.add_relation(relation):
                         stats["action_relations"] += 1
+
+        # === 2. Pattern 기반 추출 (RAGKGExtractor) ===
+        try:
+            extractor_stats = self._rag_kg_extractor.extract_from_chunks(
+                rag_chunks,
+                brand="LANEIGE",
+                source_context={"extraction_type": "hybrid_insight"},
+            )
+            # 키 이름: trends_added, actions_added, states_added, total
+            stats["pattern_extracted"] = extractor_stats.get("total", 0)
+            stats["trend_relations"] += extractor_stats.get("trends_added", 0)
+            stats["action_relations"] += extractor_stats.get("actions_added", 0)
+            stats["state_relations"] = extractor_stats.get("states_added", 0)
+
+            self.logger.debug(
+                f"RAGKGExtractor: trends={extractor_stats.get('trends_added', 0)}, "
+                f"actions={extractor_stats.get('actions_added', 0)}, "
+                f"states={extractor_stats.get('states_added', 0)}"
+            )
+        except Exception as e:
+            self.logger.warning(f"RAGKGExtractor failed: {e}")
 
         return stats
 
