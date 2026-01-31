@@ -19,8 +19,9 @@ DI (Dependency Injection) 컨테이너
     # 초기화
     Container.reset()
 """
-from typing import Dict, Any, Optional
+
 from contextlib import contextmanager
+from typing import Any
 
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
@@ -44,8 +45,8 @@ class Container:
     - CrawlerAgent
     """
 
-    _instances: Dict[str, Any] = {}
-    _overrides: Dict[str, Any] = {}
+    _instances: dict[str, Any] = {}
+    _overrides: dict[str, Any] = {}
 
     # ========================================
     # 싱글톤 컴포넌트 (캐시됨)
@@ -59,13 +60,13 @@ class Container:
         Returns:
             KnowledgeGraph 인스턴스
         """
-        if 'knowledge_graph' in cls._overrides:
-            return cls._overrides['knowledge_graph']
+        if "knowledge_graph" in cls._overrides:
+            return cls._overrides["knowledge_graph"]
 
-        if 'knowledge_graph' not in cls._instances:
-            cls._instances['knowledge_graph'] = KnowledgeGraph()
+        if "knowledge_graph" not in cls._instances:
+            cls._instances["knowledge_graph"] = KnowledgeGraph()
 
-        return cls._instances['knowledge_graph']
+        return cls._instances["knowledge_graph"]
 
     @classmethod
     def get_reasoner(cls) -> OntologyReasoner:
@@ -75,14 +76,14 @@ class Container:
         Returns:
             OntologyReasoner 인스턴스
         """
-        if 'reasoner' in cls._overrides:
-            return cls._overrides['reasoner']
+        if "reasoner" in cls._overrides:
+            return cls._overrides["reasoner"]
 
-        if 'reasoner' not in cls._instances:
+        if "reasoner" not in cls._instances:
             kg = cls.get_knowledge_graph()
-            cls._instances['reasoner'] = OntologyReasoner(kg)
+            cls._instances["reasoner"] = OntologyReasoner(kg)
 
-        return cls._instances['reasoner']
+        return cls._instances["reasoner"]
 
     @classmethod
     def get_document_retriever(cls, docs_dir: str = ".") -> DocumentRetriever:
@@ -95,13 +96,13 @@ class Container:
         Returns:
             DocumentRetriever 인스턴스
         """
-        if 'document_retriever' in cls._overrides:
-            return cls._overrides['document_retriever']
+        if "document_retriever" in cls._overrides:
+            return cls._overrides["document_retriever"]
 
-        if 'document_retriever' not in cls._instances:
-            cls._instances['document_retriever'] = DocumentRetriever(docs_dir)
+        if "document_retriever" not in cls._instances:
+            cls._instances["document_retriever"] = DocumentRetriever(docs_dir)
 
-        return cls._instances['document_retriever']
+        return cls._instances["document_retriever"]
 
     @classmethod
     def get_hybrid_retriever(cls) -> HybridRetriever:
@@ -111,18 +112,54 @@ class Container:
         Returns:
             HybridRetriever 인스턴스
         """
-        if 'hybrid_retriever' in cls._overrides:
-            return cls._overrides['hybrid_retriever']
+        if "hybrid_retriever" in cls._overrides:
+            return cls._overrides["hybrid_retriever"]
 
-        if 'hybrid_retriever' not in cls._instances:
-            cls._instances['hybrid_retriever'] = HybridRetriever(
+        if "hybrid_retriever" not in cls._instances:
+            cls._instances["hybrid_retriever"] = HybridRetriever(
                 knowledge_graph=cls.get_knowledge_graph(),
                 reasoner=cls.get_reasoner(),
                 doc_retriever=cls.get_document_retriever(),
-                auto_init_rules=True
+                auto_init_rules=True,
             )
 
-        return cls._instances['hybrid_retriever']
+        return cls._instances["hybrid_retriever"]
+
+    @classmethod
+    def get_category_service(cls):
+        """
+        CategoryService 싱글톤 반환
+
+        Returns:
+            CategoryService 인스턴스
+        """
+        if "category_service" in cls._overrides:
+            return cls._overrides["category_service"]
+
+        if "category_service" not in cls._instances:
+            from src.ontology.category_service import CategoryService
+
+            cls._instances["category_service"] = CategoryService(cls.get_knowledge_graph())
+
+        return cls._instances["category_service"]
+
+    @classmethod
+    def get_sentiment_service(cls):
+        """
+        SentimentService 싱글톤 반환
+
+        Returns:
+            SentimentService 인스턴스
+        """
+        if "sentiment_service" in cls._overrides:
+            return cls._overrides["sentiment_service"]
+
+        if "sentiment_service" not in cls._instances:
+            from src.ontology.sentiment_service import SentimentService
+
+            cls._instances["sentiment_service"] = SentimentService(cls.get_knowledge_graph())
+
+        return cls._instances["sentiment_service"]
 
     # ========================================
     # 팩토리 메서드 (매번 새로 생성)
@@ -138,14 +175,13 @@ class Container:
         Returns:
             HybridInsightAgent 인스턴스
         """
-        if 'insight_agent' in cls._overrides:
-            return cls._overrides['insight_agent']
+        if "insight_agent" in cls._overrides:
+            return cls._overrides["insight_agent"]
 
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
         return HybridInsightAgent(
-            knowledge_graph=cls.get_knowledge_graph(),
-            reasoner=cls.get_reasoner()
+            knowledge_graph=cls.get_knowledge_graph(), reasoner=cls.get_reasoner()
         )
 
     @classmethod
@@ -158,14 +194,13 @@ class Container:
         Returns:
             HybridChatbotAgent 인스턴스
         """
-        if 'chatbot_agent' in cls._overrides:
-            return cls._overrides['chatbot_agent']
+        if "chatbot_agent" in cls._overrides:
+            return cls._overrides["chatbot_agent"]
 
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
         return HybridChatbotAgent(
-            knowledge_graph=cls.get_knowledge_graph(),
-            reasoner=cls.get_reasoner()
+            knowledge_graph=cls.get_knowledge_graph(), reasoner=cls.get_reasoner()
         )
 
     @classmethod
@@ -176,8 +211,8 @@ class Container:
         Returns:
             CrawlerAgent 인스턴스
         """
-        if 'crawler_agent' in cls._overrides:
-            return cls._overrides['crawler_agent']
+        if "crawler_agent" in cls._overrides:
+            return cls._overrides["crawler_agent"]
 
         from src.agents.crawler_agent import CrawlerAgent
 

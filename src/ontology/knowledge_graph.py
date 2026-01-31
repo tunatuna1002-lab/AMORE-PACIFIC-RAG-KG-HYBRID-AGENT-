@@ -59,17 +59,16 @@ neighbors = kg.get_neighbors("LANEIGE", direction="outgoing")
 
 import json
 from collections import defaultdict
-from typing import Dict, List, Any, Optional, Set, Tuple, Callable
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from .relations import (
     Relation,
     RelationType,
-    MarketPosition,
     create_brand_product_relation,
-    create_product_category_relation,
     create_competition_relation,
+    create_product_category_relation,
 )
 
 
@@ -115,7 +114,7 @@ class KnowledgeGraph:
 
         if config_path.exists():
             try:
-                with open(config_path, "r", encoding="utf-8") as f:
+                with open(config_path, encoding="utf-8") as f:
                     config = json.load(f)
                     return config.get("system", {}).get("knowledge_graph", {})
             except Exception:
@@ -125,7 +124,7 @@ class KnowledgeGraph:
 
     def __init__(
         self,
-        persist_path: Optional[str] = None,
+        persist_path: str | None = None,
         max_triples: int = None,
         auto_save: bool = None,
         auto_load: bool = True,
@@ -164,9 +163,7 @@ class KnowledgeGraph:
         self.persist_path = Path(persist_path) if persist_path else None
 
         # max_triples (설정 파일 > 파라미터 > 기본값)
-        self.max_triples = max_triples or config.get(
-            "max_triples", self.DEFAULT_MAX_TRIPLES
-        )
+        self.max_triples = max_triples or config.get("max_triples", self.DEFAULT_MAX_TRIPLES)
 
         # auto_save (설정 파일 > 파라미터 > 기본값)
         if auto_save is None:
@@ -179,18 +176,18 @@ class KnowledgeGraph:
         )
 
         # 트리플 저장소
-        self.triples: List[Relation] = []
+        self.triples: list[Relation] = []
 
         # 인덱스 (빠른 조회용)
-        self.subject_index: Dict[str, List[Relation]] = defaultdict(list)
-        self.object_index: Dict[str, List[Relation]] = defaultdict(list)
-        self.predicate_index: Dict[RelationType, List[Relation]] = defaultdict(list)
+        self.subject_index: dict[str, list[Relation]] = defaultdict(list)
+        self.object_index: dict[str, list[Relation]] = defaultdict(list)
+        self.predicate_index: dict[RelationType, list[Relation]] = defaultdict(list)
 
         # 엔티티 메타데이터
-        self.entity_metadata: Dict[str, Dict[str, Any]] = {}
+        self.entity_metadata: dict[str, dict[str, Any]] = {}
 
         # 트리플 중요도 점수 (eviction 정책용)
-        self._importance_scores: Dict[int, float] = {}  # relation id -> score
+        self._importance_scores: dict[int, float] = {}  # relation id -> score
 
         # 통계
         self._stats = {
@@ -226,7 +223,7 @@ class KnowledgeGraph:
         score += relation.confidence * 2.0
 
         # 브랜드 관련 관계는 중요
-        if relation.predicate in {RelationType.HAS_PRODUCT, RelationType.COMPETITOR_OF}:
+        if relation.predicate in {RelationType.HAS_PRODUCT, RelationType.COMPETES_WITH}:
             score += 1.0
 
         # 최근 생성된 관계는 약간 높은 점수
@@ -255,7 +252,7 @@ class KnowledgeGraph:
         remove_count = int(len(self.triples) * 0.1)
 
         # 중요도 점수 계산 (캐시 업데이트)
-        for i, rel in enumerate(self.triples):
+        for rel in self.triples:
             if id(rel) not in self._importance_scores:
                 self._importance_scores[id(rel)] = self._calculate_importance(rel)
 
@@ -379,7 +376,7 @@ class KnowledgeGraph:
 
         return len(to_remove)
 
-    def add_relations(self, relations: List[Relation]) -> int:
+    def add_relations(self, relations: list[Relation]) -> int:
         """
         여러 관계 일괄 추가
 
@@ -436,11 +433,11 @@ class KnowledgeGraph:
 
     def query(
         self,
-        subject: Optional[str] = None,
-        predicate: Optional[RelationType] = None,
-        object_: Optional[str] = None,
+        subject: str | None = None,
+        predicate: RelationType | None = None,
+        object_: str | None = None,
         min_confidence: float = 0.0,
-    ) -> List[Relation]:
+    ) -> list[Relation]:
         """
         트리플 패턴 쿼리
 
@@ -485,32 +482,32 @@ class KnowledgeGraph:
 
         return results
 
-    def get_subjects(self, predicate: RelationType, object_: str) -> List[str]:
+    def get_subjects(self, predicate: RelationType, object_: str) -> list[str]:
         """
         특정 관계와 객체에 대한 모든 주체 조회
 
         예: get_subjects(HAS_PRODUCT, "B08XYZ") → ["LANEIGE"]
         """
         relations = self.query(predicate=predicate, object_=object_)
-        return list(set(r.subject for r in relations))
+        return list({r.subject for r in relations})
 
-    def get_objects(self, subject: str, predicate: RelationType) -> List[str]:
+    def get_objects(self, subject: str, predicate: RelationType) -> list[str]:
         """
         특정 주체와 관계에 대한 모든 객체 조회
 
         예: get_objects("LANEIGE", HAS_PRODUCT) → ["B08XYZ", "B09ABC"]
         """
         relations = self.query(subject=subject, predicate=predicate)
-        return list(set(r.object for r in relations))
+        return list({r.object for r in relations})
 
-    def get_predicates(self, subject: str, object_: str) -> List[RelationType]:
+    def get_predicates(self, subject: str, object_: str) -> list[RelationType]:
         """
         두 엔티티 간의 모든 관계 유형 조회
 
         예: get_predicates("LANEIGE", "COSRX") → [COMPETES_WITH]
         """
         relations = self.query(subject=subject, object_=object_)
-        return list(set(r.predicate for r in relations))
+        return list({r.predicate for r in relations})
 
     def exists(self, subject: str, predicate: RelationType, object_: str) -> bool:
         """관계 존재 여부 확인"""
@@ -524,8 +521,8 @@ class KnowledgeGraph:
         self,
         entity: str,
         direction: str = "both",
-        predicate_filter: Optional[List[RelationType]] = None,
-    ) -> Dict[str, List[Tuple[RelationType, str]]]:
+        predicate_filter: list[RelationType] | None = None,
+    ) -> dict[str, list[tuple[RelationType, str]]]:
         """
         엔티티의 이웃 조회
 
@@ -560,9 +557,9 @@ class KnowledgeGraph:
         self,
         start_entity: str,
         max_depth: int = 3,
-        predicate_filter: Optional[List[RelationType]] = None,
+        predicate_filter: list[RelationType] | None = None,
         direction: str = "outgoing",
-    ) -> Dict[int, List[str]]:
+    ) -> dict[int, list[str]]:
         """
         BFS 그래프 탐색
 
@@ -575,9 +572,9 @@ class KnowledgeGraph:
         Returns:
             {depth: [entities at this depth]}
         """
-        visited: Set[str] = set()
-        result: Dict[int, List[str]] = defaultdict(list)
-        queue: List[Tuple[str, int]] = [(start_entity, 0)]
+        visited: set[str] = set()
+        result: dict[int, list[str]] = defaultdict(list)
+        queue: list[tuple[str, int]] = [(start_entity, 0)]
 
         while queue:
             current, depth = queue.pop(0)
@@ -594,9 +591,7 @@ class KnowledgeGraph:
                 )
 
                 if direction == "both":
-                    neighbor_list = neighbors.get("outgoing", []) + neighbors.get(
-                        "incoming", []
-                    )
+                    neighbor_list = neighbors.get("outgoing", []) + neighbors.get("incoming", [])
                 else:
                     neighbor_list = neighbors.get(direction, [])
 
@@ -606,9 +601,7 @@ class KnowledgeGraph:
 
         return dict(result)
 
-    def find_path(
-        self, start: str, end: str, max_depth: int = 5
-    ) -> Optional[List[Relation]]:
+    def find_path(self, start: str, end: str, max_depth: int = 5) -> list[Relation] | None:
         """
         두 엔티티 간 경로 탐색
 
@@ -623,8 +616,8 @@ class KnowledgeGraph:
         if start == end:
             return []
 
-        visited: Set[str] = set()
-        queue: List[Tuple[str, List[Relation]]] = [(start, [])]
+        visited: set[str] = set()
+        queue: list[tuple[str, list[Relation]]] = [(start, [])]
 
         while queue:
             current, path = queue.pop(0)
@@ -652,9 +645,7 @@ class KnowledgeGraph:
     # 도메인 특화 쿼리
     # =========================================================================
 
-    def get_brand_products(
-        self, brand: str, category: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    def get_brand_products(self, brand: str, category: str | None = None) -> list[dict[str, Any]]:
         """
         브랜드의 제품 목록 조회
 
@@ -689,8 +680,8 @@ class KnowledgeGraph:
         return products
 
     def get_competitors(
-        self, brand: str, category: Optional[str] = None, competition_type: str = "all"
-    ) -> List[Dict[str, Any]]:
+        self, brand: str, category: str | None = None, competition_type: str = "all"
+    ) -> list[dict[str, Any]]:
         """
         브랜드의 경쟁사 조회
 
@@ -738,9 +729,7 @@ class KnowledgeGraph:
 
         return unique
 
-    def get_category_brands(
-        self, category: str, min_products: int = 1
-    ) -> List[Dict[str, Any]]:
+    def get_category_brands(self, category: str, min_products: int = 1) -> list[dict[str, Any]]:
         """
         카테고리 내 브랜드 목록
 
@@ -752,19 +741,15 @@ class KnowledgeGraph:
             브랜드별 정보
         """
         # 카테고리에 속한 제품들
-        product_relations = self.query(
-            predicate=RelationType.BELONGS_TO_CATEGORY, object_=category
-        )
+        product_relations = self.query(predicate=RelationType.BELONGS_TO_CATEGORY, object_=category)
 
         # 제품별 브랜드 매핑
-        brand_products: Dict[str, List[str]] = defaultdict(list)
+        brand_products: dict[str, list[str]] = defaultdict(list)
 
         for rel in product_relations:
             product_asin = rel.subject
             # 해당 제품의 브랜드 찾기
-            brand_rels = self.query(
-                predicate=RelationType.HAS_PRODUCT, object_=product_asin
-            )
+            brand_rels = self.query(predicate=RelationType.HAS_PRODUCT, object_=product_asin)
             for br in brand_rels:
                 brand_products[br.subject].append(product_asin)
 
@@ -782,7 +767,7 @@ class KnowledgeGraph:
 
         return sorted(results, key=lambda x: x["product_count"], reverse=True)
 
-    def get_entity_context(self, entity: str, depth: int = 2) -> Dict[str, Any]:
+    def get_entity_context(self, entity: str, depth: int = 2) -> dict[str, Any]:
         """
         엔티티의 전체 컨텍스트 수집
 
@@ -817,9 +802,7 @@ class KnowledgeGraph:
             for _, rels in neighbors.items():
                 for _, target in rels[:5]:  # 상위 5개만
                     if target != entity:
-                        context["connected"][target] = self.get_entity_context(
-                            target, depth - 1
-                        )
+                        context["connected"][target] = self.get_entity_context(target, depth - 1)
 
         return context
 
@@ -827,13 +810,13 @@ class KnowledgeGraph:
     # 엔티티 메타데이터
     # =========================================================================
 
-    def set_entity_metadata(self, entity: str, metadata: Dict[str, Any]) -> None:
+    def set_entity_metadata(self, entity: str, metadata: dict[str, Any]) -> None:
         """엔티티 메타데이터 설정"""
         if entity not in self.entity_metadata:
             self.entity_metadata[entity] = {}
         self.entity_metadata[entity].update(metadata)
 
-    def get_entity_metadata(self, entity: str) -> Dict[str, Any]:
+    def get_entity_metadata(self, entity: str) -> dict[str, Any]:
         """엔티티 메타데이터 조회"""
         return self.entity_metadata.get(entity, {})
 
@@ -850,12 +833,12 @@ class KnowledgeGraph:
             pred.value: len(rels) for pred, rels in self.predicate_index.items()
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """통계 조회"""
         self._update_stats()
         return self._stats.copy()
 
-    def get_entity_degree(self, entity: str) -> Dict[str, int]:
+    def get_entity_degree(self, entity: str) -> dict[str, int]:
         """
         엔티티의 차수(degree) 계산
 
@@ -871,7 +854,7 @@ class KnowledgeGraph:
             "total": in_degree + out_degree,
         }
 
-    def get_most_connected(self, top_n: int = 10) -> List[Tuple[str, int]]:
+    def get_most_connected(self, top_n: int = 10) -> list[tuple[str, int]]:
         """
         가장 많이 연결된 엔티티
 
@@ -879,16 +862,14 @@ class KnowledgeGraph:
             [(entity, degree), ...]
         """
         all_entities = set(self.subject_index.keys()) | set(self.object_index.keys())
-        degrees = [
-            (entity, self.get_entity_degree(entity)["total"]) for entity in all_entities
-        ]
+        degrees = [(entity, self.get_entity_degree(entity)["total"]) for entity in all_entities]
         return sorted(degrees, key=lambda x: x[1], reverse=True)[:top_n]
 
     # =========================================================================
     # 영속화
     # =========================================================================
 
-    def save(self, path: Optional[str] = None, force: bool = False) -> bool:
+    def save(self, path: str | None = None, force: bool = False) -> bool:
         """
         그래프 저장
 
@@ -934,9 +915,7 @@ class KnowledgeGraph:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
             self._dirty = False
-            logger.info(
-                f"KnowledgeGraph saved to {save_path}: {len(self.triples)} triples"
-            )
+            logger.info(f"KnowledgeGraph saved to {save_path}: {len(self.triples)} triples")
             return True
 
         except Exception as e:
@@ -968,7 +947,7 @@ class KnowledgeGraph:
             return
 
         try:
-            with open(self.persist_path, "r", encoding="utf-8") as f:
+            with open(self.persist_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # 버전 체크
@@ -990,7 +969,7 @@ class KnowledgeGraph:
     # 데이터 로딩 헬퍼
     # =========================================================================
 
-    def load_from_crawl_data(self, crawl_data: Dict[str, Any]) -> int:
+    def load_from_crawl_data(self, crawl_data: dict[str, Any]) -> int:
         """
         크롤링 데이터에서 관계 로드
 
@@ -1005,7 +984,7 @@ class KnowledgeGraph:
         for cat_key, cat_data in crawl_data.get("categories", {}).items():
             products = cat_data.get("rank_records", [])
 
-            brand_products: Dict[str, List[Dict]] = defaultdict(list)
+            brand_products: dict[str, list[dict]] = defaultdict(list)
 
             for product in products:
                 brand = product.get("brand", "Unknown")
@@ -1067,7 +1046,7 @@ class KnowledgeGraph:
 
         return added
 
-    def load_from_metrics_data(self, metrics_data: Dict[str, Any]) -> int:
+    def load_from_metrics_data(self, metrics_data: dict[str, Any]) -> int:
         """
         지표 데이터에서 관계 로드
 
@@ -1158,7 +1137,7 @@ class KnowledgeGraph:
             print(f"Warning: Category hierarchy file not found: {hierarchy_path}")
             return 0
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         added = 0
@@ -1213,7 +1192,7 @@ class KnowledgeGraph:
 
         return added
 
-    def get_category_hierarchy(self, category_id: str) -> Dict[str, Any]:
+    def get_category_hierarchy(self, category_id: str) -> dict[str, Any]:
         """
         카테고리의 전체 계층 정보 조회
 
@@ -1246,9 +1225,7 @@ class KnowledgeGraph:
         # 상위 카테고리 탐색
         current = category_id
         while True:
-            parent_rels = self.query(
-                subject=current, predicate=RelationType.PARENT_CATEGORY
-            )
+            parent_rels = self.query(subject=current, predicate=RelationType.PARENT_CATEGORY)
             if not parent_rels:
                 break
             parent_id = parent_rels[0].object
@@ -1263,9 +1240,7 @@ class KnowledgeGraph:
             current = parent_id
 
         # 하위 카테고리 탐색 (1단계만)
-        child_rels = self.query(
-            subject=category_id, predicate=RelationType.HAS_SUBCATEGORY
-        )
+        child_rels = self.query(subject=category_id, predicate=RelationType.HAS_SUBCATEGORY)
         for rel in child_rels:
             child_id = rel.object
             child_meta = self.get_entity_metadata(child_id)
@@ -1279,7 +1254,7 @@ class KnowledgeGraph:
 
         return result
 
-    def get_product_category_context(self, product_asin: str) -> Dict[str, Any]:
+    def get_product_category_context(self, product_asin: str) -> dict[str, Any]:
         """
         제품의 카테고리 컨텍스트 조회 (계층 포함)
 
@@ -1301,9 +1276,7 @@ class KnowledgeGraph:
         result = {"product": product_asin, "categories": []}
 
         # 제품이 속한 카테고리 조회
-        cat_rels = self.query(
-            subject=product_asin, predicate=RelationType.BELONGS_TO_CATEGORY
-        )
+        cat_rels = self.query(subject=product_asin, predicate=RelationType.BELONGS_TO_CATEGORY)
 
         for rel in cat_rels:
             cat_id = rel.object
@@ -1320,7 +1293,7 @@ class KnowledgeGraph:
     # 감성 데이터 로딩 및 쿼리
     # =========================================================================
 
-    def load_from_sentiment_data(self, sentiment_data: Dict[str, Any]) -> int:
+    def load_from_sentiment_data(self, sentiment_data: dict[str, Any]) -> int:
         """
         AI Customers Say 및 감성 태그 데이터에서 관계 로드
 
@@ -1383,7 +1356,7 @@ class KnowledgeGraph:
 
         return added
 
-    def get_product_sentiments(self, product_asin: str) -> Dict[str, Any]:
+    def get_product_sentiments(self, product_asin: str) -> dict[str, Any]:
         """
         제품의 감성 정보 조회
 
@@ -1406,16 +1379,12 @@ class KnowledgeGraph:
         }
 
         # AI Summary 조회
-        summary_rels = self.query(
-            subject=product_asin, predicate=RelationType.HAS_AI_SUMMARY
-        )
+        summary_rels = self.query(subject=product_asin, predicate=RelationType.HAS_AI_SUMMARY)
         if summary_rels:
             result["ai_summary"] = summary_rels[0].properties.get("summary_text")
 
         # Sentiment Tags 조회
-        sentiment_rels = self.query(
-            subject=product_asin, predicate=RelationType.HAS_SENTIMENT
-        )
+        sentiment_rels = self.query(subject=product_asin, predicate=RelationType.HAS_SENTIMENT)
         for rel in sentiment_rels:
             tag = rel.object
             cluster = rel.properties.get("cluster")
@@ -1427,7 +1396,7 @@ class KnowledgeGraph:
 
         return result
 
-    def get_brand_sentiment_profile(self, brand: str) -> Dict[str, Any]:
+    def get_brand_sentiment_profile(self, brand: str) -> dict[str, Any]:
         """
         브랜드의 전체 감성 프로필 조회
 
@@ -1480,7 +1449,7 @@ class KnowledgeGraph:
 
         return result
 
-    def compare_product_sentiments(self, asin1: str, asin2: str) -> Dict[str, Any]:
+    def compare_product_sentiments(self, asin1: str, asin2: str) -> dict[str, Any]:
         """
         두 제품의 감성 비교
 
@@ -1516,9 +1485,7 @@ class KnowledgeGraph:
             },
         }
 
-    def find_products_by_sentiment(
-        self, sentiment_tag: str, brand_filter: str = None
-    ) -> List[str]:
+    def find_products_by_sentiment(self, sentiment_tag: str, brand_filter: str = None) -> list[str]:
         """
         특정 감성 태그를 가진 제품 검색
 
@@ -1548,9 +1515,7 @@ class KnowledgeGraph:
     # 브랜드 소유권 데이터 로딩 (2026-01-26 추가)
     # =========================================================================
 
-    def load_brand_ownership(
-        self, brands_config_path: str = "config/brands.json"
-    ) -> int:
+    def load_brand_ownership(self, brands_config_path: str = "config/brands.json") -> int:
         """
         브랜드 소유권 데이터 로드 (config/brands.json 기반)
 
@@ -1578,7 +1543,7 @@ class KnowledgeGraph:
             print(f"Warning: Brands config file not found: {brands_config_path}")
             return 0
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         added = 0
@@ -1702,9 +1667,7 @@ class KnowledgeGraph:
                 {
                     "ownership_note": note,
                     "ownership_evidence": evidence,
-                    "country_of_origin": ownership_info.get(
-                        "country_of_origin", "Korea"
-                    ),
+                    "country_of_origin": ownership_info.get("country_of_origin", "Korea"),
                 }
             )
             self.set_entity_metadata(brand_name, existing_meta)
@@ -1738,7 +1701,7 @@ class KnowledgeGraph:
 
         return added
 
-    def get_brand_ownership(self, brand: str) -> Dict[str, Any]:
+    def get_brand_ownership(self, brand: str) -> dict[str, Any]:
         """
         브랜드 소유권 정보 조회
 
@@ -1779,9 +1742,7 @@ class KnowledgeGraph:
         }
 
         # 소유 그룹 조회
-        ownership_rels = self.query(
-            subject=brand, predicate=RelationType.OWNED_BY_GROUP
-        )
+        ownership_rels = self.query(subject=brand, predicate=RelationType.OWNED_BY_GROUP)
         if ownership_rels:
             rel = ownership_rels[0]
             result["parent_group"] = rel.object
@@ -1802,9 +1763,7 @@ class KnowledgeGraph:
         if meta:
             result["note"] = meta.get("ownership_note")
             if not result["country_of_origin"]:
-                result["country_of_origin"] = meta.get(
-                    "country_of_origin", meta.get("country")
-                )
+                result["country_of_origin"] = meta.get("country_of_origin", meta.get("country"))
 
         return result
 
@@ -1823,9 +1782,7 @@ class KnowledgeGraph:
         )
         return len(rels) > 0
 
-    def get_amorepacific_brands(
-        self, segment_filter: str = None
-    ) -> List[Dict[str, Any]]:
+    def get_amorepacific_brands(self, segment_filter: str = None) -> list[dict[str, Any]]:
         """
         아모레퍼시픽 소속 브랜드 목록 조회
 
@@ -1869,7 +1826,7 @@ class KnowledgeGraph:
 # 싱글톤 패턴
 # =============================================================================
 
-_knowledge_graph_instance: Optional[KnowledgeGraph] = None
+_knowledge_graph_instance: KnowledgeGraph | None = None
 
 
 def get_knowledge_graph() -> KnowledgeGraph:

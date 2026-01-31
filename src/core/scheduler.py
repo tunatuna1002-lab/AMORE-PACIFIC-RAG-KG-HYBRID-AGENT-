@@ -37,13 +37,14 @@ scheduler.stop()
 ```
 """
 
-import logging
-import json
 import asyncio
+import json
+import logging
 import os
 import tempfile
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Any, Optional, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +63,10 @@ class AutonomousScheduler:
     STATE_FILE = "./data/scheduler_state.json"
 
     def __init__(self):
-        self.schedules: List[Dict[str, Any]] = []
-        self._last_run: Dict[str, datetime] = {}
+        self.schedules: list[dict[str, Any]] = []
+        self._last_run: dict[str, datetime] = {}
         self.running: bool = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._load_state()
         self._load_default_schedules()
 
@@ -73,7 +74,7 @@ class AutonomousScheduler:
         """파일에서 last_run 상태 복원"""
         try:
             if os.path.exists(self.STATE_FILE):
-                with open(self.STATE_FILE, "r", encoding="utf-8") as f:
+                with open(self.STATE_FILE, encoding="utf-8") as f:
                     data = json.load(f)
                     for schedule_id, timestamp in data.get("last_run", {}).items():
                         self._last_run[schedule_id] = datetime.fromisoformat(timestamp)
@@ -87,21 +88,22 @@ class AutonomousScheduler:
             os.makedirs(os.path.dirname(self.STATE_FILE), exist_ok=True)
             data = {
                 "last_run": {
-                    schedule_id: dt.isoformat()
-                    for schedule_id, dt in self._last_run.items()
+                    schedule_id: dt.isoformat() for schedule_id, dt in self._last_run.items()
                 },
-                "saved_at": datetime.now().isoformat()
+                "saved_at": datetime.now().isoformat(),
             }
             # 원자적 쓰기
             dir_path = os.path.dirname(self.STATE_FILE) or "."
-            with tempfile.NamedTemporaryFile(mode="w", dir=dir_path, delete=False, suffix=".tmp", encoding="utf-8") as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", dir=dir_path, delete=False, suffix=".tmp", encoding="utf-8"
+            ) as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 temp_path = f.name
             os.replace(temp_path, self.STATE_FILE)
         except Exception as e:
             logger.error(f"Failed to save scheduler state: {e}")
             try:
-                if 'temp_path' in locals() and os.path.exists(temp_path):
+                if "temp_path" in locals() and os.path.exists(temp_path):
                     os.remove(temp_path)
             except Exception as e:
                 logger.debug(f"임시 파일 정리 실패 (무시됨): {e}")
@@ -122,7 +124,16 @@ class AutonomousScheduler:
                 "schedule_type": "daily",
                 "hour": 22,  # KST 22:00 = UTC 13:00
                 "minute": 0,
-                "enabled": True
+                "enabled": True,
+            },
+            {
+                "id": "morning_brief",
+                "name": "Morning Brief 발송",
+                "action": "send_morning_brief",
+                "schedule_type": "daily",
+                "hour": 8,  # KST 08:00 = 아침 뉴스레터
+                "minute": 0,
+                "enabled": True,
             },
             {
                 "id": "check_data_freshness",
@@ -130,15 +141,15 @@ class AutonomousScheduler:
                 "action": "check_data",
                 "schedule_type": "interval",
                 "interval_hours": 1,
-                "enabled": True
-            }
+                "enabled": True,
+            },
         ]
 
     def get_kst_now(self) -> datetime:
         """한국 시간 기준 현재 시각 반환"""
         return datetime.now(KST)
 
-    def get_due_tasks(self, current_time: datetime) -> List[Dict[str, Any]]:
+    def get_due_tasks(self, current_time: datetime) -> list[dict[str, Any]]:
         """실행해야 할 작업 목록 반환 (한국시간 기준)"""
         due_tasks = []
         kst_now = self.get_kst_now()
@@ -153,14 +164,15 @@ class AutonomousScheduler:
 
             if schedule["schedule_type"] == "daily":
                 scheduled_time = kst_now.replace(
-                    hour=schedule["hour"],
-                    minute=schedule["minute"],
-                    second=0,
-                    microsecond=0
+                    hour=schedule["hour"], minute=schedule["minute"], second=0, microsecond=0
                 )
                 last_run_date = last_run.date() if last_run else None
-                if (last_run_date is None or last_run_date < kst_today) and kst_now >= scheduled_time:
-                    logger.info(f"Task {schedule_id} is due: last_run={last_run_date}, kst_today={kst_today}")
+                if (
+                    last_run_date is None or last_run_date < kst_today
+                ) and kst_now >= scheduled_time:
+                    logger.info(
+                        f"Task {schedule_id} is due: last_run={last_run_date}, kst_today={kst_today}"
+                    )
                     due_tasks.append(schedule)
 
             elif schedule["schedule_type"] == "interval":
@@ -176,7 +188,7 @@ class AutonomousScheduler:
         self._save_state()
         logger.info(f"Marked {schedule_id} as completed at {self._last_run[schedule_id]}")
 
-    def add_schedule(self, schedule: Dict[str, Any]):
+    def add_schedule(self, schedule: dict[str, Any]):
         """스케줄 추가"""
         self.schedules.append(schedule)
 
@@ -221,14 +233,12 @@ class AutonomousScheduler:
 
         self._task = asyncio.create_task(_run_loop())
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """스케줄러 상태 반환"""
         return {
             "running": self.running,
             "schedules_count": len(self.schedules),
             "pending_tasks": self.get_pending_count(),
-            "last_runs": {
-                sid: dt.isoformat() for sid, dt in self._last_run.items()
-            },
-            "kst_now": self.get_kst_now().isoformat()
+            "last_runs": {sid: dt.isoformat() for sid, dt in self._last_run.items()},
+            "kst_now": self.get_kst_now().isoformat(),
         }

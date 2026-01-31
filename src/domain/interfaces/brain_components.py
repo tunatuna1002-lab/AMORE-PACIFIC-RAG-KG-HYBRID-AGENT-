@@ -10,11 +10,19 @@ SRP(Single Responsibility Principle)에 따라 분리된 컴포넌트들의 인�
 - DecisionMakerProtocol: LLM 의사결정
 - ToolCoordinatorProtocol: 도구 실행 조율
 - AlertManagerProtocol: 알림 처리
+
+Clean Architecture:
+- 이 파일은 Domain Layer에 위치
+- 모든 타입 힌트는 Domain 모델을 사용 (ContextProtocol, ResponseProtocol, ToolResultProtocol)
 """
 
 from typing import Any, Protocol, runtime_checkable
 
-from src.core.models import Context, Response, ToolResult
+from src.domain.entities.brain_models import (
+    ContextProtocol,
+    ResponseProtocol,
+    ToolResultProtocol,
+)
 
 # =============================================================================
 # Query Processor Protocol
@@ -34,10 +42,10 @@ class QueryProcessorProtocol(Protocol):
     async def process(
         self,
         query: str,
-        context: Context,
+        context: ContextProtocol,
         session_id: str | None = None,
         current_metrics: dict[str, Any] | None = None,
-    ) -> Response:
+    ) -> ResponseProtocol:
         """
         질문 처리
 
@@ -70,7 +78,7 @@ class DecisionMakerProtocol(Protocol):
     """
 
     async def decide(
-        self, query: str, context: Context, system_state: dict[str, Any]
+        self, query: str, context: ContextProtocol, system_state: dict[str, Any]
     ) -> dict[str, Any]:
         """
         의사결정
@@ -102,7 +110,7 @@ class ToolCoordinatorProtocol(Protocol):
     - 실행 상태 추적
     """
 
-    async def execute(self, tool_name: str, params: dict[str, Any]) -> ToolResult:
+    async def execute(self, tool_name: str, params: dict[str, Any]) -> ToolResultProtocol:
         """
         도구 실행
 
@@ -197,10 +205,10 @@ class ResponseGeneratorProtocol(Protocol):
     async def generate(
         self,
         query: str,
-        context: Context,
+        context: ContextProtocol,
         decision: dict[str, Any] | None = None,
-        tool_result: ToolResult | None = None,
-    ) -> Response:
+        tool_result: ToolResultProtocol | None = None,
+    ) -> ResponseProtocol:
         """
         응답 생성
 

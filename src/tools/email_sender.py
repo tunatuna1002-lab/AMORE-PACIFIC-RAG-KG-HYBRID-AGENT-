@@ -34,22 +34,23 @@ Usage:
     )
 """
 
-import smtplib
-import logging
 import asyncio
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Literal
-from dataclasses import dataclass, field
-from enum import Enum
+import logging
 import os
+import smtplib
+from dataclasses import dataclass
+from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from enum import Enum
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
 # Resend 클라이언트 (선택적 의존성)
 try:
     import resend
+
     RESEND_AVAILABLE = True
 except ImportError:
     RESEND_AVAILABLE = False
@@ -60,18 +61,22 @@ except ImportError:
 # 타입 정의
 # =============================================================================
 
+
 class AlertType(Enum):
     """알림 유형"""
+
     RANK_CHANGE = "rank_change"
     IMPORTANT_INSIGHT = "important_insight"
     CRAWL_COMPLETE = "crawl_complete"
     ERROR = "error"
     DAILY_SUMMARY = "daily_summary"
+    INSIGHT_REPORT = "insight_report"  # 인사이트 전체 리포트
 
 
 @dataclass
 class EmailConfig:
     """이메일 설정"""
+
     # Provider 선택: "resend" (권장) 또는 "smtp"
     provider: Literal["resend", "smtp"] = "resend"
 
@@ -99,7 +104,7 @@ class EmailConfig:
                 provider="resend",
                 resend_api_key=resend_api_key,
                 resend_from_email=os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
-                sender_name=os.getenv("SENDER_NAME", "AMORE Market Agent")
+                sender_name=os.getenv("SENDER_NAME", "AMORE Market Agent"),
             )
 
         # 없으면 SMTP 폴백
@@ -109,16 +114,17 @@ class EmailConfig:
             smtp_port=int(os.getenv("SMTP_PORT", "587")),
             sender_email=os.getenv("SENDER_EMAIL", ""),
             sender_password=os.getenv("SENDER_PASSWORD", ""),
-            sender_name=os.getenv("SENDER_NAME", "AMORE Market Agent")
+            sender_name=os.getenv("SENDER_NAME", "AMORE Market Agent"),
         )
 
 
 @dataclass
 class SendResult:
     """발송 결과"""
+
     success: bool
-    sent_to: List[str]
-    failed: List[str]
+    sent_to: list[str]
+    failed: list[str]
     message: str
 
 
@@ -147,7 +153,7 @@ EMAIL_TEMPLATES = {
     </div>
 </body>
 </html>
-"""
+""",
     },
     AlertType.IMPORTANT_INSIGHT: {
         "subject_prefix": "[중요 인사이트]",
@@ -169,7 +175,7 @@ EMAIL_TEMPLATES = {
     </div>
 </body>
 </html>
-"""
+""",
     },
     AlertType.CRAWL_COMPLETE: {
         "subject_prefix": "[크롤링 완료]",
@@ -189,7 +195,7 @@ EMAIL_TEMPLATES = {
     </div>
 </body>
 </html>
-"""
+""",
     },
     AlertType.ERROR: {
         "subject_prefix": "[에러 발생]",
@@ -208,7 +214,7 @@ EMAIL_TEMPLATES = {
     </div>
 </body>
 </html>
-"""
+""",
     },
     AlertType.DAILY_SUMMARY: {
         "subject_prefix": "[일일 요약]",
@@ -241,14 +247,97 @@ EMAIL_TEMPLATES = {
     </div>
 </body>
 </html>
-"""
-    }
+""",
+    },
+    AlertType.INSIGHT_REPORT: {
+        "subject_prefix": "[AMORE 인사이트]",
+        "template": """
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+    <!-- 헤더 -->
+    <div style="background: linear-gradient(135deg, #001C58 0%, #1F5795 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">AMORE Market Agent</h1>
+        <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0;">Amazon US Market Intelligence Report</p>
+    </div>
+
+    <!-- 날짜 배너 -->
+    <div style="background-color: #1F5795; color: white; padding: 12px 30px; text-align: center;">
+        <span style="font-size: 16px;">📅 {report_date}</span>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div style="background-color: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+
+        <!-- KPI 요약 -->
+        <h2 style="color: #001C58; border-bottom: 2px solid #1F5795; padding-bottom: 10px; margin-top: 0;">📊 주요 지표 (KPI)</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+            <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #e8f4fd 0%, #d0e8f9 100%); padding: 15px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 12px; color: #666;">LANEIGE 평균 순위</div>
+                <div style="font-size: 28px; font-weight: bold; color: #001C58;">{avg_rank}</div>
+            </div>
+            <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #e8f4fd 0%, #d0e8f9 100%); padding: 15px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 12px; color: #666;">Share of Shelf</div>
+                <div style="font-size: 28px; font-weight: bold; color: #1F5795;">{sos}%</div>
+            </div>
+            <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #e8f4fd 0%, #d0e8f9 100%); padding: 15px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 12px; color: #666;">HHI (집중도)</div>
+                <div style="font-size: 28px; font-weight: bold; color: #1F5795;">{hhi}</div>
+            </div>
+        </div>
+
+        <!-- AI 인사이트 -->
+        <h2 style="color: #001C58; border-bottom: 2px solid #1F5795; padding-bottom: 10px;">🤖 AI 인사이트</h2>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #1F5795;">
+            {insight_content}
+        </div>
+
+        <!-- Top 10 순위표 -->
+        <h2 style="color: #001C58; border-bottom: 2px solid #1F5795; padding-bottom: 10px;">🏆 Top 10 제품 순위</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 14px;">
+            <thead>
+                <tr style="background-color: #001C58; color: white;">
+                    <th style="padding: 12px 8px; text-align: center; width: 50px;">순위</th>
+                    <th style="padding: 12px 8px; text-align: left;">제품명</th>
+                    <th style="padding: 12px 8px; text-align: center; width: 100px;">브랜드</th>
+                    <th style="padding: 12px 8px; text-align: center; width: 70px;">변동</th>
+                </tr>
+            </thead>
+            <tbody>
+                {top10_rows}
+            </tbody>
+        </table>
+
+        <!-- 브랜드별 변동 -->
+        <h2 style="color: #001C58; border-bottom: 2px solid #1F5795; padding-bottom: 10px;">📈 브랜드별 주요 변동</h2>
+        <div style="margin-bottom: 25px;">
+            {brand_changes}
+        </div>
+
+        <!-- 푸터 -->
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 20px; text-align: center;">
+            <p style="color: #666; font-size: 12px; margin: 0;">
+                이 리포트는 AMORE Market Agent가 자동으로 생성했습니다.<br>
+                {timestamp} | Amazon US Beauty & Personal Care
+            </p>
+            <p style="margin-top: 15px;">
+                <a href="{dashboard_url}" style="background-color: #001C58; color: white; padding: 10px 25px; text-decoration: none; border-radius: 5px; font-size: 14px;">대시보드에서 자세히 보기</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+""",
+    },
 }
 
 
 # =============================================================================
 # 이메일 발송 도구
 # =============================================================================
+
 
 class EmailSender:
     """
@@ -267,9 +356,7 @@ class EmailSender:
     """
 
     def __init__(
-        self,
-        config: Optional[EmailConfig] = None,
-        provider: Optional[Literal["resend", "smtp"]] = None
+        self, config: EmailConfig | None = None, provider: Literal["resend", "smtp"] | None = None
     ):
         """
         Args:
@@ -301,21 +388,19 @@ class EmailSender:
             self._enabled = bool(self.config.sender_email and self.config.sender_password)
 
         # 발송 기록
-        self._send_history: List[Dict[str, Any]] = []
+        self._send_history: list[dict[str, Any]] = []
 
         if not self._enabled:
-            logger.warning(f"Email sender disabled: {self.config.provider} credentials not configured")
+            logger.warning(
+                f"Email sender disabled: {self.config.provider} credentials not configured"
+            )
 
     # =========================================================================
     # 메인 발송
     # =========================================================================
 
     async def send_alert(
-        self,
-        alert_type: str,
-        subject: str,
-        content: Dict[str, Any],
-        recipients: List[str]
+        self, alert_type: str, subject: str, content: dict[str, Any], recipients: list[str]
     ) -> SendResult:
         """
         알림 이메일 발송
@@ -334,16 +419,11 @@ class EmailSender:
                 success=False,
                 sent_to=[],
                 failed=recipients,
-                message="이메일 발송이 비활성화되어 있습니다."
+                message="이메일 발송이 비활성화되어 있습니다.",
             )
 
         if not recipients:
-            return SendResult(
-                success=True,
-                sent_to=[],
-                failed=[],
-                message="수신자 없음"
-            )
+            return SendResult(success=True, sent_to=[], failed=[], message="수신자 없음")
 
         # 템플릿 렌더링
         try:
@@ -355,7 +435,7 @@ class EmailSender:
                     success=False,
                     sent_to=[],
                     failed=recipients,
-                    message=f"알 수 없는 알림 유형: {alert_type}"
+                    message=f"알 수 없는 알림 유형: {alert_type}",
                 )
 
             # 제목 생성
@@ -370,7 +450,7 @@ class EmailSender:
                 success=False,
                 sent_to=[],
                 failed=recipients,
-                message=f"잘못된 알림 유형: {alert_type}"
+                message=f"잘못된 알림 유형: {alert_type}",
             )
 
         # 발송
@@ -388,22 +468,24 @@ class EmailSender:
                 logger.error(f"Failed to send email to {recipient}: {e}")
 
         # 기록 저장
-        self._send_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "alert_type": alert_type,
-            "subject": full_subject,
-            "sent_to": sent_to,
-            "failed": failed
-        })
+        self._send_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "alert_type": alert_type,
+                "subject": full_subject,
+                "sent_to": sent_to,
+                "failed": failed,
+            }
+        )
 
         return SendResult(
             success=len(failed) == 0,
             sent_to=sent_to,
             failed=failed,
-            message=f"발송 완료: {len(sent_to)}명 성공, {len(failed)}명 실패"
+            message=f"발송 완료: {len(sent_to)}명 성공, {len(failed)}명 실패",
         )
 
-    def _render_template(self, template: str, variables: Dict[str, Any]) -> str:
+    def _render_template(self, template: str, variables: dict[str, Any]) -> str:
         """템플릿 렌더링"""
         result = template
 
@@ -436,7 +518,7 @@ class EmailSender:
                 "from": f"{self.config.sender_name} <{self.config.resend_from_email}>",
                 "to": [recipient],
                 "subject": subject,
-                "html": html_body
+                "html": html_body,
             }
             return resend.Emails.send(params)
 
@@ -475,11 +557,11 @@ class EmailSender:
 
     async def send_rank_change_alert(
         self,
-        recipients: List[str],
+        recipients: list[str],
         product_name: str,
         brand: str,
         previous_rank: int,
-        current_rank: int
+        current_rank: int,
     ) -> SendResult:
         """순위 변동 알림"""
         change = previous_rank - current_rank
@@ -503,36 +585,30 @@ class EmailSender:
                 "previous_rank": previous_rank,
                 "current_rank": current_rank,
                 "change_text": change_text,
-                "color": color
+                "color": color,
             },
-            recipients=recipients
+            recipients=recipients,
         )
 
     async def send_error_alert(
-        self,
-        recipients: List[str],
-        error_message: str,
-        location: str
+        self, recipients: list[str], error_message: str, location: str
     ) -> SendResult:
         """에러 알림"""
         return await self.send_alert(
             alert_type="error",
             subject=f"에러: {location}",
-            content={
-                "error_message": error_message,
-                "location": location
-            },
-            recipients=recipients
+            content={"error_message": error_message, "location": location},
+            recipients=recipients,
         )
 
     async def send_daily_summary(
         self,
-        recipients: List[str],
-        highlights: List[str],
+        recipients: list[str],
+        highlights: list[str],
         avg_rank: float,
         sos: float,
         alert_count: int,
-        action_items: List[str]
+        action_items: list[str],
     ) -> SendResult:
         """일일 요약 발송"""
         return await self.send_alert(
@@ -543,16 +619,102 @@ class EmailSender:
                 "avg_rank": f"{avg_rank:.1f}",
                 "sos": f"{sos:.1f}",
                 "alert_count": alert_count,
-                "action_items": action_items
+                "action_items": action_items,
             },
-            recipients=recipients
+            recipients=recipients,
+        )
+
+    async def send_insight_report(
+        self,
+        recipients: list[str],
+        report_date: str,
+        avg_rank: float,
+        sos: float,
+        hhi: float,
+        insight_content: str,
+        top10_products: list[dict],
+        brand_changes: list[dict],
+        dashboard_url: str = "http://localhost:8001/dashboard",
+    ) -> SendResult:
+        """
+        인사이트 전체 리포트 이메일 발송
+
+        Args:
+            recipients: 수신자 목록
+            report_date: 리포트 날짜 (예: "2026년 1월 30일")
+            avg_rank: LANEIGE 평균 순위
+            sos: Share of Shelf (%)
+            hhi: HHI 지수
+            insight_content: AI 인사이트 HTML 내용
+            top10_products: Top 10 제품 리스트 [{"rank", "name", "brand", "change"}]
+            brand_changes: 브랜드 변동 리스트 [{"brand", "change_text", "color"}]
+            dashboard_url: 대시보드 URL
+
+        Returns:
+            SendResult
+        """
+        # Top 10 테이블 행 생성
+        top10_rows = ""
+        for i, product in enumerate(top10_products[:10]):
+            rank = product.get("rank", i + 1)
+            name = product.get("name", "N/A")[:50]  # 이름 50자 제한
+            brand = product.get("brand", "N/A")
+            change = product.get("change", 0)
+
+            # LANEIGE 하이라이트
+            row_style = "background-color: #e8f4fd;" if brand == "LANEIGE" else ""
+
+            # 변동 표시
+            if change > 0:
+                change_html = f'<span style="color: #28a745;">▲{change}</span>'
+            elif change < 0:
+                change_html = f'<span style="color: #dc3545;">▼{abs(change)}</span>'
+            else:
+                change_html = '<span style="color: #666;">-</span>'
+
+            top10_rows += f"""
+                <tr style="{row_style}">
+                    <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #e0e0e0; font-weight: bold;">{rank}</td>
+                    <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0;">{name}</td>
+                    <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">{brand}</td>
+                    <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">{change_html}</td>
+                </tr>
+            """
+
+        # 브랜드 변동 HTML 생성
+        brand_changes_html = ""
+        for bc in brand_changes[:5]:  # 최대 5개
+            brand = bc.get("brand", "N/A")
+            change_text = bc.get("change_text", "변동 없음")
+            color = bc.get("color", "#666")
+            brand_changes_html += f"""
+                <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                    <span style="font-weight: bold;">{brand}</span>
+                    <span style="color: {color};">{change_text}</span>
+                </div>
+            """
+
+        if not brand_changes_html:
+            brand_changes_html = '<p style="color: #666;">오늘은 주요 브랜드 변동이 없습니다.</p>'
+
+        return await self.send_alert(
+            alert_type="insight_report",
+            subject=f"{report_date} Amazon US 시장 인사이트",
+            content={
+                "report_date": report_date,
+                "avg_rank": f"{avg_rank:.1f}" if avg_rank else "N/A",
+                "sos": f"{sos:.1f}" if sos else "N/A",
+                "hhi": f"{hhi:.0f}" if hhi else "N/A",
+                "insight_content": insight_content,
+                "top10_rows": top10_rows,
+                "brand_changes": brand_changes_html,
+                "dashboard_url": dashboard_url,
+            },
+            recipients=recipients,
         )
 
     async def send_verification_email(
-        self,
-        recipient: str,
-        verify_url: str,
-        token: str
+        self, recipient: str, verify_url: str, token: str
     ) -> SendResult:
         """
         이메일 인증 이메일 발송
@@ -640,35 +802,34 @@ class EmailSender:
         try:
             if self.config.provider == "resend" and RESEND_AVAILABLE:
                 result = await self._send_via_resend(
-                    to_emails=[recipient],
-                    subject=subject,
-                    html_content=html_content
+                    to_emails=[recipient], subject=subject, html_content=html_content
                 )
             else:
-                result = await self._send_via_smtp(
-                    to_emails=[recipient],
-                    subject=subject,
-                    html_content=html_content
+                await self._send_via_smtp(
+                    recipient=recipient, subject=subject, html_body=html_content
+                )
+                result = SendResult(
+                    success=True,
+                    sent_to=[recipient],
+                    failed=[],
+                    message="인증 이메일이 발송되었습니다",
                 )
 
             # 기록
-            self._send_history.append({
-                "type": "verification",
-                "recipient": recipient,
-                "timestamp": datetime.now().isoformat(),
-                "success": result.success
-            })
+            self._send_history.append(
+                {
+                    "type": "verification",
+                    "recipient": recipient,
+                    "timestamp": datetime.now().isoformat(),
+                    "success": result.success,
+                }
+            )
 
             return result
 
         except Exception as e:
             logger.error(f"Failed to send verification email to {recipient}: {e}")
-            return SendResult(
-                success=False,
-                sent_to=[],
-                failed=[recipient],
-                message=str(e)
-            )
+            return SendResult(success=False, sent_to=[], failed=[recipient], message=str(e))
 
     # =========================================================================
     # 유틸리티
@@ -678,11 +839,11 @@ class EmailSender:
         """이메일 발송 활성화 여부"""
         return self._enabled
 
-    def get_send_history(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_send_history(self, limit: int = 50) -> list[dict[str, Any]]:
         """발송 기록 조회"""
         return self._send_history[-limit:]
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """통계"""
         total = len(self._send_history)
         successful = sum(1 for h in self._send_history if not h.get("failed"))
@@ -692,17 +853,17 @@ class EmailSender:
             "provider": self.config.provider,
             "total_sent": total,
             "successful": successful,
-            "failed": total - successful
+            "failed": total - successful,
         }
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> dict[str, Any]:
         """현재 Provider 정보"""
         if self.config.provider == "resend":
             return {
                 "provider": "resend",
                 "from_email": self.config.resend_from_email,
                 "api_key_set": bool(self.config.resend_api_key),
-                "free_tier": "3,000 emails/month"
+                "free_tier": "3,000 emails/month",
             }
         else:
             return {
@@ -710,5 +871,67 @@ class EmailSender:
                 "server": self.config.smtp_server,
                 "port": self.config.smtp_port,
                 "sender_email": self.config.sender_email,
-                "credentials_set": bool(self.config.sender_password)
+                "credentials_set": bool(self.config.sender_password),
             }
+
+    # =========================================================================
+    # Morning Brief (뉴스레터)
+    # =========================================================================
+
+    async def send_morning_brief(
+        self, recipients: list[str], html_content: str, date_str: str
+    ) -> SendResult:
+        """
+        Morning Brief 뉴스레터 발송
+
+        Args:
+            recipients: 수신자 목록
+            html_content: 렌더링된 HTML 콘텐츠
+            date_str: 날짜 문자열 (제목용)
+
+        Returns:
+            SendResult
+        """
+        if not self._enabled:
+            return SendResult(
+                success=False,
+                sent_to=[],
+                failed=recipients,
+                message="이메일 발송이 비활성화되어 있습니다.",
+            )
+
+        if not recipients:
+            return SendResult(success=True, sent_to=[], failed=[], message="수신자 없음")
+
+        subject = f"☀️ AMORE Daily Brief - {date_str}"
+
+        sent_to = []
+        failed = []
+
+        for recipient in recipients:
+            try:
+                await self._send_email(recipient, subject, html_content)
+                sent_to.append(recipient)
+                logger.info(f"Morning Brief sent to {recipient}")
+
+            except Exception as e:
+                failed.append(recipient)
+                logger.error(f"Failed to send Morning Brief to {recipient}: {e}")
+
+        # 기록 저장
+        self._send_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "alert_type": "morning_brief",
+                "subject": subject,
+                "sent_to": sent_to,
+                "failed": failed,
+            }
+        )
+
+        return SendResult(
+            success=len(failed) == 0,
+            sent_to=sent_to,
+            failed=failed,
+            message=f"Morning Brief 발송: {len(sent_to)}명 성공, {len(failed)}명 실패",
+        )

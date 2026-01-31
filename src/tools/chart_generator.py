@@ -51,6 +51,10 @@ class ChartGenerator:
         "#AEC6CF",
     ]
 
+    # 강조 색상
+    ACCENT_GREEN = "#43A047"  # 상승
+    ACCENT_RED = "#E53935"  # 하락
+
     def __init__(self, output_dir: str = None):
         """
         Args:
@@ -61,6 +65,9 @@ class ChartGenerator:
 
         # 한글 폰트 설정 (macOS)
         self._setup_korean_font()
+
+        # 전역 스타일 설정
+        self._setup_global_style()
 
     def _setup_korean_font(self):
         """한글 폰트 설정 (macOS, Linux/Docker 환경 모두 지원)"""
@@ -110,6 +117,41 @@ class ChartGenerator:
             logger.warning("No Korean font found. Charts may show broken characters.")
 
         plt.rcParams["axes.unicode_minus"] = False
+
+    def _setup_global_style(self):
+        """AMOREPACIFIC 디자인 시스템 기반 전역 스타일 설정"""
+        # 배경 및 축 색상
+        plt.rcParams["figure.facecolor"] = self.WHITE
+        plt.rcParams["axes.facecolor"] = self.WHITE
+        plt.rcParams["axes.edgecolor"] = "#E0E0E0"
+        plt.rcParams["axes.linewidth"] = 0.8
+
+        # 그리드 스타일
+        plt.rcParams["grid.color"] = "#E0E0E0"
+        plt.rcParams["grid.linewidth"] = 0.5
+        plt.rcParams["grid.alpha"] = 0.7
+
+        # 틱 스타일
+        plt.rcParams["xtick.color"] = self.GRAY
+        plt.rcParams["ytick.color"] = self.GRAY
+        plt.rcParams["xtick.labelsize"] = 9
+        plt.rcParams["ytick.labelsize"] = 9
+
+        # 범례 스타일
+        plt.rcParams["legend.frameon"] = True
+        plt.rcParams["legend.framealpha"] = 0.9
+        plt.rcParams["legend.edgecolor"] = "#E0E0E0"
+        plt.rcParams["legend.fontsize"] = 9
+
+        # 제목 스타일
+        plt.rcParams["axes.titlesize"] = 14
+        plt.rcParams["axes.titleweight"] = "bold"
+        plt.rcParams["axes.titlepad"] = 15
+
+        # 레이블 스타일
+        plt.rcParams["axes.labelsize"] = 10
+        plt.rcParams["axes.labelcolor"] = self.GRAY
+        plt.rcParams["axes.labelpad"] = 8
 
     def generate_sos_trend_chart(
         self,

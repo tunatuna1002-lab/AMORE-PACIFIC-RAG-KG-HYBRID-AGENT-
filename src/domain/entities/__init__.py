@@ -9,10 +9,16 @@ Domain Entities
 - 불변성 권장
 """
 
-from src.domain.entities.product import (
-    BadgeType,
-    Product,
-    RankRecord,
+from src.domain.entities.brain_models import (
+    ConfidenceLevel,
+    ContextBase,
+    ContextProtocol,
+    KGFact,
+    ResponseBase,
+    ResponseProtocol,
+    SystemState,
+    ToolResultBase,
+    ToolResultProtocol,
 )
 from src.domain.entities.brand import (
     Brand,
@@ -20,23 +26,38 @@ from src.domain.entities.brand import (
 )
 from src.domain.entities.market import (
     Category,
-    Snapshot,
     MarketMetrics,
     ProductMetrics,
+    Snapshot,
+)
+from src.domain.entities.product import (
+    BadgeType,
+    Product,
+    RankRecord,
 )
 from src.domain.entities.relations import (
-    RelationType,
+    InferenceResult,
     InsightType,
     MarketPosition,
     Relation,
-    InferenceResult,
+    RelationType,
     create_brand_product_relation,
-    create_product_category_relation,
     create_competition_relation,
     create_metric_insight_relation,
+    create_product_category_relation,
 )
 
 __all__ = [
+    # Brain Models
+    "ConfidenceLevel",
+    "KGFact",
+    "SystemState",
+    "ContextProtocol",
+    "ToolResultProtocol",
+    "ResponseProtocol",
+    "ContextBase",
+    "ToolResultBase",
+    "ResponseBase",
     # Product
     "BadgeType",
     "Product",

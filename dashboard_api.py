@@ -65,7 +65,7 @@ from typing import Any
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Pt
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
@@ -2195,253 +2195,6 @@ class AnalystReportRequest(BaseModel):
     include_external_signals: bool = True
 
 
-@app.post("/api/export/analyst-report")
-async def export_analyst_report(request: AnalystReportRequest):
-    """
-    기간별 애널리스트 리포트 DOCX 생성 (8 Sections)
-
-    증권사/리서치 기관 수준의 산업 분석 보고서 생성
-
-    Args:
-        request: AnalystReportRequest with start_date, end_date, options
-
-    Returns:
-        StreamingResponse with DOCX file
-    """
-    import tempfile
-
-    from src.agents.period_insight_agent import PeriodInsightAgent
-    from src.tools.chart_generator import ChartGenerator
-    from src.tools.external_signal_collector import ExternalSignalCollector
-
-    # 모듈 임포트
-    from src.tools.period_analyzer import PeriodAnalyzer
-    from src.tools.reference_tracker import ReferenceTracker
-
-    logger.info(f"Generating analyst report: {request.start_date} ~ {request.end_date}")
-
-    # AMOREPACIFIC colors
-    PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
-    _AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795 (reserved for future use)
-    GRAY = RGBColor(125, 125, 125)  # #7D7D7D
-
-    try:
-        # 1. Period Analysis
-        analyzer = PeriodAnalyzer()
-        analysis = await analyzer.analyze(request.start_date, request.end_date)
-
-        if analysis.total_days == 0:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No data found for period {request.start_date} ~ {request.end_date}",
-            )
-
-        # 2. External Signals (optional)
-        external_signals = None
-        if request.include_external_signals:
-            try:
-                collector = ExternalSignalCollector()
-                await collector.initialize()
-                if collector.signals:
-                    external_signals = {
-                        "signals": collector.signals,
-                        "report_section": collector.generate_report_section(
-                            days=analysis.total_days
-                        ),
-                    }
-                await collector.close()
-            except Exception as e:
-                logger.warning(f"External signal collection failed: {e}")
-
-        # 3. Generate Insights
-        insight_agent = PeriodInsightAgent()
-        report = await insight_agent.generate_report(analysis, external_signals=external_signals)
-
-        # 4. Generate Charts
-        chart_paths = {}
-        temp_dir = None
-        if request.include_charts:
-            temp_dir = tempfile.mkdtemp()
-            chart_gen = ChartGenerator(output_dir=temp_dir)
-            chart_paths = chart_gen.generate_all_charts(analysis)
-            logger.info(f"Generated {len(chart_paths)} charts in {temp_dir}")
-
-        # 5. Reference Tracker
-        tracker = ReferenceTracker()
-        tracker.auto_add_amazon_sources(start_date=request.start_date, end_date=request.end_date)
-
-        # 6. Create DOCX Document
-        doc = Document()
-
-        # Style setup
-        style = doc.styles["Normal"]
-        font = style.font
-        font.name = "Arial"
-        font.size = Pt(11)
-
-        # ===== 표지 (Cover Page) =====
-        title = doc.add_heading("LANEIGE Amazon US 경쟁력 분석 보고서", 0)
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = title.runs[0]
-        run.font.color.rgb = PACIFIC_BLUE
-
-        subtitle = doc.add_paragraph(f"분석 기간: {request.start_date} ~ {request.end_date}")
-        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        date_para = doc.add_paragraph()
-        date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        date_para.add_run(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-
-        doc.add_page_break()
-
-        # ===== 목차 (Table of Contents) =====
-        toc_heading = doc.add_heading("목차", 1)
-        toc_heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        toc_items = [
-            "1. Executive Summary",
-            "2. LANEIGE 심층 분석",
-            "3. 경쟁 환경 분석",
-            "4. 시장 동향",
-            "5. 외부 신호 분석",
-            "6. 리스크 및 기회 요인",
-            "7. 전략 제언",
-            "8. 참고자료 (References)",
-        ]
-        for item in toc_items:
-            doc.add_paragraph(item, style="List Bullet")
-
-        doc.add_page_break()
-
-        # Helper function for section content
-        def add_section_content(section, section_prefix):
-            """섹션 내용 추가 헬퍼"""
-            heading = doc.add_heading(f"{section.section_id}. {section.section_title}", 1)
-            heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-            for line in section.content.split("\n"):
-                if line.strip():
-                    if line.startswith("■"):
-                        para = doc.add_paragraph(line)
-                        para.runs[0].font.bold = True
-                    elif line.startswith(f"{section_prefix}."):
-                        doc.add_heading(line, 2)
-                    else:
-                        doc.add_paragraph(line)
-
-        # ===== Section 1: Executive Summary =====
-        if report.executive_summary:
-            add_section_content(report.executive_summary, "1")
-            # Insert SoS chart if available
-            if request.include_charts and "sos_trend" in chart_paths:
-                doc.add_paragraph()
-                doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
-            doc.add_page_break()
-
-        # ===== Section 2: LANEIGE 심층 분석 =====
-        if report.laneige_analysis:
-            add_section_content(report.laneige_analysis, "2")
-            # Insert charts
-            if request.include_charts:
-                doc.add_paragraph()
-                if "sos_trend" in chart_paths:
-                    doc.add_heading("일별 SoS 추이", 3)
-                    doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
-                    doc.add_paragraph()
-                if "product_ranks" in chart_paths:
-                    doc.add_heading("제품별 순위 변동", 3)
-                    doc.add_picture(str(chart_paths["product_ranks"]), width=Inches(6))
-            doc.add_page_break()
-
-        # ===== Section 3: 경쟁 환경 분석 =====
-        if report.competitive_analysis:
-            add_section_content(report.competitive_analysis, "3")
-            # Insert brand comparison chart
-            if request.include_charts and "brand_comparison" in chart_paths:
-                doc.add_paragraph()
-                doc.add_heading("브랜드별 점유율", 3)
-                doc.add_picture(str(chart_paths["brand_comparison"]), width=Inches(6))
-            doc.add_page_break()
-
-        # ===== Section 4: 시장 동향 =====
-        if report.market_trends:
-            add_section_content(report.market_trends, "4")
-            # Insert HHI chart
-            if request.include_charts and "hhi_trend" in chart_paths:
-                doc.add_paragraph()
-                doc.add_heading("HHI 추이", 3)
-                doc.add_picture(str(chart_paths["hhi_trend"]), width=Inches(6))
-            doc.add_page_break()
-
-        # ===== Section 5: 외부 신호 분석 =====
-        if report.external_signals:
-            add_section_content(report.external_signals, "5")
-            doc.add_page_break()
-
-        # ===== Section 6: 리스크 및 기회 요인 =====
-        if report.risks_opportunities:
-            add_section_content(report.risks_opportunities, "6")
-            doc.add_page_break()
-
-        # ===== Section 7: 전략 제언 =====
-        if report.strategic_recommendations:
-            add_section_content(report.strategic_recommendations, "7")
-            doc.add_page_break()
-
-        # ===== Section 8: 참고자료 (References) =====
-        ref_heading = doc.add_heading("8. 참고자료 (References)", 1)
-        ref_heading.runs[0].font.color.rgb = PACIFIC_BLUE
-
-        # Format reference section
-        ref_section = tracker.format_section()
-        for line in ref_section.split("\n"):
-            if line.strip():
-                if line.startswith("8."):
-                    doc.add_heading(line, 2)
-                else:
-                    doc.add_paragraph(line)
-
-        # ===== Footer =====
-        doc.add_paragraph()
-        footer = doc.add_paragraph()
-        footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = footer.add_run("© 2025 AMORE Pacific - Confidential")
-        run.italic = True
-        run.font.color.rgb = GRAY
-
-        # Save to BytesIO
-        buffer = BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-
-        # Generate filename
-        filename = f"AMORE_Analyst_Report_{request.start_date}_{request.end_date}.docx"
-
-        # Cleanup temp charts
-        if request.include_charts and chart_paths and temp_dir:
-            try:
-                for chart_path in chart_paths.values():
-                    if chart_path.exists():
-                        chart_path.unlink()
-                Path(temp_dir).rmdir()
-            except Exception as e:
-                logger.warning(f"Chart cleanup failed: {e}")
-
-        logger.info(f"Analyst report generated successfully: {filename}")
-
-        return StreamingResponse(
-            buffer,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Analyst report generation failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}") from e
-
-
 @app.post("/api/export/excel")
 async def export_excel(request: Request):
     """
@@ -4098,7 +3851,7 @@ async def send_verification_email(request: Request):
 
         # 대시보드 URL 생성 (Railway 또는 로컬)
         base_url = os.getenv("DASHBOARD_URL", "http://localhost:8001")
-        verify_url = f"{base_url}/?verify_email={token}&email={email}"
+        verify_url = f"{base_url}/dashboard?verify_email={token}&email={email}"
 
         # 이메일 발송
         get_alert_service()
@@ -4213,6 +3966,158 @@ async def get_verification_status(email: str):
     except Exception as e:
         logging.error(f"Get verification status error: {e}")
         return {"verified": False, "status": "error", "error": str(e)}
+
+
+# ============= Insight Email API =============
+
+
+@app.post("/api/alerts/send-insight-report")
+async def send_insight_report_email(request: Request):
+    """
+    인사이트 리포트 이메일 발송 (수동)
+
+    대시보드에서 '이메일로 보내기' 버튼 클릭 시 호출됩니다.
+    현재 인사이트와 KPI 데이터를 이메일로 발송합니다.
+    """
+    try:
+        body = await request.json()
+        recipient_email = body.get("email", "").strip()
+
+        if not recipient_email:
+            raise HTTPException(status_code=400, detail="이메일 주소가 필요합니다.")
+
+        # 이메일 인증 확인
+        is_verified = False
+        for _token_hash, data in email_verification_tokens.items():
+            if data["email"] == recipient_email and data.get("verified"):
+                is_verified = True
+                break
+
+        if not is_verified:
+            raise HTTPException(
+                status_code=403, detail="이메일 인증이 필요합니다. 먼저 이메일을 인증해주세요."
+            )
+
+        # EmailSender 초기화
+        from src.tools.email_sender import EmailSender
+
+        email_sender = EmailSender()
+
+        if not email_sender.is_enabled():
+            raise HTTPException(status_code=503, detail="이메일 서비스가 설정되지 않았습니다.")
+
+        # 현재 대시보드 데이터 로드
+        dashboard_data = load_dashboard_data()
+        if not dashboard_data:
+            raise HTTPException(status_code=404, detail="대시보드 데이터가 없습니다.")
+
+        # KPI 계산
+        products = dashboard_data.get("products", [])
+        laneige_products = [p for p in products if p.get("brand") == "LANEIGE"]
+        avg_rank = (
+            sum(p.get("rank", 100) for p in laneige_products) / len(laneige_products)
+            if laneige_products
+            else 0
+        )
+
+        # SoS 계산 (Top 100 기준)
+        top100 = products[:100]
+        laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
+        sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
+
+        # HHI 계산
+        brand_counts = {}
+        for p in top100:
+            brand = p.get("brand", "Unknown")
+            brand_counts[brand] = brand_counts.get(brand, 0) + 1
+        hhi = (
+            sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
+            if top100
+            else 0
+        )
+
+        # 인사이트 가져오기 (캐시된 것 또는 새로 생성)
+        insight_content = dashboard_data.get("latest_insight", "")
+        if not insight_content:
+            insight_content = (
+                "<p>현재 생성된 인사이트가 없습니다. 대시보드에서 인사이트를 먼저 생성해주세요.</p>"
+            )
+        else:
+            # 마크다운을 HTML로 간단 변환
+            insight_content = insight_content.replace("\n\n", "</p><p>").replace("\n", "<br>")
+            insight_content = f"<p>{insight_content}</p>"
+
+        # Top 10 제품 데이터
+        top10_products = []
+        for i, p in enumerate(products[:10]):
+            top10_products.append(
+                {
+                    "rank": i + 1,
+                    "name": p.get("title", "N/A"),
+                    "brand": p.get("brand", "Unknown"),
+                    "change": p.get("rank_change", 0),
+                }
+            )
+
+        # 브랜드별 변동
+        brand_changes = []
+        for brand in ["LANEIGE", "e.l.f.", "Maybelline", "Summer Fridays", "COSRX"]:
+            brand_products = [p for p in products if p.get("brand") == brand]
+            if brand_products:
+                avg_change = sum(p.get("rank_change", 0) for p in brand_products) / len(
+                    brand_products
+                )
+                if avg_change > 0:
+                    brand_changes.append(
+                        {
+                            "brand": brand,
+                            "change_text": f"평균 ▲{avg_change:.1f} 상승",
+                            "color": "#28a745",
+                        }
+                    )
+                elif avg_change < 0:
+                    brand_changes.append(
+                        {
+                            "brand": brand,
+                            "change_text": f"평균 ▼{abs(avg_change):.1f} 하락",
+                            "color": "#dc3545",
+                        }
+                    )
+
+        # 리포트 날짜
+        report_date = datetime.now().strftime("%Y년 %m월 %d일")
+
+        # 대시보드 URL
+        dashboard_url = os.getenv("DASHBOARD_URL", "http://localhost:8001") + "/dashboard"
+
+        # 이메일 발송
+        result = await email_sender.send_insight_report(
+            recipients=[recipient_email],
+            report_date=report_date,
+            avg_rank=avg_rank,
+            sos=sos,
+            hhi=hhi,
+            insight_content=insight_content,
+            top10_products=top10_products,
+            brand_changes=brand_changes,
+            dashboard_url=dashboard_url,
+        )
+
+        if result.success:
+            logging.info(f"Insight report sent to {recipient_email}")
+            return {
+                "success": True,
+                "message": f"인사이트 리포트가 {recipient_email}로 발송되었습니다.",
+                "sent_to": result.sent_to,
+            }
+        else:
+            raise HTTPException(status_code=500, detail=f"이메일 발송 실패: {result.message}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Send insight report error: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ============= Category KPI API =============

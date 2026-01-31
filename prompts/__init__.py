@@ -1,41 +1,5 @@
-"""Prompt management module"""
+"""
+프롬프트 템플릿 패키지
 
-from pathlib import Path
-
-from prompts.version_manager import (
-    PromptVersion,
-    PromptVersionManager,
-    get_prompt_manager,
-)
-
-
-class PromptLoader:
-    """Load and cache prompt templates"""
-
-    _cache: dict[str, str] = {}
-    _prompts_dir = Path(__file__).parent
-
-    @classmethod
-    def get(cls, name: str) -> str:
-        """Get prompt by name (without .txt extension)"""
-        if name not in cls._cache:
-            prompt_file = cls._prompts_dir / f"{name}.txt"
-            if prompt_file.exists():
-                cls._cache[name] = prompt_file.read_text(encoding="utf-8")
-            else:
-                raise FileNotFoundError(f"Prompt not found: {name}")
-        return cls._cache[name]
-
-    @classmethod
-    def format(cls, name: str, **kwargs) -> str:
-        """Get prompt and format with variables"""
-        template = cls.get(name)
-        return template.format(**kwargs)
-
-
-__all__ = [
-    "PromptLoader",
-    "PromptVersion",
-    "PromptVersionManager",
-    "get_prompt_manager",
-]
+공통 날짜 컨텍스트, 보안 규칙 등 재사용 가능한 프롬프트 컴포넌트 제공
+"""
