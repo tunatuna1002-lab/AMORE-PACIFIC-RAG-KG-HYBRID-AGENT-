@@ -48,31 +48,36 @@ await scraper.close()
 """
 
 import asyncio
-import re
-import logging
-from datetime import date, datetime, timezone, timedelta
-from typing import List, Dict, Optional, Any
-from playwright.async_api import async_playwright, Page, Browser, BrowserContext, TimeoutError as PlaywrightTimeout
 import json
+import logging
 import os
 import random
+import re
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 
 # Anti-bot / Stealth mode packages
 try:
     from playwright_stealth import stealth_async
+
     STEALTH_AVAILABLE = True
 except ImportError:
     STEALTH_AVAILABLE = False
 
 try:
-    from browserforge.headers import HeaderGenerator
     from browserforge.fingerprints import FingerprintGenerator
+    from browserforge.headers import HeaderGenerator
+
     BROWSERFORGE_AVAILABLE = True
 except ImportError:
     BROWSERFORGE_AVAILABLE = False
 
 try:
     from fake_useragent import UserAgent
+
     FAKE_UA_AVAILABLE = True
 except ImportError:
     FAKE_UA_AVAILABLE = False
@@ -82,8 +87,6 @@ logger = logging.getLogger(__name__)
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
 
-from src.domain.entities import RankRecord
-
 
 class CircuitBreaker:
     """연속 실패 시 자동 중단하는 회로 차단기"""
@@ -92,7 +95,7 @@ class CircuitBreaker:
         self.threshold = threshold
         self.reset_minutes = reset_minutes
         self.failures = 0
-        self.last_failure: Optional[datetime] = None
+        self.last_failure: datetime | None = None
         self.is_open = False
 
     def record_failure(self) -> None:
@@ -150,10 +153,10 @@ class AmazonScraper:
 
         # 환경변수 오버라이드 (호환성 유지)
         self.delay_seconds = float(os.getenv("SCRAPE_DELAY_SECONDS", str(self.delay_base_seconds)))
-        self.browser: Optional[Browser] = None
+        self.browser: Browser | None = None
 
         # Anti-bot 도구 초기화
-        self.ua = UserAgent(browsers=['chrome', 'firefox', 'edge']) if FAKE_UA_AVAILABLE else None
+        self.ua = UserAgent(browsers=["chrome", "firefox", "edge"]) if FAKE_UA_AVAILABLE else None
         self.header_generator = HeaderGenerator() if BROWSERFORGE_AVAILABLE else None
         self.fingerprint_generator = FingerprintGenerator() if BROWSERFORGE_AVAILABLE else None
 
@@ -163,6 +166,7 @@ class AmazonScraper:
         # 브랜드 매핑 resolver (캐시된 ASIN→Brand 조회)
         try:
             from src.tools.brand_resolver import get_brand_resolver
+
             self.brand_resolver = get_brand_resolver()
         except ImportError:
             self.brand_resolver = None
@@ -170,7 +174,7 @@ class AmazonScraper:
     def _load_config(self, config_path: str) -> dict:
         """설정 파일 로드"""
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return {"categories": {}}
@@ -187,9 +191,11 @@ class AmazonScraper:
                 "--disable-infobars",
                 "--disable-extensions",
                 "--disable-features=IsolateOrigins,site-per-process",
-            ]
+            ],
         )
-        logger.info(f"Browser initialized (Stealth: {STEALTH_AVAILABLE}, BrowserForge: {BROWSERFORGE_AVAILABLE})")
+        logger.info(
+            f"Browser initialized (Stealth: {STEALTH_AVAILABLE}, BrowserForge: {BROWSERFORGE_AVAILABLE})"
+        )
 
     async def close(self) -> None:
         """브라우저 종료"""
@@ -223,12 +229,15 @@ class AmazonScraper:
 
         if self.header_generator:
             try:
-                generated = self.header_generator.generate(browser='chrome', os='windows')
+                generated = self.header_generator.generate(browser="chrome", os="windows")
                 if generated:
-                    extra_headers.update({
-                        k: v for k, v in generated.items()
-                        if k.lower() not in ['host', 'content-length', 'content-type']
-                    })
+                    extra_headers.update(
+                        {
+                            k: v
+                            for k, v in generated.items()
+                            if k.lower() not in ["host", "content-length", "content-type"]
+                        }
+                    )
             except Exception as e:
                 logger.debug(f"Header generation failed: {e}")
 
@@ -239,7 +248,7 @@ class AmazonScraper:
             timezone_id="America/New_York",  # 미국 동부 시간대
             geolocation={"longitude": -73.935242, "latitude": 40.730610},  # NYC
             permissions=["geolocation"],
-            extra_http_headers=extra_headers
+            extra_http_headers=extra_headers,
         )
 
         return context
@@ -281,14 +290,14 @@ class AmazonScraper:
         """더 자연스러운 랜덤 딜레이 (안티봇용) - 설정 파일에서 로드"""
         # 설정 파일 값 기반 딜레이 (config/thresholds.json → system.crawler)
         base_delay = self.delay_base_seconds  # 기본 8초
-        random_max = self.delay_random_max    # 랜덤 최대 4초
+        random_max = self.delay_random_max  # 랜덤 최대 4초
         category_delay = self.category_delay_seconds  # 카테고리 전환 45초
 
         delays = {
-            "base": (base_delay - 3, random_max - 1),       # ~5-8초
-            "detail": (base_delay, random_max),             # ~8-12초
-            "page": (base_delay + 4, random_max - 1),       # ~12-15초
-            "category": (category_delay, 15)                # ~45-60초
+            "base": (base_delay - 3, random_max - 1),  # ~5-8초
+            "detail": (base_delay, random_max),  # ~8-12초
+            "page": (base_delay + 4, random_max - 1),  # ~12-15초
+            "category": (category_delay, 15),  # ~45-60초
         }
         base, jitter = delays.get(delay_type, (base_delay - 3, random_max - 1))
 
@@ -300,7 +309,7 @@ class AmazonScraper:
         logger.debug(f"Waiting {delay:.1f}s ({delay_type})")
         await asyncio.sleep(delay)
 
-    async def scrape_category(self, category_id: str, category_url: str) -> Dict[str, Any]:
+    async def scrape_category(self, category_id: str, category_url: str) -> dict[str, Any]:
         """
         단일 카테고리 베스트셀러 Top 100 크롤링
 
@@ -339,7 +348,7 @@ class AmazonScraper:
             "category_level": category_level,
             "snapshot_date": datetime.now(KST).date().isoformat(),
             "success": False,
-            "error": None
+            "error": None,
         }
 
         if not self.browser:
@@ -355,8 +364,8 @@ class AmazonScraper:
                 "Accept-Encoding": "gzip, deflate, br",
                 "Connection": "keep-alive",
                 "Upgrade-Insecure-Requests": "1",
-                "Cache-Control": "max-age=0"
-            }
+                "Cache-Control": "max-age=0",
+            },
         )
 
         page = await context.new_page()
@@ -374,20 +383,21 @@ class AmazonScraper:
                     if attempt < max_retries - 1:
                         # 재시도 전 긴 대기 (10-20초)
                         wait_time = 10 + random.uniform(5, 10)
-                        logger.warning(f"Blocked on {category_id}, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+                        logger.warning(
+                            f"Blocked on {category_id}, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})"
+                        )
                         await asyncio.sleep(wait_time)
                         continue
                     result["error"] = "BLOCKED"
                     return result
                 break  # 성공시 루프 탈출
-            except Exception as e:
+            except Exception:
                 if attempt < max_retries - 1:
                     await asyncio.sleep(5)
                     continue
                 raise
 
         try:
-
             # 첫 페이지 파싱 (1-50위)
             products_page1 = await self._parse_bestseller_page(page, category_id, start_rank=1)
             result["products"].extend(products_page1)
@@ -399,7 +409,9 @@ class AmazonScraper:
                 await self._random_delay()
 
                 if not await self._is_blocked(page):
-                    products_page2 = await self._parse_bestseller_page(page, category_id, start_rank=51)
+                    products_page2 = await self._parse_bestseller_page(
+                        page, category_id, start_rank=51
+                    )
                     result["products"].extend(products_page2)
 
             result["count"] = len(result["products"])
@@ -414,7 +426,7 @@ class AmazonScraper:
 
         return result
 
-    async def scrape_all_categories(self) -> Dict[str, Any]:
+    async def scrape_all_categories(self) -> dict[str, Any]:
         """
         모든 카테고리 크롤링
 
@@ -436,7 +448,7 @@ class AmazonScraper:
             "total_products": 0,
             "snapshot_date": datetime.now(KST).date().isoformat(),
             "success_count": 0,
-            "error_count": 0
+            "error_count": 0,
         }
 
         categories = self.config.get("categories", {})
@@ -457,7 +469,9 @@ class AmazonScraper:
 
         return results
 
-    async def _parse_bestseller_page(self, page: Page, category_id: str, start_rank: int = 1) -> List[Dict]:
+    async def _parse_bestseller_page(
+        self, page: Page, category_id: str, start_rank: int = 1
+    ) -> list[dict]:
         """베스트셀러 페이지 파싱"""
         products = []
         snapshot_date = datetime.now(KST).date().isoformat()
@@ -475,7 +489,9 @@ class AmazonScraper:
                 if not asin:
                     continue
 
-                product_data = await self._extract_product_data(card, asin, rank, category_id, snapshot_date)
+                product_data = await self._extract_product_data(
+                    card, asin, rank, category_id, snapshot_date
+                )
                 if product_data:
                     products.append(product_data)
                     rank += 1
@@ -487,11 +503,15 @@ class AmazonScraper:
 
         return products
 
-    async def _extract_product_data(self, card, asin: str, rank: int, category_id: str, snapshot_date: str) -> Optional[Dict]:
+    async def _extract_product_data(
+        self, card, asin: str, rank: int, category_id: str, snapshot_date: str
+    ) -> dict | None:
         """개별 제품 데이터 추출 (프로모션 정보 포함)"""
         try:
             # 제품명
-            name_elem = await card.query_selector(".p13n-sc-truncate, ._cDEzb_p13n-sc-css-line-clamp-3_g3dy1, .a-link-normal span")
+            name_elem = await card.query_selector(
+                ".p13n-sc-truncate, ._cDEzb_p13n-sc-css-line-clamp-3_g3dy1, .a-link-normal span"
+            )
             product_name = await name_elem.inner_text() if name_elem else "Unknown"
             product_name = product_name.strip()
 
@@ -505,7 +525,7 @@ class AmazonScraper:
                 ".p13n-sc-price",  # 베스트셀러 페이지 기본
                 "._cDEzb_p13n-sc-price_3mJ9Z",  # 대체 클래스
                 ".a-price:not([data-a-strike]) .a-offscreen",  # 할인가 (취소선 없는 가격)
-                ".a-color-price"  # 가격 색상 클래스
+                ".a-color-price",  # 가격 색상 클래스
             ]
             for selector in price_selectors:
                 price_elem = await card.query_selector(selector)
@@ -518,9 +538,13 @@ class AmazonScraper:
             # 원가 (정가, 할인 전 가격)
             list_price = None
             list_price_selectors = [
-                ".a-text-price .a-offscreen",  # 취소선 가격
+                # 2026년 Amazon 신규 구조 (사용자 스크린샷 기반)
+                "span.a-price.a-text-price span.a-offscreen",  # 취소선 가격
+                ".a-text-price .a-offscreen",  # 기존 취소선 가격
                 ".a-price[data-a-strike='true'] .a-offscreen",
-                "span.a-text-price span.a-offscreen"
+                "span.a-text-price span.a-offscreen",
+                # 상세 페이지 스타일 (베스트셀러에서도 간혹 사용)
+                ".basisPrice .a-offscreen",
             ]
             for selector in list_price_selectors:
                 list_price_elem = await card.query_selector(selector)
@@ -530,9 +554,26 @@ class AmazonScraper:
                     if list_price:
                         break
 
-            # 할인율 계산
+            # 할인율 직접 추출 (2026년 Amazon 신규 구조)
             discount_percent = None
-            if price and list_price and list_price > price:
+            discount_selectors = [
+                # 2026년 Amazon 신규 구조 (사용자 스크린샷 기반)
+                "span.savingsPriceOverride.savingsPercentage",  # "-20%" 형태
+                "span.savingsPercentage",  # 대체 패턴
+                ".a-color-price .a-text-bold",  # 할인율 텍스트
+            ]
+            for selector in discount_selectors:
+                discount_elem = await card.query_selector(selector)
+                if discount_elem:
+                    discount_text = await discount_elem.inner_text()
+                    # "-20%" 또는 "20%" 형태에서 숫자 추출
+                    match = re.search(r"[-−]?(\d+)%", discount_text)
+                    if match:
+                        discount_percent = float(match.group(1))
+                        break
+
+            # 직접 추출 실패 시 가격으로 계산 (fallback)
+            if discount_percent is None and price and list_price and list_price > price:
                 discount_percent = round((1 - price / list_price) * 100, 1)
 
             # 평점 - span.a-icon-alt에서 "X out of 5 stars" 텍스트 찾기
@@ -545,11 +586,7 @@ class AmazonScraper:
 
             # 방법 2: i 태그의 aria-label (대체 패턴)
             if not rating:
-                rating_selectors = [
-                    ".a-icon-star-small",
-                    ".a-icon-star-mini",
-                    "i.a-icon-star"
-                ]
+                rating_selectors = [".a-icon-star-small", ".a-icon-star-mini", "i.a-icon-star"]
                 for selector in rating_selectors:
                     rating_elem = await card.query_selector(selector)
                     if rating_elem:
@@ -569,17 +606,14 @@ class AmazonScraper:
                 reviews_text = reviews_text.strip() if reviews_text else ""
                 # 숫자와 콤마만 있는지 확인 (리뷰 수 패턴: "13,265")
                 # [0-9,]+ 패턴 사용 (일부 환경에서 \d가 다르게 동작할 수 있음)
-                if reviews_text and re.match(r'^[0-9,]+$', reviews_text):
+                if reviews_text and re.match(r"^[0-9,]+$", reviews_text):
                     reviews_count = self._parse_reviews_count(reviews_text)
                     if reviews_count:
                         break
 
             # 방법 2: 링크 안에 있는 경우 (대체 패턴)
             if not reviews_count:
-                reviews_selectors = [
-                    ".a-size-small .a-link-normal",
-                    "a.a-size-small"
-                ]
+                reviews_selectors = [".a-size-small .a-link-normal", "a.a-size-small"]
                 for selector in reviews_selectors:
                     reviews_elem = await card.query_selector(selector)
                     if reviews_elem:
@@ -598,13 +632,17 @@ class AmazonScraper:
 
             # 쿠폰 정보 (예: "Save 5% with coupon", "Save $2.00 with coupon")
             coupon_text = ""
-            coupon_elem = await card.query_selector(".s-coupon-highlight-color, .couponBadge, [data-component-type='s-coupon-component']")
+            coupon_elem = await card.query_selector(
+                ".s-coupon-highlight-color, .couponBadge, [data-component-type='s-coupon-component']"
+            )
             if coupon_elem:
                 coupon_text = (await coupon_elem.inner_text()).strip()
 
             # Subscribe & Save 여부
             is_subscribe_save = False
-            sns_elem = await card.query_selector(".s-subscriptions-terms, [data-component-type='s-subscribe-and-save']")
+            sns_elem = await card.query_selector(
+                ".s-subscriptions-terms, [data-component-type='s-subscribe-and-save']"
+            )
             if sns_elem:
                 is_subscribe_save = True
             # 텍스트로도 확인
@@ -616,7 +654,9 @@ class AmazonScraper:
             promo_badges = []
 
             # Limited Time Deal
-            ltd_elem = await card.query_selector(".a-badge-limited-time-deal, [data-badge='limited-time-deal']")
+            ltd_elem = await card.query_selector(
+                ".a-badge-limited-time-deal, [data-badge='limited-time-deal']"
+            )
             if ltd_elem or "Limited time deal" in card_html:
                 promo_badges.append("Limited Time Deal")
 
@@ -674,7 +714,7 @@ class AmazonScraper:
                 "coupon_text": coupon_text,
                 "is_subscribe_save": is_subscribe_save,
                 "promo_badges": promo_badges_str,
-                "product_url": product_url or f"{self.base_url}/dp/{asin}"
+                "product_url": product_url or f"{self.base_url}/dp/{asin}",
             }
 
         except Exception:
@@ -738,39 +778,98 @@ class AmazonScraper:
         # Amazon Top 100 Beauty 기준 브랜드 목록 (2024-2025 기준)
         multi_word_brands = [
             # === K-Beauty ===
-            "Beauty of Joseon", "SKIN1004", "Thank You Farmer",
-            "I'm From", "I DEW CARE", "Some By Mi", "By Wishtrend",
-            "Dear Klairs", "Sulwhasoo", "Amore Pacific",
+            "Beauty of Joseon",
+            "SKIN1004",
+            "Thank You Farmer",
+            "I'm From",
+            "I DEW CARE",
+            "Some By Mi",
+            "By Wishtrend",
+            "Dear Klairs",
+            "Sulwhasoo",
+            "Amore Pacific",
             # === Premium Skincare ===
-            "La Roche-Posay", "Drunk Elephant", "Paula's Choice",
-            "The Ordinary", "Glow Recipe", "Youth To The People",
-            "Peter Thomas Roth", "Sunday Riley", "First Aid Beauty",
-            "Sol de Janeiro", "Clean Skin Club", "Hero Cosmetics",
-            "Summer Fridays", "Rare Beauty", "Tower 28",
+            "La Roche-Posay",
+            "Drunk Elephant",
+            "Paula's Choice",
+            "The Ordinary",
+            "Glow Recipe",
+            "Youth To The People",
+            "Peter Thomas Roth",
+            "Sunday Riley",
+            "First Aid Beauty",
+            "Sol de Janeiro",
+            "Clean Skin Club",
+            "Hero Cosmetics",
+            "Summer Fridays",
+            "Rare Beauty",
+            "Tower 28",
             # === Classic Luxury ===
-            "Kiehl's", "Tatcha", "Fresh", "Olehenriksen", "Origins",
-            "Clinique", "Estee Lauder", "Lancome", "Shiseido",
-            "SK-II", "Elizabeth Arden", "Clarins", "Dermalogica",
+            "Kiehl's",
+            "Tatcha",
+            "Fresh",
+            "Olehenriksen",
+            "Origins",
+            "Clinique",
+            "Estee Lauder",
+            "Lancome",
+            "Shiseido",
+            "SK-II",
+            "Elizabeth Arden",
+            "Clarins",
+            "Dermalogica",
             # === Makeup Premium ===
-            "Charlotte Tilbury", "Too Faced", "Urban Decay",
-            "Fenty Beauty", "Huda Beauty", "Anastasia Beverly Hills",
-            "Benefit Cosmetics", "MAC Cosmetics", "IT Cosmetics",
-            "Bobbi Brown", "Laura Mercier", "Bare Minerals",
-            "Kylie Cosmetics", "KVD Vegan Beauty",
+            "Charlotte Tilbury",
+            "Too Faced",
+            "Urban Decay",
+            "Fenty Beauty",
+            "Huda Beauty",
+            "Anastasia Beverly Hills",
+            "Benefit Cosmetics",
+            "MAC Cosmetics",
+            "IT Cosmetics",
+            "Bobbi Brown",
+            "Laura Mercier",
+            "Bare Minerals",
+            "Kylie Cosmetics",
+            "KVD Vegan Beauty",
             # === Sunscreen/Derm ===
-            "EltaMD", "Supergoop", "La Roche Posay", "Blue Lizard",
-            "Banana Boat", "Sun Bum", "Australian Gold",
+            "EltaMD",
+            "Supergoop",
+            "La Roche Posay",
+            "Blue Lizard",
+            "Banana Boat",
+            "Sun Bum",
+            "Australian Gold",
             # === Hair Care ===
-            "Mielle Organics", "Olaplex", "Moroccanoil", "Aussie",
-            "OGX", "Not Your Mother's", "Bed Head", "Living Proof",
-            "Briogeo", "Verb", "Color Wow", "Pureology",
+            "Mielle Organics",
+            "Olaplex",
+            "Moroccanoil",
+            "Aussie",
+            "OGX",
+            "Not Your Mother's",
+            "Bed Head",
+            "Living Proof",
+            "Briogeo",
+            "Verb",
+            "Color Wow",
+            "Pureology",
             # === Body Care ===
-            "Tree Hut", "Necessaire", "Soap & Glory", "Jergens",
-            "Gold Bond", "Eucerin", "Aquaphor", "Lubriderm",
+            "Tree Hut",
+            "Necessaire",
+            "Soap & Glory",
+            "Jergens",
+            "Gold Bond",
+            "Eucerin",
+            "Aquaphor",
+            "Lubriderm",
             # === Fragrance ===
-            "Bath & Body Works", "Victoria's Secret",
+            "Bath & Body Works",
+            "Victoria's Secret",
             # === Misc ===
-            "NARS", "Burt's Bees", "e.l.f. Cosmetics"
+            "NARS",
+            "Burt's Bees",
+            "e.l.f. Cosmetics",
         ]
 
         for brand in multi_word_brands:
@@ -780,52 +879,173 @@ class AmazonScraper:
         # 단일 단어 브랜드 (대소문자 구분 없이 매칭)
         single_word_brands = [
             # === K-Beauty ===
-            "LANEIGE", "Laneige", "COSRX", "TIRTIR", "Anua", "ANUA",
-            "BIODANCE", "Innisfree", "MISSHA", "ETUDE", "SKINFOOD",
-            "Benton", "Purito", "Klairs", "Heimish", "Isntree",
-            "Rovectin", "Torriden", "mixsoon", "Numbuzin", "Haruharu",
-            "Neogen", "Mediheal", "Banila", "Holika", "Peripera",
-            "Romand", "Espoir", "Clio", "Moonshot", "Hera", "Sulwhasoo",
-            "MEDICUBE", "medicube", "SKIN1004", "Abib", "Round Lab",
+            "LANEIGE",
+            "Laneige",
+            "COSRX",
+            "TIRTIR",
+            "Anua",
+            "ANUA",
+            "BIODANCE",
+            "Innisfree",
+            "MISSHA",
+            "ETUDE",
+            "SKINFOOD",
+            "Benton",
+            "Purito",
+            "Klairs",
+            "Heimish",
+            "Isntree",
+            "Rovectin",
+            "Torriden",
+            "mixsoon",
+            "Numbuzin",
+            "Haruharu",
+            "Neogen",
+            "Mediheal",
+            "Banila",
+            "Holika",
+            "Peripera",
+            "Romand",
+            "Espoir",
+            "Clio",
+            "Moonshot",
+            "Hera",
+            "Sulwhasoo",
+            "MEDICUBE",
+            "medicube",
+            "SKIN1004",
+            "Abib",
+            "Round Lab",
             # === Drugstore US ===
-            "CeraVe", "Neutrogena", "Cetaphil", "Aveeno", "Olay",
-            "Garnier", "Nivea", "Vaseline", "Dove", "Pond's",
-            "Differin", "Bioderma", "Vichy", "Vanicream",
+            "CeraVe",
+            "Neutrogena",
+            "Cetaphil",
+            "Aveeno",
+            "Olay",
+            "Garnier",
+            "Nivea",
+            "Vaseline",
+            "Dove",
+            "Pond's",
+            "Differin",
+            "Bioderma",
+            "Vichy",
+            "Vanicream",
             # === Makeup Drugstore ===
-            "e.l.f.", "elf", "NYX", "Maybelline", "L'Oreal", "Loreal",
-            "Revlon", "Covergirl", "Milani", "ColourPop", "Morphe",
-            "Wet n Wild", "Almay", "Rimmel", "Physicians Formula",
-            "Essence", "Catrice", "Makeup Revolution",
+            "e.l.f.",
+            "elf",
+            "NYX",
+            "Maybelline",
+            "L'Oreal",
+            "Loreal",
+            "Revlon",
+            "Covergirl",
+            "Milani",
+            "ColourPop",
+            "Morphe",
+            "Wet n Wild",
+            "Almay",
+            "Rimmel",
+            "Physicians Formula",
+            "Essence",
+            "Catrice",
+            "Makeup Revolution",
             # === Makeup Premium ===
-            "Tarte", "Smashbox", "Hourglass", "Glossier", "Nars",
-            "Stila", "Becca", "Jouer", "Natasha Denona",
+            "Tarte",
+            "Smashbox",
+            "Hourglass",
+            "Glossier",
+            "Nars",
+            "Stila",
+            "Becca",
+            "Jouer",
+            "Natasha Denona",
             # === Skincare Prestige ===
-            "TruSkin", "InstaNatural", "Murad", "Obagi", "SkinMedica",
-            "iS Clinical", "SkinCeuticals", "Alastin", "ZO Skin",
+            "TruSkin",
+            "InstaNatural",
+            "Murad",
+            "Obagi",
+            "SkinMedica",
+            "iS Clinical",
+            "SkinCeuticals",
+            "Alastin",
+            "ZO Skin",
             # === Hair ===
-            "Olaplex", "Nizoral", "Mielle", "OGX", "TRESemme",
-            "Pantene", "Herbal Essences", "Aussie", "Suave",
-            "Head & Shoulders", "Redken", "Kerastase", "Aveda",
-            "CHI", "Kenra", "Joico", "Sebastian", "Matrix",
-            "Nioxin", "Nutrafol", "Vegamour", "Rogaine",
+            "Olaplex",
+            "Nizoral",
+            "Mielle",
+            "OGX",
+            "TRESemme",
+            "Pantene",
+            "Herbal Essences",
+            "Aussie",
+            "Suave",
+            "Head & Shoulders",
+            "Redken",
+            "Kerastase",
+            "Aveda",
+            "CHI",
+            "Kenra",
+            "Joico",
+            "Sebastian",
+            "Matrix",
+            "Nioxin",
+            "Nutrafol",
+            "Vegamour",
+            "Rogaine",
             # === Body/Bath ===
-            "Jergens", "Eucerin", "Aquaphor", "Lubriderm",
-            "Palmer's", "Aveeno", "Curel", "Vanicream",
-            "Lottabody", "Cantu", "SheaMoisture",
+            "Jergens",
+            "Eucerin",
+            "Aquaphor",
+            "Lubriderm",
+            "Palmer's",
+            "Aveeno",
+            "Curel",
+            "Vanicream",
+            "Lottabody",
+            "Cantu",
+            "SheaMoisture",
             # === Lip Care ===
-            "Aquaphor", "Blistex", "Chapstick", "Carmex", "Burt's Bees",
-            "eos", "Laneige", "Tatcha",
+            "Aquaphor",
+            "Blistex",
+            "Chapstick",
+            "Carmex",
+            "Burt's Bees",
+            "eos",
+            "Laneige",
+            "Tatcha",
             # === Tools/Accessories ===
-            "Revlon", "Conair", "Remington", "Hot Tools",
-            "BaByliss", "T3", "Dyson", "GHD",
+            "Revlon",
+            "Conair",
+            "Remington",
+            "Hot Tools",
+            "BaByliss",
+            "T3",
+            "Dyson",
+            "GHD",
             # === Nails ===
-            "OPI", "Essie", "Sally Hansen", "ORLY", "Zoya",
+            "OPI",
+            "Essie",
+            "Sally Hansen",
+            "ORLY",
+            "Zoya",
             # === Men's ===
-            "Gillette", "Nivea", "Jack Black", "Bulldog",
-            "Duke Cannon", "Every Man Jack", "Cremo",
+            "Gillette",
+            "Nivea",
+            "Jack Black",
+            "Bulldog",
+            "Duke Cannon",
+            "Every Man Jack",
+            "Cremo",
             # === Specialty ===
-            "Sacheu", "Patchology", "Starface", "ZitSticka",
-            "Peace Out", "Bliss", "Mario Badescu", "Origins"
+            "Sacheu",
+            "Patchology",
+            "Starface",
+            "ZitSticka",
+            "Peace Out",
+            "Bliss",
+            "Mario Badescu",
+            "Origins",
         ]
 
         for brand in single_word_brands:
@@ -836,18 +1056,18 @@ class AmazonScraper:
         # 기존에 words[0]을 반환했으나, "Summer Fridays" -> "Summer" 버그 발생
         return "Unknown"
 
-    def _parse_price(self, price_text: str) -> Optional[float]:
+    def _parse_price(self, price_text: str) -> float | None:
         """가격 문자열 파싱 - $ 기호가 있는 가격만 인식"""
         try:
             if not price_text:
                 return None
 
             # $ 기호가 반드시 있어야 함 (리뷰 수 등 다른 숫자와 구분)
-            if '$' not in price_text:
+            if "$" not in price_text:
                 return None
 
             # "$24.00" -> 24.00, "$1,234.56" -> 1234.56
-            match = re.search(r'\$([\d,]+\.?\d*)', price_text)
+            match = re.search(r"\$([\d,]+\.?\d*)", price_text)
             if match:
                 price = float(match.group(1).replace(",", ""))
                 # 합리적인 가격 범위 검증 (뷰티 제품: $0.50 ~ $500)
@@ -857,14 +1077,14 @@ class AmazonScraper:
             pass
         return None
 
-    def _parse_rating(self, rating_text: str) -> Optional[float]:
+    def _parse_rating(self, rating_text: str) -> float | None:
         """평점 문자열 파싱 - 5점 만점 평점만 인식"""
         try:
             if not rating_text:
                 return None
 
             # "4.7 out of 5 stars" 또는 "4.7 out of 5" 패턴
-            match = re.search(r'([0-9.]+)\s*out of\s*5', rating_text, re.IGNORECASE)
+            match = re.search(r"([0-9.]+)\s*out of\s*5", rating_text, re.IGNORECASE)
             if match:
                 rating = float(match.group(1))
                 # 평점 범위 검증 (0.0 ~ 5.0)
@@ -872,7 +1092,7 @@ class AmazonScraper:
                     return round(rating, 1)
 
             # "4.7/5" 패턴
-            match = re.search(r'([0-9.]+)\s*/\s*5', rating_text)
+            match = re.search(r"([0-9.]+)\s*/\s*5", rating_text)
             if match:
                 rating = float(match.group(1))
                 if 0.0 <= rating <= 5.0:
@@ -881,7 +1101,7 @@ class AmazonScraper:
             # Fallback: 문자열 시작 부분에서 숫자 추출 (예: "4.8 out of 5 stars")
             # parseFloat 스타일 파싱
             first_word = rating_text.strip().split()[0] if rating_text.strip() else ""
-            if first_word and re.match(r'^[0-9.]+$', first_word):
+            if first_word and re.match(r"^[0-9.]+$", first_word):
                 rating = float(first_word)
                 if 0.0 <= rating <= 5.0:
                     return round(rating, 1)
@@ -890,7 +1110,7 @@ class AmazonScraper:
             pass
         return None
 
-    def _parse_reviews_count(self, reviews_text: str) -> Optional[int]:
+    def _parse_reviews_count(self, reviews_text: str) -> int | None:
         """리뷰 수 문자열 파싱 - 합리적인 범위 검증"""
         try:
             if not reviews_text:
@@ -898,7 +1118,7 @@ class AmazonScraper:
 
             # 콤마 제거하고 숫자 추출: "89,234" -> 89234
             clean_text = reviews_text.replace(",", "").replace("+", "").strip()
-            match = re.search(r'^(\d+)$', clean_text)
+            match = re.search(r"^(\d+)$", clean_text)
             if match:
                 count = int(match.group(1))
                 # 합리적인 리뷰 수 범위 (0 ~ 1,000,000)
@@ -908,7 +1128,7 @@ class AmazonScraper:
             pass
         return None
 
-    def _get_page2_url(self, url: str) -> Optional[str]:
+    def _get_page2_url(self, url: str) -> str | None:
         """페이지 2 URL 생성"""
         if "pg=2" in url:
             return url
@@ -922,7 +1142,7 @@ class AmazonScraper:
             "Enter the characters you see below",
             "Sorry, we just need to make sure you're not a robot",
             "Type the characters you see in this image",
-            "api-services-support@amazon.com"
+            "api-services-support@amazon.com",
         ]
         return any(indicator in content for indicator in block_indicators)
 
@@ -937,11 +1157,13 @@ class AmazonScraper:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
         ]
         return random.choice(user_agents)
 
-    async def scrape_product_by_asin(self, asin: str, metadata: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+    async def scrape_product_by_asin(
+        self, asin: str, metadata: dict | None = None
+    ) -> dict[str, Any] | None:
         """
         개별 ASIN으로 상품 상세 페이지 크롤링 (할인 정보 포함)
 
@@ -1020,8 +1242,12 @@ class AmazonScraper:
 
                 // === 할인 정보 (핵심 추가) ===
 
-                // 정가 (취소선 가격)
+                // 정가 (취소선 가격) - 2026년 Amazon 신규 구조 반영
                 const listPriceSelectors = [
+                    // 2026년 Amazon 신규 구조
+                    'span.a-price.a-text-price span.a-offscreen',
+                    '.a-text-price .a-offscreen',
+                    // 기존 상세 페이지 선택자
                     '.basisPrice .a-offscreen',
                     '#listPrice',
                     '.a-text-price[data-a-strike] .a-offscreen',
@@ -1036,9 +1262,21 @@ class AmazonScraper:
                     }
                 }
 
-                // 할인율 (직접 표시)
-                const savingsEl = document.querySelector('#savingsPercentage');
-                data.savings_percent = savingsEl ? savingsEl.textContent.trim() : '';
+                // 할인율 (직접 표시) - 2026년 Amazon 신규 구조 반영
+                const savingsSelectors = [
+                    '#savingsPercentage',  // 기존 상세 페이지
+                    'span.savingsPriceOverride.savingsPercentage',  // 2026년 신규 구조
+                    'span.savingsPercentage',  // 대체 패턴
+                    '.a-color-price .a-text-bold'  // 할인율 텍스트
+                ];
+                data.savings_percent = '';
+                for (const sel of savingsSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent.includes('%')) {
+                        data.savings_percent = el.textContent.trim();
+                        break;
+                    }
+                }
 
                 // 쿠폰
                 const couponSelectors = [
@@ -1088,7 +1326,7 @@ class AmazonScraper:
 
             await context.close()
 
-            if not product_data.get('product_name'):
+            if not product_data.get("product_name"):
                 logger.warning(f"Failed to parse product page for ASIN: {asin}")
                 return None
 
@@ -1097,8 +1335,8 @@ class AmazonScraper:
 
             # 할인율 파싱
             discount_percent = None
-            if product_data.get('savings_percent'):
-                match = re.search(r'(\d+)%', product_data['savings_percent'])
+            if product_data.get("savings_percent"):
+                match = re.search(r"(\d+)%", product_data["savings_percent"])
                 if match:
                     discount_percent = float(match.group(1))
 
@@ -1106,7 +1344,9 @@ class AmazonScraper:
                 "snapshot_date": today,
                 "asin": asin,
                 "product_name": product_data.get("product_name", ""),
-                "brand": self._normalize_brand(meta.get("brand") or "") or self._normalize_brand(product_data.get("brand") or "") or self._extract_brand(product_data.get("product_name", ""), asin=asin),
+                "brand": self._normalize_brand(meta.get("brand") or "")
+                or self._normalize_brand(product_data.get("brand") or "")
+                or self._extract_brand(product_data.get("product_name", ""), asin=asin),
                 "price": self._parse_price(product_data.get("price_text", "")),
                 "list_price": self._parse_price(product_data.get("list_price_text", "")),
                 "discount_percent": discount_percent,
@@ -1114,17 +1354,23 @@ class AmazonScraper:
                 "is_subscribe_save": product_data.get("has_subscribe_save", False),
                 "promo_badges": product_data.get("promo_badges", ""),
                 "rating": self._parse_rating(product_data.get("rating_text", "")),
-                "reviews_count": self._parse_reviews_count(product_data.get("reviews_text", "").replace(" ratings", "").replace(" rating", "")),
+                "reviews_count": self._parse_reviews_count(
+                    product_data.get("reviews_text", "")
+                    .replace(" ratings", "")
+                    .replace(" rating", "")
+                ),
                 "availability": product_data.get("availability", ""),
                 "image_url": product_data.get("image_url", ""),
                 "product_url": url,
                 "category_id": meta.get("category", ""),
                 "product_type": meta.get("product_type", ""),
                 "laneige_competitor": meta.get("laneige_competitor", ""),
-                "source": "detail_page"
+                "source": "detail_page",
             }
 
-            logger.debug(f"Scraped ASIN {asin}: list_price={result.get('list_price')}, coupon={result.get('coupon_text')}")
+            logger.debug(
+                f"Scraped ASIN {asin}: list_price={result.get('list_price')}, coupon={result.get('coupon_text')}"
+            )
             return result
 
         except Exception as e:
@@ -1135,10 +1381,8 @@ class AmazonScraper:
             return None
 
     async def scrape_category_with_details(
-        self,
-        category_id: str,
-        category_url: str
-    ) -> Dict[str, Any]:
+        self, category_id: str, category_url: str
+    ) -> dict[str, Any]:
         """
         베스트셀러 + 상세 페이지 통합 크롤링 (할인 정보 포함)
 
@@ -1164,9 +1408,11 @@ class AmazonScraper:
             return result
 
         # 2. 모든 제품의 상세 페이지 크롤링 (천천히, 안전하게)
-        product_count = len(result['products'])
+        product_count = len(result["products"])
         estimated_minutes = (product_count * 10) // 60
-        logger.info(f"Fetching details for {product_count} products (estimated: ~{estimated_minutes} minutes)...")
+        logger.info(
+            f"Fetching details for {product_count} products (estimated: ~{estimated_minutes} minutes)..."
+        )
 
         for i, product in enumerate(result["products"]):
             # 회로 차단기 확인
@@ -1184,10 +1430,14 @@ class AmazonScraper:
             if detail:
                 # 할인 정보 병합 (상세 페이지에서만 얻을 수 있는 정보)
                 product["list_price"] = detail.get("list_price") or product.get("list_price")
-                product["discount_percent"] = detail.get("discount_percent") or product.get("discount_percent")
+                product["discount_percent"] = detail.get("discount_percent") or product.get(
+                    "discount_percent"
+                )
                 product["coupon_text"] = detail.get("coupon_text") or product.get("coupon_text")
                 product["promo_badges"] = detail.get("promo_badges") or product.get("promo_badges")
-                product["is_subscribe_save"] = detail.get("is_subscribe_save") or product.get("is_subscribe_save")
+                product["is_subscribe_save"] = detail.get("is_subscribe_save") or product.get(
+                    "is_subscribe_save"
+                )
 
             # 진행률 로깅 (10개마다)
             if (i + 1) % 10 == 0:
@@ -1195,7 +1445,9 @@ class AmazonScraper:
 
         return result
 
-    async def scrape_competitor_products(self, competitor_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def scrape_competitor_products(
+        self, competitor_config: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         경쟁사 제품 목록 크롤링
 
@@ -1220,7 +1472,7 @@ class AmazonScraper:
                 "brand": brand_name,
                 "category": product.get("category", ""),
                 "product_type": product.get("product_type", ""),
-                "laneige_competitor": product.get("laneige_competitor", "")
+                "laneige_competitor": product.get("laneige_competitor", ""),
             }
 
             product_data = await self.scrape_product_by_asin(asin, metadata)
@@ -1235,7 +1487,7 @@ class AmazonScraper:
 
 
 # 편의 함수
-async def scrape_bestsellers(category_url: str, category_id: str = "unknown") -> Dict[str, Any]:
+async def scrape_bestsellers(category_url: str, category_id: str = "unknown") -> dict[str, Any]:
     """
     Amazon 베스트셀러 Top 100 크롤링 (단일 함수 인터페이스)
 
