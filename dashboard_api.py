@@ -1394,7 +1394,7 @@ async def start_crawl():
 
 # ============= Historical Data API =============
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 from src.tools.sheets_writer import SheetsWriter
 
@@ -3810,21 +3810,77 @@ async def send_test_alert():
 
 # ============= Email Verification API =============
 
-import hashlib
-import secrets
+import jwt
 
-# 인증 토큰 저장소 (메모리 기반, 실제 운영 시 Redis 등 사용 권장)
-email_verification_tokens: dict[str, dict] = {}
+# JWT 설정
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+JWT_ALGORITHM = "HS256"
+EMAIL_VERIFICATION_EXPIRES_MINUTES = 30  # 30분 만료
+
+
+def create_email_verification_token(
+    email: str, expires_minutes: int = EMAIL_VERIFICATION_EXPIRES_MINUTES
+) -> str:
+    """
+    이메일 인증용 JWT 토큰 생성
+
+    Args:
+        email: 인증할 이메일 주소
+        expires_minutes: 토큰 만료 시간 (분)
+
+    Returns:
+        JWT 토큰 문자열
+    """
+    if not JWT_SECRET_KEY:
+        raise ValueError("JWT_SECRET_KEY 환경변수가 설정되지 않았습니다.")
+
+    payload = {
+        "email": email,
+        "purpose": "email_verification",
+        "exp": datetime.now(UTC) + timedelta(minutes=expires_minutes),
+        "iat": datetime.now(UTC),
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def verify_jwt_email_token(token: str) -> dict:
+    """
+    JWT 이메일 인증 토큰 검증
+
+    Args:
+        token: JWT 토큰
+
+    Returns:
+        {"valid": True, "email": "..."} 또는 {"valid": False, "error": "..."}
+    """
+    if not JWT_SECRET_KEY:
+        return {"valid": False, "error": "JWT_SECRET_KEY 환경변수가 설정되지 않았습니다."}
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+
+        # purpose 검증
+        if payload.get("purpose") != "email_verification":
+            return {"valid": False, "error": "유효하지 않은 토큰입니다."}
+
+        return {"valid": True, "email": payload["email"]}
+
+    except jwt.ExpiredSignatureError:
+        return {"valid": False, "error": "인증 토큰이 만료되었습니다. 다시 인증해주세요."}
+    except jwt.InvalidTokenError:
+        return {"valid": False, "error": "유효하지 않은 인증 토큰입니다."}
 
 
 @app.post("/api/alerts/send-verification", dependencies=[Depends(verify_api_key)])
 async def send_verification_email(request: Request):
     """
-    이메일 인증 요청 - 인증 이메일 발송
+    이메일 인증 요청 - 인증 이메일 발송 (JWT 방식)
 
     보안: API Key 인증 필요
     사용자가 이메일을 입력하고 '인증하기' 버튼을 누르면
-    해당 이메일로 인증 링크가 포함된 테스트 이메일을 발송합니다.
+    해당 이메일로 JWT 토큰이 포함된 인증 링크를 발송합니다.
+
+    JWT 토큰은 30분간 유효하며, 서버 재시작과 무관하게 검증 가능합니다.
     """
     try:
         body = await request.json()
@@ -3837,24 +3893,12 @@ async def send_verification_email(request: Request):
         if not email or not re.match(email_regex, email):
             raise HTTPException(status_code=400, detail="올바른 이메일 주소를 입력해주세요.")
 
-        # 인증 토큰 생성 (6자리 랜덤 + timestamp)
-        token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-
-        # 토큰 저장 (10분 유효)
-        email_verification_tokens[token_hash] = {
-            "email": email,
-            "created_at": datetime.now(),
-            "expires_at": datetime.now() + timedelta(minutes=10),
-            "verified": False,
-        }
+        # JWT 토큰 생성 (30분 유효)
+        token = create_email_verification_token(email)
 
         # 대시보드 URL 생성 (Railway 또는 로컬)
         base_url = os.getenv("DASHBOARD_URL", "http://localhost:8001")
         verify_url = f"{base_url}/dashboard?verify_email={token}&email={email}"
-
-        # 이메일 발송
-        get_alert_service()
 
         # EmailSender 직접 사용
         from src.tools.email_sender import EmailSender
@@ -3870,15 +3914,20 @@ async def send_verification_email(request: Request):
         )
 
         if result.success:
-            logging.info(f"Verification email sent to {email}")
+            logging.info(
+                f"Verification email sent to {email} (JWT, expires in {EMAIL_VERIFICATION_EXPIRES_MINUTES}min)"
+            )
             return {
                 "success": True,
-                "message": "인증 이메일이 발송되었습니다.",
-                "token": token_hash[:8],  # 디버깅용 일부 토큰만 반환
+                "message": "인증 이메일이 발송되었습니다. (30분 내 인증해주세요)",
             }
         else:
             raise HTTPException(status_code=500, detail=f"이메일 발송 실패: {result.message}")
 
+    except ValueError as e:
+        # JWT_SECRET_KEY 미설정 에러
+        logging.error(f"JWT configuration error: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
     except HTTPException:
         raise
     except Exception as e:
@@ -3887,13 +3936,15 @@ async def send_verification_email(request: Request):
 
 
 @app.post("/api/alerts/verify-email", dependencies=[Depends(verify_api_key)])
-async def verify_email_token(request: Request):
+async def verify_email_token_endpoint(request: Request):
     """
-    이메일 인증 토큰 검증
+    이메일 인증 토큰 검증 (JWT 방식)
 
     보안: API Key 인증 필요
     사용자가 이메일의 인증 버튼을 클릭하면
-    토큰을 검증하고 이메일 인증 상태를 업데이트합니다.
+    JWT 토큰을 검증하고 이메일 인증 상태를 StateManager에 영구 저장합니다.
+
+    JWT 토큰은 stateless이므로 서버 재시작과 무관하게 검증 가능합니다.
     """
     try:
         body = await request.json()
@@ -3903,40 +3954,46 @@ async def verify_email_token(request: Request):
         if not token or not email:
             raise HTTPException(status_code=400, detail="토큰과 이메일이 필요합니다.")
 
-        # 토큰 해시 계산
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        # JWT 토큰 검증
+        result = verify_jwt_email_token(token)
 
-        # 토큰 검증
-        if token_hash not in email_verification_tokens:
-            raise HTTPException(status_code=400, detail="유효하지 않은 인증 토큰입니다.")
+        if not result["valid"]:
+            raise HTTPException(status_code=400, detail=result["error"])
 
-        token_data = email_verification_tokens[token_hash]
-
-        # 이메일 일치 확인
-        if token_data["email"] != email:
+        # 토큰의 이메일과 요청 이메일 일치 확인
+        token_email = result["email"]
+        if token_email != email:
             raise HTTPException(status_code=400, detail="이메일이 일치하지 않습니다.")
 
-        # 만료 확인
-        if datetime.now() > token_data["expires_at"]:
-            del email_verification_tokens[token_hash]
-            raise HTTPException(
-                status_code=400, detail="인증 토큰이 만료되었습니다. 다시 인증해주세요."
-            )
-
-        # 인증 완료
-        token_data["verified"] = True
-
-        # 알림 설정에 이메일 자동 등록
+        # StateManager에 인증 완료 상태 영구 저장
         try:
             state_manager = get_state_manager()
-            state_manager.update_alert_settings(
-                email=email,
-                consent=True,
-                alert_types=["rank_change", "important_insight", "error", "daily_summary"],
-            )
-            logging.info(f"Email verified and settings updated: {email}")
+
+            # 기존 구독 정보 확인
+            existing = state_manager.get_subscription(email)
+
+            if existing:
+                # 기존 구독이 있으면 verified 상태만 업데이트
+                existing.verified = True
+                existing.verified_at = datetime.now()
+                state_manager._save_subscriptions()
+            else:
+                # 새 구독 등록 (verified=True로 생성)
+                state_manager.register_email(
+                    email=email,
+                    consent=True,
+                    alert_types=["rank_change", "important_insight", "error", "daily_summary"],
+                )
+                # verified 상태 추가 설정
+                subscription = state_manager.get_subscription(email)
+                if subscription:
+                    subscription.verified = True
+                    subscription.verified_at = datetime.now()
+                    state_manager._save_subscriptions()
+
+            logging.info(f"Email verified and saved to StateManager: {email}")
         except Exception as e:
-            logging.warning(f"Failed to update alert settings: {e}")
+            logging.warning(f"Failed to save verification status: {e}")
 
         return {"verified": True, "email": email, "message": "이메일 인증이 완료되었습니다!"}
 
@@ -3949,17 +4006,23 @@ async def verify_email_token(request: Request):
 
 @app.get("/api/alerts/verification-status")
 async def get_verification_status(email: str):
-    """이메일 인증 상태 확인"""
+    """
+    이메일 인증 상태 확인 (StateManager 기반)
+
+    JWT 방식으로 변경되어 인증 완료 상태는 StateManager에 영구 저장됩니다.
+    """
     try:
-        # 토큰 저장소에서 해당 이메일의 인증 상태 확인
-        for _token_hash, data in email_verification_tokens.items():
-            if data["email"] == email:
-                if datetime.now() > data["expires_at"]:
-                    return {"verified": False, "status": "expired"}
-                return {
-                    "verified": data["verified"],
-                    "status": "verified" if data["verified"] else "pending",
-                }
+        state_manager = get_state_manager()
+        subscription = state_manager.get_subscription(email)
+
+        if subscription:
+            return {
+                "verified": subscription.verified,
+                "status": "verified" if subscription.verified else "pending",
+                "verified_at": subscription.verified_at.isoformat()
+                if subscription.verified_at
+                else None,
+            }
 
         return {"verified": False, "status": "not_found"}
 
@@ -3978,6 +4041,8 @@ async def send_insight_report_email(request: Request):
 
     대시보드에서 '이메일로 보내기' 버튼 클릭 시 호출됩니다.
     현재 인사이트와 KPI 데이터를 이메일로 발송합니다.
+
+    StateManager 기반 인증 상태 확인 (JWT 방식 변경에 따른 업데이트)
     """
     try:
         body = await request.json()
@@ -3986,14 +4051,11 @@ async def send_insight_report_email(request: Request):
         if not recipient_email:
             raise HTTPException(status_code=400, detail="이메일 주소가 필요합니다.")
 
-        # 이메일 인증 확인
-        is_verified = False
-        for _token_hash, data in email_verification_tokens.items():
-            if data["email"] == recipient_email and data.get("verified"):
-                is_verified = True
-                break
+        # StateManager에서 이메일 인증 상태 확인
+        state_manager = get_state_manager()
+        subscription = state_manager.get_subscription(recipient_email)
 
-        if not is_verified:
+        if not subscription or not subscription.verified:
             raise HTTPException(
                 status_code=403, detail="이메일 인증이 필요합니다. 먼저 이메일을 인증해주세요."
             )

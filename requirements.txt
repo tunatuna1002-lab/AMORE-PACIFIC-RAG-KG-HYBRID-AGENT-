@@ -91,6 +91,9 @@ yt-dlp>=2024.0.0          # YouTube metadata (no API key)
 # Email Service (E2E Audit Action Item - 2026-01-27)
 resend>=2.0.0             # Resend Email API (3,000 free/month)
 
+# JWT Authentication (Email Verification)
+PyJWT>=2.8.0              # Stateless token for email verification
+
 # News API (Free Tier)
 # gnews (API key 필요, 100건/일 무료)
 

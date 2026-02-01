@@ -31,11 +31,11 @@ Usage:
 
 import json
 import logging
-from datetime import datetime, date
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Set
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,62 +44,77 @@ logger = logging.getLogger(__name__)
 # 타입 정의
 # =============================================================================
 
+
 class AlertType(Enum):
     """알림 유형"""
-    RANK_CHANGE = "rank_change"          # 순위 변동
+
+    RANK_CHANGE = "rank_change"  # 순위 변동
     IMPORTANT_INSIGHT = "important_insight"  # 중요 인사이트
-    CRAWL_COMPLETE = "crawl_complete"    # 크롤링 완료
-    ERROR = "error"                       # 에러
-    DAILY_SUMMARY = "daily_summary"      # 일일 요약
+    CRAWL_COMPLETE = "crawl_complete"  # 크롤링 완료
+    ERROR = "error"  # 에러
+    DAILY_SUMMARY = "daily_summary"  # 일일 요약
 
 
 class DataFreshness(Enum):
     """데이터 신선도"""
-    FRESH = "fresh"        # 오늘 데이터
-    STALE = "stale"        # 오래된 데이터
-    UNKNOWN = "unknown"    # 알 수 없음
+
+    FRESH = "fresh"  # 오늘 데이터
+    STALE = "stale"  # 오래된 데이터
+    UNKNOWN = "unknown"  # 알 수 없음
 
 
 @dataclass
 class EmailSubscription:
     """이메일 구독 정보"""
-    email: str
-    consent: bool                    # 명시적 동의 여부
-    consent_date: Optional[datetime] = None
-    alert_types: List[str] = field(default_factory=list)  # 구독 알림 유형
-    active: bool = True              # 활성 상태
 
-    def to_dict(self) -> Dict[str, Any]:
+    email: str
+    consent: bool  # 명시적 동의 여부
+    consent_date: datetime | None = None
+    alert_types: list[str] = field(default_factory=list)  # 구독 알림 유형
+    active: bool = True  # 활성 상태
+    verified: bool = False  # 이메일 인증 완료 여부
+    verified_at: datetime | None = None  # 인증 완료 시각
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "email": self.email,
             "consent": self.consent,
             "consent_date": self.consent_date.isoformat() if self.consent_date else None,
             "alert_types": self.alert_types,
-            "active": self.active
+            "active": self.active,
+            "verified": self.verified,
+            "verified_at": self.verified_at.isoformat() if self.verified_at else None,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EmailSubscription":
+    def from_dict(cls, data: dict[str, Any]) -> "EmailSubscription":
         consent_date = None
         if data.get("consent_date"):
             consent_date = datetime.fromisoformat(data["consent_date"])
+
+        verified_at = None
+        if data.get("verified_at"):
+            verified_at = datetime.fromisoformat(data["verified_at"])
 
         return cls(
             email=data["email"],
             consent=data.get("consent", False),
             consent_date=consent_date,
             alert_types=data.get("alert_types", []),
-            active=data.get("active", True)
+            active=data.get("active", True),
+            verified=data.get("verified", False),
+            verified_at=verified_at,
         )
 
 
 @dataclass
 class AgentStatus:
     """에이전트 상태"""
+
     name: str
     status: str  # idle, running, completed, failed
-    last_run: Optional[datetime] = None
-    last_error: Optional[str] = None
+    last_run: datetime | None = None
+    last_error: str | None = None
     run_count: int = 0
     success_count: int = 0
     fail_count: int = 0
@@ -108,6 +123,7 @@ class AgentStatus:
 # =============================================================================
 # 상태 관리자
 # =============================================================================
+
 
 class StateManager:
     """
@@ -122,10 +138,7 @@ class StateManager:
     4. 상태 영속화 (JSON 파일)
     """
 
-    def __init__(
-        self,
-        persist_dir: Optional[Path] = None
-    ):
+    def __init__(self, persist_dir: Path | None = None):
         """
         Args:
             persist_dir: 영속화 디렉토리 (기본: ./data)
@@ -137,7 +150,7 @@ class StateManager:
         self.persist_dir.mkdir(parents=True, exist_ok=True)
 
         # 크롤링 상태
-        self.last_crawl_time: Optional[datetime] = None
+        self.last_crawl_time: datetime | None = None
         self.last_crawl_success: bool = False
         self.last_crawl_count: int = 0
         self.data_freshness: DataFreshness = DataFreshness.UNKNOWN
@@ -145,20 +158,20 @@ class StateManager:
         # KG 상태
         self.kg_initialized: bool = False
         self.kg_triple_count: int = 0
-        self.kg_last_update: Optional[datetime] = None
+        self.kg_last_update: datetime | None = None
 
         # 에이전트 상태
-        self._agent_status: Dict[str, AgentStatus] = {}
-        self._active_tools: Set[str] = set()
+        self._agent_status: dict[str, AgentStatus] = {}
+        self._active_tools: set[str] = set()
 
         # 이메일 구독
-        self._email_subscriptions: Dict[str, EmailSubscription] = {}
+        self._email_subscriptions: dict[str, EmailSubscription] = {}
 
         # 세션
-        self.current_session_id: Optional[str] = None
+        self.current_session_id: str | None = None
 
         # 메트릭 상태
-        self.last_metrics_time: Optional[datetime] = None
+        self.last_metrics_time: datetime | None = None
 
         # 로드
         self._load_state()
@@ -175,11 +188,7 @@ class StateManager:
 
         return self.last_crawl_time.date() < date.today()
 
-    def mark_crawled(
-        self,
-        success: bool = True,
-        products_count: int = 0
-    ) -> None:
+    def mark_crawled(self, success: bool = True, products_count: int = 0) -> None:
         """
         크롤링 완료 표시
 
@@ -200,7 +209,7 @@ class StateManager:
         self.data_freshness = DataFreshness.STALE
         self._save_state()
 
-    def get_data_age_hours(self) -> Optional[float]:
+    def get_data_age_hours(self) -> float | None:
         """데이터 경과 시간 (시간 단위)"""
         if self.last_crawl_time is None:
             return None
@@ -240,7 +249,7 @@ class StateManager:
         self._active_tools.add(name)
         logger.debug(f"Agent started: {name}")
 
-    def complete_agent(self, name: str, success: bool = True, error: Optional[str] = None) -> None:
+    def complete_agent(self, name: str, success: bool = True, error: str | None = None) -> None:
         """에이전트 완료"""
         if name not in self._agent_status:
             self._agent_status[name] = AgentStatus(name=name, status="idle")
@@ -268,11 +277,11 @@ class StateManager:
         """실행 중인 에이전트 있는지"""
         return len(self._active_tools) > 0
 
-    def get_agent_status(self, name: str) -> Optional[AgentStatus]:
+    def get_agent_status(self, name: str) -> AgentStatus | None:
         """에이전트 상태 조회"""
         return self._agent_status.get(name)
 
-    def get_all_agent_statuses(self) -> Dict[str, AgentStatus]:
+    def get_all_agent_statuses(self) -> dict[str, AgentStatus]:
         """모든 에이전트 상태"""
         return self._agent_status.copy()
 
@@ -281,10 +290,7 @@ class StateManager:
     # =========================================================================
 
     def register_email(
-        self,
-        email: str,
-        consent: bool,
-        alert_types: Optional[List[str]] = None
+        self, email: str, consent: bool, alert_types: list[str] | None = None
     ) -> bool:
         """
         이메일 등록 (명시적 동의 필수)
@@ -310,7 +316,7 @@ class StateManager:
             alert_types = [
                 AlertType.RANK_CHANGE.value,
                 AlertType.IMPORTANT_INSIGHT.value,
-                AlertType.ERROR.value
+                AlertType.ERROR.value,
             ]
 
         subscription = EmailSubscription(
@@ -318,7 +324,7 @@ class StateManager:
             consent=True,
             consent_date=datetime.now(),
             alert_types=alert_types,
-            active=True
+            active=True,
         )
 
         self._email_subscriptions[email] = subscription
@@ -327,10 +333,7 @@ class StateManager:
         return True
 
     def update_email_subscription(
-        self,
-        email: str,
-        alert_types: Optional[List[str]] = None,
-        active: Optional[bool] = None
+        self, email: str, alert_types: list[str] | None = None, active: bool | None = None
     ) -> bool:
         """
         이메일 구독 설정 변경
@@ -365,7 +368,7 @@ class StateManager:
         self._save_subscriptions()
         return True
 
-    def get_alert_recipients(self, alert_type: str) -> List[str]:
+    def get_alert_recipients(self, alert_type: str) -> list[str]:
         """
         특정 알림 유형의 수신자 목록
 
@@ -382,18 +385,19 @@ class StateManager:
                     recipients.append(email)
         return recipients
 
-    def get_subscription(self, email: str) -> Optional[EmailSubscription]:
+    def get_subscription(self, email: str) -> EmailSubscription | None:
         """구독 정보 조회"""
         return self._email_subscriptions.get(email)
 
-    def get_all_subscriptions(self) -> Dict[str, EmailSubscription]:
+    def get_all_subscriptions(self) -> dict[str, EmailSubscription]:
         """모든 구독 정보"""
         return self._email_subscriptions.copy()
 
     def _validate_email(self, email: str) -> bool:
         """이메일 형식 검증"""
         import re
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return re.match(pattern, email) is not None
 
     # =========================================================================
@@ -429,7 +433,7 @@ class StateManager:
     # 직렬화
     # =========================================================================
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """상태를 딕셔너리로"""
         return {
             "last_crawl_time": self.last_crawl_time.isoformat() if self.last_crawl_time else None,
@@ -439,7 +443,9 @@ class StateManager:
             "kg_initialized": self.kg_initialized,
             "kg_triple_count": self.kg_triple_count,
             "kg_last_update": self.kg_last_update.isoformat() if self.kg_last_update else None,
-            "last_metrics_time": self.last_metrics_time.isoformat() if self.last_metrics_time else None
+            "last_metrics_time": self.last_metrics_time.isoformat()
+            if self.last_metrics_time
+            else None,
         }
 
     def to_context_summary(self) -> str:
@@ -492,7 +498,7 @@ class StateManager:
             if not state_path.exists():
                 return
 
-            with open(state_path, "r", encoding="utf-8") as f:
+            with open(state_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             if data.get("last_crawl_time"):
@@ -519,10 +525,7 @@ class StateManager:
         """구독 정보 저장"""
         try:
             sub_path = self.persist_dir / "email_subscriptions.json"
-            data = {
-                email: sub.to_dict()
-                for email, sub in self._email_subscriptions.items()
-            }
+            data = {email: sub.to_dict() for email, sub in self._email_subscriptions.items()}
             data["saved_at"] = datetime.now().isoformat()
 
             with open(sub_path, "w", encoding="utf-8") as f:
@@ -538,7 +541,7 @@ class StateManager:
             if not sub_path.exists():
                 return
 
-            with open(sub_path, "r", encoding="utf-8") as f:
+            with open(sub_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             for email, sub_data in data.items():
@@ -577,7 +580,7 @@ class StateManager:
 # 싱글톤
 # =============================================================================
 
-_state_manager_instance: Optional[StateManager] = None
+_state_manager_instance: StateManager | None = None
 
 
 def get_state_manager() -> StateManager:
