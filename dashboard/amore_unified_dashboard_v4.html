@@ -873,31 +873,6 @@
             position: relative;
             z-index: 1;
         }
-        .insight-email-btn {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: #1F5795;
-            border: 1px solid #1F5795;
-            border-radius: 6px;
-            color: white;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .insight-email-btn:hover {
-            background: #001C58;
-            border-color: #001C58;
-        }
-        .insight-email-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
         /* 좌측 브랜드 영역 */
         .insight-brand-area {
             display: flex;
@@ -4231,10 +4206,6 @@
                                     <div class="insight-label">Daily AI Insight — LANEIGE</div>
                                     <div class="insight-message">Amazon US 내 <strong>라네즈</strong> 브랜드는 안정적인 상위권을 유지 중입니다. <strong>Lip Sleeping Mask</strong>가 상승세를 보이고 있으며, Water Bank Cream의 평점 변동에 주의가 필요합니다.</div>
                                 </div>
-                                <button class="insight-email-btn" onclick="sendInsightEmail()">
-                                    <i data-lucide="mail" style="width: 16px; height: 16px;"></i>
-                                    <span>이메일로 받기</span>
-                                </button>
                             </div>
                         </div>
                         <div class="status-grid">
@@ -13058,57 +13029,6 @@
                 }
             } catch (error) {
                 console.error('Failed to revoke consent:', error);
-            }
-        }
-
-        // 인사이트 리포트 이메일 발송
-        async function sendInsightEmail() {
-            // 인증된 이메일 확인
-            if (!emailVerificationState.verified || !emailVerificationState.email) {
-                // 이메일 인증이 안 되어 있으면 알림 설정 모달 열기
-                alert('인사이트 리포트를 받으려면 먼저 이메일 인증이 필요합니다.');
-                openAlertSettings();
-                return;
-            }
-
-            const btn = document.querySelector('.insight-email-btn');
-            const originalContent = btn.innerHTML;
-
-            try {
-                // 버튼 로딩 상태
-                btn.disabled = true;
-                btn.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite;"></i><span>발송 중...</span>';
-                if (window.lucide) lucide.createIcons();
-
-                const response = await fetch(`${API_BASE}/api/alerts/send-insight-report`, {
-                    method: 'POST',
-                    headers: getApiHeaders(),
-                    body: JSON.stringify({
-                        email: emailVerificationState.email
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    // 성공
-                    btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i><span>발송 완료!</span>';
-                    if (window.lucide) lucide.createIcons();
-
-                    setTimeout(() => {
-                        btn.innerHTML = originalContent;
-                        btn.disabled = false;
-                        if (window.lucide) lucide.createIcons();
-                    }, 3000);
-                } else {
-                    throw new Error(data.detail || '발송 실패');
-                }
-            } catch (error) {
-                console.error('Failed to send insight email:', error);
-                alert('이메일 발송 실패: ' + error.message);
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-                if (window.lucide) lucide.createIcons();
             }
         }
 
