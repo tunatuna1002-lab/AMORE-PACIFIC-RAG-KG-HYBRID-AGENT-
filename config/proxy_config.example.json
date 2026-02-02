@@ -1,0 +1,31 @@
+{
+  "_comment": "Oracle Cloud proxy config example - copy to proxy_config.json",
+  "_instructions": [
+    "1. Copy this file to 'proxy_config.json'",
+    "2. Replace server, username, and auth values with real ones",
+    "3. proxy_config.json is in .gitignore for security"
+  ],
+  "proxy_pool": [
+    {
+      "name": "oracle-seoul-1",
+      "server": "http://129.154.xxx.xxx:3128",
+      "username": "proxyuser",
+      "auth": "replace-with-real-credential",
+      "region": "seoul",
+      "enabled": true
+    },
+    {
+      "name": "oracle-seoul-2",
+      "server": "http://129.154.yyy.yyy:3128",
+      "username": "proxyuser",
+      "auth": "replace-with-real-credential",
+      "region": "seoul",
+      "enabled": true
+    }
+  ],
+  "rotation_strategy": "random",
+  "retry_on_failure": true,
+  "max_retries": 3,
+  "health_check_interval": 300,
+  "cooldown_after_failure": 60
+}

@@ -8,6 +8,9 @@ config/google_credentials.json
 config/credentials.json
 *.json.bak
 
+# Proxy configuration (contains passwords)
+config/proxy_config.json
+
 # Python
 __pycache__/
 *.py[cod]
