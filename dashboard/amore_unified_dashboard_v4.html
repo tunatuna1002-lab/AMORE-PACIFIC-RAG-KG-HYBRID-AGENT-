@@ -12792,7 +12792,13 @@
             const modal = document.getElementById('alert-settings-modal');
             if (modal) {
                 modal.style.display = 'flex';
-                loadAlertSettings();
+
+                // 항상 Step 1부터 시작 (상태 초기화)
+                resetAlertModal();
+                goToAlertStep(1);
+
+                // 아이콘 초기화
+                if (window.lucide) lucide.createIcons();
             }
         }
 
@@ -12800,7 +12806,55 @@
             const modal = document.getElementById('alert-settings-modal');
             if (modal) {
                 modal.style.display = 'none';
+                // 모달 닫을 때 상태 초기화
+                resetAlertModal();
             }
+        }
+
+        // 모달 상태 초기화
+        function resetAlertModal() {
+            // 인증 상태 초기화
+            emailVerificationState = {
+                verified: false,
+                email: null,
+                token: null
+            };
+
+            // 이메일 입력 필드 초기화
+            const emailInput = document.getElementById('alert-email');
+            if (emailInput) {
+                emailInput.value = '';
+                emailInput.disabled = false;
+            }
+
+            // 인증 버튼 초기화
+            const verifyBtn = document.getElementById('verify-email-btn');
+            if (verifyBtn) {
+                verifyBtn.textContent = '인증하기';
+                verifyBtn.disabled = false;
+            }
+
+            // 인증 상태 메시지 숨기기
+            const statusDiv = document.getElementById('email-verification-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'none';
+            }
+
+            // 동의 체크박스 초기화
+            const consent = document.getElementById('alert-consent');
+            if (consent) {
+                consent.checked = false;
+            }
+
+            // 알림 유형 체크박스 초기화
+            const checkboxes = ['alert-rank-change', 'alert-insight', 'alert-error', 'alert-daily'];
+            checkboxes.forEach(id => {
+                const cb = document.getElementById(id);
+                if (cb) {
+                    cb.checked = false;
+                    cb.disabled = true;
+                }
+            });
         }
 
         async function loadAlertSettings() {
@@ -12845,6 +12899,43 @@
             token: null
         };
 
+        // 현재 스텝 (1, 2, 3)
+        let currentAlertStep = 1;
+
+        // 스텝 이동
+        function goToAlertStep(step) {
+            currentAlertStep = step;
+
+            // 모든 스텝 숨기기
+            document.getElementById('alert-step-1').style.display = 'none';
+            document.getElementById('alert-step-2').style.display = 'none';
+            document.getElementById('alert-step-3').style.display = 'none';
+
+            // 해당 스텝만 표시
+            document.getElementById(`alert-step-${step}`).style.display = 'block';
+
+            // 아이콘 초기화
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // 이메일 입력 변경 시 인증 상태 리셋
+        function onEmailInputChange() {
+            const email = document.getElementById('alert-email').value.trim();
+            const btn = document.getElementById('verify-email-btn');
+            const statusDiv = document.getElementById('email-verification-status');
+
+            // 이전에 인증된 이메일과 다르면 상태 리셋
+            if (emailVerificationState.verified && email !== emailVerificationState.email) {
+                emailVerificationState.verified = false;
+                emailVerificationState.email = null;
+                emailVerificationState.token = null;
+
+                btn.textContent = '인증하기';
+                btn.disabled = false;
+                statusDiv.style.display = 'none';
+            }
+        }
+
         // 이메일 인증 요청
         async function sendVerificationEmail() {
             const email = document.getElementById('alert-email').value.trim();
@@ -12887,15 +12978,24 @@
                         pendingSpan.style.display = 'none';
                         successSpan.style.display = 'inline';
                         errorSpan.style.display = 'none';
-                        btn.textContent = '인증완료';
-                        btn.disabled = true;
+
                         emailVerificationState.verified = true;
                         emailVerificationState.email = email;
+
+                        // 아이콘 초기화
+                        if (window.lucide) lucide.createIcons();
+
+                        // 인증 완료 → Step 2로 자동 이동
+                        setTimeout(() => {
+                            document.getElementById('verified-email-display').textContent = email;
+                            goToAlertStep(2);
+                        }, 500);
                     } else {
                         pendingSpan.style.display = 'inline';
                         successSpan.style.display = 'none';
                         errorSpan.style.display = 'none';
                         btn.textContent = '재발송';
+                        btn.disabled = false;
                         emailVerificationState.email = email;
                         emailVerificationState.token = data.token;
                     }
@@ -12908,6 +13008,7 @@
                     errorSpan.style.display = 'inline';
                     errorMsg.textContent = data.detail || '인증 이메일 발송 실패';
                     btn.textContent = '인증하기';
+                    btn.disabled = false;
                 }
             } catch (error) {
                 console.error('Email verification error:', error);
@@ -12917,9 +13018,8 @@
                 errorSpan.style.display = 'inline';
                 errorMsg.textContent = '서버 연결 오류';
                 btn.textContent = '인증하기';
+                btn.disabled = false;
             }
-
-            btn.disabled = false;
         }
 
         // 이메일 인증 상태 확인 (페이지 로드 시 URL 파라미터 체크)
@@ -12946,37 +13046,22 @@
                 const data = await response.json();
 
                 if (response.ok && data.verified) {
-                    // 인증 성공 - 모달 열고 성공 상태 표시
+                    // 인증 성공 - 모달 열고 Step 2로 이동
                     openAlertSettings();
+
+                    emailVerificationState.verified = true;
+                    emailVerificationState.email = email;
+
+                    // URL에서 파라미터 제거
+                    window.history.replaceState({}, document.title, window.location.pathname);
+
                     setTimeout(() => {
-                        const statusDiv = document.getElementById('email-verification-status');
-                        const pendingSpan = document.getElementById('verification-pending');
-                        const successSpan = document.getElementById('verification-success');
-                        const errorSpan = document.getElementById('verification-error');
-                        const emailInput = document.getElementById('alert-email');
-                        const verifyBtn = document.getElementById('verify-email-btn');
+                        // Step 1에 이메일 표시
+                        document.getElementById('alert-email').value = email;
 
-                        // 이메일 입력 필드에 인증된 이메일 표시
-                        emailInput.value = email;
-                        emailInput.disabled = true;
-
-                        // 버튼 상태 변경
-                        verifyBtn.textContent = '인증완료';
-                        verifyBtn.disabled = true;
-
-                        statusDiv.style.display = 'block';
-                        pendingSpan.style.display = 'none';
-                        successSpan.style.display = 'inline';
-                        errorSpan.style.display = 'none';
-
-                        emailVerificationState.verified = true;
-                        emailVerificationState.email = email;
-
-                        // 아이콘 초기화
-                        if (window.lucide) lucide.createIcons();
-
-                        // URL에서 파라미터 제거
-                        window.history.replaceState({}, document.title, window.location.pathname);
+                        // Step 2로 이동
+                        document.getElementById('verified-email-display').textContent = email;
+                        goToAlertStep(2);
 
                         // 인증 완료 알림
                         showToast('이메일 인증이 완료되었습니다!', 'success');
@@ -12993,24 +13078,47 @@
         document.addEventListener('DOMContentLoaded', checkEmailVerification);
 
         async function saveAlertSettings() {
-            const email = document.getElementById('alert-email').value;
+            const email = emailVerificationState.email || document.getElementById('alert-email').value;
             const consent = document.getElementById('alert-consent').checked;
 
-            // 이메일 형식 검증
-            if (consent && email) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    alert('올바른 이메일 주소를 입력해주세요.');
-                    return;
-                }
+            // 인증 확인
+            if (!emailVerificationState.verified) {
+                alert('먼저 이메일 인증을 완료해주세요.');
+                goToAlertStep(1);
+                return;
+            }
+
+            // 동의 확인
+            if (!consent) {
+                alert('이메일 알림 수신에 동의해주세요.');
+                return;
             }
 
             // 알림 유형 수집
             const alertTypes = [];
-            if (document.getElementById('alert-rank-change').checked) alertTypes.push('rank_change');
-            if (document.getElementById('alert-insight').checked) alertTypes.push('important_insight');
-            if (document.getElementById('alert-error').checked) alertTypes.push('error');
-            if (document.getElementById('alert-daily').checked) alertTypes.push('daily_summary');
+            const alertLabels = [];
+            if (document.getElementById('alert-rank-change').checked) {
+                alertTypes.push('rank_change');
+                alertLabels.push('순위 변동');
+            }
+            if (document.getElementById('alert-insight').checked) {
+                alertTypes.push('important_insight');
+                alertLabels.push('중요 인사이트');
+            }
+            if (document.getElementById('alert-error').checked) {
+                alertTypes.push('error');
+                alertLabels.push('에러 알림');
+            }
+            if (document.getElementById('alert-daily').checked) {
+                alertTypes.push('daily_summary');
+                alertLabels.push('일일 요약');
+            }
+
+            // 최소 하나 이상 선택 확인
+            if (alertTypes.length === 0) {
+                alert('최소 하나 이상의 알림 유형을 선택해주세요.');
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/api/v3/alert-settings`, {
@@ -13024,8 +13132,11 @@
                 });
 
                 if (response.ok) {
-                    alert('알림 설정이 저장되었습니다.');
-                    closeAlertSettings();
+                    // Step 3으로 이동 (완료 화면)
+                    document.getElementById('final-email-display').textContent = email;
+                    document.getElementById('selected-alerts-display').textContent = alertLabels.join(', ');
+                    goToAlertStep(3);
+                    showToast('알림 설정이 저장되었습니다!', 'success');
                 } else {
                     const error = await response.json();
                     alert('저장 실패: ' + (error.detail || '알 수 없는 오류'));
@@ -13037,7 +13148,7 @@
         }
 
         async function revokeConsent() {
-            if (!confirm('이메일 알림 수신 동의를 철회하시겠습니까?')) {
+            if (!confirm('이메일 알림 수신 동의를 철회하시겠습니까?\n철회 후에는 알림을 받지 않습니다.')) {
                 return;
             }
 
@@ -13048,17 +13159,20 @@
                 });
 
                 if (response.ok) {
-                    alert('동의가 철회되었습니다.');
-                    loadAlertSettings();
+                    showToast('동의가 철회되었습니다.', 'info');
+                    // 모달 초기화 및 닫기
+                    resetAlertModal();
+                    closeAlertSettings();
                 }
             } catch (error) {
                 console.error('Failed to revoke consent:', error);
+                alert('동의 철회 중 오류가 발생했습니다.');
             }
         }
 
     </script>
 
-    <!-- Alert Settings Modal - AMOREPACIFIC CI -->
+    <!-- Alert Settings Modal - 3단계 플로우 -->
     <div id="alert-settings-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
@@ -13066,94 +13180,183 @@
                 <button onclick="closeAlertSettings()" class="modal-close">&times;</button>
             </div>
             <div class="modal-body" style="padding: 24px;">
-                <!-- 이메일 입력 + 인증 버튼 -->
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--pacific-blue);">
-                        이메일 주소
-                    </label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="email" id="alert-email"
-                               placeholder="your-email@example.com"
-                               style="flex: 1; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; transition: border-color 0.2s;"
-                               onfocus="this.style.borderColor='var(--amore-blue)'"
-                               onblur="this.style.borderColor='#e2e8f0'">
-                        <button onclick="sendVerificationEmail()" id="verify-email-btn"
-                                style="padding: 12px 20px; background: var(--amore-blue); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
-                            인증하기
+
+                <!-- Step 1: 이메일 인증 -->
+                <div id="alert-step-1" class="alert-step">
+                    <div class="step-indicator" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
+                        <span class="step-dot active" style="width: 10px; height: 10px; border-radius: 50%; background: var(--amore-blue);"></span>
+                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0;"></span>
+                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0;"></span>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div style="width: 60px; height: 60px; background: rgba(31, 87, 149, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <i data-lucide="mail" style="width: 28px; height: 28px; color: var(--amore-blue);"></i>
+                        </div>
+                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">이메일 인증</h4>
+                        <p style="font-size: 13px; color: #64748b;">알림을 받을 이메일 주소를 인증해주세요.</p>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--pacific-blue);">
+                            이메일 주소
+                        </label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="email" id="alert-email"
+                                   placeholder="your-email@example.com"
+                                   style="flex: 1; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; transition: border-color 0.2s;"
+                                   onfocus="this.style.borderColor='var(--amore-blue)'"
+                                   onblur="this.style.borderColor='#e2e8f0'"
+                                   oninput="onEmailInputChange()">
+                            <button onclick="sendVerificationEmail()" id="verify-email-btn"
+                                    style="padding: 12px 20px; background: var(--amore-blue); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+                                인증하기
+                            </button>
+                        </div>
+                        <!-- 인증 상태 표시 -->
+                        <div id="email-verification-status" style="margin-top: 8px; font-size: 13px; display: none;">
+                            <span id="verification-pending" style="color: #f59e0b; display: none;">
+                                <i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
+                                인증 이메일이 발송되었습니다. 메일함을 확인해주세요.
+                            </span>
+                            <span id="verification-success" style="color: #10b981; display: none;">
+                                <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
+                                이메일 인증 완료
+                            </span>
+                            <span id="verification-error" style="color: #ef4444; display: none;">
+                                <i data-lucide="x-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
+                                <span id="verification-error-msg">인증 실패</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button onclick="closeAlertSettings()"
+                                style="flex: 1; padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            취소
                         </button>
                     </div>
-                    <!-- 인증 상태 표시 -->
-                    <div id="email-verification-status" style="margin-top: 8px; font-size: 13px; display: none;">
-                        <span id="verification-pending" style="color: #f59e0b; display: none;">
-                            <i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
-                            인증 이메일이 발송되었습니다. 메일함을 확인해주세요.
-                        </span>
-                        <span id="verification-success" style="color: #10b981; display: none;">
-                            <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
-                            이메일 인증 완료
-                        </span>
-                        <span id="verification-error" style="color: #ef4444; display: none;">
-                            <i data-lucide="x-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
-                            <span id="verification-error-msg">인증 실패</span>
-                        </span>
-                    </div>
                 </div>
 
-                <!-- 동의 체크박스 (AMOREPACIFIC CI) -->
-                <div class="consent-box" style="background: rgba(31, 87, 149, 0.05); border: 1px solid rgba(31, 87, 149, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                    <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                        <input type="checkbox" id="alert-consent" onchange="toggleAlertOptions()"
-                               style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--amore-blue);">
-                        <div>
-                            <span style="font-weight: 600; color: var(--pacific-blue);">이메일 알림 수신에 동의합니다</span>
-                            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">
-                                순위 변동, 중요 인사이트, 시스템 에러 등의 알림을 이메일로 받습니다.<br>
-                                언제든지 동의를 철회할 수 있습니다.
-                            </p>
+                <!-- Step 2: 기능 선택 -->
+                <div id="alert-step-2" class="alert-step" style="display: none;">
+                    <div class="step-indicator" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
+                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+                        <span class="step-dot active" style="width: 10px; height: 10px; border-radius: 50%; background: var(--amore-blue);"></span>
+                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0;"></span>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div style="width: 60px; height: 60px; background: rgba(16, 185, 129, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <i data-lucide="check-circle" style="width: 28px; height: 28px; color: #10b981;"></i>
                         </div>
-                    </label>
-                </div>
+                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">인증 완료!</h4>
+                        <p style="font-size: 13px; color: #64748b;">
+                            <strong id="verified-email-display"></strong> 인증됨<br>
+                            받고 싶은 알림을 선택해주세요.
+                        </p>
+                    </div>
 
-                <!-- 알림 유형 선택 -->
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 12px; color: var(--pacific-blue);">
-                        알림 유형 선택
-                    </label>
-                    <div class="alert-type-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                            <input type="checkbox" id="alert-rank-change" disabled style="accent-color: var(--amore-blue);">
-                            <span style="font-size: 13px; color: var(--pacific-blue);">순위 변동</span>
+                    <!-- 동의 체크박스 -->
+                    <div class="consent-box" style="background: rgba(31, 87, 149, 0.05); border: 1px solid rgba(31, 87, 149, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                            <input type="checkbox" id="alert-consent" onchange="toggleAlertOptions()"
+                                   style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--amore-blue);">
+                            <div>
+                                <span style="font-weight: 600; color: var(--pacific-blue);">이메일 알림 수신에 동의합니다</span>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                    순위 변동, 중요 인사이트, 시스템 에러 등의 알림을 이메일로 받습니다.<br>
+                                    언제든지 동의를 철회할 수 있습니다.
+                                </p>
+                            </div>
                         </label>
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                            <input type="checkbox" id="alert-insight" disabled style="accent-color: var(--amore-blue);">
-                            <span style="font-size: 13px; color: var(--pacific-blue);">중요 인사이트</span>
+                    </div>
+
+                    <!-- 알림 유형 선택 -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 12px; color: var(--pacific-blue);">
+                            알림 유형 선택
                         </label>
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                            <input type="checkbox" id="alert-error" disabled style="accent-color: var(--amore-blue);">
-                            <span style="font-size: 13px; color: var(--pacific-blue);">에러 알림</span>
-                        </label>
-                        <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                            <input type="checkbox" id="alert-daily" disabled style="accent-color: var(--amore-blue);">
-                            <span style="font-size: 13px; color: var(--pacific-blue);">일일 요약</span>
-                        </label>
+                        <div class="alert-type-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                                <input type="checkbox" id="alert-rank-change" disabled style="accent-color: var(--amore-blue);">
+                                <span style="font-size: 13px; color: var(--pacific-blue);">순위 변동</span>
+                            </label>
+                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                                <input type="checkbox" id="alert-insight" disabled style="accent-color: var(--amore-blue);">
+                                <span style="font-size: 13px; color: var(--pacific-blue);">중요 인사이트</span>
+                            </label>
+                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                                <input type="checkbox" id="alert-error" disabled style="accent-color: var(--amore-blue);">
+                                <span style="font-size: 13px; color: var(--pacific-blue);">에러 알림</span>
+                            </label>
+                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                                <input type="checkbox" id="alert-daily" disabled style="accent-color: var(--amore-blue);">
+                                <span style="font-size: 13px; color: var(--pacific-blue);">일일 요약</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button onclick="goToAlertStep(1)"
+                                style="padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            이전
+                        </button>
+                        <button onclick="saveAlertSettings()" id="save-alert-btn"
+                                style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            저장
+                        </button>
                     </div>
                 </div>
 
-                <!-- 버튼 -->
-                <div style="display: flex; gap: 12px;">
-                    <button onclick="saveAlertSettings()" id="save-alert-btn"
-                            style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                        저장
-                    </button>
-                    <button onclick="revokeConsent()"
-                            style="padding: 12px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                        동의 철회
-                    </button>
-                    <button onclick="closeAlertSettings()"
-                            style="padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                        취소
-                    </button>
+                <!-- Step 3: 완료 안내 -->
+                <div id="alert-step-3" class="alert-step" style="display: none;">
+                    <div class="step-indicator" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
+                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+                        <span class="step-dot active" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div style="width: 70px; height: 70px; background: rgba(16, 185, 129, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <i data-lucide="party-popper" style="width: 32px; height: 32px; color: #10b981;"></i>
+                        </div>
+                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">설정 완료!</h4>
+                        <p style="font-size: 13px; color: #64748b;">
+                            알림 설정이 저장되었습니다.
+                        </p>
+                    </div>
+
+                    <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
+                            <strong style="color: var(--pacific-blue);">수신 이메일</strong><br>
+                            <span id="final-email-display"></span>
+                        </p>
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
+                            <strong style="color: var(--pacific-blue);">선택된 알림</strong><br>
+                            <span id="selected-alerts-display"></span>
+                        </p>
+                    </div>
+
+                    <div style="background: rgba(31, 87, 149, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                        <p style="font-size: 13px; color: var(--pacific-blue); margin: 0; display: flex; align-items: flex-start; gap: 10px;">
+                            <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;"></i>
+                            <span>해당 이벤트 발생 시 등록된 이메일로 알림을 보내드립니다.</span>
+                        </p>
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button onclick="closeAlertSettings()"
+                                style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            확인
+                        </button>
+                        <button onclick="revokeConsent()"
+                                style="padding: 12px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            동의 철회
+                        </button>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>

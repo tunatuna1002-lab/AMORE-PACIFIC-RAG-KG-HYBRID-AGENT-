@@ -3896,12 +3896,13 @@ def verify_jwt_email_token(token: str) -> dict:
         return {"valid": False, "error": "유효하지 않은 인증 토큰입니다."}
 
 
-@app.post("/api/alerts/send-verification", dependencies=[Depends(verify_api_key)])
+@app.post("/api/alerts/send-verification")
+@limiter.limit("3/minute")  # 분당 3회 제한 (스팸 방지)
 async def send_verification_email(request: Request):
     """
     이메일 인증 요청 - 인증 이메일 발송 (JWT 방식)
 
-    보안: API Key 인증 필요
+    보안: Rate Limit으로 스팸 방지 (분당 3회)
     사용자가 이메일을 입력하고 '인증하기' 버튼을 누르면
     해당 이메일로 JWT 토큰이 포함된 인증 링크를 발송합니다.
 
@@ -3970,12 +3971,13 @@ async def send_verification_email(request: Request):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/api/alerts/verify-email", dependencies=[Depends(verify_api_key)])
+@app.post("/api/alerts/verify-email")
+@limiter.limit("10/minute")  # 분당 10회 제한 (brute force 방지)
 async def verify_email_token_endpoint(request: Request):
     """
     이메일 인증 토큰 검증 (JWT 방식)
 
-    보안: API Key 인증 필요
+    보안: Rate Limit으로 brute force 방지 (분당 10회)
     사용자가 이메일의 인증 버튼을 클릭하면
     JWT 토큰을 검증하고 이메일 인증 상태를 StateManager에 영구 저장합니다.
 
