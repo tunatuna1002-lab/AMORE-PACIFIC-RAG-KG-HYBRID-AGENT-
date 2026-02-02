@@ -36,6 +36,7 @@ import asyncio
 import heapq
 import json
 import logging
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -908,7 +909,6 @@ class UnifiedBrain:
 
         인사이트 리포트 이메일도 함께 발송합니다.
         """
-        import os
 
         logger.info("Generating Morning Brief...")
 
@@ -981,7 +981,6 @@ class UnifiedBrain:
 
         Morning Brief와 함께 발송되는 상세 인사이트 리포트입니다.
         """
-        import os
         from datetime import datetime
 
         try:
@@ -1067,8 +1066,15 @@ class UnifiedBrain:
             # 리포트 날짜
             report_date = datetime.now().strftime("%Y년 %m월 %d일")
 
-            # 대시보드 URL
-            dashboard_url = os.getenv("DASHBOARD_URL", "http://localhost:8001") + "/dashboard"
+            # 대시보드 URL (Railway 자동 감지)
+            def get_base_url() -> str:
+                if url := os.getenv("DASHBOARD_URL"):
+                    return url.rstrip("/")
+                if railway_domain := os.getenv("RAILWAY_PUBLIC_DOMAIN"):
+                    return f"https://{railway_domain}"
+                return f"http://localhost:{os.getenv('PORT', '8001')}"
+
+            dashboard_url = get_base_url() + "/dashboard"
 
             # 이메일 발송
             result = await sender.send_insight_report(
