@@ -150,6 +150,31 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+# ============================================================================
+# URL 헬퍼 함수 (Railway 환경 자동 감지)
+# ============================================================================
+def get_base_url() -> str:
+    """
+    배포 환경에 맞는 Base URL 반환
+
+    우선순위:
+    1. DASHBOARD_URL 환경변수 (명시적 설정)
+    2. RAILWAY_PUBLIC_DOMAIN (Railway 자동 제공)
+    3. localhost:8001 (로컬 개발)
+    """
+    # 1. 명시적 설정 우선
+    if dashboard_url := os.getenv("DASHBOARD_URL"):
+        return dashboard_url.rstrip("/")
+
+    # 2. Railway 환경 자동 감지
+    if railway_domain := os.getenv("RAILWAY_PUBLIC_DOMAIN"):
+        return f"https://{railway_domain}"
+
+    # 3. 로컬 개발 환경
+    port = os.getenv("PORT", "8001")
+    return f"http://localhost:{port}"
+
+
 # CORS 설정 (환경변수로 허용 도메인 설정 가능)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(
     ","
@@ -3896,8 +3921,8 @@ async def send_verification_email(request: Request):
         # JWT 토큰 생성 (30분 유효)
         token = create_email_verification_token(email)
 
-        # 대시보드 URL 생성 (Railway 또는 로컬)
-        base_url = os.getenv("DASHBOARD_URL", "http://localhost:8001")
+        # 대시보드 URL 생성 (Railway 자동 감지)
+        base_url = get_base_url()
         verify_url = f"{base_url}/dashboard?verify_email={token}&email={email}"
 
         # EmailSender 직접 사용
@@ -4149,8 +4174,8 @@ async def send_insight_report_email(request: Request):
         # 리포트 날짜
         report_date = datetime.now().strftime("%Y년 %m월 %d일")
 
-        # 대시보드 URL
-        dashboard_url = os.getenv("DASHBOARD_URL", "http://localhost:8001") + "/dashboard"
+        # 대시보드 URL (Railway 자동 감지)
+        dashboard_url = get_base_url() + "/dashboard"
 
         # 이메일 발송
         result = await email_sender.send_insight_report(

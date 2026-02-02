@@ -82,6 +82,14 @@ try:
 except ImportError:
     FAKE_UA_AVAILABLE = False
 
+# Proxy Manager
+try:
+    from src.tools.proxy_manager import ProxyManager, get_proxy_manager
+
+    PROXY_AVAILABLE = True
+except ImportError:
+    PROXY_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 # 한국 시간대 (UTC+9)
@@ -136,10 +144,11 @@ class CircuitBreaker:
 class AmazonScraper:
     """Amazon 베스트셀러 Top 100 크롤러"""
 
-    def __init__(self, config_path: str = "./config/thresholds.json"):
+    def __init__(self, config_path: str = "./config/thresholds.json", use_proxy: bool = True):
         """
         Args:
             config_path: 설정 파일 경로
+            use_proxy: 프록시 사용 여부 (기본값: True)
         """
         self.config = self._load_config(config_path)
         self.base_url = "https://www.amazon.com"
@@ -163,6 +172,23 @@ class AmazonScraper:
         # 회로 차단기
         self.circuit_breaker = CircuitBreaker(threshold=3, reset_minutes=30)
 
+        # 프록시 매니저 초기화
+        self.use_proxy = use_proxy and PROXY_AVAILABLE
+        self.proxy_manager: ProxyManager | None = None
+        if self.use_proxy:
+            try:
+                self.proxy_manager = get_proxy_manager()
+                if self.proxy_manager.has_proxies():
+                    logger.info(
+                        f"프록시 매니저 초기화됨: {self.proxy_manager.get_stats()['active']}개 활성"
+                    )
+                else:
+                    logger.info("프록시 설정 없음 - 직접 연결 모드")
+                    self.use_proxy = False
+            except Exception as e:
+                logger.warning(f"프록시 매니저 초기화 실패: {e}")
+                self.use_proxy = False
+
         # 브랜드 매핑 resolver (캐시된 ASIN→Brand 조회)
         try:
             from src.tools.brand_resolver import get_brand_resolver
@@ -180,11 +206,12 @@ class AmazonScraper:
             return {"categories": {}}
 
     async def initialize(self) -> None:
-        """브라우저 초기화 (Stealth 모드)"""
+        """브라우저 초기화 (Stealth 모드 + 프록시 지원)"""
         playwright = await async_playwright().start()
-        self.browser = await playwright.chromium.launch(
-            headless=True,
-            args=[
+
+        launch_options = {
+            "headless": True,
+            "args": [
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
@@ -192,9 +219,23 @@ class AmazonScraper:
                 "--disable-extensions",
                 "--disable-features=IsolateOrigins,site-per-process",
             ],
-        )
+        }
+
+        # 프록시 설정 추가
+        if self.use_proxy and self.proxy_manager:
+            proxy = self.proxy_manager.get_proxy()
+            if proxy:
+                launch_options["proxy"] = proxy.playwright_config
+                logger.info(f"프록시 사용: {proxy.name} ({proxy.region})")
+                self._current_proxy = proxy
+            else:
+                self._current_proxy = None
+        else:
+            self._current_proxy = None
+
+        self.browser = await playwright.chromium.launch(**launch_options)
         logger.info(
-            f"Browser initialized (Stealth: {STEALTH_AVAILABLE}, BrowserForge: {BROWSERFORGE_AVAILABLE})"
+            f"Browser initialized (Stealth: {STEALTH_AVAILABLE}, BrowserForge: {BROWSERFORGE_AVAILABLE}, Proxy: {self._current_proxy.name if self._current_proxy else 'None'})"
         )
 
     async def close(self) -> None:
@@ -416,6 +457,9 @@ class AmazonScraper:
 
             result["count"] = len(result["products"])
             result["success"] = True
+
+            # 프록시 성공 보고
+            self._report_proxy_success()
 
         except PlaywrightTimeout:
             result["error"] = "TIMEOUT"
@@ -1144,7 +1188,19 @@ class AmazonScraper:
             "Type the characters you see in this image",
             "api-services-support@amazon.com",
         ]
-        return any(indicator in content for indicator in block_indicators)
+        is_blocked = any(indicator in content for indicator in block_indicators)
+
+        # 프록시 실패 보고
+        if is_blocked and self._current_proxy and self.proxy_manager:
+            self.proxy_manager.report_failure(self._current_proxy.name)
+            logger.warning(f"프록시 차단됨: {self._current_proxy.name}")
+
+        return is_blocked
+
+    def _report_proxy_success(self) -> None:
+        """프록시 성공 보고"""
+        if self._current_proxy and self.proxy_manager:
+            self.proxy_manager.report_success(self._current_proxy.name)
 
     async def _random_delay(self) -> None:
         """랜덤 딜레이"""
