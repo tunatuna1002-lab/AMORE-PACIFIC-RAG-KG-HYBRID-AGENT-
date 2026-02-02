@@ -772,19 +772,9 @@ class EmailSender:
                     </div>
 
                     <p style="color: #94a3b8; font-size: 13px; margin: 24px 0 0 0; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                        이 링크는 10분간 유효합니다.<br>
+                        이 링크는 30분간 유효합니다.<br>
                         본인이 요청하지 않았다면 이 이메일을 무시해주세요.
                     </p>
-
-                    <!-- Alternate Link -->
-                    <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
-                        <p style="color: #64748b; font-size: 12px; margin: 0 0 8px 0;">
-                            버튼이 작동하지 않으면 아래 링크를 복사하여 브라우저에 붙여넣기 해주세요:
-                        </p>
-                        <p style="color: #1F5795; font-size: 11px; word-break: break-all; margin: 0;">
-                            {verify_url}
-                        </p>
-                    </div>
                 </div>
 
                 <!-- Footer -->

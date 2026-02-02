@@ -12882,12 +12882,23 @@
                 statusDiv.style.display = 'block';
 
                 if (response.ok) {
-                    pendingSpan.style.display = 'inline';
-                    successSpan.style.display = 'none';
-                    errorSpan.style.display = 'none';
-                    btn.textContent = '재발송';
-                    emailVerificationState.email = email;
-                    emailVerificationState.token = data.token;
+                    // 이미 인증된 이메일인지 확인
+                    if (data.already_verified) {
+                        pendingSpan.style.display = 'none';
+                        successSpan.style.display = 'inline';
+                        errorSpan.style.display = 'none';
+                        btn.textContent = '인증완료';
+                        btn.disabled = true;
+                        emailVerificationState.verified = true;
+                        emailVerificationState.email = email;
+                    } else {
+                        pendingSpan.style.display = 'inline';
+                        successSpan.style.display = 'none';
+                        errorSpan.style.display = 'none';
+                        btn.textContent = '재발송';
+                        emailVerificationState.email = email;
+                        emailVerificationState.token = data.token;
+                    }
 
                     // 아이콘 초기화
                     if (window.lucide) lucide.createIcons();
@@ -12942,6 +12953,16 @@
                         const pendingSpan = document.getElementById('verification-pending');
                         const successSpan = document.getElementById('verification-success');
                         const errorSpan = document.getElementById('verification-error');
+                        const emailInput = document.getElementById('alert-email');
+                        const verifyBtn = document.getElementById('verify-email-btn');
+
+                        // 이메일 입력 필드에 인증된 이메일 표시
+                        emailInput.value = email;
+                        emailInput.disabled = true;
+
+                        // 버튼 상태 변경
+                        verifyBtn.textContent = '인증완료';
+                        verifyBtn.disabled = true;
 
                         statusDiv.style.display = 'block';
                         pendingSpan.style.display = 'none';
@@ -12956,6 +12977,9 @@
 
                         // URL에서 파라미터 제거
                         window.history.replaceState({}, document.title, window.location.pathname);
+
+                        // 인증 완료 알림
+                        showToast('이메일 인증이 완료되었습니다!', 'success');
                     }, 300);
                 } else {
                     alert('이메일 인증 실패: ' + (data.detail || '토큰이 만료되었거나 유효하지 않습니다.'));
