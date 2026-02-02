@@ -12806,6 +12806,10 @@
             const modal = document.getElementById('alert-settings-modal');
             if (modal) {
                 modal.style.display = 'none';
+                // 폴링 중지 (함수가 정의된 경우)
+                if (typeof stopVerificationPolling === 'function') {
+                    stopVerificationPolling();
+                }
                 // 모달 닫을 때 상태 초기화
                 resetAlertModal();
             }
@@ -12998,6 +13002,9 @@
                         btn.disabled = false;
                         emailVerificationState.email = email;
                         emailVerificationState.token = data.token;
+
+                        // 폴링 시작 (5초마다 인증 상태 확인)
+                        startVerificationPolling(email);
                     }
 
                     // 아이콘 초기화
@@ -13022,19 +13029,103 @@
             }
         }
 
-        // 이메일 인증 상태 확인 (페이지 로드 시 URL 파라미터 체크)
+        // 폴링 관련 변수
+        let verificationPollingInterval = null;
+        const POLLING_INTERVAL_MS = 5000; // 5초
+        const POLLING_MAX_ATTEMPTS = 60; // 최대 5분 (60 * 5초)
+        let pollingAttempts = 0;
+
+        // 폴링 시작
+        function startVerificationPolling(email) {
+            // 기존 폴링 중지
+            stopVerificationPolling();
+            pollingAttempts = 0;
+
+            console.log(`[Polling] Started for ${email}`);
+
+            verificationPollingInterval = setInterval(async () => {
+                pollingAttempts++;
+
+                if (pollingAttempts > POLLING_MAX_ATTEMPTS) {
+                    console.log('[Polling] Max attempts reached, stopping');
+                    stopVerificationPolling();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/alerts/verification-status?email=${encodeURIComponent(email)}`, {
+                        method: 'GET',
+                        headers: getApiHeaders()
+                    });
+
+                    const data = await response.json();
+
+                    if (data.verified) {
+                        console.log('[Polling] Email verified!');
+                        stopVerificationPolling();
+                        onVerificationComplete(email);
+                    }
+                } catch (error) {
+                    console.error('[Polling] Error:', error);
+                }
+            }, POLLING_INTERVAL_MS);
+        }
+
+        // 폴링 중지
+        function stopVerificationPolling() {
+            if (verificationPollingInterval) {
+                clearInterval(verificationPollingInterval);
+                verificationPollingInterval = null;
+                console.log('[Polling] Stopped');
+            }
+        }
+
+        // 인증 완료 시 처리
+        function onVerificationComplete(email) {
+            const statusDiv = document.getElementById('email-verification-status');
+            const pendingSpan = document.getElementById('verification-pending');
+            const successSpan = document.getElementById('verification-success');
+            const btn = document.getElementById('verify-email-btn');
+
+            // UI 업데이트
+            statusDiv.style.display = 'block';
+            pendingSpan.style.display = 'none';
+            successSpan.style.display = 'inline';
+
+            btn.textContent = '인증 완료';
+            btn.disabled = true;
+
+            emailVerificationState.verified = true;
+            emailVerificationState.email = email;
+
+            // 아이콘 초기화
+            if (window.lucide) lucide.createIcons();
+
+            // 토스트 알림
+            showToast('이메일 인증이 완료되었습니다!', 'success');
+
+            // Step 2로 자동 이동
+            setTimeout(() => {
+                document.getElementById('verified-email-display').textContent = email;
+                goToAlertStep(2);
+            }, 500);
+        }
+
+        // 이메일 인증 상태 확인 (페이지 로드 시 - URL 파라미터 방식은 더 이상 사용하지 않음)
         function checkEmailVerification() {
+            // 폴링 방식으로 변경되어 URL 파라미터 체크는 불필요
+            // 하지만 기존 링크 호환성을 위해 유지 (fallback)
             const urlParams = new URLSearchParams(window.location.search);
             const verifyToken = urlParams.get('verify_email');
             const verifyEmail = urlParams.get('email');
 
             if (verifyToken && verifyEmail) {
-                // URL에서 인증 토큰 발견 시 서버에 검증 요청
+                // 레거시: URL에서 인증 토큰 발견 시 서버에 검증 요청
                 verifyEmailToken(verifyToken, verifyEmail);
             }
         }
 
-        // 이메일 토큰 검증
+        // 이메일 토큰 검증 (레거시 호환용)
         async function verifyEmailToken(token, email) {
             try {
                 const response = await fetch(`${API_BASE}/api/alerts/verify-email`, {
