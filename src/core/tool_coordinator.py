@@ -46,6 +46,12 @@ TOOL_ERROR_STRATEGIES: dict[str, ErrorStrategy] = {
     "workflow": ErrorStrategy.RETRY,
     "query_deals": ErrorStrategy.FALLBACK,
     "query_deals_summary": ErrorStrategy.FALLBACK,
+    # v3 대시보드 도구
+    "get_brand_status": ErrorStrategy.FALLBACK,
+    "get_product_info": ErrorStrategy.FALLBACK,
+    "get_competitor_analysis": ErrorStrategy.FALLBACK,
+    "get_category_info": ErrorStrategy.FALLBACK,
+    "get_action_items": ErrorStrategy.FALLBACK,
 }
 
 

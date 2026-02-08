@@ -43,6 +43,8 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from .prompt_guard import PromptGuard
+
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
 
@@ -293,17 +295,51 @@ class UnifiedBrain:
         else:
             # 기본 Context Gatherer 생성
             from ..ontology.knowledge_graph import KnowledgeGraph
-            from ..ontology.reasoner import OntologyReasoner
-            from ..rag.hybrid_retriever import HybridRetriever
 
             kg = KnowledgeGraph(persist_path="./data/knowledge_graph.json")
-            reasoner = OntologyReasoner(kg)
-            hybrid_retriever = HybridRetriever(kg, reasoner)
+            self._knowledge_graph = kg
+
+            # OWL Reasoner + TrueHybridRetriever 시도 (고급 경로)
+            try:
+                from ..ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
+
+                if OWLREADY2_AVAILABLE:
+                    from ..rag.true_hybrid_retriever import get_true_hybrid_retriever
+
+                    self._owl_reasoner = OWLReasoner()
+                    hybrid_retriever = get_true_hybrid_retriever(
+                        owl_reasoner=self._owl_reasoner, knowledge_graph=kg, docs_path="./docs"
+                    )
+                    logger.info("UnifiedBrain: Using TrueHybridRetriever with OWL Reasoner")
+                else:
+                    raise ImportError("owlready2 not available")
+            except Exception as e:
+                # Fallback: 기존 HybridRetriever 사용
+                logger.info(f"UnifiedBrain: Falling back to HybridRetriever ({e})")
+                from ..ontology.reasoner import OntologyReasoner
+                from ..rag.hybrid_retriever import HybridRetriever
+
+                reasoner = OntologyReasoner(kg)
+                hybrid_retriever = HybridRetriever(kg, reasoner)
+                self._owl_reasoner = None
 
             self._context_gatherer = ContextGatherer(
                 hybrid_retriever=hybrid_retriever, orchestrator_state=self.state
             )
             await self._context_gatherer.initialize()
+
+        # 초기 KG 동기화 (대시보드 데이터 있으면)
+        try:
+            import json as _json
+
+            data_path = os.environ.get("DASHBOARD_DATA_PATH", "./data/dashboard_data.json")
+            with open(data_path, encoding="utf-8") as f:
+                initial_data = _json.load(f)
+            self._sync_knowledge_graph(initial_data)
+        except FileNotFoundError:
+            logger.debug("No dashboard data for initial KG sync")
+        except Exception as e:
+            logger.warning(f"Initial KG sync failed: {e}")
 
         # Response Pipeline 초기화
         if not self._response_pipeline:
@@ -333,6 +369,23 @@ class UnifiedBrain:
         except Exception as e:
             logger.debug(f"ReActAgent not available: {e}")
             self._react_agent = None
+
+        # crawl_complete 이벤트 시 KG 동기화
+        async def _on_crawl_complete(event_data: dict[str, Any]) -> None:
+            try:
+                import json as _json
+
+                data_path = os.environ.get("DASHBOARD_DATA_PATH", "./data/dashboard_data.json")
+                with open(data_path, encoding="utf-8") as f:
+                    data = _json.load(f)
+                self._sync_knowledge_graph(data)
+            except Exception as e:
+                logger.warning(f"KG sync on crawl_complete failed: {e}")
+
+        self.on_event("crawl_complete", _on_crawl_complete)
+
+        # v3 대시보드 도구 등록
+        self._register_dashboard_tools()
 
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
@@ -419,6 +472,19 @@ class UnifiedBrain:
         self.mode = BrainMode.RESPONDING
 
         try:
+            # 0. PromptGuard 입력 검증
+            is_safe, block_reason, sanitized_query = PromptGuard.check_input(query)
+            if not is_safe:
+                logger.warning(f"PromptGuard blocked input: {block_reason}")
+                return Response(
+                    text=PromptGuard.get_rejection_message(block_reason),
+                    confidence_score=1.0,
+                    sources=[],
+                )
+            # out_of_scope 경고 시에도 처리는 계속
+            if block_reason == "out_of_scope_warning":
+                query = sanitized_query  # 원본 유지하되 플래그 기록
+
             # 세션 설정
             if session_id:
                 self.state.set_session(session_id)
@@ -461,6 +527,11 @@ class UnifiedBrain:
                     query=query, context=context, decision=decision, tool_result=tool_result
                 )
 
+            # PromptGuard 출력 검증
+            is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
+            if not is_output_safe:
+                response.text = sanitized_text
+
             # 처리 시간
             response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
 
@@ -478,6 +549,296 @@ class UnifiedBrain:
 
         finally:
             self.mode = previous_mode
+
+    # =========================================================================
+    # 스트리밍 응답 (Phase 5: v3에서 포팅)
+    # =========================================================================
+
+    async def process_query_stream(
+        self,
+        query: str,
+        session_id: str | None = None,
+        current_metrics: dict[str, Any] | None = None,
+    ):
+        """
+        SSE 스트리밍 방식으로 질문 처리
+
+        v3의 chat_stream()에서 포팅. PromptGuard + 도구 호출 + LLM 응답을
+        실시간 SSE 청크로 yield합니다.
+
+        Yields:
+            dict: {"type": "status"|"tool_call"|"text"|"done"|"error", "content": ...}
+        """
+        start_time = datetime.now()
+        self._stats["total_queries"] += 1
+
+        # 초기화 확인
+        if not self._initialized:
+            await self.initialize()
+
+        # PromptGuard 입력 검증
+        is_safe, block_reason, sanitized_query = PromptGuard.check_input(query)
+        if not is_safe:
+            logger.warning(f"PromptGuard blocked input (stream): {block_reason}")
+            yield {
+                "type": "done",
+                "content": PromptGuard.get_rejection_message(block_reason),
+            }
+            return
+
+        if block_reason == "out_of_scope_warning":
+            query = sanitized_query
+
+        # 모드 전환
+        previous_mode = self.mode
+        self.mode = BrainMode.RESPONDING
+
+        try:
+            if session_id:
+                self.state.set_session(session_id)
+
+            # 1. 컨텍스트 수집 단계
+            yield {"type": "status", "content": "컨텍스트 수집 중..."}
+
+            context = await self._context_gatherer.gather(
+                query=query, current_metrics=current_metrics
+            )
+
+            # 2. 복잡도 판단
+            use_react = self._react_agent and self._is_complex_query(query, context)
+
+            if use_react:
+                yield {"type": "status", "content": "복잡한 질문 감지 — ReAct 분석 모드 시작..."}
+
+                # ReAct 처리 (비스트리밍 → 결과를 청크로 변환)
+                response = await self._process_with_react(query, context)
+
+            else:
+                # 3. LLM 의사결정
+                yield {"type": "status", "content": "분석 중..."}
+
+                system_state = self._get_system_state(current_metrics)
+                decision = await self.decision_maker.decide(query, context, system_state)
+                self._stats["llm_decisions"] += 1
+
+                # 4. 도구 실행 (필요시)
+                tool_result = None
+                tool_name = decision.get("tool")
+                if tool_name and tool_name != "direct_answer":
+                    yield {
+                        "type": "tool_call",
+                        "content": f"도구 호출: {tool_name}",
+                    }
+                    self.mode = BrainMode.EXECUTING
+                    tool_result = await self.tool_coordinator.execute(
+                        tool_name=tool_name, params=decision.get("tool_params", {})
+                    )
+
+                # 5. 응답 생성
+                yield {"type": "status", "content": "응답 생성 중..."}
+
+                response = await self._generate_response(
+                    query=query,
+                    context=context,
+                    decision=decision,
+                    tool_result=tool_result,
+                )
+
+            # PromptGuard 출력 검증
+            is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
+            final_text = sanitized_text if not is_output_safe else response.text
+
+            # 처리 시간
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+
+            # 텍스트 청크로 yield (자연스러운 스트리밍)
+            yield {"type": "text", "content": final_text}
+
+            # 완료 이벤트
+            yield {
+                "type": "done",
+                "content": json.dumps(
+                    {
+                        "confidence": response.confidence_score,
+                        "sources": response.sources[:5] if response.sources else [],
+                        "tools_used": response.tools_called,
+                        "suggestions": response.suggestions[:3] if response.suggestions else [],
+                        "processing_time_ms": round(processing_time, 1),
+                        "mode": "react" if use_react else "direct",
+                    },
+                    ensure_ascii=False,
+                ),
+            }
+
+        except Exception as e:
+            logger.error(f"Stream processing failed: {e}")
+            self._stats["errors"] += 1
+            yield {"type": "error", "content": str(e)}
+
+        finally:
+            self.mode = previous_mode
+
+    # =========================================================================
+    # KG + OWL 동기화 (Phase 4: v3에서 포팅)
+    # =========================================================================
+
+    def _sync_knowledge_graph(self, data: dict[str, Any]) -> None:
+        """
+        크롤링 데이터 → KG + OWL Ontology 동기화
+
+        대시보드 데이터의 브랜드 메트릭을 KnowledgeGraph 엔티티 메타데이터와
+        OWL Ontology의 Brand 인스턴스로 동기화합니다.
+
+        Args:
+            data: 대시보드 JSON 데이터 (brand.competitors 포함)
+        """
+        if not hasattr(self, "_knowledge_graph") or self._knowledge_graph is None:
+            return
+
+        try:
+            # 브랜드 메트릭 → KnowledgeGraph
+            brand_metrics = data.get("brand", {}).get("competitors", [])
+            for brand_info in brand_metrics:
+                brand_name = brand_info.get("brand")
+                if brand_name:
+                    self._knowledge_graph.add_entity_metadata(
+                        entity=brand_name,
+                        metadata={
+                            "type": "brand",
+                            "sos": brand_info.get("sos", 0) / 100,
+                            "avg_rank": brand_info.get("avg_rank"),
+                            "product_count": brand_info.get("products", 0),
+                        },
+                    )
+
+            # OWL Ontology에도 동기화
+            if hasattr(self, "_owl_reasoner") and self._owl_reasoner:
+                for brand_info in brand_metrics[:20]:  # 상위 20개 브랜드
+                    brand_name = brand_info.get("brand")
+                    if brand_name:
+                        self._owl_reasoner.add_brand(
+                            name=brand_name,
+                            sos=brand_info.get("sos", 0) / 100,
+                            avg_rank=brand_info.get("avg_rank"),
+                            product_count=brand_info.get("products", 0),
+                        )
+
+                # 시장 포지션 추론
+                self._owl_reasoner.infer_market_positions()
+
+            logger.info(f"KG & OWL Ontology synced: {len(brand_metrics)} brands")
+        except Exception as e:
+            logger.warning(f"KG/Ontology sync failed: {e}")
+
+    # =========================================================================
+    # v3 대시보드 도구 등록 (Phase 3)
+    # =========================================================================
+
+    def _register_dashboard_tools(self) -> None:
+        """v3 대시보드 조회 도구를 ToolCoordinator에 등록"""
+        import json
+
+        data_path = os.environ.get("DASHBOARD_DATA_PATH", "./data/dashboard_data.json")
+
+        def _load_dashboard_data() -> dict:
+            """대시보드 데이터 로드"""
+            try:
+                with open(data_path, encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to load dashboard data: {e}")
+                return {}
+
+        async def exec_brand_status(**kwargs: Any) -> dict:
+            data = _load_dashboard_data()
+            brand = data.get("brand", {})
+            kpis = brand.get("kpis", {})
+            return {
+                "brand": "LANEIGE",
+                "sos": kpis.get("sos", 0),
+                "sos_change": kpis.get("sos_delta", "N/A"),
+                "top10_products": kpis.get("top10_count", 0),
+                "avg_rank": kpis.get("avg_rank", 0),
+                "hhi": kpis.get("hhi", 0),
+                "total_products": data.get("metadata", {}).get("laneige_products", 0),
+            }
+
+        async def exec_product_info(**kwargs: Any) -> dict:
+            data = _load_dashboard_data()
+            product_name = kwargs.get("product_name", "")
+            products = data.get("products", {})
+
+            # ASIN으로 검색
+            if product_name.upper().startswith("B0"):
+                product = products.get(product_name.upper())
+                if product:
+                    return product
+
+            # 제품명으로 검색
+            for _asin, prod in products.items():
+                name = prod.get("name", "").lower()
+                if product_name.lower() in name:
+                    return prod
+
+            # 모든 LANEIGE 제품 목록
+            laneige_products = [
+                {"asin": k, "name": v.get("name", "")[:50], "rank": v.get("rank")}
+                for k, v in products.items()
+            ]
+            return {
+                "message": f"'{product_name}' 제품을 찾을 수 없습니다.",
+                "available_products": laneige_products,
+            }
+
+        async def exec_competitor_analysis(**kwargs: Any) -> dict:
+            data = _load_dashboard_data()
+            brand_name = kwargs.get("brand_name")
+            competitors = data.get("brand", {}).get("competitors", [])
+
+            if brand_name:
+                for comp in competitors:
+                    if brand_name.lower() in comp.get("brand", "").lower():
+                        return comp
+                return {"message": f"'{brand_name}' 브랜드를 찾을 수 없습니다."}
+
+            return {
+                "competitors": competitors[:10],
+                "laneige_rank": next(
+                    (i + 1 for i, c in enumerate(competitors) if "LANEIGE" in c.get("brand", "")),
+                    "N/A",
+                ),
+            }
+
+        async def exec_category_info(**kwargs: Any) -> dict:
+            data = _load_dashboard_data()
+            category = kwargs.get("category")
+            categories = data.get("categories", {})
+
+            if category:
+                cat_data = categories.get(category) or categories.get(category.lower())
+                if cat_data:
+                    return cat_data
+                return {"message": f"'{category}' 카테고리를 찾을 수 없습니다."}
+
+            return categories
+
+        async def exec_action_items(**kwargs: Any) -> dict:
+            data = _load_dashboard_data()
+            home = data.get("home", {})
+            return {
+                "status": home.get("status", {}),
+                "action_items": home.get("action_items", []),
+            }
+
+        # ToolCoordinator의 ToolExecutor에 등록
+        executor = self.tool_coordinator.tool_executor
+        executor.register_executor("get_brand_status", exec_brand_status)
+        executor.register_executor("get_product_info", exec_product_info)
+        executor.register_executor("get_competitor_analysis", exec_competitor_analysis)
+        executor.register_executor("get_category_info", exec_category_info)
+        executor.register_executor("get_action_items", exec_action_items)
+
+        logger.info("Registered 5 v3 dashboard tools in ToolCoordinator")
 
     # =========================================================================
     # LLM 의사결정 (하위호환성 유지, DecisionMaker에 위임)

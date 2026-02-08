@@ -19,7 +19,7 @@ RAG + KG 통합 컨텍스트를 LLM 판단용으로 수집
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 from .models import Context, KGFact, SystemState
 from .state import OrchestratorState
@@ -41,10 +41,10 @@ class ContextGatherer:
 
     def __init__(
         self,
-        hybrid_retriever: Optional[Any] = None,
-        orchestrator_state: Optional[OrchestratorState] = None,
+        hybrid_retriever: Any | None = None,
+        orchestrator_state: OrchestratorState | None = None,
         max_rag_docs: int = 5,
-        max_kg_facts: int = 10
+        max_kg_facts: int = 10,
     ):
         """
         Args:
@@ -71,7 +71,7 @@ class ContextGatherer:
             return
 
         # HybridRetriever 초기화
-        if self.retriever and hasattr(self.retriever, 'initialize'):
+        if self.retriever and hasattr(self.retriever, "initialize"):
             await self.retriever.initialize()
 
         self._initialized = True
@@ -89,9 +89,9 @@ class ContextGatherer:
     async def gather(
         self,
         query: str,
-        entities: Optional[Dict[str, List[str]]] = None,
-        current_metrics: Optional[Dict[str, Any]] = None,
-        include_system_state: bool = True
+        entities: dict[str, list[str]] | None = None,
+        current_metrics: dict[str, Any] | None = None,
+        include_system_state: bool = True,
     ) -> Context:
         """
         통합 컨텍스트 수집
@@ -109,36 +109,57 @@ class ContextGatherer:
         if not self._initialized:
             await self.initialize()
 
-        start_time = datetime.now()
-
         # 기본 Context 생성
         context = Context(query=query, entities=entities or {})
 
         try:
             # 1. HybridRetriever를 통한 RAG + KG 조회
             if self.retriever:
-                hybrid_context = await self.retriever.retrieve(
-                    query=query,
-                    current_metrics=current_metrics,
-                    include_explanations=True
-                )
+                # TrueHybridRetriever vs HybridRetriever 시그니처 분기
+                if hasattr(self.retriever, "owl_reasoner"):
+                    # TrueHybridRetriever (OWL + Entity Linking + Confidence Fusion)
+                    hybrid_context = await self.retriever.retrieve(
+                        query=query, current_metrics=current_metrics, top_k=self.max_rag_docs
+                    )
+                else:
+                    # 기존 HybridRetriever
+                    hybrid_context = await self.retriever.retrieve(
+                        query=query, current_metrics=current_metrics, include_explanations=True
+                    )
 
-                # 엔티티 업데이트 (retriever가 추출한 것 포함)
-                if hybrid_context.entities and not entities:
-                    context.entities = hybrid_context.entities
+                # HybridResult (TrueHybridRetriever) vs HybridContext (HybridRetriever) 감지
+                if hasattr(hybrid_context, "entity_links"):
+                    # TrueHybridRetriever → to_dict()로 호환 포맷 변환
+                    compat = hybrid_context.to_dict()
 
-                # RAG 문서
-                context.rag_docs = hybrid_context.rag_chunks[:self.max_rag_docs]
+                    if not entities:
+                        context.entities = compat.get("entities", {})
 
-                # KG 사실 변환
-                context.kg_facts = self._convert_kg_facts(
-                    hybrid_context.ontology_facts
-                )
+                    context.rag_docs = compat.get("rag_chunks", [])[: self.max_rag_docs]
 
-                # KG 추론 결과
-                context.kg_inferences = [
-                    inf.to_dict() for inf in hybrid_context.inferences
-                ]
+                    context.kg_facts = self._convert_kg_facts(compat.get("ontology_facts", []))
+
+                    # inferences는 이미 dict 리스트 (to_dict()에서 변환됨)
+                    context.kg_inferences = compat.get("inferences", [])
+
+                    # TrueHybridRetriever의 combined_context를 요약으로 활용
+                    if hybrid_context.combined_context:
+                        context.summary = hybrid_context.combined_context
+
+                    logger.debug(
+                        f"TrueHybridRetriever: confidence={hybrid_context.confidence:.2f}, "
+                        f"entities={len(hybrid_context.entity_links)}"
+                    )
+                else:
+                    # 기존 HybridRetriever → HybridContext 처리
+                    if hybrid_context.entities and not entities:
+                        context.entities = hybrid_context.entities
+
+                    context.rag_docs = hybrid_context.rag_chunks[: self.max_rag_docs]
+
+                    context.kg_facts = self._convert_kg_facts(hybrid_context.ontology_facts)
+
+                    context.kg_inferences = [inf.to_dict() for inf in hybrid_context.inferences]
 
             # 2. 시스템 상태
             if include_system_state:
@@ -166,8 +187,8 @@ class ContextGatherer:
     async def gather_for_decision(
         self,
         query: str,
-        entities: Dict[str, List[str]],
-        current_metrics: Optional[Dict[str, Any]] = None
+        entities: dict[str, list[str]],
+        current_metrics: dict[str, Any] | None = None,
     ) -> Context:
         """
         LLM 판단용 경량 컨텍스트 수집
@@ -185,7 +206,7 @@ class ContextGatherer:
         context = Context(query=query, entities=entities)
 
         # KG에서 핵심 정보만
-        if self.retriever and hasattr(self.retriever, 'kg'):
+        if self.retriever and hasattr(self.retriever, "kg"):
             kg = self.retriever.kg
             facts = []
 
@@ -193,11 +214,7 @@ class ContextGatherer:
             for brand in entities.get("brands", []):
                 meta = kg.get_entity_metadata(brand)
                 if meta:
-                    facts.append(KGFact(
-                        fact_type="brand_info",
-                        entity=brand,
-                        data=meta
-                    ))
+                    facts.append(KGFact(fact_type="brand_info", entity=brand, data=meta))
 
             context.kg_facts = facts[:5]
 
@@ -213,10 +230,7 @@ class ContextGatherer:
     # 변환 헬퍼
     # =========================================================================
 
-    def _convert_kg_facts(
-        self,
-        ontology_facts: List[Dict[str, Any]]
-    ) -> List[KGFact]:
+    def _convert_kg_facts(self, ontology_facts: list[dict[str, Any]]) -> list[KGFact]:
         """
         HybridRetriever의 ontology_facts를 KGFact로 변환
 
@@ -228,12 +242,14 @@ class ContextGatherer:
         """
         kg_facts = []
 
-        for fact in ontology_facts[:self.max_kg_facts]:
-            kg_facts.append(KGFact(
-                fact_type=fact.get("type", "unknown"),
-                entity=fact.get("entity", ""),
-                data=fact.get("data", {})
-            ))
+        for fact in ontology_facts[: self.max_kg_facts]:
+            kg_facts.append(
+                KGFact(
+                    fact_type=fact.get("type", "unknown"),
+                    entity=fact.get("entity", ""),
+                    data=fact.get("data", {}),
+                )
+            )
 
         return kg_facts
 
@@ -243,7 +259,7 @@ class ContextGatherer:
             last_crawl_time=self.state.last_crawl_time,
             data_freshness=self.state.data_freshness,
             kg_triple_count=self.state.kg_triple_count,
-            kg_initialized=self.state.kg_initialized
+            kg_initialized=self.state.kg_initialized,
         )
 
     # =========================================================================
@@ -306,7 +322,9 @@ class ContextGatherer:
             if context.system_state.data_freshness == "fresh":
                 parts.append("데이터: 최신")
             elif context.system_state.last_crawl_time:
-                hours = (datetime.now() - context.system_state.last_crawl_time).total_seconds() / 3600
+                hours = (
+                    datetime.now() - context.system_state.last_crawl_time
+                ).total_seconds() / 3600
                 parts.append(f"데이터: {hours:.1f}시간 전 수집")
             else:
                 parts.append("데이터: 없음 (크롤링 필요)")
@@ -358,7 +376,9 @@ class ContextGatherer:
             return f"{fact.entity} 제품 {count}개"
 
         elif fact.fact_type == "competitors":
-            comps = [c.get("brand", "") for c in fact.data[:3]] if isinstance(fact.data, list) else []
+            comps = (
+                [c.get("brand", "") for c in fact.data[:3]] if isinstance(fact.data, list) else []
+            )
             if comps:
                 return f"{fact.entity} 경쟁사: {', '.join(comps)}"
 
@@ -374,16 +394,16 @@ class ContextGatherer:
     # 유틸리티
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """수집기 통계"""
         stats = {
             "initialized": self._initialized,
             "max_rag_docs": self.max_rag_docs,
             "max_kg_facts": self.max_kg_facts,
-            "has_retriever": self.retriever is not None
+            "has_retriever": self.retriever is not None,
         }
 
-        if self.retriever and hasattr(self.retriever, 'get_stats'):
+        if self.retriever and hasattr(self.retriever, "get_stats"):
             stats["retriever_stats"] = self.retriever.get_stats()
 
         return stats

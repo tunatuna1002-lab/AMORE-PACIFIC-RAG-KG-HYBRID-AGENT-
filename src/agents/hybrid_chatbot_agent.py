@@ -183,6 +183,19 @@ class HybridChatbotAgent:
         self._external_signal_collector = None
         self._last_external_signals: list[Any] = []
 
+        # 응답 검증 파이프라인 (지연 초기화)
+        self._verification_pipeline: Any = None
+        self._enable_verification = config.get("enable_verification", True)
+
+    @property
+    def verification_pipeline(self) -> Any:
+        """검증 파이프라인 (지연 초기화)"""
+        if self._verification_pipeline is None:
+            from src.core.verification_pipeline import VerificationPipelineFactory
+
+            self._verification_pipeline = VerificationPipelineFactory.get_instance()
+        return self._verification_pipeline
+
     def set_data_context(self, data: dict[str, Any]) -> None:
         """
         현재 데이터 컨텍스트 설정
@@ -383,7 +396,32 @@ class HybridChatbotAgent:
                 success=True,
             )
 
-            return {
+            # 응답 검증 (선택적)
+            verification_result = None
+            if self._enable_verification:
+                try:
+                    verification_context = {
+                        "category": hybrid_context.entities.get("category")
+                        if hybrid_context.entities
+                        else None,
+                        "brand": hybrid_context.entities.get("brand")
+                        if hybrid_context.entities
+                        else None,
+                    }
+                    verified = await self.verification_pipeline.verify(
+                        full_response, context=verification_context, include_details=True
+                    )
+                    verification_result = self.verification_pipeline.get_verification_summary(
+                        verified
+                    )
+                    self.logger.debug(
+                        f"Verification: {verified.grade.value} ({verified.score:.0%})"
+                    )
+                except Exception as ve:
+                    self.logger.warning(f"Verification failed: {ve}")
+                    verification_result = None
+
+            result = {
                 "response": full_response,
                 "query_type": query_type.value if hasattr(query_type, "value") else str(query_type),
                 "is_fallback": False,
@@ -403,6 +441,12 @@ class HybridChatbotAgent:
                     "response_time_ms": duration * 1000,
                 },
             }
+
+            # 검증 결과 추가
+            if verification_result:
+                result["verification"] = verification_result
+
+            return result
 
         except Exception as e:
             if self.tracer:

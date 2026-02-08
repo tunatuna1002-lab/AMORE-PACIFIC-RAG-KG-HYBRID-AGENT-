@@ -4,7 +4,7 @@ API Routes Package
 FastAPI 라우터 모듈 (dashboard_api.py에서 분리)
 
 구조:
-- routes/chat.py: 챗봇 API (/api/chat, /api/v2/chat, /api/v3/chat, /api/v4/chat)
+- routes/chat.py: 챗봇 API (/api/v4/chat)
 - routes/data.py: 데이터 API (/api/data, /api/historical)
 - routes/crawl.py: 크롤링 API (/api/crawl/*)
 - routes/brain.py: Brain API (/api/v4/brain/*)
@@ -19,9 +19,10 @@ from fastapi import APIRouter
 # 메인 라우터 (각 서브 라우터를 통합)
 api_router = APIRouter()
 
+
 def include_routers():
     """모든 서브 라우터 포함"""
-    from src.api.routes import chat, data, crawl, brain, export, deals, alerts
+    from src.api.routes import alerts, brain, chat, crawl, data, deals, export
 
     api_router.include_router(chat.router, tags=["Chat"])
     api_router.include_router(data.router, tags=["Data"])

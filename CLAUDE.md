@@ -506,6 +506,23 @@ print(response.metadata.get('mode'))  # "react"
 
 ## 15. Claude Code 워크플로우 최적화
 
+### Boris Cherny's 10 Best Practices (Claude Code 창시자)
+
+| # | 팁 | 설명 |
+|---|-----|------|
+| 1 | **병렬 세션 운영** | 터미널 5개 + 브라우저 5-10개 동시 실행. 탭 번호 매기고 시스템 알림 활용 |
+| 2 | **최강 모델 사용** | Opus 4.5 + thinking 모드. 느려도 수정 횟수 줄어 결과적으로 빠름 |
+| 3 | **CLAUDE.md 유지** | 실수할 때마다 기록 → 같은 실수 반복 방지. 팀과 git 공유 |
+| 4 | **Plan Mode 먼저** | 계획 충분히 다듬은 후 auto-accept 모드로 전환. "좋은 계획이 정말 중요!" |
+| 5 | **슬래시 명령어** | `/commit-push-pr` 같은 자주 쓰는 명령어를 `.claude/commands/`에 저장 |
+| 6 | **PostToolUse Hook** | 코드 편집 후 자동 포맷터 실행 → CI 포매팅 오류 방지 |
+| 7 | **권한 사전 허용** | `--dangerously-skip-permissions` 대신 `/permissions`로 안전한 명령만 허용 |
+| 8 | **서브에이전트 활용** | 각 단계(스펙, 초안, 검증)마다 다른 에이전트 사용 → 전문화로 신뢰성 확보 |
+| 9 | **검증 루프 (필수!)** | Claude에게 브라우저/테스트로 결과 검증 시킴 → 품질 2-3배 향상 |
+| 10 | **MCP 도구 통합** | Slack, BigQuery, Sentry 등 `.mcp.json`에 설정해서 팀과 공유 |
+
+> 출처: [Boris Cherny Threads](https://www.threads.com/@boris_cherny/post/DUMZr4VElyb/)
+
 ### 컨텍스트 관리
 - `/clear` 명령어로 작업 간 컨텍스트 리셋
 - `Escape` 키로 진행 중 작업 중단 (컨텍스트 유지)

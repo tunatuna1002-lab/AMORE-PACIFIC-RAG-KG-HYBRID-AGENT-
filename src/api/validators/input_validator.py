@@ -100,3 +100,15 @@ class InputValidator:
             return True
         except DataValidationError:
             return False
+
+
+# 싱글톤 인스턴스
+_validator: InputValidator | None = None
+
+
+def get_validator() -> InputValidator:
+    """InputValidator 싱글톤 반환"""
+    global _validator
+    if _validator is None:
+        _validator = InputValidator()
+    return _validator

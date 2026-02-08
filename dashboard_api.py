@@ -90,7 +90,7 @@ from src.api.routes.signals import router as signals_router
 # Ontology 스키마
 # 통합 오케스트레이터 (deprecated - use UnifiedBrain instead)
 # Level 4 Brain (LLM-First Autonomous Agent)
-from src.core.brain import BrainMode, get_brain, get_initialized_brain
+from src.core.brain import BrainMode, get_initialized_brain
 from src.core.crawl_manager import get_crawl_manager
 from src.rag.retriever import DocumentRetriever
 
@@ -1041,325 +1041,6 @@ async def clear_memory(session_id: str):
     if session_id in conversation_memory:
         del conversation_memory[session_id]
     return {"status": "ok", "message": f"Session {session_id} memory cleared"}
-
-
-# ============= Simple Chat API (v3 - 단순화) =============
-
-from src.core.simple_chat import get_chat_service
-
-
-class SimpleChatRequest(BaseModel):
-    """Simple Chat 요청"""
-
-    message: str
-    session_id: str | None = "default"
-
-
-class SimpleChatResponse(BaseModel):
-    """Simple Chat 응답"""
-
-    text: str
-    suggestions: list[str]
-    tools_used: list[str]
-    sources: list[dict[str, Any]] = []  # AI 출처 정보 추가
-    data_date: str
-    processing_time_ms: float
-
-
-@app.post("/api/v3/chat", response_model=SimpleChatResponse, dependencies=[Depends(verify_api_key)])
-@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
-async def chat_v3(request: Request, body: SimpleChatRequest):
-    """
-    Simple LLM Chat API (v3)
-
-    단순화된 구조:
-    - LLM이 모든 판단 담당
-    - Function Calling으로 도구 사용
-    - 불필요한 레이어 제거
-    """
-    message = body.message.strip()
-    session_id = body.session_id or "default"
-
-    if not message:
-        raise HTTPException(status_code=400, detail="Message is required")
-
-    # 크롤링 상태 체크
-    crawl_manager = await get_crawl_manager()
-    crawl_notification = None
-    crawl_started = False
-
-    if crawl_manager.needs_crawl():
-        crawl_started = await crawl_manager.start_crawl()
-
-    if crawl_manager.should_notify(session_id):
-        crawl_notification = crawl_manager.get_notification_message()
-        crawl_manager.mark_notified(session_id)
-
-    # Simple Chat Service로 처리
-    chat_service = get_chat_service()
-    result = await chat_service.chat(message, session_id)
-
-    # 크롤링 알림 추가
-    response_text = result["text"]
-    if crawl_notification:
-        response_text = f"{crawl_notification}\n\n---\n\n{response_text}"
-    elif crawl_started:
-        data_date = crawl_manager.get_data_date() or "없음"
-        response_text = (
-            f"📡 **백그라운드에서 오늘 데이터 수집을 시작합니다.**\n"
-            f"현재 데이터: {data_date}\n"
-            f"수집이 완료되면 알려드리겠습니다.\n\n---\n\n{response_text}"
-        )
-
-    return SimpleChatResponse(
-        text=response_text,
-        suggestions=result.get("suggestions", []),
-        tools_used=result.get("tools_used", []),
-        sources=result.get("sources", []),  # AI 출처 정보 전달
-        data_date=result.get("data_date", "N/A"),
-        processing_time_ms=result.get("processing_time_ms", 0),
-    )
-
-
-@app.post("/api/v3/chat/stream", dependencies=[Depends(verify_api_key)])
-@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
-async def chat_v3_stream(request: Request, body: SimpleChatRequest):
-    """
-    Simple LLM Chat API with SSE Streaming (v3)
-
-    SSE 형식으로 실시간 스트리밍 응답을 반환합니다.
-
-    이벤트 타입:
-    - text: 응답 텍스트 청크
-    - tool_call: 도구 호출 정보
-    - done: 완료 (후속 질문 등 메타데이터 포함)
-    - error: 오류 발생
-    """
-    message = body.message.strip()
-    session_id = body.session_id or "default"
-
-    if not message:
-        raise HTTPException(status_code=400, detail="Message is required")
-
-    chat_service = get_chat_service()
-
-    async def generate():
-        """SSE 이벤트 생성기"""
-        try:
-            async for chunk in chat_service.chat_stream(message, session_id):
-                event_type = chunk.get("type", "text")
-                content = chunk.get("content", "")
-
-                # SSE 형식으로 변환
-                if event_type == "text":
-                    data = json.dumps({"type": "text", "content": content}, ensure_ascii=False)
-                elif event_type == "tool_call":
-                    data = json.dumps({"type": "tool_call", "content": content}, ensure_ascii=False)
-                elif event_type == "done":
-                    data = json.dumps({"type": "done", "content": content}, ensure_ascii=False)
-                elif event_type == "error":
-                    data = json.dumps({"type": "error", "content": content}, ensure_ascii=False)
-                else:
-                    data = json.dumps(chunk, ensure_ascii=False)
-
-                yield f"data: {data}\n\n"
-
-        except Exception as e:
-            logger.error(f"SSE stream error: {e}")
-            error_data = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)
-            yield f"data: {error_data}\n\n"
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # nginx 버퍼링 비활성화
-        },
-    )
-
-
-# ============= LLM Orchestrator API (v2 - 기존, deprecated) =============
-
-
-class OrchestratorChatRequest(BaseModel):
-    """LLM Orchestrator 챗봇 요청"""
-
-    message: str
-    session_id: str | None = "default"
-    skip_cache: bool = False
-
-
-class OrchestratorChatResponse(BaseModel):
-    """LLM Orchestrator 챗봇 응답"""
-
-    text: str
-    query_type: str
-    confidence_level: str
-    confidence_score: float
-    sources: list[str]
-    entities: dict[str, Any]
-    tools_called: list[str]
-    suggestions: list[str]
-    is_fallback: bool
-    is_clarification: bool
-    processing_time_ms: float
-
-
-@app.post(
-    "/api/v2/chat", response_model=OrchestratorChatResponse, dependencies=[Depends(verify_api_key)]
-)
-@limiter.limit("10/minute")  # 분당 10회 제한 (보안 강화)
-async def chat_v2(request: Request, body: OrchestratorChatRequest):
-    """
-    통합 오케스트레이터 기반 챗봇 API (v2)
-
-    동작 흐름:
-    1. 질문 수신
-    2. 시스템 상태 점검 (데이터 신선도, 사용 가능 에이전트)
-    3. LLM이 상황 판단 → 에이전트 선택
-    4. 에이전트 실행 (에러 시 전략에 따라 처리)
-    5. 응답 생성
-
-    에러 전략:
-    - RETRY: 재시도 (최대 2회)
-    - FALLBACK: 캐시 데이터 사용
-    - SKIP: 건너뛰고 계속
-    - ABORT: 중단 + 사용자 알림
-    """
-    import time
-
-    start_time = time.time()
-
-    message = body.message.strip()
-    session_id = body.session_id or "default"
-
-    if not message:
-        raise HTTPException(status_code=400, detail="Message is required")
-
-    # === 크롤링 상태 체크 ===
-    crawl_manager = await get_crawl_manager()
-    crawl_notification = None
-    crawl_started = False
-
-    # 오늘 데이터가 없고, 크롤링 중이 아니면 시작
-    if crawl_manager.needs_crawl():
-        crawl_started = await crawl_manager.start_crawl()
-        if crawl_started:
-            logging.info("Background crawl started for today's data")
-
-    # 크롤링 완료 알림 체크 (이 세션에서 아직 안 알렸으면)
-    if crawl_manager.should_notify(session_id):
-        crawl_notification = crawl_manager.get_notification_message()
-        crawl_manager.mark_notified(session_id)
-
-    try:
-        # UnifiedBrain으로 처리
-        brain = get_brain()
-
-        # 현재 메트릭 데이터 로드
-        data = load_dashboard_data()
-        current_metrics = data if data else None
-
-        # 처리
-        response = await brain.process_query(
-            query=message,
-            session_id=session_id,
-            current_metrics=current_metrics,
-            skip_cache=body.skip_cache,
-        )
-
-        # 응답 변환 (UnifiedBrain response 처리)
-        response_dict = response.to_dict() if hasattr(response, "to_dict") else response
-
-        # 응답 텍스트 구성
-        response_text = response_dict.get("text", response_dict.get("content", ""))
-
-        # 크롤링 알림 추가
-        if crawl_notification:
-            response_text = f"{crawl_notification}\n\n---\n\n{response_text}"
-        elif crawl_started:
-            # 크롤링 시작 알림
-            data_date = crawl_manager.get_data_date() or "없음"
-            response_text = (
-                f"📡 **백그라운드에서 오늘 데이터 수집을 시작합니다.**\n"
-                f"현재 데이터: {data_date}\n"
-                f"수집이 완료되면 알려드리겠습니다.\n\n---\n\n{response_text}"
-            )
-
-        # 응답 변환
-        return OrchestratorChatResponse(
-            text=response_text,
-            query_type=response_dict.get("query_type", "unknown"),
-            confidence_level=response_dict.get("confidence_level", "medium"),
-            confidence_score=response_dict.get(
-                "confidence_score", response_dict.get("confidence", 0.5)
-            ),
-            sources=response_dict.get("sources", []),
-            entities=response_dict.get("entities", {}),
-            tools_called=response_dict.get("tools_called", response_dict.get("tools_used", [])),
-            suggestions=response_dict.get("suggestions", []),
-            is_fallback=response_dict.get("is_fallback", False),
-            is_clarification=response_dict.get("is_clarification", False),
-            processing_time_ms=response_dict.get("processing_time_ms", 0),
-        )
-
-    except Exception as e:
-        logging.error(f"Orchestrator error: {e}")
-        return OrchestratorChatResponse(
-            text=f"처리 중 오류가 발생했습니다: {str(e)}",
-            query_type="error",
-            confidence_level="unknown",
-            confidence_score=0.0,
-            sources=[],
-            entities={},
-            tools_called=[],
-            suggestions=["다시 질문해주세요"],
-            is_fallback=True,
-            is_clarification=False,
-            processing_time_ms=(time.time() - start_time) * 1000,
-        )
-
-
-@app.get("/api/v2/stats")
-async def get_orchestrator_stats():
-    """UnifiedBrain 통계 조회"""
-    brain = get_brain()
-    return brain.get_stats() if hasattr(brain, "get_stats") else {"status": "ok"}
-
-
-@app.get("/api/v2/state")
-async def get_orchestrator_state():
-    """UnifiedBrain 상태 조회"""
-    brain = get_brain()
-    return {
-        "summary": brain.get_state_summary() if hasattr(brain, "get_state_summary") else {},
-        "state": brain.state.to_dict()
-        if hasattr(brain, "state") and hasattr(brain.state, "to_dict")
-        else {},
-    }
-
-
-@app.get("/api/v2/errors")
-async def get_orchestrator_errors():
-    """UnifiedBrain 최근 에러 조회"""
-    brain = get_brain()
-    return {
-        "recent_errors": brain.get_recent_errors(limit=20)
-        if hasattr(brain, "get_recent_errors")
-        else [],
-        "stats": brain.get_stats() if hasattr(brain, "get_stats") else {},
-    }
-
-
-@app.post("/api/v2/reset-errors")
-async def reset_orchestrator_errors():
-    """실패한 에이전트 목록 초기화"""
-    brain = get_brain()
-    if hasattr(brain, "reset_failed_agents"):
-        brain.reset_failed_agents()
-    return {"status": "ok", "message": "Failed agents list cleared"}
 
 
 @app.get("/api/crawl/status")
@@ -3284,6 +2965,62 @@ async def chat_v4(request: Request, body: BrainChatRequest):
             from_cache=False,
             brain_mode="error",
         )
+
+
+@app.post("/api/v4/chat/stream")
+@limiter.limit("10/minute")
+async def chat_v4_stream(request: Request, body: BrainChatRequest):
+    """
+    Level 4 Brain 기반 SSE 스트리밍 챗봇 API (v4)
+
+    v3의 SSE 스트리밍과 동일한 인터페이스로 v4 Brain의 처리 결과를 반환합니다.
+    ReAct + OWL + PromptGuard + 도구 호출을 모두 지원합니다.
+
+    이벤트 타입:
+    - status: 처리 단계 알림
+    - tool_call: 도구 호출 정보
+    - text: 응답 텍스트
+    - done: 완료 (메타데이터 포함)
+    - error: 오류 발생
+    """
+    message = body.message.strip()
+    session_id = body.session_id or "default"
+
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    try:
+        brain = await get_initialized_brain()
+        data = load_dashboard_data()
+        current_metrics = data if data else None
+
+        async def generate():
+            try:
+                async for chunk in brain.process_query_stream(
+                    query=message,
+                    session_id=session_id,
+                    current_metrics=current_metrics,
+                ):
+                    event_data = json.dumps(chunk, ensure_ascii=False)
+                    yield f"data: {event_data}\n\n"
+            except Exception as e:
+                logger.error(f"v4 SSE stream error: {e}")
+                error_data = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)
+                yield f"data: {error_data}\n\n"
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"v4 chat stream init error: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v4/brain/status")

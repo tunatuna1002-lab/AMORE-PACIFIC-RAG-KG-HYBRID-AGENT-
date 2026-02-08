@@ -9046,7 +9046,7 @@
 
             try {
                 // SSE 스트리밍 API 호출
-                const response = await fetch(`${API_BASE}/api/v3/chat/stream`, {
+                const response = await fetch(`${API_BASE}/api/v4/chat/stream`, {
                     method: 'POST',
                     headers: getApiHeaders(),
                     body: JSON.stringify({ message: msg })
