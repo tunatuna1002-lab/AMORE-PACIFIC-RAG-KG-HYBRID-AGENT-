@@ -9068,13 +9068,17 @@
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                let sseBuffer = '';  // C2: TCP 패킷 분할 대응 버퍼
 
+                try {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n');
+                    // C2: 버퍼에 누적 후 완전한 라인만 처리
+                    sseBuffer += decoder.decode(value, { stream: true });
+                    const lines = sseBuffer.split('\n');
+                    sseBuffer = lines.pop();  // 마지막 불완전 라인은 버퍼에 유지
 
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
@@ -9084,14 +9088,16 @@
                                 if (data.type === 'text') {
                                     // 텍스트 청크 추가
                                     fullText += data.content;
-                                    // 마크다운 변환하여 표시
                                     textEl.innerHTML = formatMarkdown(fullText);
                                     chatBody.scrollTop = chatBody.scrollHeight;
 
+                                } else if (data.type === 'status') {
+                                    // H1: 진행 상태 표시
+                                    cursorEl.textContent = `💭 ${data.content}`;
+
                                 } else if (data.type === 'tool_call') {
-                                    // 도구 호출 표시 (content가 문자열 또는 객체)
-                                    const toolContent = (typeof data.content === 'object' && data.content) ? data.content : {};
-                                    const toolName = toolContent.name || (typeof data.content === 'string' ? data.content : '도구');
+                                    // 도구 호출 표시
+                                    const toolName = (data.content && data.content.name) || '도구';
                                     toolsUsed.push(toolName);
                                     const toolBadge = document.createElement('span');
                                     toolBadge.className = 'tool-badge-streaming';
@@ -9103,12 +9109,8 @@
                                     // 완료 - 커서 제거 및 마무리
                                     cursorEl.remove();
 
-                                    // content가 문자열이면 JSON 파싱, 객체면 그대로 사용
-                                    let doneData = data.content;
-                                    if (typeof doneData === 'string') {
-                                        try { doneData = JSON.parse(doneData); } catch(e) { doneData = {}; }
-                                    }
-                                    suggestions = (doneData && doneData.suggestions) || [];
+                                    const doneData = (typeof data.content === 'object' && data.content) ? data.content : {};
+                                    suggestions = doneData.suggestions || [];
 
                                     // 도구 배지 업데이트 (완료 상태로)
                                     const toolBadges = responseEl.querySelectorAll('.tool-badge-streaming');
@@ -9119,23 +9121,26 @@
                                     });
 
                                     // AI 출처 표기 추가
-                                    const sourceCitation = renderSourceCitation((doneData && doneData.sources) || []);
+                                    const sourceCitation = renderSourceCitation(doneData.sources || []);
                                     textEl.innerHTML += sourceCitation;
 
                                     // 후속 질문 제안 업데이트
                                     updateSuggestions(suggestions);
 
                                 } else if (data.type === 'error') {
-                                    // 오류
-                                    cursorEl.remove();
+                                    // 오류 (done 이벤트가 뒤따라옴)
                                     textEl.innerHTML = `<span style="color:#dc2626;">⚠️ ${escapeHtml(data.content)}</span>`;
                                 }
 
                             } catch (parseError) {
-                                // JSON 파싱 실패 무시
+                                console.debug('[SSE] Parse failed:', line.slice(0, 100), parseError);
                             }
                         }
                     }
+                }
+                } finally {
+                    // H3: reader 정리 (메모리 누수 방지)
+                    try { reader.cancel(); } catch(e) {}
                 }
 
             } catch (error) {

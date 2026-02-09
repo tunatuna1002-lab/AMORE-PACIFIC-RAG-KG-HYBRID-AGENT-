@@ -599,9 +599,19 @@ class UnifiedBrain:
         is_safe, block_reason, sanitized_query = PromptGuard.check_input(query)
         if not is_safe:
             logger.warning(f"PromptGuard blocked input (stream): {block_reason}")
+            rejection_msg = PromptGuard.get_rejection_message(block_reason)
+            yield {"type": "text", "content": rejection_msg}
             yield {
                 "type": "done",
-                "content": PromptGuard.get_rejection_message(block_reason),
+                "content": {
+                    "confidence": 0.0,
+                    "sources": [],
+                    "tools_used": [],
+                    "suggestions": ["다른 질문을 해주세요"],
+                    "processing_time_ms": 0,
+                    "mode": "blocked",
+                    "confidence_level": "unknown",
+                },
             }
             return
 
@@ -732,9 +742,23 @@ class UnifiedBrain:
             }
 
         except Exception as e:
-            logger.error(f"Stream processing failed: {e}")
+            logger.error(f"Stream processing failed: {e}", exc_info=True)
             self._stats["errors"] += 1
             yield {"type": "error", "content": str(e)}
+            # 에러 후에도 done 이벤트 전송 → 프론트엔드 로딩 해제
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+            yield {
+                "type": "done",
+                "content": {
+                    "confidence": 0.0,
+                    "sources": [],
+                    "tools_used": [],
+                    "suggestions": ["다시 질문해주세요"],
+                    "processing_time_ms": round(processing_time, 1),
+                    "mode": "error",
+                    "confidence_level": "unknown",
+                },
+            }
 
         finally:
             self.mode = previous_mode

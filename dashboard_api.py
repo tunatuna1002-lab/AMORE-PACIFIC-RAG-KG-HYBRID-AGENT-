@@ -495,6 +495,9 @@ def load_dashboard_data() -> dict[str, Any]:
             return json.load(f)
     except FileNotFoundError:
         return {}
+    except json.JSONDecodeError as e:
+        logging.warning(f"Corrupted dashboard data file: {e}")
+        return {}
 
 
 def get_conversation_history(session_id: str, limit: int = 5) -> str:
