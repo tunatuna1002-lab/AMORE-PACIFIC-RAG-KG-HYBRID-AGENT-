@@ -6302,7 +6302,7 @@
                 const shortName = fullName.replace(/^LANEIGE\s+/i, '').substring(0, 40) + (fullName.length > 47 ? '...' : '');
 
                 return `
-                <tr onclick="goToProductDetail('${item.asin || ''}', '${item.product_name || ''}')">
+                <tr onclick="goToProductDetail('${item.asin || ''}', '${item.product_name || ''}', '${(item.signal || '').match(/\[([^\]]+)\]/)?.[1] || ''}')">
                     <td><span class="priority-badge ${item.priority.toLowerCase()}">${item.priority === 'P1' ? '🔴' : '🟠'} ${item.priority}</span></td>
                     <td>
                         <div class="product-info">
@@ -6327,7 +6327,7 @@
                     </td>
                     <td>${item.signal}</td>
                     <td><span class="action-tag ${item.action_tag.toLowerCase()}">${item.action_tag}</span></td>
-                    <td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('${item.asin || ''}', '${item.product_name || ''}');">상세 분석 →</a></td>
+                    <td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('${item.asin || ''}', '${item.product_name || ''}', '${(item.signal || '').match(/\[([^\]]+)\]/)?.[1] || ''}');">상세 분석 →</a></td>
                 </tr>
                 `;
             }).join('');
@@ -6894,25 +6894,72 @@
         }
 
         // 제품 상세 페이지로 이동
-        function goToProductDetail(asin, productName) {
-            // 제품 페이지로 전환
-            switchPage('product');
+        function goToProductDetail(asin, productName, category) {
+            // 카테고리 이름 → productCategory value 매핑
+            const categoryMap = {
+                'Lip Care': 'lip_care',
+                'Lip Makeup': 'lip_makeup',
+                'Face Powder': 'face_powder',
+                'Skin Care': 'skin_care',
+                'Beauty & Personal Care': 'beauty'
+            };
 
-            // 제품 선택 드롭다운에서 해당 제품 찾기
-            const productSelect = document.getElementById('productSelect');
-            if (productSelect && productName) {
-                // 제품명으로 옵션 찾기
-                const options = productSelect.options;
-                for (let i = 0; i < options.length; i++) {
-                    if (options[i].textContent.includes(productName.split(' ')[0])) {
-                        productSelect.selectedIndex = i;
-                        updateProductView();
-                        break;
-                    }
+            // 1. 카테고리 자동 매칭
+            if (category && categoryMap[category]) {
+                const catSelect = document.getElementById('productCategory');
+                if (catSelect) {
+                    catSelect.value = categoryMap[category];
+                    updateProductList();
                 }
             }
 
-            // 챗봇 열고 해당 제품 분석 요청
+            // 제품 페이지로 전환
+            switchPage('product');
+
+            // 2. 제품 선택 (ASIN 우선, 제품명 fallback)
+            const productSelect = document.getElementById('productSelect');
+            let selectedName = '';
+            if (productSelect) {
+                let found = false;
+                const options = productSelect.options;
+
+                // ASIN 기반 매칭 우선
+                if (asin) {
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value === asin) {
+                            productSelect.selectedIndex = i;
+                            selectedName = options[i].textContent;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                // 제품명 fallback
+                if (!found && productName) {
+                    const keyword = productName.split(' ')[0];
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].textContent.includes(keyword)) {
+                            productSelect.selectedIndex = i;
+                            selectedName = options[i].textContent;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (found) updateProductView();
+            }
+
+            // 3. 차트 제품 포커스 (데이터 로드 대기 후)
+            if (selectedName) {
+                setTimeout(() => {
+                    focusProductInRankChart(selectedName);
+                    focusProductInDiscountChart(selectedName);
+                }, 600);
+            }
+
+            // 4. 챗봇에 분석 요청 프리필
             setTimeout(() => {
                 const chatInput = document.getElementById('chatInput');
                 if (chatInput && productName) {
@@ -6920,6 +6967,44 @@
                     chatInput.focus();
                 }
             }, 300);
+        }
+
+        // 순위 추이 차트에서 특정 제품만 포커스
+        function focusProductInRankChart(productName) {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            if (!checkboxes.length) return;
+
+            const selectAll = document.getElementById('productSelectAll');
+            if (selectAll) selectAll.checked = false;
+
+            let matched = false;
+            checkboxes.forEach(cb => {
+                const isMatch = cb.value.includes(productName) || productName.includes(cb.value);
+                cb.checked = isMatch;
+                if (isMatch) matched = true;
+            });
+
+            // 매칭 실패 시 전체 선택 유지
+            if (!matched) {
+                if (selectAll) selectAll.checked = true;
+                checkboxes.forEach(cb => cb.checked = true);
+            }
+
+            onProductCheckboxChange();
+        }
+
+        // 할인율 차트에서 특정 제품 선택
+        function focusProductInDiscountChart(productName) {
+            const select = document.getElementById('discountProductSelect');
+            if (!select || !select.options.length) return;
+
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value.includes(productName) || productName.includes(select.options[i].value)) {
+                    select.selectedIndex = i;
+                    select.dispatchEvent(new Event('change'));
+                    return;
+                }
+            }
         }
 
         // SoS 추이 차트 날짜 범위 초기화 (글로벌 날짜 범위 사용)
