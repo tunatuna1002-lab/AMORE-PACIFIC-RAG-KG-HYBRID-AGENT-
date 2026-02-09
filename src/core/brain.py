@@ -10,7 +10,6 @@ Level 4 Autonomous Agent의 핵심 두뇌
 4. 상태 관리 및 이벤트 처리
 
 아키텍처 (SRP 분해):
-- QueryProcessor: 사용자 질문 처리
 - DecisionMaker: LLM 의사결정
 - ToolCoordinator: 도구 실행 조율
 - AlertManager: 알림 처리
@@ -55,8 +54,7 @@ from .cache import ResponseCache
 from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
-from .models import Context, Response, ToolResult
-from .query_processor import QueryProcessor
+from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
@@ -137,7 +135,6 @@ class UnifiedBrain:
     - DecisionMaker: LLM 의사결정 전담
     - ToolCoordinator: 도구 실행 조율
     - AlertManager: 알림 처리 전담
-    - QueryProcessor: 사용자 질문 처리 전담
     """
 
     # LLM 판단 프롬프트 (DecisionMaker와 공유, 하위호환성 유지)
@@ -179,7 +176,6 @@ class UnifiedBrain:
         self._decision_maker: DecisionMaker | None = None
         self._tool_coordinator: ToolCoordinator | None = None
         self._alert_manager: AlertManager | None = None
-        self._query_processor: QueryProcessor | None = None
 
         # 자율 스케줄러
         self.scheduler = AutonomousScheduler()
@@ -265,20 +261,6 @@ class UnifiedBrain:
         if self._alert_manager is None:
             self._alert_manager = AlertManager()
         return self._alert_manager
-
-    @property
-    def query_processor(self) -> QueryProcessor:
-        """질문 처리 컴포넌트 (lazy init)"""
-        if self._query_processor is None:
-            self._query_processor = QueryProcessor(
-                decision_maker=self.decision_maker,
-                tool_coordinator=self.tool_coordinator,
-                response_pipeline=self._response_pipeline or ResponsePipeline(),
-                context_gatherer=self._context_gatherer,
-                cache=self.cache,
-                state=self.state,
-            )
-        return self._query_processor
 
     # =========================================================================
     # 초기화
@@ -505,27 +487,64 @@ class UnifiedBrain:
                 query=query, current_metrics=current_metrics
             )
 
-            # 4. 복잡도 판단 및 ReAct 모드 활성화
-            if self._react_agent and self._is_complex_query(query, context):
-                logger.info(f"Complex query detected, using ReAct mode: {query[:50]}...")
-                response = await self._process_with_react(query, context)
-            else:
-                # 4. LLM 의사결정 (DecisionMaker에 위임)
-                decision = await self.decision_maker.decide(query, context, system_state)
-                self._stats["llm_decisions"] += 1
+            # 4. 신뢰도 기반 라우팅
+            confidence_level = self._assess_confidence_level(context)
 
-                # 5. 도구 실행 (필요시, ToolCoordinator에 위임)
-                tool_result = None
-                if decision.get("tool") and decision["tool"] != "direct_answer":
-                    self.mode = BrainMode.EXECUTING
-                    tool_result = await self.tool_coordinator.execute(
-                        tool_name=decision["tool"], params=decision.get("tool_params", {})
-                    )
-
-                # 6. 응답 생성
-                response = await self._generate_response(
-                    query=query, context=context, decision=decision, tool_result=tool_result
+            if self.confidence_assessor.should_skip_llm_decision(confidence_level):
+                # HIGH: LLM 판단 스킵, 컨텍스트로 직접 응답
+                logger.info(f"HIGH confidence - skipping LLM decision for: {query[:50]}...")
+                decision = Decision(
+                    tool="direct_answer",
+                    tool_params={},
+                    reason=f"HIGH confidence ({confidence_level.value}) - direct context answer",
+                    confidence=0.9,
+                    key_points=self._extract_key_points_from_context(context),
                 )
+                response = await self._generate_response(
+                    query=query, context=context, decision=decision, tool_result=None
+                )
+            elif self.confidence_assessor.should_request_clarification(confidence_level):
+                # UNKNOWN: 명확화 요청
+                logger.info(f"UNKNOWN confidence - requesting clarification: {query[:50]}...")
+                response = Response(
+                    text="질문을 더 구체적으로 해주시겠어요? 예를 들어 특정 브랜드나 카테고리, 분석 지표(SoS, HHI 등)를 포함해주세요.",
+                    query_type="clarification",
+                    confidence_level=confidence_level,
+                    confidence_score=0.2,
+                    suggestions=[
+                        "LANEIGE의 Lip Care 카테고리 점유율은?",
+                        "최근 크롤링 데이터 기반 Top 10 브랜드 알려줘",
+                        "경쟁사 대비 LANEIGE 포지셔닝 분석해줘",
+                    ],
+                )
+            else:
+                # MEDIUM/LOW: 기존 플로우 (ReAct 또는 DecisionMaker)
+                # 5. 복잡도 판단 및 ReAct 모드 활성화
+                if self._react_agent and self._is_complex_query(query, context):
+                    logger.info(f"Complex query detected, using ReAct mode: {query[:50]}...")
+                    response = await self._process_with_react(query, context)
+                else:
+                    # 5. LLM 의사결정 (DecisionMaker에 위임)
+                    decision = await self.decision_maker.decide(
+                        query,
+                        context,
+                        system_state,
+                        confidence_level=confidence_level.value if confidence_level else "medium",
+                    )
+                    self._stats["llm_decisions"] += 1
+
+                    # 6. 도구 실행 (필요시, ToolCoordinator에 위임)
+                    tool_result = None
+                    if decision.tool and decision.tool != "direct_answer":
+                        self.mode = BrainMode.EXECUTING
+                        tool_result = await self.tool_coordinator.execute(
+                            tool_name=decision.tool, params=decision.tool_params
+                        )
+
+                    # 7. 응답 생성
+                    response = await self._generate_response(
+                        query=query, context=context, decision=decision, tool_result=tool_result
+                    )
 
             # PromptGuard 출력 검증
             is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
@@ -623,7 +642,7 @@ class UnifiedBrain:
 
                 # 4. 도구 실행 (필요시)
                 tool_result = None
-                tool_name = decision.get("tool")
+                tool_name = decision.tool
                 if tool_name and tool_name != "direct_answer":
                     yield {
                         "type": "tool_call",
@@ -631,7 +650,7 @@ class UnifiedBrain:
                     }
                     self.mode = BrainMode.EXECUTING
                     tool_result = await self.tool_coordinator.execute(
-                        tool_name=tool_name, params=decision.get("tool_params", {})
+                        tool_name=tool_name, params=decision.tool_params or {}
                     )
 
                 # 5. 응답 생성
@@ -903,7 +922,7 @@ class UnifiedBrain:
         self,
         query: str,
         context: Context,
-        decision: dict[str, Any],
+        decision: Decision,
         tool_result: ToolResult | None = None,
     ) -> Response:
         """응답 생성"""
@@ -925,9 +944,9 @@ class UnifiedBrain:
 
         return Response(
             text=content,
-            confidence_score=decision.get("confidence", 0.5),
+            confidence_score=decision.confidence,
             sources=context.rag_docs[:3] if context.rag_docs else [],
-            tools_called=[decision.get("tool")] if decision.get("tool") != "direct_answer" else [],
+            tools_called=[decision.tool] if decision.tool != "direct_answer" else [],
         )
 
     # =========================================================================
@@ -998,6 +1017,38 @@ class UnifiedBrain:
         except Exception as e:
             logger.error(f"ReAct processing failed: {e}")
             return Response.fallback(f"ReAct 처리 실패: {str(e)}")
+
+    def _assess_confidence_level(self, context: Context) -> "ConfidenceLevel":
+        """컨텍스트 기반 신뢰도 평가"""
+        # Build rule_result from context signals
+        rule_result = {"max_score": 0.0, "confidence": 0.0, "query_type": "unknown"}
+
+        # Score based on available context
+        score = 0.0
+        if context.kg_facts:
+            score += min(len(context.kg_facts), 3) * 1.5
+        if context.rag_docs:
+            score += min(len(context.rag_docs), 3) * 1.0
+        if context.kg_inferences:
+            score += min(len(context.kg_inferences), 2) * 2.0
+        if context.entities:
+            entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
+            score += min(entity_count, 3) * 1.0
+
+        rule_result["max_score"] = score
+
+        return self.confidence_assessor.assess(rule_result, context)
+
+    def _extract_key_points_from_context(self, context: Context) -> list[str]:
+        """컨텍스트에서 핵심 포인트 추출"""
+        points = []
+        for fact in (context.kg_facts or [])[:3]:
+            if hasattr(fact, "entity") and hasattr(fact, "fact_type"):
+                points.append(f"{fact.entity}: {fact.fact_type}")
+        for inf in (context.kg_inferences or [])[:2]:
+            if isinstance(inf, dict) and "insight" in inf:
+                points.append(inf["insight"])
+        return points
 
     # =========================================================================
     # 자율 작업 (Autonomous)

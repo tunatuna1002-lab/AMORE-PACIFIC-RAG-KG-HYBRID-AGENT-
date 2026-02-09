@@ -2583,7 +2583,7 @@ async def get_tracked_brands():
 
 # ============= Alert Settings API =============
 
-from src.core.state_manager import StateManager, get_state_manager
+from src.core.state_manager import EmailSubscription, StateManager, get_state_manager
 
 # 싱글톤 State Manager
 _state_manager: StateManager | None = None
@@ -2690,6 +2690,228 @@ async def revoke_alert_consent(request: Request):
     state_manager.revoke_email_consent(email)
 
     return {"status": "ok", "message": "동의가 철회되었습니다."}
+
+
+# =============================================================================
+# v4 Alert Settings API (뉴닉 스타일 구독 플로우)
+# =============================================================================
+
+
+class SubscribeRequest(BaseModel):
+    """구독 시작 요청"""
+
+    email: str
+    alert_types: list[str] = []
+
+
+class UpdateAlertSettingsRequest(BaseModel):
+    """알림 설정 수정 요청"""
+
+    email: str
+    alert_types: list[str]
+
+
+class UnsubscribeRequest(BaseModel):
+    """구독 해지 요청"""
+
+    email: str
+
+
+@app.post("/api/v4/subscribe")
+@limiter.limit("3/minute")
+async def subscribe_v4(request: Request, body: SubscribeRequest):
+    """
+    구독 시작 (v4 통합 엔드포인트)
+
+    - 신규 이메일: JWT 인증 메일 발송 + alert_types 임시 저장
+    - 기존 이메일 (already_verified): 현재 구독 설정 반환
+    """
+    import re
+
+    email = body.email.strip()
+    email_regex = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
+    if not email or not re.match(email_regex, email):
+        raise HTTPException(status_code=400, detail="올바른 이메일 주소를 입력해주세요.")
+
+    if not body.alert_types:
+        raise HTTPException(status_code=400, detail="최소 하나 이상의 알림 유형을 선택해주세요.")
+
+    state_manager = get_state_manager()
+    existing = state_manager.get_subscription(email)
+
+    # 이미 인증된 이메일
+    if existing and existing.verified:
+        return {
+            "success": True,
+            "already_verified": True,
+            "message": "이미 가입한 이메일이에요.",
+            "current_settings": {
+                "alert_types": existing.alert_types,
+                "active": existing.active,
+                "consent": existing.consent,
+            },
+        }
+
+    # 신규 이메일 - JWT 인증 메일 발송
+    try:
+        token = create_email_verification_token(email)
+
+        base_url = get_base_url()
+        verify_url = f"{base_url}/api/alerts/confirm-email?token={token}&email={email}"
+
+        from src.tools.email_sender import EmailSender
+
+        email_sender = EmailSender()
+
+        if not email_sender.is_enabled():
+            raise HTTPException(status_code=503, detail="이메일 서비스가 설정되지 않았습니다.")
+
+        result = await email_sender.send_verification_email(
+            recipient=email, verify_url=verify_url, token=token
+        )
+
+        if result.success:
+            # 인증 전이지만 선택한 alert_types를 미리 저장 (인증 완료 시 적용)
+            if not existing:
+                # 새 구독 생성 (아직 미인증, 미동의 상태)
+                sub = EmailSubscription(
+                    email=email,
+                    consent=False,
+                    alert_types=body.alert_types,
+                    active=False,
+                    verified=False,
+                )
+                state_manager._email_subscriptions[email] = sub
+                state_manager._save_subscriptions()
+            else:
+                # 기존 미인증 구독 업데이트
+                existing.alert_types = body.alert_types
+                state_manager._save_subscriptions()
+
+            logging.info(f"[v4] Verification email sent to {email}, alert_types={body.alert_types}")
+            return {
+                "success": True,
+                "already_verified": False,
+                "message": "인증 이메일이 발송되었습니다. (30분 내 인증해주세요)",
+            }
+        else:
+            raise HTTPException(status_code=500, detail=f"이메일 발송 실패: {result.message}")
+
+    except ValueError as e:
+        logging.error(f"JWT configuration error: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"[v4] Subscribe error: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/v4/alert-settings")
+async def get_alert_settings_v4(email: str | None = None):
+    """
+    알림 설정 조회 (v4)
+
+    Args:
+        email: 조회할 이메일 (없으면 첫 번째 구독자)
+    """
+    state_manager = get_state_manager()
+
+    if email:
+        sub = state_manager.get_subscription(email)
+        if not sub:
+            return {"found": False, "email": email, "message": "등록되지 않은 이메일입니다."}
+        return {
+            "found": True,
+            "email": sub.email,
+            "consent": sub.consent,
+            "alert_types": sub.alert_types,
+            "active": sub.active,
+            "verified": sub.verified,
+            "verified_at": sub.verified_at.isoformat() if sub.verified_at else None,
+            "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
+        }
+
+    # email 미지정 시 기존 v3 동작 (첫 번째 구독자)
+    subscriptions = state_manager.get_all_subscriptions()
+    if not subscriptions:
+        return {"found": False, "email": "", "consent": False, "alert_types": []}
+
+    email_key, sub = next(iter(subscriptions.items()))
+    return {
+        "found": True,
+        "email": email_key,
+        "consent": sub.consent,
+        "alert_types": sub.alert_types,
+        "active": sub.active,
+        "verified": sub.verified,
+        "verified_at": sub.verified_at.isoformat() if sub.verified_at else None,
+        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
+    }
+
+
+@app.put("/api/v4/alert-settings")
+@limiter.limit("5/minute")
+async def update_alert_settings_v4(request: Request, body: UpdateAlertSettingsRequest):
+    """
+    알림 설정 수정 (v4) - 기존 구독자 전용
+
+    인증 완료된 이메일만 수정 가능
+    """
+    email = body.email.strip()
+    if not email:
+        raise HTTPException(status_code=400, detail="이메일 주소가 필요합니다.")
+
+    state_manager = get_state_manager()
+    sub = state_manager.get_subscription(email)
+
+    if not sub:
+        raise HTTPException(status_code=404, detail="등록되지 않은 이메일입니다.")
+
+    if not sub.verified:
+        raise HTTPException(status_code=403, detail="이메일 인증이 완료되지 않았습니다.")
+
+    # alert_types 업데이트
+    success = state_manager.update_email_subscription(
+        email=email, alert_types=body.alert_types, active=True
+    )
+
+    # consent도 True로 설정 (설정 수정 = 동의 유지)
+    if success and not sub.consent:
+        sub.consent = True
+        sub.consent_date = datetime.now()
+        state_manager._save_subscriptions()
+
+    if success:
+        return {
+            "status": "ok",
+            "message": "알림 설정이 업데이트되었습니다.",
+            "alert_types": body.alert_types,
+        }
+    else:
+        raise HTTPException(status_code=500, detail="설정 업데이트 실패")
+
+
+@app.delete("/api/v4/alert-settings")
+@limiter.limit("5/minute")
+async def delete_alert_settings_v4(request: Request, email: str):
+    """
+    구독 해지 (v4)
+
+    Args:
+        email: 해지할 이메일 주소
+    """
+    if not email:
+        raise HTTPException(status_code=400, detail="이메일 주소가 필요합니다.")
+
+    state_manager = get_state_manager()
+    sub = state_manager.get_subscription(email)
+
+    if not sub:
+        raise HTTPException(status_code=404, detail="등록되지 않은 이메일입니다.")
+
+    state_manager.revoke_email_consent(email)
+    return {"status": "ok", "message": "구독이 해지되었습니다."}
 
 
 @app.get("/api/v3/alerts")
@@ -2900,6 +3122,8 @@ class BrainChatResponse(BaseModel):
     processing_time_ms: float
     from_cache: bool
     brain_mode: str
+    suggestions: list[str] = []
+    query_type: str = "unknown"
 
 
 @app.post("/api/v4/chat", response_model=BrainChatResponse, dependencies=[Depends(verify_api_key)])
@@ -2943,14 +3167,16 @@ async def chat_v4(request: Request, body: BrainChatRequest):
         processing_time = (time.time() - start_time) * 1000
 
         return BrainChatResponse(
-            text=response.content,
-            confidence=response.confidence,
-            sources=response.sources,
-            reasoning=response.reasoning,
-            tools_used=response.tools_called if hasattr(response, "tools_called") else [],
+            text=response.text,
+            confidence=response.confidence_score,
+            sources=response.sources if isinstance(response.sources, list) else [],
+            reasoning=response.query_type,
+            tools_used=response.tools_called,
             processing_time_ms=processing_time,
-            from_cache=response.from_cache if hasattr(response, "from_cache") else False,
+            from_cache=False,
             brain_mode=brain.mode.value,
+            suggestions=response.suggestions,
+            query_type=response.query_type,
         )
 
     except Exception as e:
@@ -3747,16 +3973,19 @@ async def verify_email_token_endpoint(request: Request):
             existing = state_manager.get_subscription(email)
 
             if existing:
-                # 기존 구독이 있으면 verified 상태만 업데이트
+                # 기존 구독이 있으면 verified 상태 업데이트 + 활성화
                 existing.verified = True
                 existing.verified_at = datetime.now()
+                existing.consent = True
+                existing.consent_date = datetime.now()
+                existing.active = True
                 state_manager._save_subscriptions()
             else:
                 # 새 구독 등록 (verified=True로 생성)
                 state_manager.register_email(
                     email=email,
                     consent=True,
-                    alert_types=["rank_change", "important_insight", "error", "daily_summary"],
+                    alert_types=["rank_change", "important_insight", "daily_summary"],
                 )
                 # verified 상태 추가 설정
                 subscription = state_manager.get_subscription(email)
@@ -3866,12 +4095,15 @@ async def confirm_email_page(token: str, email: str):
         if existing:
             existing.verified = True
             existing.verified_at = datetime.now()
+            existing.consent = True
+            existing.consent_date = datetime.now()
+            existing.active = True
             state_manager._save_subscriptions()
         else:
             state_manager.register_email(
                 email=email,
                 consent=True,
-                alert_types=["rank_change", "important_insight", "error", "daily_summary"],
+                alert_types=["rank_change", "important_insight", "daily_summary"],
             )
             subscription = state_manager.get_subscription(email)
             if subscription:

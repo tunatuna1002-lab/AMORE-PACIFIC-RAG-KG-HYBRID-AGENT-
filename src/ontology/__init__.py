@@ -11,46 +11,43 @@ Components:
 """
 
 # Schema (기존)
-from .schema import (
-    Brand,
-    Product,
-    Category,
-    Snapshot,
-    RankRecord,
-    ProductMetrics,
-    BrandMetrics,
-    MarketMetrics
-)
-
-# Relations (신규)
-from .relations import (
-    RelationType,
-    InsightType,
-    MarketPosition,
-    Relation,
-    InferenceResult,
-    create_brand_product_relation,
-    create_product_category_relation,
-    create_competition_relation
+# Business Rules (신규)
+from .business_rules import (
+    ALL_BUSINESS_RULES,
+    get_high_priority_rules,
+    get_rules_by_category,
+    register_all_rules,
 )
 
 # Knowledge Graph (신규)
 from .knowledge_graph import KnowledgeGraph
 
-# Reasoner (신규)
-from .reasoner import (
-    OntologyReasoner,
-    InferenceRule,
-    RuleCondition,
-    StandardConditions
-)
+# Ontology Knowledge Graph (T-Box + A-Box 통합)
+from .ontology_knowledge_graph import OntologyKnowledgeGraph
 
-# Business Rules (신규)
-from .business_rules import (
-    ALL_BUSINESS_RULES,
-    register_all_rules,
-    get_rules_by_category,
-    get_high_priority_rules
+# Reasoner (신규)
+from .reasoner import InferenceRule, OntologyReasoner, RuleCondition, StandardConditions
+
+# Relations (신규)
+from .relations import (
+    InferenceResult,
+    InsightType,
+    MarketPosition,
+    Relation,
+    RelationType,
+    create_brand_product_relation,
+    create_competition_relation,
+    create_product_category_relation,
+)
+from .schema import (
+    Brand,
+    BrandMetrics,
+    Category,
+    MarketMetrics,
+    Product,
+    ProductMetrics,
+    RankRecord,
+    Snapshot,
 )
 
 __all__ = [
@@ -63,7 +60,6 @@ __all__ = [
     "ProductMetrics",
     "BrandMetrics",
     "MarketMetrics",
-
     # Relations
     "RelationType",
     "InsightType",
@@ -73,16 +69,14 @@ __all__ = [
     "create_brand_product_relation",
     "create_product_category_relation",
     "create_competition_relation",
-
     # Knowledge Graph
     "KnowledgeGraph",
-
+    "OntologyKnowledgeGraph",
     # Reasoner
     "OntologyReasoner",
     "InferenceRule",
     "RuleCondition",
     "StandardConditions",
-
     # Business Rules
     "ALL_BUSINESS_RULES",
     "register_all_rules",

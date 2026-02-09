@@ -16,12 +16,12 @@ RAG + KG 컨텍스트 기반 LLM 응답 생성
 - utils/openai_client.py: OpenAI API
 """
 
+import json
 import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-import json
+from typing import Any
 
-from .models import Context, Response, ConfidenceLevel, Decision, ToolResult
+from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,10 @@ class ResponsePipeline:
 
     def __init__(
         self,
-        openai_client: Optional[Any] = None,
+        openai_client: Any | None = None,
         model: str = "gpt-4o-mini",
         max_tokens: int = 1500,
-        temperature: float = 0.3
+        temperature: float = 0.3,
     ):
         """
         Args:
@@ -89,8 +89,8 @@ class ResponsePipeline:
         self,
         query: str,
         context: Context,
-        decision: Optional[Decision] = None,
-        tool_result: Optional[ToolResult] = None
+        decision: Decision | None = None,
+        tool_result: ToolResult | None = None,
     ) -> Response:
         """
         컨텍스트 기반 응답 생성
@@ -110,8 +110,20 @@ class ResponsePipeline:
             # 프롬프트 구성
             messages = self._build_messages(query, context, decision, tool_result)
 
-            # LLM 호출
-            if self.client:
+            # HIGH confidence fast path - lighter LLM call
+            is_high_confidence = (
+                decision
+                and hasattr(decision, "confidence")
+                and decision.confidence >= 0.85
+                and decision.tool == "direct_answer"
+                and hasattr(decision, "reason")
+                and "HIGH confidence" in (decision.reason or "")
+            )
+
+            if is_high_confidence and self.client:
+                # Use faster, shorter prompt for HIGH confidence
+                response_text = await self._call_llm_fast(query, context)
+            elif self.client:
                 response_text = await self._call_llm(messages)
             else:
                 # 클라이언트 없으면 컨텍스트 기반 기본 응답
@@ -128,31 +140,35 @@ class ResponsePipeline:
 
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
+            # 신뢰도 계산 - decision의 confidence를 고려
+            calculated_confidence = self._calculate_confidence_score(context)
+            if decision and hasattr(decision, "confidence") and decision.confidence:
+                final_confidence = max(calculated_confidence, decision.confidence)
+            else:
+                final_confidence = calculated_confidence
+
             return Response(
                 text=processed_text,
                 query_type=self._infer_query_type(query, context),
                 confidence_level=self._assess_confidence(context),
-                confidence_score=self._calculate_confidence_score(context),
+                confidence_score=final_confidence,
                 sources=sources,
                 entities=context.entities,
-                tools_called=[tool_result.tool_name] if tool_result else [],
+                tools_called=[tool_result.tool_name]
+                if tool_result and hasattr(tool_result, "tool_name")
+                else [],
                 suggestions=suggestions,
-                processing_time_ms=processing_time
+                processing_time_ms=processing_time,
             )
 
         except Exception as e:
-            logger.error(f"Response generation failed: {e}")
+            logger.error(f"Response generation failed: {e}", exc_info=True)
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
-            return Response.fallback(
-                f"응답 생성 중 오류가 발생했습니다: {str(e)}"
-            )
+            return Response.fallback(f"응답 생성 중 오류가 발생했습니다: {str(e)}")
 
     async def generate_with_tool_result(
-        self,
-        query: str,
-        context: Context,
-        tool_result: ToolResult
+        self, query: str, context: Context, tool_result: ToolResult
     ) -> Response:
         """
         도구 실행 결과를 포함한 응답 생성
@@ -176,7 +192,7 @@ class ResponsePipeline:
             kg_facts=context.kg_facts,
             kg_inferences=context.kg_inferences,
             system_state=context.system_state,
-            summary=f"{context.summary}\n\n[도구 실행 결과] {tool_summary}"
+            summary=f"{context.summary}\n\n[도구 실행 결과] {tool_summary}",
         )
 
         return await self.generate(query, enhanced_context, tool_result=tool_result)
@@ -189,9 +205,9 @@ class ResponsePipeline:
         self,
         query: str,
         context: Context,
-        decision: Optional[Decision] = None,
-        tool_result: Optional[ToolResult] = None
-    ) -> List[Dict[str, str]]:
+        decision: Decision | None = None,
+        tool_result: ToolResult | None = None,
+    ) -> list[dict[str, str]]:
         """
         LLM 메시지 구성
 
@@ -204,38 +220,32 @@ class ResponsePipeline:
         Returns:
             메시지 리스트
         """
-        messages = [
-            {"role": "system", "content": self.SYSTEM_PROMPT}
-        ]
+        messages = [{"role": "system", "content": self.SYSTEM_PROMPT}]
 
         # 컨텍스트 메시지
         context_content = self._format_context(context)
-        messages.append({
-            "role": "system",
-            "content": f"[분석 컨텍스트]\n{context_content}"
-        })
+        messages.append({"role": "system", "content": f"[분석 컨텍스트]\n{context_content}"})
 
-        # 판단 결과 (있으면)
-        if decision and decision.key_points:
-            key_points_str = "\n".join(f"- {p}" for p in decision.key_points)
-            messages.append({
-                "role": "system",
-                "content": f"[응답 핵심 포인트]\n{key_points_str}"
-            })
+        # 판단 결과 (있으면) - None-safety 추가
+        if decision:
+            key_points = (
+                decision.key_points
+                if hasattr(decision, "key_points") and decision.key_points
+                else []
+            )
+            if key_points:
+                key_points_str = "\n".join(f"- {p}" for p in key_points)
+                messages.append(
+                    {"role": "system", "content": f"[응답 핵심 포인트]\n{key_points_str}"}
+                )
 
         # 도구 결과 (있으면)
         if tool_result and tool_result.success:
             tool_content = self._format_tool_result(tool_result)
-            messages.append({
-                "role": "system",
-                "content": f"[도구 실행 결과]\n{tool_content}"
-            })
+            messages.append({"role": "system", "content": f"[도구 실행 결과]\n{tool_content}"})
 
         # 사용자 질문
-        messages.append({
-            "role": "user",
-            "content": query
-        })
+        messages.append({"role": "user", "content": query})
 
         return messages
 
@@ -294,7 +304,7 @@ class ResponsePipeline:
     # LLM 호출
     # =========================================================================
 
-    async def _call_llm(self, messages: List[Dict[str, str]]) -> str:
+    async def _call_llm(self, messages: list[dict[str, str]]) -> str:
         """
         LLM API 호출
 
@@ -309,7 +319,7 @@ class ResponsePipeline:
                 model=self.model,
                 messages=messages,
                 max_tokens=self.max_tokens,
-                temperature=self.temperature
+                temperature=self.temperature,
             )
 
             return response.choices[0].message.content
@@ -317,6 +327,47 @@ class ResponsePipeline:
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise
+
+    async def _call_llm_fast(self, query: str, context: Context) -> str:
+        """
+        HIGH 신뢰도용 빠른 LLM 응답 생성
+
+        컨텍스트가 충분할 때 간결한 프롬프트로 빠르게 응답.
+        max_tokens를 줄이고 temperature를 낮춰 결정적 응답.
+
+        Args:
+            query: 사용자 질문
+            context: 수집된 컨텍스트
+
+        Returns:
+            응답 텍스트
+        """
+        from litellm import acompletion
+
+        # 간결한 시스템 프롬프트
+        fast_system = (
+            "아모레퍼시픽 LANEIGE 브랜드 Amazon 마켓 분석 전문가입니다. "
+            "제공된 데이터를 바탕으로 간결하고 정확하게 한국어로 답변하세요. "
+            "수치와 근거를 명시하세요."
+        )
+
+        # 컨텍스트 요약을 사용자 메시지에 직접 포함
+        user_msg = f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
+
+        try:
+            response = await acompletion(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": fast_system},
+                    {"role": "user", "content": user_msg},
+                ],
+                max_tokens=800,  # 절반으로 줄임
+                temperature=0.2,  # 더 결정적
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.warning(f"Fast LLM call failed, falling back: {e}")
+            return self._generate_fallback_response(query, context)
 
     # =========================================================================
     # 후처리
@@ -345,15 +396,11 @@ class ResponsePipeline:
         ]
         for prefix in prefixes_to_remove:
             if text.strip().startswith(prefix):
-                text = text.strip()[len(prefix):].strip()
+                text = text.strip()[len(prefix) :].strip()
 
         return text.strip()
 
-    def _generate_fallback_response(
-        self,
-        query: str,
-        context: Context
-    ) -> str:
+    def _generate_fallback_response(self, query: str, context: Context) -> str:
         """
         클라이언트 없을 때 기본 응답 생성
 
@@ -402,11 +449,7 @@ class ResponsePipeline:
     # 메타데이터 생성
     # =========================================================================
 
-    def _generate_suggestions(
-        self,
-        query: str,
-        context: Context
-    ) -> List[str]:
+    def _generate_suggestions(self, query: str, context: Context) -> list[str]:
         """후속 질문 제안 생성"""
         suggestions = []
 
@@ -426,15 +469,11 @@ class ResponsePipeline:
 
         # 기본 제안
         if not suggestions:
-            suggestions = [
-                "라네즈 현재 순위 알려줘",
-                "SoS가 뭐야?",
-                "오늘 크롤링 해줘"
-            ]
+            suggestions = ["라네즈 현재 순위 알려줘", "SoS가 뭐야?", "오늘 크롤링 해줘"]
 
         return suggestions[:3]
 
-    def _extract_sources(self, context: Context) -> List[str]:
+    def _extract_sources(self, context: Context) -> list[str]:
         """출처 추출"""
         sources = []
 

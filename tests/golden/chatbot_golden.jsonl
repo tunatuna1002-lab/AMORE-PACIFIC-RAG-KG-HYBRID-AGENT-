@@ -8,3 +8,13 @@
 {"query": "Skin Care 카테고리 상위 브랜드", "expected_facts": ["rank", "SoS"], "expected_brands": [], "expected_categories": ["skin_care"], "expected_source_types": ["Crawled", "KG"]}
 {"query": "TIRTIR 시장 포지션", "expected_facts": ["SoS", "rank"], "expected_brands": ["TIRTIR"], "expected_categories": [], "expected_source_types": ["Crawled", "KG", "Ontology"]}
 {"query": "지표 해석 가이드", "expected_facts": ["SoS", "HHI", "CPI"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["RAG"]}
+{"query": "LANEIGE의 OWL 온톨로지 분류 결과는?", "expected_facts": ["SoS", "rank"], "expected_brands": ["LANEIGE"], "expected_categories": ["lip_care"], "expected_source_types": ["Ontology", "KG"]}
+{"query": "Lip Care 카테고리에서 MarketLeader로 분류된 브랜드는?", "expected_facts": ["SoS", "competition"], "expected_brands": ["LANEIGE"], "expected_categories": ["lip_care"], "expected_source_types": ["Ontology"]}
+{"query": "COSRX의 시장 포지션과 경쟁 강도 분석", "expected_facts": ["SoS", "HHI", "competition"], "expected_brands": ["COSRX"], "expected_categories": ["skin_care"], "expected_source_types": ["Ontology", "KG", "RAG"]}
+{"query": "KG 트리플 기반으로 LANEIGE 경쟁사 목록 알려줘", "expected_facts": ["competition"], "expected_brands": ["LANEIGE"], "expected_categories": [], "expected_source_types": ["KG", "Ontology"]}
+{"query": "SoS 30% 이상인 브랜드 있어?", "expected_facts": ["SoS"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["KG", "Ontology"]}
+{"query": "온톨로지 추론으로 도출된 시장 인사이트", "expected_facts": ["SoS", "competition", "strategy"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["Ontology", "RAG"]}
+{"query": "Lip Care vs Lip Makeup 카테고리 차이점", "expected_facts": ["SoS", "product"], "expected_brands": [], "expected_categories": ["lip_care"], "expected_source_types": ["Ontology", "KG", "RAG"]}
+{"query": "TIRTIR과 LANEIGE의 카테고리별 순위 비교", "expected_facts": ["rank", "SoS", "competition"], "expected_brands": ["TIRTIR", "LANEIGE"], "expected_categories": [], "expected_source_types": ["Crawled", "KG", "Ontology"]}
+{"query": "최근 크롤링 데이터의 신뢰도 평가", "expected_facts": ["trend"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["Crawled"]}
+{"query": "Face Powder 카테고리 상위 5개 브랜드와 집중도", "expected_facts": ["HHI", "rank", "SoS"], "expected_brands": [], "expected_categories": [], "expected_source_types": ["Crawled", "KG", "Ontology"]}

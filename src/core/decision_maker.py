@@ -18,7 +18,7 @@ from typing import Any
 
 from litellm import acompletion
 
-from .models import Context
+from .models import Context, Decision
 from .tools import AGENT_TOOLS
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,25 @@ class DecisionMaker:
 }}
 ```"""
 
+    MODE_PROMPTS = {
+        "high": """
+## 모드: HIGH 신뢰도
+컨텍스트가 충분합니다. "direct_answer"를 선택하고 핵심 포인트를 정리하세요.
+추가 도구 호출은 불필요합니다.""",
+        "medium": """
+## 모드: MEDIUM 신뢰도
+컨텍스트가 부분적으로 있습니다. 필요한 경우에만 도구를 선택하세요.
+가능하면 컨텍스트만으로 답변하세요.""",
+        "low": """
+## 모드: LOW 신뢰도
+컨텍스트가 부족합니다. 적절한 도구를 선택하여 추가 데이터를 수집하세요.
+크롤링이나 KG 조회를 적극적으로 활용하세요.""",
+        "unknown": """
+## 모드: UNKNOWN 신뢰도
+질문 의도가 불명확합니다. "direct_answer"를 선택하고
+명확화를 위한 질문을 key_points에 포함하세요.""",
+    }
+
     def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.1, max_tokens: int = 500):
         """
         Args:
@@ -80,8 +99,12 @@ class DecisionMaker:
         self._decision_count = 0
 
     async def decide(
-        self, query: str, context: Context, system_state: dict[str, Any]
-    ) -> dict[str, Any]:
+        self,
+        query: str,
+        context: Context,
+        system_state: dict[str, Any],
+        confidence_level: str = "medium",
+    ) -> Decision:
         """
         LLM 기반 의사결정
 
@@ -89,9 +112,10 @@ class DecisionMaker:
             query: 사용자 질문
             context: 수집된 컨텍스트
             system_state: 시스템 상태
+            confidence_level: 신뢰도 레벨 ("high", "medium", "low", "unknown")
 
         Returns:
-            의사결정 결과 dict:
+            Decision 객체:
                 - tool: 선택된 도구명 (또는 "direct_answer")
                 - tool_params: 도구 파라미터
                 - reason: 선택 이유
@@ -99,6 +123,7 @@ class DecisionMaker:
                 - key_points: 핵심 포인트 목록
         """
         self._decision_count += 1
+        logger.debug(f"Decision #{self._decision_count} with confidence_level={confidence_level}")
 
         try:
             prompt = self.DECISION_PROMPT.format(
@@ -107,6 +132,9 @@ class DecisionMaker:
                 context_summary=context.summary or "컨텍스트 없음",
                 query=query,
             )
+
+            mode_suffix = self.MODE_PROMPTS.get(confidence_level, self.MODE_PROMPTS["medium"])
+            prompt += mode_suffix
 
             response = await acompletion(
                 model=self.model,
@@ -121,7 +149,7 @@ class DecisionMaker:
             logger.error(f"LLM decision failed: {e}")
             return self._fallback_decision(str(e))
 
-    def _parse_decision(self, response_text: str) -> dict[str, Any]:
+    def _parse_decision(self, response_text: str) -> Decision:
         """LLM 응답 파싱"""
         try:
             json_start = response_text.find("{")
@@ -129,33 +157,29 @@ class DecisionMaker:
 
             if json_start >= 0 and json_end > json_start:
                 decision = json.loads(response_text[json_start:json_end])
-                # 필수 필드 검증
-                if "tool" not in decision:
-                    decision["tool"] = "direct_answer"
-                if "confidence" not in decision:
-                    decision["confidence"] = 0.5
-                if "reason" not in decision:
-                    decision["reason"] = ""
-                if "key_points" not in decision:
-                    decision["key_points"] = []
-                if "tool_params" not in decision:
-                    decision["tool_params"] = {}
-                return decision
+                # 필수 필드 검증 및 Decision 객체로 변환
+                return Decision(
+                    tool=decision.get("tool", "direct_answer"),
+                    tool_params=decision.get("tool_params", {}),
+                    reason=decision.get("reason", ""),
+                    key_points=decision.get("key_points", []),
+                    confidence=decision.get("confidence", 0.5),
+                )
 
         except json.JSONDecodeError:
             logger.warning("Failed to parse LLM decision JSON")
 
         return self._fallback_decision("파싱 실패")
 
-    def _fallback_decision(self, reason: str) -> dict[str, Any]:
+    def _fallback_decision(self, reason: str) -> Decision:
         """폴백 의사결정"""
-        return {
-            "tool": "direct_answer",
-            "tool_params": {},
-            "reason": f"LLM 오류: {reason}",
-            "confidence": 0.3,
-            "key_points": [],
-        }
+        return Decision(
+            tool="direct_answer",
+            tool_params={},
+            reason=f"LLM 오류: {reason}",
+            confidence=0.3,
+            key_points=[],
+        )
 
     def _format_system_state(self, state: dict[str, Any]) -> str:
         """시스템 상태 포맷"""
