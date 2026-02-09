@@ -70,3 +70,29 @@ Thumbs.db
 htmlcov/
 coverage_html/
 coverage.xml
+
+# OMC plugin data (자동 생성 임시 데이터)
+.omc/
+
+# Font source files (대용량 바이너리, 원본 폰트)
+Arita Buri KR/
+Arita Dotum KR/
+Arita Sans LTN/
+Amorepacific_CI_wordmark_v1.00/
+arita_font.zip
+
+# Apple Pages 문서
+*.pages
+
+# PDF examples
+pdfexample/
+
+# Backup of unused modules
+_backup_unused_modules/
+
+# Root-level temp test scripts
+test_brain_import.py
+test_cache_integration.py
+test_embedding_cache.py
+run_type_flow_tests.py
+test_failed_signals.py
