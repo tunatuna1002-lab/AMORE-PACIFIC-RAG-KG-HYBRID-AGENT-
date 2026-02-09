@@ -165,13 +165,17 @@ class ContextGatherer:
             if include_system_state:
                 context.system_state = self._get_system_state()
 
-            # 3. 요약 생성 (TrueHybridRetriever가 이미 설정했으면 보존하고 보강)
-            built_summary = self._build_summary(context)
-            if context.summary and context.summary != built_summary:
-                # TrueHybridRetriever의 combined_context 보존 + 추가 정보 병합
-                context.summary = f"{context.summary}\n\n{built_summary}"
+            # 3. 요약 생성
+            # TrueHybridRetriever가 이미 combined_context를 설정한 경우 그것을 유지.
+            # 두 요약을 이어붙이면 같은 데이터가 중복되어 LLM 토큰 낭비 + 답변 혼란.
+            if context.summary:
+                # TrueHybridRetriever의 구조화된 요약 유지, 시스템 상태만 보충
+                if context.system_state and "[시스템 상태]" not in context.summary:
+                    state_str = self._format_system_state(context.system_state)
+                    if state_str:
+                        context.summary = f"[시스템 상태] {state_str}\n\n{context.summary}"
             else:
-                context.summary = built_summary
+                context.summary = self._build_summary(context)
 
             # 수집 시간 기록
             context.gathered_at = datetime.now()

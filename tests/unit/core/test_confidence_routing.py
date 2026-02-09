@@ -62,13 +62,20 @@ class TestConfidenceAssessor:
         assert "score" in details
         assert "processing_strategy" in details
 
-    def test_context_bonus(self):
-        """컨텍스트 보너스 점수 계산"""
+    def test_no_double_counting_with_context(self):
+        """컨텍스트가 전달되어도 이중 계산하지 않음 (regression test)"""
         from src.core.models import Context
 
-        ctx = Context(query="test", rag_docs=[{"content": "doc1"}], kg_facts=[])
-        bonus = self.assessor._context_bonus(ctx)
-        assert bonus > 0  # RAG docs provide bonus
+        ctx = Context(
+            query="LANEIGE 분석해줘",
+            rag_docs=[{"content": "doc1"}, {"content": "doc2"}, {"content": "doc3"}],
+            kg_facts=[],
+        )
+        # max_score가 이미 컨텍스트 데이터를 반영한 점수
+        result = {"max_score": 4.0, "query_type": "general"}
+        level = self.assessor.assess(result, ctx)
+        # context bonus가 더해지지 않으므로 4.0 → MEDIUM (3.0~4.9)
+        assert level == ConfidenceLevel.MEDIUM
 
     def test_custom_thresholds(self):
         """커스텀 임계값"""
