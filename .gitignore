@@ -75,6 +75,7 @@ coverage.xml
 .omc/
 
 # Font source files (대용량 바이너리, 원본 폰트)
+*.ttf
 Arita Buri KR/
 Arita Dotum KR/
 Arita Sans LTN/
