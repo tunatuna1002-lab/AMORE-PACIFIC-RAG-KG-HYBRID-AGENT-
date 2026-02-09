@@ -5803,7 +5803,7 @@
                 for (const [asin, product] of Object.entries(dashboardData.products)) {
                     const key = asin.toLowerCase().replace(/[^a-z0-9]/g, '-');
                     productData[key] = {
-                        rank: '#' + product.rank,
+                        rank: product.rank + ' 위',
                         rankDelta: product.rank_delta,
                         vol: String(product.volatility),
                         volDelta: product.volatility_status,
@@ -7668,7 +7668,7 @@
                 document.getElementById('cat-sos').innerHTML = data.sos.toFixed(1) + '<span class="unit">%</span>';
             }
             if (data.best_rank !== undefined) {
-                document.getElementById('cat-rank').textContent = '#' + data.best_rank;
+                document.getElementById('cat-rank').textContent = data.best_rank + ' 위';
             }
             if (data.cpi !== undefined) {
                 const cpiScore = convertCpiToScore(data.cpi);
@@ -7681,7 +7681,7 @@
             // 배지 업데이트 (CPI는 점수로 변환하여 전달)
             updateCategoryBadges({
                 sos: data.sos || 0,
-                rank: '#' + (data.best_rank || 0),
+                rank: (data.best_rank || 0) + ' 위',
                 cpiScore: convertCpiToScore(data.cpi || 100),
                 new: data.new_competitors || 0
             });
@@ -7713,7 +7713,7 @@
                 const rawCpi = catKpi.cpi ?? 100;
                 data = {
                     sos: catKpi.sos ?? 0,
-                    rank: hasRank ? '#' + catKpi.best_rank : 'Top 100 외',
+                    rank: hasRank ? catKpi.best_rank + ' 위' : 'Top 100 외',
                     rankValue: hasRank ? catKpi.best_rank : null,  // 배지 계산용
                     cpiScore: convertCpiToScore(rawCpi),  // 100점 만점 점수
                     new: catKpi.new_competitors ?? 0
@@ -7816,7 +7816,7 @@
         function updateProductView() {
             const prod = document.getElementById('productSelect').value;
             // API 데이터 없으면 N/A 표시 (하드코딩 fallback 제거)
-            const d = productData[prod] || { rank: '#N/A', rankDelta: '-', vol: '-', volDelta: '-', rating: '-', ratingDelta: '-', stick: '-', stickDelta: '-' };
+            const d = productData[prod] || { rank: 'N/A', rankDelta: '-', vol: '-', volDelta: '-', rating: '-', ratingDelta: '-', stick: '-', stickDelta: '-' };
             document.getElementById('prod-rank').textContent = d.rank;
             document.getElementById('prod-rank-delta').textContent = d.rankDelta;
             document.getElementById('prod-vol').innerHTML = d.vol + '<span class="unit">pt</span>';
@@ -8482,12 +8482,60 @@
 
         // 모든 가격 표시 새로고침
         function refreshAllPriceDisplays() {
-            // 차트 및 테이블 업데이트가 필요한 경우
-            // 현재 활성화된 탭에 따라 다시 렌더링
-            const activeTab = document.querySelector('.tab-btn.active');
-            if (activeTab) {
-                const event = new Event('click');
-                activeTab.dispatchEvent(event);
+            const config = CURRENCY_CONFIG[currentCurrency] || CURRENCY_CONFIG.USD;
+            const symbol = config.symbol;
+            const priceLabel = `판매가 (${symbol})`;
+
+            // 1. 할인 트렌드 차트 - 라벨, 축 제목, 데이터 변환
+            if (charts.discountTrend) {
+                const chart = charts.discountTrend;
+                const priceDataset = chart.data.datasets.find(d => d.label.includes('판매가'));
+                if (priceDataset) {
+                    priceDataset.label = priceLabel;
+                    // y축 데이터를 변환된 통화로 업데이트
+                    if (priceDataset._originalData) {
+                        priceDataset.data = priceDataset._originalData.map(v =>
+                            v !== null ? convertPrice(v) : null
+                        );
+                    } else {
+                        // 최초 호출 시 원본 USD 데이터 백업
+                        priceDataset._originalData = [...priceDataset.data];
+                        if (currentCurrency !== 'USD') {
+                            priceDataset.data = priceDataset._originalData.map(v =>
+                                v !== null ? convertPrice(v) : null
+                            );
+                        }
+                    }
+                }
+                if (chart.options?.scales?.y?.title) {
+                    chart.options.scales.y.title.text = priceLabel;
+                }
+                chart.update('none');
+            }
+
+            // 2. 테이블 가격 셀 업데이트
+            document.querySelectorAll('.price-current, .price-original').forEach(el => {
+                const usdVal = el.dataset.usd;
+                if (usdVal) {
+                    el.textContent = formatPrice(parseFloat(usdVal));
+                }
+            });
+
+            // 3. 현재 페이지 차트 재초기화 (경쟁사 테이블 등)
+            if (currentPage === 'brand') {
+                const startInput = document.getElementById('competitorStartDate');
+                const endInput = document.getElementById('competitorEndDate');
+                if (startInput?.value && endInput?.value) {
+                    updateCompetitorTableWithRange(startInput.value, endInput.value);
+                }
+            }
+
+            // 4. 제품 상세 비교 테이블 갱신
+            if (currentPage === 'product') {
+                const activeTab = document.querySelector('.tab-btn.active');
+                if (activeTab) {
+                    activeTab.dispatchEvent(new Event('click'));
+                }
             }
         }
 
@@ -9292,8 +9340,8 @@
                 .replace(/\*\*(\+\d+\.?\d*%?p?)\*\*/g, '<span class="insight-metric-positive">$1</span>')
                 // 부정 수치: **-숫자** → <span class="insight-metric-negative">-숫자</span>
                 .replace(/\*\*(-\d+\.?\d*%?p?)\*\*/g, '<span class="insight-metric-negative">$1</span>')
-                // 순위: **#숫자** → <span class="insight-rank">#숫자</span>
-                .replace(/\*\*(#\d+)\*\*/g, '<span class="insight-rank">$1</span>')
+                // 순위: **#숫자** → <span class="insight-rank">숫자위</span>
+                .replace(/\*\*#(\d+)\*\*/g, '<span class="insight-rank">$1위</span>')
                 // 브랜드명 (한글)
                 .replace(/\*\*(라네즈|설화수|이니스프리|에뛰드|코스알엑스|에스트라|헤라|프리메라|아이오페|마몽드|에스쁘아|아모레퍼시픽|티르티르|아누아|조선미녀|스킨1004|미샤|썸바이미|토리든|넘버즈인|메디큐브)\*\*/g,
                     '<span class="insight-brand-name">$1</span>')
@@ -9385,7 +9433,7 @@
             }
 
             if (rankEl) {
-                rankEl.textContent = '#' + avgRank;
+                rankEl.textContent = avgRank + '위';
             }
 
             if (ratingEl) {
@@ -9408,7 +9456,7 @@
                     SoS <strong>${sosValue.toFixed(1)}%</strong> (Top 100 중 ${Math.round(sosValue)}개 제품)를 점유하고 있습니다.
                     ${competitorContext}한 상태입니다.
                     <br><br>
-                    <strong>근거:</strong> Best Rank <strong>#${avgRank}</strong>,
+                    <strong>근거:</strong> Best Rank <strong>${avgRank}위</strong>,
                     평균 평점 <strong>${brandRating.toFixed(1)}</strong>점으로
                     ${brandRating >= 4.5 ? '품질 경쟁력은 확보' : '리뷰 관리가 필요'}되어 있으나,
                     ${top10Count >= 3 ? 'Top 10 내 ' + top10Count + '개 제품으로 SKU 다각화 성공' :
@@ -9445,15 +9493,15 @@
                 conclusion = '점유율 방어 전략';
             } else if (sosValue >= 5) {
                 dataPoint = `SoS ${sosValue.toFixed(1)}% (중위)`;
-                analysis = `Best Rank #${avgRank}`;
+                analysis = `Best Rank ${avgRank}위`;
                 conclusion = 'SKU 확장 전략';
             } else if (avgRank <= 20) {
-                dataPoint = `Best Rank #${avgRank}`;
+                dataPoint = `Best Rank ${avgRank}위`;
                 analysis = `SoS ${sosValue.toFixed(1)}% (개선 필요)`;
                 conclusion = '인지도 강화 전략';
             } else {
                 dataPoint = `SoS ${sosValue.toFixed(1)}%`;
-                analysis = `평균 순위 #${avgRank}`;
+                analysis = `평균 순위 ${avgRank}위`;
                 conclusion = '브랜드 인지도 구축';
             }
 
@@ -11264,8 +11312,9 @@
                     labels: discountLabels,
                     datasets: [
                         {
-                            label: '판매가 ($)',
-                            data: priceData,
+                            label: `판매가 (${CURRENCY_CONFIG[currentCurrency]?.symbol || '$'})`,
+                            data: currentCurrency !== 'USD' ? priceData.map(v => v !== null ? convertPrice(v) : null) : priceData,
+                            _originalData: [...priceData],
                             borderColor: '#1F5795',
                             backgroundColor: 'rgba(31, 87, 149, 0.1)',
                             fill: true,
@@ -11318,7 +11367,7 @@
                             type: 'linear',
                             display: true,
                             position: 'left',
-                            title: { display: true, text: '판매가 ($)' },
+                            title: { display: true, text: `판매가 (${CURRENCY_CONFIG[currentCurrency]?.symbol || '$'})` },
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         y1: {
@@ -12771,7 +12820,7 @@
                     ? product.avg_discount.toFixed(1) + '%'
                     : '<span class="no-data-dash" title="해당 기간에 할인 정보가 수집되지 않았습니다">-</span>';
                 const rankDisplay = product.avg_rank
-                    ? '#' + product.avg_rank.toFixed(1)
+                    ? product.avg_rank.toFixed(1) + ' 위'
                     : '<span class="no-data-dash" title="해당 기간에 순위 데이터가 없습니다">-</span>';
 
                 const discountBadge = product.avg_discount > 15 ?
