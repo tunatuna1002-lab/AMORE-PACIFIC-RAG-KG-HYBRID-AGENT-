@@ -4285,10 +4285,7 @@
                                     <table class="action-table">
                                         <thead><tr><th>우선순위</th><th>제품</th><th>문제 신호</th><th>액션 태그</th><th>상세 분석</th></tr></thead>
                                         <tbody>
-                                            <tr onclick="goToProductDetail('', 'Lip Sleeping Mask')"><td><span class="priority-badge p1">🔴 P1</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Lip Sleeping Mask</div><div class="product-brand">Berry</div></div></div></td><td>순위 3→2 (상향)</td><td><span class="action-tag monitor">MONITOR</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Lip Sleeping Mask');">상세 분석 →</a></td></tr>
-                                            <tr onclick="goToProductDetail('', 'Water Bank Cream')"><td><span class="priority-badge p1">🔴 P1</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Water Bank Cream</div><div class="product-brand">Blue Hyaluronic</div></div></div></td><td>평점 3.98 (하락)</td><td><span class="action-tag risk">CHECK</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Water Bank Cream');">상세 분석 →</a></td></tr>
-                                            <tr onclick="goToProductDetail('', 'Lip Glowy Balm')"><td><span class="priority-badge p2">🟠 P2</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Lip Glowy Balm</div><div class="product-brand">Berry</div></div></div></td><td>순위 변동성 높음</td><td><span class="action-tag deep">DEEP DIVE</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Lip Glowy Balm');">상세 분석 →</a></td></tr>
-                                            <tr onclick="goToProductDetail('', 'Cream Skin Toner')"><td><span class="priority-badge p2">🟠 P2</span></td><td><div class="product-info"><div class="product-avatar">LN</div><div><div class="product-name">Cream Skin Toner</div><div class="product-brand">Refiner</div></div></div></td><td>경쟁사 가격 하락</td><td><span class="action-tag monitor">MONITOR</span></td><td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('', 'Cream Skin Toner');">상세 분석 →</a></td></tr>
+                                            <tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--text-secondary);"><div class="loading-spinner" style="width: 24px; height: 24px; margin: 0 auto 8px;"></div>액션 보드 데이터 로딩 중...</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -6296,10 +6293,18 @@
                     generateDiscountBadges(item) : '';
 
                 // 제품명 짧게 표시 (LANEIGE 제거 후 40자)
-                // products 데이터에서 전체 이름 가져오기 (action_items의 product_name은 truncate됨)
                 const productData = window.dashboardData?.products?.[item.asin];
                 const fullName = productData?.name || item.product_name || 'Unknown';
                 const shortName = fullName.replace(/^LANEIGE\s+/i, '').substring(0, 40) + (fullName.length > 47 ? '...' : '');
+
+                // 신호 색상 결정
+                const rc = item.rank_change || 0;
+                const signalColor = rc < 0 ? 'color: #16a34a' : rc > 0 ? 'color: #dc2626' : 'color: var(--text-secondary)';
+
+                // 부가 정보 (7일 트렌드)
+                const detailHtml = item.signal_detail
+                    ? `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${item.signal_detail}</div>`
+                    : '';
 
                 return `
                 <tr onclick="goToProductDetail('${item.asin || ''}', '${item.product_name || ''}', '${(item.signal || '').match(/\[([^\]]+)\]/)?.[1] || ''}')">
@@ -6325,7 +6330,10 @@
                             </div>
                         </div>
                     </td>
-                    <td>${item.signal}</td>
+                    <td>
+                        <div style="${signalColor}; font-weight: 500;">${item.signal}</div>
+                        ${detailHtml}
+                    </td>
                     <td><span class="action-tag ${item.action_tag.toLowerCase()}">${item.action_tag}</span></td>
                     <td><a href="#" class="link-action" onclick="event.stopPropagation(); goToProductDetail('${item.asin || ''}', '${item.product_name || ''}', '${(item.signal || '').match(/\[([^\]]+)\]/)?.[1] || ''}');">상세 분석 →</a></td>
                 </tr>
@@ -6904,69 +6912,72 @@
                 'Beauty & Personal Care': 'beauty'
             };
 
-            // 1. 카테고리 자동 매칭
-            if (category && categoryMap[category]) {
-                const catSelect = document.getElementById('productCategory');
-                if (catSelect) {
-                    catSelect.value = categoryMap[category];
-                    updateProductList();
-                }
-            }
-
-            // 제품 페이지로 전환
+            // 1. 먼저 페이지 전환 (switchPage 내부 setTimeout 200ms 트리거)
             switchPage('product');
 
-            // 2. 제품 선택 (ASIN 우선, 제품명 fallback)
-            const productSelect = document.getElementById('productSelect');
-            let selectedName = '';
-            if (productSelect) {
-                let found = false;
-                const options = productSelect.options;
-
-                // ASIN 기반 매칭 우선
-                if (asin) {
-                    for (let i = 0; i < options.length; i++) {
-                        if (options[i].value === asin) {
-                            productSelect.selectedIndex = i;
-                            selectedName = options[i].textContent;
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-
-                // 제품명 fallback
-                if (!found && productName) {
-                    const keyword = productName.split(' ')[0];
-                    for (let i = 0; i < options.length; i++) {
-                        if (options[i].textContent.includes(keyword)) {
-                            productSelect.selectedIndex = i;
-                            selectedName = options[i].textContent;
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (found) updateProductView();
-            }
-
-            // 3. 차트 제품 포커스 (데이터 로드 대기 후)
-            if (selectedName) {
-                setTimeout(() => {
-                    focusProductInRankChart(selectedName);
-                    focusProductInDiscountChart(selectedName);
-                }, 600);
-            }
-
-            // 4. 챗봇에 분석 요청 프리필
+            // 2. switchPage의 setTimeout(200ms) 이후에 카테고리+제품 설정
+            //    switchPage가 날짜 리셋 + 초기 로드를 200ms 후에 하므로,
+            //    그 이후(400ms)에 카테고리/제품을 설정해야 덮어쓰이지 않음
             setTimeout(() => {
+                // 카테고리 자동 매칭
+                if (category && categoryMap[category]) {
+                    const catSelect = document.getElementById('productCategory');
+                    if (catSelect) {
+                        catSelect.value = categoryMap[category];
+                        updateProductList();
+                    }
+                }
+
+                // 제품 선택 (ASIN 우선, 제품명 fallback)
+                const productSelect = document.getElementById('productSelect');
+                let selectedName = '';
+                if (productSelect) {
+                    let found = false;
+                    const options = productSelect.options;
+
+                    // ASIN 기반 매칭 우선
+                    if (asin) {
+                        for (let i = 0; i < options.length; i++) {
+                            if (options[i].value === asin) {
+                                productSelect.selectedIndex = i;
+                                selectedName = options[i].textContent;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // 제품명 fallback
+                    if (!found && productName) {
+                        const keyword = productName.split(' ')[0];
+                        for (let i = 0; i < options.length; i++) {
+                            if (options[i].textContent.includes(keyword)) {
+                                productSelect.selectedIndex = i;
+                                selectedName = options[i].textContent;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (found) updateProductView();
+                }
+
+                // 차트 제품 포커스 (제품 데이터 로드 대기 후)
+                if (selectedName) {
+                    setTimeout(() => {
+                        focusProductInRankChart(selectedName);
+                        focusProductInDiscountChart(selectedName);
+                    }, 500);
+                }
+
+                // 챗봇에 분석 요청 프리필
                 const chatInput = document.getElementById('chatInput');
                 if (chatInput && productName) {
                     chatInput.value = `${productName} 제품의 상세 분석을 해주세요.`;
                     chatInput.focus();
                 }
-            }, 300);
+            }, 400);
         }
 
         // 순위 추이 차트에서 특정 제품만 포커스
@@ -7068,6 +7079,10 @@
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.getElementById(`page-${pageId}`).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(item => { item.classList.remove('active'); if (item.dataset.page === pageId) item.classList.add('active'); });
+            // 페이지 전환 시 콘텐츠 영역 스크롤 맨 위로
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.scrollTop = 0;
+            window.scrollTo(0, 0);
             // 모바일에서 페이지 전환 시 사이드바 닫기
             if (window.innerWidth <= 768) {
                 const sidebar = document.getElementById('sidebar');
