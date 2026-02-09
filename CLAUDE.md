@@ -611,3 +611,58 @@ railway logs --tail 100
 
 - Railway healthcheck은 **배포 시에만 호출** (지속 모니터링 X)
 - 지속 모니터링 필요 시: Uptime Kuma 템플릿 또는 Telegram Admin Bot 활용
+
+---
+
+## 17. Railway 운영 자연어 가이드
+
+> 사용자가 자연어로 Railway 관련 요청 시, 적절한 스킬/명령어를 제안한다.
+
+### 자연어 → Railway 스킬 매핑
+
+| 자연어 (한국어) | 자연어 (영어) | Railway Skill | 대체 CLI 명령어 |
+|----------------|--------------|---------------|-----------------|
+| "배포해줘", "디플로이", "올려줘" | "deploy", "push to prod" | `/deploy` | `railway up` |
+| "배포 상태", "어떤 버전?", "배포 내역" | "deployment status", "what version" | `/deployment` | `railway status` |
+| "서비스 상태", "돌아가?", "헬스체크" | "is it running?", "health check" | `/status` | `railway status` |
+| "로그 보여줘", "에러 로그", "로그 확인" | "show logs", "error logs" | `/deployment` (logs) | `railway logs --tail 100` |
+| "환경변수 바꿔줘", "env 설정", "시크릿 추가" | "change env var", "add secret" | `/environment` | `railway variables set KEY=VALUE` |
+| "환경변수 목록", "env 뭐 있어?" | "list env vars" | `/environment` | `railway variables` |
+| "도메인 연결", "커스텀 도메인", "URL 설정" | "add domain", "custom domain" | `/domain` | `railway domain` |
+| "메트릭", "CPU/메모리", "리소스 사용량" | "metrics", "CPU usage", "memory" | `/metrics` | Railway Dashboard 확인 |
+| "새 프로젝트", "프로젝트 만들어줘" | "new project", "create project" | `/new` | `railway init` |
+| "프로젝트 목록", "어떤 프로젝트 있어?" | "list projects" | `/projects` | `railway list` |
+| "서비스 추가", "새 서비스" | "add service", "new service" | `/service` | Railway Dashboard |
+| "DB 추가", "데이터베이스 연결" | "add database", "connect DB" | `/database` | `/database` skill |
+| "템플릿 배포", "템플릿 뭐 있어?" | "deploy template", "templates" | `/templates` | `railway template` |
+| "Railway 문서", "어떻게 쓰는거야?" | "railway docs", "how to use" | `/railway-docs` | [docs.railway.com](https://docs.railway.com) |
+| "재시작", "서비스 재시작" | "restart", "restart service" | `/service` (restart) | `railway service restart` |
+| "삭제", "서비스 삭제" | "delete service" | (수동 확인 필요) | Railway Dashboard |
+
+### 복합 시나리오 매핑
+
+| 시나리오 | 추천 흐름 |
+|----------|-----------|
+| "배포하고 로그 확인해줘" | `/deploy` → `/deployment` (logs) |
+| "환경변수 바꾸고 재배포" | `/environment` → `/deploy` |
+| "에러나는데 원인 찾아줘" | `/deployment` (logs) → `/metrics` → `/status` |
+| "새로 만들어서 배포까지" | `/new` → `/environment` → `/deploy` |
+| "DB 연결하고 환경변수 세팅" | `/database` → `/environment` |
+| "도메인 연결하고 SSL 확인" | `/domain` → `/status` |
+
+### 현재 프로젝트 Railway 정보
+
+| 항목 | 값 |
+|------|-----|
+| 프로젝트 | splendid-harmony |
+| Volume | `/data` (SQLite + KG) |
+| Healthcheck | `/api/health` |
+| 서버 포트 | `PORT` 환경변수 (기본 8001) |
+
+### 응답 규칙
+
+1. **스킬이 설치된 경우**: 해당 스킬 이름과 사용법을 안내
+2. **스킬 미설치 시**: 대체 CLI 명령어를 제시하고, 스킬 설치를 권유
+3. **위험한 작업** (삭제, 환경변수 변경): 반드시 사용자 확인 후 실행
+4. **복합 요청**: 단계별로 분리하여 순서대로 안내
+5. **모호한 요청**: 가능한 해석들을 나열하고 사용자에게 선택 요청

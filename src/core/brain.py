@@ -1085,11 +1085,15 @@ class UnifiedBrain:
             return Response.fallback(f"ReAct 처리 실패: {str(e)}")
 
     def _assess_confidence_level(self, context: Context) -> "ConfidenceLevel":
-        """컨텍스트 기반 신뢰도 평가"""
+        """컨텍스트 기반 신뢰도 평가
+
+        UNKNOWN은 질문 자체가 이해 불가할 때만 사용.
+        데이터가 부족해도 의도가 명확하면 LOW 이상 → LLM에게 위임.
+        """
         # Build rule_result from context signals
         rule_result = {"max_score": 0.0, "confidence": 0.0, "query_type": "unknown"}
 
-        # Score based on available context
+        # --- 1) 컨텍스트 데이터 점수 ---
         score = 0.0
         if context.kg_facts:
             score += min(len(context.kg_facts), 3) * 1.5
@@ -1101,9 +1105,119 @@ class UnifiedBrain:
             entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
             score += min(entity_count, 3) * 1.0
 
+        # --- 2) 쿼리 의도 명확성 점수 (최소 바닥 보장) ---
+        # 데이터가 없어도 의미 있는 질문이면 UNKNOWN이 아닌 LOW로 분류
+        query = context.query if hasattr(context, "query") else ""
+        query_intent_score = self._assess_query_intent(query)
+        score += query_intent_score
+
         rule_result["max_score"] = score
 
         return self.confidence_assessor.assess(rule_result, context)
+
+    def _assess_query_intent(self, query: str) -> float:
+        """쿼리 자체의 의도 명확성 점수 반환
+
+        UNKNOWN(< 1.5)은 의도 파악이 불가한 경우에만 해당.
+        한국어/영어로 의미 있는 질문이면 최소 1.5점(LOW) 보장.
+
+        Returns:
+            0.0: 빈 쿼리 또는 의미 없는 문자열
+            1.5: 일반적인 질문 (의도 파악 가능)
+            2.5: 도메인 관련 질문 (브랜드, 지표, 분석 키워드 포함)
+        """
+        if not query or not query.strip():
+            return 0.0
+
+        stripped = query.strip()
+
+        # 너무 짧은 무의미 입력 (1~2자)
+        if len(stripped) <= 2:
+            return 0.0
+
+        score = 0.0
+
+        # 도메인 키워드 (브랜드, 제품, 카테고리)
+        domain_keywords = [
+            "laneige",
+            "라네즈",
+            "lip",
+            "립",
+            "mask",
+            "마스크",
+            "sleeping",
+            "슬리핑",
+            "cream",
+            "크림",
+            "skin",
+            "스킨",
+            "beauty",
+            "뷰티",
+            "makeup",
+            "메이크업",
+            "powder",
+            "파우더",
+            "아모레",
+            "amore",
+            "설화수",
+            "sulwhasoo",
+            "이니스프리",
+            "amazon",
+            "아마존",
+        ]
+        if any(kw in stripped.lower() for kw in domain_keywords):
+            score += 1.0
+
+        # 분석/질문 의도 키워드
+        intent_keywords = [
+            "분석",
+            "비교",
+            "추천",
+            "전략",
+            "예측",
+            "원인",
+            "이유",
+            "왜",
+            "어떻게",
+            "알려",
+            "보여",
+            "설명",
+            "순위",
+            "상승",
+            "하락",
+            "점유",
+            "경쟁",
+            "트렌드",
+            "현황",
+            "변화",
+            "추이",
+            "sos",
+            "hhi",
+            "cpi",
+            "share",
+            "rank",
+            "top",
+            "analyze",
+            "compare",
+            "explain",
+            "show",
+            "tell",
+        ]
+        if any(kw in stripped.lower() for kw in intent_keywords):
+            score += 1.0
+
+        # 의미 있는 질문이면 최소 LOW 바닥 보장 (1.5)
+        # 한글 3자 이상 또는 영어 단어 2개 이상이면 의도 있는 질문으로 간주
+        has_meaningful_length = len(stripped) >= 3
+        if has_meaningful_length and score == 0.0:
+            # 도메인/의도 키워드 없어도 최소 바닥 점수
+            score = 1.5
+
+        # 도메인 또는 의도 키워드가 있으면 바닥 보장
+        if score > 0.0 and score < 1.5:
+            score = 1.5
+
+        return score
 
     def _extract_key_points_from_context(self, context: Context) -> list[str]:
         """컨텍스트에서 핵심 포인트 추출"""
