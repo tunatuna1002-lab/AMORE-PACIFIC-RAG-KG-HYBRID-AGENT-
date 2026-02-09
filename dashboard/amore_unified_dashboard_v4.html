@@ -853,7 +853,7 @@
             padding: 0;
             margin-bottom: 24px;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
         }
         /* 좌측 액센트 바 */
@@ -865,6 +865,7 @@
             width: 4px;
             height: 100%;
             background: linear-gradient(180deg, var(--pacific-blue) 0%, var(--amore-blue) 100%);
+            border-radius: 8px 0 0 8px;
         }
         .insight-content {
             display: flex;
@@ -995,7 +996,7 @@
 
         /* === STATUS CARD TOOLTIP (공통) === */
         .status-card { position: relative; z-index: 1; }
-        .status-card:hover { z-index: 9999; }
+        .status-card:hover { z-index: 9999; overflow: visible !important; }
 
         /* === STATUS CARD TOOLTIP - AMOREPACIFIC Style === */
         .status-card-tooltip {
@@ -4421,6 +4422,15 @@
 
                     <!-- BRAND PAGE (L1) -->
                     <div id="page-brand" class="page-view">
+                        <div class="category-header-row" style="display: flex; align-items: center; margin-bottom: 16px;">
+                            <div class="section-title" style="font-size: 14px; font-weight: 600; color: var(--pacific-blue); display: flex; align-items: center;">
+                                <i data-lucide="building-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                                LANEIGE 브랜드 KPI 현황
+                                <span style="margin-left: 12px; font-size: 11px; font-weight: 400; color: var(--text-secondary); background: rgba(0, 28, 88, 0.06); padding: 3px 8px; border-radius: 4px;">
+                                    최근 7일
+                                </span>
+                            </div>
+                        </div>
                         <div class="kpi-grid">
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">Laneige 시장점유율 <i data-lucide="help-circle" class="help-icon"></i></div>
@@ -9079,18 +9089,26 @@
                                     chatBody.scrollTop = chatBody.scrollHeight;
 
                                 } else if (data.type === 'tool_call') {
-                                    // 도구 호출 표시
-                                    toolsUsed.push(data.content.name);
+                                    // 도구 호출 표시 (content가 문자열 또는 객체)
+                                    const toolContent = (typeof data.content === 'object' && data.content) ? data.content : {};
+                                    const toolName = toolContent.name || (typeof data.content === 'string' ? data.content : '도구');
+                                    toolsUsed.push(toolName);
                                     const toolBadge = document.createElement('span');
                                     toolBadge.className = 'tool-badge-streaming';
-                                    toolBadge.innerHTML = `🔧 ${data.content.name} 호출 중...`;
+                                    toolBadge.innerHTML = `🔧 ${toolName} 호출 중...`;
                                     toolBadge.style.cssText = 'display:inline-block;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:9px;margin-bottom:6px;';
                                     textEl.parentElement.insertBefore(toolBadge, textEl);
 
                                 } else if (data.type === 'done') {
                                     // 완료 - 커서 제거 및 마무리
                                     cursorEl.remove();
-                                    suggestions = data.content.suggestions || [];
+
+                                    // content가 문자열이면 JSON 파싱, 객체면 그대로 사용
+                                    let doneData = data.content;
+                                    if (typeof doneData === 'string') {
+                                        try { doneData = JSON.parse(doneData); } catch(e) { doneData = {}; }
+                                    }
+                                    suggestions = (doneData && doneData.suggestions) || [];
 
                                     // 도구 배지 업데이트 (완료 상태로)
                                     const toolBadges = responseEl.querySelectorAll('.tool-badge-streaming');
@@ -9101,7 +9119,7 @@
                                     });
 
                                     // AI 출처 표기 추가
-                                    const sourceCitation = renderSourceCitation([]);
+                                    const sourceCitation = renderSourceCitation((doneData && doneData.sources) || []);
                                     textEl.innerHTML += sourceCitation;
 
                                     // 후속 질문 제안 업데이트
@@ -12786,258 +12804,266 @@
         }
 
         // ============================
-        // Alert Settings (알림 설정)
+        // Alert Settings (알림 설정) - Newneek-inspired UX
         // ============================
+
+        // Subscription state
+        let subscriptionState = {
+            email: null,
+            verified: false,
+            alertTypes: [],
+            currentScreen: 'main' // main, already-registered, edit, verification, complete
+        };
+
+        // Polling variables
+        let verificationPollingInterval = null;
+        const POLLING_INTERVAL_MS = 5000;
+        const POLLING_MAX_ATTEMPTS = 60;
+        let pollingAttempts = 0;
+
+        // Screen management
+        function showSubscribeScreen(screenName) {
+            const screens = ['subscribe-main', 'subscribe-already-registered', 'subscribe-edit', 'subscribe-verification', 'subscribe-complete'];
+            screens.forEach(screen => {
+                const el = document.getElementById(screen);
+                if (el) el.style.display = 'none';
+            });
+
+            const targetScreen = document.getElementById(`subscribe-${screenName}`);
+            if (targetScreen) targetScreen.style.display = 'block';
+
+            subscriptionState.currentScreen = screenName;
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // Open modal
         function openAlertSettings() {
             const modal = document.getElementById('alert-settings-modal');
             if (modal) {
                 modal.style.display = 'flex';
 
-                // 항상 Step 1부터 시작 (상태 초기화)
-                resetAlertModal();
-                goToAlertStep(1);
+                // Reset state
+                subscriptionState = {
+                    email: null,
+                    verified: false,
+                    alertTypes: [],
+                    currentScreen: 'main'
+                };
 
-                // 아이콘 초기화
-                if (window.lucide) lucide.createIcons();
+                // Clear inputs
+                const emailInput = document.getElementById('subscribe-email');
+                if (emailInput) emailInput.value = '';
+
+                // Uncheck all cards and checkboxes
+                ['rank_change', 'important_insight', 'daily_summary'].forEach(type => {
+                    const card = document.getElementById(`card-${type}`);
+                    const checkbox = document.getElementById(`checkbox-${type}`);
+                    if (card) card.classList.remove('selected');
+                    if (checkbox) checkbox.checked = false;
+                });
+
+                showSubscribeScreen('main');
             }
         }
 
+        // Close modal
         function closeAlertSettings() {
             const modal = document.getElementById('alert-settings-modal');
             if (modal) {
                 modal.style.display = 'none';
-                // 폴링 중지 (함수가 정의된 경우)
-                if (typeof stopVerificationPolling === 'function') {
-                    stopVerificationPolling();
+                stopVerificationPolling();
+            }
+        }
+
+        // Card-checkbox bidirectional binding
+        function toggleAlertCard(type) {
+            const card = document.getElementById(`card-${type}`);
+            const checkbox = document.getElementById(`checkbox-${type}`);
+
+            if (card && checkbox) {
+                const isSelected = card.classList.toggle('selected');
+                checkbox.checked = isSelected;
+            }
+        }
+
+        function syncCardFromCheckbox(type) {
+            const card = document.getElementById(`card-${type}`);
+            const checkbox = document.getElementById(`checkbox-${type}`);
+
+            if (card && checkbox) {
+                if (checkbox.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
                 }
-                // 모달 닫을 때 상태 초기화
-                resetAlertModal();
             }
         }
 
-        // 모달 상태 초기화
-        function resetAlertModal() {
-            // 인증 상태 초기화
-            emailVerificationState = {
-                verified: false,
-                email: null,
-                token: null
-            };
+        // Subscribe flow
+        async function startSubscription() {
+            const email = document.getElementById('subscribe-email').value.trim();
+            const selectedTypes = [];
 
-            // 이메일 입력 필드 초기화
-            const emailInput = document.getElementById('alert-email');
-            if (emailInput) {
-                emailInput.value = '';
-                emailInput.disabled = false;
-            }
-
-            // 인증 버튼 초기화
-            const verifyBtn = document.getElementById('verify-email-btn');
-            if (verifyBtn) {
-                verifyBtn.textContent = '인증하기';
-                verifyBtn.disabled = false;
-            }
-
-            // 인증 상태 메시지 숨기기
-            const statusDiv = document.getElementById('email-verification-status');
-            if (statusDiv) {
-                statusDiv.style.display = 'none';
-            }
-
-            // 동의 체크박스 초기화
-            const consent = document.getElementById('alert-consent');
-            if (consent) {
-                consent.checked = false;
-            }
-
-            // 알림 유형 체크박스 초기화
-            const checkboxes = ['alert-rank-change', 'alert-insight', 'alert-error', 'alert-daily'];
-            checkboxes.forEach(id => {
-                const cb = document.getElementById(id);
-                if (cb) {
-                    cb.checked = false;
-                    cb.disabled = true;
-                }
-            });
-        }
-
-        async function loadAlertSettings() {
-            try {
-                const response = await fetch(`${API_BASE}/api/v3/alert-settings`);
-                if (response.ok) {
-                    const data = await response.json();
-
-                    // 이메일 입력
-                    document.getElementById('alert-email').value = data.email || '';
-
-                    // 동의 체크박스
-                    document.getElementById('alert-consent').checked = data.consent || false;
-
-                    // 알림 유형 체크박스
-                    const alertTypes = data.alert_types || [];
-                    document.getElementById('alert-rank-change').checked = alertTypes.includes('rank_change');
-                    document.getElementById('alert-insight').checked = alertTypes.includes('important_insight');
-                    document.getElementById('alert-error').checked = alertTypes.includes('error');
-                    document.getElementById('alert-daily').checked = alertTypes.includes('daily_summary');
-
-                    // 동의 상태에 따라 체크박스 활성화/비활성화
-                    toggleAlertOptions();
-                }
-            } catch (error) {
-                console.error('Failed to load alert settings:', error);
-            }
-        }
-
-        function toggleAlertOptions() {
-            const consent = document.getElementById('alert-consent').checked;
-            const options = document.querySelectorAll('.alert-type-option input');
-            options.forEach(opt => {
-                opt.disabled = !consent;
-            });
-        }
-
-        // 이메일 인증 상태 관리
-        let emailVerificationState = {
-            verified: false,
-            email: null,
-            token: null
-        };
-
-        // 현재 스텝 (1, 2, 3)
-        let currentAlertStep = 1;
-
-        // 스텝 이동
-        function goToAlertStep(step) {
-            currentAlertStep = step;
-
-            // 모든 스텝 숨기기
-            document.getElementById('alert-step-1').style.display = 'none';
-            document.getElementById('alert-step-2').style.display = 'none';
-            document.getElementById('alert-step-3').style.display = 'none';
-
-            // 해당 스텝만 표시
-            document.getElementById(`alert-step-${step}`).style.display = 'block';
-
-            // 아이콘 초기화
-            if (window.lucide) lucide.createIcons();
-        }
-
-        // 이메일 입력 변경 시 인증 상태 리셋
-        function onEmailInputChange() {
-            const email = document.getElementById('alert-email').value.trim();
-            const btn = document.getElementById('verify-email-btn');
-            const statusDiv = document.getElementById('email-verification-status');
-
-            // 이전에 인증된 이메일과 다르면 상태 리셋
-            if (emailVerificationState.verified && email !== emailVerificationState.email) {
-                emailVerificationState.verified = false;
-                emailVerificationState.email = null;
-                emailVerificationState.token = null;
-
-                btn.textContent = '인증하기';
-                btn.disabled = false;
-                statusDiv.style.display = 'none';
-            }
-        }
-
-        // 이메일 인증 요청
-        async function sendVerificationEmail() {
-            const email = document.getElementById('alert-email').value.trim();
-            const btn = document.getElementById('verify-email-btn');
-            const statusDiv = document.getElementById('email-verification-status');
-            const pendingSpan = document.getElementById('verification-pending');
-            const successSpan = document.getElementById('verification-success');
-            const errorSpan = document.getElementById('verification-error');
-            const errorMsg = document.getElementById('verification-error-msg');
-
-            // 이메일 형식 검증
+            // Validate email
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!email || !emailRegex.test(email)) {
-                statusDiv.style.display = 'block';
-                pendingSpan.style.display = 'none';
-                successSpan.style.display = 'none';
-                errorSpan.style.display = 'inline';
-                errorMsg.textContent = '올바른 이메일 주소를 입력해주세요.';
+                showToast('올바른 이메일 주소를 입력해주세요.', 'error');
                 return;
             }
 
-            // 버튼 비활성화 및 로딩 상태
-            btn.disabled = true;
-            btn.textContent = '발송 중...';
+            // Collect selected alert types
+            ['rank_change', 'important_insight', 'daily_summary'].forEach(type => {
+                const checkbox = document.getElementById(`checkbox-${type}`);
+                if (checkbox && checkbox.checked) {
+                    selectedTypes.push(type);
+                }
+            });
 
+            if (selectedTypes.length === 0) {
+                showToast('최소 하나 이상의 알림 유형을 선택해주세요.', 'error');
+                return;
+            }
+
+            subscriptionState.email = email;
+            subscriptionState.alertTypes = selectedTypes;
+
+            // Call API
             try {
-                const response = await fetch(`${API_BASE}/api/alerts/send-verification`, {
+                const response = await fetch(`${API_BASE}/api/v4/subscribe`, {
                     method: 'POST',
                     headers: getApiHeaders(),
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({
+                        email: email,
+                        alert_types: selectedTypes
+                    })
                 });
 
                 const data = await response.json();
 
-                statusDiv.style.display = 'block';
-
                 if (response.ok) {
-                    // 이미 인증된 이메일인지 확인
                     if (data.already_verified) {
-                        pendingSpan.style.display = 'none';
-                        successSpan.style.display = 'inline';
-                        errorSpan.style.display = 'none';
-
-                        emailVerificationState.verified = true;
-                        emailVerificationState.email = email;
-
-                        // 아이콘 초기화
-                        if (window.lucide) lucide.createIcons();
-
-                        // 인증 완료 → Step 2로 자동 이동
-                        setTimeout(() => {
-                            document.getElementById('verified-email-display').textContent = email;
-                            goToAlertStep(2);
-                        }, 500);
+                        // Show already registered popup
+                        showAlreadyRegistered(data.current_settings);
                     } else {
-                        pendingSpan.style.display = 'inline';
-                        successSpan.style.display = 'none';
-                        errorSpan.style.display = 'none';
-                        btn.textContent = '재발송';
-                        btn.disabled = false;
-                        emailVerificationState.email = email;
-                        emailVerificationState.token = data.token;
-
-                        // 폴링 시작 (5초마다 인증 상태 확인)
+                        // Show verification screen
+                        document.getElementById('verification-email-display').textContent = email;
+                        showSubscribeScreen('verification');
                         startVerificationPolling(email);
                     }
-
-                    // 아이콘 초기화
-                    if (window.lucide) lucide.createIcons();
                 } else {
-                    pendingSpan.style.display = 'none';
-                    successSpan.style.display = 'none';
-                    errorSpan.style.display = 'inline';
-                    errorMsg.textContent = data.detail || '인증 이메일 발송 실패';
-                    btn.textContent = '인증하기';
-                    btn.disabled = false;
+                    showToast(data.detail || '구독 요청 실패', 'error');
                 }
             } catch (error) {
-                console.error('Email verification error:', error);
-                statusDiv.style.display = 'block';
-                pendingSpan.style.display = 'none';
-                successSpan.style.display = 'none';
-                errorSpan.style.display = 'inline';
-                errorMsg.textContent = '서버 연결 오류';
-                btn.textContent = '인증하기';
-                btn.disabled = false;
+                console.error('Subscribe error:', error);
+                showToast('서버 연결 오류', 'error');
             }
         }
 
-        // 폴링 관련 변수
-        let verificationPollingInterval = null;
-        const POLLING_INTERVAL_MS = 5000; // 5초
-        const POLLING_MAX_ATTEMPTS = 60; // 최대 5분 (60 * 5초)
-        let pollingAttempts = 0;
+        // Already registered popup
+        function showAlreadyRegistered(currentSettings) {
+            const popup = document.getElementById('subscribe-already-registered');
+            if (popup) {
+                popup.style.display = 'flex';
+                // Store settings for edit screen
+                subscriptionState.verified = true;
+                subscriptionState.alertTypes = currentSettings.alert_types || [];
+            }
+        }
 
-        // 폴링 시작
+        function closeAlreadyRegisteredPopup() {
+            const popup = document.getElementById('subscribe-already-registered');
+            if (popup) popup.style.display = 'none';
+        }
+
+        function goToEditSettings() {
+            closeAlreadyRegisteredPopup();
+            loadEditSettings(subscriptionState.email, subscriptionState.alertTypes);
+            showSubscribeScreen('edit');
+        }
+
+        // Edit settings
+        function loadEditSettings(email, alertTypes) {
+            document.getElementById('edit-email-display').textContent = email;
+
+            // Set toggles
+            ['rank_change', 'important_insight', 'daily_summary'].forEach(type => {
+                const toggle = document.getElementById(`toggle-${type}`);
+                if (toggle) {
+                    toggle.checked = alertTypes.includes(type);
+                }
+            });
+        }
+
+        async function saveEditedSettings() {
+            const email = subscriptionState.email;
+            const selectedTypes = [];
+
+            ['rank_change', 'important_insight', 'daily_summary'].forEach(type => {
+                const toggle = document.getElementById(`toggle-${type}`);
+                if (toggle && toggle.checked) {
+                    selectedTypes.push(type);
+                }
+            });
+
+            if (selectedTypes.length === 0) {
+                showToast('최소 하나 이상의 알림 유형을 선택해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v4/alert-settings`, {
+                    method: 'PUT',
+                    headers: getApiHeaders(),
+                    body: JSON.stringify({
+                        email: email,
+                        alert_types: selectedTypes
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('설정이 저장되었습니다!', 'success');
+                    closeAlertSettings();
+                } else {
+                    const data = await response.json();
+                    showToast(data.detail || '저장 실패', 'error');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showToast('저장 중 오류 발생', 'error');
+            }
+        }
+
+        async function unsubscribe() {
+            if (!confirm('정말 구독을 해지하시겠습니까?\n해지 후에는 알림을 받지 않습니다.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v4/alert-settings?email=${encodeURIComponent(subscriptionState.email)}`, {
+                    method: 'DELETE',
+                    headers: getApiHeaders()
+                });
+
+                if (response.ok) {
+                    showToast('구독이 해지되었습니다.', 'info');
+                    closeAlertSettings();
+                } else {
+                    const data = await response.json();
+                    showToast(data.detail || '해지 실패', 'error');
+                }
+            } catch (error) {
+                console.error('Unsubscribe error:', error);
+                showToast('해지 중 오류 발생', 'error');
+            }
+        }
+
+        function goBackToMain() {
+            showSubscribeScreen('main');
+        }
+
+        // Verification polling
         function startVerificationPolling(email) {
-            // 기존 폴링 중지
             stopVerificationPolling();
             pollingAttempts = 0;
 
@@ -13047,8 +13073,9 @@
                 pollingAttempts++;
 
                 if (pollingAttempts > POLLING_MAX_ATTEMPTS) {
-                    console.log('[Polling] Max attempts reached, stopping');
+                    console.log('[Polling] Max attempts reached');
                     stopVerificationPolling();
+                    showToast('인증 시간이 초과되었습니다. 다시 시도해주세요.', 'error');
                     return;
                 }
 
@@ -13071,7 +13098,6 @@
             }, POLLING_INTERVAL_MS);
         }
 
-        // 폴링 중지
         function stopVerificationPolling() {
             if (verificationPollingInterval) {
                 clearInterval(verificationPollingInterval);
@@ -13080,52 +13106,58 @@
             }
         }
 
-        // 인증 완료 시 처리
         function onVerificationComplete(email) {
-            const statusDiv = document.getElementById('email-verification-status');
-            const pendingSpan = document.getElementById('verification-pending');
-            const successSpan = document.getElementById('verification-success');
-            const btn = document.getElementById('verify-email-btn');
+            subscriptionState.verified = true;
 
-            // UI 업데이트
-            statusDiv.style.display = 'block';
-            pendingSpan.style.display = 'none';
-            successSpan.style.display = 'inline';
+            const alertLabels = subscriptionState.alertTypes.map(type => {
+                if (type === 'rank_change') return '순위 변동 알림';
+                if (type === 'important_insight') return '중요 인사이트';
+                if (type === 'daily_summary') return '일일 요약 리포트';
+                return type;
+            });
 
-            btn.textContent = '인증 완료';
-            btn.disabled = true;
+            document.getElementById('complete-email-display').textContent = email;
+            document.getElementById('complete-alerts-display').textContent = alertLabels.join(', ');
 
-            emailVerificationState.verified = true;
-            emailVerificationState.email = email;
-
-            // 아이콘 초기화
-            if (window.lucide) lucide.createIcons();
-
-            // 토스트 알림
-            showToast('이메일 인증이 완료되었습니다!', 'success');
-
-            // Step 2로 자동 이동
-            setTimeout(() => {
-                document.getElementById('verified-email-display').textContent = email;
-                goToAlertStep(2);
-            }, 500);
+            showSubscribeScreen('complete');
+            showToast('구독이 완료되었습니다!', 'success');
         }
 
-        // 이메일 인증 상태 확인 (페이지 로드 시 - URL 파라미터 방식은 더 이상 사용하지 않음)
+        async function resendVerification() {
+            const email = subscriptionState.email;
+            if (!email) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/alerts/send-verification`, {
+                    method: 'POST',
+                    headers: getApiHeaders(),
+                    body: JSON.stringify({ email: email })
+                });
+
+                if (response.ok) {
+                    showToast('인증 메일이 재발송되었습니다.', 'success');
+                    pollingAttempts = 0;
+                } else {
+                    const data = await response.json();
+                    showToast(data.detail || '재발송 실패', 'error');
+                }
+            } catch (error) {
+                console.error('Resend error:', error);
+                showToast('재발송 중 오류 발생', 'error');
+            }
+        }
+
+        // Legacy compatibility - page load check
         function checkEmailVerification() {
-            // 폴링 방식으로 변경되어 URL 파라미터 체크는 불필요
-            // 하지만 기존 링크 호환성을 위해 유지 (fallback)
             const urlParams = new URLSearchParams(window.location.search);
             const verifyToken = urlParams.get('verify_email');
             const verifyEmail = urlParams.get('email');
 
             if (verifyToken && verifyEmail) {
-                // 레거시: URL에서 인증 토큰 발견 시 서버에 검증 요청
                 verifyEmailToken(verifyToken, verifyEmail);
             }
         }
 
-        // 이메일 토큰 검증 (레거시 호환용)
         async function verifyEmailToken(token, email) {
             try {
                 const response = await fetch(`${API_BASE}/api/alerts/verify-email`, {
@@ -13137,315 +13169,219 @@
                 const data = await response.json();
 
                 if (response.ok && data.verified) {
-                    // 인증 성공 - 모달 열고 Step 2로 이동
-                    openAlertSettings();
-
-                    emailVerificationState.verified = true;
-                    emailVerificationState.email = email;
-
-                    // URL에서 파라미터 제거
                     window.history.replaceState({}, document.title, window.location.pathname);
-
-                    setTimeout(() => {
-                        // Step 1에 이메일 표시
-                        document.getElementById('alert-email').value = email;
-
-                        // Step 2로 이동
-                        document.getElementById('verified-email-display').textContent = email;
-                        goToAlertStep(2);
-
-                        // 인증 완료 알림
-                        showToast('이메일 인증이 완료되었습니다!', 'success');
-                    }, 300);
-                } else {
-                    alert('이메일 인증 실패: ' + (data.detail || '토큰이 만료되었거나 유효하지 않습니다.'));
+                    showToast('이메일 인증이 완료되었습니다!', 'success');
                 }
             } catch (error) {
-                console.error('Email verification error:', error);
+                console.error('Token verification error:', error);
             }
         }
 
-        // 페이지 로드 시 인증 체크
         document.addEventListener('DOMContentLoaded', checkEmailVerification);
-
-        async function saveAlertSettings() {
-            const email = emailVerificationState.email || document.getElementById('alert-email').value;
-            const consent = document.getElementById('alert-consent').checked;
-
-            // 인증 확인
-            if (!emailVerificationState.verified) {
-                alert('먼저 이메일 인증을 완료해주세요.');
-                goToAlertStep(1);
-                return;
-            }
-
-            // 동의 확인
-            if (!consent) {
-                alert('이메일 알림 수신에 동의해주세요.');
-                return;
-            }
-
-            // 알림 유형 수집
-            const alertTypes = [];
-            const alertLabels = [];
-            if (document.getElementById('alert-rank-change').checked) {
-                alertTypes.push('rank_change');
-                alertLabels.push('순위 변동');
-            }
-            if (document.getElementById('alert-insight').checked) {
-                alertTypes.push('important_insight');
-                alertLabels.push('중요 인사이트');
-            }
-            if (document.getElementById('alert-error').checked) {
-                alertTypes.push('error');
-                alertLabels.push('에러 알림');
-            }
-            if (document.getElementById('alert-daily').checked) {
-                alertTypes.push('daily_summary');
-                alertLabels.push('일일 요약');
-            }
-
-            // 최소 하나 이상 선택 확인
-            if (alertTypes.length === 0) {
-                alert('최소 하나 이상의 알림 유형을 선택해주세요.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/v3/alert-settings`, {
-                    method: 'POST',
-                    headers: getApiHeaders(),
-                    body: JSON.stringify({
-                        email: email,
-                        consent: consent,
-                        alert_types: alertTypes
-                    })
-                });
-
-                if (response.ok) {
-                    // Step 3으로 이동 (완료 화면)
-                    document.getElementById('final-email-display').textContent = email;
-                    document.getElementById('selected-alerts-display').textContent = alertLabels.join(', ');
-                    goToAlertStep(3);
-                    showToast('알림 설정이 저장되었습니다!', 'success');
-                } else {
-                    const error = await response.json();
-                    alert('저장 실패: ' + (error.detail || '알 수 없는 오류'));
-                }
-            } catch (error) {
-                console.error('Failed to save alert settings:', error);
-                alert('저장 중 오류가 발생했습니다.');
-            }
-        }
-
-        async function revokeConsent() {
-            if (!confirm('이메일 알림 수신 동의를 철회하시겠습니까?\n철회 후에는 알림을 받지 않습니다.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/v3/alert-settings/revoke`, {
-                    method: 'POST',
-                    headers: getApiHeaders()
-                });
-
-                if (response.ok) {
-                    showToast('동의가 철회되었습니다.', 'info');
-                    // 모달 초기화 및 닫기
-                    resetAlertModal();
-                    closeAlertSettings();
-                }
-            } catch (error) {
-                console.error('Failed to revoke consent:', error);
-                alert('동의 철회 중 오류가 발생했습니다.');
-            }
-        }
 
     </script>
 
-    <!-- Alert Settings Modal - 3단계 플로우 -->
+    <!-- Alert Settings Modal - Newneek-inspired UX -->
     <div id="alert-settings-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-content" style="max-width: 580px;">
             <div class="modal-header">
-                <h3><i data-lucide="bell" style="width: 20px; height: 20px; display: inline;"></i> 알림 설정</h3>
+                <h3><i data-lucide="bell" style="width: 20px; height: 20px; display: inline;"></i> 이메일 알림 구독</h3>
                 <button onclick="closeAlertSettings()" class="modal-close">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 24px;">
+            <div class="modal-body" style="padding: 32px;">
 
-                <!-- Step 1: 이메일 인증 -->
-                <div id="alert-step-1" class="alert-step">
-                    <div class="step-indicator" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
-                        <span class="step-dot active" style="width: 10px; height: 10px; border-radius: 50%; background: var(--amore-blue);"></span>
-                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0;"></span>
-                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0;"></span>
-                    </div>
-
+                <!-- Screen: Main (Default) -->
+                <div id="subscribe-main">
                     <div style="text-align: center; margin-bottom: 24px;">
-                        <div style="width: 60px; height: 60px; background: rgba(31, 87, 149, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                            <i data-lucide="mail" style="width: 28px; height: 28px; color: var(--amore-blue);"></i>
-                        </div>
-                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">이메일 인증</h4>
-                        <p style="font-size: 13px; color: #64748b;">알림을 받을 이메일 주소를 인증해주세요.</p>
+                        <h4 style="color: var(--pacific-blue); font-size: 20px; margin-bottom: 8px;">이메일 알림 구독하기</h4>
+                        <p style="font-size: 14px; color: #64748b;">AMORE Agent의 알림을 이메일로 받아보세요.</p>
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--pacific-blue);">
-                            이메일 주소
+                    <!-- Alert Type Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                        <!-- Card 1: Rank Change -->
+                        <div id="card-rank_change" class="alert-card" onclick="toggleAlertCard('rank_change')" style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s;">
+                            <div style="text-align: center; margin-bottom: 12px;">
+                                <div style="width: 48px; height: 48px; background: rgba(31, 87, 149, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <i data-lucide="trending-up" style="width: 24px; height: 24px; color: var(--amore-blue);"></i>
+                                </div>
+                            </div>
+                            <h5 style="font-size: 14px; font-weight: 600; color: var(--pacific-blue); margin-bottom: 4px; text-align: center;">순위 변동 알림</h5>
+                            <p style="font-size: 11px; color: #64748b; margin-bottom: 8px; text-align: center;">빈도: <strong>실시간</strong></p>
+                            <p style="font-size: 12px; color: #64748b; text-align: center; line-height: 1.4;">LANEIGE 순위가 10위 이상 변동 시 즉시 알림</p>
+                        </div>
+
+                        <!-- Card 2: Important Insight -->
+                        <div id="card-important_insight" class="alert-card" onclick="toggleAlertCard('important_insight')" style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s;">
+                            <div style="text-align: center; margin-bottom: 12px;">
+                                <div style="width: 48px; height: 48px; background: rgba(31, 87, 149, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <i data-lucide="lightbulb" style="width: 24px; height: 24px; color: var(--amore-blue);"></i>
+                                </div>
+                            </div>
+                            <h5 style="font-size: 14px; font-weight: 600; color: var(--pacific-blue); margin-bottom: 4px; text-align: center;">중요 인사이트</h5>
+                            <p style="font-size: 11px; color: #64748b; margin-bottom: 8px; text-align: center;">빈도: <strong>수시</strong></p>
+                            <p style="font-size: 12px; color: #64748b; text-align: center; line-height: 1.4;">AI가 발견한 시장 인사이트를 즉시 알려드려요</p>
+                        </div>
+
+                        <!-- Card 3: Daily Summary -->
+                        <div id="card-daily_summary" class="alert-card" onclick="toggleAlertCard('daily_summary')" style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s;">
+                            <div style="text-align: center; margin-bottom: 12px;">
+                                <div style="width: 48px; height: 48px; background: rgba(31, 87, 149, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <i data-lucide="file-text" style="width: 24px; height: 24px; color: var(--amore-blue);"></i>
+                                </div>
+                            </div>
+                            <h5 style="font-size: 14px; font-weight: 600; color: var(--pacific-blue); margin-bottom: 4px; text-align: center;">일일 요약 리포트</h5>
+                            <p style="font-size: 11px; color: #64748b; margin-bottom: 8px; text-align: center;">빈도: <strong>매일</strong></p>
+                            <p style="font-size: 12px; color: #64748b; text-align: center; line-height: 1.4;">하루 동안의 크롤링 결과를 요약하여 보내드려요</p>
+                        </div>
+                    </div>
+
+                    <!-- Checkbox List (synced with cards) -->
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; cursor: pointer;">
+                            <input type="checkbox" id="checkbox-rank_change" onchange="syncCardFromCheckbox('rank_change')" style="width: 18px; height: 18px; accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">순위 변동 알림</span>
                         </label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="email" id="alert-email"
-                                   placeholder="your-email@example.com"
-                                   style="flex: 1; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; transition: border-color 0.2s;"
-                                   onfocus="this.style.borderColor='var(--amore-blue)'"
-                                   onblur="this.style.borderColor='#e2e8f0'"
-                                   oninput="onEmailInputChange()">
-                            <button onclick="sendVerificationEmail()" id="verify-email-btn"
-                                    style="padding: 12px 20px; background: var(--amore-blue); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
-                                인증하기
-                            </button>
-                        </div>
-                        <!-- 인증 상태 표시 -->
-                        <div id="email-verification-status" style="margin-top: 8px; font-size: 13px; display: none;">
-                            <span id="verification-pending" style="color: #f59e0b; display: none;">
-                                <i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
-                                인증 이메일이 발송되었습니다. 메일함을 확인해주세요.
-                            </span>
-                            <span id="verification-success" style="color: #10b981; display: none;">
-                                <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
-                                이메일 인증 완료
-                            </span>
-                            <span id="verification-error" style="color: #ef4444; display: none;">
-                                <i data-lucide="x-circle" style="width: 14px; height: 14px; display: inline; vertical-align: -2px;"></i>
-                                <span id="verification-error-msg">인증 실패</span>
-                            </span>
-                        </div>
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; cursor: pointer;">
+                            <input type="checkbox" id="checkbox-important_insight" onchange="syncCardFromCheckbox('important_insight')" style="width: 18px; height: 18px; accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">중요 인사이트</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="checkbox-daily_summary" onchange="syncCardFromCheckbox('daily_summary')" style="width: 18px; height: 18px; accent-color: var(--amore-blue);">
+                            <span style="font-size: 13px; color: var(--pacific-blue);">일일 요약 리포트</span>
+                        </label>
                     </div>
 
-                    <div style="display: flex; gap: 12px;">
-                        <button onclick="closeAlertSettings()"
-                                style="flex: 1; padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                            취소
+                    <!-- Email Input -->
+                    <div style="margin-bottom: 16px;">
+                        <input type="email" id="subscribe-email" placeholder="이메일을 입력해 주세요"
+                               style="width: 100%; padding: 14px 18px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; transition: border-color 0.2s;"
+                               onfocus="this.style.borderColor='var(--amore-blue)'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+
+                    <!-- CTA Button -->
+                    <button onclick="startSubscription()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 16px; transition: all 0.2s;">
+                        📧 알림 받기
+                    </button>
+
+                    <!-- Footer Notes -->
+                    <div style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
+                        <p style="margin: 0 0 4px;">· 등록 시 이메일 알림 수신에 동의한 것으로 간주해요.</p>
+                        <p style="margin: 0;">· 이미 등록된 이메일이라면, 입력 후 알림 설정을 변경할 수 있어요.</p>
+                    </div>
+                </div>
+
+                <!-- Screen: Already Registered Popup -->
+                <div id="subscribe-already-registered" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); align-items: center; justify-content: center; z-index: 10001; backdrop-filter: blur(4px);">
+                    <div style="background: white; border-radius: 16px; padding: 32px; max-width: 400px; text-align: center;">
+                        <div style="width: 60px; height: 60px; background: rgba(245, 158, 11, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <i data-lucide="info" style="width: 28px; height: 28px; color: #f59e0b;"></i>
+                        </div>
+                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">이미 가입한 이메일이에요.</h4>
+                        <p style="font-size: 14px; color: #64748b; margin-bottom: 24px;">구독 설정을 변경하려면 아래 버튼을 눌러주세요.</p>
+                        <button onclick="goToEditSettings()" style="width: 100%; padding: 14px; background: var(--amore-blue); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-bottom: 12px;">
+                            구독 설정 변경하기
+                        </button>
+                        <button onclick="closeAlreadyRegisteredPopup()" style="width: 100%; padding: 14px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            닫기
                         </button>
                     </div>
                 </div>
 
-                <!-- Step 2: 기능 선택 -->
-                <div id="alert-step-2" class="alert-step" style="display: none;">
-                    <div class="step-indicator" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
-                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
-                        <span class="step-dot active" style="width: 10px; height: 10px; border-radius: 50%; background: var(--amore-blue);"></span>
-                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0;"></span>
+                <!-- Screen: Edit Settings -->
+                <div id="subscribe-edit" style="display: none;">
+                    <div style="margin-bottom: 24px;">
+                        <button onclick="goBackToMain()" style="display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--amore-blue); font-size: 14px; font-weight: 600; cursor: pointer; padding: 8px 0;">
+                            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> 뒤로
+                        </button>
                     </div>
 
                     <div style="text-align: center; margin-bottom: 24px;">
-                        <div style="width: 60px; height: 60px; background: rgba(16, 185, 129, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                            <i data-lucide="check-circle" style="width: 28px; height: 28px; color: #10b981;"></i>
+                        <h4 style="color: var(--pacific-blue); font-size: 18px; margin-bottom: 8px;">알림 설정</h4>
+                        <p style="font-size: 13px; color: #64748b;">구독 이메일: <strong id="edit-email-display"></strong></p>
+                    </div>
+
+                    <!-- Toggle Switches -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px;">
+                            <span style="font-size: 14px; color: var(--pacific-blue); font-weight: 600;">순위 변동 알림</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-rank_change">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
-                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">인증 완료!</h4>
-                        <p style="font-size: 13px; color: #64748b;">
-                            <strong id="verified-email-display"></strong> 인증됨<br>
-                            받고 싶은 알림을 선택해주세요.
-                        </p>
-                    </div>
-
-                    <!-- 동의 체크박스 -->
-                    <div class="consent-box" style="background: rgba(31, 87, 149, 0.05); border: 1px solid rgba(31, 87, 149, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                            <input type="checkbox" id="alert-consent" onchange="toggleAlertOptions()"
-                                   style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--amore-blue);">
-                            <div>
-                                <span style="font-weight: 600; color: var(--pacific-blue);">이메일 알림 수신에 동의합니다</span>
-                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">
-                                    순위 변동, 중요 인사이트, 시스템 에러 등의 알림을 이메일로 받습니다.<br>
-                                    언제든지 동의를 철회할 수 있습니다.
-                                </p>
-                            </div>
-                        </label>
-                    </div>
-
-                    <!-- 알림 유형 선택 -->
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 12px; color: var(--pacific-blue);">
-                            알림 유형 선택
-                        </label>
-                        <div class="alert-type-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                                <input type="checkbox" id="alert-rank-change" disabled style="accent-color: var(--amore-blue);">
-                                <span style="font-size: 13px; color: var(--pacific-blue);">순위 변동</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px;">
+                            <span style="font-size: 14px; color: var(--pacific-blue); font-weight: 600;">중요 인사이트</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-important_insight">
+                                <span class="toggle-slider"></span>
                             </label>
-                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                                <input type="checkbox" id="alert-insight" disabled style="accent-color: var(--amore-blue);">
-                                <span style="font-size: 13px; color: var(--pacific-blue);">중요 인사이트</span>
-                            </label>
-                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                                <input type="checkbox" id="alert-error" disabled style="accent-color: var(--amore-blue);">
-                                <span style="font-size: 13px; color: var(--pacific-blue);">에러 알림</span>
-                            </label>
-                            <label class="alert-type-option" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
-                                <input type="checkbox" id="alert-daily" disabled style="accent-color: var(--amore-blue);">
-                                <span style="font-size: 13px; color: var(--pacific-blue);">일일 요약</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8fafc; border-radius: 10px;">
+                            <span style="font-size: 14px; color: var(--pacific-blue); font-weight: 600;">일일 요약 리포트</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-daily_summary">
+                                <span class="toggle-slider"></span>
                             </label>
                         </div>
                     </div>
+
+                    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">· 알림 수신을 원하지 않으시면 구독을 해지할 수 있어요.</p>
 
                     <div style="display: flex; gap: 12px;">
-                        <button onclick="goToAlertStep(1)"
-                                style="padding: 12px 20px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                            이전
-                        </button>
-                        <button onclick="saveAlertSettings()" id="save-alert-btn"
-                                style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        <button onclick="saveEditedSettings()" style="flex: 1; padding: 14px; background: var(--amore-blue); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
                             저장
                         </button>
+                        <button onclick="unsubscribe()" style="padding: 14px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                            구독 해지
+                        </button>
                     </div>
                 </div>
 
-                <!-- Step 3: 완료 안내 -->
-                <div id="alert-step-3" class="alert-step" style="display: none;">
-                    <div class="step-indicator" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
-                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
-                        <span class="step-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
-                        <span class="step-dot active" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+                <!-- Screen: Verification -->
+                <div id="subscribe-verification" style="display: none; text-align: center;">
+                    <div style="width: 80px; height: 80px; background: rgba(31, 87, 149, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                        <i data-lucide="mail" style="width: 40px; height: 40px; color: var(--amore-blue);"></i>
                     </div>
+                    <h4 style="color: var(--pacific-blue); font-size: 18px; margin-bottom: 12px;">인증 메일을 보냈어요!</h4>
+                    <p style="font-size: 14px; color: #64748b; margin-bottom: 8px;">
+                        <strong id="verification-email-display"></strong>으로<br>인증 메일을 보냈습니다. 메일함을 확인해주세요.
+                    </p>
+                    <p style="font-size: 13px; color: #f59e0b; margin-bottom: 24px;">(30분 내에 인증해주세요)</p>
 
-                    <div style="text-align: center; margin-bottom: 24px;">
-                        <div style="width: 70px; height: 70px; background: rgba(16, 185, 129, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                            <i data-lucide="party-popper" style="width: 32px; height: 32px; color: #10b981;"></i>
-                        </div>
-                        <h4 style="color: var(--pacific-blue); margin-bottom: 8px;">설정 완료!</h4>
-                        <p style="font-size: 13px; color: #64748b;">
-                            알림 설정이 저장되었습니다.
-                        </p>
+                    <button onclick="resendVerification()" style="width: 100%; padding: 14px; background: #f1f5f9; color: var(--amore-blue); border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-bottom: 16px;">
+                        인증 메일 재발송
+                    </button>
+
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #64748b; font-size: 14px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #e2e8f0; border-top-color: var(--amore-blue); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span>인증 대기중...</span>
                     </div>
+                </div>
 
-                    <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <!-- Screen: Complete -->
+                <div id="subscribe-complete" style="display: none; text-align: center;">
+                    <div style="width: 80px; height: 80px; background: rgba(16, 185, 129, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                        <i data-lucide="party-popper" style="width: 40px; height: 40px; color: #10b981;"></i>
+                    </div>
+                    <h4 style="color: var(--pacific-blue); font-size: 20px; margin-bottom: 12px;">구독 완료!</h4>
+
+                    <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: left;">
                         <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
                             <strong style="color: var(--pacific-blue);">수신 이메일</strong><br>
-                            <span id="final-email-display"></span>
+                            <span id="complete-email-display"></span>
                         </p>
-                        <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
+                        <p style="font-size: 13px; color: #64748b; margin: 0;">
                             <strong style="color: var(--pacific-blue);">선택된 알림</strong><br>
-                            <span id="selected-alerts-display"></span>
+                            <span id="complete-alerts-display"></span>
                         </p>
                     </div>
 
-                    <div style="background: rgba(31, 87, 149, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                        <p style="font-size: 13px; color: var(--pacific-blue); margin: 0; display: flex; align-items: flex-start; gap: 10px;">
-                            <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;"></i>
-                            <span>해당 이벤트 발생 시 등록된 이메일로 알림을 보내드립니다.</span>
-                        </p>
-                    </div>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">해당 이벤트 발생 시 등록된 이메일로 알림을 보내드립니다.</p>
 
-                    <div style="display: flex; gap: 12px;">
-                        <button onclick="closeAlertSettings()"
-                                style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                            확인
-                        </button>
-                        <button onclick="revokeConsent()"
-                                style="padding: 12px 20px; background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                            동의 철회
-                        </button>
-                    </div>
+                    <button onclick="closeAlertSettings()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, var(--pacific-blue), var(--amore-blue)); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                        확인
+                    </button>
                 </div>
 
             </div>
@@ -13453,7 +13389,7 @@
     </div>
 
     <style>
-        /* Alert Settings Modal - AMOREPACIFIC CI 통일 */
+        /* Alert Settings Modal - Newneek-inspired UX */
         #alert-settings-modal {
             position: fixed;
             top: 0;
@@ -13466,6 +13402,7 @@
             z-index: 10000;
             backdrop-filter: blur(4px);
         }
+
         #alert-settings-modal .modal-content {
             background: white;
             border-radius: 16px;
@@ -13474,10 +13411,12 @@
             overflow-y: auto;
             animation: modalSlideIn 0.3s ease;
         }
+
         @keyframes modalSlideIn {
             from { opacity: 0; transform: scale(0.95) translateY(-20px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
+
         #alert-settings-modal .modal-header {
             display: flex;
             justify-content: space-between;
@@ -13486,6 +13425,7 @@
             border-bottom: 1px solid rgba(31, 87, 149, 0.15);
             background: linear-gradient(135deg, rgba(0, 28, 88, 0.03), rgba(31, 87, 149, 0.05));
         }
+
         #alert-settings-modal .modal-header h3 {
             display: flex;
             align-items: center;
@@ -13494,6 +13434,7 @@
             font-weight: 700;
             color: var(--pacific-blue);
         }
+
         #alert-settings-modal .modal-close {
             width: 32px;
             height: 32px;
@@ -13505,25 +13446,83 @@
             transition: all 0.2s;
             color: var(--pacific-blue);
         }
+
         #alert-settings-modal .modal-close:hover {
             background: rgba(31, 87, 149, 0.2);
         }
-        #alert-settings-modal .alert-type-option:hover {
+
+        /* Alert Cards */
+        .alert-card.selected {
+            border-color: var(--amore-blue) !important;
+            background: rgba(31, 87, 149, 0.05) !important;
+        }
+
+        .alert-card:hover {
             border-color: var(--amore-blue);
-            background: rgba(31, 87, 149, 0.05);
+            box-shadow: 0 4px 12px rgba(31, 87, 149, 0.15);
         }
-        #alert-settings-modal button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 28, 88, 0.15);
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
         }
-        #verify-email-btn:hover {
-            background: var(--pacific-blue) !important;
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
-        #verify-email-btn:disabled {
-            background: #94a3b8 !important;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--amore-blue);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Spinner Animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            #alert-settings-modal .modal-content {
+                max-width: 95%;
+            }
+
+            #subscribe-main > div:nth-child(2) {
+                grid-template-columns: 1fr !important;
+            }
         }
     </style>
 </body>

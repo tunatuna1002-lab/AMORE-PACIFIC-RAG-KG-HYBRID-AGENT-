@@ -120,13 +120,18 @@ class ResponsePipeline:
                 and "HIGH confidence" in (decision.reason or "")
             )
 
-            if is_high_confidence and self.client:
+            # LLM 사용 가능 여부 (litellm은 OPENAI_API_KEY로 직접 호출)
+            import os
+
+            llm_available = self.client or os.environ.get("OPENAI_API_KEY")
+
+            if is_high_confidence and llm_available:
                 # Use faster, shorter prompt for HIGH confidence
                 response_text = await self._call_llm_fast(query, context)
-            elif self.client:
+            elif llm_available:
                 response_text = await self._call_llm(messages)
             else:
-                # 클라이언트 없으면 컨텍스트 기반 기본 응답
+                # LLM 없으면 컨텍스트 기반 기본 응답
                 response_text = self._generate_fallback_response(query, context)
 
             # 응답 후처리
@@ -306,7 +311,7 @@ class ResponsePipeline:
 
     async def _call_llm(self, messages: list[dict[str, str]]) -> str:
         """
-        LLM API 호출
+        LLM API 호출 (litellm 사용)
 
         Args:
             messages: 메시지 리스트
@@ -315,7 +320,9 @@ class ResponsePipeline:
             응답 텍스트
         """
         try:
-            response = await self.client.chat.completions.create(
+            from litellm import acompletion
+
+            response = await acompletion(
                 model=self.model,
                 messages=messages,
                 max_tokens=self.max_tokens,

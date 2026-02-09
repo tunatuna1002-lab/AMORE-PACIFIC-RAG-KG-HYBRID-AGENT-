@@ -623,45 +623,89 @@ class UnifiedBrain:
                 query=query, current_metrics=current_metrics
             )
 
-            # 2. 복잡도 판단
-            use_react = self._react_agent and self._is_complex_query(query, context)
+            # 2. 신뢰도 기반 라우팅 (non-streaming과 동일한 4-tier 분기)
+            confidence_level = self._assess_confidence_level(context)
+            use_react = False
 
-            if use_react:
-                yield {"type": "status", "content": "복잡한 질문 감지 — ReAct 분석 모드 시작..."}
+            if self.confidence_assessor.should_skip_llm_decision(confidence_level):
+                # HIGH: LLM 판단 스킵, 컨텍스트로 직접 응답
+                yield {"type": "status", "content": "높은 신뢰도 — 빠른 응답 생성 중..."}
+                logger.info(f"[stream] HIGH confidence - skipping LLM decision: {query[:50]}...")
+                decision = Decision(
+                    tool="direct_answer",
+                    tool_params={},
+                    reason=f"HIGH confidence ({confidence_level.value}) - direct context answer",
+                    confidence=0.9,
+                    key_points=self._extract_key_points_from_context(context),
+                )
+                response = await self._generate_response(
+                    query=query, context=context, decision=decision, tool_result=None
+                )
 
-                # ReAct 처리 (비스트리밍 → 결과를 청크로 변환)
-                response = await self._process_with_react(query, context)
+            elif self.confidence_assessor.should_request_clarification(confidence_level):
+                # UNKNOWN: 명확화 요청
+                yield {"type": "status", "content": "질문 분석 중..."}
+                logger.info(
+                    f"[stream] UNKNOWN confidence - requesting clarification: {query[:50]}..."
+                )
+                response = Response(
+                    text="질문을 더 구체적으로 해주시겠어요? 예를 들어 특정 브랜드나 카테고리, 분석 지표(SoS, HHI 등)를 포함해주세요.",
+                    query_type="clarification",
+                    confidence_level=confidence_level,
+                    confidence_score=0.2,
+                    suggestions=[
+                        "LANEIGE의 Lip Care 카테고리 점유율은?",
+                        "최근 크롤링 데이터 기반 Top 10 브랜드 알려줘",
+                        "경쟁사 대비 LANEIGE 포지셔닝 분석해줘",
+                    ],
+                )
 
             else:
-                # 3. LLM 의사결정
-                yield {"type": "status", "content": "분석 중..."}
+                # MEDIUM/LOW: 기존 플로우 (ReAct 또는 DecisionMaker)
+                use_react = self._react_agent and self._is_complex_query(query, context)
 
-                system_state = self._get_system_state(current_metrics)
-                decision = await self.decision_maker.decide(query, context, system_state)
-                self._stats["llm_decisions"] += 1
-
-                # 4. 도구 실행 (필요시)
-                tool_result = None
-                tool_name = decision.tool
-                if tool_name and tool_name != "direct_answer":
+                if use_react:
                     yield {
-                        "type": "tool_call",
-                        "content": f"도구 호출: {tool_name}",
+                        "type": "status",
+                        "content": "복잡한 질문 감지 — ReAct 분석 모드 시작...",
                     }
-                    self.mode = BrainMode.EXECUTING
-                    tool_result = await self.tool_coordinator.execute(
-                        tool_name=tool_name, params=decision.tool_params or {}
+                    response = await self._process_with_react(query, context)
+
+                else:
+                    # LLM 의사결정
+                    yield {"type": "status", "content": "분석 중..."}
+
+                    system_state = self._get_system_state(current_metrics)
+                    decision = await self.decision_maker.decide(
+                        query,
+                        context,
+                        system_state,
+                        confidence_level=confidence_level.value if confidence_level else "medium",
                     )
+                    self._stats["llm_decisions"] += 1
 
-                # 5. 응답 생성
-                yield {"type": "status", "content": "응답 생성 중..."}
+                    # 도구 실행 (필요시)
+                    tool_result = None
+                    tool_name = decision.tool
+                    if tool_name and tool_name != "direct_answer":
+                        yield {
+                            "type": "tool_call",
+                            "content": {"name": tool_name, "status": "calling"},
+                        }
+                        self.mode = BrainMode.EXECUTING
+                        tool_result = await self.tool_coordinator.execute(
+                            tool_name=tool_name, params=decision.tool_params or {}
+                        )
 
-                response = await self._generate_response(
-                    query=query,
-                    context=context,
-                    decision=decision,
-                    tool_result=tool_result,
-                )
+                    # 응답 생성
+                    yield {"type": "status", "content": "응답 생성 중..."}
+
+                    response = await self._generate_response(
+                        query=query,
+                        context=context,
+                        decision=decision,
+                        tool_result=tool_result,
+                    )
 
             # PromptGuard 출력 검증
             is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
@@ -673,20 +717,18 @@ class UnifiedBrain:
             # 텍스트 청크로 yield (자연스러운 스트리밍)
             yield {"type": "text", "content": final_text}
 
-            # 완료 이벤트
+            # 완료 이벤트 (content는 dict - dashboard_api에서 json.dumps 처리)
             yield {
                 "type": "done",
-                "content": json.dumps(
-                    {
-                        "confidence": response.confidence_score,
-                        "sources": response.sources[:5] if response.sources else [],
-                        "tools_used": response.tools_called,
-                        "suggestions": response.suggestions[:3] if response.suggestions else [],
-                        "processing_time_ms": round(processing_time, 1),
-                        "mode": "react" if use_react else "direct",
-                    },
-                    ensure_ascii=False,
-                ),
+                "content": {
+                    "confidence": response.confidence_score,
+                    "sources": response.sources[:5] if response.sources else [],
+                    "tools_used": response.tools_called,
+                    "suggestions": response.suggestions[:3] if response.suggestions else [],
+                    "processing_time_ms": round(processing_time, 1),
+                    "mode": "react" if use_react else "direct",
+                    "confidence_level": confidence_level.value if confidence_level else "medium",
+                },
             }
 
         except Exception as e:
