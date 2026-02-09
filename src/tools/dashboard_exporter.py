@@ -13,12 +13,12 @@ Ontology-RAG Hybrid Integration:
     - 대시보드에 추론 결과 시각화
 """
 
-import os
 import json
-from pathlib import Path
-from datetime import datetime, date, timedelta, timezone
-from typing import Dict, Any, List, Optional
+import os
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
 
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
@@ -28,10 +28,11 @@ from src.tools.sqlite_storage import SQLiteStorage
 
 # Ontology components (optional import)
 try:
+    from ontology.business_rules import register_all_rules
     from ontology.knowledge_graph import KnowledgeGraph
     from ontology.reasoner import OntologyReasoner
-    from ontology.business_rules import register_all_rules
     from ontology.relations import Relation, RelationType
+
     ONTOLOGY_AVAILABLE = True
 except ImportError:
     ONTOLOGY_AVAILABLE = False
@@ -49,14 +50,10 @@ class DashboardExporter:
         "skin_care": "Skin Care",
         "lip_care": "Lip Care",
         "lip_makeup": "Lip Makeup",
-        "face_powder": "Face Powder"
+        "face_powder": "Face Powder",
     }
 
-    def __init__(
-        self,
-        spreadsheet_id: Optional[str] = None,
-        enable_ontology: bool = True
-    ):
+    def __init__(self, spreadsheet_id: str | None = None, enable_ontology: bool = True):
         """
         Args:
             spreadsheet_id: Google Sheets ID
@@ -68,8 +65,8 @@ class DashboardExporter:
 
         # Ontology components
         self.enable_ontology = enable_ontology and ONTOLOGY_AVAILABLE
-        self._knowledge_graph: Optional[KnowledgeGraph] = None
-        self._reasoner: Optional[OntologyReasoner] = None
+        self._knowledge_graph: KnowledgeGraph | None = None
+        self._reasoner: OntologyReasoner | None = None
 
         if self.enable_ontology:
             self._init_ontology()
@@ -130,7 +127,9 @@ class DashboardExporter:
         self._initialized = True
         return True
 
-    async def export_dashboard_data(self, output_path: str = "./data/dashboard_data.json") -> Dict[str, Any]:
+    async def export_dashboard_data(
+        self, output_path: str = "./data/dashboard_data.json"
+    ) -> dict[str, Any]:
         """
         Dashboard용 JSON 데이터 생성
 
@@ -157,20 +156,20 @@ class DashboardExporter:
                 "data_date": latest_date,
                 "total_products": len(raw_data),
                 "laneige_products": len([r for r in raw_data if self._is_laneige(r)]),
-                "ontology_enabled": self.enable_ontology
+                "ontology_enabled": self.enable_ontology,
             },
             "data_source": {
                 "platform": "Amazon US Best Sellers",
                 "collected_at": datetime.now(KST).isoformat(),
                 "snapshot_date": latest_date,
                 "disclaimer": "Amazon은 Best Sellers 순위를 매 시간 업데이트합니다. 표시된 데이터는 수집 시점의 스냅샷입니다.",
-                "url": "https://www.amazon.com/gp/bestsellers/beauty"
+                "url": "https://www.amazon.com/gp/bestsellers/beauty",
             },
             "home": self._generate_home_data(raw_data),
             "brand": self._generate_brand_data(raw_data),
             "categories": self._generate_category_data(raw_data),
             "products": self._generate_product_data(raw_data),
-            "charts": self._generate_chart_data(raw_data)
+            "charts": self._generate_chart_data(raw_data),
         }
 
         # 온톨로지 추론 결과 추가
@@ -185,7 +184,7 @@ class DashboardExporter:
 
         return dashboard_data
 
-    async def _load_raw_data(self) -> List[Dict[str, Any]]:
+    async def _load_raw_data(self) -> list[dict[str, Any]]:
         """SQLite, raw_products 폴더, 또는 로컬 JSON에서 데이터 로드"""
         all_products = []
 
@@ -210,7 +209,7 @@ class DashboardExporter:
                     continue
 
                 try:
-                    with open(json_file, "r", encoding="utf-8") as f:
+                    with open(json_file, encoding="utf-8") as f:
                         daily_products = json.load(f)
 
                     # snapshot_date가 없으면 파일명에서 추출
@@ -224,15 +223,12 @@ class DashboardExporter:
                     print(f"히스토리 파일 로드 실패 ({json_file}): {e}")
 
         # 3. latest_crawl_result.json에서 fallback (히스토리에 없는 최신 데이터)
-        local_paths = [
-            "./data/latest_crawl_result.json",
-            "./data/crawl_result.json"
-        ]
+        local_paths = ["./data/latest_crawl_result.json", "./data/crawl_result.json"]
 
         for path in local_paths:
             if os.path.exists(path):
                 try:
-                    with open(path, "r", encoding="utf-8") as f:
+                    with open(path, encoding="utf-8") as f:
                         crawl_data = json.load(f)
 
                     # categories 구조에서 products 추출
@@ -246,7 +242,7 @@ class DashboardExporter:
                     if products:
                         # 이미 로드된 날짜인지 확인
                         latest_date = products[0].get("snapshot_date", "")
-                        existing_dates = set(p.get("snapshot_date") for p in all_products)
+                        existing_dates = {p.get("snapshot_date") for p in all_products}
 
                         if latest_date and latest_date not in existing_dates:
                             all_products.extend(products)
@@ -269,17 +265,17 @@ class DashboardExporter:
 
         return all_products
 
-    def _get_latest_date(self, data: List[Dict]) -> str:
+    def _get_latest_date(self, data: list[dict]) -> str:
         """최신 데이터 날짜 반환"""
         dates = [r.get("snapshot_date", "") for r in data if r.get("snapshot_date")]
         return max(dates) if dates else datetime.now(KST).strftime("%Y-%m-%d")
 
-    def _is_laneige(self, record: Dict) -> bool:
+    def _is_laneige(self, record: dict) -> bool:
         """LANEIGE 제품 여부 확인"""
         brand = record.get("brand", "").lower()
         return self.LANEIGE_BRAND in brand
 
-    def _generate_home_data(self, raw_data: List[Dict]) -> Dict[str, Any]:
+    def _generate_home_data(self, raw_data: list[dict]) -> dict[str, Any]:
         """Home 페이지 데이터 생성"""
         latest_date = self._get_latest_date(raw_data)
         latest_data = [r for r in raw_data if r.get("snapshot_date") == latest_date]
@@ -310,12 +306,12 @@ class DashboardExporter:
                 "exposure": status,
                 "exposure_type": status_type,
                 "position": f"Top {self._get_best_rank(laneige_products)}",
-                "warning_count": len([a for a in action_items if a.get("priority") == "P1"])
+                "warning_count": len([a for a in action_items if a.get("priority") == "P1"]),
             },
-            "action_items": action_items[:4]  # 상위 4개만
+            "action_items": action_items[:4],  # 상위 4개만
         }
 
-    def _generate_daily_insight(self, laneige_products: List[Dict], date_str: str) -> str:
+    def _generate_daily_insight(self, laneige_products: list[dict], date_str: str) -> str:
         """일일 인사이트 메시지 생성"""
         if not laneige_products:
             return "오늘 LANEIGE 제품 데이터가 없습니다."
@@ -330,10 +326,11 @@ class DashboardExporter:
             f"입니다. <strong>{best_name}</strong>가 {best_rank}위를 기록했습니다."
         )
 
-    def _generate_action_items(self, laneige_products: List[Dict], all_data: List[Dict]) -> List[Dict]:
-        """액션 아이템 생성 - ASIN 중복 제거, 가장 좋은 순위 카테고리 표시"""
+    def _generate_action_items(
+        self, laneige_products: list[dict], all_data: list[dict]
+    ) -> list[dict]:
+        """액션 아이템 생성 - ASIN 중복 제거, 풍부한 문제 신호 포함"""
         items = []
-        seen_asins = set()  # ASIN 중복 방지
 
         # ASIN별로 가장 좋은 순위의 제품만 선택
         asin_best = {}
@@ -350,59 +347,93 @@ class DashboardExporter:
             rating = self._safe_float(product.get("rating", 0))
             name = product.get("product_name", "Unknown")
             category_id = product.get("category_id", "")
-            # category_name이 없으면 CATEGORY_MAP에서 가져옴
             category_name = product.get("category_name") or self.CATEGORY_MAP.get(category_id, "")
 
-            # 순위 상승/하락 체크 (동일 카테고리 내에서만)
+            # 어제 대비 순위 변동
             rank_change = self._calculate_rank_change(product, all_data)
+            # 7일 순위 변동성
+            volatility = self._calculate_rank_volatility(product, all_data)
+            # 7일 전 대비 순위 변동
+            rank_change_7d = self._calculate_rank_change_7d(product, all_data)
+
+            prev_rank = rank - rank_change if rank_change != 0 else 0
 
             priority = "P2"
             signal = ""
+            signal_detail = ""
             action_tag = "MONITOR"
 
-            if rank_change < -2:  # 순위 상승 (숫자가 작아짐)
-                signal = f"순위 {rank+abs(rank_change)}→{rank} (상향)"
+            if rank_change < -2:  # 순위 급상승
+                signal = f"순위 {prev_rank}→{rank} (상향)"
                 if category_name:
                     signal += f" [{category_name}]"
                 priority = "P1"
                 action_tag = "MONITOR"
-            elif rank_change > 2:  # 순위 하락
-                signal = f"순위 {rank-rank_change}→{rank} (하락)"
+            elif rank_change > 2:  # 순위 급하락
+                signal = f"순위 {prev_rank}→{rank} (하락)"
                 if category_name:
                     signal += f" [{category_name}]"
                 priority = "P1"
                 action_tag = "CHECK"
-            elif rating > 0 and rating < 4.0:  # 평점 낮음 (0은 데이터 없음으로 처리)
+            elif rating > 0 and rating < 4.0:  # 평점 낮음
                 signal = f"평점 {rating:.2f} (주의)"
                 priority = "P1"
                 action_tag = "CHECK"
+            elif volatility > 15:  # 7일간 순위 변동성 높음 (max-min > 15)
+                signal = f"순위 변동성 높음 (7일 ±{volatility}위)"
+                if category_name:
+                    signal += f" [{category_name}]"
+                priority = "P1"
+                action_tag = "DEEP DIVE"
             elif rank <= 5:  # 상위권 유지
-                signal = f"Top {rank} 유지 중"
+                if rank_change != 0:
+                    direction = "▲" if rank_change < 0 else "▼"
+                    signal = f"Top {rank} 유지 ({direction}{abs(rank_change)})"
+                else:
+                    signal = f"Top {rank} 유지 중"
                 if category_name:
                     signal += f" [{category_name}]"
                 action_tag = "MONITOR"
             else:
-                signal = f"순위 {rank}위"
+                # 항상 변동 정보 포함
+                if rank_change != 0:
+                    direction = "▲" if rank_change < 0 else "▼"
+                    signal = f"순위 {prev_rank}→{rank} ({direction}{abs(rank_change)})"
+                else:
+                    signal = f"순위 {rank}위 (변동없음)"
                 if category_name:
                     signal += f" [{category_name}]"
                 action_tag = "DEEP DIVE"
 
-            items.append({
-                "priority": priority,
-                "product_name": name,
-                "brand_variant": product.get("badge", ""),
-                "signal": signal,
-                "action_tag": action_tag,
-                "asin": asin,
-                "category_id": category_id,
-                "category_name": category_name
-            })
+            # 7일 트렌드 부가 정보
+            if rank_change_7d != 0 and abs(rank_change_7d) > abs(rank_change):
+                direction_7d = "상승" if rank_change_7d < 0 else "하락"
+                signal_detail = f"7일간 {abs(rank_change_7d)}위 {direction_7d}"
 
-        # 우선순위로 정렬
-        items.sort(key=lambda x: (0 if x["priority"] == "P1" else 1, self._safe_int(x.get("rank", 999))))
+            items.append(
+                {
+                    "priority": priority,
+                    "product_name": name,
+                    "brand_variant": product.get("badge", ""),
+                    "signal": signal,
+                    "signal_detail": signal_detail,
+                    "action_tag": action_tag,
+                    "asin": asin,
+                    "category_id": category_id,
+                    "category_name": category_name,
+                    "rank": rank,
+                    "rank_change": rank_change,
+                    "rank_change_7d": rank_change_7d,
+                    "volatility": volatility,
+                    "rating": rating,
+                }
+            )
+
+        # 우선순위로 정렬 (P1 우선, 그 다음 순위순)
+        items.sort(key=lambda x: (0 if x["priority"] == "P1" else 1, x.get("rank", 999)))
         return items
 
-    def _calculate_rank_change(self, product: Dict, all_data: List[Dict]) -> int:
+    def _calculate_rank_change(self, product: dict, all_data: list[dict]) -> int:
         """순위 변동 계산 (어제 대비) - 동일 카테고리 내에서만 비교"""
         asin = product.get("asin")
         current_date = product.get("snapshot_date")
@@ -413,7 +444,8 @@ class DashboardExporter:
 
         # 이전 데이터 찾기 - 동일 ASIN + 동일 카테고리 내에서만 비교
         prev_records = [
-            r for r in all_data
+            r
+            for r in all_data
             if r.get("asin") == asin
             and r.get("category_id") == category_id  # 동일 카테고리 필터
             and r.get("snapshot_date", "") < current_date
@@ -429,12 +461,76 @@ class DashboardExporter:
 
         return curr_rank - prev_rank
 
-    def _get_best_rank(self, products: List[Dict]) -> int:
+    def _calculate_rank_volatility(self, product: dict, all_data: list[dict]) -> int:
+        """7일간 순위 변동성 계산 (max - min)"""
+        asin = product.get("asin")
+        category_id = product.get("category_id")
+        current_date = product.get("snapshot_date", "")
+
+        if not asin or not current_date:
+            return 0
+
+        # 동일 카테고리 내 최근 7일 데이터
+        records = [
+            r
+            for r in all_data
+            if r.get("asin") == asin
+            and r.get("category_id") == category_id
+            and r.get("snapshot_date", "") <= current_date
+        ]
+        # 날짜 기준 최근 7개만
+        records.sort(key=lambda x: x.get("snapshot_date", ""), reverse=True)
+        recent = records[:7]
+
+        if len(recent) < 2:
+            return 0
+
+        ranks = [
+            self._safe_int(r.get("rank", 0)) for r in recent if self._safe_int(r.get("rank", 0)) > 0
+        ]
+        if not ranks:
+            return 0
+
+        return max(ranks) - min(ranks)
+
+    def _calculate_rank_change_7d(self, product: dict, all_data: list[dict]) -> int:
+        """7일 전 대비 순위 변동 계산"""
+        asin = product.get("asin")
+        category_id = product.get("category_id")
+        current_date = product.get("snapshot_date", "")
+
+        if not asin or not current_date:
+            return 0
+
+        # 동일 카테고리 내 과거 데이터 (현재 날짜 제외)
+        prev_records = [
+            r
+            for r in all_data
+            if r.get("asin") == asin
+            and r.get("category_id") == category_id
+            and r.get("snapshot_date", "") < current_date
+        ]
+
+        if not prev_records:
+            return 0
+
+        # 가장 오래된 기록 (7일 이내)
+        prev_records.sort(key=lambda x: x.get("snapshot_date", ""))
+        oldest = prev_records[0]
+        oldest_rank = self._safe_int(oldest.get("rank", 0))
+        curr_rank = self._safe_int(product.get("rank", 0))
+
+        if oldest_rank == 0 or curr_rank == 0:
+            return 0
+
+        return curr_rank - oldest_rank
+
+    def _get_best_rank(self, products: list[dict]) -> int:
         """최고 순위 반환"""
         ranks = [self._safe_int(p.get("rank", 999)) for p in products]
         return min(ranks) if ranks else 999
 
-    def _generate_brand_data(self, raw_data: List[Dict]) -> Dict[str, Any]:
+    def _generate_brand_data(self, raw_data: list[dict]) -> dict[str, Any]:
         """Brand View (L1) 데이터"""
         latest_date = self._get_latest_date(raw_data)
         latest_data = [r for r in raw_data if r.get("snapshot_date") == latest_date]
@@ -448,13 +544,19 @@ class DashboardExporter:
             brand_stats[brand]["ranks"].append(self._safe_int(record.get("rank", 999)))
 
         # LANEIGE 통계
-        laneige_stats = brand_stats.get("LANEIGE", brand_stats.get("Laneige", {"products": [], "ranks": [999]}))
+        laneige_stats = brand_stats.get(
+            "LANEIGE", brand_stats.get("Laneige", {"products": [], "ranks": [999]})
+        )
 
         laneige_ranks = laneige_stats["ranks"] if laneige_stats["ranks"] else [999]
         avg_rank = sum(laneige_ranks) / len(laneige_ranks) if laneige_ranks else 0
 
         # LANEIGE 평균 가격 계산 (문자열 → float 변환, $0.50~$500 범위만)
-        laneige_prices = [self._safe_float(p.get("price")) for p in laneige_stats.get("products", []) if p.get("price")]
+        laneige_prices = [
+            self._safe_float(p.get("price"))
+            for p in laneige_stats.get("products", [])
+            if p.get("price")
+        ]
         laneige_prices = [p for p in laneige_prices if 0.5 <= p <= 500]  # 유효한 USD 가격 범위만
         laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else None
 
@@ -476,25 +578,25 @@ class DashboardExporter:
                 "top10_count": top10_count,
                 "avg_rank": round(avg_rank, 1),
                 "avg_price": round(laneige_avg_price, 2) if laneige_avg_price else None,
-                "hhi": round(hhi, 2)
+                "hhi": round(hhi, 2),
             },
-            "competitors": self._generate_competitor_data(brand_stats)
+            "competitors": self._generate_competitor_data(brand_stats),
         }
 
-    def _calculate_hhi(self, brand_stats: Dict) -> float:
+    def _calculate_hhi(self, brand_stats: dict) -> float:
         """HHI (Herfindahl-Hirschman Index) 계산"""
         total = sum(len(stats["products"]) for stats in brand_stats.values())
         if total == 0:
             return 0
 
-        hhi = sum(
-            (len(stats["products"]) / total * 100) ** 2
-            for stats in brand_stats.values()
-        ) / 10000
+        hhi = (
+            sum((len(stats["products"]) / total * 100) ** 2 for stats in brand_stats.values())
+            / 10000
+        )
 
         return hhi
 
-    def _generate_competitor_data(self, brand_stats: Dict) -> List[Dict]:
+    def _generate_competitor_data(self, brand_stats: dict) -> list[dict]:
         """경쟁사 데이터 생성 (tracked competitors 포함)"""
         competitors = []
         tracked_brands_to_include = set()
@@ -522,28 +624,35 @@ class DashboardExporter:
 
             is_tracked = brand in tracked_brands_to_include
 
-            competitors.append({
-                "brand": brand,
-                "sos": round(product_count / sum(len(s["products"]) for s in brand_stats.values()) * 100, 1),
-                "avg_rank": round(avg_rank, 1),
-                "product_count": product_count,
-                "avg_price": round(avg_price, 2) if avg_price else None,
-                "is_tracked": is_tracked  # Flag if this is a tracked competitor
-            })
+            competitors.append(
+                {
+                    "brand": brand,
+                    "sos": round(
+                        product_count / sum(len(s["products"]) for s in brand_stats.values()) * 100,
+                        1,
+                    ),
+                    "avg_rank": round(avg_rank, 1),
+                    "product_count": product_count,
+                    "avg_price": round(avg_price, 2) if avg_price else None,
+                    "is_tracked": is_tracked,  # Flag if this is a tracked competitor
+                }
+            )
 
         # Tracked competitors 추가 (Top 100에 없는 브랜드만)
         organic_brands = set(brand_stats.keys())
         for tracked_brand, tracked_info in tracked_data.items():
             if tracked_brand not in organic_brands:
                 # Top 100에 없으므로 SoS는 0
-                competitors.append({
-                    "brand": tracked_brand,
-                    "sos": 0,  # Not in Top 100
-                    "avg_rank": None,  # Not ranked in bestseller
-                    "product_count": tracked_info.get("product_count", 0),
-                    "avg_price": tracked_info.get("avg_price"),
-                    "is_tracked": True  # Tracked competitor (not in Top 100)
-                })
+                competitors.append(
+                    {
+                        "brand": tracked_brand,
+                        "sos": 0,  # Not in Top 100
+                        "avg_rank": None,  # Not ranked in bestseller
+                        "product_count": tracked_info.get("product_count", 0),
+                        "avg_price": tracked_info.get("avg_price"),
+                        "is_tracked": True,  # Tracked competitor (not in Top 100)
+                    }
+                )
 
         # SoS 기준 정렬
         competitors.sort(key=lambda x: x["sos"], reverse=True)
@@ -563,7 +672,7 @@ class DashboardExporter:
         else:
             return competitors[:10]
 
-    def _generate_category_data(self, raw_data: List[Dict]) -> Dict[str, Any]:
+    def _generate_category_data(self, raw_data: list[dict]) -> dict[str, Any]:
         """Category View (L2) 데이터"""
         latest_date = self._get_latest_date(raw_data)
         latest_data = [r for r in raw_data if r.get("snapshot_date") == latest_date]
@@ -590,7 +699,9 @@ class DashboardExporter:
             avg_price = sum(prices) / len(prices) if prices else 0
 
             # LANEIGE 평균 가격
-            laneige_prices = [self._safe_float(r.get("price", 0)) for r in laneige_in_cat if r.get("price")]
+            laneige_prices = [
+                self._safe_float(r.get("price", 0)) for r in laneige_in_cat if r.get("price")
+            ]
             laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else 0
 
             # CPI (Competitive Price Index) = LANEIGE 가격 / 카테고리 평균 * 100
@@ -602,12 +713,12 @@ class DashboardExporter:
                 "best_rank": best_rank,
                 "cpi": round(cpi, 0),
                 "product_count": len(cat_data),
-                "laneige_count": len(laneige_in_cat)
+                "laneige_count": len(laneige_in_cat),
             }
 
         return categories
 
-    def _generate_product_data(self, raw_data: List[Dict]) -> Dict[str, Any]:
+    def _generate_product_data(self, raw_data: list[dict]) -> dict[str, Any]:
         """Product View (L3) 데이터"""
         latest_date = self._get_latest_date(raw_data)
         latest_data = [r for r in raw_data if r.get("snapshot_date") == latest_date]
@@ -648,9 +759,17 @@ class DashboardExporter:
                 "rank": rank,
                 "rank_delta": self._format_rank_delta(rank_change),
                 "rating": rating,
-                "rating_delta": "상위 10%" if rating >= 4.3 else "양호" if rating >= 4.0 else "주의",
+                "rating_delta": "상위 10%"
+                if rating >= 4.3
+                else "양호"
+                if rating >= 4.0
+                else "주의",
                 "volatility": volatility,
-                "volatility_status": "안정적" if volatility < 10 else "변동성 높음" if volatility > 20 else "보통",
+                "volatility_status": "안정적"
+                if volatility < 10
+                else "변동성 높음"
+                if volatility > 20
+                else "보통",
                 "price": price,
                 "list_price": list_price,
                 "discount_percent": discount_percent,
@@ -658,12 +777,14 @@ class DashboardExporter:
                 "is_subscribe_save": is_subscribe_save,
                 "promo_badges": promo_badges,
                 "growth_type": growth_type,
-                "reviews_count": product.get("reviews_count", "")
+                "reviews_count": product.get("reviews_count", ""),
             }
 
         return products
 
-    def _classify_growth_type(self, discount_percent: float, coupon_text: str, promo_badges: str) -> str:
+    def _classify_growth_type(
+        self, discount_percent: float, coupon_text: str, promo_badges: str
+    ) -> str:
         """성장 유형 분류: 할인 기반 vs 오가닉"""
         has_significant_discount = (discount_percent or 0) > 15
         has_coupon = bool(coupon_text)
@@ -674,12 +795,9 @@ class DashboardExporter:
             return "discount_based"
         return "organic"
 
-    def _calculate_volatility(self, asin: str, all_data: List[Dict]) -> int:
+    def _calculate_volatility(self, asin: str, all_data: list[dict]) -> int:
         """순위 변동성 계산 (7일 표준편차 기반)"""
-        product_history = [
-            r for r in all_data
-            if r.get("asin") == asin
-        ][-7:]  # 최근 7일
+        product_history = [r for r in all_data if r.get("asin") == asin][-7:]  # 최근 7일
 
         if len(product_history) < 2:
             return 0
@@ -702,7 +820,7 @@ class DashboardExporter:
         else:
             return "유지"
 
-    def _generate_chart_data(self, raw_data: List[Dict]) -> Dict[str, Any]:
+    def _generate_chart_data(self, raw_data: list[dict]) -> dict[str, Any]:
         """차트용 데이터 생성"""
         # 날짜별 데이터 그룹화
         date_groups = defaultdict(list)
@@ -715,7 +833,7 @@ class DashboardExporter:
         all_sorted_dates = sorted(date_groups.keys())
 
         # 기간별 SoS 추이 데이터 생성 함수
-        def calc_sos_trend(days: int) -> Dict[str, Any]:
+        def calc_sos_trend(days: int) -> dict[str, Any]:
             dates = all_sorted_dates[-days:] if len(all_sorted_dates) >= days else all_sorted_dates
             labels = []
             data = []
@@ -729,11 +847,7 @@ class DashboardExporter:
             return {"labels": labels, "data": data}
 
         # 7일, 14일, 30일 데이터 생성
-        sos_trend = {
-            "7d": calc_sos_trend(7),
-            "14d": calc_sos_trend(14),
-            "30d": calc_sos_trend(30)
-        }
+        sos_trend = {"7d": calc_sos_trend(7), "14d": calc_sos_trend(14), "30d": calc_sos_trend(30)}
 
         # 레거시 호환성을 위해 기본 labels/data도 유지 (7일)
         sos_trend["labels"] = sos_trend["7d"]["labels"]
@@ -760,16 +874,15 @@ class DashboardExporter:
 
         # 제품별 SoS 도넛 차트 데이터
         product_sos = []
-        total_laneige = len(laneige_products)
-        for product in sorted(laneige_products, key=lambda x: self._safe_int(x.get("rank", 999)))[:5]:
+        for product in sorted(laneige_products, key=lambda x: self._safe_int(x.get("rank", 999)))[
+            :5
+        ]:
             rank = self._safe_int(product.get("rank", 999))
             # 순위 기반 가중치 (낮을수록 높은 비중)
             weight = max(1, 100 - rank)
-            product_sos.append({
-                "name": product.get("product_name", "Unknown"),
-                "weight": weight,
-                "rank": rank
-            })
+            product_sos.append(
+                {"name": product.get("product_name", "Unknown"), "weight": weight, "rank": rank}
+            )
 
         # 가중치 정규화
         total_weight = sum(p["weight"] for p in product_sos)
@@ -804,14 +917,16 @@ class DashboardExporter:
             # 버블 크기 = 제품 수 기반
             bubble_size = min(20, max(8, product_count * 2))
 
-            brand_matrix.append({
-                "brand": brand,
-                "sos": round(sos, 1),
-                "avg_rank": round(avg_rank, 1),
-                "bubble_size": bubble_size,
-                "product_count": product_count,
-                "is_laneige": self.LANEIGE_BRAND in brand.lower()
-            })
+            brand_matrix.append(
+                {
+                    "brand": brand,
+                    "sos": round(sos, 1),
+                    "avg_rank": round(avg_rank, 1),
+                    "bubble_size": bubble_size,
+                    "product_count": product_count,
+                    "is_laneige": self.LANEIGE_BRAND in brand.lower(),
+                }
+            )
 
         # SoS 기준 상위 10개 + LANEIGE 항상 포함
         brand_matrix.sort(key=lambda x: x["sos"], reverse=True)
@@ -841,19 +956,21 @@ class DashboardExporter:
             # CPI 계산
             prices = [self._safe_float(r.get("price", 0)) for r in cat_data if r.get("price")]
             avg_price = sum(prices) / len(prices) if prices else 0
-            laneige_prices = [self._safe_float(r.get("price", 0)) for r in laneige_in_cat if r.get("price")]
+            laneige_prices = [
+                self._safe_float(r.get("price", 0)) for r in laneige_in_cat if r.get("price")
+            ]
             laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else 0
             cpi = (laneige_avg_price / avg_price * 100) if avg_price > 0 else 100
 
             # 신규 경쟁자 수 (임시 계산 - 실제로는 시계열 비교 필요)
-            unique_brands = len(set(r.get("brand", "") for r in cat_data))
+            unique_brands = len({r.get("brand", "") for r in cat_data})
 
             category_kpis[cat_id] = {
                 "name": cat_name,
                 "sos": round(sos, 1),
                 "best_rank": best_rank,
                 "cpi": round(cpi, 0),
-                "new_competitors": unique_brands
+                "new_competitors": unique_brands,
             }
 
         # CPI 추이 차트 (최근 7일)
@@ -867,14 +984,15 @@ class DashboardExporter:
 
             prices = [self._safe_float(r.get("price", 0)) for r in cat_data if r.get("price")]
             avg_price = sum(prices) / len(prices) if prices else 1
-            laneige_prices = [self._safe_float(r.get("price", 0)) for r in laneige_in_cat if r.get("price")]
-            laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else avg_price
+            laneige_prices = [
+                self._safe_float(r.get("price", 0)) for r in laneige_in_cat if r.get("price")
+            ]
+            laneige_avg_price = (
+                sum(laneige_prices) / len(laneige_prices) if laneige_prices else avg_price
+            )
             cpi = (laneige_avg_price / avg_price * 100) if avg_price > 0 else 100
 
-            cpi_trend.append({
-                "date": date_str[-5:],
-                "cpi": round(cpi, 0)
-            })
+            cpi_trend.append({"date": date_str[-5:], "cpi": round(cpi, 0)})
 
         # 제품 순위 추이 (L3 Product View용)
         product_rank_trend = {}
@@ -889,10 +1007,7 @@ class DashboardExporter:
                 rank = self._safe_int(product_day.get("rank", 0)) if product_day else None
                 ranks.append(rank)
 
-            product_rank_trend[asin] = {
-                "name": name,
-                "ranks": ranks
-            }
+            product_rank_trend[asin] = {"name": name, "ranks": ranks}
 
         # 제품 매트릭스 데이터 (순위 x 변동성)
         product_matrix = []
@@ -916,16 +1031,18 @@ class DashboardExporter:
                 quadrant = "risk"  # 위험
                 color = "rgba(231,76,60,0.7)"  # 빨강
 
-            product_matrix.append({
-                "asin": asin,
-                "name": product.get("product_name", "Unknown"),
-                "rank": rank,
-                "volatility": volatility,
-                "rating": rating,
-                "quadrant": quadrant,
-                "color": color,
-                "bubble_size": max(8, min(18, 20 - rank))
-            })
+            product_matrix.append(
+                {
+                    "asin": asin,
+                    "name": product.get("product_name", "Unknown"),
+                    "rank": rank,
+                    "volatility": volatility,
+                    "rating": rating,
+                    "quadrant": quadrant,
+                    "color": color,
+                    "bubble_size": max(8, min(18, 20 - rank)),
+                }
+            )
 
         # 할인율 추이 차트 (LANEIGE 제품 평균 할인율 + 가격)
         discount_trend = []
@@ -938,11 +1055,13 @@ class DashboardExporter:
             prices = [p for p in prices if 0.5 <= p <= 500]
             avg_discount = sum(discounts) / len(discounts) if discounts else 0
             avg_price = sum(prices) / len(prices) if prices else 0
-            discount_trend.append({
-                "date": date_str[-5:],
-                "discount": round(avg_discount, 1),
-                "price": round(avg_price, 2)
-            })
+            discount_trend.append(
+                {
+                    "date": date_str[-5:],
+                    "discount": round(avg_discount, 1),
+                    "price": round(avg_price, 2),
+                }
+            )
 
         # 순위 x 할인율 이중축 차트 (LANEIGE 대표 제품)
         rank_discount_dual = []
@@ -951,11 +1070,13 @@ class DashboardExporter:
             laneige_in_day = [r for r in day_data if self._is_laneige(r)]
             if laneige_in_day:
                 best_product = min(laneige_in_day, key=lambda x: self._safe_int(x.get("rank", 999)))
-                rank_discount_dual.append({
-                    "date": date_str[-5:],
-                    "rank": self._safe_int(best_product.get("rank", 0)),
-                    "discount": self._safe_float(best_product.get("discount_percent", 0))
-                })
+                rank_discount_dual.append(
+                    {
+                        "date": date_str[-5:],
+                        "rank": self._safe_int(best_product.get("rank", 0)),
+                        "discount": self._safe_float(best_product.get("discount_percent", 0)),
+                    }
+                )
 
         # 경쟁사 프로모션 비교 테이블
         competitor_promo = []
@@ -969,23 +1090,32 @@ class DashboardExporter:
                 continue
 
             # 브랜드별 프로모션 현황
-            discount_products = [p for p in products if self._safe_float(p.get("discount_percent", 0)) > 0]
+            discount_products = [
+                p for p in products if self._safe_float(p.get("discount_percent", 0)) > 0
+            ]
             coupon_products = [p for p in products if p.get("coupon_text")]
             deal_products = [p for p in products if "Deal" in (p.get("promo_badges") or "")]
             sns_products = [p for p in products if p.get("is_subscribe_save")]
 
-            avg_discount = sum(self._safe_float(p.get("discount_percent", 0)) for p in products) / len(products) if products else 0
+            avg_discount = (
+                sum(self._safe_float(p.get("discount_percent", 0)) for p in products)
+                / len(products)
+                if products
+                else 0
+            )
 
-            competitor_promo.append({
-                "brand": brand,
-                "product_count": len(products),
-                "avg_discount": round(avg_discount, 1),
-                "discount_count": len(discount_products),
-                "coupon_count": len(coupon_products),
-                "deal_count": len(deal_products),
-                "sns_count": len(sns_products),
-                "is_laneige": self.LANEIGE_BRAND in brand.lower()
-            })
+            competitor_promo.append(
+                {
+                    "brand": brand,
+                    "product_count": len(products),
+                    "avg_discount": round(avg_discount, 1),
+                    "discount_count": len(discount_products),
+                    "coupon_count": len(coupon_products),
+                    "deal_count": len(deal_products),
+                    "sns_count": len(sns_products),
+                    "is_laneige": self.LANEIGE_BRAND in brand.lower(),
+                }
+            )
 
         competitor_promo.sort(key=lambda x: x["product_count"], reverse=True)
         competitor_promo = competitor_promo[:15]
@@ -1003,35 +1133,35 @@ class DashboardExporter:
             "sos_trend": sos_trend,
             "product_sos": {
                 "labels": [p["name"] for p in product_sos],
-                "data": [p["sos"] for p in product_sos]
+                "data": [p["sos"] for p in product_sos],
             },
             "brand_matrix": brand_matrix,
             "category_kpis": category_kpis,
             "cpi_trend": {
                 "labels": [d["date"] for d in cpi_trend],
-                "data": [d["cpi"] for d in cpi_trend]
+                "data": [d["cpi"] for d in cpi_trend],
             },
             "product_rank_trend": {
                 "labels": [d[-5:] for d in sorted_dates],
-                "products": product_rank_trend
+                "products": product_rank_trend,
             },
             "product_matrix": product_matrix,
             # 프로모션 관련 차트 데이터
             "discount_trend": {
                 "labels": [d["date"] for d in discount_trend],
                 "prices": [d["price"] for d in discount_trend],
-                "discounts": [d["discount"] for d in discount_trend]
+                "discounts": [d["discount"] for d in discount_trend],
             },
             "rank_discount_dual": {
                 "labels": [d["date"] for d in rank_discount_dual],
                 "ranks": [d["rank"] for d in rank_discount_dual],
-                "discounts": [d["discount"] for d in rank_discount_dual]
+                "discounts": [d["discount"] for d in rank_discount_dual],
             },
             "competitor_promo": competitor_promo,
-            "growth_type_summary": growth_type_summary
+            "growth_type_summary": growth_type_summary,
         }
 
-    def _load_tracked_competitors(self) -> Dict[str, Dict[str, Any]]:
+    def _load_tracked_competitors(self) -> dict[str, dict[str, Any]]:
         """
         Tracked competitors 데이터 로드
 
@@ -1049,10 +1179,10 @@ class DashboardExporter:
         # 1. SQLite에서 로드 시도
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # 이미 실행 중인 이벤트 루프가 있으면 동기적으로 처리
-                import sqlite3
                 if self.sqlite.db_path.exists():
                     with self.sqlite.get_connection() as conn:
                         cursor = conn.execute("""
@@ -1067,7 +1197,9 @@ class DashboardExporter:
                             brand = row["brand"]
                             tracked_data[brand] = {
                                 "product_count": row["product_count"],
-                                "avg_price": round(row["avg_price"], 2) if row["avg_price"] else None
+                                "avg_price": round(row["avg_price"], 2)
+                                if row["avg_price"]
+                                else None,
                             }
             else:
                 # 새 이벤트 루프 생성
@@ -1085,7 +1217,7 @@ class DashboardExporter:
 
                     tracked_data[brand] = {
                         "product_count": len(products),
-                        "avg_price": round(avg_price, 2) if avg_price else None
+                        "avg_price": round(avg_price, 2) if avg_price else None,
                     }
         except Exception as e:
             print(f"SQLite에서 tracked competitors 로드 실패: {e}")
@@ -1093,9 +1225,11 @@ class DashboardExporter:
         # 2. config/tracked_competitors.json에서 fallback
         if not tracked_data:
             try:
-                config_path = Path(__file__).parent.parent.parent / "config" / "tracked_competitors.json"
+                config_path = (
+                    Path(__file__).parent.parent.parent / "config" / "tracked_competitors.json"
+                )
                 if config_path.exists():
-                    with open(config_path, "r", encoding="utf-8") as f:
+                    with open(config_path, encoding="utf-8") as f:
                         config = json.load(f)
 
                     for brand_key, brand_info in config.get("competitors", {}).items():
@@ -1104,7 +1238,7 @@ class DashboardExporter:
                         tracked_data[brand_name] = {
                             "product_count": len(products),
                             "avg_price": None,  # 가격 정보는 크롤링 후 업데이트 필요
-                            "tier": brand_info.get("tier", "unknown")
+                            "tier": brand_info.get("tier", "unknown"),
                         }
             except Exception as e:
                 print(f"tracked_competitors.json 로드 실패: {e}")
@@ -1134,10 +1268,8 @@ class DashboardExporter:
     # =========================================================================
 
     def _generate_ontology_insights(
-        self,
-        raw_data: List[Dict],
-        dashboard_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, raw_data: list[dict], dashboard_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         온톨로지 기반 추론 인사이트 생성
 
@@ -1163,16 +1295,18 @@ class DashboardExporter:
         # 4. 결과 포맷팅
         formatted_inferences = []
         for inf in inferences:
-            formatted_inferences.append({
-                "rule_name": inf.rule_name,
-                "insight_type": inf.insight_type.value,
-                "insight": inf.insight,
-                "recommendation": inf.recommendation,
-                "confidence": inf.confidence,
-                "priority": self._get_inference_priority(inf),
-                "icon": self._get_insight_icon(inf.insight_type.value),
-                "color": self._get_insight_color(inf.insight_type.value)
-            })
+            formatted_inferences.append(
+                {
+                    "rule_name": inf.rule_name,
+                    "insight_type": inf.insight_type.value,
+                    "insight": inf.insight,
+                    "recommendation": inf.recommendation,
+                    "confidence": inf.confidence,
+                    "priority": self._get_inference_priority(inf),
+                    "icon": self._get_insight_icon(inf.insight_type.value),
+                    "color": self._get_insight_color(inf.insight_type.value),
+                }
+            )
 
         # 우선순위로 정렬
         formatted_inferences.sort(
@@ -1186,14 +1320,12 @@ class DashboardExporter:
             "kg_stats": kg_stats,
             "inferences": formatted_inferences,
             "summary": self._generate_inference_summary(inferences),
-            "context": inference_context
+            "context": inference_context,
         }
 
     def _build_knowledge_graph(
-        self,
-        raw_data: List[Dict],
-        dashboard_data: Dict[str, Any]
-    ) -> Dict[str, int]:
+        self, raw_data: list[dict], dashboard_data: dict[str, Any]
+    ) -> dict[str, int]:
         """Knowledge Graph 구축"""
         if not self._knowledge_graph:
             return {"triples": 0}
@@ -1211,8 +1343,8 @@ class DashboardExporter:
                 properties={
                     "product_name": product.get("name", "")[:50],
                     "rank": product.get("rank"),
-                    "category": product.get("category")
-                }
+                    "category": product.get("category"),
+                },
             )
             self._knowledge_graph.add_relation(rel1)
             stats["brand_product"] += 1
@@ -1224,7 +1356,7 @@ class DashboardExporter:
                     subject=asin,
                     predicate=RelationType.BELONGS_TO_CATEGORY,
                     object=category,
-                    properties={"rank": product.get("rank")}
+                    properties={"rank": product.get("rank")},
                 )
                 self._knowledge_graph.add_relation(rel2)
                 stats["product_category"] += 1
@@ -1236,20 +1368,23 @@ class DashboardExporter:
             is_laneige = brand_name.upper() == "LANEIGE"
 
             # 메타데이터 설정
-            self._knowledge_graph.set_entity_metadata(brand_name, {
-                "type": "brand",
-                "sos": comp.get("sos", 0) / 100,
-                "avg_rank": comp.get("avg_rank"),
-                "product_count": comp.get("product_count"),
-                "is_target": is_laneige
-            })
+            self._knowledge_graph.set_entity_metadata(
+                brand_name,
+                {
+                    "type": "brand",
+                    "sos": comp.get("sos", 0) / 100,
+                    "avg_rank": comp.get("avg_rank"),
+                    "product_count": comp.get("product_count"),
+                    "is_target": is_laneige,
+                },
+            )
 
             if not is_laneige:
                 rel = Relation(
                     subject="LANEIGE",
                     predicate=RelationType.COMPETES_WITH,
                     object=brand_name,
-                    properties={"competitor_sos": comp.get("sos", 0) / 100}
+                    properties={"competitor_sos": comp.get("sos", 0) / 100},
                 )
                 self._knowledge_graph.add_relation(rel)
                 stats["competition"] += 1
@@ -1259,10 +1394,10 @@ class DashboardExporter:
             "total_triples": kg_full_stats.get("total_triples", 0),
             "brand_product": stats["brand_product"],
             "product_category": stats["product_category"],
-            "competition": stats["competition"]
+            "competition": stats["competition"],
         }
 
-    def _build_inference_context(self, dashboard_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_inference_context(self, dashboard_data: dict[str, Any]) -> dict[str, Any]:
         """추론 컨텍스트 구성"""
         brand_kpis = dashboard_data.get("brand", {}).get("kpis", {})
         categories = dashboard_data.get("categories", {})
@@ -1271,7 +1406,7 @@ class DashboardExporter:
 
         # 최고 순위 제품 찾기
         best_rank = 999
-        for asin, product in products.items():
+        for _asin, product in products.items():
             rank = product.get("rank", 999)
             if rank < best_rank:
                 best_rank = rank
@@ -1286,24 +1421,22 @@ class DashboardExporter:
             "sos": brand_kpis.get("sos", 0) / 100,
             "avg_rank": brand_kpis.get("avg_rank", 0),
             "product_count": len(products),
-
             # 시장 지표
             "hhi": brand_kpis.get("hhi", 0),
             "top1_sos": competitors[0].get("sos", 0) / 100 if competitors else 0,
-
             # 카테고리 지표
             "category": next(iter(categories.keys()), "unknown"),
             "cpi": first_cat.get("cpi", 100),
             "best_rank": first_cat.get("best_rank", best_rank),
-
             # 경쟁 지표
-            "competitor_count": len([c for c in competitors if c.get("brand", "").upper() != "LANEIGE"]),
-
+            "competitor_count": len(
+                [c for c in competitors if c.get("brand", "").upper() != "LANEIGE"]
+            ),
             # 제품 지표
             "current_rank": best_rank,
             "rank_change_7d": 0,  # 추후 계산 가능
             "streak_days": 7,  # 추후 계산 가능
-            "rating_gap": 0.1  # 추후 계산 가능
+            "rating_gap": 0.1,  # 추후 계산 가능
         }
 
     def _get_inference_priority(self, inference) -> str:
@@ -1330,7 +1463,7 @@ class DashboardExporter:
             "risk_alert": "bell",
             "entry_opportunity": "door-open",
             "price_position": "tag",
-            "price_quality_gap": "balance-scale"
+            "price_quality_gap": "balance-scale",
         }
         return icons.get(insight_type, "lightbulb")
 
@@ -1346,11 +1479,11 @@ class DashboardExporter:
             "risk_alert": "#f59e0b",  # amber
             "entry_opportunity": "#14b8a6",  # teal
             "price_position": "#6366f1",  # indigo
-            "price_quality_gap": "#f97316"  # orange
+            "price_quality_gap": "#f97316",  # orange
         }
         return colors.get(insight_type, "#6b7280")  # gray
 
-    def _generate_inference_summary(self, inferences: List) -> Dict[str, Any]:
+    def _generate_inference_summary(self, inferences: list) -> dict[str, Any]:
         """추론 결과 요약"""
         if not inferences:
             return {
@@ -1358,10 +1491,15 @@ class DashboardExporter:
                 "positive_count": 0,
                 "warning_count": 0,
                 "opportunity_count": 0,
-                "headline": "추론된 인사이트가 없습니다."
+                "headline": "추론된 인사이트가 없습니다.",
             }
 
-        positive_types = {"market_dominance", "competitive_advantage", "growth_momentum", "stability"}
+        positive_types = {
+            "market_dominance",
+            "competitive_advantage",
+            "growth_momentum",
+            "stability",
+        }
         warning_types = {"risk_alert", "competitive_threat", "price_quality_gap"}
         opportunity_types = {"entry_opportunity", "growth_opportunity"}
 
@@ -1379,5 +1517,5 @@ class DashboardExporter:
             "warning_count": warnings,
             "opportunity_count": opportunities,
             "headline": headline,
-            "top_rule": top_inference.rule_name
+            "top_rule": top_inference.rule_name,
         }
