@@ -298,6 +298,21 @@ ENV_FILE=.env.test python -m pytest tests/
 
 ## 9. 업데이트 히스토리
 
+### 2026-02-10 - Amazon 크롤러 Top 100 수집 복구
+
+**문제**: 카테고리당 100개가 아닌 60개만 수집 (전체 300개/500개)
+
+**원인**: Amazon이 베스트셀러 페이지에 **lazy loading**을 도입하여 초기 로드 시 30개만 표시. 스크롤해야 나머지 20개가 추가 로드됨 (페이지당 50개). 기존 크롤러는 스크롤 없이 바로 파싱하여 30개 x 2페이지 = 60개만 수집.
+
+**진단 과정**: Railway 환경에서 Playwright 디버그 스크립트를 실행하여 `[data-asin]` 카드 수, `span.zg-bdg-text` 순위 배지, 페이지네이션 구조를 확인. 스크롤 전 30개 → 스크롤 후 50개로 증가하는 것을 확인.
+
+**해결**:
+- `_scroll_to_load_all()`: 페이지 끝까지 스크롤하여 lazy-loaded 카드 전체 로드
+- `_parse_bestseller_page()`: `[data-asin]` 순회 + 자체 rank 관리 대신 `span.zg-bdg-text` 순위 배지 기반 파싱으로 변경. 광고/스폰서 카드 자동 제외.
+- `#zg-right-col` 컨테이너 내부만 파싱하여 정확도 향상
+
+**결과**: 카테고리당 100개 (rank 1~100) 정상 수집 확인
+
 ### 2026-01-28 (v4) - IR-Style Report Generator
 
 - **전문 애널리스트 리포트**: AMOREPACIFIC 디자인 시스템 적용
