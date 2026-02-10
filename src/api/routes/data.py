@@ -199,11 +199,22 @@ async def _calculate_brand_metrics_for_period(
             brand_data[brand_name] = {
                 "brand": brand_name,
                 "ranks": [],
+                "prices": [],
                 "product_count": 0
             }
 
         brand_data[brand_name]["ranks"].append(rank)
         brand_data[brand_name]["product_count"] += 1
+
+        # Collect prices (valid USD range only)
+        price = record.get("price")
+        if price is not None:
+            try:
+                price_val = float(price)
+                if 0.5 <= price_val <= 500:
+                    brand_data[brand_name]["prices"].append(price_val)
+            except (ValueError, TypeError):
+                pass
 
     # Total product count (all brands)
     total_products = sum(b["product_count"] for b in brand_data.values())
@@ -217,6 +228,10 @@ async def _calculate_brand_metrics_for_period(
         sos = round(data["product_count"] / max(total_products, 100) * 100, 2)
         avg_rank = round(sum(data["ranks"]) / len(data["ranks"]), 1)
 
+        # Average price
+        prices = data.get("prices", [])
+        avg_price = round(sum(prices) / len(prices), 2) if prices else None
+
         # Bubble size: based on product count (min 5, max 25)
         bubble_size = max(5, min(25, data["product_count"] * 2))
 
@@ -225,6 +240,7 @@ async def _calculate_brand_metrics_for_period(
             "sos": sos,
             "avg_rank": avg_rank,
             "product_count": data["product_count"],
+            "avg_price": avg_price,
             "bubble_size": bubble_size,
             "is_laneige": target_brand.upper() in brand_name.upper()
         })

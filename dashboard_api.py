@@ -1347,11 +1347,21 @@ async def _calculate_brand_metrics_for_period(
             continue
 
         if brand_name not in brand_data:
-            brand_data[brand_name] = {"brand": brand_name, "ranks": [], "product_count": 0}
+            brand_data[brand_name] = {"brand": brand_name, "ranks": [], "prices": [], "product_count": 0}
             brand_unique_asins[brand_name] = set()
 
         # 순위는 모든 레코드에서 수집 (평균 계산용)
         brand_data[brand_name]["ranks"].append(rank)
+
+        # 가격 수집 (유효한 USD 가격 범위만)
+        price = record.get("price")
+        if price is not None:
+            try:
+                price_val = float(price)
+                if 0.5 <= price_val <= 500:
+                    brand_data[brand_name]["prices"].append(price_val)
+            except (ValueError, TypeError):
+                pass
 
         # 제품 수는 ASIN 기준 유니크 카운트 (중복 제거)
         if asin and asin not in brand_unique_asins[brand_name]:
@@ -1373,6 +1383,10 @@ async def _calculate_brand_metrics_for_period(
         sos = round(data["product_count"] / max(total_products, 100) * 100, 2)
         avg_rank = round(sum(data["ranks"]) / len(data["ranks"]), 1)
 
+        # 평균 가격 계산
+        prices = data.get("prices", [])
+        avg_price = round(sum(prices) / len(prices), 2) if prices else None
+
         # 버블 크기: 제품 수 기반 (최소 5, 최대 25)
         bubble_size = max(5, min(25, data["product_count"] * 2))
 
@@ -1384,6 +1398,7 @@ async def _calculate_brand_metrics_for_period(
                 "sos": sos,
                 "avg_rank": avg_rank,
                 "product_count": data["product_count"],
+                "avg_price": avg_price,
                 "bubble_size": bubble_size,
                 "is_laneige": is_laneige,
             }
@@ -1415,6 +1430,8 @@ async def _calculate_brand_metrics_for_period(
         if laneige_data and laneige_data["ranks"]:
             sos = round(laneige_data["product_count"] / max(total_products, 100) * 100, 2)
             avg_rank = round(sum(laneige_data["ranks"]) / len(laneige_data["ranks"]), 1)
+            l_prices = laneige_data.get("prices", [])
+            l_avg_price = round(sum(l_prices) / len(l_prices), 2) if l_prices else None
             bubble_size = max(5, min(25, laneige_data["product_count"] * 2))
             top_10.append(
                 {
@@ -1422,6 +1439,7 @@ async def _calculate_brand_metrics_for_period(
                     "sos": sos,
                     "avg_rank": avg_rank,
                     "product_count": laneige_data["product_count"],
+                    "avg_price": l_avg_price,
                     "bubble_size": bubble_size,
                     "is_laneige": True,
                 }
@@ -1439,6 +1457,8 @@ async def _calculate_brand_metrics_for_period(
             if tracked_data["ranks"]:
                 sos = round(tracked_data["product_count"] / max(total_products, 100) * 100, 2)
                 avg_rank = round(sum(tracked_data["ranks"]) / len(tracked_data["ranks"]), 1)
+                t_prices = tracked_data.get("prices", [])
+                t_avg_price = round(sum(t_prices) / len(t_prices), 2) if t_prices else None
                 bubble_size = max(5, min(25, tracked_data["product_count"] * 2))
                 top_10.append(
                     {
@@ -1446,6 +1466,7 @@ async def _calculate_brand_metrics_for_period(
                         "sos": sos,
                         "avg_rank": avg_rank,
                         "product_count": tracked_data["product_count"],
+                        "avg_price": t_avg_price,
                         "bubble_size": bubble_size,
                         "is_laneige": False,
                         "is_tracked": True,  # tracked competitor 표시
