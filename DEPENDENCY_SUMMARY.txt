@@ -1,0 +1,436 @@
+
+╔════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║              AMORE RAG-KG HYBRID AGENT - COMPLETE IMPORT DEPENDENCY ANALYSIS                      ║
+║                         Generated: 2026-02-10                                                     ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+1. PROJECT OVERVIEW
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Total Python Files:        286 files
+Total Lines of Code:       ~83,000 LOC
+Total Modules:             13 top-level modules
+Architecture Pattern:      Clean Architecture (Layers 1-4)
+Entry Points:              dashboard_api.py (FastAPI), main.py, orchestrator.py
+
+Directory Structure Summary:
+┌─────────────────────────┬──────────┬───────────┬────────────────────────────────────────┐
+│ Directory               │ Files    │ Lines     │ Primary Role                           │
+├─────────────────────────┼──────────┼───────────┼────────────────────────────────────────┤
+│ src/core/               │ 24 files │ 8,075 LOC │ Brain, Scheduler, ReAct, State Mgmt   │
+│ src/agents/             │ 10 files │ 5,684 LOC │ Crawlers, Chatbots, Insight Agents    │
+│ src/rag/                │ 13 files │ 6,207 LOC │ RAG Pipeline, Retrievers, Rerankers   │
+│ src/ontology/           │ 11 files │ 5,861 LOC │ KG, Business Rules, Reasoners         │
+│ src/tools/              │ 38 files │19,323 LOC │ Scrapers, Collectors, Formatters      │
+│ src/domain/             │ 17 files │ 2,048 LOC │ Entities, Exceptions, Models          │
+│ src/infrastructure/     │ 8 files  │   998 LOC │ Container, Bootstrap, Repositories    │
+│ src/api/                │ 13 files │ 2,603 LOC │ Routes, Endpoints, Validators         │
+│ src/memory/             │ 4 files  │   636 LOC │ Session, Context, History             │
+│ src/monitoring/         │ 4 files  │   865 LOC │ Logger, Metrics, Tracer               │
+│ src/shared/             │ 3 files  │   387 LOC │ LLM Client, Constants                 │
+│ src/application/        │ 5 files  │   120 LOC │ Use Cases (Minimal)                   │
+│ src/adapters/           │ 1 file   │   120 LOC │ Adapter Layer                         │
+└─────────────────────────┴──────────┴───────────┴────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+2. CLEAN ARCHITECTURE LAYER ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Clean Architecture Principles in Use:
+✓ Layer 1 (Domain):           Entities, no external dependencies
+✓ Layer 2 (Application):      Use cases, minimal business logic
+✓ Layer 3 (Adapters):         RAG, Ontology, Memory, Monitoring, Shared
+✓ Layer 4 (Frameworks):       API, Tools, Agents, Infrastructure, Core
+
+LAYER 1: DOMAIN (src/domain/)
+─────────────────────────────
+  • Files: 17
+  • Lines: 2,048
+  • Role: Pure domain entities - Product, Brand, Market, Relations, Exceptions
+  • Dependencies: ✓ CLEAN - Only Pydantic, dataclasses, enum (no internal imports)
+  • Status: ✓ EXCELLENT - Perfectly isolated
+
+  Key Files:
+    - exceptions.py (334 lines) - Domain-specific exceptions
+    - relations.py (512 lines) - Data models for relationships
+    - product.py, brand.py, market.py - Entity models
+
+LAYER 2: APPLICATION (src/application/)
+──────────────────────────────────────
+  • Files: 5
+  • Lines: 120
+  • Role: Use cases (mostly empty - business logic in Layer 4)
+  • Dependencies: src.domain (correct)
+  • Status: ⚠️ UNDERDEVELOPED - Use cases logic is in Layer 4
+
+LAYER 3: ADAPTERS (src/rag/, src/ontology/, src/memory/, src/monitoring/, src/shared/)
+───────────────────────────────────────────────────────────────────────────────────────
+  • Total Files: 35
+  • Total Lines: 16,616
+
+  src/rag/ (13 files, 6,207 LOC)
+    Dependencies: src.domain ✓, src.ontology ✓
+    Key: Hybrid RAG, Retrievers, Rerankers, Entity Linking
+    Status: ✓ CLEAN
+
+  src/ontology/ (11 files, 5,861 LOC)
+    Dependencies: src.domain ✓
+    Key: Knowledge Graph, Business Rules, Reasoners
+    Status: ✓ CLEAN
+
+  src/memory/ (4 files, 636 LOC)
+    Dependencies: None ✓
+    Key: Session, Context, History management
+    Status: ✓ CLEAN (No internal dependencies)
+
+  src/monitoring/ (4 files, 865 LOC)
+    Dependencies: None ✓
+    Key: Logger, Metrics, Tracer
+    Status: ✓ CLEAN (No internal dependencies)
+
+  src/shared/ (3 files, 387 LOC)
+    Dependencies: src.monitoring ✓
+    Key: LLM Client, Constants
+    Status: ✓ CLEAN
+
+LAYER 4: FRAMEWORKS (src/agents/, src/tools/, src/api/, src/core/, src/infrastructure/)
+──────────────────────────────────────────────────────────────────────────────────────
+  • Total Files: 76
+  • Total Lines: 37,761
+  • Status: ⚠️ TIGHTLY COUPLED
+
+  src/core/ (24 files, 8,075 LOC)
+    Dependencies: src.agents, src.tools, src.ontology, src.domain, src.memory, src.monitoring
+    Problem: ⚠️ Imports src.agents (circular)
+    Key: Brain, Scheduler, ReAct Agent, State Manager
+    Status: PARTIALLY COUPLED
+
+  src/agents/ (10 files, 5,684 LOC)
+    Dependencies: src.core, src.tools, src.rag, src.ontology, src.domain, src.memory, src.monitoring, src.shared
+    Problem: ⚠️ Imports src.core (circular with core)
+    Key: Crawlers, Chatbots, Insight Agents
+    Status: HEAVILY COUPLED
+
+  src/tools/ (38 files, 19,323 LOC)
+    Dependencies: src.agents, src.api, src.domain, src.ontology
+    Problem: ⚠️ Imports src.agents, src.api (circular)
+    Key: Scrapers, Collectors, Formatters, Utilities
+    Status: HEAVILY COUPLED
+
+  src/api/ (13 files, 2,603 LOC)
+    Dependencies: src.agents, src.core, src.domain, src.tools
+    Problem: ⚠️ Imports src.agents (circular)
+    Key: FastAPI routes and endpoints
+    Status: COUPLED
+
+  src/infrastructure/ (8 files, 998 LOC)
+    Dependencies: src.agents, src.core, src.ontology, src.rag, src.domain
+    Problem: ⚠️ No circular issues but depends on Layer 4
+    Key: Container, Bootstrap, Repositories
+    Status: PARTIALLY COUPLED
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+3. DEPENDENCY COUPLING MATRIX
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Module Dependency Map (What each module imports):
+┌────────────────┬────────────────────────────────────────────────────────────────────────┐
+│ Module         │ Imports From                                                           │
+├────────────────┼────────────────────────────────────────────────────────────────────────┤
+│ src.domain     │ (none) - CLEAN                                                         │
+│ src.memory     │ (none) - CLEAN                                                         │
+│ src.monitoring │ (none) - CLEAN                                                         │
+│ src.ontology   │ src.domain ✓                                                           │
+│ src.rag        │ src.domain, src.ontology ✓                                             │
+│ src.shared     │ src.monitoring ✓                                                       │
+│ src.application│ src.domain ✓                                                           │
+│ src.core       │ src.agents ⚠️, src.tools, src.ontology, src.domain ✓                  │
+│ src.agents     │ src.core ⚠️, src.tools ⚠️, src.rag, src.ontology, src.memory, ...     │
+│ src.tools      │ src.agents ⚠️, src.api ⚠️, src.ontology, src.domain ✓                 │
+│ src.api        │ src.agents ⚠️, src.core ⚠️, src.tools, src.domain ✓                   │
+│ src.infra      │ src.agents ⚠️, src.core ⚠️, src.rag, src.ontology, src.domain ✓      │
+└────────────────┴────────────────────────────────────────────────────────────────────────┘
+
+Circular Dependencies Found: 23 cycles
+⚠️  Most Critical: src.agents ↔ src.core ↔ src.tools ↔ src.api
+⚠️  Impact: Difficult to unit test, refactoring risky, hidden coupling
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+4. EXTERNAL PACKAGE DEPENDENCIES (Top 30)
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Most Used External Packages (across all files):
+1.  litellm                    (LLM Orchestration)       - Core dependency
+2.  openai                     (OpenAI API)              - Via litellm
+3.  pydantic                   (Data Validation)         - Domain layer
+4.  aiohttp                    (Async HTTP)              - Social collectors
+5.  chromadb                   (Vector DB)               - RAG retrieval
+6.  playwright                 (Browser Automation)      - Amazon scraper
+7.  pandas                     (Data Processing)         - Metrics/Reports
+8.  sqlalchemy                 (ORM)                     - Storage
+9.  gspread                    (Google Sheets)           - Sheet export
+10. owlready2                  (OWL Reasoner)            - Ontology reasoning
+11. aiosqlite                  (Async SQLite)            - DB access
+12. google-api-python-client   (Google API)              - Sheets integration
+13. yt-dlp                     (YouTube Download)        - Video collection
+14. instaloader               (Instagram Scraper)       - Social collection
+15. pytrends                   (Google Trends)           - Trend analysis
+16. tavily-python              (News Search)             - External signals
+17. browserforge              (Browser Emulation)       - Stealth scraping
+18. trendspyg                 (Trends Service)          - Trend data
+19. python-docx               (Word Documents)          - Export handling
+20. requests                  (HTTP Client)             - General API calls
+
+Most Critical Concerns:
+✓ litellm + openai: Well-documented, stable
+⚠️ chromadb: Vector DB (pin version for reproducibility)
+⚠️ playwright: Browser automation (maintenance required)
+⚠️ owlready2: OWL reasoning (complex dependencies)
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+5. ROOT-LEVEL ENTRY POINTS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+dashboard_api.py (5,626 lines) - PRIMARY ENTRY POINT
+────────────────────────────────────────────────────
+  • Framework: FastAPI
+  • External Imports: 25 packages (asyncio, fastapi, litellm, pydantic, etc.)
+  • Internal Imports: 29 modules
+
+  Key Dependencies (by layer):
+    Layer 4: src.agents, src.core, src.api.routes, src.rag, src.tools
+    Layer 3: src.ontology
+    Layer 1: src.domain (implicit via models)
+
+  Critical Routes:
+    - GET /api/health
+    - POST /api/v3/chat (Chatbot)
+    - POST /api/crawl/start (Crawler)
+    - GET /api/v4/brain/status (Scheduler)
+    - WebSocket endpoints for real-time updates
+
+main.py (220 lines) - CHATBOT ENTRY POINT
+──────────────────────────────────────────
+  • Purpose: Async chatbot CLI
+  • Key Dependencies: src.core.brain, src.monitoring.logger
+  • External: 9 packages
+
+orchestrator.py (47 lines) - BATCH WORKFLOW ENTRY POINT
+───────────────────────────────────────────────────────
+  • Purpose: Orchestrates batch workflows
+  • Key Dependencies: src.core.batch_workflow
+  • External: (minimal)
+
+start.py (19 lines) - SERVER STARTUP
+─────────────────────────────────────
+  • Purpose: Uvicorn server launcher
+  • Key Dependencies: dashboard_api.app
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+6. MOST CRITICAL MODULES (Depended Upon By Others)
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Module Importance Ranking (by how many other modules depend on it):
+
+1. src.domain             ← imported by 8 modules (HIGHEST)
+   Reason: Core entity definitions used everywhere
+   Risk: ANY CHANGE BREAKS EVERYTHING
+
+2. src.ontology           ← imported by 5 modules
+   Reason: KG, business rules, reasoning
+   Risk: Medium (used by agents, rag, tools)
+
+3. src.agents             ← imported by 5 modules
+   Reason: Autonomous agents, crawlers
+   Risk: CIRCULAR (core imports agents)
+
+4. src.tools             ← imported by 3 modules
+   Reason: Utilities, scrapers, formatters
+   Risk: CIRCULAR (core, api import tools)
+
+5. src.core              ← imported by 3 modules
+   Reason: Brain, scheduler, state
+   Risk: CIRCULAR (agents import core)
+
+6. src.monitoring        ← imported by 3 modules
+   Reason: Logging, metrics, tracing
+   Risk: LOW (isolated, no circular)
+
+7. src.rag               ← imported by 3 modules
+   Reason: RAG pipeline, retrievers
+   Risk: CIRCULAR (agents import rag)
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+7. RECOMMENDATIONS FOR REFACTORING
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+PRIORITY 1: BREAK CIRCULAR DEPENDENCIES (High Impact, Medium Effort)
+────────────────────────────────────────────────────────────────────
+
+Problem Cycle #1: src.core ↔ src.agents
+  Current: brain.py imports agent classes; agents import brain
+  Solution:
+    • Extract agent protocol/interface to src.domain.interfaces.agent
+    • brain imports interface, NOT concrete agents
+    • Agents depend on interface, NOT brain directly
+  Files Affected:
+    - brain.py, agent.py, hybrid_chatbot_agent.py
+  Impact: Enables isolated agent testing
+
+Problem Cycle #2: src.tools ↔ src.agents
+  Current: tools import agent classes; agents import tools
+  Solution:
+    • Extract tool protocol to src.domain.interfaces.tool
+    • Use dependency injection instead of direct imports
+  Files Affected:
+    - Tools (38 files), Agents (10 files)
+  Impact: Enables tool swapping, easier testing
+
+Problem Cycle #3: src.api ↔ src.core/agents/tools
+  Current: api imports core/agents/tools; they import api
+  Solution:
+    • Move route handlers to separate service layer
+    • API imports services, NOT core directly
+  Files Affected:
+    - api/*.py routes, core modules
+  Impact: Better separation of concerns
+
+
+PRIORITY 2: MOVE APPLICATION LOGIC TO src/application/ (Medium Impact, High Effort)
+────────────────────────────────────────────────────────────────────────────────────
+
+Current State: src/application/ is nearly empty (120 LOC across 5 files)
+Problem: Business logic is scattered in Layer 4 (core, agents, tools)
+Solution:
+  • Create use cases in src/application/:
+    - CrawlUseCase
+    - ChatUseCase
+    - InsightGenerationUseCase
+    - ReportGenerationUseCase
+  • Move orchestration logic from brain.py to application layer
+  • api/ routes should call application use cases, NOT core directly
+
+Files to Create:
+  - src/application/workflows/crawl_workflow.py
+  - src/application/workflows/chat_workflow.py
+  - src/application/workflows/insight_workflow.py
+
+
+PRIORITY 3: STRENGTHEN ISOLATION OF EXTERNAL INTEGRATIONS (Medium Impact, Low Effort)
+──────────────────────────────────────────────────────────────────────────────────────
+
+Problem: External package usage scattered across files
+Solution:
+  • Create adapter classes in src/infrastructure/:
+    - ChromaDBAdapter (wraps chromadb)
+    - PlaywrightAdapter (wraps playwright)
+    - OpenAIAdapter (wraps openai)
+  • Use adapters via src.shared.llm_client pattern
+  • Enables version upgrades without cascading changes
+
+Current Good Examples:
+  ✓ src.shared.llm_client - LiteLLM wrapper
+  ✓ src.tools.sqlite_storage - SQLite wrapper
+
+
+PRIORITY 4: ESTABLISH DEPENDENCY INJECTION CONTAINER (Low Impact, Medium Effort)
+───────────────────────────────────────────────────────────────────────────────
+
+Current: Singletons created in bootstrap.py, passed around
+Problem: Hard to swap implementations, test with mocks
+Solution:
+  • Use dependency_injector library (lightweight)
+  • Define containers per layer
+  • Inject at entry points (dashboard_api, main, orchestrator)
+
+Benefits:
+  ✓ Easier mocking in tests
+  ✓ Clear dependency declarations
+  ✓ Plugin architecture ready
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+8. TESTING IMPLICATIONS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Current Coverage Target: 60% (Project CLAUDE.md)
+Actual Coverage: 10.11% (Far below target)
+
+Why Low Coverage:
+  1. Circular dependencies make isolated testing hard
+  2. Heavy external I/O (browser, APIs, databases)
+  3. Tight coupling in Layer 4
+
+Recommended Test Structure:
+  tests/unit/
+    ├── domain/           → Fast, no mocks needed
+    ├── application/      → Fast, domain-only mocks
+    ├── ontology/         → Medium (KG initialization)
+    ├── rag/             → Medium (chromadb mocks)
+    ├── memory/          → Fast
+    ├── monitoring/      → Fast
+    ├── core/            → SLOW (circular deps, needs mocks)
+    ├── agents/          → SLOW (browser, APIs)
+    ├── tools/           → VERY SLOW (all external)
+    └── api/             → SLOW
+
+To Reach 60%:
+  1. Fix circular dependencies (unblock core/agent testing)
+  2. Add integration tests for RAG pipeline
+  3. Mock external scrapers (playwright, APIs)
+  4. Target domain + application first (should be ~40% of coverage)
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+9. DEPENDENCY SUMMARY TABLE
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Module Name        │ Files │ LOC  │ Ext Deps │ Int Deps │ Health │ Priority
+──────────────────┼───────┼──────┼──────────┼──────────┼────────┼──────────
+src.domain        │ 17    │2,048 │   5      │    0     │   ✓✓   │ STABLE
+src.memory        │  4    │  636 │   9      │    0     │   ✓✓   │ STABLE
+src.monitoring    │  4    │  865 │  15      │    0     │   ✓✓   │ STABLE
+src.shared        │  3    │  387 │   5      │    1     │   ✓✓   │ STABLE
+src.ontology      │ 11    │5,861 │  13      │    1     │   ✓    │ MAINTAIN
+src.rag           │ 13    │6,207 │  23      │    2     │   ✓    │ MAINTAIN
+src.application   │  5    │  120 │   4      │    1     │  ⚠️    │ DEVELOP
+src.infrastructure│  8    │  998 │  11      │    5     │  ⚠️    │ REFACTOR
+src.core          │ 24    │8,075 │  17      │    6     │  ⚠️    │ REFACTOR
+src.agents        │ 10    │5,684 │  14      │    8     │  ⚠️⚠️  │ REFACTOR
+src.api           │ 13    │2,603 │  17      │    5     │  ⚠️    │ REFACTOR
+src.tools         │ 38    │19,323│  61      │    5     │  ⚠️⚠️  │ REFACTOR
+src.adapters      │  1    │  120 │   1      │    2     │  ⚠️    │ REVIEW
+
+TOTAL             │286    │83,067│ ~100+    │   34     │        │
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+10. QUICK ACTION ITEMS
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Immediate (This Week):
+  [ ] Document all 23 circular dependency cycles
+  [ ] Create src/domain/interfaces/ for protocols
+  [ ] Add type stubs for major entry points
+
+Short-term (2-4 weeks):
+  [ ] Break agent ↔ core cycle with interface injection
+  [ ] Create DI container in src/infrastructure/
+  [ ] Move 5 core workflows to src/application/
+
+Medium-term (1-2 months):
+  [ ] Wrap all external packages in adapters
+  [ ] Increase unit test coverage to 30% (domain + application)
+  [ ] Document dependency contracts per module
+
+Long-term (3-6 months):
+  [ ] Reach 60% test coverage target
+  [ ] Decouple tools from api routes
+  [ ] Enable multi-agent plugin architecture
