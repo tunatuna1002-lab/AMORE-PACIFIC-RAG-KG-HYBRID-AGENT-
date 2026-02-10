@@ -7092,38 +7092,29 @@
             document.getElementById('page-title').textContent = titles[pageId].title;
             document.getElementById('breadcrumb').textContent = titles[pageId].breadcrumb;
             initChartsForPage(pageId);
-            // Brand View 진입 시 경쟁사 테이블 7일 데이터로 업데이트
+            // Brand View 진입 시 경쟁사 테이블 데이터 업데이트 (글로벌 날짜 범위 사용)
             if (pageId === 'brand') {
                 setTimeout(async () => {
-                    const end = new Date();
-                    const start = new Date();
-                    start.setDate(start.getDate() - 6);  // 7일간 (오늘 포함)
-                    const startStr = start.toISOString().split('T')[0];
-                    const endStr = end.toISOString().split('T')[0];
+                    const { startDate, endDate } = globalDateRange.get();
 
                     // 날짜 입력 필드 설정
                     const competitorStartInput = document.getElementById('competitorStartDate');
                     const competitorEndInput = document.getElementById('competitorEndDate');
                     if (competitorStartInput && competitorEndInput) {
-                        competitorStartInput.value = startStr;
-                        competitorEndInput.value = endStr;
+                        competitorStartInput.value = startDate;
+                        competitorEndInput.value = endDate;
                     }
 
-                    // 경쟁사 테이블 7일 데이터로 업데이트
-                    await updateCompetitorTableWithRange(startStr, endStr);
+                    // 경쟁사 테이블 데이터 업데이트
+                    await updateCompetitorTableWithRange(startDate, endDate);
                 }, 200);
             }
-            // Product View 진입 시 최근 7일로 설정 후 차트 데이터 로드
+            // Product View 진입 시 글로벌 날짜 범위로 설정 후 차트 데이터 로드
             if (pageId === 'product') {
                 setTimeout(() => {
-                    // 최근 7일 기간 설정
-                    const end = new Date();
-                    const start = new Date();
-                    start.setDate(start.getDate() - 6);  // 7일간 (오늘 포함)
-                    const startStr = start.toISOString().split('T')[0];
-                    const endStr = end.toISOString().split('T')[0];
+                    const { startDate, endDate } = globalDateRange.get();
 
-                    // Product View의 모든 날짜 선택기를 최근 7일로 설정
+                    // Product View의 모든 날짜 선택기를 글로벌 날짜 범위로 설정
                     const dateInputPairs = [
                         ['productStartDate', 'productEndDate'],
                         ['rankTrendStartDate', 'rankTrendEndDate'],
@@ -7137,8 +7128,8 @@
                         const startInput = document.getElementById(startId);
                         const endInput = document.getElementById(endId);
                         if (startInput && endInput) {
-                            startInput.value = startStr;
-                            endInput.value = endStr;
+                            startInput.value = startDate;
+                            endInput.value = endDate;
                         }
                     });
 
