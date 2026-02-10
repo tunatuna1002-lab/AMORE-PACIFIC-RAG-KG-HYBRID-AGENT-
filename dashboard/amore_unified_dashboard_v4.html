@@ -1280,6 +1280,21 @@
             opacity: 1;
             visibility: visible;
         }
+        /* [Fix 8] 기간 선택 버튼/날짜 입력 hover 시 툴팁 숨김
+           #cpiPeriodSelector와 .chart-title-tooltip은 같은 부모의 형제 → ~ combinator 사용 */
+        #cpiPeriodSelector:hover ~ .chart-title-tooltip,
+        #cpiCustomDateRange:hover ~ .chart-title-tooltip {
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        /* 기간 선택 버튼 cursor: 부모의 help → pointer로 오버라이드 */
+        #cpiPeriodSelector,
+        #cpiPeriodSelector .period-btn,
+        #cpiCustomDateRange,
+        #cpiCustomDateRange input,
+        #cpiCustomDateRange button {
+            cursor: pointer;
+        }
 
         /* SoS Trend Tooltip - 아리따 디자인 철학 반영 */
         .sos-trend-tooltip {
