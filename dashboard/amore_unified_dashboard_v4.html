@@ -7214,9 +7214,21 @@
                     endStr = endDate.toISOString().split('T')[0];
                 }
 
-                console.log('[CPI Brand Avg] Loading data for:', startStr, '~', endStr);
+                // 현재 선택된 카테고리 감지 (Category View에서 카테고리별 CPI 데이터 조회)
+                const activeTab = document.querySelector('.category-tab.active');
+                const catMap = {
+                    'beauty': 'beauty', 'skin': 'skin_care', 'lip': 'lip_care',
+                    'lip_makeup': 'lip_makeup', 'face_powder': 'face_powder'
+                };
+                let categoryId = null;
+                if (activeTab) {
+                    const catKey = activeTab.getAttribute('onclick')?.match(/selectCategory\('(\w+)'/)?.[1];
+                    if (catKey) categoryId = catMap[catKey] || catKey;
+                }
 
-                const historicalData = await fetchHistoricalData(startStr, endStr);
+                console.log('[CPI Brand Avg] Loading data for:', startStr, '~', endStr, categoryId ? `(category: ${categoryId})` : '');
+
+                const historicalData = await fetchHistoricalData(startStr, endStr, 'LANEIGE', categoryId);
                 if (!historicalData) {
                     console.log('[CPI Brand Avg] No historical data');
                     return;
@@ -7717,12 +7729,10 @@
             // KPI 배지 업데이트
             updateCategoryBadges(data);
 
-            // CPI 차트 드롭다운 데이터 로드
-            const cpiStartDate = document.getElementById('cpiStartDate')?.value;
-            const cpiEndDate = document.getElementById('cpiEndDate')?.value;
-            if (cpiStartDate && cpiEndDate) {
-                updateCpiChartWithProducts(cpiStartDate, cpiEndDate);
-            }
+            // CPI 차트 카테고리 변경 시 재로드 (currentCpiPeriodDays 기간 사용)
+            updateCpiChartWithBrandAverage().catch(err => {
+                console.error('[selectCategory] Failed to update CPI chart:', err);
+            });
         }
 
         // 카테고리 KPI 배지 동적 업데이트
@@ -10930,11 +10940,22 @@
 
             if (pageId === 'category') {
                 // [FIX] Category 페이지 진입/복귀 시 API에서 최신 CPI 데이터 로드
-                // 최근 7일 고정, LANEIGE 브랜드 평균 vs 경쟁사 Top 100 평균 비교
+                // currentCpiPeriodDays 기간 사용, 선택된 카테고리 자동 감지
                 // 초기 placeholder 차트 없이 바로 API 데이터로 렌더링 (더블렌더 방지)
                 updateCpiChartWithBrandAverage().catch(err => {
                     console.error('[initChartsForPage] Failed to load CPI data:', err);
                 });
+
+                // CPI 기간 선택기 상태 복원 (currentCpiPeriodDays에 맞춰)
+                const cpiSelector = document.getElementById('cpiPeriodSelector');
+                if (cpiSelector) {
+                    cpiSelector.querySelectorAll('.period-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                        if (parseInt(btn.dataset.days) === currentCpiPeriodDays) {
+                            btn.classList.add('active');
+                        }
+                    });
+                }
             }
 
             if (pageId === 'product') {
@@ -11448,8 +11469,11 @@
         }
 
         // Historical API 호출
-        async function fetchHistoricalData(startDate, endDate, brand = 'LANEIGE') {
-            const url = `${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}&brand=${brand}`;
+        async function fetchHistoricalData(startDate, endDate, brand = 'LANEIGE', categoryId = null) {
+            let url = `${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}&brand=${brand}`;
+            if (categoryId) {
+                url += `&category_id=${encodeURIComponent(categoryId)}`;
+            }
             const response = await fetch(url);
 
             if (!response.ok) {
