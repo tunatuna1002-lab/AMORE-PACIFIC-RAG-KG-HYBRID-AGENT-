@@ -7231,6 +7231,7 @@
                 const historicalData = await fetchHistoricalData(startStr, endStr, 'LANEIGE', categoryId);
                 if (!historicalData) {
                     console.log('[CPI Brand Avg] No historical data');
+                    showCpiNoDataChart('해당 기간에 CPI 데이터가 없습니다.');
                     return;
                 }
 
@@ -7285,10 +7286,13 @@
 
                 if (validCount > 0) {
                     updateCpiChartSimple(labels, dailyCpi);
+                } else {
+                    showCpiNoDataChart('해당 기간에 유효한 CPI 데이터가 없습니다.');
                 }
 
             } catch (error) {
                 console.error('[CPI Brand Avg] Error:', error);
+                showCpiNoDataChart('CPI 데이터 로드 중 오류가 발생했습니다.');
             }
         }
 
@@ -7429,6 +7433,79 @@
                 else status = '가격 경쟁력 하락';
                 infoEl.innerHTML = `📊 <strong>비교:</strong> LANEIGE 브랜드 평균 vs 경쟁사 Top 100 평균 | <strong>평균 점수:</strong> ${avgScore}점 (${status})`;
             }
+        }
+
+        // [Fix 7] CPI 데이터 없을 때 Placeholder 차트 렌더링
+        // API 실패, 데이터 없음, 유효 데이터 0건 시 빈 canvas 방치 대신 안내 메시지 표시
+        function showCpiNoDataChart(message = '데이터가 없습니다.') {
+            const ctx = document.getElementById('cpiChart');
+            if (!ctx) return;
+
+            if (charts.cpi) {
+                charts.cpi.destroy();
+            }
+
+            // 최근 7일 라벨 생성
+            const labels = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                labels.push(`${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+            }
+
+            charts.cpi = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: message,
+                        data: labels.map(() => null),
+                        borderColor: '#ccc',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }, {
+                        label: '기준선 (50점 = 동일가격)',
+                        data: Array(labels.length).fill(50),
+                        borderColor: '#E74C3C',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 11 } } },
+                        title: {
+                            display: true,
+                            text: message,
+                            color: '#999',
+                            font: { size: 13 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                stepSize: 25,
+                                callback: function(value) {
+                                    if (value === 50) return '★ 50 (기준)';
+                                    if (value === 0) return '0 (최저)';
+                                    return value;
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: { font: { size: 11 }, maxRotation: 45 }
+                        }
+                    }
+                }
+            });
+
+            console.log('[showCpiNoDataChart]', message);
         }
 
         // 기존 함수 호환성 유지 (무시하고 브랜드 평균 사용)
@@ -10939,12 +11016,9 @@
             }
 
             if (pageId === 'category') {
-                // [FIX] Category 페이지 진입/복귀 시 API에서 최신 CPI 데이터 로드
-                // currentCpiPeriodDays 기간 사용, 선택된 카테고리 자동 감지
-                // 초기 placeholder 차트 없이 바로 API 데이터로 렌더링 (더블렌더 방지)
-                updateCpiChartWithBrandAverage().catch(err => {
-                    console.error('[initChartsForPage] Failed to load CPI data:', err);
-                });
+                // [Fix 6] CPI 기간 선택 이벤트 리스너 재등록 (event delegation)
+                // 매 Category 진입 시 재등록하여 페이지 전환 후에도 버튼 동작 보장
+                initCpiPeriodSelector();
 
                 // CPI 기간 선택기 상태 복원 (currentCpiPeriodDays에 맞춰)
                 const cpiSelector = document.getElementById('cpiPeriodSelector');
@@ -10956,6 +11030,12 @@
                         }
                     });
                 }
+
+                // [FIX] Category 페이지 진입/복귀 시 API에서 최신 CPI 데이터 로드
+                // currentCpiPeriodDays 기간 사용, 선택된 카테고리 자동 감지
+                updateCpiChartWithBrandAverage().catch(err => {
+                    console.error('[initChartsForPage] Failed to load CPI data:', err);
+                });
             }
 
             if (pageId === 'product') {
@@ -11370,52 +11450,61 @@
             initCpiPeriodSelector();
         }
 
-        // CPI 기간 선택 버튼 이벤트 리스너 초기화
+        // CPI 기간 선택 버튼 — Event Delegation 핸들러 (named function으로 분리)
+        // [Fix 5] 익명 addEventListener → Event Delegation 패턴으로 변경
+        // 컨테이너에 단일 리스너를 붙여 DOM 상태 변화에도 안정적으로 동작
+        async function handleCpiPeriodBtnClick(e) {
+            const btn = e.target.closest('.period-btn');
+            if (!btn) return;
+
+            e.preventDefault();
+            const days = btn.dataset.days;
+            const selector = document.getElementById('cpiPeriodSelector');
+            const customDateRange = document.getElementById('cpiCustomDateRange');
+
+            // 활성화 상태 변경
+            selector.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (days === 'custom') {
+                // 직접설정 선택 시 날짜 입력 필드 표시
+                customDateRange.style.display = 'flex';
+                // 기본값 설정 (현재 선택된 기간)
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 6);
+                document.getElementById('cpiCustomStartDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('cpiCustomEndDate').value = endDate.toISOString().split('T')[0];
+            } else {
+                // 날짜 입력 필드 숨기기
+                customDateRange.style.display = 'none';
+
+                // 로딩 상태 표시
+                btn.classList.add('loading');
+
+                try {
+                    currentCpiPeriodDays = parseInt(days);
+                    await updateCpiChartWithBrandAverage();
+                    showToast(`CPI 차트가 ${days}일 기간으로 업데이트되었습니다.`, 'success');
+                } catch (error) {
+                    console.error('Failed to update CPI chart:', error);
+                    showToast(`CPI 차트 업데이트 실패: ${error.message}`, 'error');
+                } finally {
+                    btn.classList.remove('loading');
+                }
+            }
+        }
+
+        // CPI 기간 선택 이벤트 리스너 초기화 (Event Delegation)
         function initCpiPeriodSelector() {
             const selector = document.getElementById('cpiPeriodSelector');
             if (!selector) return;
 
-            const customDateRange = document.getElementById('cpiCustomDateRange');
-            const buttons = selector.querySelectorAll('.period-btn');
+            // 기존 리스너 제거 후 재등록 (중복 방지)
+            selector.removeEventListener('click', handleCpiPeriodBtnClick);
+            selector.addEventListener('click', handleCpiPeriodBtnClick);
 
-            buttons.forEach(btn => {
-                btn.addEventListener('click', async function(e) {
-                    e.preventDefault();
-                    const days = this.dataset.days;
-
-                    // 활성화 상태 변경
-                    buttons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-
-                    if (days === 'custom') {
-                        // 직접설정 선택 시 날짜 입력 필드 표시
-                        customDateRange.style.display = 'flex';
-                        // 기본값 설정 (현재 선택된 기간)
-                        const endDate = new Date();
-                        const startDate = new Date();
-                        startDate.setDate(startDate.getDate() - 6);
-                        document.getElementById('cpiCustomStartDate').value = startDate.toISOString().split('T')[0];
-                        document.getElementById('cpiCustomEndDate').value = endDate.toISOString().split('T')[0];
-                    } else {
-                        // 날짜 입력 필드 숨기기
-                        customDateRange.style.display = 'none';
-
-                        // 로딩 상태 표시
-                        this.classList.add('loading');
-
-                        try {
-                            currentCpiPeriodDays = parseInt(days);
-                            await updateCpiChartWithBrandAverage();
-                            showToast(`CPI 차트가 ${days}일 기간으로 업데이트되었습니다.`, 'success');
-                        } catch (error) {
-                            console.error('Failed to update CPI chart:', error);
-                            showToast(`CPI 차트 업데이트 실패: ${error.message}`, 'error');
-                        } finally {
-                            this.classList.remove('loading');
-                        }
-                    }
-                });
-            });
+            console.log('[initCpiPeriodSelector] Event delegation registered on cpiPeriodSelector');
         }
 
         // CPI 직접설정 날짜 적용
