@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Any
 
 from .cache import ResponseCache
+from .circuit_breaker import CircuitBreaker
 from .models import ToolResult
 from .state import OrchestratorState
 from .tools import ToolExecutor
@@ -101,6 +102,19 @@ class ToolCoordinator:
             "fallbacks_used": 0,
         }
 
+        # Circuit breakers (도구별)
+        self._circuit_breakers: dict[str, CircuitBreaker] = {}
+
+    def _get_breaker(self, tool_name: str) -> CircuitBreaker:
+        """도구별 CircuitBreaker 인스턴스 반환 (lazy init)"""
+        if tool_name not in self._circuit_breakers:
+            self._circuit_breakers[tool_name] = CircuitBreaker(
+                name=tool_name,
+                failure_threshold=3,
+                recovery_timeout=60.0,
+            )
+        return self._circuit_breakers[tool_name]
+
     async def execute(self, tool_name: str, params: dict[str, Any]) -> ToolResult:
         """
         도구 실행 (에러 처리 포함)
@@ -116,6 +130,27 @@ class ToolCoordinator:
         strategy = TOOL_ERROR_STRATEGIES.get(tool_name, ErrorStrategy.NOTIFY_USER)
         retry_count = 0
 
+        breaker = self._get_breaker(tool_name)
+
+        # Circuit breaker 차단 확인
+        if not breaker.can_execute():
+            logger.warning(f"Circuit breaker OPEN for {tool_name}, using fallback")
+            self._stats["failed"] += 1
+            # FALLBACK 전략인 경우 캐시 시도
+            cached = self.cache.get_tool_result(tool_name)
+            if cached:
+                self._stats["fallbacks_used"] += 1
+                return ToolResult(
+                    tool_name=tool_name,
+                    success=True,
+                    data={**cached, "_from_cache": True, "_circuit_breaker": "open"},
+                )
+            return ToolResult(
+                tool_name=tool_name,
+                success=False,
+                error=f"Circuit breaker OPEN: {tool_name} 일시 차단 중",
+            )
+
         while retry_count <= self.max_retries:
             try:
                 self.state.start_tool(tool_name)
@@ -125,6 +160,7 @@ class ToolCoordinator:
                 if result.success:
                     self._stats["successful"] += 1
                     self._failed_tools.pop(tool_name, None)
+                    breaker.record_success()
                     return result
 
                 # 실패 처리
@@ -148,7 +184,7 @@ class ToolCoordinator:
                 if strategy == ErrorStrategy.RETRY and retry_count < self.max_retries:
                     retry_count += 1
                     self._stats["retried"] += 1
-                    await asyncio.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay * (2 ** (retry_count - 1)))
                     continue
 
                 return await self._handle_error(error_info, strategy, tool_name, params)
@@ -165,7 +201,7 @@ class ToolCoordinator:
                 if strategy == ErrorStrategy.RETRY and retry_count < self.max_retries:
                     retry_count += 1
                     self._stats["retried"] += 1
-                    await asyncio.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay * (2 ** (retry_count - 1)))
                     continue
 
                 return await self._handle_error(error_info, strategy, tool_name, params)
@@ -184,6 +220,7 @@ class ToolCoordinator:
     ) -> ToolResult:
         """에러 전략에 따른 처리"""
         self._failed_tools[tool_name] = datetime.now()
+        self._get_breaker(tool_name).record_failure()
 
         logger.warning(
             f"Error in {tool_name}: {error_info['error_message']} " f"(strategy: {strategy.value})"
@@ -254,6 +291,12 @@ class ToolCoordinator:
         self._failed_tools.clear()
         logger.info("Failed tools list cleared")
 
+    def reset_circuit_breakers(self) -> None:
+        """모든 circuit breaker 초기화"""
+        for breaker in self._circuit_breakers.values():
+            breaker.reset()
+        logger.info("All circuit breakers reset")
+
     def get_recent_errors(self, limit: int = 10) -> list[dict[str, Any]]:
         """최근 에러 목록"""
         return self._error_history[-limit:]
@@ -264,4 +307,7 @@ class ToolCoordinator:
             **self._stats,
             "error_history_size": len(self._error_history),
             "failed_tools": list(self._failed_tools.keys()),
+            "circuit_breakers": {
+                name: breaker.get_stats() for name, breaker in self._circuit_breakers.items()
+            },
         }

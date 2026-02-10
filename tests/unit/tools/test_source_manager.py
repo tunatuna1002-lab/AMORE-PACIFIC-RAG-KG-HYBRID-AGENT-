@@ -6,15 +6,15 @@ Tests for SourceManager
 
 import pytest
 
-from src.tools.source_manager import (
-    SourceManager,
-    Source,
-    InsightSourceBuilder,
-    SourceType,
-    RELIABILITY_SCORES,
+from src.tools.intelligence.source_manager import (
     PUBLISHER_RELIABILITY,
+    RELIABILITY_SCORES,
+    InsightSourceBuilder,
+    Source,
+    SourceManager,
+    SourceType,
+    create_insight_builder,
     create_source_manager,
-    create_insight_builder
 )
 
 
@@ -30,7 +30,7 @@ class TestSource:
             publisher="아모레퍼시픽 IR",
             date="2025-11-06",
             url="https://www.apgroup.com/...",
-            source_type="ir"
+            source_type="ir",
         )
 
         assert source.source_id == "SRC-001"
@@ -46,7 +46,7 @@ class TestSource:
             title="수출입통계",
             publisher="관세청",
             date="2025-01",
-            source_type="government"
+            source_type="government",
         )
 
         assert source.reliability_score == 0.95
@@ -59,7 +59,7 @@ class TestSource:
             title="Test News",
             publisher="Unknown Media",
             date="2025-01-26",
-            source_type="news"
+            source_type="news",
         )
 
         assert source.reliability_score == 0.7
@@ -71,7 +71,7 @@ class TestSource:
             citation_number=5,
             title="Test",
             publisher="Test",
-            date="2025-01-01"
+            date="2025-01-01",
         )
 
         assert source.to_citation() == "[5]"
@@ -84,7 +84,7 @@ class TestSource:
             title="3Q 2025 Earnings Release",
             publisher="아모레퍼시픽 IR",
             date="2025-11-06",
-            url="https://www.apgroup.com/..."
+            url="https://www.apgroup.com/...",
         )
 
         line = source.to_reference_line(include_url=True)
@@ -103,7 +103,7 @@ class TestSource:
             title="Test",
             publisher="Test",
             date="2025-01-01",
-            url="https://example.com"
+            url="https://example.com",
         )
 
         line = source.to_reference_line(include_url=False)
@@ -117,7 +117,7 @@ class TestSource:
             citation_number=1,
             title="Test",
             publisher="관세청",
-            date="2025-01-15"
+            date="2025-01-15",
         )
 
         inline = source.to_inline_reference()
@@ -145,7 +145,7 @@ class TestSourceManager:
             publisher="Test Publisher",
             date="2025-01-26",
             url="https://example.com",
-            source_type="news"
+            source_type="news",
         )
 
         assert source.citation_number == 1
@@ -154,17 +154,9 @@ class TestSourceManager:
 
     def test_add_multiple_sources(self, manager):
         """여러 출처 추가 테스트"""
-        source1 = manager.add_source(
-            title="Report 1",
-            publisher="Publisher A",
-            date="2025-01-01"
-        )
+        source1 = manager.add_source(title="Report 1", publisher="Publisher A", date="2025-01-01")
 
-        source2 = manager.add_source(
-            title="Report 2",
-            publisher="Publisher B",
-            date="2025-01-02"
-        )
+        source2 = manager.add_source(title="Report 2", publisher="Publisher B", date="2025-01-02")
 
         assert source1.citation_number == 1
         assert source2.citation_number == 2
@@ -173,16 +165,12 @@ class TestSourceManager:
     def test_add_duplicate_source(self, manager):
         """중복 출처 추가 테스트"""
         source1 = manager.add_source(
-            title="Same Report",
-            publisher="Same Publisher",
-            date="2025-01-01"
+            title="Same Report", publisher="Same Publisher", date="2025-01-01"
         )
 
         # 동일한 정보로 다시 추가
         source2 = manager.add_source(
-            title="Same Report",
-            publisher="Same Publisher",
-            date="2025-01-01"
+            title="Same Report", publisher="Same Publisher", date="2025-01-01"
         )
 
         # 같은 출처가 반환되어야 함
@@ -196,7 +184,7 @@ class TestSourceManager:
             "publisher": "Dict Publisher",
             "date": "2025-01-26",
             "url": "https://example.com",
-            "source_type": "research"
+            "source_type": "research",
         }
 
         source = manager.add_source_from_dict(data)
@@ -207,11 +195,7 @@ class TestSourceManager:
 
     def test_cite(self, manager):
         """인용 생성 테스트"""
-        source = manager.add_source(
-            title="Test",
-            publisher="Test",
-            date="2025-01-01"
-        )
+        source = manager.add_source(title="Test", publisher="Test", date="2025-01-01")
 
         citation = manager.cite(source)
 
@@ -219,11 +203,7 @@ class TestSourceManager:
 
     def test_cite_by_id(self, manager):
         """ID로 인용 생성 테스트"""
-        source = manager.add_source(
-            title="Test",
-            publisher="Test",
-            date="2025-01-01"
-        )
+        source = manager.add_source(title="Test", publisher="Test", date="2025-01-01")
 
         citation = manager.cite_by_id(source.source_id)
 
@@ -237,11 +217,7 @@ class TestSourceManager:
 
     def test_get_source(self, manager):
         """출처 조회 테스트"""
-        source = manager.add_source(
-            title="Test",
-            publisher="Test",
-            date="2025-01-01"
-        )
+        source = manager.add_source(title="Test", publisher="Test", date="2025-01-01")
 
         retrieved = manager.get_source(source.source_id)
 
@@ -276,14 +252,14 @@ class TestSourceManager:
             publisher="Unknown",
             date="2025-01-01",
             source_type="news",
-            reliability_score=0.7
+            reliability_score=0.7,
         )
         manager.add_source(
             title="IR",
             publisher="아모레퍼시픽 IR",
             date="2025-01-01",
             source_type="ir",
-            reliability_score=1.0
+            reliability_score=1.0,
         )
 
         sources = manager.get_all_sources(sort_by="reliability")
@@ -294,16 +270,9 @@ class TestSourceManager:
     def test_generate_references_section(self, manager):
         """참고자료 섹션 생성 테스트"""
         manager.add_source(
-            title="Report A",
-            publisher="Publisher A",
-            date="2025-01-01",
-            url="https://a.com"
+            title="Report A", publisher="Publisher A", date="2025-01-01", url="https://a.com"
         )
-        manager.add_source(
-            title="Report B",
-            publisher="Publisher B",
-            date="2025-01-02"
-        )
+        manager.add_source(title="Report B", publisher="Publisher B", date="2025-01-02")
 
         section = manager.generate_references_section()
 
@@ -342,24 +311,9 @@ class TestSourceManager:
 
     def test_get_stats(self, manager):
         """통계 반환 테스트"""
-        manager.add_source(
-            title="News 1",
-            publisher="A",
-            date="2025-01-01",
-            source_type="news"
-        )
-        manager.add_source(
-            title="IR 1",
-            publisher="B",
-            date="2025-01-02",
-            source_type="ir"
-        )
-        manager.add_source(
-            title="News 2",
-            publisher="C",
-            date="2025-01-03",
-            source_type="news"
-        )
+        manager.add_source(title="News 1", publisher="A", date="2025-01-01", source_type="news")
+        manager.add_source(title="IR 1", publisher="B", date="2025-01-02", source_type="ir")
+        manager.add_source(title="News 2", publisher="C", date="2025-01-03", source_type="news")
 
         stats = manager.get_stats()
 
@@ -393,8 +347,8 @@ class TestInsightSourceBuilder:
                 "title": "3Q 2025 Earnings Release",
                 "publisher": "아모레퍼시픽 IR",
                 "date": "2025-11-06",
-                "source_type": "ir"
-            }
+                "source_type": "ir",
+            },
         )
 
         text = builder.build(include_references=False)
@@ -408,11 +362,7 @@ class TestInsightSourceBuilder:
 
         builder.add_cited_text(
             "테스트 인사이트",
-            {
-                "title": "Test Report",
-                "publisher": "Test Publisher",
-                "date": "2025-01-26"
-            }
+            {"title": "Test Report", "publisher": "Test Publisher", "date": "2025-01-26"},
         )
 
         text = builder.build(include_references=True)
@@ -427,8 +377,7 @@ class TestInsightSourceBuilder:
         builder = InsightSourceBuilder()
 
         result = (
-            builder
-            .add_text("첫 번째")
+            builder.add_text("첫 번째")
             .add_cited_text("두 번째", {"title": "T", "publisher": "P", "date": "2025-01-01"})
             .add_text("세 번째")
         )

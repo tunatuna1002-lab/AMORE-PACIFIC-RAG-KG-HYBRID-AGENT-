@@ -1,0 +1,1593 @@
+
+========================================================================================================================
+COMPLETE FILE-BY-FILE IMPORT MAP
+========================================================================================================================
+
+========================================================================================================================
+ROOT
+========================================================================================================================
+Total Files: 4 | Total Lines: 4936
+
+[dashboard_api.py] - 4651 lines
+  Internal Dependencies:
+    ├─ src.agents.alert_agent
+    ├─ src.api.routes.export
+    ├─ src.api.routes.signals
+    ├─ src.core.brain
+    ├─ src.core.crawl_manager
+    ├─ src.core.state_manager
+    ├─ src.ontology.knowledge_graph
+    ├─ src.rag.retriever
+    ├─ src.rag.router
+    ├─ src.tools.alert_service
+    ├─ src.tools.deals_scraper
+    ├─ src.tools.email_sender
+    ├─ src.tools.export_handlers
+    ├─ src.tools.job_queue
+    ├─ src.tools.market_intelligence
+    ├─ src.tools.sheets_writer
+    ├─ src.tools.sqlite_storage
+    ├─ src.tools.telegram_bot
+  External Packages (25):
+    ├─ asyncio
+    ├─ collections
+    ├─ datetime
+    ├─ docx
+    ├─ dotenv
+    ├─ fastapi
+    ├─ hmac
+    ├─ io
+    ├─ json
+    ├─ jwt
+    ├─ litellm
+    ├─ logging
+    └─ ... and 13 more
+
+[main.py] - 220 lines
+  Internal Dependencies:
+    ├─ src.core.brain
+    ├─ src.monitoring.logger
+  External Packages (9):
+    ├─ argparse
+    ├─ asyncio
+    ├─ datetime
+    ├─ dotenv
+    ├─ json
+    ├─ orchestrator
+    ├─ os
+    ├─ sys
+    ├─ typing
+
+========================================================================================================================
+SRC/CORE
+========================================================================================================================
+Total Files: 24 | Total Lines: 8075
+
+[__init__.py] - 74 lines
+  Internal Dependencies: (none)
+  External Packages (1):
+    ├─
+
+[alert_manager.py] - 239 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+[batch_workflow.py] - 889 lines
+  Internal Dependencies:
+    ├─ src.agents.crawler_agent
+    ├─ src.agents.hybrid_chatbot_agent
+    ├─ src.agents.hybrid_insight_agent
+    ├─ src.agents.metrics_agent
+    ├─ src.agents.storage_agent
+    ├─ src.core.batch_workflow
+    ├─ src.core.brain
+    ├─ src.memory.context
+    ├─ src.memory.history
+    ├─ src.memory.session
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.ontology.business_rules
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.reasoner
+    ├─ src.tools.brand_resolver
+    ├─ src.tools.dashboard_exporter
+    ├─ src.tools.kg_backup
+    ├─ src.tools.sheets_writer
+    ├─ src.tools.sqlite_storage
+  External Packages (7):
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ pathlib
+    ├─ typing
+
+[brain.py] - 1464 lines
+  Internal Dependencies:
+    ├─ src.agents.hybrid_insight_agent
+    ├─ src.core.crawl_manager
+    ├─ src.tools.email_sender
+    ├─ src.tools.market_intelligence
+    ├─ src.tools.morning_brief
+  External Packages (11):
+    ├─
+    ├─ asyncio
+    ├─ collections
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ heapq
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ typing
+
+[cache.py] - 271 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ datetime
+    ├─ hashlib
+    ├─ logging
+    ├─ threading
+    ├─ typing
+
+[confidence.py] - 196 lines
+  Internal Dependencies: (none)
+  External Packages (2):
+    ├─
+    ├─ typing
+
+[context_gatherer.py] - 335 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+[crawl_manager.py] - 379 lines
+  Internal Dependencies:
+    ├─ src.agents.crawler_agent
+    ├─ src.agents.storage_agent
+    ├─ src.core.brain
+    ├─ src.tools.dashboard_exporter
+    ├─ src.tools.sheets_writer
+  External Packages (11):
+    ├─ asyncio
+    ├─ collections
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ tempfile
+    ├─ typing
+
+[decision_maker.py] - 173 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─
+    ├─ json
+    ├─ litellm
+    ├─ logging
+    ├─ typing
+
+[explainability.py] - 214 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─
+    ├─ dataclasses
+    ├─ logging
+    ├─ typing
+
+[llm_orchestrator.py] - 545 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ typing
+
+[models.py] - 162 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.brain_models
+  External Packages (2):
+    ├─ dataclasses
+    ├─ typing
+
+[prompt_guard.py] - 167 lines
+  Internal Dependencies: (none)
+  External Packages (2):
+    ├─ logging
+    ├─ re
+
+[query_processor.py] - 155 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+[react_agent.py] - 257 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ dataclasses
+    ├─ json
+    ├─ litellm
+    ├─ logging
+    ├─ typing
+
+[response_pipeline.py] - 447 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─
+    ├─ datetime
+    ├─ json
+    ├─ litellm
+    ├─ logging
+    ├─ os
+    ├─ typing
+
+[rules_engine.py] - 325 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[scheduler.py] - 209 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ asyncio
+    ├─ collections
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ tempfile
+    ├─ typing
+
+[state.py] - 228 lines
+  Internal Dependencies: (none)
+  External Packages (6):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[state_manager.py] - 466 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ re
+    ├─ typing
+
+[tool_coordinator.py] - 221 lines
+  Internal Dependencies: (none)
+  External Packages (6):
+    ├─
+    ├─ asyncio
+    ├─ datetime
+    ├─ enum
+    ├─ logging
+    ├─ typing
+
+[tools.py] - 442 lines
+  Internal Dependencies: (none)
+  External Packages (6):
+    ├─
+    ├─ collections
+    ├─ dataclasses
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+[types.py] - 87 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ typing
+
+[verification_pipeline.py] - 130 lines
+  Internal Dependencies:
+    ├─ src.tools.claim_extractor
+    ├─ src.tools.claim_verifier
+    ├─ src.tools.confidence_scorer
+  External Packages (3):
+    ├─ dataclasses
+    ├─ logging
+    ├─ typing
+
+========================================================================================================================
+SRC/AGENTS
+========================================================================================================================
+Total Files: 10 | Total Lines: 5684
+
+[alert_agent.py] - 380 lines
+  Internal Dependencies:
+    ├─ src.core.rules_engine
+    ├─ src.core.state_manager
+    ├─ src.tools.email_sender
+  External Packages (5):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ logging
+    ├─ typing
+
+[crawler_agent.py] - 266 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.tools.amazon_scraper
+  External Packages (5):
+    ├─ asyncio
+    ├─ datetime
+    ├─ json
+    ├─ pathlib
+    ├─ typing
+
+[hybrid_chatbot_agent.py] - 1353 lines
+  Internal Dependencies:
+    ├─ src.core.verification_pipeline
+    ├─ src.domain.entities.relations
+    ├─ src.memory.context
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.ontology.business_rules
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.reasoner
+    ├─ src.rag.context_builder
+    ├─ src.rag.hybrid_retriever
+    ├─ src.rag.query_rewriter
+    ├─ src.rag.retriever
+    ├─ src.rag.router
+    ├─ src.rag.templates
+    ├─ src.shared.constants
+    ├─ src.tools.external_signal_collector
+  External Packages (8):
+    ├─ datetime
+    ├─ importlib
+    ├─ json
+    ├─ litellm
+    ├─ os
+    ├─ pathlib
+    ├─ re
+    ├─ typing
+
+[hybrid_insight_agent.py] - 1094 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.relations
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.ontology.business_rules
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.reasoner
+    ├─ src.rag.context_builder
+    ├─ src.rag.hybrid_retriever
+    ├─ src.rag.rag_kg_extractor
+    ├─ src.rag.retriever
+    ├─ src.rag.templates
+    ├─ src.shared.constants
+    ├─ src.tools.external_signal_collector
+    ├─ src.tools.google_trends_collector
+    ├─ src.tools.insight_formatter
+    ├─ src.tools.market_intelligence
+    ├─ src.tools.source_manager
+  External Packages (6):
+    ├─ datetime
+    ├─ importlib
+    ├─ litellm
+    ├─ os
+    ├─ re
+    ├─ typing
+
+[metrics_agent.py] - 339 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.tools.metric_calculator
+  External Packages (3):
+    ├─ datetime
+    ├─ json
+    ├─ typing
+
+[period_insight_agent.py] - 916 lines
+  Internal Dependencies:
+    ├─ src.agents.period_insight_agent
+    ├─ src.monitoring.logger
+    ├─ src.tools.insight_formatter
+    ├─ src.tools.insight_verifier
+    ├─ src.tools.period_analyzer
+  External Packages (4):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ litellm
+    ├─ typing
+
+[storage_agent.py] - 308 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.tools.sheets_writer
+    ├─ src.tools.sqlite_storage
+  External Packages (4):
+    ├─ datetime
+    ├─ json
+    ├─ pathlib
+    ├─ typing
+
+[suggestion_generator.py] - 246 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.ontology.knowledge_graph
+    ├─ src.rag.router
+    ├─ src.shared.constants
+  External Packages (3):
+    ├─ __future__
+    ├─ re
+    ├─ typing
+
+[true_hybrid_insight_agent.py] - 747 lines
+  Internal Dependencies:
+    ├─ src.monitoring.logger
+    ├─ src.monitoring.metrics
+    ├─ src.monitoring.tracer
+    ├─ src.ontology.business_rules
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.owl_reasoner
+    ├─ src.ontology.reasoner
+    ├─ src.rag.context_builder
+    ├─ src.rag.entity_linker
+    ├─ src.rag.hybrid_retriever
+    ├─ src.rag.retriever
+    ├─ src.rag.templates
+    ├─ src.rag.true_hybrid_retriever
+    ├─ src.tools.external_signal_collector
+  External Packages (3):
+    ├─ datetime
+    ├─ litellm
+    ├─ typing
+
+========================================================================================================================
+SRC/RAG
+========================================================================================================================
+Total Files: 13 | Total Lines: 6207
+
+[chunker.py] - 393 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─ dataclasses
+    ├─ logging
+    ├─ numpy
+    ├─ openai
+    ├─ os
+    ├─ re
+    ├─ typing
+
+[confidence_fusion.py] - 498 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─ dataclasses
+    ├─ enum
+    ├─ numpy
+    ├─ typing
+
+[context_builder.py] - 488 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.relations
+  External Packages (4):
+    ├─ dataclasses
+    ├─ enum
+    ├─ prompts
+    ├─ typing
+
+[entity_linker.py] - 661 lines
+  Internal Dependencies: (none)
+  External Packages (6):
+    ├─ dataclasses
+    ├─ difflib
+    ├─ logging
+    ├─ re
+    ├─ spacy
+    ├─ typing
+
+[hybrid_retriever.py] - 1008 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.relations
+    ├─ src.ontology.business_rules
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.reasoner
+  External Packages (10):
+    ├─
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ re
+    ├─ typing
+
+[query_rewriter.py] - 306 lines
+  Internal Dependencies:
+    ├─ src.rag.query_rewriter
+  External Packages (4):
+    ├─ dataclasses
+    ├─ litellm
+    ├─ re
+    ├─ typing
+
+[rag_kg_extractor.py] - 260 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.relations
+    ├─ src.ontology.knowledge_graph
+  External Packages (5):
+    ├─ __future__
+    ├─ datetime
+    ├─ re
+    ├─ typing
+    ├─ uuid
+
+[reranker.py] - 299 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ dataclasses
+    ├─ json
+    ├─ logging
+    ├─ openai
+    ├─ os
+    ├─ re
+    ├─ sentence_transformers
+    ├─ typing
+
+[retriever.py] - 1027 lines
+  Internal Dependencies: (none)
+  External Packages (11):
+    ├─
+    ├─ chromadb
+    ├─ hashlib
+    ├─ importlib
+    ├─ json
+    ├─ openai
+    ├─ os
+    ├─ pathlib
+    ├─ re
+    ├─ time
+    ├─ typing
+
+[router.py] - 284 lines
+  Internal Dependencies: (none)
+  External Packages (2):
+    ├─ enum
+    ├─ typing
+
+[templates.py] - 309 lines
+  Internal Dependencies: (none)
+  External Packages (2):
+    ├─ datetime
+    ├─ typing
+
+[true_hybrid_retriever.py] - 647 lines
+  Internal Dependencies:
+    ├─ src.ontology.owl_reasoner
+    ├─ src.rag.confidence_fusion
+  External Packages (5):
+    ├─
+    ├─ dataclasses
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+========================================================================================================================
+SRC/ONTOLOGY
+========================================================================================================================
+Total Files: 11 | Total Lines: 5861
+
+[__init__.py] - 78 lines
+  Internal Dependencies: (none)
+  External Packages (1):
+    ├─
+
+[business_rules.py] - 1540 lines
+  Internal Dependencies: (none)
+  External Packages (3):
+    ├─
+    ├─ datetime
+    ├─ typing
+
+[category_service.py] - 182 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.ontology.knowledge_graph
+  External Packages (4):
+    ├─ __future__
+    ├─ json
+    ├─ pathlib
+    ├─ typing
+
+[knowledge_graph.py] - 1514 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─
+    ├─ collections
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ typing
+
+[ontology_knowledge_graph.py] - 317 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+[owl_reasoner.py] - 817 lines
+  Internal Dependencies:
+    ├─ src.ontology.owl_reasoner
+  External Packages (6):
+    ├─
+    ├─ datetime
+    ├─ logging
+    ├─ owlready2
+    ├─ pathlib
+    ├─ typing
+
+[reasoner.py] - 813 lines
+  Internal Dependencies: (none)
+  External Packages (6):
+    ├─
+    ├─ abc
+    ├─ dataclasses
+    ├─ datetime
+    ├─ logging
+    ├─ typing
+
+[relations.py] - 68 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.relations
+  External Packages (2):
+    ├─ typing
+    ├─ warnings
+
+[schema.py] - 54 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.domain.entities.brand
+    ├─ src.domain.entities.market
+    ├─ src.domain.entities.product
+  External Packages (2):
+    ├─ typing
+    ├─ warnings
+
+[sentiment_service.py] - 209 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+    ├─ src.ontology.knowledge_graph
+  External Packages (3):
+    ├─
+    ├─ __future__
+    ├─ typing
+
+[unified_reasoner.py] - 269 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─
+    ├─ dataclasses
+    ├─ logging
+    ├─ typing
+
+========================================================================================================================
+SRC/TOOLS
+========================================================================================================================
+Total Files: 38 | Total Lines: 19323
+
+[__init__.py] - 69 lines
+  Internal Dependencies: (none)
+  External Packages (1):
+    ├─
+
+[alert_service.py] - 410 lines
+  Internal Dependencies: (none)
+  External Packages (9):
+    ├─ aiohttp
+    ├─ dataclasses
+    ├─ datetime
+    ├─ email
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ smtplib
+    ├─ typing
+
+[amazon_product_scraper.py] - 378 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ asyncio
+    ├─ datetime
+    ├─ json
+    ├─ os
+    ├─ playwright
+    ├─ random
+    ├─ re
+    ├─ typing
+
+[amazon_scraper.py] - 1321 lines
+  Internal Dependencies:
+    ├─ src.tools.brand_resolver
+  External Packages (12):
+    ├─ asyncio
+    ├─ browserforge
+    ├─ datetime
+    ├─ fake_useragent
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ playwright
+    ├─ playwright_stealth
+    ├─ random
+    ├─ re
+    ├─ typing
+
+[brand_resolver.py] - 429 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ asyncio
+    ├─ datetime
+    ├─ json
+    ├─ litellm
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ playwright
+    ├─ re
+    ├─ typing
+
+[chart_generator.py] - 560 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─ datetime
+    ├─ logging
+    ├─ matplotlib
+    ├─ pathlib
+    ├─ re
+    ├─ tempfile
+    ├─ typing
+
+[claim_extractor.py] - 305 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ dataclasses
+    ├─ enum
+    ├─ logging
+    ├─ re
+    ├─ typing
+
+[claim_verifier.py] - 526 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─
+    ├─ abc
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ logging
+    ├─ pathlib
+    ├─ re
+    ├─ sqlite3
+    ├─ typing
+
+[confidence_scorer.py] - 191 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─
+    ├─ dataclasses
+    ├─ enum
+    ├─ logging
+    ├─ typing
+
+[dashboard_exporter.py] - 1290 lines
+  Internal Dependencies:
+    ├─ src.tools.sheets_writer
+    ├─ src.tools.sqlite_storage
+  External Packages (8):
+    ├─ asyncio
+    ├─ collections
+    ├─ datetime
+    ├─ json
+    ├─ ontology
+    ├─ os
+    ├─ pathlib
+    ├─ typing
+
+[data_integrity_checker.py] - 280 lines
+  Internal Dependencies:
+    ├─ src.tools.data_integrity_checker
+    ├─ src.tools.sheets_writer
+    ├─ src.tools.sqlite_storage
+  External Packages (5):
+    ├─ asyncio
+    ├─ datetime
+    ├─ logging
+    ├─ os
+    ├─ typing
+
+[deals_scraper.py] - 528 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ playwright
+    ├─ re
+    ├─ typing
+
+[email_sender.py] - 799 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ email
+    ├─ enum
+    ├─ logging
+    ├─ os
+    ├─ resend
+    ├─ smtplib
+    ├─ typing
+
+[exchange_rate.py] - 212 lines
+  Internal Dependencies:
+    ├─ src.tools.exchange_rate
+  External Packages (5):
+    ├─ aiohttp
+    ├─ certifi
+    ├─ datetime
+    ├─ logging
+    ├─ ssl
+
+[export_handlers.py] - 299 lines
+  Internal Dependencies:
+    ├─ src.agents.period_insight_agent
+    ├─ src.api.dependencies
+    ├─ src.api.routes.export
+    ├─ src.tools.chart_generator
+    ├─ src.tools.export_handlers
+    ├─ src.tools.job_queue
+    ├─ src.tools.period_analyzer
+    ├─ src.tools.reference_tracker
+    ├─ src.tools.report_generator
+    ├─ src.tools.sqlite_storage
+  External Packages (6):
+    ├─ datetime
+    ├─ docx
+    ├─ logging
+    ├─ os
+    ├─ shutil
+    ├─ tempfile
+
+[external_signal_collector.py] - 1091 lines
+  Internal Dependencies:
+    ├─ src.tools.tavily_search
+  External Packages (12):
+    ├─ aiohttp
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ feedparser
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ re
+    ├─ typing
+    ├─ xml
+
+[google_trends_collector.py] - 338 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ pytrends
+    ├─ trendspyg
+    ├─ typing
+
+[insight_formatter.py] - 360 lines
+  Internal Dependencies: (none)
+  External Packages (2):
+    ├─ dataclasses
+    ├─ re
+
+[insight_verifier.py] - 346 lines
+  Internal Dependencies:
+    ├─ src.tools.tavily_search
+  External Packages (8):
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ litellm
+    ├─ logging
+    ├─ re
+    ├─ typing
+
+[instagram_collector.py] - 265 lines
+  Internal Dependencies: (none)
+  External Packages (9):
+    ├─ asyncio
+    ├─ concurrent
+    ├─ dataclasses
+    ├─ datetime
+    ├─ instaloader
+    ├─ logging
+    ├─ os
+    ├─ time
+    ├─ typing
+
+[ir_report_parser.py] - 614 lines
+  Internal Dependencies: (none)
+  External Packages (13):
+    ├─ PyPDF2
+    ├─ aiohttp
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ pdfminer
+    ├─ re
+    └─ ... and 1 more
+
+[job_queue.py] - 374 lines
+  Internal Dependencies: (none)
+  External Packages (12):
+    ├─ asyncio
+    ├─ collections
+    ├─ contextlib
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ sqlite3
+    ├─ traceback
+    ├─ uuid
+
+[kg_backup.py] - 363 lines
+  Internal Dependencies:
+    ├─ src.tools.kg_backup
+  External Packages (8):
+    ├─ argparse
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ shutil
+    ├─ typing
+
+[market_intelligence.py] - 517 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[metric_calculator.py] - 456 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+  External Packages (4):
+    ├─ collections
+    ├─ datetime
+    ├─ json
+    ├─ numpy
+
+[morning_brief.py] - 437 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ litellm
+    ├─ logging
+    ├─ os
+    ├─ typing
+
+[period_analyzer.py] - 449 lines
+  Internal Dependencies:
+    ├─ src.tools.sqlite_storage
+  External Packages (5):
+    ├─ collections
+    ├─ dataclasses
+    ├─ logging
+    ├─ statistics
+    ├─ typing
+
+[public_data_collector.py] - 668 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ aiohttp
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ typing
+
+[reddit_collector.py] - 372 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ aiohttp
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ logging
+    ├─ os
+    ├─ typing
+    ├─ urllib
+
+[reference_tracker.py] - 451 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─ dataclasses
+    ├─ enum
+    ├─ json
+    ├─ typing
+
+[report_generator.py] - 1057 lines
+  Internal Dependencies: (none)
+  External Packages (12):
+    ├─ datetime
+    ├─ docx
+    ├─ docx2pdf
+    ├─ importlib
+    ├─ io
+    ├─ logging
+    ├─ pathlib
+    ├─ pptx
+    ├─ subprocess
+    ├─ tempfile
+    ├─ typing
+    ├─ weasyprint
+
+[sheets_writer.py] - 582 lines
+  Internal Dependencies:
+    ├─ src.domain.entities
+  External Packages (7):
+    ├─ datetime
+    ├─ google
+    ├─ googleapiclient
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ typing
+
+[source_manager.py] - 493 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[sqlite_storage.py] - 1115 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ aiosqlite
+    ├─ contextlib
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pandas
+    ├─ pathlib
+    ├─ sqlite3
+    ├─ typing
+
+[tavily_search.py] - 366 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ httpx
+    ├─ logging
+    ├─ os
+    ├─ typing
+    ├─ urllib
+
+[telegram_bot.py] - 423 lines
+  Internal Dependencies:
+    ├─ src.ontology.knowledge_graph
+    ├─ src.tools.job_queue
+    ├─ src.tools.sqlite_storage
+    ├─ src.tools.telegram_bot
+  External Packages (10):
+    ├─ datetime
+    ├─ fastapi
+    ├─ httpx
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ psutil
+    ├─ re
+    ├─ traceback
+    ├─ typing
+
+[tiktok_collector.py] - 295 lines
+  Internal Dependencies: (none)
+  External Packages (11):
+    ├─ aiohttp
+    ├─ asyncio
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ playwright
+    ├─ re
+    ├─ typing
+    ├─ urllib
+
+[youtube_collector.py] - 294 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ asyncio
+    ├─ concurrent
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ re
+    ├─ typing
+    ├─ yt_dlp
+
+========================================================================================================================
+SRC/DOMAIN
+========================================================================================================================
+Total Files: 17 | Total Lines: 2048
+
+[__init__.py] - 77 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.brand
+    ├─ src.domain.entities.market
+    ├─ src.domain.entities.product
+    ├─ src.domain.entities.relations
+    ├─ src.domain.exceptions
+
+[__init__.py] - 81 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.brain_models
+    ├─ src.domain.entities.brand
+    ├─ src.domain.entities.market
+    ├─ src.domain.entities.product
+    ├─ src.domain.entities.relations
+
+[brain_components.py] - 172 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.brain_models
+  External Packages (1):
+    ├─ typing
+
+[brain_models.py] - 241 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ typing
+
+[brand.py] - 65 lines
+  Internal Dependencies: (none)
+  External Packages (3):
+    ├─ datetime
+    ├─ pydantic
+    ├─ typing
+
+[exceptions.py] - 277 lines
+  Internal Dependencies:
+    ├─ src.domain.exceptions
+  External Packages (1):
+    ├─ typing
+
+[knowledge_graph.py] - 109 lines
+  Internal Dependencies: (none)
+  External Packages (1):
+    ├─ typing
+
+[market.py] - 149 lines
+  Internal Dependencies: (none)
+  External Packages (3):
+    ├─ datetime
+    ├─ pydantic
+    ├─ typing
+
+[product.py] - 121 lines
+  Internal Dependencies: (none)
+  External Packages (3):
+    ├─ datetime
+    ├─ enum
+    ├─ pydantic
+
+[relations.py] - 512 lines
+  Internal Dependencies: (none)
+  External Packages (4):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ typing
+
+[retriever.py] - 101 lines
+  Internal Dependencies: (none)
+  External Packages (1):
+    ├─ typing
+
+========================================================================================================================
+SRC/APPLICATION
+========================================================================================================================
+Total Files: 5 | Total Lines: 120
+
+[batch_workflow.py] - 96 lines
+  Internal Dependencies:
+    ├─ src.domain.interfaces.agent
+  External Packages (4):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ typing
+
+========================================================================================================================
+SRC/INFRASTRUCTURE
+========================================================================================================================
+Total Files: 8 | Total Lines: 998
+
+[bootstrap.py] - 151 lines
+  Internal Dependencies:
+    ├─ src.core.brain
+    ├─ src.core.crawl_manager
+    ├─ src.infrastructure.config.config_manager
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.reasoner
+    ├─ src.rag.hybrid_retriever
+  External Packages (4):
+    ├─ dataclasses
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[config_manager.py] - 100 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ dataclasses
+    ├─ json
+    ├─ os
+    ├─ pathlib
+    ├─ typing
+
+[container.py] - 226 lines
+  Internal Dependencies:
+    ├─ src.agents.crawler_agent
+    ├─ src.agents.hybrid_chatbot_agent
+    ├─ src.agents.hybrid_insight_agent
+    ├─ src.infrastructure.container
+    ├─ src.ontology.category_service
+    ├─ src.ontology.knowledge_graph
+    ├─ src.ontology.reasoner
+    ├─ src.ontology.sentiment_service
+    ├─ src.rag.hybrid_retriever
+    ├─ src.rag.retriever
+  External Packages (2):
+    ├─ contextlib
+    ├─ typing
+
+[json_repository.py] - 221 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.brand
+    ├─ src.domain.entities.market
+    ├─ src.domain.entities.product
+    ├─ src.domain.interfaces.repository
+  External Packages (5):
+    ├─ datetime
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[sheets_repository.py] - 270 lines
+  Internal Dependencies:
+    ├─ src.domain.entities.brand
+    ├─ src.domain.entities.market
+    ├─ src.domain.entities.product
+    ├─ src.domain.interfaces.repository
+  External Packages (9):
+    ├─ asyncio
+    ├─ datetime
+    ├─ google
+    ├─ gspread
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ typing
+
+========================================================================================================================
+SRC/API
+========================================================================================================================
+Total Files: 13 | Total Lines: 2603
+
+[alerts.py] - 199 lines
+  Internal Dependencies:
+    ├─ src.api.dependencies
+    ├─ src.core.state_manager
+    ├─ src.tools.alert_service
+    ├─ src.tools.sqlite_storage
+  External Packages (5):
+    ├─ datetime
+    ├─ fastapi
+    ├─ logging
+    ├─ pydantic
+    ├─ typing
+
+[brain.py] - 167 lines
+  Internal Dependencies:
+    ├─ src.api.dependencies
+    ├─ src.core.brain
+  External Packages (4):
+    ├─ datetime
+    ├─ fastapi
+    ├─ logging
+    ├─ typing
+
+[chat.py] - 92 lines
+  Internal Dependencies:
+    ├─ src.api.dependencies
+    ├─ src.api.validators.input_validator
+    ├─ src.core.brain
+    ├─ src.domain.exceptions
+  External Packages (4):
+    ├─ fastapi
+    ├─ logging
+    ├─ pydantic
+    ├─ time
+
+[crawl.py] - 56 lines
+  Internal Dependencies:
+    ├─ src.api.dependencies
+    ├─ src.core.crawl_manager
+  External Packages (1):
+    ├─ fastapi
+
+[data.py] - 369 lines
+  Internal Dependencies:
+    ├─ src.tools.sheets_writer
+  External Packages (6):
+    ├─ datetime
+    ├─ fastapi
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ typing
+
+[deals.py] - 259 lines
+  Internal Dependencies:
+    ├─ src.agents.alert_agent
+    ├─ src.api.dependencies
+    ├─ src.tools.deals_scraper
+    ├─ src.tools.sqlite_storage
+  External Packages (6):
+    ├─ datetime
+    ├─ fastapi
+    ├─ logging
+    ├─ pathlib
+    ├─ pydantic
+    ├─ typing
+
+[dependencies.py] - 128 lines
+  Internal Dependencies: (none)
+  External Packages (9):
+    ├─ collections
+    ├─ datetime
+    ├─ fastapi
+    ├─ json
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ slowapi
+    ├─ typing
+
+[export.py] - 1027 lines
+  Internal Dependencies:
+    ├─ src.agents.period_insight_agent
+    ├─ src.api.dependencies
+    ├─ src.tools.chart_generator
+    ├─ src.tools.external_signal_collector
+    ├─ src.tools.job_queue
+    ├─ src.tools.period_analyzer
+    ├─ src.tools.reference_tracker
+    ├─ src.tools.report_generator
+    ├─ src.tools.sqlite_storage
+  External Packages (11):
+    ├─ datetime
+    ├─ docx
+    ├─ enum
+    ├─ fastapi
+    ├─ io
+    ├─ logging
+    ├─ os
+    ├─ pathlib
+    ├─ pydantic
+    ├─ re
+    ├─ tempfile
+
+[input_validator.py] - 90 lines
+  Internal Dependencies:
+    ├─ src.domain.exceptions
+  External Packages (1):
+    ├─ re
+
+[signals.py] - 186 lines
+  Internal Dependencies:
+    ├─ src.tools.external_signal_collector
+  External Packages (5):
+    ├─ datetime
+    ├─ fastapi
+    ├─ logging
+    ├─ pydantic
+    ├─ typing
+
+========================================================================================================================
+SRC/MEMORY
+========================================================================================================================
+Total Files: 4 | Total Lines: 636
+
+[context.py] - 243 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ pathlib
+    ├─ typing
+
+[history.py] - 183 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ datetime
+    ├─ json
+    ├─ os
+    ├─ pathlib
+    ├─ typing
+
+[session.py] - 199 lines
+  Internal Dependencies: (none)
+  External Packages (5):
+    ├─ dataclasses
+    ├─ datetime
+    ├─ enum
+    ├─ typing
+    ├─ uuid
+
+========================================================================================================================
+SRC/MONITORING
+========================================================================================================================
+Total Files: 4 | Total Lines: 865
+
+[logger.py] - 317 lines
+  Internal Dependencies: (none)
+  External Packages (10):
+    ├─ asyncio
+    ├─ datetime
+    ├─ functools
+    ├─ json
+    ├─ logging
+    ├─ pathlib
+    ├─ re
+    ├─ sys
+    ├─ time
+    ├─ typing
+
+[metrics.py] - 279 lines
+  Internal Dependencies: (none)
+  External Packages (7):
+    ├─ collections
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ pathlib
+    ├─ time
+    ├─ typing
+
+[tracer.py] - 258 lines
+  Internal Dependencies: (none)
+  External Packages (8):
+    ├─ contextlib
+    ├─ dataclasses
+    ├─ datetime
+    ├─ json
+    ├─ pathlib
+    ├─ time
+    ├─ typing
+    ├─ uuid
+
+========================================================================================================================
+SRC/SHARED
+========================================================================================================================
+Total Files: 3 | Total Lines: 387
+
+[constants.py] - 67 lines
+  Internal Dependencies: (none)
+
+[llm_client.py] - 315 lines
+  Internal Dependencies:
+    ├─ src.monitoring.logger
+  External Packages (4):
+    ├─ json
+    ├─ litellm
+    ├─ time
+    ├─ typing
+
+========================================================================================================================
+SRC/ADAPTERS
+========================================================================================================================
+Total Files: 4 | Total Lines: 64

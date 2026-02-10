@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root))
 
 def test_docx_generator():
     """DOCX 생성기 기본 테스트"""
-    from src.tools.report_generator import DocxReportGenerator
+    from src.tools.exporters.report_generator import DocxReportGenerator
 
     print("\n" + "=" * 60)
     print("TEST: DocxReportGenerator")
@@ -633,7 +633,7 @@ URL: https://seekingalpha.com/article/amorepacific-q4-2025-earnings-call
 def test_pptx_generator():
     """PPTX 생성기 테스트"""
     try:
-        from src.tools.report_generator import PptxReportGenerator
+        from src.tools.exporters.report_generator import PptxReportGenerator
     except ImportError:
         print("\n⚠️ python-pptx 미설치로 PPTX 테스트 스킵")
         return None
@@ -683,7 +683,7 @@ def test_pptx_generator():
 
 def test_unified_generator():
     """통합 리포트 생성기 테스트"""
-    from src.tools.report_generator import ReportGenerator
+    from src.tools.exporters.report_generator import ReportGenerator
 
     print("\n" + "=" * 60)
     print("TEST: ReportGenerator (Unified)")
@@ -721,7 +721,7 @@ def test_unified_generator():
 
 def test_logo_paths():
     """로고 경로 확인"""
-    from src.tools.report_generator import DocxReportGenerator
+    from src.tools.exporters.report_generator import DocxReportGenerator
 
     print("\n" + "=" * 60)
     print("TEST: Logo Paths")

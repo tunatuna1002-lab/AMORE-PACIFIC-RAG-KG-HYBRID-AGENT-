@@ -5,16 +5,14 @@ Tests for PublicDataCollector
 """
 
 import pytest
-from datetime import datetime
-from unittest.mock import AsyncMock, patch, MagicMock
 
-from src.tools.public_data_collector import (
-    PublicDataCollector,
-    TradeData,
+from src.tools.collectors.public_data_collector import (
+    COUNTRY_CODES,
+    HS_CODE_COSMETICS,
     CosmeticsProduct,
     DataSourceType,
-    HS_CODE_COSMETICS,
-    COUNTRY_CODES
+    PublicDataCollector,
+    TradeData,
 )
 
 
@@ -32,7 +30,7 @@ class TestTradeData:
             country_code="US",
             country_name="미국",
             amount_usd=1_500_000_000,
-            yoy_change=12.5
+            yoy_change=12.5,
         )
 
         assert trade.data_id == "TRADE-20260126-0001"
@@ -45,11 +43,7 @@ class TestTradeData:
     def test_trade_data_to_dict(self):
         """TradeData to_dict 테스트"""
         trade = TradeData(
-            data_id="TRADE-001",
-            hs_code="3304",
-            trade_type="export",
-            year="2025",
-            month="01"
+            data_id="TRADE-001", hs_code="3304", trade_type="export", year="2025", month="01"
         )
 
         data = trade.to_dict()
@@ -68,7 +62,7 @@ class TestTradeData:
             month="01",
             country_name="미국",
             amount_usd=1_500_000_000,  # $1.5B
-            yoy_change=12.5
+            yoy_change=12.5,
         )
 
         insight = trade.to_insight_format()
@@ -91,7 +85,7 @@ class TestCosmeticsProduct:
             product_name="테스트 세럼",
             company_name="아모레퍼시픽",
             functional_type="주름개선",
-            approval_date="20250101"
+            approval_date="20250101",
         )
 
         assert product.product_id == "COSM-001"
@@ -106,10 +100,7 @@ class TestPublicDataCollector:
     @pytest.fixture
     def collector(self, tmp_path):
         """테스트용 collector 인스턴스"""
-        return PublicDataCollector(
-            api_key="test_api_key",
-            data_dir=str(tmp_path / "public_data")
-        )
+        return PublicDataCollector(api_key="test_api_key", data_dir=str(tmp_path / "public_data"))
 
     def test_collector_initialization(self, collector):
         """초기화 테스트"""
@@ -120,10 +111,7 @@ class TestPublicDataCollector:
 
     def test_collector_no_api_key(self, tmp_path):
         """API 키 없이 초기화"""
-        collector = PublicDataCollector(
-            api_key=None,
-            data_dir=str(tmp_path / "public_data")
-        )
+        collector = PublicDataCollector(api_key=None, data_dir=str(tmp_path / "public_data"))
 
         assert collector.api_key == ""
 
@@ -148,7 +136,7 @@ class TestPublicDataCollector:
                                 "natCd": "US",
                                 "natEngNm": "United States",
                                 "expDlr": "1500000000",
-                                "expQty": "500000"
+                                "expQty": "500000",
                             }
                         ]
                     }
@@ -167,13 +155,7 @@ class TestPublicDataCollector:
         response = {
             "response": {
                 "body": {
-                    "items": {
-                        "item": {
-                            "natCd": "CN",
-                            "natEngNm": "China",
-                            "expDlr": "2000000000"
-                        }
-                    }
+                    "items": {"item": {"natCd": "CN", "natEngNm": "China", "expDlr": "2000000000"}}
                 }
             }
         }
@@ -230,7 +212,7 @@ class TestPublicDataCollector:
                 month="01",
                 country_code="US",
                 country_name="미국",
-                amount_usd=1_000_000_000
+                amount_usd=1_000_000_000,
             ),
             TradeData(
                 data_id="T2",
@@ -240,8 +222,8 @@ class TestPublicDataCollector:
                 month="01",
                 country_code="CN",
                 country_name="중국",
-                amount_usd=500_000_000
-            )
+                amount_usd=500_000_000,
+            ),
         ]
 
         summary = collector.get_trade_summary("2025", "export")
@@ -269,7 +251,7 @@ class TestPublicDataCollector:
                 month="01",
                 country_name="미국",
                 amount_usd=1_500_000_000,
-                yoy_change=12.5
+                yoy_change=12.5,
             )
         ]
 
@@ -286,7 +268,7 @@ class TestPublicDataCollector:
             trade_type="export",
             year="2025",
             month="01",
-            source_url="https://apis.data.go.kr/..."
+            source_url="https://apis.data.go.kr/...",
         )
 
         ref = collector.create_source_reference(trade_data=trade)

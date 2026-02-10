@@ -4606,10 +4606,6 @@
                                                     <div class="th-tooltip">해당 브랜드 모든 제품의 평균 베스트셀러 순위입니다. 숫자가 낮을수록 상위권입니다.</div>
                                                 </th>
                                                 <th class="has-tooltip">
-                                                    <span class="th-content">평균가격 <i data-lucide="help-circle" class="help-icon"></i></span>
-                                                    <div class="th-tooltip"><strong>평균 판매가</strong><br>해당 브랜드 Top 100 제품들의 평균 판매 가격(USD)입니다.</div>
-                                                </th>
-                                                <th class="has-tooltip">
                                                     <span class="th-content">vs Laneige <i data-lucide="help-circle" class="help-icon"></i></span>
                                                     <div class="th-tooltip">LANEIGE 대비 점유율 차이(%p)입니다.<br>• 양수(+): LANEIGE보다 높음<br>• 음수(-): LANEIGE보다 낮음</div>
                                                 </th>
@@ -4962,10 +4958,10 @@
                                 <div class="card-header">
                                     <div class="card-title has-tooltip">
                                         <div class="card-title-icon"><i data-lucide="line-chart" style="color: white; width: 16px; height: 16px;"></i></div>
-                                        순위 & 가격 추이 (vs 카테고리 1위)
+                                        순위 추이
                                         <i data-lucide="help-circle" class="help-icon" style="width: 14px; height: 14px; margin-left: 6px; opacity: 0.6;"></i>
                                         <div class="chart-title-tooltip">
-                                            <div class="tooltip-header">📈 순위 & 가격 추이</div>
+                                            <div class="tooltip-header">📈 순위 추이</div>
                                             <div class="tooltip-content">
                                                 <p><strong>차트 설명</strong><br>Laneige 제품과 카테고리 1위 제품의 순위/가격을 비교합니다.</p>
                                                 <p><strong>라인 구분</strong><br>• 실선: Laneige 제품<br>• 점선: 카테고리 1위 비교 대상</p>
@@ -5244,7 +5240,6 @@
                         <div class="chat-subtitle">Laneige 브랜드 맞춤 인사이트</div>
                     </div>
                     <div class="chat-body" id="chatBody">
-                        <div class="chat-message bot"><div class="bubble">안녕하세요!<br><br>오늘 <strong>Laneige Lip Sleeping Mask</strong>가 2위로 상승했습니다. 경쟁사 대비 가격 경쟁력이 좋은 상황이에요.<br><br>궁금한 점을 물어보세요!</div></div>
                     </div>
                     <div class="chat-suggestions" id="chatSuggestions">
                         <div class="suggestions-header" onclick="toggleSuggestions()">
@@ -6530,7 +6525,7 @@
             if (!competitors || !competitors.length) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7">
+                        <td colspan="6">
                             <div class="table-empty-state">
                                 <i data-lucide="users" class="empty-icon"></i>
                                 <div class="empty-title">경쟁사 데이터 없음</div>
@@ -6589,7 +6584,6 @@
                 const vsBadgeClass = isLaneige ? 'baseline' : (parseFloat(sosDiff) > 0 ? 'ahead' : 'behind');
                 const vsBadgeText = isLaneige ? '기준' : (parseFloat(sosDiff) > 0 ? `+${sosDiff}%p` : `${sosDiff}%p`);
                 // 평균 가격 표시 (avg_price 필드 사용) - 통화 변환 지원
-                const avgPriceDisplay = comp.avg_price ? formatPrice(comp.avg_price) : emptyCell('해당 기간 가격 정보 미수집');
                 const productCountDisplay = (comp.product_count || comp.count) ? `${comp.product_count || comp.count}개` : emptyCell('제품 수 미수집');
                 const avgRankDisplay = comp.avg_rank ? `${comp.avg_rank.toFixed(1)}위` : emptyCell('평균 순위 미수집');
 
@@ -6600,7 +6594,6 @@
                         <td>${comp.sos}%</td>
                         <td>${productCountDisplay}</td>
                         <td>${avgRankDisplay}</td>
-                        <td>${avgPriceDisplay}</td>
                         <td><span class="vs-badge ${vsBadgeClass}">${vsBadgeText}</span></td>
                     </tr>
                 `;
@@ -10945,62 +10938,9 @@
             }
 
             if (pageId === 'category') {
-                // CPI 추이 차트 - JSON 데이터 사용
-                // 동적 fallback 날짜 생성 (최근 7일)
-                const generateRecentDatesForCPI = (days = 7) => {
-                    const dates = [];
-                    for (let i = days - 1; i >= 0; i--) {
-                        const d = new Date();
-                        d.setDate(d.getDate() - i);
-                        dates.push((d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getDate().toString().padStart(2, '0'));
-                    }
-                    return dates;
-                };
-                let cpiLabels = generateRecentDatesForCPI(7);
-                let cpiData = [100, 100, 100, 100, 100, 100, 100]; // 기준선 100으로 초기화
-
-                if (dashboardData?.charts?.cpi_trend) {
-                    cpiLabels = dashboardData.charts.cpi_trend.labels || cpiLabels;
-                    cpiData = dashboardData.charts.cpi_trend.data || cpiData;
-                }
-
-                // 기준선 데이터 생성
-                const baselineData = cpiLabels.map(() => 100);
-
-                charts.cpi = new Chart(document.getElementById('cpiChart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: cpiLabels,
-                        datasets: [
-                            {
-                                label: 'Laneige 가격경쟁지수',
-                                data: cpiData,
-                                borderColor: colors.laneige,
-                                backgroundColor: 'rgba(32,128,128,0.1)',
-                                tension: 0.4,
-                                fill: true,
-                                borderWidth: 3
-                            },
-                            {
-                                label: '기준선 (100)',
-                                data: baselineData,
-                                borderColor: '#94a3b8',
-                                borderDash: [5, 5],
-                                borderWidth: 2,
-                                pointRadius: 0
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
-                        scales: { y: { min: 90, max: 250, grid: { color: colors.grid } }, x: { grid: { display: false } } }
-                    }
-                });
-
                 // [FIX] Category 페이지 진입/복귀 시 API에서 최신 CPI 데이터 로드
                 // 최근 7일 고정, LANEIGE 브랜드 평균 vs 경쟁사 Top 100 평균 비교
+                // 초기 placeholder 차트 없이 바로 API 데이터로 렌더링 (더블렌더 방지)
                 updateCpiChartWithBrandAverage().catch(err => {
                     console.error('[initChartsForPage] Failed to load CPI data:', err);
                 });
@@ -11778,6 +11718,7 @@
             id: 'breakAxisPlugin',
             afterDraw: function(chart) {
                 if (!breakAxisState.enabled) return;
+                if (chart.canvas.id !== 'rankTrendChart') return;
 
                 const ctx = chart.ctx;
                 const yAxis = chart.scales.y;

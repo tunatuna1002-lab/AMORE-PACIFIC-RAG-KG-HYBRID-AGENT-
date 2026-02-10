@@ -14,20 +14,30 @@ Note:
     InsightAgent, ChatbotAgent, QueryAgent, WorkflowAgent are REMOVED.
     Use HybridInsightAgent and HybridChatbotAgent instead.
     For workflow execution, use src.core.batch_workflow.BatchWorkflow.
+
+Protocols:
+    Each agent implements a corresponding Protocol from src.domain.interfaces:
+    - CrawlerAgent → CrawlerAgentProtocol
+    - StorageAgent → StorageAgentProtocol
+    - MetricsAgent → MetricsAgentProtocol
+    - HybridInsightAgent → InsightAgentProtocol
+    - HybridChatbotAgent → ChatbotAgentProtocol
+    - AlertAgent → AlertAgentProtocol
 """
 
 # Core agents (always active)
+# Alert agent
+from .alert_agent import AlertAgent
 from .crawler_agent import CrawlerAgent
-from .storage_agent import StorageAgent
-from .metrics_agent import MetricsAgent
+from .hybrid_chatbot_agent import HybridChatbotAgent, HybridChatbotSession
 
 # Hybrid agents (recommended)
 from .hybrid_insight_agent import HybridInsightAgent
-from .hybrid_chatbot_agent import HybridChatbotAgent, HybridChatbotSession
+from .metrics_agent import MetricsAgent
+from .storage_agent import StorageAgent
 
-# Alert agent
-from .alert_agent import AlertAgent
-
+# Backward compatibility (deprecated)
+from .true_hybrid_insight_agent import TrueHybridInsightAgent
 
 __all__ = [
     # Core Agents
@@ -40,4 +50,6 @@ __all__ = [
     "HybridChatbotSession",
     # Alert Agent
     "AlertAgent",
+    # Backward Compatibility (Deprecated)
+    "TrueHybridInsightAgent",
 ]

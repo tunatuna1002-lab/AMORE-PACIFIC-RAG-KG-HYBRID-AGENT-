@@ -9,26 +9,29 @@ Google Sheets + SQLite 이중 저장 에이전트
 
 import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
 
-from src.tools.sheets_writer import SheetsWriter
-from src.tools.sqlite_storage import get_sqlite_storage, SQLiteStorage
-from src.domain.entities import Product, RankRecord, BrandMetrics, ProductMetrics, MarketMetrics
+from src.domain.entities import BrandMetrics, MarketMetrics, ProductMetrics
 from src.monitoring.logger import AgentLogger
-from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics
+from src.monitoring.tracer import ExecutionTracer
+from src.tools.storage.sheets_writer import SheetsWriter
+from src.tools.storage.sqlite_storage import SQLiteStorage, get_sqlite_storage
 
 
 class StorageAgent:
-    """Google Sheets + SQLite 이중 저장 에이전트"""
+    """
+    Google Sheets + SQLite 이중 저장 에이전트
+    Implements StorageAgentProtocol (src.domain.interfaces.agent)
+    """
 
     def __init__(
         self,
-        spreadsheet_id: Optional[str] = None,
-        logger: Optional[AgentLogger] = None,
-        tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None,
-        enable_sqlite: bool = True
+        spreadsheet_id: str | None = None,
+        logger: AgentLogger | None = None,
+        tracer: ExecutionTracer | None = None,
+        metrics: QualityMetrics | None = None,
+        enable_sqlite: bool = True,
     ):
         """
         Args:
@@ -39,16 +42,16 @@ class StorageAgent:
             enable_sqlite: SQLite 이중 저장 활성화 (기본값: True)
         """
         self.sheets = SheetsWriter(spreadsheet_id)
-        self.sqlite: Optional[SQLiteStorage] = get_sqlite_storage() if enable_sqlite else None
+        self.sqlite: SQLiteStorage | None = get_sqlite_storage() if enable_sqlite else None
         self.enable_sqlite = enable_sqlite
 
         self.logger = logger or AgentLogger("storage")
         self.tracer = tracer
         self.metrics = metrics
 
-        self._results: Dict[str, Any] = {}
+        self._results: dict[str, Any] = {}
 
-    async def execute(self, crawl_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, crawl_data: dict[str, Any]) -> dict[str, Any]:
         """
         크롤링 데이터 저장
 
@@ -79,7 +82,7 @@ class StorageAgent:
                 "raw_records": 0,
                 "products_upserted": 0,
                 "sqlite_records": 0,  # SQLite 저장 결과
-                "errors": []
+                "errors": [],
             }
 
             # 1. Raw 순위 데이터 저장
@@ -95,7 +98,9 @@ class StorageAgent:
                         if isinstance(record, dict):
                             all_records.append(record)
                         else:
-                            all_records.append(record.model_dump() if hasattr(record, 'model_dump') else record)
+                            all_records.append(
+                                record.model_dump() if hasattr(record, "model_dump") else record
+                            )
 
                 if all_records:
                     # 1-1. Google Sheets 저장
@@ -115,17 +120,22 @@ class StorageAgent:
                             sqlite_result = await self.sqlite.append_rank_records(all_records)
                             if sqlite_result.get("success"):
                                 results["sqlite_records"] = sqlite_result.get("rows_added", 0)
-                                self.logger.info(f"Saved {results['sqlite_records']} rank records to SQLite")
+                                self.logger.info(
+                                    f"Saved {results['sqlite_records']} rank records to SQLite"
+                                )
                             else:
                                 error_msg = sqlite_result.get("error", "Unknown error")
-                                results["errors"].append({"step": "raw_data_sqlite", "error": error_msg})
-                                self.logger.error(f"Failed to save rank records to SQLite: {error_msg}")
+                                results["errors"].append(
+                                    {"step": "raw_data_sqlite", "error": error_msg}
+                                )
+                                self.logger.error(
+                                    f"Failed to save rank records to SQLite: {error_msg}"
+                                )
                         except Exception as sqlite_err:
-                            results["errors"].append({"step": "raw_data_sqlite", "error": str(sqlite_err)})
-                            self.logger.error(
-                                f"SQLite storage error: {sqlite_err}",
-                                exc_info=True
+                            results["errors"].append(
+                                {"step": "raw_data_sqlite", "error": str(sqlite_err)}
                             )
+                            self.logger.error(f"SQLite storage error: {sqlite_err}", exc_info=True)
                             # 동기화 불일치 경고
                             self.logger.warning(
                                 "⚠️ SQLite 저장 실패로 Google Sheets와 불일치 발생. "
@@ -153,17 +163,23 @@ class StorageAgent:
                         "asin": p.get("asin", ""),
                         "product_name": p.get("title", p.get("product_name", "")),
                         "brand": p.get("brand", "Unknown"),
-                        "product_url": p.get("url", f"https://www.amazon.com/dp/{p.get('asin', '')}"),
+                        "product_url": p.get(
+                            "url", f"https://www.amazon.com/dp/{p.get('asin', '')}"
+                        ),
                         "first_seen_date": datetime.now().date().isoformat(),
-                        "launch_date": ""
+                        "launch_date": "",
                     }
                     products_list.append(product_dict)
 
                 # 배치 처리로 API 호출 횟수 최소화 (기존: 제품마다 API 호출 → 변경: 2번만 호출)
                 if products_list:
                     batch_result = await self.sheets.upsert_products_batch(products_list)
-                    results["products_upserted"] = batch_result.get("created", 0) + batch_result.get("updated", 0)
-                    self.logger.info(f"Batch upserted products: created={batch_result.get('created', 0)}, updated={batch_result.get('updated', 0)}")
+                    results["products_upserted"] = batch_result.get(
+                        "created", 0
+                    ) + batch_result.get("updated", 0)
+                    self.logger.info(
+                        f"Batch upserted products: created={batch_result.get('created', 0)}, updated={batch_result.get('updated', 0)}"
+                    )
 
                 if self.tracer:
                     self.tracer.end_span("completed")
@@ -184,22 +200,37 @@ class StorageAgent:
                     # SQLite에 경쟁사 데이터 저장
                     if self.enable_sqlite and self.sqlite:
                         await self.sqlite.initialize()
-                        comp_result = await self.sqlite.save_competitor_products(competitor_products)
+                        comp_result = await self.sqlite.save_competitor_products(
+                            competitor_products
+                        )
                         if comp_result.get("success"):
                             results["competitor_products_saved"] = comp_result.get("rows_added", 0)
-                            self.logger.info(f"Saved {results['competitor_products_saved']} competitor products to SQLite")
+                            self.logger.info(
+                                f"Saved {results['competitor_products_saved']} competitor products to SQLite"
+                            )
                         else:
-                            results["errors"].append({"step": "competitor_sqlite", "error": comp_result.get("error", "Unknown")})
+                            results["errors"].append(
+                                {
+                                    "step": "competitor_sqlite",
+                                    "error": comp_result.get("error", "Unknown"),
+                                }
+                            )
 
                     # JSON 파일로도 저장 (대시보드용)
                     try:
                         from pathlib import Path
+
                         comp_json_path = Path("./data/competitor_products.json")
                         with open(comp_json_path, "w", encoding="utf-8") as f:
-                            json.dump({
-                                "updated_at": datetime.now().isoformat(),
-                                "products": competitor_products
-                            }, f, ensure_ascii=False, indent=2)
+                            json.dump(
+                                {
+                                    "updated_at": datetime.now().isoformat(),
+                                    "products": competitor_products,
+                                },
+                                f,
+                                ensure_ascii=False,
+                                indent=2,
+                            )
                         self.logger.info(f"Saved competitor data to {comp_json_path}")
                     except Exception as json_err:
                         self.logger.warning(f"Failed to save competitor JSON: {json_err}")
@@ -224,16 +255,19 @@ class StorageAgent:
                 self.tracer.end_span("completed")
 
             if self.metrics:
-                self.metrics.record_agent_complete("storage", {
-                    "raw_records": results["raw_records"],
-                    "products": results["products_upserted"]
-                })
+                self.metrics.record_agent_complete(
+                    "storage",
+                    {
+                        "raw_records": results["raw_records"],
+                        "products": results["products_upserted"],
+                    },
+                )
 
             sqlite_info = f", SQLite: {results['sqlite_records']}" if self.enable_sqlite else ""
             self.logger.agent_complete(
                 "StorageAgent",
                 duration,
-                f"Sheets: {results['raw_records']} records, {results['products_upserted']} products{sqlite_info}"
+                f"Sheets: {results['raw_records']} records, {results['products_upserted']} products{sqlite_info}",
             )
 
             return results
@@ -252,10 +286,10 @@ class StorageAgent:
 
     async def save_metrics(
         self,
-        brand_metrics: Optional[List[BrandMetrics]] = None,
-        product_metrics: Optional[List[ProductMetrics]] = None,
-        market_metrics: Optional[List[MarketMetrics]] = None
-    ) -> Dict[str, Any]:
+        brand_metrics: list[BrandMetrics] | None = None,
+        product_metrics: list[ProductMetrics] | None = None,
+        market_metrics: list[MarketMetrics] | None = None,
+    ) -> dict[str, Any]:
         """
         계산된 지표 저장
 
@@ -272,11 +306,7 @@ class StorageAgent:
         if self.tracer:
             self.tracer.start_span("save_metrics")
 
-        results = {
-            "brand_metrics": 0,
-            "product_metrics": 0,
-            "market_metrics": 0
-        }
+        results = {"brand_metrics": 0, "product_metrics": 0, "market_metrics": 0}
 
         try:
             # 브랜드 지표 저장
@@ -290,7 +320,7 @@ class StorageAgent:
                         bm.avg_rank,
                         bm.product_count,
                         bm.top10_count,
-                        bm.top20_count
+                        bm.top20_count,
                     ]
                     self.sheets._append_row("BrandMetrics", row)
                 results["brand_metrics"] = len(brand_metrics)
@@ -308,7 +338,7 @@ class StorageAgent:
                         pm.rank_change_7d,
                         pm.rank_volatility,
                         pm.streak_days,
-                        pm.rating_trend
+                        pm.rating_trend,
                     ]
                     self.sheets._append_row("ProductMetrics", row)
                 results["product_metrics"] = len(product_metrics)
@@ -324,7 +354,7 @@ class StorageAgent:
                         mm.churn_rate_7d,
                         mm.avg_rating_gap,
                         mm.top_brand,
-                        mm.top_brand_sos
+                        mm.top_brand_sos,
                     ]
                     self.sheets._append_row("MarketMetrics", row)
                 results["market_metrics"] = len(market_metrics)
@@ -341,11 +371,7 @@ class StorageAgent:
             self.logger.error(f"Failed to save metrics: {e}")
             raise
 
-    def get_historical_data(
-        self,
-        asin: str,
-        days: int = 30
-    ) -> List[Dict[str, Any]]:
+    def get_historical_data(self, asin: str, days: int = 30) -> list[dict[str, Any]]:
         """
         제품 히스토리 조회
 
@@ -358,6 +384,6 @@ class StorageAgent:
         """
         return self.sheets.get_rank_history(asin, days)
 
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """마지막 실행 결과"""
         return self._results

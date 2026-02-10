@@ -1,0 +1,329 @@
+
+========================================================================================================================
+IMPORT DEPENDENCY SUMMARY - BY DIRECTORY
+========================================================================================================================
+
+SRC/CORE
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 24 | Total Lines: 8075
+Internal Dependencies: src.agents, src.core, src.domain, src.memory, src.monitoring, src.ontology, src.tools
+External Packages: 17 unique packages
+  Top Packages: , asyncio, collections, dataclasses, datetime, enum, hashlib, heapq, json, litellm, logging, os, pathlib, re, tempfile
+  ... and 2 more
+
+Files:
+  • __init__.py (74 lines)
+  • alert_manager.py (239 lines)
+  • batch_workflow.py (889 lines)
+    Imports: src.agents, src.core, src.memory, src.monitoring, src.ontology, src.tools
+  • brain.py (1464 lines)
+    Imports: src.agents, src.core, src.tools
+  • cache.py (271 lines)
+  • confidence.py (196 lines)
+  • context_gatherer.py (335 lines)
+  • crawl_manager.py (379 lines)
+    Imports: src.agents, src.core, src.tools
+  • decision_maker.py (173 lines)
+  • explainability.py (214 lines)
+  • llm_orchestrator.py (545 lines)
+  • models.py (162 lines)
+    Imports: src.domain
+  • prompt_guard.py (167 lines)
+  • query_processor.py (155 lines)
+  • react_agent.py (257 lines)
+  • response_pipeline.py (447 lines)
+  • rules_engine.py (325 lines)
+  • scheduler.py (209 lines)
+  • state.py (228 lines)
+  • state_manager.py (466 lines)
+  • tool_coordinator.py (221 lines)
+  • tools.py (442 lines)
+  • types.py (87 lines)
+  • verification_pipeline.py (130 lines)
+    Imports: src.tools
+
+SRC/AGENTS
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 10 | Total Lines: 5684
+Internal Dependencies: src.agents, src.core, src.domain, src.memory, src.monitoring, src.ontology, src.rag, src.shared, src.tools
+External Packages: 14 unique packages
+  Top Packages: , __future__, asyncio, dataclasses, datetime, enum, importlib, json, litellm, logging, os, pathlib, re, typing
+
+Files:
+  • __init__.py (35 lines)
+    Imports: src.agents
+  • alert_agent.py (380 lines)
+    Imports: src.core, src.tools
+  • crawler_agent.py (266 lines)
+    Imports: src.domain, src.monitoring, src.tools
+  • hybrid_chatbot_agent.py (1353 lines)
+    Imports: src.core, src.domain, src.memory, src.monitoring, src.ontology, src.rag, src.shared, src.tools
+  • hybrid_insight_agent.py (1094 lines)
+    Imports: src.domain, src.monitoring, src.ontology, src.rag, src.shared, src.tools
+  • metrics_agent.py (339 lines)
+    Imports: src.domain, src.monitoring, src.tools
+  • period_insight_agent.py (916 lines)
+    Imports: src.agents, src.monitoring, src.tools
+  • storage_agent.py (308 lines)
+    Imports: src.domain, src.monitoring, src.tools
+  • suggestion_generator.py (246 lines)
+    Imports: src.domain, src.ontology, src.rag, src.shared
+  • true_hybrid_insight_agent.py (747 lines)
+    Imports: src.monitoring, src.ontology, src.rag, src.tools
+
+SRC/RAG
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 13 | Total Lines: 6207
+Internal Dependencies: src.domain, src.ontology, src.rag
+External Packages: 23 unique packages
+  Top Packages: , __future__, chromadb, dataclasses, datetime, difflib, enum, hashlib, importlib, json, litellm, logging, numpy, openai, os
+  ... and 8 more
+
+Files:
+  • __init__.py (27 lines)
+  • chunker.py (393 lines)
+  • confidence_fusion.py (498 lines)
+  • context_builder.py (488 lines)
+    Imports: src.domain
+  • entity_linker.py (661 lines)
+  • hybrid_retriever.py (1008 lines)
+    Imports: src.domain, src.ontology
+  • query_rewriter.py (306 lines)
+    Imports: src.rag
+  • rag_kg_extractor.py (260 lines)
+    Imports: src.domain, src.ontology
+  • reranker.py (299 lines)
+  • retriever.py (1027 lines)
+  • router.py (284 lines)
+  • templates.py (309 lines)
+  • true_hybrid_retriever.py (647 lines)
+    Imports: src.ontology, src.rag
+
+SRC/ONTOLOGY
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 11 | Total Lines: 5861
+Internal Dependencies: src.domain, src.ontology
+External Packages: 13 unique packages
+  Top Packages: , __future__, abc, collections, dataclasses, datetime, json, logging, os, owlready2, pathlib, typing, warnings
+
+Files:
+  • __init__.py (78 lines)
+  • business_rules.py (1540 lines)
+  • category_service.py (182 lines)
+    Imports: src.domain, src.ontology
+  • knowledge_graph.py (1514 lines)
+  • ontology_knowledge_graph.py (317 lines)
+  • owl_reasoner.py (817 lines)
+    Imports: src.ontology
+  • reasoner.py (813 lines)
+  • relations.py (68 lines)
+    Imports: src.domain
+  • schema.py (54 lines)
+    Imports: src.domain
+  • sentiment_service.py (209 lines)
+    Imports: src.domain, src.ontology
+  • unified_reasoner.py (269 lines)
+
+SRC/TOOLS
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 38 | Total Lines: 19323
+Internal Dependencies: src.agents, src.api, src.domain, src.ontology, src.tools
+External Packages: 61 unique packages
+  Top Packages: , PyPDF2, abc, aiohttp, aiosqlite, argparse, asyncio, browserforge, certifi, collections, concurrent, contextlib, dataclasses, datetime, docx
+  ... and 46 more
+
+Files:
+  • __init__.py (69 lines)
+  • alert_service.py (410 lines)
+  • amazon_product_scraper.py (378 lines)
+  • amazon_scraper.py (1321 lines)
+    Imports: src.tools
+  • brand_resolver.py (429 lines)
+  • chart_generator.py (560 lines)
+  • claim_extractor.py (305 lines)
+  • claim_verifier.py (526 lines)
+  • confidence_scorer.py (191 lines)
+  • dashboard_exporter.py (1290 lines)
+    Imports: src.tools
+  • data_integrity_checker.py (280 lines)
+    Imports: src.tools
+  • deals_scraper.py (528 lines)
+  • email_sender.py (799 lines)
+  • exchange_rate.py (212 lines)
+    Imports: src.tools
+  • export_handlers.py (299 lines)
+    Imports: src.agents, src.api, src.tools
+  • external_signal_collector.py (1091 lines)
+    Imports: src.tools
+  • google_trends_collector.py (338 lines)
+  • insight_formatter.py (360 lines)
+  • insight_verifier.py (346 lines)
+    Imports: src.tools
+  • instagram_collector.py (265 lines)
+  • ir_report_parser.py (614 lines)
+  • job_queue.py (374 lines)
+  • kg_backup.py (363 lines)
+    Imports: src.tools
+  • market_intelligence.py (517 lines)
+  • metric_calculator.py (456 lines)
+    Imports: src.domain
+  • morning_brief.py (437 lines)
+  • period_analyzer.py (449 lines)
+    Imports: src.tools
+  • public_data_collector.py (668 lines)
+  • reddit_collector.py (372 lines)
+  • reference_tracker.py (451 lines)
+  • report_generator.py (1057 lines)
+  • sheets_writer.py (582 lines)
+    Imports: src.domain
+  • source_manager.py (493 lines)
+  • sqlite_storage.py (1115 lines)
+  • tavily_search.py (366 lines)
+  • telegram_bot.py (423 lines)
+    Imports: src.ontology, src.tools
+  • tiktok_collector.py (295 lines)
+  • youtube_collector.py (294 lines)
+
+SRC/DOMAIN
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 17 | Total Lines: 2048
+Internal Dependencies: src.domain
+External Packages: 5 unique packages
+  Top Packages: dataclasses, datetime, enum, pydantic, typing
+
+Files:
+  • __init__.py (77 lines)
+    Imports: src.domain
+  • __init__.py (81 lines)
+    Imports: src.domain
+  • brain_models.py (241 lines)
+  • brand.py (65 lines)
+  • market.py (149 lines)
+  • product.py (121 lines)
+  • relations.py (512 lines)
+  • exceptions.py (277 lines)
+    Imports: src.domain
+  • __init__.py (49 lines)
+    Imports: src.domain
+  • agent.py (36 lines)
+  • brain_components.py (172 lines)
+    Imports: src.domain
+  • knowledge_graph.py (109 lines)
+  • llm_client.py (25 lines)
+  • repository.py (15 lines)
+  • retriever.py (101 lines)
+  • scraper.py (8 lines)
+  • __init__.py (10 lines)
+
+SRC/APPLICATION
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 5 | Total Lines: 120
+Internal Dependencies: src.application, src.domain
+External Packages: 4 unique packages
+  Top Packages: dataclasses, datetime, enum, typing
+
+Files:
+  • __init__.py (17 lines)
+    Imports: src.application
+  • __init__.py (2 lines)
+  • __init__.py (2 lines)
+  • __init__.py (3 lines)
+    Imports: src.application
+  • batch_workflow.py (96 lines)
+    Imports: src.domain
+
+SRC/INFRASTRUCTURE
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 8 | Total Lines: 998
+Internal Dependencies: src.agents, src.core, src.domain, src.infrastructure, src.ontology, src.rag
+External Packages: 11 unique packages
+  Top Packages: asyncio, contextlib, dataclasses, datetime, google, gspread, json, logging, os, pathlib, typing
+
+Files:
+  • __init__.py (14 lines)
+    Imports: src.infrastructure
+  • bootstrap.py (151 lines)
+    Imports: src.core, src.infrastructure, src.ontology, src.rag
+  • __init__.py (3 lines)
+    Imports: src.infrastructure
+  • config_manager.py (100 lines)
+  • container.py (226 lines)
+    Imports: src.agents, src.infrastructure, src.ontology, src.rag
+  • __init__.py (13 lines)
+    Imports: src.infrastructure
+  • json_repository.py (221 lines)
+    Imports: src.domain
+  • sheets_repository.py (270 lines)
+    Imports: src.domain
+
+SRC/API
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 13 | Total Lines: 2603
+Internal Dependencies: src.agents, src.api, src.core, src.domain, src.tools
+External Packages: 17 unique packages
+  Top Packages: , collections, datetime, docx, enum, fastapi, io, json, logging, os, pathlib, pydantic, re, slowapi, tempfile
+  ... and 2 more
+
+Files:
+  • __init__.py (27 lines)
+    Imports: src.api
+  • dependencies.py (128 lines)
+  • __init__.py (1 lines)
+  • alerts.py (199 lines)
+    Imports: src.api, src.core, src.tools
+  • brain.py (167 lines)
+    Imports: src.api, src.core
+  • chat.py (92 lines)
+    Imports: src.api, src.core, src.domain
+  • crawl.py (56 lines)
+    Imports: src.api, src.core
+  • data.py (369 lines)
+    Imports: src.tools
+  • deals.py (259 lines)
+    Imports: src.agents, src.api, src.tools
+  • export.py (1027 lines)
+    Imports: src.agents, src.api, src.tools
+  • signals.py (186 lines)
+    Imports: src.tools
+  • __init__.py (2 lines)
+  • input_validator.py (90 lines)
+    Imports: src.domain
+
+SRC/MEMORY
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 4 | Total Lines: 636
+Internal Dependencies: None
+External Packages: 9 unique packages
+  Top Packages: , dataclasses, datetime, enum, json, os, pathlib, typing, uuid
+
+Files:
+  • __init__.py (11 lines)
+  • context.py (243 lines)
+  • history.py (183 lines)
+  • session.py (199 lines)
+
+SRC/MONITORING
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 4 | Total Lines: 865
+Internal Dependencies: None
+External Packages: 15 unique packages
+  Top Packages: , asyncio, collections, contextlib, dataclasses, datetime, functools, json, logging, pathlib, re, sys, time, typing, uuid
+
+Files:
+  • __init__.py (11 lines)
+  • logger.py (317 lines)
+  • metrics.py (279 lines)
+  • tracer.py (258 lines)
+
+SRC/SHARED
+------------------------------------------------------------------------------------------------------------------------
+Total Files: 3 | Total Lines: 387
+Internal Dependencies: src.monitoring
+External Packages: 5 unique packages
+  Top Packages: , json, litellm, time, typing
+
+Files:
+  • __init__.py (5 lines)
+  • constants.py (67 lines)
+  • llm_client.py (315 lines)
+    Imports: src.monitoring

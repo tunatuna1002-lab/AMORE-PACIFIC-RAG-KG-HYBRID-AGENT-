@@ -21,11 +21,11 @@ from pydantic import BaseModel
 
 from src.agents.period_insight_agent import PeriodInsightAgent
 from src.api.dependencies import load_dashboard_data
-from src.tools.chart_generator import ChartGenerator
-from src.tools.external_signal_collector import ExternalSignalCollector
-from src.tools.period_analyzer import PeriodAnalyzer
-from src.tools.reference_tracker import ReferenceTracker
-from src.tools.sqlite_storage import get_sqlite_storage
+from src.tools.calculators.period_analyzer import PeriodAnalyzer
+from src.tools.collectors.external_signal_collector import ExternalSignalCollector
+from src.tools.exporters.chart_generator import ChartGenerator
+from src.tools.storage.sqlite_storage import get_sqlite_storage
+from src.tools.utilities.reference_tracker import ReferenceTracker
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -680,7 +680,7 @@ async def export_analyst_report(request: AnalystReportRequest):
             logger.info(f"Added {added_refs} external signal references")
 
         # 6. Create DOCX Document with IR Cover Design (본문은 기존 스타일 유지)
-        from src.tools.report_generator import DocxReportGenerator
+        from src.tools.exporters.report_generator import DocxReportGenerator
 
         design_gen = DocxReportGenerator()
         doc = Document()
@@ -1133,7 +1133,7 @@ async def start_async_export(request: AsyncExportRequest):
             "message": "작업이 큐에 추가되었습니다."
         }
     """
-    from src.tools.job_queue import get_job_queue
+    from src.tools.utilities.job_queue import get_job_queue
 
     queue = get_job_queue()
     await queue.initialize()
@@ -1174,7 +1174,7 @@ async def get_async_export_status(job_id: str):
             "download_url": "/api/export/download/abc12345" (완료 시)
         }
     """
-    from src.tools.job_queue import get_job_queue
+    from src.tools.utilities.job_queue import get_job_queue
 
     queue = get_job_queue()
     status = await queue.get_job_status(job_id)
@@ -1196,7 +1196,7 @@ async def download_export_file(job_id: str):
     Returns:
         FileResponse with the generated file
     """
-    from src.tools.job_queue import JobStatus, get_job_queue
+    from src.tools.utilities.job_queue import JobStatus, get_job_queue
 
     queue = get_job_queue()
     status = await queue.get_job_status(job_id)
@@ -1242,7 +1242,7 @@ async def list_export_jobs(status: str | None = None, limit: int = 20):
     Returns:
         작업 목록
     """
-    from src.tools.job_queue import get_job_queue
+    from src.tools.utilities.job_queue import get_job_queue
 
     queue = get_job_queue()
     jobs = await queue.get_all_jobs(status=status, limit=limit)

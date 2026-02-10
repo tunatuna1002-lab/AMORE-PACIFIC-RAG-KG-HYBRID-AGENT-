@@ -56,7 +56,6 @@ import asyncio
 import json
 import logging
 import os
-from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -67,59 +66,57 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request, Security
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
-from fastapi.security import APIKeyHeader
-from fastapi.staticfiles import StaticFiles
+from fastapi import Depends, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from litellm import acompletion
-from pydantic import BaseModel, Field
 
-# Rate Limiting
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
-from starlette.middleware.base import BaseHTTPMiddleware
+# App Factory (미들웨어, 라우터, 정적 파일 등록 포함)
+from src.api.app_factory import create_app
 
-# Export Routes (DOCX, Excel 비동기 내보내기)
-from src.api.routes.export import router as export_router
+# 공통 의존성 (인증, 세션, 헬퍼 등)
+from src.api.dependencies import (
+    add_to_memory,
+    build_data_context,
+    conversation_memory,
+    generate_dynamic_suggestions,
+    get_base_url,
+    get_conversation_history,
+    get_rag_context,
+    limiter,
+    load_dashboard_data,
+    log_chat_interaction,
+    rag_router,
+    verify_api_key,
+)
 
-# External Signal Routes
-from src.api.routes.signals import router as signals_router
+# Pydantic 모델
+from src.api.models import (
+    AlertSendRequest,
+    AlertSettingsRequest,
+    BrainChatRequest,
+    BrainChatResponse,
+    ChatRequest,
+    ChatResponse,
+    DealsRequest,
+    DealsResponse,
+    ExportRequest,
+    SubscribeRequest,
+    UpdateAlertSettingsRequest,
+)
 
-# Ontology 스키마
-# 통합 오케스트레이터 (deprecated - use UnifiedBrain instead)
-# Level 4 Brain (LLM-First Autonomous Agent)
-from src.core.brain import BrainMode, get_initialized_brain
+# Core 모듈 (직접 의존)
+from src.core.brain import get_initialized_brain
 from src.core.crawl_manager import get_crawl_manager
-from src.rag.retriever import DocumentRetriever
+from src.core.state_manager import get_state_manager
+from src.rag.router import QueryType
+from src.tools.storage.sqlite_storage import get_sqlite_storage
 
-# RAG 시스템 연동
-from src.rag.router import QueryType, RAGRouter
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Market Intelligence Engine
-from src.tools.market_intelligence import MarketIntelligenceEngine
-
-# SQLite Storage
-from src.tools.sqlite_storage import get_sqlite_storage
-
-# 환경 변수 로드
-load_dotenv()
-
-# Rate Limiter 설정 (IP 기반)
-limiter = Limiter(key_func=get_remote_address)
-
-app = FastAPI(
-    title="AMORE Dashboard API",
-    description="LANEIGE Amazon 대시보드 백엔드 API (RAG + Ontology 통합)",
-    version="2.0.0",
-)
-
-# Rate Limit 초과 시 에러 핸들러
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# App 생성 (app_factory에서 미들웨어, 라우터, 정적 파일 등록 완료)
+app = create_app()
 
 
 # 글로벌 예외 핸들러 - 에러 발생 시 Telegram 알림
@@ -135,103 +132,18 @@ async def global_exception_handler(request: Request, exc: Exception):
 
     # Telegram 알림 (비동기, 실패해도 무시)
     try:
-        from src.tools.telegram_bot import notify_error
+        from src.tools.notifications.telegram_bot import notify_error
 
         asyncio.create_task(notify_error(exc, context=f"API: {endpoint}"))
     except Exception:
         pass  # Telegram 알림 실패는 무시
 
     # 클라이언트에게는 일반 에러 응답
-    from fastapi.responses import JSONResponse
-
     return JSONResponse(
         status_code=500,
         content={"error": "Internal server error", "detail": error_detail},
     )
 
-
-# ============================================================================
-# URL 헬퍼 함수 (Railway 환경 자동 감지)
-# ============================================================================
-def get_base_url() -> str:
-    """
-    배포 환경에 맞는 Base URL 반환
-
-    우선순위:
-    1. DASHBOARD_URL 환경변수 (명시적 설정)
-    2. RAILWAY_PUBLIC_DOMAIN (Railway 자동 제공)
-    3. localhost:8001 (로컬 개발)
-    """
-    # 1. 명시적 설정 우선
-    if dashboard_url := os.getenv("DASHBOARD_URL"):
-        return dashboard_url.rstrip("/")
-
-    # 2. Railway 환경 자동 감지
-    if railway_domain := os.getenv("RAILWAY_PUBLIC_DOMAIN"):
-        return f"https://{railway_domain}"
-
-    # 3. 로컬 개발 환경
-    port = os.getenv("PORT", "8001")
-    return f"http://localhost:{port}"
-
-
-# CORS 설정 (환경변수로 허용 도메인 설정 가능)
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001").split(
-    ","
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-API-Key", "Authorization"],
-)
-
-
-# Security Headers Middleware
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """보안 헤더 추가 미들웨어"""
-
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "SAMEORIGIN"  # iframe 임베딩은 같은 도메인만 허용
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        return response
-
-
-app.add_middleware(SecurityHeadersMiddleware)
-
-# External Signals Router 등록
-app.include_router(signals_router)
-
-# Export Router 등록 (비동기 DOCX/Excel 내보내기)
-app.include_router(export_router)
-
-# Telegram Admin Bot Router (관리자 전용)
-try:
-    from src.tools.telegram_bot import telegram_router
-
-    app.include_router(telegram_router)
-    logger.info("Telegram Admin Bot router enabled")
-except ImportError as e:
-    logger.warning(f"Telegram Bot not available: {e}")
-
-# Static Files 서빙 (폰트, 이미지 등)
-# Arita 폰트 파일: /fonts/AritaDotumKR-Medium.ttf 등으로 접근 가능
-STATIC_DIR = Path(__file__).parent / "static"
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-    # 편의를 위해 /fonts 경로도 별도 마운트
-    FONTS_DIR = STATIC_DIR / "fonts"
-    if FONTS_DIR.exists():
-        app.mount("/fonts", StaticFiles(directory=str(FONTS_DIR)), name="fonts")
-
-# Dashboard 폴더 서빙
-DASHBOARD_DIR = Path(__file__).parent / "dashboard"
-if DASHBOARD_DIR.exists():
-    app.mount("/dashboard", StaticFiles(directory=str(DASHBOARD_DIR), html=True), name="dashboard")
 
 # ============= 서버 시작 시 자동 스케줄러 =============
 
@@ -242,10 +154,21 @@ AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "false").lower() == "tr
 
 @app.on_event("startup")
 async def startup_event():
-    """서버 시작 시 자동 스케줄러 시작 및 즉시 크롤링 체크
+    """서버 시작 시 설정 검증, 자동 스케줄러 시작 및 즉시 크롤링 체크
 
     ⚠️ 중요: 크롤링은 백그라운드에서 실행하여 healthcheck 타임아웃 방지
     """
+    # 0. 설정 검증 (필수 설정 누락 시 경고, 서버는 계속 시작)
+    try:
+        from src.infrastructure.config.config_manager import AppConfig
+
+        config = AppConfig.from_env_validated(fail_fast=False)
+        logging.info(
+            f"설정 검증 완료 (port={config.port}, scheduler={config.auto_start_scheduler})"
+        )
+    except Exception as e:
+        logging.error(f"설정 검증 중 오류: {e}")
+
     # 1. 크롤링 필요 여부 체크 후 백그라운드 실행 (비블로킹)
     try:
         crawl_manager = await get_crawl_manager()
@@ -273,8 +196,8 @@ async def startup_event():
 
     # 3. Export Job Queue Worker 시작 (비동기 내보내기용)
     try:
-        from src.tools.export_handlers import register_all_handlers
-        from src.tools.job_queue import get_job_queue
+        from src.tools.exporters.export_handlers import register_all_handlers
+        from src.tools.utilities.job_queue import get_job_queue
 
         queue = get_job_queue()
         await queue.initialize()
@@ -286,7 +209,7 @@ async def startup_event():
 
     # 4. Telegram Admin Bot 알림 (서버 시작)
     try:
-        from src.tools.telegram_bot import get_bot
+        from src.tools.notifications.telegram_bot import get_bot
 
         bot = get_bot()
         if bot.is_enabled():
@@ -296,530 +219,7 @@ async def startup_event():
         logging.debug(f"Telegram Bot 알림 실패 (무시): {e}")
 
 
-# 데이터 경로
-DATA_PATH = "./data/dashboard_data.json"
-DOCS_PATH = "./"  # MD 파일들이 루트에 있음
-AUDIT_LOG_DIR = "./logs"
-
-# ============= API Key 인증 설정 =============
-
-# API_KEY: 환경변수 필수 - 기본값 없음 (보안상 하드코딩 금지)
-API_KEY = os.getenv("API_KEY")
-if not API_KEY:
-    logging.warning(
-        "⚠️ API_KEY 환경변수가 설정되지 않았습니다. 보호된 엔드포인트에 접근할 수 없습니다."
-    )
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-
-async def verify_api_key(api_key: str = Security(api_key_header)):
-    """
-    API Key 검증 (민감한 엔드포인트용)
-
-    사용법: 엔드포인트에 dependencies=[Depends(verify_api_key)] 추가
-    """
-    import hmac
-
-    if api_key is None:
-        raise HTTPException(
-            status_code=401, detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요."
-        )
-    # 타이밍 공격 방어: hmac.compare_digest 사용
-    if not API_KEY or not hmac.compare_digest(api_key.encode(), API_KEY.encode()):
-        raise HTTPException(status_code=403, detail="유효하지 않은 API Key입니다.")
-    return api_key
-
-
-# ============= Audit Trail Logger 설정 =============
-
-
-def setup_audit_logger():
-    """Audit Trail 로거 설정"""
-    # 로그 디렉토리 생성
-    Path(AUDIT_LOG_DIR).mkdir(parents=True, exist_ok=True)
-
-    # 오늘 날짜 기반 로그 파일
-    today = datetime.now().strftime("%Y-%m-%d")
-    log_file = Path(AUDIT_LOG_DIR) / f"chatbot_audit_{today}.log"
-
-    # 로거 생성
-    audit_logger = logging.getLogger("audit_trail")
-    audit_logger.setLevel(logging.INFO)
-
-    # 기존 핸들러 제거 (중복 방지)
-    audit_logger.handlers.clear()
-
-    # 파일 핸들러 추가
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.INFO)
-
-    # 포맷 설정
-    formatter = logging.Formatter("%(asctime)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    file_handler.setFormatter(formatter)
-    audit_logger.addHandler(file_handler)
-
-    return audit_logger
-
-
-audit_logger = setup_audit_logger()
-
-
-def log_chat_interaction(
-    session_id: str,
-    user_query: str,
-    ai_response: str,
-    query_type: str,
-    confidence: float,
-    entities: dict,
-    sources: list[str],
-    response_time_ms: float,
-):
-    """챗봇 대화 Audit Trail 기록"""
-    audit_entry = {
-        "session_id": session_id,
-        "timestamp": datetime.now().isoformat(),
-        "user_query": user_query,
-        "ai_response": ai_response[:500] + "..." if len(ai_response) > 500 else ai_response,
-        "query_type": query_type,
-        "confidence": round(confidence, 4),
-        "entities": entities,
-        "sources": sources,
-        "response_time_ms": round(response_time_ms, 2),
-    }
-
-    # JSON 형식으로 로그 기록
-    audit_logger.info(json.dumps(audit_entry, ensure_ascii=False))
-
-
-# ============= Global Instances =============
-
-# RAG 시스템
-rag_router = RAGRouter()
-doc_retriever = DocumentRetriever(DOCS_PATH)
-
-# 세션별 대화 메모리 (TTL 기반 자동 정리)
-conversation_memory: dict[str, list[dict[str, str]]] = defaultdict(list)
-session_last_activity: dict[str, datetime] = {}  # 세션별 마지막 활동 시간
-MAX_MEMORY_TURNS = 10
-SESSION_TTL_HOURS = 1  # 세션 만료 시간 (1시간)
-MAX_SESSIONS = 1000  # 최대 세션 수
-
-
-def cleanup_expired_sessions() -> int:
-    """만료된 세션 정리 (TTL 기반)"""
-    now = datetime.now()
-    expired = [
-        sid
-        for sid, last_time in session_last_activity.items()
-        if (now - last_time).total_seconds() > SESSION_TTL_HOURS * 3600
-    ]
-    for sid in expired:
-        if sid in conversation_memory:
-            del conversation_memory[sid]
-        if sid in session_last_activity:
-            del session_last_activity[sid]
-    return len(expired)
-
-
-# 통합 시스템은 UnifiedBrain (get_brain())으로 관리됨
-
-# Market Intelligence Engine 싱글톤
-_market_intelligence_engine: MarketIntelligenceEngine | None = None
-
-
-async def get_market_intelligence() -> MarketIntelligenceEngine:
-    """Market Intelligence Engine 싱글톤 반환"""
-    global _market_intelligence_engine
-    if _market_intelligence_engine is None:
-        _market_intelligence_engine = MarketIntelligenceEngine()
-        await _market_intelligence_engine.initialize()
-    return _market_intelligence_engine
-
-
-# ============= Pydantic Models =============
-
-
-class ChatRequest(BaseModel):
-    """챗봇 요청"""
-
-    message: str = Field(..., max_length=10000, description="최대 10,000자")
-    session_id: str | None = Field(default="default", max_length=100)
-    context: dict | None = None
-
-
-class ChatResponse(BaseModel):
-    """챗봇 응답"""
-
-    response: str
-    query_type: str
-    confidence: float
-    sources: list[str]
-    suggestions: list[str]
-    entities: dict[str, Any]
-
-
-class ExportRequest(BaseModel):
-    """내보내기 요청"""
-
-    start_date: str | None = None
-    end_date: str | None = None
-    include_strategy: bool = True
-
-
-class MarketIntelligenceStatusResponse(BaseModel):
-    """Market Intelligence 상태 응답"""
-
-    initialized: bool
-    layers_collected: list[int]
-    last_collection: str | None = None
-    stats: dict[str, Any]
-
-
-class LayerDataResponse(BaseModel):
-    """레이어 데이터 응답"""
-
-    layer: int
-    layer_name: str
-    collected_at: str
-    data: dict[str, Any]
-    sources: list[dict[str, Any]]
-
-
-# ============= Helper Functions =============
-
-
-def load_dashboard_data() -> dict[str, Any]:
-    """대시보드 데이터 로드"""
-    try:
-        with open(DATA_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError as e:
-        logging.warning(f"Corrupted dashboard data file: {e}")
-        return {}
-
-
-def get_conversation_history(session_id: str, limit: int = 5) -> str:
-    """대화 기록 조회 (문자열 형태)"""
-    history = conversation_memory.get(session_id, [])[-limit:]
-    if not history:
-        return ""
-
-    lines = []
-    for turn in history:
-        role = "사용자" if turn["role"] == "user" else "AI"
-        content = turn["content"][:150] + "..." if len(turn["content"]) > 150 else turn["content"]
-        lines.append(f"[{role}]: {content}")
-
-    return "\n".join(lines)
-
-
-def add_to_memory(session_id: str, role: str, content: str) -> None:
-    """대화 메모리에 추가"""
-    now = datetime.now()
-
-    # 주기적 정리 (매 100번째 호출마다 또는 세션 수 초과 시)
-    if len(session_last_activity) > MAX_SESSIONS or len(session_last_activity) % 100 == 0:
-        cleanup_expired_sessions()
-
-    # 마지막 활동 시간 업데이트
-    session_last_activity[session_id] = now
-
-    conversation_memory[session_id].append(
-        {"role": role, "content": content, "timestamp": now.isoformat()}
-    )
-    # 최대 개수 유지
-    if len(conversation_memory[session_id]) > MAX_MEMORY_TURNS * 2:
-        conversation_memory[session_id] = conversation_memory[session_id][-MAX_MEMORY_TURNS * 2 :]
-
-
-def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str:
-    """
-    데이터 컨텍스트 구성 (Ontology 기반)
-
-    질문 유형과 추출된 엔티티에 따라 필요한 데이터만 선택
-    """
-    if not data:
-        return "현재 데이터가 없습니다."
-
-    context_parts = []
-
-    # 메타데이터 (항상 포함)
-    metadata = data.get("metadata", {})
-    context_parts.append(f"""[데이터 현황]
-- 기준일: {metadata.get('data_date', 'N/A')}
-- 총 제품 수: {metadata.get('total_products', 0)}개
-- LANEIGE 제품 수: {metadata.get('laneige_products', 0)}개""")
-
-    # 질문 유형별 데이터 선택
-    brand_kpis = data.get("brand", {}).get("kpis", {})
-
-    # 시장/브랜드 지표 (DEFINITION, INTERPRETATION, ANALYSIS)
-    if query_type in [
-        QueryType.DEFINITION,
-        QueryType.INTERPRETATION,
-        QueryType.ANALYSIS,
-        QueryType.COMBINATION,
-    ]:
-        if brand_kpis:
-            context_parts.append(f"""
-[LANEIGE 브랜드 KPI] (Ontology: BrandMetrics)
-- SoS (Share of Shelf): {brand_kpis.get('sos', 0)}% {brand_kpis.get('sos_delta', '')}
-- Top 10 제품 수: {brand_kpis.get('top10_count', 0)}개
-- 평균 순위: {brand_kpis.get('avg_rank', 0)}위
-- HHI (시장 집중도): {brand_kpis.get('hhi', 0)}""")
-
-    # 경쟁사 정보 (ANALYSIS, DATA_QUERY에서 경쟁사 언급 시)
-    competitors = data.get("brand", {}).get("competitors", [])
-    brands_mentioned = entities.get("brands", [])
-
-    if query_type == QueryType.ANALYSIS or any(
-        b for b in brands_mentioned if b.lower() != "laneige"
-    ):
-        if competitors:
-            top_comps = competitors[:5]
-            comp_lines = [
-                f"  - {c['brand']}: SoS {c['sos']}%, 평균 순위 {c['avg_rank']}위, 제품 {c['product_count']}개"
-                for c in top_comps
-            ]
-            context_parts.append("[경쟁사 현황]\n" + "\n".join(comp_lines))
-
-    # 제품 정보 (DATA_QUERY, 특정 제품 언급 시)
-    products = data.get("products", {})
-    products_mentioned = entities.get("products", [])
-
-    if query_type == QueryType.DATA_QUERY or products_mentioned:
-        if products:
-            prod_lines = []
-            for _asin, p in list(products.items())[:5]:
-                prod_lines.append(f"""  - {p['name'][:40]}
-    순위: #{p['rank']} ({p['rank_delta']}), 평점: {p['rating']}, 변동성: {p.get('volatility_status', 'N/A')}""")
-            context_parts.append(
-                "[LANEIGE 제품 현황] (Ontology: ProductMetrics)\n" + "\n".join(prod_lines)
-            )
-
-    # 카테고리 정보
-    categories = data.get("categories", {})
-    categories_mentioned = entities.get("categories", [])
-
-    if categories_mentioned or query_type in [QueryType.ANALYSIS, QueryType.INTERPRETATION]:
-        if categories:
-            cat_lines = []
-            for _cat_id, cat in categories.items():
-                cat_lines.append(
-                    f"  - {cat['name']}: SoS {cat['sos']}%, 최고 순위 #{cat['best_rank']}, CPI {cat.get('cpi', 100)}"
-                )
-            context_parts.append(
-                "[카테고리 현황] (Ontology: MarketMetrics)\n" + "\n".join(cat_lines)
-            )
-
-    # 액션 아이템 (전략 질문)
-    if query_type == QueryType.ANALYSIS:
-        action_items = data.get("home", {}).get("action_items", [])
-        if action_items:
-            action_lines = [
-                f"  - [{a['priority']}] {a['product_name']}: {a['signal']} → {a['action_tag']}"
-                for a in action_items[:4]
-            ]
-            context_parts.append("[현재 액션 아이템]\n" + "\n".join(action_lines))
-
-    return "\n\n".join(context_parts)
-
-
-async def get_rag_context(query: str, query_type: QueryType) -> tuple[str, list[str]]:
-    """
-    RAG 컨텍스트 검색
-
-    Returns:
-        (컨텍스트 문자열, 출처 목록)
-    """
-    # DocumentRetriever 초기화 (처음 호출 시)
-    if not doc_retriever._initialized:
-        await doc_retriever.initialize()
-
-    # 질문 유형에 맞는 문서 검색
-    target_doc = rag_router.get_target_document(query_type)
-
-    # 검색 실행
-    results = await doc_retriever.search(query, top_k=3, doc_filter=target_doc)
-
-    if not results:
-        return "", []
-
-    # 컨텍스트 구성
-    context_parts = []
-    sources = []
-
-    for result in results:
-        metadata = result.get("metadata", {})
-        content = result.get("content", "")
-        title = metadata.get("title", "Unknown")
-        doc_id = metadata.get("doc_id", "")
-
-        context_parts.append(f"[{title}]\n{content}")
-
-        # 출처 추가
-        doc_name_map = {
-            "strategic_indicators": "Strategic Indicators Definition",
-            "metric_interpretation": "Metric Interpretation Guide",
-            "indicator_combination": "Indicator Combination Playbook",
-            "home_insight_rules": "Home Page Insight Rules",
-        }
-        if doc_id in doc_name_map and doc_name_map[doc_id] not in sources:
-            sources.append(doc_name_map[doc_id])
-
-    return "\n\n---\n\n".join(context_parts), sources
-
-
-def generate_dynamic_suggestions(
-    query_type: QueryType, entities: dict, response: str, user_query: str = ""
-) -> list[str]:
-    """
-    동적 후속 질문 제안 (v2 - 개선 버전)
-
-    응답 내용, 엔티티, 쿼리 유형을 종합하여 맞춤형 제안 생성
-
-    우선순위:
-    1. 응답 키워드 기반 (response 분석)
-    2. 엔티티 기반 (브랜드, 카테고리, 지표 활용)
-    3. 쿼리 유형 기반 (폴백)
-
-    Args:
-        query_type: 질문 유형
-        entities: 추출된 엔티티
-        response: AI 응답 내용
-        user_query: 원본 사용자 질문
-
-    Returns:
-        3개의 후속 질문 리스트
-    """
-    suggestions = []
-
-    # 엔티티 추출
-    brands = entities.get("brands", [])
-    indicators = entities.get("indicators", [])
-    categories = entities.get("categories", [])
-
-    # 1순위: 응답 키워드 기반 제안
-    if response:
-        keyword_suggestions = _extract_response_keywords(response)
-        suggestions.extend(keyword_suggestions)
-
-    # 2순위: 엔티티 기반 제안
-    if len(suggestions) < 3:
-        entity_suggestions = _generate_entity_suggestions(brands, categories, indicators)
-        suggestions.extend(entity_suggestions)
-
-    # 3순위: 쿼리 유형 기반 제안 (폴백)
-    if len(suggestions) < 3:
-        type_suggestions = _generate_type_suggestions(query_type, brands, indicators)
-        suggestions.extend(type_suggestions)
-
-    # 중복 제거 및 상위 3개
-    unique = list(dict.fromkeys(suggestions))
-    return unique[:3]
-
-
-def _extract_response_keywords(response: str) -> list[str]:
-    """응답에서 후속 질문 관련 키워드 추출"""
-    import re
-
-    keywords = []
-
-    # 패턴 매칭 - 응답 내용에 따라 관련 후속 질문 생성
-    patterns = {
-        r"순위.{0,10}(하락|급락|떨어)": "순위 하락 원인을 분석해주세요",
-        r"순위.{0,10}(상승|급등|올라)": "상승 요인을 상세 분석해주세요",
-        r"경쟁사|경쟁 브랜드|competitor": "경쟁사 상세 비교를 해주세요",
-        r"가격.{0,10}(인상|인하|변동)": "가격 전략을 분석해주세요",
-        r"리뷰|평점|rating": "소비자 피드백을 상세 분석해주세요",
-        r"트렌드|유행|trend": "트렌드 상세 분석을 해주세요",
-        r"성장.{0,5}(기회|가능|potential)": "성장 전략을 제안해주세요",
-        r"위험|리스크|위협|risk": "리스크 대응 전략은?",
-        r"SoS|점유율|share": "점유율 개선 전략은?",
-        r"Top.{0,3}(10|5)|상위": "Top 10 진입 전략은?",
-    }
-
-    for pattern, suggestion in patterns.items():
-        if re.search(pattern, response, re.IGNORECASE):
-            keywords.append(suggestion)
-            if len(keywords) >= 2:  # 최대 2개
-                break
-
-    return keywords
-
-
-def _generate_entity_suggestions(
-    brands: list[str], categories: list[str], indicators: list[str]
-) -> list[str]:
-    """엔티티 기반 동적 제안 생성"""
-    suggestions = []
-
-    # 브랜드 기반
-    if brands:
-        brand = brands[0]
-        suggestions.append(f"{brand} 경쟁사 비교 분석")
-        if len(brands) > 1:
-            suggestions.append(f"{brands[0]} vs {brands[1]} 비교")
-
-    # 카테고리 기반
-    if categories:
-        cat = categories[0]
-        suggestions.append(f"{cat} 시장 트렌드 분석")
-
-    # 지표 기반
-    if indicators:
-        ind = indicators[0].upper()
-        suggestions.append(f"{ind} 개선 전략")
-
-    return suggestions
-
-
-def _generate_type_suggestions(
-    query_type: QueryType, brands: list[str], indicators: list[str]
-) -> list[str]:
-    """쿼리 유형 기반 폴백 제안"""
-    suggestions = []
-
-    if query_type == QueryType.DEFINITION:
-        if indicators:
-            ind = indicators[0].upper()
-            suggestions.append(f"{ind}가 높으면 어떤 의미인가요?")
-        suggestions.extend(["관련된 다른 지표는?", "실제 데이터에 적용해주세요"])
-
-    elif query_type == QueryType.INTERPRETATION:
-        suggestions.extend(
-            ["현재 LANEIGE 수치 분석", "경쟁사와 비교해주세요", "개선 액션 아이템은?"]
-        )
-
-    elif query_type == QueryType.DATA_QUERY:
-        suggestions.extend(["이 수치가 좋은 건가요?", "최근 7일 추이 분석", "경쟁사 대비 현황"])
-
-    elif query_type == QueryType.ANALYSIS:
-        suggestions.extend(["가장 시급한 액션은?", "Top 10 진입 전략", "리스크 요인 분석"])
-
-    elif query_type == QueryType.COMBINATION:
-        suggestions.extend(["다른 시나리오 분석", "현재 해당 상황 존재 여부"])
-
-    else:
-        # 기본 제안
-        suggestions = ["SoS(점유율) 설명해주세요", "LANEIGE 현재 순위는?", "전략적 권고사항"]
-
-    return suggestions
-
-
-# ============= API Endpoints =============
-
-
-@app.get("/")
-async def root():
-    """헬스 체크"""
-    return {
-        "status": "ok",
-        "message": "AMORE Dashboard API v2.0 (RAG + Ontology)",
-        "features": ["chatbot", "rag", "ontology", "memory", "docx_export"],
-    }
+# ============= API Endpoints (helpers imported from src.api.dependencies) =============
 
 
 @app.get("/api/data")
@@ -1105,18 +505,7 @@ async def start_crawl():
 
 from datetime import UTC, timedelta
 
-from src.tools.sheets_writer import SheetsWriter
-
-# SheetsWriter 싱글톤 인스턴스
-_sheets_writer: SheetsWriter | None = None
-
-
-def get_sheets_writer() -> SheetsWriter:
-    """SheetsWriter 싱글톤 인스턴스 반환"""
-    global _sheets_writer
-    if _sheets_writer is None:
-        _sheets_writer = SheetsWriter()
-    return _sheets_writer
+from src.api.dependencies import get_sheets_writer
 
 
 @app.get("/api/historical")
@@ -1347,11 +736,26 @@ async def _calculate_brand_metrics_for_period(
             continue
 
         if brand_name not in brand_data:
-            brand_data[brand_name] = {"brand": brand_name, "ranks": [], "product_count": 0}
+            brand_data[brand_name] = {
+                "brand": brand_name,
+                "ranks": [],
+                "prices": [],
+                "product_count": 0,
+            }
             brand_unique_asins[brand_name] = set()
 
         # 순위는 모든 레코드에서 수집 (평균 계산용)
         brand_data[brand_name]["ranks"].append(rank)
+
+        # 가격 수집 (유효한 USD 가격 범위만)
+        price = record.get("price")
+        if price is not None:
+            try:
+                price_val = float(price)
+                if 0.5 <= price_val <= 500:
+                    brand_data[brand_name]["prices"].append(price_val)
+            except (ValueError, TypeError):
+                pass
 
         # 제품 수는 ASIN 기준 유니크 카운트 (중복 제거)
         if asin and asin not in brand_unique_asins[brand_name]:
@@ -1373,6 +777,10 @@ async def _calculate_brand_metrics_for_period(
         sos = round(data["product_count"] / max(total_products, 100) * 100, 2)
         avg_rank = round(sum(data["ranks"]) / len(data["ranks"]), 1)
 
+        # 평균 가격 계산
+        prices = data.get("prices", [])
+        avg_price = round(sum(prices) / len(prices), 2) if prices else None
+
         # 버블 크기: 제품 수 기반 (최소 5, 최대 25)
         bubble_size = max(5, min(25, data["product_count"] * 2))
 
@@ -1384,6 +792,7 @@ async def _calculate_brand_metrics_for_period(
                 "sos": sos,
                 "avg_rank": avg_rank,
                 "product_count": data["product_count"],
+                "avg_price": avg_price,
                 "bubble_size": bubble_size,
                 "is_laneige": is_laneige,
             }
@@ -1415,6 +824,8 @@ async def _calculate_brand_metrics_for_period(
         if laneige_data and laneige_data["ranks"]:
             sos = round(laneige_data["product_count"] / max(total_products, 100) * 100, 2)
             avg_rank = round(sum(laneige_data["ranks"]) / len(laneige_data["ranks"]), 1)
+            l_prices = laneige_data.get("prices", [])
+            l_avg_price = round(sum(l_prices) / len(l_prices), 2) if l_prices else None
             bubble_size = max(5, min(25, laneige_data["product_count"] * 2))
             top_10.append(
                 {
@@ -1422,6 +833,7 @@ async def _calculate_brand_metrics_for_period(
                     "sos": sos,
                     "avg_rank": avg_rank,
                     "product_count": laneige_data["product_count"],
+                    "avg_price": l_avg_price,
                     "bubble_size": bubble_size,
                     "is_laneige": True,
                 }
@@ -1439,6 +851,8 @@ async def _calculate_brand_metrics_for_period(
             if tracked_data["ranks"]:
                 sos = round(tracked_data["product_count"] / max(total_products, 100) * 100, 2)
                 avg_rank = round(sum(tracked_data["ranks"]) / len(tracked_data["ranks"]), 1)
+                t_prices = tracked_data.get("prices", [])
+                t_avg_price = round(sum(t_prices) / len(t_prices), 2) if t_prices else None
                 bubble_size = max(5, min(25, tracked_data["product_count"] * 2))
                 top_10.append(
                     {
@@ -1446,6 +860,7 @@ async def _calculate_brand_metrics_for_period(
                         "sos": sos,
                         "avg_rank": avg_rank,
                         "product_count": tracked_data["product_count"],
+                        "avg_price": t_avg_price,
                         "bubble_size": bubble_size,
                         "is_laneige": False,
                         "is_tracked": True,  # tracked competitor 표시
@@ -1672,12 +1087,47 @@ async def _get_historical_from_local(
         # brand_metrics 계산 (현재 대시보드 데이터에서)
         brand_metrics = _get_brand_metrics_from_dashboard(data, brand)
 
+        # rank_history 생성 (CPI 차트용 - 모든 브랜드 제품 포함)
+        rank_history = {}
+        latest_crawl_path = Path("./data/latest_crawl_result.json")
+        if latest_crawl_path.exists():
+            try:
+                with open(latest_crawl_path, encoding="utf-8") as f:
+                    crawl_data = json.load(f)
+                for _cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    for product in cat_data.get("products", []):
+                        snap_date = product.get("snapshot_date", "")
+                        if not snap_date or snap_date < start_date or snap_date > end_date:
+                            continue
+                        if snap_date not in rank_history:
+                            rank_history[snap_date] = {"products": []}
+                        price_val = product.get("price", 0)
+                        try:
+                            price = (
+                                float(str(price_val).replace("$", "").replace(",", ""))
+                                if price_val
+                                else 0
+                            )
+                        except (ValueError, TypeError):
+                            price = 0
+                        rank_history[snap_date]["products"].append(
+                            {
+                                "name": product.get("product_name", ""),
+                                "brand": product.get("brand", ""),
+                                "rank": product.get("rank", 0),
+                                "price": price,
+                            }
+                        )
+            except (json.JSONDecodeError, ValueError) as e:
+                logging.warning(f"Failed to build rank_history from local: {e}")
+
         if not sos_history:
             return {
                 "success": False,
                 "error": "No historical data found for the specified period",
                 "available_dates": [],
                 "brand_metrics": [],
+                "rank_history": rank_history,
                 "data": None,
             }
 
@@ -1685,6 +1135,7 @@ async def _get_historical_from_local(
             "success": True,
             "available_dates": available_dates,
             "brand_metrics": brand_metrics,
+            "rank_history": rank_history,
             "data": {
                 "sos_history": sos_history,
                 "raw_data": raw_data,
@@ -1895,15 +1346,6 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
     )
 
 
-class AnalystReportRequest(BaseModel):
-    """애널리스트 리포트 요청"""
-
-    start_date: str  # Required: YYYY-MM-DD
-    end_date: str  # Required: YYYY-MM-DD
-    include_charts: bool = True
-    include_external_signals: bool = True
-
-
 @app.post("/api/export/excel")
 async def export_excel(request: Request):
     """
@@ -1935,7 +1377,7 @@ async def export_excel(request: Request):
         if start_date and end_date:
             # 1-1. SQLite 시도
             try:
-                from src.tools.sqlite_storage import get_sqlite_storage
+                from src.tools.storage.sqlite_storage import get_sqlite_storage
 
                 sqlite = get_sqlite_storage()
                 await sqlite.initialize()
@@ -2388,233 +1830,10 @@ async def export_excel(request: Request):
         raise HTTPException(status_code=500, detail="Excel 내보내기 중 오류가 발생했습니다") from e
 
 
-# ============= Competitor Comparison API =============
-
-
-@app.get("/api/competitors")
-async def get_competitor_data(brand: str | None = None):
-    """
-    경쟁사 추적 데이터 조회
-
-    Args:
-        brand: 브랜드 필터 (예: "Summer Fridays")
-
-    Returns:
-        경쟁사 제품 목록 및 LANEIGE 비교 데이터
-    """
-    try:
-        import json
-        from pathlib import Path
-
-        from src.tools.sqlite_storage import get_sqlite_storage
-
-        result = {"competitors": {}, "laneige_products": {}, "comparison": []}
-
-        # 1. SQLite에서 경쟁사 데이터 조회 시도
-        try:
-            sqlite = get_sqlite_storage()
-            await sqlite.initialize()
-            comp_products = await sqlite.get_competitor_products(brand=brand)
-
-            if comp_products:
-                # 브랜드별로 그룹화
-                for p in comp_products:
-                    brand_name = p.get("brand", "Unknown")
-                    if brand_name not in result["competitors"]:
-                        result["competitors"][brand_name] = {
-                            "brand": brand_name,
-                            "products": [],
-                            "product_count": 0,
-                            "avg_price": 0,
-                            "avg_rating": 0,
-                        }
-                    result["competitors"][brand_name]["products"].append(p)
-
-                # 브랜드별 집계
-                for _brand_name, brand_data in result["competitors"].items():
-                    products = brand_data["products"]
-                    brand_data["product_count"] = len(products)
-                    prices = [p["price"] for p in products if p.get("price")]
-                    ratings = [p["rating"] for p in products if p.get("rating")]
-                    brand_data["avg_price"] = round(sum(prices) / len(prices), 2) if prices else 0
-                    brand_data["avg_rating"] = (
-                        round(sum(ratings) / len(ratings), 1) if ratings else 0
-                    )
-
-        except Exception as sqlite_err:
-            logging.warning(f"SQLite competitor query failed: {sqlite_err}")
-
-        # 2. JSON 파일에서 폴백
-        if not result["competitors"]:
-            json_path = Path("./data/competitor_products.json")
-            if json_path.exists():
-                with open(json_path, encoding="utf-8") as f:
-                    json_data = json.load(f)
-                    for p in json_data.get("products", []):
-                        brand_name = p.get("brand", "Unknown")
-                        if brand and brand_name != brand:
-                            continue
-                        if brand_name not in result["competitors"]:
-                            result["competitors"][brand_name] = {
-                                "brand": brand_name,
-                                "products": [],
-                                "product_count": 0,
-                            }
-                        result["competitors"][brand_name]["products"].append(p)
-
-        # 3. LANEIGE 제품 데이터 로드 (최신 크롤링 데이터에서)
-        data = load_dashboard_data()
-        if data:
-            # 카테고리별 LANEIGE 제품 추출
-            for cat_id, cat_data in data.get("category", {}).items():
-                for product in cat_data.get("top_products", []):
-                    if "laneige" in product.get("brand", "").lower():
-                        product_type = _detect_product_type(product.get("product_name", ""))
-                        if product_type not in result["laneige_products"]:
-                            result["laneige_products"][product_type] = []
-                        result["laneige_products"][product_type].append(
-                            {**product, "category_id": cat_id, "product_type": product_type}
-                        )
-
-        # 4. 제품 타입별 비교 데이터 생성
-        for brand_name, brand_data in result["competitors"].items():
-            for comp_product in brand_data["products"]:
-                laneige_match = comp_product.get("laneige_competitor")
-                product_type = comp_product.get("product_type", "")
-
-                comparison_item = {
-                    "competitor_brand": brand_name,
-                    "competitor_product": comp_product.get("product_name", ""),
-                    "competitor_price": comp_product.get("price"),
-                    "competitor_rating": comp_product.get("rating"),
-                    "competitor_reviews": comp_product.get("reviews_count"),
-                    "product_type": product_type,
-                    "laneige_product": laneige_match,
-                    "laneige_price": None,
-                    "laneige_rating": None,
-                    "laneige_reviews": None,
-                    "price_diff": None,
-                    "rating_diff": None,
-                }
-
-                # LANEIGE 매칭 제품 찾기
-                if product_type in result["laneige_products"]:
-                    for lp in result["laneige_products"][product_type]:
-                        comparison_item["laneige_price"] = lp.get("price")
-                        comparison_item["laneige_rating"] = lp.get("rating")
-                        comparison_item["laneige_reviews"] = lp.get("reviews_count")
-
-                        # 차이 계산
-                        if comparison_item["competitor_price"] and comparison_item["laneige_price"]:
-                            comparison_item["price_diff"] = round(
-                                comparison_item["laneige_price"]
-                                - comparison_item["competitor_price"],
-                                2,
-                            )
-                        if (
-                            comparison_item["competitor_rating"]
-                            and comparison_item["laneige_rating"]
-                        ):
-                            comparison_item["rating_diff"] = round(
-                                comparison_item["laneige_rating"]
-                                - comparison_item["competitor_rating"],
-                                1,
-                            )
-                        break
-
-                result["comparison"].append(comparison_item)
-
-        return result
-
-    except Exception as e:
-        logger.error(f"Competitor data error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="경쟁사 데이터 조회 중 오류가 발생했습니다"
-        ) from e
-
-
-def _detect_product_type(product_name: str) -> str:
-    """제품명에서 제품 타입 추출"""
-    name_lower = product_name.lower()
-
-    if "lip sleeping" in name_lower or "lip mask" in name_lower:
-        return "lip_balm"
-    elif "lip glowy" in name_lower or "lip butter" in name_lower or "lip balm" in name_lower:
-        return "lip_balm"
-    elif "water sleeping" in name_lower or "sleeping mask" in name_lower:
-        return "sleeping_mask"
-    elif "water bank" in name_lower or "cream" in name_lower or "moisturizer" in name_lower:
-        return "moisturizer"
-    elif "toner" in name_lower or "cream skin" in name_lower:
-        return "toner"
-    elif "serum" in name_lower:
-        return "serum"
-    else:
-        return "other"
-
-
-@app.get("/api/competitors/brands")
-async def get_tracked_brands():
-    """추적 중인 경쟁사 브랜드 목록"""
-    try:
-        import json
-        from pathlib import Path
-
-        config_path = Path("./config/tracked_competitors.json")
-        if not config_path.exists():
-            return {"brands": []}
-
-        with open(config_path, encoding="utf-8") as f:
-            config = json.load(f)
-
-        brands = []
-        for brand_name, brand_config in config.get("competitors", {}).items():
-            brands.append(
-                {
-                    "name": brand_name,
-                    "tier": brand_config.get("tier", ""),
-                    "product_count": len(brand_config.get("products", [])),
-                }
-            )
-
-        return {"brands": brands}
-
-    except Exception as e:
-        logging.error(f"Get tracked brands error: {e}")
-        return {"brands": []}
-
-
 # ============= Alert Settings API =============
 
-from src.core.state_manager import EmailSubscription, StateManager, get_state_manager
-
-# 싱글톤 State Manager
-_state_manager: StateManager | None = None
-
-
-def get_app_state_manager() -> StateManager:
-    """앱 레벨 State Manager 반환"""
-    global _state_manager
-    if _state_manager is None:
-        _state_manager = get_state_manager()
-    return _state_manager
-
-
-class AlertSettingsRequest(BaseModel):
-    """알림 설정 요청"""
-
-    email: str
-    consent: bool
-    alert_types: list[str] = []
-
-
-class AlertSettingsResponse(BaseModel):
-    """알림 설정 응답"""
-
-    email: str
-    consent: bool
-    alert_types: list[str]
-    consent_date: str | None = None
+from src.api.dependencies import get_app_state_manager
+from src.core.state_manager import EmailSubscription
 
 
 @app.get("/api/v3/alert-settings")
@@ -2700,26 +1919,6 @@ async def revoke_alert_consent(request: Request):
 # =============================================================================
 
 
-class SubscribeRequest(BaseModel):
-    """구독 시작 요청"""
-
-    email: str
-    alert_types: list[str] = []
-
-
-class UpdateAlertSettingsRequest(BaseModel):
-    """알림 설정 수정 요청"""
-
-    email: str
-    alert_types: list[str]
-
-
-class UnsubscribeRequest(BaseModel):
-    """구독 해지 요청"""
-
-    email: str
-
-
 @app.post("/api/v4/subscribe")
 @limiter.limit("3/minute")
 async def subscribe_v4(request: Request, body: SubscribeRequest):
@@ -2762,7 +1961,7 @@ async def subscribe_v4(request: Request, body: SubscribeRequest):
         base_url = get_base_url()
         verify_url = f"{base_url}/api/alerts/confirm-email?token={token}&email={email}"
 
-        from src.tools.email_sender import EmailSender
+        from src.tools.notifications.email_sender import EmailSender
 
         email_sender = EmailSender()
 
@@ -2938,195 +2137,7 @@ async def get_alerts(limit: int = 50, alert_type: str | None = None):
     }
 
 
-# ============= 대시보드 HTML 서빙 =============
-
-
-@app.get("/dashboard")
-async def serve_dashboard():
-    """
-    대시보드 HTML 페이지 서빙 (API 키 자동 주입)
-
-    서버의 API_KEY를 HTML에 자동으로 주입하여
-    프론트엔드에서 별도 설정 없이 인증된 API 호출 가능
-    """
-    dashboard_path = Path("./dashboard/amore_unified_dashboard_v4.html")
-    if not dashboard_path.exists():
-        raise HTTPException(status_code=404, detail="Dashboard not found")
-
-    # API_KEY가 설정된 경우 HTML에 자동 주입
-    if API_KEY:
-        html_content = dashboard_path.read_text(encoding="utf-8")
-        # </head> 직전에 API 키 설정 스크립트 삽입
-        api_key_script = f'<script>window.DASHBOARD_API_KEY = "{API_KEY}";</script>\n</head>'
-        html_content = html_content.replace("</head>", api_key_script)
-        return HTMLResponse(content=html_content, media_type="text/html")
-
-    return FileResponse(dashboard_path, media_type="text/html")
-
-
-@app.get("/api/health")
-async def health_check():
-    """기본 헬스 체크 엔드포인트 (Railway healthcheck용)"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
-
-
-@app.get("/api/health/deep")
-async def deep_health_check():
-    """
-    Deep Health Check - 모든 서브시스템 상태 확인
-
-    Returns:
-        - database: SQLite 연결 상태
-        - knowledge_graph: KG 로드 상태 및 트리플 수
-        - llm: OpenAI API 연결 상태
-        - scheduler: 자율 스케줄러 상태
-        - memory: 시스템 메모리 사용량
-        - disk: 디스크 사용량 (Railway Volume)
-    """
-    import os
-    import sqlite3
-    from pathlib import Path
-
-    health = {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "checks": {},
-        "warnings": [],
-    }
-
-    # 1. SQLite 연결 확인
-    try:
-        db_path = (
-            Path("/data/amore_data.db") if Path("/data").exists() else Path("data/amore_data.db")
-        )
-        if db_path.exists():
-            conn = sqlite3.connect(str(db_path), timeout=5)
-            cursor = conn.execute("SELECT COUNT(*) FROM raw_data")
-            count = cursor.fetchone()[0]
-            conn.close()
-            health["checks"]["database"] = {
-                "status": "healthy",
-                "records": count,
-                "path": str(db_path),
-            }
-        else:
-            health["checks"]["database"] = {"status": "missing", "path": str(db_path)}
-            health["warnings"].append("SQLite database not found")
-    except Exception as e:
-        health["checks"]["database"] = {"status": "unhealthy", "error": str(e)}
-        health["status"] = "degraded"
-
-    # 2. Knowledge Graph 상태
-    try:
-        from src.ontology.knowledge_graph import get_knowledge_graph
-
-        kg = get_knowledge_graph()
-        triple_count = len(kg.triples) if kg.triples else 0
-        health["checks"]["knowledge_graph"] = {
-            "status": "healthy" if triple_count > 0 else "empty",
-            "triples": triple_count,
-            "max_triples": kg.max_triples,
-        }
-        if triple_count == 0:
-            health["warnings"].append("Knowledge Graph is empty")
-    except Exception as e:
-        health["checks"]["knowledge_graph"] = {"status": "unhealthy", "error": str(e)}
-        health["status"] = "degraded"
-
-    # 3. LLM API 연결 (OpenAI)
-    try:
-        api_key = os.getenv("OPENAI_API_KEY", "")
-        if api_key and api_key.startswith("sk-"):
-            health["checks"]["llm"] = {
-                "status": "configured",
-                "provider": "openai",
-                "key_prefix": api_key[:10] + "...",
-            }
-        else:
-            health["checks"]["llm"] = {"status": "not_configured"}
-            health["warnings"].append("OPENAI_API_KEY not properly configured")
-    except Exception as e:
-        health["checks"]["llm"] = {"status": "error", "error": str(e)}
-
-    # 4. 스케줄러 상태
-    try:
-        brain = await get_initialized_brain()
-        scheduler_running = brain.scheduler.is_running if brain.scheduler else False
-        health["checks"]["scheduler"] = {
-            "status": "running" if scheduler_running else "stopped",
-            "mode": brain.mode.value if brain.mode else "unknown",
-        }
-    except Exception as e:
-        health["checks"]["scheduler"] = {"status": "error", "error": str(e)}
-
-    # 5. 메모리 사용량
-    try:
-        import psutil
-
-        memory = psutil.virtual_memory()
-        health["checks"]["memory"] = {
-            "status": "healthy" if memory.percent < 90 else "warning",
-            "used_percent": round(memory.percent, 1),
-            "available_gb": round(memory.available / (1024**3), 2),
-        }
-        if memory.percent > 90:
-            health["warnings"].append(f"High memory usage: {memory.percent}%")
-            health["status"] = "degraded"
-    except ImportError:
-        health["checks"]["memory"] = {"status": "unknown", "note": "psutil not installed"}
-
-    # 6. 디스크 사용량 (Railway Volume)
-    try:
-        import shutil
-
-        data_path = Path("/data") if Path("/data").exists() else Path("data")
-        if data_path.exists():
-            total, used, free = shutil.disk_usage(data_path)
-            used_percent = (used / total) * 100
-            health["checks"]["disk"] = {
-                "status": "healthy" if used_percent < 90 else "warning",
-                "used_percent": round(used_percent, 1),
-                "free_gb": round(free / (1024**3), 2),
-                "path": str(data_path),
-            }
-            if used_percent > 90:
-                health["warnings"].append(f"Low disk space: {100-used_percent:.1f}% free")
-                health["status"] = "degraded"
-    except Exception as e:
-        health["checks"]["disk"] = {"status": "error", "error": str(e)}
-
-    # 최종 상태 결정
-    unhealthy_checks = [k for k, v in health["checks"].items() if v.get("status") == "unhealthy"]
-    if unhealthy_checks:
-        health["status"] = "unhealthy"
-
-    return health
-
-
 # ============= Level 4 Brain API (v4) =============
-
-
-class BrainChatRequest(BaseModel):
-    """Brain 챗봇 요청"""
-
-    message: str
-    session_id: str | None = "default"
-    skip_cache: bool = False
-
-
-class BrainChatResponse(BaseModel):
-    """Brain 챗봇 응답"""
-
-    text: str
-    confidence: float
-    sources: list[str]
-    reasoning: str | None = None
-    tools_used: list[str]
-    processing_time_ms: float
-    from_cache: bool
-    brain_mode: str
-    suggestions: list[str] = []
-    query_type: str = "unknown"
 
 
 @app.post("/api/v4/chat", response_model=BrainChatResponse, dependencies=[Depends(verify_api_key)])
@@ -3252,183 +2263,9 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/api/v4/brain/status")
-async def get_brain_status():
-    """
-    Brain 상태 조회
-
-    Returns:
-        - mode: 현재 Brain 모드
-        - scheduler: 스케줄러 상태
-        - pending_tasks: 대기 중 태스크
-        - stats: 통계
-    """
-    try:
-        brain = await get_initialized_brain()
-
-        return {
-            "mode": brain.mode.value,
-            "scheduler_running": brain.scheduler.running if brain.scheduler else False,
-            "pending_tasks": brain.scheduler.get_pending_count() if brain.scheduler else 0,
-            "stats": brain.get_stats(),
-            "initialized": True,
-        }
-    except Exception as e:
-        return {
-            "mode": "uninitialized",
-            "scheduler_running": False,
-            "pending_tasks": 0,
-            "stats": {},
-            "initialized": False,
-            "error": str(e),
-        }
-
-
-@app.post("/api/v4/brain/scheduler/start", dependencies=[Depends(verify_api_key)])
-async def start_brain_scheduler():
-    """
-    자율 스케줄러 시작 (API Key 필요)
-
-    - 일일 크롤링 (09:00)
-    - 주기적 알림 체크 (30분)
-    - 백그라운드 분석
-    """
-    try:
-        brain = await get_initialized_brain()
-
-        if brain.scheduler and brain.scheduler.running:
-            return {
-                "started": False,
-                "message": "스케줄러가 이미 실행 중입니다.",
-                "status": "running",
-            }
-
-        await brain.start_scheduler()
-
-        return {"started": True, "message": "자율 스케줄러가 시작되었습니다.", "status": "running"}
-    except Exception as e:
-        return {"started": False, "message": f"스케줄러 시작 실패: {str(e)}", "status": "error"}
-
-
-@app.post("/api/v4/brain/scheduler/stop", dependencies=[Depends(verify_api_key)])
-async def stop_brain_scheduler():
-    """자율 스케줄러 중지 (API Key 필요)"""
-    try:
-        brain = await get_initialized_brain()
-
-        if brain.scheduler:
-            brain.scheduler.stop()
-
-        return {"stopped": True, "message": "스케줄러가 중지되었습니다.", "status": "stopped"}
-    except Exception as e:
-        return {"stopped": False, "message": f"스케줄러 중지 실패: {str(e)}", "status": "error"}
-
-
-@app.post("/api/v4/brain/autonomous-cycle", dependencies=[Depends(verify_api_key)])
-async def run_autonomous_cycle():
-    """
-    자율 사이클 수동 실행 (API Key 필요)
-
-    1. 데이터 신선도 확인
-    2. 필요시 크롤링
-    3. 지표 계산
-    4. 알림 조건 체크
-    5. 인사이트 생성
-    """
-    try:
-        brain = await get_initialized_brain()
-        result = await brain.run_autonomous_cycle()
-
-        return {"success": True, "result": result}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/v4/brain/check-alerts")
-async def check_brain_alerts():
-    """
-    알림 조건 수동 체크
-
-    현재 메트릭 데이터를 기반으로 알림 조건을 체크합니다.
-    """
-    try:
-        brain = await get_initialized_brain()
-        data = load_dashboard_data()
-
-        if not data:
-            return {"alerts": [], "message": "데이터가 없습니다."}
-
-        alerts = await brain.check_alerts(data)
-
-        return {"alerts": alerts, "count": len(alerts), "checked_at": datetime.now().isoformat()}
-    except Exception as e:
-        return {"alerts": [], "error": str(e)}
-
-
-@app.get("/api/v4/brain/stats")
-async def get_brain_stats():
-    """Brain 통계 조회"""
-    try:
-        brain = await get_initialized_brain()
-        return brain.get_stats()
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@app.post("/api/v4/brain/mode", dependencies=[Depends(verify_api_key)])
-async def set_brain_mode(mode: str):
-    """
-    Brain 모드 변경 (API Key 필요)
-
-    Args:
-        mode: reactive, proactive, autonomous
-    """
-    try:
-        brain = await get_initialized_brain()
-
-        mode_map = {
-            "reactive": BrainMode.REACTIVE,
-            "proactive": BrainMode.PROACTIVE,
-            "autonomous": BrainMode.AUTONOMOUS,
-        }
-
-        if mode not in mode_map:
-            raise HTTPException(
-                status_code=400, detail=f"Invalid mode. Valid modes: {list(mode_map.keys())}"
-            )
-
-        brain.mode = mode_map[mode]
-
-        return {"mode": brain.mode.value, "message": f"Brain 모드가 {mode}(으)로 변경되었습니다."}
-    except HTTPException:
-        raise
-    except Exception as e:
-        return {"error": str(e)}
-
-
 # ============= Amazon Deals API =============
 
-from src.tools.deals_scraper import get_deals_scraper
-
-
-class DealsRequest(BaseModel):
-    """Deals 크롤링 요청"""
-
-    max_items: int = 50
-    beauty_only: bool = True
-
-
-class DealsResponse(BaseModel):
-    """Deals 응답"""
-
-    success: bool
-    count: int
-    lightning_count: int
-    competitor_count: int
-    snapshot_datetime: str
-    deals: list[dict[str, Any]]
-    competitor_deals: list[dict[str, Any]]
-    error: str | None = None
+from src.tools.scrapers.deals_scraper import get_deals_scraper
 
 
 @app.get("/api/deals")
@@ -3690,13 +2527,7 @@ async def export_deals_report(days: int = 7, format: str = "excel"):
 
 # ============= 알림 서비스 API =============
 
-from src.tools.alert_service import get_alert_service
-
-
-class AlertSendRequest(BaseModel):
-    """알림 발송 요청"""
-
-    alert_ids: list[int] | None = None  # 발송할 알림 ID (없으면 미발송 전체)
+from src.tools.notifications.alert_service import get_alert_service
 
 
 @app.get("/api/alerts/status")
@@ -3903,7 +2734,7 @@ async def send_verification_email(request: Request):
         verify_url = f"{base_url}/api/alerts/confirm-email?token={token}&email={email}"
 
         # EmailSender 직접 사용
-        from src.tools.email_sender import EmailSender
+        from src.tools.notifications.email_sender import EmailSender
 
         email_sender = EmailSender()
 
@@ -4275,7 +3106,7 @@ async def send_insight_report_email(request: Request):
             )
 
         # EmailSender 초기화
-        from src.tools.email_sender import EmailSender
+        from src.tools.notifications.email_sender import EmailSender
 
         email_sender = EmailSender()
 
@@ -4393,1227 +3224,6 @@ async def send_insight_report_email(request: Request):
         raise
     except Exception as e:
         logging.error(f"Send insight report error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-# ============= Category KPI API =============
-
-
-@app.get("/api/category/kpi")
-async def get_category_kpi(
-    category_id: str,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    brand: str = "LANEIGE",
-):
-    """
-    카테고리별 KPI 데이터 조회 (기간 필터링 지원)
-
-    Args:
-        category_id: 카테고리 ID (beauty_personal_care, skin_care, lip_care, lip_makeup, face_powder)
-        start_date: 시작일 (YYYY-MM-DD)
-        end_date: 종료일 (YYYY-MM-DD)
-        brand: 타겟 브랜드 (기본값: LANEIGE)
-
-    Returns:
-        KPI 데이터: sos, best_rank, cpi, new_competitors
-    """
-    try:
-        # 날짜 범위 설정
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-        if not start_date:
-            start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-
-        rows = []
-
-        # SQLite에서 데이터 조회
-        try:
-            from src.tools.sqlite_storage import get_sqlite_storage
-
-            sqlite = get_sqlite_storage()
-            await sqlite.initialize()
-
-            query = """
-                SELECT snapshot_date, rank, brand, price
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND category_id = ?
-                ORDER BY snapshot_date DESC, rank ASC
-            """
-            with sqlite.get_connection() as conn:
-                cursor = conn.execute(query, (start_date, end_date, category_id))
-                rows = cursor.fetchall()
-        except Exception as db_err:
-            logging.warning(f"SQLite query failed for category KPI: {db_err}")
-
-        # JSON fallback
-        if not rows:
-            crawl_data = _load_crawl_data_for_sos()
-            if crawl_data and crawl_data.get("categories", {}).get(category_id):
-                cat_data = crawl_data["categories"][category_id]
-                snapshot_date = crawl_data.get("snapshot_date", end_date)
-                for product in cat_data.get("products", []):
-                    rows.append(
-                        (
-                            snapshot_date,
-                            product.get("rank", 100),
-                            product.get("brand", "Unknown"),
-                            product.get("price"),
-                        )
-                    )
-
-        if not rows:
-            return {
-                "success": True,
-                "message": f"해당 기간({start_date} ~ {end_date})에 데이터가 없습니다.",
-                "data": None,
-                "period": {"start": start_date, "end": end_date},
-            }
-
-        # KPI 계산
-        total_products = len(rows)
-        brand_products = [r for r in rows if r[2] and brand.lower() in r[2].lower()]
-        brand_count = len(brand_products)
-
-        # SoS (Share of Shelf)
-        sos = (brand_count / total_products * 100) if total_products > 0 else 0
-
-        # Best Rank
-        brand_ranks = [r[1] for r in brand_products if r[1]]
-        best_rank = min(brand_ranks) if brand_ranks else None
-
-        # CPI (Competitive Price Index) - 브랜드 평균가 / 전체 평균가 * 100
-        brand_prices = [r[3] for r in brand_products if r[3] and r[3] > 0]
-        all_prices = [r[3] for r in rows if r[3] and r[3] > 0]
-
-        if brand_prices and all_prices:
-            brand_avg_price = sum(brand_prices) / len(brand_prices)
-            all_avg_price = sum(all_prices) / len(all_prices)
-            cpi = (brand_avg_price / all_avg_price * 100) if all_avg_price > 0 else 100
-        else:
-            cpi = 100
-
-        # New Competitors (최근 7일 내 신규 진입 - 간소화된 계산)
-        # 실제로는 이전 기간 데이터와 비교 필요, 여기서는 추정값
-        new_competitors = max(0, total_products - brand_count - 50)  # 간소화된 추정
-
-        return {
-            "success": True,
-            "data": {
-                "category_id": category_id,
-                "sos": round(sos, 1),
-                "best_rank": best_rank,
-                "cpi": round(cpi, 0),
-                "new_competitors": new_competitors,
-                "brand": brand,
-                "product_count": brand_count,
-                "total_products": total_products,
-            },
-            "period": {"start": start_date, "end": end_date},
-        }
-
-    except Exception as e:
-        logging.error(f"Category KPI API error: {e}")
-        return {"success": False, "error": str(e), "data": None}
-
-
-# ============= SoS (Share of Shelf) API =============
-
-
-def _load_crawl_data_for_sos():
-    """JSON 파일에서 크롤링 데이터 로드 (SQLite fallback)"""
-    import json
-    from pathlib import Path
-
-    # latest_crawl_result.json에서 데이터 로드
-    crawl_path = Path("./data/latest_crawl_result.json")
-    if crawl_path.exists():
-        with open(crawl_path, encoding="utf-8") as f:
-            return json.load(f)
-    return None
-
-
-@app.get("/api/sos/category")
-async def get_sos_by_category(
-    start_date: str | None = None,
-    end_date: str | None = None,
-    compare_brands: str | None = None,  # comma-separated brand names
-):
-    """
-    카테고리별 SoS (Share of Shelf) 데이터 조회
-
-    SoS = (해당 브랜드 제품 수 / Top 100) * 100
-
-    Args:
-        start_date: 시작일 (YYYY-MM-DD)
-        end_date: 종료일 (YYYY-MM-DD)
-        compare_brands: 비교할 브랜드 (콤마로 구분)
-
-    Returns:
-        카테고리별 SoS 데이터
-    """
-    try:
-        # 비교 브랜드 파싱
-        compare_brand_list = []
-        if compare_brands:
-            compare_brand_list = [b.strip() for b in compare_brands.split(",") if b.strip()]
-
-        # 날짜 범위 설정
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-        if not start_date:
-            start_date = end_date
-
-        # SQLite 먼저 시도
-        rows = []
-        try:
-            from src.tools.sqlite_storage import get_sqlite_storage
-
-            sqlite = get_sqlite_storage()
-            await sqlite.initialize()
-
-            query = """
-                SELECT snapshot_date, category_id, brand, COUNT(*) as product_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                GROUP BY snapshot_date, category_id, brand
-                ORDER BY snapshot_date DESC, category_id, product_count DESC
-            """
-            with sqlite.get_connection() as conn:
-                cursor = conn.execute(query, (start_date, end_date))
-                rows = cursor.fetchall()
-        except Exception as db_err:
-            logging.warning(f"SQLite query failed, using JSON fallback: {db_err}")
-
-        # SQLite 데이터 없으면 JSON fallback
-        if not rows:
-            crawl_data = _load_crawl_data_for_sos()
-            if crawl_data and crawl_data.get("categories"):
-                # JSON에서 데이터 추출
-                snapshot_date = crawl_data.get("snapshot_date", end_date)
-                for cat_id, cat_data in crawl_data.get("categories", {}).items():
-                    for product in cat_data.get("products", []):
-                        brand = product.get("brand", "Unknown")
-                        rows.append((snapshot_date, cat_id, brand, 1))
-
-        if not rows:
-            return {
-                "success": True,
-                "message": f"해당 기간({start_date} ~ {end_date})에 데이터가 없습니다.",
-                "data": [],
-                "period": {"start": start_date, "end": end_date},
-            }
-
-        # 데이터 집계
-        # 구조: {category_id: {brand: {dates: [count, ...], total_count: N}}}
-        category_data = {}
-        dates_set = set()
-
-        for row in rows:
-            if len(row) == 4:
-                snapshot_date, category_id, brand, count = row
-            else:
-                snapshot_date, category_id, brand, count = row[0], row[1], row[2], row[3]
-            dates_set.add(snapshot_date)
-
-            if category_id not in category_data:
-                category_data[category_id] = {}
-            if brand not in category_data[category_id]:
-                category_data[category_id][brand] = {"dates": {}, "total_count": 0}
-
-            category_data[category_id][brand]["dates"][snapshot_date] = count
-            category_data[category_id][brand]["total_count"] += count
-
-        # SoS 계산 (기간 평균)
-        num_dates = len(dates_set)
-        result_data = []
-
-        # 카테고리 계층 구조 로드
-        hierarchy_path = Path("./config/category_hierarchy.json")
-        hierarchy_data = {}
-        if hierarchy_path.exists():
-            with open(hierarchy_path, encoding="utf-8") as f:
-                hierarchy_data = json.load(f).get("categories", {})
-
-        # 카테고리 메타 정보 (계층 구조 포함)
-        category_meta = {
-            "beauty": {
-                "name": "Beauty & Personal Care",
-                "level": 0,
-                "parent_id": None,
-                "indent": 0,
-                "order": 0,
-            },
-            "skin_care": {
-                "name": "Skin Care",
-                "level": 1,
-                "parent_id": "beauty",
-                "indent": 1,
-                "order": 1,
-            },
-            "lip_care": {
-                "name": "Lip Care",
-                "level": 2,
-                "parent_id": "skin_care",
-                "indent": 2,
-                "order": 2,
-            },
-            "lip_makeup": {
-                "name": "Lip Makeup",
-                "level": 2,
-                "parent_id": "makeup",
-                "indent": 1,
-                "order": 3,
-            },
-            "face_powder": {
-                "name": "Face Powder",
-                "level": 3,
-                "parent_id": "face_makeup",
-                "indent": 2,
-                "order": 4,
-            },
-        }
-
-        # hierarchy_data에서 정보 업데이트
-        for cat_id, meta in category_meta.items():
-            if cat_id in hierarchy_data:
-                meta["name"] = hierarchy_data[cat_id].get("name", meta["name"])
-                meta["level"] = hierarchy_data[cat_id].get("level", meta["level"])
-                meta["parent_id"] = hierarchy_data[cat_id].get("parent_id", meta["parent_id"])
-
-        for category_id, brands in category_data.items():
-            # 해당 카테고리의 총 제품 수 (기간 합계)
-            total_products_in_category = sum(b["total_count"] for b in brands.values())
-
-            # LANEIGE SoS
-            laneige_count = 0
-            laneige_appearance_days = 0  # Top 100에 진입한 고유 날짜 수
-            laneige_dates = set()  # 중복 제거용
-            laneige_variants = ["LANEIGE", "Laneige", "laneige"]
-            for variant in laneige_variants:
-                if variant in brands:
-                    laneige_count += brands[variant]["total_count"]
-                    # 출현 날짜 수집
-                    if "dates" in brands[variant]:
-                        laneige_dates.update(brands[variant]["dates"])
-            laneige_appearance_days = len(laneige_dates)
-
-            laneige_sos = (
-                (laneige_count / total_products_in_category * 100)
-                if total_products_in_category > 0
-                else 0
-            )
-
-            # 평균 SoS (전체 브랜드 수 기준)
-            num_brands = len(brands)
-            avg_sos = (100 / num_brands) if num_brands > 0 else 0
-
-            # 비교 브랜드 SoS
-            compare_sos = {}
-            for compare_brand in compare_brand_list:
-                brand_count = 0
-                for brand_name, brand_data in brands.items():
-                    if compare_brand.lower() in brand_name.lower():
-                        brand_count += brand_data["total_count"]
-                compare_sos[compare_brand] = (
-                    (brand_count / total_products_in_category * 100)
-                    if total_products_in_category > 0
-                    else 0
-                )
-
-            # LANEIGE 개별 제품 데이터 (해당 카테고리 내)
-            # 제품별 상세는 별도 쿼리 필요 - 여기서는 브랜드 레벨만
-
-            # 카테고리 메타 정보 가져오기
-            meta = category_meta.get(
-                category_id,
-                {"name": category_id, "level": 0, "parent_id": None, "indent": 0, "order": 99},
-            )
-
-            result_data.append(
-                {
-                    "category_id": category_id,
-                    "category_name": meta["name"],
-                    "level": meta["level"],
-                    "parent_id": meta["parent_id"],
-                    "indent": meta["indent"],
-                    "order": meta["order"],
-                    "total_products": total_products_in_category // num_dates
-                    if num_dates > 0
-                    else 0,
-                    "laneige_sos": round(laneige_sos, 2),
-                    "laneige_count": round(laneige_count / num_dates, 1)
-                    if num_dates > 0
-                    else 0,  # 소수점 1자리 (일 평균)
-                    "laneige_appearance_days": laneige_appearance_days,  # 출현 일수
-                    "laneige_appearance_rate": round(laneige_appearance_days / num_dates * 100, 1)
-                    if num_dates > 0
-                    else 0,  # 출현율 %
-                    "avg_sos": round(avg_sos, 2),
-                    "compare_brands": compare_sos,
-                    "num_dates": num_dates,
-                }
-            )
-
-        # 계층 구조 순서대로 정렬
-        result_data.sort(key=lambda x: x.get("order", 99))
-
-        return {
-            "success": True,
-            "period": {"start": start_date, "end": end_date, "days": num_dates},
-            "data": result_data,
-            "compare_brands": compare_brand_list,
-            "hierarchy_info": {
-                "description": "각 카테고리는 자체 Top 100 기준으로 독립 계산됩니다.",
-                "note": "상위 카테고리와 하위 카테고리의 SoS는 서로 다른 랭킹에서 계산됩니다.",
-            },
-        }
-
-    except Exception as e:
-        logging.error(f"SoS category API error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/api/sos/brands")
-async def get_available_brands(category_id: str | None = None, min_count: int = 1):
-    """
-    비교 가능한 브랜드 목록 조회 (Top 100에 포함된 브랜드들)
-
-    Args:
-        category_id: 특정 카테고리만 조회 (선택)
-        min_count: 최소 제품 수 (기본: 1)
-
-    Returns:
-        브랜드 목록 (제품 수 기준 정렬)
-    """
-    try:
-        end_date = datetime.now().strftime("%Y-%m-%d")
-        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-
-        rows = []
-        # SQLite 먼저 시도
-        try:
-            from src.tools.sqlite_storage import get_sqlite_storage
-
-            sqlite = get_sqlite_storage()
-            await sqlite.initialize()
-
-            if category_id:
-                query = """
-                    SELECT brand, COUNT(DISTINCT asin) as product_count,
-                           COUNT(DISTINCT snapshot_date) as days_present
-                    FROM raw_data
-                    WHERE snapshot_date BETWEEN ? AND ?
-                    AND category_id = ?
-                    AND LOWER(brand) != 'unknown'
-                    GROUP BY brand
-                    HAVING product_count >= ?
-                    ORDER BY product_count DESC
-                """
-                params = (start_date, end_date, category_id, min_count)
-            else:
-                query = """
-                    SELECT brand, COUNT(DISTINCT asin) as product_count,
-                           COUNT(DISTINCT snapshot_date) as days_present
-                    FROM raw_data
-                    WHERE snapshot_date BETWEEN ? AND ?
-                    AND LOWER(brand) != 'unknown'
-                    GROUP BY brand
-                    HAVING product_count >= ?
-                    ORDER BY product_count DESC
-                """
-                params = (start_date, end_date, min_count)
-
-            with sqlite.get_connection() as conn:
-                cursor = conn.execute(query, params)
-                rows = cursor.fetchall()
-        except Exception as db_err:
-            logging.warning(f"SQLite query failed for brands: {db_err}")
-
-        # SQLite 데이터 없으면 JSON fallback
-        brands = []
-        if not rows:
-            crawl_data = _load_crawl_data_for_sos()
-            if crawl_data and crawl_data.get("categories"):
-                brand_counts = {}
-                for cat_id, cat_data in crawl_data.get("categories", {}).items():
-                    if category_id and cat_id != category_id:
-                        continue
-                    for product in cat_data.get("products", []):
-                        brand = product.get("brand", "Unknown")
-                        if brand:
-                            brand_counts[brand] = brand_counts.get(brand, 0) + 1
-
-                for brand_name, count in sorted(brand_counts.items(), key=lambda x: -x[1]):
-                    # Unknown 브랜드 제외
-                    if (
-                        count >= min_count
-                        and brand_name.strip()
-                        and brand_name.lower() != "unknown"
-                    ):
-                        brands.append(
-                            {
-                                "name": brand_name,
-                                "product_count": count,
-                                "days_present": 1,
-                                "is_laneige": "laneige" in brand_name.lower(),
-                            }
-                        )
-        else:
-            for row in rows:
-                brand_name, product_count, days_present = row
-                # Unknown 브랜드 제외 (SQL에서도 필터링하지만 이중 체크)
-                if brand_name and brand_name.strip() and brand_name.lower() != "unknown":
-                    brands.append(
-                        {
-                            "name": brand_name,
-                            "product_count": product_count,
-                            "days_present": days_present,
-                            "is_laneige": "laneige" in brand_name.lower(),
-                        }
-                    )
-
-        return {
-            "success": True,
-            "period": {"start": start_date, "end": end_date},
-            "category_id": category_id,
-            "brands": brands,
-            "total_brands": len(brands),
-        }
-
-    except Exception as e:
-        logging.error(f"SoS brands API error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/api/sos/trend")
-async def get_sos_trend(
-    brand: str = "LANEIGE",
-    category_id: str | None = None,
-    days: int = 7,
-    start_date: str | None = None,
-    end_date: str | None = None,
-):
-    """
-    브랜드의 SoS 추세 데이터 (일별)
-
-    Args:
-        brand: 브랜드명 (기본: LANEIGE)
-        category_id: 카테고리 (선택, 없으면 전체)
-        days: 조회 기간 (기본: 7일, start_date/end_date가 없을 때만 사용)
-        start_date: 시작 날짜 (YYYY-MM-DD)
-        end_date: 종료 날짜 (YYYY-MM-DD)
-
-    Returns:
-        일별 SoS 추세 데이터
-    """
-    try:
-        from src.tools.sqlite_storage import get_sqlite_storage
-
-        sqlite = get_sqlite_storage()
-        await sqlite.initialize()
-
-        # start_date/end_date가 제공되면 사용, 아니면 days 기반으로 계산
-        if start_date and end_date:
-            pass  # 그대로 사용
-        else:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-
-        # 일별 전체 제품 수
-        if category_id:
-            total_query = """
-                SELECT snapshot_date, COUNT(*) as total_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND category_id = ?
-                GROUP BY snapshot_date
-                ORDER BY snapshot_date
-            """
-            total_params = (start_date, end_date, category_id)
-
-            brand_query = """
-                SELECT snapshot_date, COUNT(*) as brand_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND category_id = ?
-                AND LOWER(brand) LIKE ?
-                GROUP BY snapshot_date
-                ORDER BY snapshot_date
-            """
-            brand_params = (start_date, end_date, category_id, f"%{brand.lower()}%")
-        else:
-            total_query = """
-                SELECT snapshot_date, COUNT(*) as total_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                GROUP BY snapshot_date
-                ORDER BY snapshot_date
-            """
-            total_params = (start_date, end_date)
-
-            brand_query = """
-                SELECT snapshot_date, COUNT(*) as brand_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND LOWER(brand) LIKE ?
-                GROUP BY snapshot_date
-                ORDER BY snapshot_date
-            """
-            brand_params = (start_date, end_date, f"%{brand.lower()}%")
-
-        with sqlite.get_connection() as conn:
-            # 전체 카운트
-            cursor = conn.execute(total_query, total_params)
-            total_rows = cursor.fetchall()
-            total_by_date = {row[0]: row[1] for row in total_rows}
-
-            # 브랜드 카운트
-            cursor = conn.execute(brand_query, brand_params)
-            brand_rows = cursor.fetchall()
-            brand_by_date = {row[0]: row[1] for row in brand_rows}
-
-        # SoS 계산
-        trend_data = []
-        for date, total in sorted(total_by_date.items()):
-            brand_count = brand_by_date.get(date, 0)
-            sos = (brand_count / total * 100) if total > 0 else 0
-            trend_data.append(
-                {
-                    "date": date,
-                    "total_products": total,
-                    "brand_count": brand_count,
-                    "sos": round(sos, 2),
-                }
-            )
-
-        return {
-            "success": True,
-            "brand": brand,
-            "category_id": category_id,
-            "period": {"start": start_date, "end": end_date, "days": days},
-            "trend": trend_data,
-        }
-
-    except Exception as e:
-        logging.error(f"SoS trend API error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/api/sos/trend/competitors-avg")
-async def get_competitors_avg_sos_trend(
-    category_id: str | None = None,
-    days: int = 7,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    top_n: int = 10,
-    exclude_brand: str = "LANEIGE",
-):
-    """
-    경쟁 브랜드 평균 SoS 추세 데이터 (일별)
-    Top N 브랜드(LANEIGE 제외)의 평균 시장점유율 추이
-
-    Args:
-        category_id: 카테고리 (선택, 없으면 전체)
-        days: 조회 기간 (기본: 7일)
-        start_date: 시작 날짜 (YYYY-MM-DD)
-        end_date: 종료 날짜 (YYYY-MM-DD)
-        top_n: 상위 몇 개 브랜드 (기본: 10)
-        exclude_brand: 제외할 브랜드 (기본: LANEIGE)
-
-    Returns:
-        경쟁 브랜드 평균 SoS 추세 데이터
-    """
-    try:
-        from src.tools.sqlite_storage import get_sqlite_storage
-
-        sqlite = get_sqlite_storage()
-        await sqlite.initialize()
-
-        # 날짜 범위 결정
-        if start_date and end_date:
-            pass
-        else:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-
-        # 일별 전체 제품 수 쿼리
-        if category_id:
-            total_query = """
-                SELECT snapshot_date, COUNT(*) as total_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND category_id = ?
-                GROUP BY snapshot_date
-                ORDER BY snapshot_date
-            """
-            total_params = (start_date, end_date, category_id)
-
-            # 일별/브랜드별 제품 수 (LANEIGE 제외)
-            brand_daily_query = """
-                SELECT snapshot_date, brand, COUNT(*) as brand_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND category_id = ?
-                AND LOWER(brand) NOT LIKE ?
-                AND brand IS NOT NULL
-                AND brand != ''
-                GROUP BY snapshot_date, brand
-                ORDER BY snapshot_date, brand_count DESC
-            """
-            brand_daily_params = (start_date, end_date, category_id, f"%{exclude_brand.lower()}%")
-        else:
-            total_query = """
-                SELECT snapshot_date, COUNT(*) as total_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                GROUP BY snapshot_date
-                ORDER BY snapshot_date
-            """
-            total_params = (start_date, end_date)
-
-            brand_daily_query = """
-                SELECT snapshot_date, brand, COUNT(*) as brand_count
-                FROM raw_data
-                WHERE snapshot_date BETWEEN ? AND ?
-                AND LOWER(brand) NOT LIKE ?
-                AND brand IS NOT NULL
-                AND brand != ''
-                GROUP BY snapshot_date, brand
-                ORDER BY snapshot_date, brand_count DESC
-            """
-            brand_daily_params = (start_date, end_date, f"%{exclude_brand.lower()}%")
-
-        with sqlite.get_connection() as conn:
-            # 전체 카운트
-            cursor = conn.execute(total_query, total_params)
-            total_rows = cursor.fetchall()
-            total_by_date = {row[0]: row[1] for row in total_rows}
-
-            # 일별/브랜드별 카운트
-            cursor = conn.execute(brand_daily_query, brand_daily_params)
-            brand_rows = cursor.fetchall()
-
-        # 일별로 Top N 브랜드의 평균 SoS 계산
-        from collections import defaultdict
-
-        # 일별 브랜드 데이터 그룹화
-        daily_brands: dict[str, list[tuple[str, int]]] = defaultdict(list)
-        for date, brand, count in brand_rows:
-            daily_brands[date].append((brand, count))
-
-        # 일별 경쟁 브랜드 평균 SoS 계산
-        trend_data = []
-        for date, total in sorted(total_by_date.items()):
-            brands_for_date = daily_brands.get(date, [])
-            # 이미 brand_count DESC로 정렬되어 있으므로 상위 N개 선택
-            top_brands = brands_for_date[:top_n]
-
-            if top_brands and total > 0:
-                # 각 브랜드의 SoS 계산
-                sos_values = [(count / total * 100) for _, count in top_brands]
-                avg_sos = sum(sos_values) / len(sos_values)
-            else:
-                avg_sos = 0
-
-            trend_data.append(
-                {
-                    "date": date,
-                    "total_products": total,
-                    "top_brands_count": len(top_brands),
-                    "avg_sos": round(avg_sos, 2),
-                }
-            )
-
-        return {
-            "success": True,
-            "category_id": category_id,
-            "excluded_brand": exclude_brand,
-            "top_n": top_n,
-            "period": {"start": start_date, "end": end_date, "days": days},
-            "trend": trend_data,
-        }
-
-    except Exception as e:
-        logging.error(f"Competitors avg SoS trend API error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-# ============= 데이터 동기화 API =============
-
-
-@app.get("/api/sync/status")
-async def sync_status():
-    """
-    Railway Volume의 데이터 현황 반환
-
-    Returns:
-        - latest: 최신 데이터 날짜
-        - oldest: 가장 오래된 데이터 날짜
-        - total_days: 총 일수
-        - total_records: SQLite raw_data 총 레코드 수
-    """
-    try:
-        sqlite = get_sqlite_storage()
-        if not sqlite:
-            raise HTTPException(status_code=500, detail="SQLite not available")
-
-        await sqlite.initialize()
-
-        # raw_data 테이블에서 날짜 범위 조회
-        with sqlite.get_connection() as conn:
-            cursor = conn.execute("""
-                SELECT
-                    MIN(snapshot_date) as oldest,
-                    MAX(snapshot_date) as latest,
-                    COUNT(DISTINCT snapshot_date) as total_days,
-                    COUNT(*) as total_records
-                FROM raw_data
-            """)
-            row = cursor.fetchone()
-
-            if not row or not row[0]:
-                return {
-                    "success": True,
-                    "latest": None,
-                    "oldest": None,
-                    "total_days": 0,
-                    "total_records": 0,
-                    "message": "No data available",
-                }
-
-            return {
-                "success": True,
-                "latest": row[1],
-                "oldest": row[0],
-                "total_days": row[2],
-                "total_records": row[3],
-            }
-    except Exception as e:
-        logging.error(f"Sync status error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.get("/api/sync/dates")
-async def sync_dates():
-    """
-    사용 가능한 모든 날짜 목록 반환 (정렬됨)
-
-    Returns:
-        - dates: ["2026-01-17", "2026-01-18", ..., "2026-01-25"]
-    """
-    try:
-        sqlite = get_sqlite_storage()
-        if not sqlite:
-            raise HTTPException(status_code=500, detail="SQLite not available")
-
-        await sqlite.initialize()
-
-        with sqlite.get_connection() as conn:
-            cursor = conn.execute("""
-                SELECT DISTINCT snapshot_date
-                FROM raw_data
-                ORDER BY snapshot_date
-            """)
-            dates = [row[0] for row in cursor.fetchall()]
-
-        return {"success": True, "dates": dates, "count": len(dates)}
-    except Exception as e:
-        logging.error(f"Sync dates error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.get("/api/sync/download/{date}")
-async def sync_download(date: str):
-    """
-    특정 날짜의 raw_data를 JSON으로 다운로드
-
-    Args:
-        date: 날짜 (YYYY-MM-DD 형식)
-
-    Returns:
-        JSON array of raw_data records for the specified date
-    """
-    import re
-
-    # 날짜 형식 검증
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
-
-    try:
-        sqlite = get_sqlite_storage()
-        if not sqlite:
-            raise HTTPException(status_code=500, detail="SQLite not available")
-
-        await sqlite.initialize()
-
-        with sqlite.get_connection() as conn:
-            # 컬럼명 가져오기
-            cursor = conn.execute("PRAGMA table_info(raw_data)")
-            columns = [row[1] for row in cursor.fetchall()]
-
-            # 해당 날짜 데이터 조회
-            cursor = conn.execute(
-                """
-                SELECT * FROM raw_data
-                WHERE snapshot_date = ?
-                ORDER BY category_id, rank
-            """,
-                (date,),
-            )
-            rows = cursor.fetchall()
-
-        if not rows:
-            raise HTTPException(status_code=404, detail=f"No data found for date: {date}")
-
-        # 딕셔너리 변환
-        records = []
-        for row in rows:
-            record = dict(zip(columns, row, strict=False))
-            records.append(record)
-
-        return {"success": True, "date": date, "count": len(records), "records": records}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Sync download error for {date}: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.post("/api/sync/upload")
-async def sync_upload(request: Request):
-    """
-    로컬에서 Railway로 raw_data 업로드
-
-    Request Body:
-        {
-            "records": [...],  # raw_data 레코드 배열
-            "api_key": "..."   # 인증 키 (선택)
-        }
-
-    Returns:
-        {"success": True, "inserted": N, "updated": M}
-    """
-    import os
-
-    try:
-        body = await request.json()
-        records = body.get("records", [])
-        api_key = body.get("api_key", "")
-
-        # API 키 검증 (설정된 경우)
-        expected_key = os.getenv("API_KEY", "")
-        if expected_key and api_key != expected_key:
-            raise HTTPException(status_code=401, detail="Invalid API key")
-
-        if not records:
-            raise HTTPException(status_code=400, detail="No records provided")
-
-        sqlite = get_sqlite_storage()
-        if not sqlite:
-            raise HTTPException(status_code=500, detail="SQLite not available")
-
-        await sqlite.initialize()
-
-        inserted = 0
-        updated = 0
-
-        with sqlite.get_connection() as conn:
-            # 스키마 마이그레이션: 누락된 컬럼 추가
-            migration_columns = [
-                ("image_url", "TEXT"),
-                ("is_best_seller", "INTEGER DEFAULT 0"),
-                ("is_amazon_choice", "INTEGER DEFAULT 0"),
-            ]
-            for col_name, col_type in migration_columns:
-                try:
-                    conn.execute(f"ALTER TABLE raw_data ADD COLUMN {col_name} {col_type}")
-                    conn.commit()
-                    logging.info(f"Added {col_name} column to raw_data table")
-                except Exception:
-                    pass  # 이미 존재하면 무시
-
-            for record in records:
-                # UPSERT: snapshot_date + category_id + asin 조합이 unique key
-                cursor = conn.execute(
-                    """
-                    SELECT id FROM raw_data
-                    WHERE snapshot_date = ? AND category_id = ? AND asin = ?
-                """,
-                    (
-                        record.get("snapshot_date"),
-                        record.get("category_id"),
-                        record.get("asin"),
-                    ),
-                )
-                existing = cursor.fetchone()
-
-                if existing:
-                    # UPDATE
-                    conn.execute(
-                        """
-                        UPDATE raw_data SET
-                            rank = ?, product_name = ?, brand = ?, price = ?,
-                            rating = ?, reviews_count = ?, product_url = ?,
-                            image_url = ?, is_best_seller = ?, is_amazon_choice = ?
-                        WHERE id = ?
-                    """,
-                        (
-                            record.get("rank"),
-                            record.get("product_name"),
-                            record.get("brand"),
-                            record.get("price"),
-                            record.get("rating"),
-                            record.get("reviews_count"),
-                            record.get("product_url"),
-                            record.get("image_url"),
-                            record.get("is_best_seller", 0),
-                            record.get("is_amazon_choice", 0),
-                            existing[0],
-                        ),
-                    )
-                    updated += 1
-                else:
-                    # INSERT
-                    conn.execute(
-                        """
-                        INSERT INTO raw_data (
-                            snapshot_date, category_id, asin, rank, product_name,
-                            brand, price, rating, reviews_count, product_url,
-                            image_url, is_best_seller, is_amazon_choice
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                        (
-                            record.get("snapshot_date"),
-                            record.get("category_id"),
-                            record.get("asin"),
-                            record.get("rank"),
-                            record.get("product_name"),
-                            record.get("brand"),
-                            record.get("price"),
-                            record.get("rating"),
-                            record.get("reviews_count"),
-                            record.get("product_url"),
-                            record.get("image_url"),
-                            record.get("is_best_seller", 0),
-                            record.get("is_amazon_choice", 0),
-                        ),
-                    )
-                    inserted += 1
-
-            conn.commit()
-
-        logging.info(f"Sync upload: inserted={inserted}, updated={updated}")
-        return {"success": True, "inserted": inserted, "updated": updated}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Sync upload error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-# =============================================================================
-# Market Intelligence API (v2026.01.26)
-# =============================================================================
-
-
-@app.get("/api/market-intelligence/status", response_model=MarketIntelligenceStatusResponse)
-async def get_market_intelligence_status():
-    """
-    Market Intelligence 시스템 상태 조회
-
-    Returns:
-        초기화 상태, 수집된 레이어, 통계
-    """
-    try:
-        engine = await get_market_intelligence()
-        stats = engine.get_stats()
-
-        # 마지막 수집 시간
-        last_collection = None
-        if engine.layer_data:
-            times = [ld.collected_at for ld in engine.layer_data.values()]
-            if times:
-                last_collection = max(times)
-
-        return MarketIntelligenceStatusResponse(
-            initialized=engine._initialized,
-            layers_collected=list(engine.layer_data.keys()),
-            last_collection=last_collection,
-            stats=stats,
-        )
-    except Exception as e:
-        logger.error(f"Market Intelligence status error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.get("/api/market-intelligence/layers")
-async def get_market_intelligence_layers(layer: int | None = None):
-    """
-    4-Layer 데이터 조회
-
-    Args:
-        layer: 특정 레이어만 조회 (1-4, None이면 전체)
-
-    Returns:
-        레이어별 데이터
-    """
-    try:
-        engine = await get_market_intelligence()
-
-        if layer is not None:
-            layer_data = engine.layer_data.get(layer)
-            if not layer_data:
-                return {
-                    "error": f"Layer {layer} 데이터가 없습니다.",
-                    "available_layers": list(engine.layer_data.keys()),
-                }
-
-            return {
-                "layer": layer_data.layer,
-                "layer_name": layer_data.layer_name,
-                "collected_at": layer_data.collected_at,
-                "data": layer_data.data,
-                "sources": layer_data.sources,
-            }
-
-        # 전체 레이어
-        result = {}
-        for layer_num, layer_data in engine.layer_data.items():
-            result[f"layer_{layer_num}"] = {
-                "layer": layer_data.layer,
-                "layer_name": layer_data.layer_name,
-                "collected_at": layer_data.collected_at,
-                "data": layer_data.data,
-                "sources": layer_data.sources,
-            }
-
-        return result
-    except Exception as e:
-        logger.error(f"Market Intelligence layers error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.post("/api/market-intelligence/collect", dependencies=[Depends(verify_api_key)])
-async def collect_market_intelligence(layers: list[int] | None = None):
-    """
-    Market Intelligence 데이터 수집 트리거
-
-    Args:
-        layers: 수집할 레이어 목록 (None이면 전체)
-
-    Returns:
-        수집 결과
-    """
-    try:
-        engine = await get_market_intelligence()
-
-        if layers:
-            # 특정 레이어만 수집
-            results = {}
-            for layer_num in layers:
-                layer_data = await engine.collect_layer(layer_num)
-                if layer_data:
-                    results[f"layer_{layer_num}"] = {
-                        "status": "collected",
-                        "collected_at": layer_data.collected_at,
-                        "sources_count": len(layer_data.sources),
-                    }
-                else:
-                    results[f"layer_{layer_num}"] = {"status": "skipped"}
-        else:
-            # 전체 수집
-            await engine.collect_all_layers()
-            results = {
-                f"layer_{k}": {
-                    "status": "collected",
-                    "collected_at": v.collected_at,
-                    "sources_count": len(v.sources),
-                }
-                for k, v in engine.layer_data.items()
-            }
-
-        # 데이터 저장
-        engine.save_data()
-
-        return {"status": "success", "collected": results, "timestamp": datetime.now().isoformat()}
-    except Exception as e:
-        logger.error(f"Market Intelligence collection error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.get("/api/market-intelligence/insight")
-async def get_market_intelligence_insight(include_amazon: bool = False):
-    """
-    4-Layer 기반 인사이트 생성
-
-    Args:
-        include_amazon: Layer 1 Amazon 데이터 포함 여부
-
-    Returns:
-        생성된 인사이트 텍스트
-    """
-    try:
-        engine = await get_market_intelligence()
-
-        # 데이터가 없으면 먼저 수집
-        if not engine.layer_data:
-            await engine.collect_all_layers()
-
-        # Amazon 데이터 가져오기 (선택)
-        amazon_data = None
-        if include_amazon:
-            try:
-                await get_sqlite_storage()
-                # 최신 LANEIGE 데이터 조회
-                # (실제 구현은 storage의 메서드에 따라 다름)
-                amazon_data = {"sos": 5.2, "laneige_rank": 15}  # placeholder
-            except Exception:
-                pass
-
-        insight = engine.generate_layered_insight(amazon_data=amazon_data)
-
-        return {
-            "insight": insight,
-            "generated_at": datetime.now().isoformat(),
-            "layers_used": list(engine.layer_data.keys()),
-        }
-    except Exception as e:
-        logger.error(f"Market Intelligence insight error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.get("/api/insights/sources")
-async def get_insight_sources():
-    """
-    인사이트 출처 정보 조회
-
-    Returns:
-        출처 목록 및 통계
-    """
-    try:
-        engine = await get_market_intelligence()
-
-        all_sources = []
-        for layer_data in engine.layer_data.values():
-            all_sources.extend(layer_data.sources)
-
-        # 출처 유형별 통계
-        by_type = {}
-        for source in all_sources:
-            source_type = source.get("source_type", "unknown")
-            by_type[source_type] = by_type.get(source_type, 0) + 1
-
-        return {
-            "total_sources": len(all_sources),
-            "by_type": by_type,
-            "sources": all_sources[:20],  # 최근 20개
-            "source_manager_stats": engine.source_manager.get_stats(),
-        }
-    except Exception as e:
-        logger.error(f"Insight sources error: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

@@ -6,37 +6,24 @@
 
 ## 1. 프로젝트 개요
 
-**AMORE Pacific RAG-KG Hybrid Agent** - Amazon US에서 LANEIGE 브랜드 경쟁력을 모니터링하는 자율 AI 시스템
+**AMORE Pacific RAG-KG Hybrid Agent** — Amazon US LANEIGE 브랜드 경쟁력 모니터링 자율 AI 시스템
 
-### 핵심 기능
-- **Daily Auto-Crawling**: Amazon Top 100 × 5 카테고리 (22:00 KST)
-- **KPI Analysis**: SoS, HHI, CPI
-- **AI Chatbot**: RAG + KG + Ontology 하이브리드
-- **Insight Generation**: LLM 기반 전략적 인사이트
+- **Daily Auto-Crawling**: Amazon Best Sellers Top 100 × 5 카테고리 (22:00 KST)
+- **KPI Analysis**: SoS(Share of Shelf), HHI(시장 집중도), CPI(가격경쟁력)
+- **AI Chatbot**: RAG + Knowledge Graph + Ontology 하이브리드 검색
+- **Insight Generation**: LLM 기반 전략적 인사이트 자동 생성
+- **Alert System**: 순위 변동 감지 → 이메일/Telegram 알림
 
-### 모니터링 카테고리 (계층 구조)
+### 코드베이스 규모
 
-```
-Beauty & Personal Care (L0) ✅
-├── Skin Care (L1) ✅
-│   └── Lip Care (L2) ✅ ← 스킨케어 (립밤, 립마스크, LANEIGE Lip Sleeping Mask)
-└── Makeup (L1)
-    ├── Lips (L2) ✅ ← 색조 (립스틱, 립글로스)
-    └── Face (L2)
-        └── Powder (L3) ✅
-```
-
-| 카테고리 | Node ID | Level | Parent | 제품 유형 |
-|----------|---------|-------|--------|-----------|
-| Beauty & Personal Care | `beauty` | 0 | - | 전체 |
-| Skin Care | `11060451` | 1 | beauty | 스킨케어 |
-| Lip Care | `3761351` | 2 | skin_care | 립밤, 립마스크 |
-| Lip Makeup | `11059031` | 2 | makeup | 립스틱, 립글로스 |
-| Face Powder | `11058971` | 3 | face_makeup | 파우더 |
-
-> **중요**: Lip Care(스킨케어)와 Lip Makeup(색조)은 다른 카테고리입니다.
-> - LANEIGE Lip Sleeping Mask → **Lip Care** (Skin Care 하위)
-> - 립스틱, 립글로스 → **Lip Makeup** (Makeup 하위)
+| 항목 | 수치 |
+|------|------|
+| src/ Python 파일 | 200개 |
+| src/ 코드 라인 | ~70,700 lines |
+| tests/ 파일 | 111개 |
+| tests/ 코드 라인 | ~22,400 lines |
+| dashboard_api.py | ~3,900 lines |
+| 커버리지 목표 | 60% (pytest-cov) |
 
 ---
 
@@ -44,191 +31,441 @@ Beauty & Personal Care (L0) ✅
 
 | Category | Technology |
 |----------|-----------|
-| Backend | Python 3.11+, FastAPI, Uvicorn |
+| Language | Python 3.11+ (로컬: 3.13.7, `python3` 사용) |
+| Backend | FastAPI, Uvicorn |
 | LLM | OpenAI GPT-4.1-mini via LiteLLM |
-| Scraping | Playwright, playwright-stealth, browserforge |
-| Storage | SQLite, Google Sheets |
-| RAG | ChromaDB + OpenAI Embeddings |
-| Ontology | owlready2, Rule-based Reasoner |
-| Test | pytest, pytest-cov (60% 최소 커버리지) |
-| Social Media | Playwright (TikTok), Instaloader (IG), yt-dlp (YT) |
-| Public Data | 관세청 수출입통계, 식약처 기능성화장품 API |
+| Scraping | Playwright, playwright-stealth, browserforge, fake-useragent |
+| Storage | SQLite (aiosqlite), Google Sheets API |
+| RAG | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) |
+| Ontology | owlready2, rdflib, Rule-based Reasoner |
+| NLP | spaCy (NER/Entity Linking) |
+| Data | pandas, numpy, matplotlib |
+| Test | pytest, pytest-asyncio, pytest-cov |
+| Lint | Ruff (line-length=100, target=py311) |
+| Deploy | Docker (python:3.11-slim), Railway |
+| Notifications | Gmail SMTP, Telegram Bot, Resend |
+| Social Media | Playwright (TikTok), Instaloader (IG), yt-dlp (YT), JSON API (Reddit) |
 
 ---
 
-## 3. 프로젝트 구조
+## 3. Entry Points
+
+| 파일 | 역할 | 실행 방법 |
+|------|------|-----------|
+| `dashboard_api.py` | **FastAPI 메인 서버** (3,900 lines monolith) | `uvicorn dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
+| `start.py` | Railway 배포용 시작 스크립트 | `python start.py` (PORT 환경변수 사용) |
+| `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
+| `orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from orchestrator import Orchestrator` |
+
+### 주요 API 엔드포인트
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/health` | 헬스체크 | - |
+| GET | `/api/data` | 대시보드 데이터 JSON | - |
+| POST | `/api/v3/chat` | AI 챗봇 (권장) | - |
+| POST | `/api/crawl/start` | 크롤링 시작 | API Key |
+| GET | `/api/v4/brain/status` | 스케줄러 상태 | - |
+| GET | `/dashboard` | 대시보드 UI (HTML) | - |
+
+---
+
+## 4. 프로젝트 구조
 
 ```
-├── dashboard_api.py             # FastAPI 메인 엔트리
-├── orchestrator.py              # 배치 워크플로우 오케스트레이터
+.
+├── dashboard_api.py              # FastAPI 메인 서버 (monolith)
+├── main.py                       # CLI 진입점
+├── start.py                      # Railway 배포 시작점
+├── orchestrator.py               # BatchWorkflow 하위 호환 래퍼
+│
 ├── src/
-│   ├── core/                    # 스케줄링 & 오케스트레이션
-│   │   └── brain.py             # UnifiedBrain - 자율 스케줄러
-│   ├── agents/                  # AI 에이전트
-│   │   ├── hybrid_chatbot_agent.py
-│   │   ├── hybrid_insight_agent.py
-│   │   └── crawler_agent.py
-│   ├── ontology/                # Knowledge Graph & 추론
-│   │   ├── knowledge_graph.py   # Triple Store
-│   │   └── reasoner.py          # Ontology 추론 엔진
-│   ├── rag/                     # RAG 시스템
-│   │   ├── hybrid_retriever.py  # KG + RAG 통합 검색
-│   │   └── retriever.py         # 문서 검색
-│   ├── tools/                   # 유틸리티
-│   │   ├── amazon_scraper.py    # Playwright 크롤러
-│   │   ├── kg_backup.py         # KG 백업 관리
-│   │   ├── metric_calculator.py # KPI 계산
-│   │   ├── tiktok_collector.py  # TikTok 수집 (Playwright)
-│   │   ├── instagram_collector.py # Instagram 수집 (Instaloader)
-│   │   ├── youtube_collector.py # YouTube 수집 (yt-dlp)
-│   │   ├── reddit_collector.py  # Reddit 수집 (JSON API)
-│   │   ├── google_trends_collector.py # Google Trends
-│   │   └── public_data_collector.py # 공공데이터 API
-│   ├── domain/                  # Clean Architecture Layer 1
-│   │   ├── entities/
-│   │   └── interfaces/
-│   ├── application/             # Clean Architecture Layer 2
-│   │   └── workflows/
-│   └── infrastructure/          # Clean Architecture Layer 4
-├── dashboard/                   # 프론트엔드
-│   └── amore_unified_dashboard_v4.html
-├── tests/                       # 테스트
-│   ├── golden/                  # 골든셋 테스트
-│   └── conftest.py
-└── docs/                        # 문서
-    └── guides/                  # RAG 참조 문서
+│   ├── core/                     # 핵심 오케스트레이션
+│   │   ├── brain.py              # UnifiedBrain - 자율 스케줄러
+│   │   ├── react_agent.py        # ReAct Self-Reflection Agent
+│   │   ├── batch_workflow.py     # 배치 워크플로우 (=Orchestrator)
+│   │   ├── query_router.py       # 쿼리 라우팅
+│   │   ├── query_processor.py    # 쿼리 처리
+│   │   ├── response_pipeline.py  # 응답 파이프라인
+│   │   ├── hallucination_detector.py
+│   │   ├── prompt_guard.py       # 프롬프트 인젝션 방어
+│   │   ├── circuit_breaker.py    # 서킷브레이커
+│   │   ├── cache.py              # 캐시
+│   │   ├── scheduler.py          # 크론 스케줄러
+│   │   └── ... (30+ modules)
+│   │
+│   ├── agents/                   # AI 에이전트
+│   │   ├── hybrid_chatbot_agent.py   # 하이브리드 챗봇
+│   │   ├── hybrid_insight_agent.py   # 인사이트 생성
+│   │   ├── crawler_agent.py          # 크롤러 에이전트
+│   │   ├── alert_agent.py            # 알림 에이전트
+│   │   ├── metrics_agent.py          # 메트릭 에이전트
+│   │   ├── storage_agent.py          # 저장 에이전트
+│   │   ├── suggestion_generator.py   # 후속 질문 생성
+│   │   ├── period_insight_agent.py   # 기간별 인사이트
+│   │   └── true_hybrid_insight_agent.py
+│   │
+│   ├── rag/                      # RAG 시스템
+│   │   ├── hybrid_retriever.py   # KG + RAG 통합 검색
+│   │   ├── true_hybrid_retriever.py
+│   │   ├── retriever.py          # 문서 검색 + 임베딩 캐시
+│   │   ├── reranker.py           # 재순위화
+│   │   ├── entity_linker.py      # 엔티티 링킹
+│   │   ├── chunker.py            # 문서 청킹
+│   │   ├── query_rewriter.py     # 쿼리 리라이팅
+│   │   ├── confidence_fusion.py  # 신뢰도 융합
+│   │   ├── context_builder.py    # 컨텍스트 빌더
+│   │   └── router.py             # RAG 라우터
+│   │
+│   ├── ontology/                 # Knowledge Graph & 추론
+│   │   ├── knowledge_graph.py    # Triple Store (JSON 기반)
+│   │   ├── ontology_knowledge_graph.py
+│   │   ├── reasoner.py           # 규칙 기반 추론 엔진
+│   │   ├── owl_reasoner.py       # OWL 추론
+│   │   ├── unified_reasoner.py   # 통합 추론
+│   │   ├── kg_enricher.py        # KG 보강
+│   │   ├── kg_query.py           # KG 쿼리
+│   │   ├── kg_updater.py         # KG 업데이트
+│   │   ├── schema.py             # 온톨로지 스키마
+│   │   ├── category_service.py   # 카테고리 서비스
+│   │   ├── sentiment_service.py  # 감성 분석 서비스
+│   │   └── rules/                # 비즈니스 규칙
+│   │       ├── alert_rules.py
+│   │       ├── growth_rules.py
+│   │       ├── market_rules.py
+│   │       ├── price_rules.py
+│   │       ├── ir_rules.py
+│   │       └── sentiment_rules.py
+│   │
+│   ├── tools/                    # 도구 모음
+│   │   ├── scrapers/             # 웹 스크래퍼
+│   │   │   ├── amazon_scraper.py
+│   │   │   ├── amazon_product_scraper.py
+│   │   │   └── deals_scraper.py
+│   │   ├── collectors/           # 데이터 수집기
+│   │   │   ├── tiktok_collector.py
+│   │   │   ├── instagram_collector.py
+│   │   │   ├── youtube_collector.py
+│   │   │   ├── reddit_collector.py
+│   │   │   ├── google_trends_collector.py
+│   │   │   ├── public_data_collector.py
+│   │   │   ├── external_signal_collector.py
+│   │   │   └── tavily_search.py
+│   │   ├── calculators/          # 지표 계산
+│   │   │   ├── metric_calculator.py   # SoS, HHI, CPI
+│   │   │   ├── period_analyzer.py
+│   │   │   └── exchange_rate.py
+│   │   ├── intelligence/         # 시장 정보
+│   │   │   ├── market_intelligence.py
+│   │   │   ├── morning_brief.py
+│   │   │   ├── ir_report_parser.py
+│   │   │   ├── claim_extractor.py
+│   │   │   ├── claim_verifier.py
+│   │   │   ├── confidence_scorer.py
+│   │   │   ├── insight_verifier.py
+│   │   │   └── source_manager.py
+│   │   ├── exporters/            # 내보내기
+│   │   │   ├── report_generator.py
+│   │   │   ├── chart_generator.py
+│   │   │   ├── dashboard_exporter.py
+│   │   │   ├── export_handlers.py
+│   │   │   └── insight_formatter.py
+│   │   ├── storage/              # 저장소
+│   │   │   ├── sqlite_storage.py
+│   │   │   └── sheets_writer.py
+│   │   ├── notifications/        # 알림
+│   │   │   ├── email_sender.py
+│   │   │   ├── telegram_bot.py
+│   │   │   └── alert_service.py
+│   │   └── utilities/            # 유틸리티
+│   │       ├── kg_backup.py
+│   │       ├── brand_resolver.py
+│   │       ├── data_integrity_checker.py
+│   │       ├── job_queue.py
+│   │       └── reference_tracker.py
+│   │
+│   ├── domain/                   # Clean Architecture Layer 1
+│   │   ├── entities/             # 도메인 엔티티
+│   │   │   ├── product.py
+│   │   │   ├── brand.py
+│   │   │   ├── market.py
+│   │   │   ├── brain_models.py
+│   │   │   └── relations.py
+│   │   ├── interfaces/           # 프로토콜/인터페이스
+│   │   │   ├── agent.py, alert.py, brain.py
+│   │   │   ├── chatbot.py, insight.py, retriever.py
+│   │   │   ├── knowledge_graph.py, llm_client.py
+│   │   │   ├── metric.py, repository.py
+│   │   │   ├── scraper.py, signal.py, storage.py
+│   │   │   └── brain_components.py
+│   │   ├── value_objects/
+│   │   └── exceptions.py
+│   │
+│   ├── application/              # Clean Architecture Layer 2
+│   │   ├── workflows/            # 유스케이스
+│   │   │   ├── chat_workflow.py
+│   │   │   ├── crawl_workflow.py
+│   │   │   ├── insight_workflow.py
+│   │   │   ├── alert_workflow.py
+│   │   │   └── batch_workflow.py
+│   │   ├── services/
+│   │   │   └── query_analyzer.py
+│   │   └── orchestrators/
+│   │
+│   ├── adapters/                 # Clean Architecture Layer 3
+│   │   ├── agents/
+│   │   ├── presenters/
+│   │   └── rag/
+│   │
+│   ├── infrastructure/           # Clean Architecture Layer 4
+│   │   ├── bootstrap.py
+│   │   ├── container.py          # DI 컨테이너
+│   │   ├── config/
+│   │   │   └── config_manager.py
+│   │   └── persistence/
+│   │       ├── json_repository.py
+│   │       └── sheets_repository.py
+│   │
+│   ├── api/                      # API 라우트 (FastAPI Router)
+│   │   ├── routes/
+│   │   │   ├── chat.py, crawl.py, data.py
+│   │   │   ├── health.py, brain.py, export.py
+│   │   │   ├── alerts.py, analytics.py
+│   │   │   ├── competitors.py, deals.py
+│   │   │   ├── market_intelligence.py
+│   │   │   ├── signals.py, sync.py
+│   │   │   └── __init__.py
+│   │   ├── validators/
+│   │   │   └── input_validator.py
+│   │   ├── dependencies.py
+│   │   └── models.py
+│   │
+│   ├── memory/                   # 대화 메모리
+│   │   ├── conversation_memory.py
+│   │   ├── session.py
+│   │   ├── context.py
+│   │   └── history.py
+│   │
+│   ├── monitoring/               # 모니터링
+│   │   ├── logger.py             # AgentLogger
+│   │   ├── metrics.py
+│   │   ├── rag_metrics.py
+│   │   └── tracer.py
+│   │
+│   └── shared/                   # 공유 유틸
+│       ├── constants.py
+│       └── llm_client.py
+│
+├── config/                       # 설정 파일
+│   ├── thresholds.json           # 시스템 설정 + 카테고리 URL
+│   ├── category_hierarchy.json   # Amazon 카테고리 트리
+│   ├── competitors.json          # 경쟁사 정보
+│   ├── tracked_competitors.json
+│   ├── brands.json               # 브랜드 매핑
+│   ├── asin_brand_mapping.json
+│   ├── entities.json             # 엔티티 정의
+│   ├── rules.json                # 비즈니스 규칙
+│   ├── retrieval_weights.json    # RAG 가중치
+│   └── public_apis.json          # 공공 API 설정
+│
+├── prompts/                      # 프롬프트 템플릿
+│   ├── chat_system.txt
+│   ├── insight_generation.txt
+│   ├── query_router.txt
+│   ├── metrics.json
+│   ├── version_manager.py
+│   └── components/               # 프롬프트 컴포넌트
+│
+├── dashboard/                    # 프론트엔드
+│   ├── amore_unified_dashboard_v4.html  # 메인 대시보드
+│   └── test_chat.html
+│
+├── eval/                         # 평가 프레임워크
+│   ├── cli.py, runner.py, loader.py
+│   ├── schemas.py, regression.py, report.py
+│   ├── cost_tracker.py
+│   ├── judge/                    # LLM Judge
+│   ├── metrics/                  # 평가 메트릭 (L1~L5)
+│   ├── validators/               # 검증기
+│   └── data/                     # 골든셋
+│       ├── golden/
+│       └── examples/
+│
+├── tests/                        # 테스트
+│   ├── conftest.py               # 공통 fixture
+│   ├── unit/                     # 단위 테스트 (레이어별)
+│   │   ├── agents/, api/, application/
+│   │   ├── core/, domain/, infrastructure/
+│   │   ├── memory/, monitoring/
+│   │   ├── ontology/, prompts/
+│   │   ├── rag/, shared/, tools/
+│   │   └── __init__.py
+│   ├── eval/                     # 평가 테스트 (semantic, metrics, regression)
+│   ├── integration/              # 통합 테스트
+│   ├── adversarial/              # 적대적 테스트 (prompt injection)
+│   └── golden/
+│
+├── scripts/                      # 운영 스크립트
+│   ├── sync_from_railway.py
+│   ├── sync_sheets_to_sqlite.py
+│   ├── sync_to_railway.py
+│   ├── evaluate_golden.py
+│   ├── export_dashboard.py
+│   ├── run_evaluation.py
+│   └── ...
+│
+├── examples/                     # 예제 스크립트
+│   ├── react_agent_demo.py
+│   ├── confidence_fusion_demo.py
+│   ├── conversation_memory_demo.py
+│   └── ...
+│
+├── data/                         # 런타임 데이터 (gitignored)
+│   ├── amore_data.db             # 메인 SQLite DB
+│   ├── knowledge_graph.json      # KG Triple Store
+│   ├── dashboard_data.json       # 캐시된 대시보드 데이터
+│   ├── chroma/                   # ChromaDB 벡터 스토어
+│   ├── market_intelligence/      # 시장 정보 (signals, youtube, ir 등)
+│   └── ...
+│
+├── docs/                         # 문서
+│   ├── guides/                   # 가이드
+│   ├── architecture/
+│   ├── diagrams/
+│   ├── plans/
+│   └── refactoring/
+│
+├── logs/                         # 로그 (gitignored)
+├── static/fonts/                 # 웹 폰트
+│
+├── pyproject.toml                # 프로젝트 설정 (pytest, ruff, coverage)
+├── requirements.txt              # Python 의존성
+├── Dockerfile                    # Docker 빌드 (python:3.11-slim + Playwright)
+├── railway.toml                  # Railway 배포 설정
+├── pytest.ini                    # pytest 설정
+├── .pre-commit-config.yaml       # Pre-commit 훅
+└── .env.example                  # 환경변수 템플릿
 ```
 
 ---
 
-## 4. 개발 명령어
+## 5. 모니터링 카테고리 (Amazon BSR)
 
-### 서버 실행
+```
+Beauty & Personal Care (L0)
+├── Skin Care (L1)
+│   └── Lip Care (L2)  ← LANEIGE Lip Sleeping Mask
+└── Makeup (L1)
+    ├── Lip Makeup (L2) ← 립스틱, 립글로스
+    └── Face Makeup (L2)
+        └── Face Powder (L3)
+```
+
+| 카테고리 | Node ID | Level | Parent | 모니터링 |
+|----------|---------|-------|--------|----------|
+| Beauty & Personal Care | `beauty` | 0 | - | O |
+| Skin Care | `11060451` | 1 | beauty | O |
+| Lip Care | `3761351` | 2 | skin_care | O |
+| Lip Makeup | `11059031` | 2 | makeup | O |
+| Face Powder | `11058971` | 3 | face_makeup | O |
+
+> **주의**: Lip Care(스킨케어)와 Lip Makeup(색조)은 **다른** 카테고리.
+> LANEIGE Lip Sleeping Mask → Lip Care (Skin Care 하위)
+
+---
+
+## 6. 개발 명령어
+
 ```bash
+# 서버 실행
 uvicorn dashboard_api:app --host 0.0.0.0 --port 8001 --reload
-```
 
-### 테스트
-```bash
-python -m pytest tests/ -v                    # 전체 테스트 (커버리지 포함)
-python -m pytest tests/unit/domain/ -v        # Domain 레이어만
-open coverage_html/index.html                 # 커버리지 리포트
-python scripts/evaluate_golden.py --verbose   # 골든셋 평가
-```
+# 테스트 (python3 사용)
+python3 -m pytest tests/ -v                    # 전체 (커버리지 포함)
+python3 -m pytest tests/unit/domain/ -v        # Domain 레이어만
+python3 -m pytest tests/ -m "not slow" -v      # 느린 테스트 제외
 
-### KG 백업
-```bash
-python -m src.tools.kg_backup backup          # 수동 백업
-python -m src.tools.kg_backup list            # 백업 목록
-python -m src.tools.kg_backup restore 2026-01-27  # 복원
-```
+# 골든셋 평가
+python3 scripts/evaluate_golden.py --verbose
 
-### 데이터 동기화
-```bash
-python scripts/sync_from_railway.py           # Railway → 로컬
-python scripts/sync_sheets_to_sqlite.py       # Sheets → SQLite
+# KG 백업
+python3 -m src.tools.utilities.kg_backup backup
+python3 -m src.tools.utilities.kg_backup list
+python3 -m src.tools.utilities.kg_backup restore 2026-01-27
+
+# 데이터 동기화
+python3 scripts/sync_from_railway.py           # Railway → 로컬
+python3 scripts/sync_sheets_to_sqlite.py       # Sheets → SQLite
+
+# 린팅
+ruff check src/ --fix
+ruff format src/
 ```
 
 ---
 
-## 5. 환경 변수
+## 7. 환경 변수
 
 ```bash
 # 필수
 OPENAI_API_KEY=sk-...
 
-# 선택 - 서버 설정
-API_KEY=...                        # API 인증
+# 서버
+API_KEY=...                        # 보호 엔드포인트 인증
 AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작
 
-# 선택 - Google Sheets
-GOOGLE_SPREADSHEET_ID=...          # Google Sheets ID
-GOOGLE_SHEETS_CREDENTIALS_JSON=... # 서비스 계정 JSON
+# Google Sheets
+GOOGLE_SPREADSHEET_ID=...
+GOOGLE_SHEETS_CREDENTIALS_JSON=...
 
-# 선택 - LLM 설정
-LLM_TEMPERATURE_CHAT=0.4           # 챗봇 temperature
-LLM_TEMPERATURE_INSIGHT=0.6        # 인사이트 temperature
+# LLM
+LLM_TEMPERATURE_CHAT=0.4
+LLM_TEMPERATURE_INSIGHT=0.6
 
-# 선택 - 뉴스/외부 신호 (무료 티어)
-TAVILY_API_KEY=tvly-...            # Tavily 뉴스 (월 1,000건 무료)
+# 외부 신호
+TAVILY_API_KEY=tvly-...            # 뉴스 (월 1,000건 무료)
 GNEWS_API_KEY=...                  # GNews (일 100건 무료)
+DATA_GO_KR_API_KEY=...             # 관세청/식약처
 
-# 선택 - 공공데이터 (완전 무료)
-DATA_GO_KR_API_KEY=...             # 관세청/식약처 API
-
-# 선택 - 이메일 알림 (Gmail SMTP, 무료)
-SMTP_SERVER=smtp.gmail.com         # Gmail SMTP 서버
-SMTP_PORT=587                      # TLS 포트
-SENDER_EMAIL=your@gmail.com        # 발신자 Gmail
-SENDER_PASSWORD=xxxx xxxx xxxx xxxx # Gmail 앱 비밀번호 (16자리)
-ALERT_RECIPIENTS=alert@email.com   # 수신자 (쉼표로 복수 가능)
-
-# 선택 - Telegram 관리자 봇 (로그 모니터링)
-TELEGRAM_BOT_TOKEN=123456:ABC-DEF  # BotFather에서 발급
-TELEGRAM_ADMIN_CHAT_ID=123456789   # 관리자 Chat ID (쉼표로 복수 가능)
+# 알림
+SMTP_SERVER=smtp.gmail.com         # Gmail SMTP
+SMTP_PORT=587
+SENDER_EMAIL=...
+SENDER_PASSWORD=...                # Gmail 앱 비밀번호
+ALERT_RECIPIENTS=...
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_ADMIN_CHAT_ID=...
 ```
-
-### Telegram Admin Bot 설정 방법
-
-1. **BotFather에서 봇 생성**
-   - Telegram에서 @BotFather 검색
-   - `/newbot` 명령으로 봇 생성
-   - 발급받은 토큰을 `TELEGRAM_BOT_TOKEN`에 설정
-
-2. **Chat ID 확인**
-   - 생성한 봇에게 아무 메시지 전송
-   - `https://api.telegram.org/bot{TOKEN}/getUpdates` 접속
-   - `chat.id` 값을 `TELEGRAM_ADMIN_CHAT_ID`에 설정
-
-3. **Webhook 설정 (Railway 배포 후)**
-   ```bash
-   curl "https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://your-app.railway.app/webhook/telegram"
-   ```
-
-4. **사용 가능한 명령어**
-   - `/logs [type] [lines]` - 로그 조회 (crawler, insight, chatbot)
-   - `/errors [lines]` - 에러 로그만 조회
-   - `/status` - 시스템 상태 (메모리, CPU, 디스크)
-   - `/jobs` - 백그라운드 작업 현황
-   - `/crawl` - 크롤링 상태
-   - `/kg` - Knowledge Graph 상태
-   - `/db` - 데이터베이스 통계
 
 ---
 
-## 6. Clean Architecture
-
-### 레이어 구조 (의존성: 안쪽으로만)
+## 8. Clean Architecture
 
 ```
 src/
-├── domain/           # Layer 1: Entities (외부 의존 없음)
-├── application/      # Layer 2: Use Cases
+├── domain/           # Layer 1: Entities + Interfaces (외부 의존 없음)
+├── application/      # Layer 2: Use Cases / Workflows
 ├── adapters/         # Layer 3: Interface Adapters
 └── infrastructure/   # Layer 4: Frameworks & Drivers
 ```
 
-### Import 규칙
+### Import 규칙 (의존성: 안쪽으로만)
 
 | From → To | 허용 |
 |-----------|------|
-| domain → (nothing) | ✅ |
-| application → domain | ✅ |
-| adapters → domain, application | ✅ |
-| infrastructure → domain, application | ✅ |
-| **domain → application/infrastructure** | ❌ |
-| **infrastructure → adapters** | ❌ |
+| domain → (nothing) | O |
+| application → domain | O |
+| adapters → domain, application | O |
+| infrastructure → domain, application | O |
+| **domain → application/infrastructure** | X |
 
 ### DI 패턴
 
 ```python
-# ❌ Bad
+# Bad: 구체 클래스 직접 import
 from src.agents.crawler_agent import CrawlerAgent
-class MyWorkflow:
-    def __init__(self):
-        self.crawler = CrawlerAgent()
 
-# ✅ Good
+# Good: Protocol 기반 DI
 from src.domain.interfaces.agent import CrawlerAgentProtocol
 class MyWorkflow:
     def __init__(self, crawler: CrawlerAgentProtocol):
@@ -237,432 +474,78 @@ class MyWorkflow:
 
 ---
 
-## 7. TDD 워크플로우
+## 9. 핵심 모듈 참조
 
-1. **🔴 RED**: 테스트 먼저 작성 (`tests/unit/{layer}/test_*.py`)
-2. **🟢 GREEN**: 최소 구현으로 테스트 통과
-3. **🔵 REFACTOR**: 코드 정리 (테스트 유지)
-
-### 테스트 환경 분리
-
-```bash
-# .env.test 사용 (자동 로드)
-ENV_FILE=.env.test python -m pytest tests/
-```
-
----
-
-## 8. API 엔드포인트
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/health` | 헬스 체크 | - |
-| GET | `/api/data` | 대시보드 데이터 | - |
-| POST | `/api/v3/chat` | AI 챗봇 (권장) | - |
-| POST | `/api/crawl/start` | 크롤링 시작 | API Key |
-| GET | `/api/v4/brain/status` | 스케줄러 상태 | - |
-
----
-
-## 9. 데이터 저장소
-
-### 3중 저장소 구조
-
-| 저장소 | 위치 | Source of Truth |
-|--------|------|-----------------|
-| Railway SQLite | `/data/amore_data.db` | ✅ Yes |
-| Google Sheets | 스프레드시트 | 백업 |
-| 로컬 SQLite | `./data/amore_data.db` | 개발용 |
-
-### KG 백업 정책
-
-- **위치**: `data/backups/kg/` (Railway: `/data/backups/kg/`)
-- **주기**: 일 1회 (크롤링 완료 후)
-- **보관**: 7일 롤링
-
----
-
-## 10. 디자인 시스템 (AMOREPACIFIC)
-
-| 색상 | HEX | 용도 |
-|------|-----|------|
-| **Pacific Blue** | `#001C58` | 헤더, 사이드바, 주요 CTA |
-| **Amore Blue** | `#1F5795` | 강조, 링크, 보조 버튼 |
-| **Gray** | `#7D7D7D` | 보조 텍스트, 비활성 |
-| **White** | `#FFFFFF` | 배경, 카드 |
-
-```css
-:root {
-    --pacific-blue: #001C58;
-    --amore-blue: #1F5795;
-    --text-secondary: #7D7D7D;
-}
-```
-
----
-
-## 11. 주요 모듈 참조
-
-| 모듈 | 파일 | 역할 |
+| 모듈 | 경로 | 역할 |
 |------|------|------|
 | UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
-| ReActAgent | `src/core/react_agent.py` | ReAct Self-Reflection (복잡한 질문 처리) |
-| KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (Railway Volume 자동 연결) |
-| HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG + Ontology 통합 |
-| HybridChatbotAgent | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
-| KGBackupManager | `src/tools/kg_backup.py` | KG 백업 관리 (7일 보관) |
-
-### 소셜 미디어 수집기 (v2026.01.27)
-
-| 모듈 | 파일 | 기술 | 비용 |
-|------|------|------|------|
-| TikTokCollector | `src/tools/tiktok_collector.py` | Playwright | 무료 |
-| InstagramCollector | `src/tools/instagram_collector.py` | Instaloader | 무료 |
-| YouTubeCollector | `src/tools/youtube_collector.py` | yt-dlp | 무료 |
-| RedditCollector | `src/tools/reddit_collector.py` | JSON API | 무료 |
-| GoogleTrendsCollector | `src/tools/google_trends_collector.py` | trendspyg/pytrends | 무료 |
-| PublicDataCollector | `src/tools/public_data_collector.py` | 관세청/식약처 | 무료 |
-
-### 사용 예시
-
-```python
-# TikTok
-from src.tools.tiktok_collector import TikTokCollector
-collector = TikTokCollector()
-posts = await collector.search_hashtag("laneige", limit=50)
-
-# Instagram
-from src.tools.instagram_collector import InstagramCollector
-collector = InstagramCollector()
-posts = await collector.search_kbeauty(limit=100)
-
-# YouTube
-from src.tools.youtube_collector import YouTubeCollector
-collector = YouTubeCollector()
-videos = await collector.search("LANEIGE review", limit=20)
-
-# Reddit
-from src.tools.reddit_collector import RedditCollector
-collector = RedditCollector()
-posts = await collector.search("LANEIGE", subreddit="AsianBeauty")
-```
+| ReActAgent | `src/core/react_agent.py` | Self-Reflection (복잡한 질문) |
+| BatchWorkflow | `src/core/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
+| HybridChatbot | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
+| HybridInsight | `src/agents/hybrid_insight_agent.py` | 인사이트 생성 |
+| AlertAgent | `src/agents/alert_agent.py` | 순위 변동 알림 |
+| HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
+| Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
+| KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |
+| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 |
+| MetricCalculator | `src/tools/calculators/metric_calculator.py` | SoS, HHI, CPI |
+| AmazonScraper | `src/tools/scrapers/amazon_scraper.py` | Playwright 크롤러 |
+| KGBackup | `src/tools/utilities/kg_backup.py` | KG 백업 (7일 롤링) |
+| EmailSender | `src/tools/notifications/email_sender.py` | Gmail SMTP |
+| TelegramBot | `src/tools/notifications/telegram_bot.py` | Telegram 알림 |
+| AgentLogger | `src/monitoring/logger.py` | 구조화 로깅 |
+| Container | `src/infrastructure/container.py` | DI 컨테이너 |
 
 ---
 
-## 12. 코드 컨벤션
+## 10. 데이터 저장소
 
-### Async-First
-```python
-async def crawl_category(self, category: str) -> List[Product]:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-```
+| 저장소 | 위치 | 역할 |
+|--------|------|------|
+| SQLite (Railway) | `/data/amore_data.db` | Source of Truth |
+| SQLite (로컬) | `./data/amore_data.db` | 개발용 |
+| Google Sheets | 스프레드시트 | 백업 |
+| KG JSON | `data/knowledge_graph.json` | Triple Store |
+| ChromaDB | `data/chroma/` | 벡터 스토어 |
+| Dashboard JSON | `data/dashboard_data.json` | 캐시 |
 
-### Pydantic Models
-```python
-class Product(BaseModel):
-    asin: str
-    title: str
-    brand: str
-    rank: int
-    price: Optional[float] = None
-```
-
-### Type Hints
-모든 함수에 파라미터 및 반환 타입 힌트 필수
+### KG 백업 정책
+- 위치: `data/backups/kg/`
+- 주기: 일 1회 (크롤링 완료 후)
+- 보관: 7일 롤링
 
 ---
 
-## 13. E2E 감사 체크리스트
+## 11. 코드 컨벤션
 
-### Security
-- [ ] API Key 로그 마스킹 (`sk-` 패턴)
-- [ ] Prompt injection 방어 (시스템 프롬프트 노출 방지)
-
-### Data Integrity
-- [ ] KG JSON 검증 (auto_load 시)
-- [ ] 크롤링 실패 시 stale data warning
-
-### 알려진 이슈
-
-| ID | 이슈 | 상태 |
-|----|------|------|
-| C.1 | Webhook 서명검증 미구현 | 향후 적용 |
-| C.6 | chunk_id 부재 | 향후 적용 |
-| C.8 | SHACL 제약 검증 미구현 | Low Priority |
+- **Async-First**: 모든 I/O 작업은 `async/await`
+- **Type Hints**: 모든 함수에 파라미터 + 반환 타입 힌트 필수
+- **Pydantic Models**: 데이터 구조는 `BaseModel` 사용
+- **Ruff**: line-length=100, target=py311 (`E501` 무시)
+- **TDD**: RED → GREEN → REFACTOR
+- **테스트 경로**: `tests/unit/{layer}/test_*.py`
+- **테스트 환경 분리**: `.env.test` 사용
 
 ---
 
-## 14. 구현 완료 내역
-
-### 2026-01-28 (v3) - ReAct Self-Reflection Agent
-
-| 항목 | 파일 |
-|------|------|
-| ReAct Agent 구현 | `src/core/react_agent.py` |
-| UnifiedBrain 통합 | `src/core/brain.py` (복잡도 판단 로직) |
-| 단위 테스트 | `tests/unit/core/test_react_agent.py` |
-| 데모 스크립트 | `examples/react_agent_demo.py` |
-| 가이드 문서 | `docs/guides/react_agent_guide.md` |
-
-**주요 변경:**
-- ReAct Loop: Thought → Action → Observation → Reflection (최대 3회)
-- Self-Reflection: 응답 품질 자체 평가 (confidence, needs_improvement)
-- 자동 활성화: 복잡한 질문 감지 시 ReAct 모드 자동 전환
-- 복잡도 판단: 분석 키워드, 컨텍스트 부족, 다단계 질문 기준
-
-**사용 예시:**
-```python
-# UnifiedBrain이 자동으로 복잡도 판단 및 ReAct 활성화
-response = await brain.process_query("LANEIGE가 경쟁사 대비 어떤 위치에 있는지 분석해줘")
-print(response.metadata.get('mode'))  # "react"
-```
-
-### 2026-01-28 (v2) - Embedding 캐시 구현
-
-| 항목 | 파일 |
-|------|------|
-| Embedding 캐시 로직 | `src/rag/retriever.py` |
-| 캐시 통계 API | `get_embedding_cache_stats()` |
-| 테스트 스크립트 | `test_embedding_cache.py` |
-| 가이드 문서 | `docs/embedding_cache_guide.md` |
-
-**주요 기능:**
-- MD5 해시 기반 캐시 키 생성
-- FIFO 방식 자동 eviction (최대 1000개)
-- Hit/Miss 카운터 및 Hit Rate 계산
-- 동일 텍스트 재임베딩 방지 (OpenAI API 비용 절감)
-
-**성능 개선:**
-- 캐시 히트 시 OpenAI API 호출 생략
-- 반복 쿼리 대응 시 33%+ API 비용 절감 가능
-- 메모리 사용량: ~6 KB/entry (1000개 ≈ 6 MB)
-
-### 2026-01-28 (v1) - 카테고리 계층 구조 정비
-
-| 항목 | 파일 |
-|------|------|
-| 카테고리 URL 형식 통일 | `config/thresholds.json` |
-| 계층 구조 정의 | `config/category_hierarchy.json` |
-| 대시보드 카테고리 탭 | `dashboard/amore_unified_dashboard_v4.html` |
-| 도메인 엔티티 예시 | `src/domain/entities/market.py` |
-| 테스트 데이터 | `tests/unit/domain/test_entities.py` |
-| 크롤러 에러 핸들링 | `src/tools/amazon_scraper.py` |
-
-**주요 변경:**
-- URL 형식: `zgbs/beauty/{node_id}` 통일
-- Lip Care: `parent_id: "skin_care"` (기존 "beauty" 오류 수정)
-- AWS WAF 대응: Stealth 컨텍스트, 지수 백오프, 디버그 스크린샷
-- `_is_blocked_detailed()`: 상세 차단 사유 로깅
-
-### 2026-01-27 (v3) - 이메일 알림 시스템
-
-| 항목 | 파일 |
-|------|------|
-| AlertAgent-Brain 통합 | `src/core/brain.py` |
-| Gmail SMTP 발송 | `src/tools/email_sender.py` |
-| 알림 조건 (순위 ±10, SoS 변동) | `src/agents/alert_agent.py` |
-
-**동작 흐름:**
-```
-크롤링 → 순위 변동 감지 → AlertAgent → EmailSender → Gmail SMTP → 수신자
-```
-
-**테스트 완료:** 2026-01-27 23:01 KST
-
-### 2026-01-27 (v2) - 소셜 미디어 수집기
-
-| 항목 | 파일 |
-|------|------|
-| TikTok 수집기 | `src/tools/tiktok_collector.py` |
-| Instagram 수집기 | `src/tools/instagram_collector.py` |
-| YouTube 수집기 | `src/tools/youtube_collector.py` |
-| Reddit 수집기 | `src/tools/reddit_collector.py` |
-| Google Trends 업데이트 | `src/tools/google_trends_collector.py` (trendspyg 지원) |
-
-### 2026-01-27 (v1)
-
-| 항목 | 파일 |
-|------|------|
-| KG Railway Volume 연결 | `src/ontology/knowledge_graph.py` |
-| KG 자동 백업 (7일) | `src/tools/kg_backup.py` |
-| 테스트 환경 분리 | `tests/conftest.py`, `.env.test` |
-| 외부 신호 실패 경고 | `src/agents/hybrid_insight_agent.py` |
-| 골든셋 평가 스크립트 | `scripts/evaluate_golden.py` |
-| 커버리지 측정 환경 | `pyproject.toml`, `pytest.ini` |
-
-### 미구현 (향후 작업)
-
-| 항목 | 우선순위 |
-|------|----------|
-| SHACL 제약 검증 | Low |
-| Webhook 서명검증 | Medium |
-| Document chunk_id | Medium |
-| Prompt injection 방어 | High |
-| 아마존 리뷰 감성분석 | Medium |
-| ~~이메일 알림 통합~~ | ~~High~~ → **완료 (v3)** |
-
----
-
-## 15. Claude Code 워크플로우 최적화
-
-### Boris Cherny's 10 Best Practices (Claude Code 창시자)
-
-| # | 팁 | 설명 |
-|---|-----|------|
-| 1 | **병렬 세션 운영** | 터미널 5개 + 브라우저 5-10개 동시 실행. 탭 번호 매기고 시스템 알림 활용 |
-| 2 | **최강 모델 사용** | Opus 4.5 + thinking 모드. 느려도 수정 횟수 줄어 결과적으로 빠름 |
-| 3 | **CLAUDE.md 유지** | 실수할 때마다 기록 → 같은 실수 반복 방지. 팀과 git 공유 |
-| 4 | **Plan Mode 먼저** | 계획 충분히 다듬은 후 auto-accept 모드로 전환. "좋은 계획이 정말 중요!" |
-| 5 | **슬래시 명령어** | `/commit-push-pr` 같은 자주 쓰는 명령어를 `.claude/commands/`에 저장 |
-| 6 | **PostToolUse Hook** | 코드 편집 후 자동 포맷터 실행 → CI 포매팅 오류 방지 |
-| 7 | **권한 사전 허용** | `--dangerously-skip-permissions` 대신 `/permissions`로 안전한 명령만 허용 |
-| 8 | **서브에이전트 활용** | 각 단계(스펙, 초안, 검증)마다 다른 에이전트 사용 → 전문화로 신뢰성 확보 |
-| 9 | **검증 루프 (필수!)** | Claude에게 브라우저/테스트로 결과 검증 시킴 → 품질 2-3배 향상 |
-| 10 | **MCP 도구 통합** | Slack, BigQuery, Sentry 등 `.mcp.json`에 설정해서 팀과 공유 |
-
-> 출처: [Boris Cherny Threads](https://www.threads.com/@boris_cherny/post/DUMZr4VElyb/)
-
-### 컨텍스트 관리
-- `/clear` 명령어로 작업 간 컨텍스트 리셋
-- `Escape` 키로 진행 중 작업 중단 (컨텍스트 유지)
-- `Escape` 두 번: 이전 프롬프트 수정
-- 토큰 효율: 불필요한 파일/명령어 출력 누적 방지
-
-### 추천 워크플로우 (Explore-Plan-Code-Commit)
-1. **Explore**: 관련 파일 읽기만 (코드 작성 X)
-2. **Plan**: "think hard" 모드로 상세 계획 요청
-3. **Code**: 승인된 계획 기반 구현
-4. **Commit**: 설명적 커밋 메시지 작성
-
-### TDD 워크플로우
-1. 테스트 먼저 작성 (mock 최소화)
-2. 테스트 실패 확인
-3. 테스트 커밋
-4. 구현 → 테스트 통과 반복
-
-### Hooks 자동화 (.claude/settings.json)
-- **PreToolUse**: 민감 파일 수정 차단 (.env, credentials, .secret)
-- **PostToolUse**: Python 파일 자동 Ruff 린팅
-- **Notification**: macOS 알림 (입력 대기 시)
-
-### Pre-commit 자동화 (.pre-commit-config.yaml)
-- Ruff 포맷팅 및 린팅
-- trailing-whitespace 제거
-- private key 감지
-- 대용량 파일 (1MB+) 차단
-
----
-
-## 16. Railway 배포 Healthcheck 가이드
-
-> 참조: https://docs.railway.com/guides/healthchecks
-
-### 기본 설정
-
-1. `/api/health` 엔드포인트에서 HTTP 200 반환 (이미 구현됨)
-2. Railway가 자동 주입하는 `PORT` 환경변수로 서버 listen
-
-### 주요 설정값
-
-| 설정 | 기본값 | 환경변수/설정 |
-|------|--------|---------------|
-| 타임아웃 | 300초 (5분) | `RAILWAY_HEALTHCHECK_TIMEOUT_SEC` |
-| 포트 | 자동 주입 | `PORT` |
-| Hostname | `healthcheck.railway.app` | 허용 필요 |
-
-### 흔한 Healthcheck 실패 원인
-
-| 에러 메시지 | 원인 | 해결책 |
-|-------------|------|--------|
-| `service unavailable` | `PORT` 환경변수로 listen하지 않음 | `os.environ.get("PORT", "8001")` 사용 |
-| `status 400` | hostname 제한 | `healthcheck.railway.app` 허용 |
-| `timeout` | 앱 시작 > 300초 | 타임아웃 증가 또는 시작 최적화 |
-
-### Volume 연결 시 주의사항
-
-- **데이터 무결성 보호**: Railway는 동일 Volume에 동시 마운트 방지
-- **결과**: healthcheck 설정해도 **약간의 다운타임 발생**
-- 이 프로젝트의 `/data` Volume이 해당됨
-
-### 현재 프로젝트 설정 (dashboard_api.py)
-
-```python
-# Health endpoint (이미 구현됨)
-@app.get("/api/health")
-async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
-
-# PORT 환경변수 사용 (start.py)
-port = int(os.environ.get("PORT", 8001))
-```
-
-### 디버깅 명령어
-
-```bash
-# 로컬에서 healthcheck 테스트
-curl http://localhost:8001/api/health
-
-# Railway 로그 확인
-railway logs --tail 100
-```
-
-### 참고
-
-- Railway healthcheck은 **배포 시에만 호출** (지속 모니터링 X)
-- 지속 모니터링 필요 시: Uptime Kuma 템플릿 또는 Telegram Admin Bot 활용
-
----
-
-## 17. Railway 운영 자연어 가이드
-
-> 사용자가 자연어로 Railway 관련 요청 시, 적절한 스킬/명령어를 제안한다.
-
-### 자연어 → Railway 스킬 매핑
-
-| 자연어 (한국어) | 자연어 (영어) | Railway Skill | 대체 CLI 명령어 |
-|----------------|--------------|---------------|-----------------|
-| "배포해줘", "디플로이", "올려줘" | "deploy", "push to prod" | `/deploy` | `railway up` |
-| "배포 상태", "어떤 버전?", "배포 내역" | "deployment status", "what version" | `/deployment` | `railway status` |
-| "서비스 상태", "돌아가?", "헬스체크" | "is it running?", "health check" | `/status` | `railway status` |
-| "로그 보여줘", "에러 로그", "로그 확인" | "show logs", "error logs" | `/deployment` (logs) | `railway logs --tail 100` |
-| "환경변수 바꿔줘", "env 설정", "시크릿 추가" | "change env var", "add secret" | `/environment` | `railway variables set KEY=VALUE` |
-| "환경변수 목록", "env 뭐 있어?" | "list env vars" | `/environment` | `railway variables` |
-| "도메인 연결", "커스텀 도메인", "URL 설정" | "add domain", "custom domain" | `/domain` | `railway domain` |
-| "메트릭", "CPU/메모리", "리소스 사용량" | "metrics", "CPU usage", "memory" | `/metrics` | Railway Dashboard 확인 |
-| "새 프로젝트", "프로젝트 만들어줘" | "new project", "create project" | `/new` | `railway init` |
-| "프로젝트 목록", "어떤 프로젝트 있어?" | "list projects" | `/projects` | `railway list` |
-| "서비스 추가", "새 서비스" | "add service", "new service" | `/service` | Railway Dashboard |
-| "DB 추가", "데이터베이스 연결" | "add database", "connect DB" | `/database` | `/database` skill |
-| "템플릿 배포", "템플릿 뭐 있어?" | "deploy template", "templates" | `/templates` | `railway template` |
-| "Railway 문서", "어떻게 쓰는거야?" | "railway docs", "how to use" | `/railway-docs` | [docs.railway.com](https://docs.railway.com) |
-| "재시작", "서비스 재시작" | "restart", "restart service" | `/service` (restart) | `railway service restart` |
-| "삭제", "서비스 삭제" | "delete service" | (수동 확인 필요) | Railway Dashboard |
-
-### 복합 시나리오 매핑
-
-| 시나리오 | 추천 흐름 |
-|----------|-----------|
-| "배포하고 로그 확인해줘" | `/deploy` → `/deployment` (logs) |
-| "환경변수 바꾸고 재배포" | `/environment` → `/deploy` |
-| "에러나는데 원인 찾아줘" | `/deployment` (logs) → `/metrics` → `/status` |
-| "새로 만들어서 배포까지" | `/new` → `/environment` → `/deploy` |
-| "DB 연결하고 환경변수 세팅" | `/database` → `/environment` |
-| "도메인 연결하고 SSL 확인" | `/domain` → `/status` |
-
-### 현재 프로젝트 Railway 정보
+## 12. 배포 (Railway)
 
 | 항목 | 값 |
 |------|-----|
 | 프로젝트 | splendid-harmony |
+| 빌드 | Dockerfile (python:3.11-slim + Playwright Chromium) |
+| Healthcheck | `/api/health` (300초 타임아웃) |
 | Volume | `/data` (SQLite + KG) |
-| Healthcheck | `/api/health` |
-| 서버 포트 | `PORT` 환경변수 (기본 8001) |
+| 포트 | `PORT` 환경변수 (기본 8001) |
+| 재시작 정책 | on_failure (최대 3회) |
 
-### 응답 규칙
+---
 
-1. **스킬이 설치된 경우**: 해당 스킬 이름과 사용법을 안내
-2. **스킬 미설치 시**: 대체 CLI 명령어를 제시하고, 스킬 설치를 권유
-3. **위험한 작업** (삭제, 환경변수 변경): 반드시 사용자 확인 후 실행
-4. **복합 요청**: 단계별로 분리하여 순서대로 안내
-5. **모호한 요청**: 가능한 해석들을 나열하고 사용자에게 선택 요청
+## 13. 디자인 시스템 (AMOREPACIFIC)
+
+| 색상 | HEX | 용도 |
+|------|-----|------|
+| Pacific Blue | `#001C58` | 헤더, 사이드바, 주요 CTA |
+| Amore Blue | `#1F5795` | 강조, 링크 |
+| Gray | `#7D7D7D` | 보조 텍스트 |
+| White | `#FFFFFF` | 배경, 카드 |

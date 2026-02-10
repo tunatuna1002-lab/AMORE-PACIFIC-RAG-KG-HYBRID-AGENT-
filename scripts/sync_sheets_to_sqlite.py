@@ -18,8 +18,8 @@ from pathlib import Path
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.tools.sheets_writer import SheetsWriter
-from src.tools.sqlite_storage import SQLiteStorage
+from src.tools.storage.sheets_writer import SheetsWriter
+from src.tools.storage.sqlite_storage import SQLiteStorage
 
 # Google Sheets ID (URL에서 추출)
 # https://docs.google.com/spreadsheets/d/1cNr3E2WSSbO83XXh_9V92jwc6nfsxjAogcswlHcjV9w/edit
@@ -50,7 +50,7 @@ async def sync_sheets_to_sqlite():
         return False
 
     # 날짜 범위 확인
-    dates = sorted(set(r.get('snapshot_date', '') for r in records if r.get('snapshot_date')))
+    dates = sorted(set(r.get("snapshot_date", "") for r in records if r.get("snapshot_date")))
     print(f"✅ 조회 완료: {len(records)} records")
     print(f"   날짜 범위: {dates[0]} ~ {dates[-1]}")
     print(f"   총 {len(dates)}일치 데이터")
@@ -64,10 +64,12 @@ async def sync_sheets_to_sqlite():
 
     # 기존 데이터 확인
     existing_stats = sqlite.get_stats()
-    print(f"✅ SQLite 연결 성공")
+    print("✅ SQLite 연결 성공")
     print(f"   기존 데이터: {existing_stats.get('raw_data_count', 0)} records")
-    if existing_stats.get('date_range', {}).get('min'):
-        print(f"   기존 날짜 범위: {existing_stats['date_range']['min']} ~ {existing_stats['date_range']['max']}")
+    if existing_stats.get("date_range", {}).get("min"):
+        print(
+            f"   기존 날짜 범위: {existing_stats['date_range']['min']} ~ {existing_stats['date_range']['max']}"
+        )
 
     # 4. 데이터 삽입
     print("\n[4/4] SQLite에 데이터 삽입 중...")
@@ -77,12 +79,14 @@ async def sync_sheets_to_sqlite():
     total_inserted = 0
 
     for i in range(0, len(records), batch_size):
-        batch = records[i:i + batch_size]
+        batch = records[i : i + batch_size]
         result = await sqlite.append_rank_records(batch)
 
-        if result.get('success'):
-            total_inserted += result.get('rows_added', 0)
-            print(f"   진행: {min(i + batch_size, len(records))}/{len(records)} ({total_inserted} inserted)")
+        if result.get("success"):
+            total_inserted += result.get("rows_added", 0)
+            print(
+                f"   진행: {min(i + batch_size, len(records))}/{len(records)} ({total_inserted} inserted)"
+            )
         else:
             print(f"   ⚠️ 배치 삽입 실패: {result.get('error')}")
 
@@ -92,9 +96,11 @@ async def sync_sheets_to_sqlite():
     print("=" * 60)
 
     final_stats = sqlite.get_stats()
-    print(f"\nSQLite 최종 상태:")
+    print("\nSQLite 최종 상태:")
     print(f"  - 총 레코드: {final_stats.get('raw_data_count', 0)}")
-    print(f"  - 날짜 범위: {final_stats.get('date_range', {}).get('min')} ~ {final_stats.get('date_range', {}).get('max')}")
+    print(
+        f"  - 날짜 범위: {final_stats.get('date_range', {}).get('min')} ~ {final_stats.get('date_range', {}).get('max')}"
+    )
     print(f"  - DB 파일 크기: {final_stats.get('file_size_mb', 0)} MB")
 
     return True

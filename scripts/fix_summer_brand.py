@@ -18,7 +18,6 @@ Summer Fridays 브랜드명 데이터 정정 스크립트
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -50,7 +49,7 @@ def fix_local_json_files(data_dir: str, dry_run: bool = True) -> dict:
     for json_file in json_files:
         stats["files_checked"] += 1
         try:
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             modified = False
@@ -60,12 +59,16 @@ def fix_local_json_files(data_dir: str, dry_run: bool = True) -> dict:
                 for item in data:
                     if _should_fix_brand(item):
                         stats["records_fixed"] += 1
-                        stats["products_found"].append({
-                            "file": str(json_file),
-                            "asin": item.get("asin", "N/A"),
-                            "product_name": item.get("product_name", item.get("title", "N/A"))[:50],
-                            "old_brand": item.get("brand"),
-                        })
+                        stats["products_found"].append(
+                            {
+                                "file": str(json_file),
+                                "asin": item.get("asin", "N/A"),
+                                "product_name": item.get("product_name", item.get("title", "N/A"))[
+                                    :50
+                                ],
+                                "old_brand": item.get("brand"),
+                            }
+                        )
                         if not dry_run:
                             item["brand"] = "Summer Fridays"
                             modified = True
@@ -76,12 +79,16 @@ def fix_local_json_files(data_dir: str, dry_run: bool = True) -> dict:
                 for item in products:
                     if _should_fix_brand(item):
                         stats["records_fixed"] += 1
-                        stats["products_found"].append({
-                            "file": str(json_file),
-                            "asin": item.get("asin", "N/A"),
-                            "product_name": item.get("product_name", item.get("title", "N/A"))[:50],
-                            "old_brand": item.get("brand"),
-                        })
+                        stats["products_found"].append(
+                            {
+                                "file": str(json_file),
+                                "asin": item.get("asin", "N/A"),
+                                "product_name": item.get("product_name", item.get("title", "N/A"))[
+                                    :50
+                                ],
+                                "old_brand": item.get("brand"),
+                            }
+                        )
                         if not dry_run:
                             item["brand"] = "Summer Fridays"
                             modified = True
@@ -92,7 +99,7 @@ def fix_local_json_files(data_dir: str, dry_run: bool = True) -> dict:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 print(f"  [UPDATED] {json_file}")
 
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"  [WARN] 파일 읽기 실패: {json_file} - {e}")
 
     return stats
@@ -127,7 +134,7 @@ def fix_google_sheets(dry_run: bool = True) -> dict:
     stats = {"sheets_checked": 0, "records_fixed": 0, "products_found": []}
 
     try:
-        from src.tools.sheets_writer import SheetsWriter
+        from src.tools.storage.sheets_writer import SheetsWriter
     except ImportError:
         print("[ERROR] SheetsWriter를 import할 수 없습니다.")
         print("        Google Sheets 연동을 위해서는 credentials가 필요합니다.")
@@ -160,13 +167,15 @@ def fix_google_sheets(dry_run: bool = True) -> dict:
             for idx, row in enumerate(data):
                 if _should_fix_brand(row):
                     stats["records_fixed"] += 1
-                    stats["products_found"].append({
-                        "sheet": sheet_name,
-                        "row": idx + 2,  # 헤더 + 1-based index
-                        "asin": row.get("asin", "N/A"),
-                        "product_name": row.get("product_name", row.get("title", "N/A"))[:50],
-                        "old_brand": row.get("brand"),
-                    })
+                    stats["products_found"].append(
+                        {
+                            "sheet": sheet_name,
+                            "row": idx + 2,  # 헤더 + 1-based index
+                            "asin": row.get("asin", "N/A"),
+                            "product_name": row.get("product_name", row.get("title", "N/A"))[:50],
+                            "old_brand": row.get("brand"),
+                        }
+                    )
                     rows_to_fix.append(idx + 2)  # 1-based row number with header
 
             if rows_to_fix and not dry_run:
@@ -176,7 +185,7 @@ def fix_google_sheets(dry_run: bool = True) -> dict:
 
                 if brand_col_idx >= 0:
                     for row_num in rows_to_fix:
-                        col_letter = chr(ord('A') + brand_col_idx)
+                        col_letter = chr(ord("A") + brand_col_idx)
                         cell = f"{col_letter}{row_num}"
                         writer.update_cell(sheet_name, cell, "Summer Fridays")
                         print(f"    [UPDATED] {sheet_name}!{cell} = 'Summer Fridays'")
@@ -200,7 +209,9 @@ def print_report(stats: dict, dry_run: bool):
     else:
         print("[MODE] LIVE (실제 데이터 변경 적용)")
 
-    print(f"\n검사한 파일/시트 수: {stats.get('files_checked', 0) + stats.get('sheets_checked', 0)}")
+    print(
+        f"\n검사한 파일/시트 수: {stats.get('files_checked', 0) + stats.get('sheets_checked', 0)}"
+    )
     print(f"정정 대상 레코드 수: {stats['records_fixed']}")
 
     if stats["products_found"]:
@@ -223,25 +234,14 @@ def print_report(stats: dict, dry_run: bool):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Summer Fridays 브랜드명 데이터 정정 스크립트"
+    parser = argparse.ArgumentParser(description="Summer Fridays 브랜드명 데이터 정정 스크립트")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="변경 없이 미리보기만 (기본값: False)"
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="변경 없이 미리보기만 (기본값: False)"
+        "--local", type=str, default=None, help="로컬 JSON 파일 경로 (예: data/raw_products/)"
     )
-    parser.add_argument(
-        "--local",
-        type=str,
-        default=None,
-        help="로컬 JSON 파일 경로 (예: data/raw_products/)"
-    )
-    parser.add_argument(
-        "--sheets",
-        action="store_true",
-        help="Google Sheets 정정 (기본값)"
-    )
+    parser.add_argument("--sheets", action="store_true", help="Google Sheets 정정 (기본값)")
 
     args = parser.parse_args()
 
@@ -251,7 +251,7 @@ def main():
         "files_checked": 0,
         "sheets_checked": 0,
         "records_fixed": 0,
-        "products_found": []
+        "products_found": [],
     }
 
     # 로컬 JSON 파일 정정

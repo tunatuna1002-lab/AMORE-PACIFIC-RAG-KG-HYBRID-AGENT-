@@ -1,25 +1,28 @@
 """
 Alerts Routes - Alert service and settings endpoints
 """
+
 import logging
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
 
 from src.api.dependencies import verify_api_key
-from src.tools.alert_service import AlertService, get_alert_service
-from src.tools.sqlite_storage import get_sqlite_storage
 from src.core.state_manager import StateManager, get_state_manager
+from src.tools.notifications.alert_service import get_alert_service
+from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 router = APIRouter(prefix="/api", tags=["alerts"])
 
 
 # ============= Alert Service Endpoints =============
 
+
 class AlertSendRequest(BaseModel):
     """알림 발송 요청"""
-    alert_ids: Optional[List[int]] = None  # 발송할 알림 ID (없으면 미발송 전체)
+
+    alert_ids: list[int] | None = None  # 발송할 알림 ID (없으면 미발송 전체)
 
 
 @router.get("/alerts/status")
@@ -27,20 +30,14 @@ async def get_alert_service_status():
     """알림 서비스 상태 조회"""
     try:
         service = get_alert_service()
-        return {
-            "success": True,
-            **service.get_status()
-        }
+        return {"success": True, **service.get_status()}
     except Exception as e:
         logging.error(f"Alert service status error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @router.post("/alerts/send")
-async def send_pending_alerts(request: Optional[AlertSendRequest] = None):
+async def send_pending_alerts(request: AlertSendRequest | None = None):
     """
     미발송 알림 발송
 
@@ -56,22 +53,14 @@ async def send_pending_alerts(request: Optional[AlertSendRequest] = None):
         unsent_alerts = await storage.get_unsent_alerts(limit=50)
 
         if not unsent_alerts:
-            return {
-                "success": True,
-                "message": "No pending alerts to send",
-                "sent_count": 0
-            }
+            return {"success": True, "message": "No pending alerts to send", "sent_count": 0}
 
         # 특정 ID 필터링
         if request and request.alert_ids:
             unsent_alerts = [a for a in unsent_alerts if a.get("id") in request.alert_ids]
 
         if not unsent_alerts:
-            return {
-                "success": True,
-                "message": "No matching alerts found",
-                "sent_count": 0
-            }
+            return {"success": True, "message": "No matching alerts found", "sent_count": 0}
 
         # 알림 발송
         sent_count = 0
@@ -89,17 +78,13 @@ async def send_pending_alerts(request: Optional[AlertSendRequest] = None):
             "total_pending": len(unsent_alerts),
             "channels": {
                 "slack": alert_service._slack_enabled,
-                "email": alert_service._email_enabled
-            }
+                "email": alert_service._email_enabled,
+            },
         }
 
     except Exception as e:
         logging.error(f"Alert send error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "sent_count": 0
-        }
+        return {"success": False, "error": str(e), "sent_count": 0}
 
 
 @router.post("/alerts/test")
@@ -121,7 +106,7 @@ async def send_test_alert():
             "claimed_percent": 45,
             "product_url": "https://amazon.com/dp/B000TEST01",
             "alert_type": "lightning_deal",
-            "alert_message": "Test Alert - 시스템 테스트 알림입니다"
+            "alert_message": "Test Alert - 시스템 테스트 알림입니다",
         }
 
         result = await alert_service.send_single_alert(test_alert)
@@ -130,21 +115,20 @@ async def send_test_alert():
             "success": True,
             "test_alert": test_alert,
             "send_result": result,
-            "message": "Test alert sent successfully" if any(result.values()) else "No channels enabled"
+            "message": "Test alert sent successfully"
+            if any(result.values())
+            else "No channels enabled",
         }
 
     except Exception as e:
         logging.error(f"Test alert error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 # ============= Alert Settings Endpoints =============
 
 # 싱글톤 State Manager
-_state_manager: Optional[StateManager] = None
+_state_manager: StateManager | None = None
 
 
 def get_app_state_manager() -> StateManager:
@@ -157,17 +141,19 @@ def get_app_state_manager() -> StateManager:
 
 class AlertSettingsRequest(BaseModel):
     """알림 설정 요청"""
+
     email: str
     consent: bool
-    alert_types: List[str] = []
+    alert_types: list[str] = []
 
 
 class AlertSettingsResponse(BaseModel):
     """알림 설정 응답"""
+
     email: str
     consent: bool
-    alert_types: List[str]
-    consent_date: Optional[str] = None
+    alert_types: list[str]
+    consent_date: str | None = None
 
 
 @router.get("/v3/alert-settings")
@@ -181,12 +167,7 @@ async def get_alert_settings():
     subscriptions = state_manager.get_all_subscriptions()
 
     if not subscriptions:
-        return {
-            "email": "",
-            "consent": False,
-            "alert_types": [],
-            "consent_date": None
-        }
+        return {"email": "", "consent": False, "alert_types": [], "consent_date": None}
 
     # 첫 번째 구독 반환
     email, sub = next(iter(subscriptions.items()))
@@ -194,7 +175,7 @@ async def get_alert_settings():
         "email": email,
         "consent": sub.consent,
         "alert_types": sub.alert_types,
-        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None
+        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
     }
 
 
@@ -213,9 +194,7 @@ async def save_alert_settings(request: AlertSettingsRequest):
     if request.consent:
         # 이메일 등록 (명시적 동의)
         success = state_manager.register_email(
-            email=request.email,
-            consent=True,
-            alert_types=request.alert_types
+            email=request.email, consent=True, alert_types=request.alert_types
         )
 
         if not success:
@@ -225,8 +204,7 @@ async def save_alert_settings(request: AlertSettingsRequest):
     else:
         # 동의 없으면 업데이트만 (알림 유형 변경)
         success = state_manager.update_email_subscription(
-            email=request.email,
-            alert_types=request.alert_types
+            email=request.email, alert_types=request.alert_types
         )
 
         return {"status": "ok", "message": "설정이 업데이트되었습니다."}

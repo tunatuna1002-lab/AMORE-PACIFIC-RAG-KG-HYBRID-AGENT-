@@ -8,13 +8,16 @@ handling retries, error logging, and response formatting consistently.
 
 import json
 import time
-from typing import Optional, Dict, Any, List
+from typing import Any
+
 from litellm import acompletion
+
 from src.monitoring.logger import AgentLogger
 
 
 class LLMError(Exception):
     """Custom exception for LLM-related errors."""
+
     pass
 
 
@@ -53,7 +56,7 @@ class LLMClient:
         default_temperature: float = 0.7,
         max_retries: int = 3,
         retry_delay: float = 1.0,
-        logger: Optional[AgentLogger] = None
+        logger: AgentLogger | None = None,
     ):
         """
         Initialize the LLM client.
@@ -81,10 +84,10 @@ class LLMClient:
         self,
         system_prompt: str,
         user_prompt: str,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         max_tokens: int = 2000,
-        model: Optional[str] = None,
-        messages: Optional[List[Dict[str, str]]] = None
+        model: str | None = None,
+        messages: list[dict[str, str]] | None = None,
     ) -> str:
         """
         Generate a text completion from the LLM.
@@ -110,7 +113,7 @@ class LLMClient:
         if messages is None:
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ]
 
         self.logger.llm_request(effective_model, prompt_tokens=None)
@@ -124,7 +127,7 @@ class LLMClient:
                     model=effective_model,
                     messages=messages,
                     temperature=effective_temperature,
-                    max_tokens=max_tokens
+                    max_tokens=max_tokens,
                 )
 
                 # Extract response
@@ -137,14 +140,14 @@ class LLMClient:
                 latency_ms = (time.time() - start_time) * 1000
                 self._total_calls += 1
 
-                if hasattr(response, 'usage'):
+                if hasattr(response, "usage"):
                     self._total_prompt_tokens += response.usage.prompt_tokens
                     self._total_completion_tokens += response.usage.completion_tokens
 
                     self.logger.llm_response(
                         effective_model,
                         completion_tokens=response.usage.completion_tokens,
-                        latency_ms=latency_ms
+                        latency_ms=latency_ms,
                     )
                 else:
                     self.logger.llm_response(effective_model, latency_ms=latency_ms)
@@ -156,30 +159,34 @@ class LLMClient:
                 self._total_errors += 1
 
                 if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    delay = self.retry_delay * (2**attempt)  # Exponential backoff
                     self.logger.warning(
                         f"LLM call failed (attempt {attempt + 1}/{self.max_retries}), retrying in {delay}s",
-                        {"error": str(e), "model": effective_model}
+                        {"error": str(e), "model": effective_model},
                     )
-                    time.sleep(delay)
+                    import asyncio
+
+                    await asyncio.sleep(delay)
                 else:
                     self.logger.error(
                         f"LLM call failed after {self.max_retries} attempts",
                         {"error": str(e), "model": effective_model},
-                        exc_info=True
+                        exc_info=True,
                     )
 
         # All retries failed
-        raise LLMError(f"Failed to complete LLM request after {self.max_retries} attempts: {last_error}")
+        raise LLMError(
+            f"Failed to complete LLM request after {self.max_retries} attempts: {last_error}"
+        )
 
     async def complete_json(
         self,
         system_prompt: str,
         user_prompt: str,
-        temperature: Optional[float] = 0.3,
+        temperature: float | None = 0.3,
         max_tokens: int = 2000,
-        model: Optional[str] = None
-    ) -> Dict[str, Any]:
+        model: str | None = None,
+    ) -> dict[str, Any]:
         """
         Generate a JSON completion from the LLM.
 
@@ -209,7 +216,7 @@ class LLMClient:
             user_prompt=json_user_prompt,
             temperature=temperature,
             max_tokens=max_tokens,
-            model=model
+            model=model,
         )
 
         # Parse JSON
@@ -229,7 +236,7 @@ class LLMClient:
         except json.JSONDecodeError as e:
             self.logger.error(
                 "Failed to parse JSON response from LLM",
-                {"error": str(e), "response_preview": response_text[:200]}
+                {"error": str(e), "response_preview": response_text[:200]},
             )
             raise LLMError(f"LLM response was not valid JSON: {e}")
 
@@ -237,10 +244,10 @@ class LLMClient:
         self,
         system_prompt: str,
         user_prompt: str,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         max_tokens: int = 2000,
-        model: Optional[str] = None
-    ) -> Dict[str, Any]:
+        model: str | None = None,
+    ) -> dict[str, Any]:
         """
         Generate a completion and return both content and usage statistics.
 
@@ -263,7 +270,7 @@ class LLMClient:
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": user_prompt},
         ]
 
         start_time = time.time()
@@ -272,7 +279,7 @@ class LLMClient:
             model=effective_model,
             messages=messages,
             temperature=effective_temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
         )
 
         latency_ms = (time.time() - start_time) * 1000
@@ -281,23 +288,20 @@ class LLMClient:
             "content": response.choices[0].message.content if response.choices else "",
             "model": effective_model,
             "latency_ms": latency_ms,
-            "usage": None
+            "usage": None,
         }
 
-        if hasattr(response, 'usage'):
+        if hasattr(response, "usage"):
             result["usage"] = {
                 "prompt_tokens": response.usage.prompt_tokens,
                 "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens
+                "total_tokens": response.usage.total_tokens,
             }
 
         return result
 
     def estimate_cost(
-        self,
-        prompt_tokens: int,
-        completion_tokens: int,
-        model: Optional[str] = None
+        self, prompt_tokens: int, completion_tokens: int, model: str | None = None
     ) -> float:
         """
         Estimate the cost of an LLM call based on token usage.
@@ -320,7 +324,7 @@ class LLMClient:
         pricing = {
             "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
             "gpt-4": {"input": 30.0, "output": 60.0},
-            "gpt-3.5-turbo": {"input": 0.50, "output": 1.50}
+            "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
         }
 
         # Default pricing for unknown models (use gpt-4.1-mini rates)
@@ -331,7 +335,7 @@ class LLMClient:
 
         return round(input_cost + output_cost, 6)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get client usage statistics.
 
@@ -349,9 +353,8 @@ class LLMClient:
             "total_completion_tokens": self._total_completion_tokens,
             "total_errors": self._total_errors,
             "estimated_cost": self.estimate_cost(
-                self._total_prompt_tokens,
-                self._total_completion_tokens
-            )
+                self._total_prompt_tokens, self._total_completion_tokens
+            ),
         }
 
     def reset_statistics(self) -> None:
@@ -373,6 +376,6 @@ def get_default_client() -> LLMClient:
         Shared LLMClient instance
     """
     global _default_client
-    if '_default_client' not in globals():
+    if "_default_client" not in globals():
         _default_client = LLMClient()
     return _default_client

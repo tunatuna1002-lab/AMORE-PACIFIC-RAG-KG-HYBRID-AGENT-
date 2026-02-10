@@ -97,6 +97,11 @@ class DecisionMaker:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self._decision_count = 0
+        self._tracer = None  # Set externally via set_tracer()
+
+    def set_tracer(self, tracer) -> None:
+        """ExecutionTracer 설정"""
+        self._tracer = tracer
 
     async def decide(
         self,
@@ -136,12 +141,38 @@ class DecisionMaker:
             mode_suffix = self.MODE_PROMPTS.get(confidence_level, self.MODE_PROMPTS["medium"])
             prompt += mode_suffix
 
-            response = await acompletion(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-            )
+            # LLM 트레이싱
+            if self._tracer and self._tracer.get_current_trace_id():
+                with self._tracer.llm_span(
+                    "decision_llm",
+                    model=self.model,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                ) as span:
+                    response = await acompletion(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=self.max_tokens,
+                        temperature=self.temperature,
+                    )
+                    # 토큰 사용량 기록
+                    if hasattr(response, "usage") and response.usage:
+                        span.attributes["llm.prompt_tokens"] = getattr(
+                            response.usage, "prompt_tokens", 0
+                        )
+                        span.attributes["llm.completion_tokens"] = getattr(
+                            response.usage, "completion_tokens", 0
+                        )
+                        span.attributes["llm.total_tokens"] = getattr(
+                            response.usage, "total_tokens", 0
+                        )
+            else:
+                response = await acompletion(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                )
 
             return self._parse_decision(response.choices[0].message.content)
 

@@ -21,6 +21,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from .hallucination_detector import HallucinationDetector
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,8 @@ class ResponsePipeline:
         self.model = model
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self._tracer = None  # Set externally via set_tracer()
+        self._hallucination_detector = HallucinationDetector()
 
     # =========================================================================
     # 클라이언트 설정
@@ -80,6 +83,10 @@ class ResponsePipeline:
     def set_client(self, client: Any) -> None:
         """OpenAI 클라이언트 설정 (지연 주입용)"""
         self.client = client
+
+    def set_tracer(self, tracer) -> None:
+        """ExecutionTracer 설정"""
+        self._tracer = tracer
 
     # =========================================================================
     # 메인 생성 메서드
@@ -136,6 +143,24 @@ class ResponsePipeline:
 
             # 응답 후처리
             processed_text = self._post_process(response_text, context)
+
+            # 환각 감지 (low confidence 응답만)
+            hallucination_warning = False
+            groundedness_score = None
+            groundedness_method = None
+            if decision and hasattr(decision, "confidence") and decision.confidence < 0.8:
+                try:
+                    context_text = context.summary or ""
+                    groundedness = await self._hallucination_detector.check(
+                        processed_text, context_text
+                    )
+                    if not groundedness.is_grounded:
+                        hallucination_warning = True
+                        groundedness_score = groundedness.score
+                        groundedness_method = groundedness.method
+                        logger.warning(f"Hallucination warning: score={groundedness.score:.2f}")
+                except Exception as e:
+                    logger.debug(f"Hallucination check skipped: {e}")
 
             # 제안 질문 생성
             suggestions = self._generate_suggestions(query, context)
@@ -322,12 +347,36 @@ class ResponsePipeline:
         try:
             from litellm import acompletion
 
-            response = await acompletion(
-                model=self.model,
-                messages=messages,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-            )
+            if self._tracer and self._tracer.get_current_trace_id():
+                with self._tracer.llm_span(
+                    "response_llm",
+                    model=self.model,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                ) as span:
+                    response = await acompletion(
+                        model=self.model,
+                        messages=messages,
+                        max_tokens=self.max_tokens,
+                        temperature=self.temperature,
+                    )
+                    if hasattr(response, "usage") and response.usage:
+                        span.attributes["llm.prompt_tokens"] = getattr(
+                            response.usage, "prompt_tokens", 0
+                        )
+                        span.attributes["llm.completion_tokens"] = getattr(
+                            response.usage, "completion_tokens", 0
+                        )
+                        span.attributes["llm.total_tokens"] = getattr(
+                            response.usage, "total_tokens", 0
+                        )
+            else:
+                response = await acompletion(
+                    model=self.model,
+                    messages=messages,
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                )
 
             return response.choices[0].message.content
 

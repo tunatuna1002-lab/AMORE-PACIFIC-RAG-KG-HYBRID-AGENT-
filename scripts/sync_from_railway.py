@@ -15,17 +15,17 @@ Usage:
     RAILWAY_API_URL: Railway API URL (기본값: production URL)
 """
 
-import asyncio
 import argparse
+import asyncio
 import sys
 from pathlib import Path
-from datetime import datetime
 
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import httpx
-from src.tools.sqlite_storage import SQLiteStorage
+
+from src.tools.storage.sqlite_storage import SQLiteStorage
 
 # Railway Production URL
 DEFAULT_RAILWAY_URL = "https://amore-pacific-rag-kg-hybrid-agent-production.up.railway.app"
@@ -69,9 +69,7 @@ async def get_local_dates(sqlite: SQLiteStorage) -> list[str]:
 
 
 async def sync_from_railway(
-    base_url: str = DEFAULT_RAILWAY_URL,
-    force: bool = False,
-    dry_run: bool = False
+    base_url: str = DEFAULT_RAILWAY_URL, force: bool = False, dry_run: bool = False
 ) -> bool:
     """Railway → 로컬 SQLite 동기화 실행"""
 
@@ -169,13 +167,13 @@ async def sync_from_railway(
     print("\n" + "=" * 60)
     print("동기화 완료!")
     print("=" * 60)
-    print(f"\n결과:")
+    print("\n결과:")
     print(f"  - 동기화된 날짜: {total_synced}/{len(missing_dates)}")
     print(f"  - 추가된 레코드: {total_records:,}")
 
     # 최종 상태 확인
     final_dates = await get_local_dates(sqlite)
-    print(f"\n로컬 SQLite 최종 상태:")
+    print("\n로컬 SQLite 최종 상태:")
     print(f"  - 총 일수: {len(final_dates)}")
     if final_dates:
         print(f"  - 날짜 범위: {final_dates[0]} ~ {final_dates[-1]}")
@@ -184,32 +182,18 @@ async def sync_from_railway(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Railway → 로컬 SQLite 동기화 스크립트"
-    )
+    parser = argparse.ArgumentParser(description="Railway → 로컬 SQLite 동기화 스크립트")
+    parser.add_argument("--url", default=DEFAULT_RAILWAY_URL, help="Railway API URL")
     parser.add_argument(
-        "--url",
-        default=DEFAULT_RAILWAY_URL,
-        help="Railway API URL"
+        "--force", action="store_true", help="모든 날짜 재동기화 (기존 데이터 덮어쓰기)"
     )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="모든 날짜 재동기화 (기존 데이터 덮어쓰기)"
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="실제 동기화 없이 확인만"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="실제 동기화 없이 확인만")
 
     args = parser.parse_args()
 
-    success = asyncio.run(sync_from_railway(
-        base_url=args.url,
-        force=args.force,
-        dry_run=args.dry_run
-    ))
+    success = asyncio.run(
+        sync_from_railway(base_url=args.url, force=args.force, dry_run=args.dry_run)
+    )
 
     sys.exit(0 if success else 1)
 

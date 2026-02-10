@@ -1,0 +1,17 @@
+{
+  "weights": {
+    "kg": 0.4,
+    "rag": 0.4,
+    "inference": 0.2
+  },
+  "freshness": {
+    "weekly": 1.0,
+    "quarterly": 0.9,
+    "static": 0.8
+  },
+  "max_context_items": {
+    "ontology_facts": 5,
+    "inferences": 5,
+    "rag_chunks": 3
+  }
+}
