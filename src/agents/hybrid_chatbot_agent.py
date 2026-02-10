@@ -34,6 +34,7 @@ from src.rag.templates import ResponseTemplates
 class HybridChatbotAgent:
     """
     Ontology-RAG 하이브리드 챗봇 에이전트
+    Implements ChatbotAgentProtocol (src.domain.interfaces.chatbot)
 
     기존 ChatbotAgent와의 차이점:
     - 온톨로지 추론 결과 기반 응답
@@ -1435,7 +1436,9 @@ class HybridChatbotAgent:
             # 외부 신호 수집기 lazy initialization
             if self._external_signal_collector is None:
                 try:
-                    from src.tools.external_signal_collector import ExternalSignalCollector
+                    from src.tools.collectors.external_signal_collector import (
+                        ExternalSignalCollector,
+                    )
 
                     self._external_signal_collector = ExternalSignalCollector()
                     await self._external_signal_collector.initialize()

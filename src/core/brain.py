@@ -10,15 +10,27 @@ Level 4 Autonomous Agent의 핵심 두뇌
 4. 상태 관리 및 이벤트 처리
 
 아키텍처 (SRP 분해):
-- DecisionMaker: LLM 의사결정
-- ToolCoordinator: 도구 실행 조율
-- AlertManager: 알림 처리
+- DecisionMaker: LLM 의사결정 (decision_maker.py)
+- ToolCoordinator: 도구 실행 조율 (tool_coordinator.py)
+- AlertManager: 알림 처리 (alert_manager.py)
+- ContextGatherer: RAG + KG 컨텍스트 수집 (context_gatherer.py)
+- ResponsePipeline: 응답 생성 (response_pipeline.py)
 - UnifiedBrain: Facade (위 컴포넌트 조율)
 
 동작 모드:
 - 자율 모드: 스케줄 기반 자동 작업 (크롤링, 분석, 알림)
 - 대화 모드: 사용자 질문 처리 (최우선)
 - 알림 모드: 이벤트 기반 알림 생성
+
+주요 책임:
+- Query Processing: process_query(), process_query_stream() - 사용자 질문 처리
+- Autonomous Scheduling: run_autonomous_cycle() - 자율 작업 실행
+- Event Management: emit_event() - 이벤트 발생 및 핸들러 호출
+- Component Coordination: Facade 패턴으로 내부 컴포넌트 조율
+- ReAct Integration: 복잡한 질문 감지 및 ReAct 모드 라우팅
+- KG/OWL Sync: Knowledge Graph 및 OWL Ontology 동기화
+- Market Intelligence: collect_market_intelligence() - 시장 정보 수집
+- Newsletter: _send_morning_brief() - 아침 브리핑 이메일 발송
 
 Usage:
     brain = UnifiedBrain()
@@ -55,10 +67,11 @@ from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
+from .query_graph import QueryGraph
 from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
-from .tool_coordinator import ErrorStrategy, ToolCoordinator
+from .tool_coordinator import ToolCoordinator
 from .tools import AGENT_TOOLS, ToolExecutor
 
 # Type checking imports (순환 참조 방지)
@@ -198,6 +211,9 @@ class UnifiedBrain:
 
         # Market Intelligence Engine (lazy init)
         self._market_intelligence: MarketIntelligenceEngine | None = None
+
+        # Query processing graph (initialized in initialize())
+        self._query_graph: QueryGraph | None = None
 
         # 통계
         self._stats = {
@@ -369,6 +385,17 @@ class UnifiedBrain:
         # v3 대시보드 도구 등록
         self._register_dashboard_tools()
 
+        # Initialize query processing graph
+        self._query_graph = QueryGraph(
+            cache=self.cache,
+            context_gatherer=self._context_gatherer,
+            confidence_assessor=self.confidence_assessor,
+            decision_maker=self.decision_maker,
+            tool_coordinator=self.tool_coordinator,
+            response_pipeline=self._response_pipeline,
+            react_agent=self._react_agent,
+        )
+
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
 
@@ -404,12 +431,6 @@ class UnifiedBrain:
             for alert in alerts:
                 await self._process_alert(alert)
 
-    async def _check_alert_conditions(self, event_name: str, data: dict[str, Any]) -> None:
-        """알림 조건 체크 (하위호환성 유지, AlertManager에 위임)"""
-        alerts = await self.alert_manager.check_conditions(event_name, data)
-        for alert in alerts:
-            await self._process_alert(alert)
-
     async def _process_alert(self, alert: dict[str, Any]) -> None:
         """알림 처리 (AlertManager에 위임)"""
         self._stats["alerts_generated"] += 1
@@ -439,6 +460,8 @@ class UnifiedBrain:
         Returns:
             Response 객체
         """
+        from .graph_state import QueryState
+
         start_time = datetime.now()
         self._stats["total_queries"] += 1
 
@@ -454,102 +477,42 @@ class UnifiedBrain:
         self.mode = BrainMode.RESPONDING
 
         try:
-            # 0. PromptGuard 입력 검증
-            is_safe, block_reason, sanitized_query = PromptGuard.check_input(query)
-            if not is_safe:
-                logger.warning(f"PromptGuard blocked input: {block_reason}")
-                return Response(
-                    text=PromptGuard.get_rejection_message(block_reason),
-                    confidence_score=1.0,
-                    sources=[],
-                )
-            # out_of_scope 경고 시에도 처리는 계속
-            if block_reason == "out_of_scope_warning":
-                query = sanitized_query  # 원본 유지하되 플래그 기록
+            # QueryState 초기화
+            state = QueryState(
+                query=query,
+                session_id=session_id,
+                current_metrics=current_metrics,
+                skip_cache=skip_cache,
+                system_state=self._get_system_state(current_metrics),
+            )
 
             # 세션 설정
             if session_id:
                 self.state.set_session(session_id)
 
-            # 1. 캐시 확인
-            if not skip_cache:
-                cached = self.cache.get(query, "query")
-                if cached:
+            # Lazy init query graph (테스트에서 _initialized=True 직접 설정 시)
+            if self._query_graph is None:
+                self._query_graph = QueryGraph(
+                    cache=self.cache,
+                    context_gatherer=self._context_gatherer,
+                    confidence_assessor=self.confidence_assessor,
+                    decision_maker=self.decision_maker,
+                    tool_coordinator=self.tool_coordinator,
+                    response_pipeline=self._response_pipeline,
+                    react_agent=self._react_agent,
+                )
+
+            # 그래프 실행
+            state = await self._query_graph.run(state)
+
+            # 통계 업데이트
+            if state.response:
+                if state.metadata.get("cache_hit"):
                     self._stats["cache_hits"] += 1
-                    logger.info(f"Cache hit: {query[:30]}...")
-                    return cached
-
-            # 2. 시스템 상태 수집
-            system_state = self._get_system_state(current_metrics)
-
-            # 3. 컨텍스트 수집
-            context = await self._context_gatherer.gather(
-                query=query, current_metrics=current_metrics
-            )
-
-            # 4. 신뢰도 기반 라우팅
-            confidence_level = self._assess_confidence_level(context)
-
-            if self.confidence_assessor.should_skip_llm_decision(confidence_level):
-                # HIGH: LLM 판단 스킵, 컨텍스트로 직접 응답
-                logger.info(f"HIGH confidence - skipping LLM decision for: {query[:50]}...")
-                decision = Decision(
-                    tool="direct_answer",
-                    tool_params={},
-                    reason=f"HIGH confidence ({confidence_level.value}) - direct context answer",
-                    confidence=0.9,
-                    key_points=self._extract_key_points_from_context(context),
-                )
-                response = await self._generate_response(
-                    query=query, context=context, decision=decision, tool_result=None
-                )
-            elif self.confidence_assessor.should_request_clarification(confidence_level):
-                # UNKNOWN: 명확화 요청
-                logger.info(f"UNKNOWN confidence - requesting clarification: {query[:50]}...")
-                response = Response(
-                    text="질문을 더 구체적으로 해주시겠어요? 예를 들어 특정 브랜드나 카테고리, 분석 지표(SoS, HHI 등)를 포함해주세요.",
-                    query_type="clarification",
-                    confidence_level=confidence_level,
-                    confidence_score=0.2,
-                    suggestions=[
-                        "LANEIGE의 Lip Care 카테고리 점유율은?",
-                        "최근 크롤링 데이터 기반 Top 10 브랜드 알려줘",
-                        "경쟁사 대비 LANEIGE 포지셔닝 분석해줘",
-                    ],
-                )
-            else:
-                # MEDIUM/LOW: 기존 플로우 (ReAct 또는 DecisionMaker)
-                # 5. 복잡도 판단 및 ReAct 모드 활성화
-                if self._react_agent and self._is_complex_query(query, context):
-                    logger.info(f"Complex query detected, using ReAct mode: {query[:50]}...")
-                    response = await self._process_with_react(query, context)
-                else:
-                    # 5. LLM 의사결정 (DecisionMaker에 위임)
-                    decision = await self.decision_maker.decide(
-                        query,
-                        context,
-                        system_state,
-                        confidence_level=confidence_level.value if confidence_level else "medium",
-                    )
+                if state.decision and state.decision.tool != "direct_answer":
                     self._stats["llm_decisions"] += 1
 
-                    # 6. 도구 실행 (필요시, ToolCoordinator에 위임)
-                    tool_result = None
-                    if decision.tool and decision.tool != "direct_answer":
-                        self.mode = BrainMode.EXECUTING
-                        tool_result = await self.tool_coordinator.execute(
-                            tool_name=decision.tool, params=decision.tool_params
-                        )
-
-                    # 7. 응답 생성
-                    response = await self._generate_response(
-                        query=query, context=context, decision=decision, tool_result=tool_result
-                    )
-
-            # PromptGuard 출력 검증
-            is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
-            if not is_output_safe:
-                response.text = sanitized_text
+            response = state.response or Response.fallback("처리 결과가 없습니다.")
 
             # 처리 시간
             response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
@@ -924,61 +887,6 @@ class UnifiedBrain:
         executor.register_executor("get_action_items", exec_action_items)
 
         logger.info("Registered 5 v3 dashboard tools in ToolCoordinator")
-
-    # =========================================================================
-    # LLM 의사결정 (하위호환성 유지, DecisionMaker에 위임)
-    # =========================================================================
-
-    async def _make_llm_decision(
-        self, query: str, context: Context, system_state: dict[str, Any]
-    ) -> dict[str, Any]:
-        """
-        LLM 기반 의사결정 (DecisionMaker에 위임)
-
-        하위호환성을 위해 유지합니다.
-        """
-        self._stats["llm_decisions"] += 1
-        return await self.decision_maker.decide(query, context, system_state)
-
-    def _parse_decision(self, response_text: str) -> dict[str, Any]:
-        """LLM 응답 파싱 (하위호환성)"""
-        try:
-            json_start = response_text.find("{")
-            json_end = response_text.rfind("}") + 1
-
-            if json_start >= 0 and json_end > json_start:
-                return json.loads(response_text[json_start:json_end])
-        except json.JSONDecodeError:
-            logger.warning("Failed to parse LLM decision")
-
-        return {"tool": "direct_answer", "reason": "파싱 실패", "confidence": 0.5, "key_points": []}
-
-    # =========================================================================
-    # 도구 실행 (하위호환성 유지, ToolCoordinator에 위임)
-    # =========================================================================
-
-    async def _execute_tool(self, tool_name: str, params: dict[str, Any]) -> ToolResult:
-        """
-        도구 실행 (ToolCoordinator에 위임)
-
-        하위호환성을 위해 유지합니다.
-        """
-        return await self.tool_coordinator.execute(tool_name, params)
-
-    async def _handle_error(
-        self, error: Any, strategy: ErrorStrategy, params: dict[str, Any]
-    ) -> ToolResult:
-        """
-        에러 처리 (하위호환성)
-
-        ToolCoordinator가 내부적으로 처리합니다.
-        """
-        self._stats["errors"] += 1
-        return ToolResult(
-            tool_name=error.agent_name if hasattr(error, "agent_name") else "unknown",
-            success=False,
-            error=str(error),
-        )
 
     # =========================================================================
     # 응답 생성
@@ -1506,7 +1414,7 @@ class UnifiedBrain:
 
         try:
             # 1. 최신 크롤링 데이터 가져오기
-            from src.tools.market_intelligence import MarketIntelligenceEngine
+            from src.tools.intelligence.market_intelligence import MarketIntelligenceEngine
 
             mi = MarketIntelligenceEngine()
             latest_data = await mi.get_latest_data()
@@ -1518,7 +1426,10 @@ class UnifiedBrain:
             }
 
             # 2. Morning Brief 생성
-            from src.tools.morning_brief import MorningBriefGenerator, render_morning_brief_html
+            from src.tools.intelligence.morning_brief import (
+                MorningBriefGenerator,
+                render_morning_brief_html,
+            )
 
             generator = MorningBriefGenerator()
             brief_data = await generator.generate(
@@ -1530,7 +1441,7 @@ class UnifiedBrain:
             html_content = render_morning_brief_html(brief_data)
 
             # 4. 이메일 발송
-            from src.tools.email_sender import EmailSender
+            from src.tools.notifications.email_sender import EmailSender
 
             sender = EmailSender()
 

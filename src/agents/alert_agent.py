@@ -25,12 +25,11 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-# 순환 import 방지: RulesEngine은 TYPE_CHECKING + 지연 import
+# 순환 import 방지: RulesEngine, StateManager는 TYPE_CHECKING + 지연 import
 if TYPE_CHECKING:
     from src.core.rules_engine import RulesEngine
-
-from src.core.state_manager import StateManager
-from src.tools.email_sender import EmailSender, SendResult
+    from src.core.state_manager import StateManager
+from src.tools.notifications.email_sender import EmailSender, SendResult
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +84,7 @@ class Alert:
 class AlertAgent:
     """
     알림 처리 및 발송 전담 에이전트
+    Implements AlertAgentProtocol (src.domain.interfaces.alert)
 
     알림 조건을 모니터링하고, 동의한 사용자에게 이메일을 발송합니다.
 
@@ -96,7 +96,7 @@ class AlertAgent:
 
     def __init__(
         self,
-        state_manager: StateManager,
+        state_manager: "StateManager",
         rules_engine: "RulesEngine | None" = None,
         email_sender: EmailSender | None = None,
     ):

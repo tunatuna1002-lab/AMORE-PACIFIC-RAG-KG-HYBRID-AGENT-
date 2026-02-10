@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import httpx
 
-from src.tools.sqlite_storage import SQLiteStorage
+from src.tools.storage.sqlite_storage import SQLiteStorage
 
 # Railway Production URL
 DEFAULT_RAILWAY_URL = "https://amore-pacific-rag-kg-hybrid-agent-production.up.railway.app"

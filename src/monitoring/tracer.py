@@ -6,27 +6,28 @@ Execution Tracer
 import json
 import time
 import uuid
-from datetime import datetime
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field, asdict
-from pathlib import Path
 from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
 class Span:
     """실행 스팬 (추적 단위)"""
+
     span_id: str
     name: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     start_time: float = field(default_factory=time.time)
-    end_time: Optional[float] = None
+    end_time: float | None = None
     status: str = "running"  # running, completed, failed
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    events: List[Dict[str, Any]] = field(default_factory=list)
+    attributes: dict[str, Any] = field(default_factory=dict)
+    events: list[dict[str, Any]] = field(default_factory=list)
 
     @property
-    def duration_ms(self) -> Optional[float]:
+    def duration_ms(self) -> float | None:
         if self.end_time:
             return (self.end_time - self.start_time) * 1000
         return None
@@ -35,11 +36,12 @@ class Span:
 @dataclass
 class Trace:
     """실행 추적"""
+
     trace_id: str
     session_id: str
-    spans: List[Span] = field(default_factory=list)
+    spans: list[Span] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class ExecutionTracer:
@@ -53,10 +55,10 @@ class ExecutionTracer:
         self.trace_dir = Path(trace_dir)
         self.trace_dir.mkdir(parents=True, exist_ok=True)
 
-        self._current_trace: Optional[Trace] = None
-        self._span_stack: List[Span] = []
+        self._current_trace: Trace | None = None
+        self._span_stack: list[Span] = []
 
-    def start_trace(self, session_id: str, metadata: Optional[Dict] = None) -> str:
+    def start_trace(self, session_id: str, metadata: dict | None = None) -> str:
         """
         새 추적 시작
 
@@ -69,14 +71,12 @@ class ExecutionTracer:
         """
         trace_id = f"trace_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
         self._current_trace = Trace(
-            trace_id=trace_id,
-            session_id=session_id,
-            metadata=metadata or {}
+            trace_id=trace_id, session_id=session_id, metadata=metadata or {}
         )
         self._span_stack = []
         return trace_id
 
-    def end_trace(self) -> Optional[Dict]:
+    def end_trace(self) -> dict | None:
         """
         추적 종료 및 저장
 
@@ -101,7 +101,7 @@ class ExecutionTracer:
         return summary
 
     @contextmanager
-    def span(self, name: str, attributes: Optional[Dict] = None):
+    def span(self, name: str, attributes: dict | None = None):
         """
         스팬 컨텍스트 매니저
 
@@ -117,7 +117,54 @@ class ExecutionTracer:
             self.end_span(status="failed", error=str(e))
             raise
 
-    def start_span(self, name: str, attributes: Optional[Dict] = None) -> Span:
+    @contextmanager
+    def llm_span(
+        self,
+        name: str,
+        model: str = "",
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ):
+        """
+        LLM 호출 전용 스팬
+
+        LLM 호출의 모델, 토큰, 레이턴시를 자동 추적합니다.
+
+        Usage:
+            with tracer.llm_span("decision_llm", model="gpt-4o-mini") as span:
+                response = await acompletion(...)
+                span.attributes["llm.prompt_tokens"] = response.usage.prompt_tokens
+                span.attributes["llm.completion_tokens"] = response.usage.completion_tokens
+
+        Args:
+            name: 스팬 이름
+            model: LLM 모델명
+            temperature: 생성 온도
+            max_tokens: 최대 토큰 수
+        """
+        attributes = {
+            "span.type": "llm",
+            "llm.model": model,
+        }
+        if temperature is not None:
+            attributes["llm.temperature"] = temperature
+        if max_tokens is not None:
+            attributes["llm.max_tokens"] = max_tokens
+
+        span = self.start_span(name, attributes)
+        try:
+            yield span
+            # 완료 시 레이턴시 자동 계산
+            if span.end_time is None:
+                span.end_time = time.time()
+            span.attributes["llm.latency_ms"] = round((span.end_time - span.start_time) * 1000, 2)
+            self.end_span(status="completed")
+        except Exception as e:
+            span.attributes["llm.error"] = str(e)
+            self.end_span(status="failed", error=str(e))
+            raise
+
+    def start_span(self, name: str, attributes: dict | None = None) -> Span:
         """
         스팬 시작
 
@@ -134,7 +181,7 @@ class ExecutionTracer:
             span_id=f"span_{uuid.uuid4().hex[:12]}",
             name=name,
             parent_id=parent_id,
-            attributes=attributes or {}
+            attributes=attributes or {},
         )
 
         if self._current_trace:
@@ -143,7 +190,7 @@ class ExecutionTracer:
         self._span_stack.append(span)
         return span
 
-    def end_span(self, status: str = "completed", error: Optional[str] = None) -> Optional[Span]:
+    def end_span(self, status: str = "completed", error: str | None = None) -> Span | None:
         """
         현재 스팬 종료
 
@@ -166,7 +213,7 @@ class ExecutionTracer:
 
         return span
 
-    def add_event(self, name: str, attributes: Optional[Dict] = None) -> None:
+    def add_event(self, name: str, attributes: dict | None = None) -> None:
         """
         현재 스팬에 이벤트 추가
 
@@ -177,11 +224,7 @@ class ExecutionTracer:
         if not self._span_stack:
             return
 
-        event = {
-            "name": name,
-            "timestamp": time.time(),
-            "attributes": attributes or {}
-        }
+        event = {"name": name, "timestamp": time.time(), "attributes": attributes or {}}
         self._span_stack[-1].events.append(event)
 
     def set_attribute(self, key: str, value: Any) -> None:
@@ -202,13 +245,13 @@ class ExecutionTracer:
             "session_id": self._current_trace.session_id,
             "created_at": self._current_trace.created_at,
             "metadata": self._current_trace.metadata,
-            "spans": [asdict(s) for s in self._current_trace.spans]
+            "spans": [asdict(s) for s in self._current_trace.spans],
         }
 
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(trace_data, f, ensure_ascii=False, indent=2, default=str)
 
-    def _get_trace_summary(self) -> Dict[str, Any]:
+    def _get_trace_summary(self) -> dict[str, Any]:
         """추적 요약 생성"""
         if not self._current_trace:
             return {}
@@ -232,18 +275,18 @@ class ExecutionTracer:
             "total_spans": total_spans,
             "completed": completed,
             "failed": failed,
-            "total_duration_ms": round(total_duration, 2)
+            "total_duration_ms": round(total_duration, 2),
         }
 
-    def get_current_trace_id(self) -> Optional[str]:
+    def get_current_trace_id(self) -> str | None:
         """현재 추적 ID 반환"""
         return self._current_trace.trace_id if self._current_trace else None
 
-    def get_current_span(self) -> Optional[Span]:
+    def get_current_span(self) -> Span | None:
         """현재 스팬 반환"""
         return self._span_stack[-1] if self._span_stack else None
 
-    def get_span_tree(self) -> List[Dict]:
+    def get_span_tree(self) -> list[dict]:
         """스팬 트리 구조 반환 (디버깅용)"""
         if not self._current_trace:
             return []
@@ -251,14 +294,14 @@ class ExecutionTracer:
         spans = self._current_trace.spans
         root_spans = [s for s in spans if s.parent_id is None]
 
-        def build_tree(span: Span, depth: int = 0) -> Dict:
+        def build_tree(span: Span, depth: int = 0) -> dict:
             children = [s for s in spans if s.parent_id == span.span_id]
             return {
                 "name": span.name,
                 "status": span.status,
                 "duration_ms": span.duration_ms,
                 "depth": depth,
-                "children": [build_tree(c, depth + 1) for c in children]
+                "children": [build_tree(c, depth + 1) for c in children],
             }
 
         return [build_tree(s) for s in root_spans]
@@ -269,7 +312,7 @@ class ExecutionTracer:
 
         lines = []
 
-        def format_node(node: Dict, indent: str = "") -> None:
+        def format_node(node: dict, indent: str = "") -> None:
             status_icon = {"completed": "✓", "failed": "✗", "running": "◐"}.get(node["status"], "?")
             duration = f" ({node['duration_ms']:.1f}ms)" if node["duration_ms"] else ""
             lines.append(f"{indent}{status_icon} {node['name']}{duration}")
@@ -285,36 +328,36 @@ class ExecutionTracer:
 
         return "\n".join(lines)
 
-    def load_trace(self, trace_id: str) -> Optional[Dict]:
+    def load_trace(self, trace_id: str) -> dict | None:
         """저장된 추적 로드"""
         filepath = self.trace_dir / f"{trace_id}.json"
 
         if not filepath.exists():
             return None
 
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             return json.load(f)
 
-    def list_traces(self, limit: int = 20) -> List[Dict]:
+    def list_traces(self, limit: int = 20) -> list[dict]:
         """최근 추적 목록"""
         trace_files = sorted(
-            self.trace_dir.glob("trace_*.json"),
-            key=lambda f: f.stat().st_mtime,
-            reverse=True
+            self.trace_dir.glob("trace_*.json"), key=lambda f: f.stat().st_mtime, reverse=True
         )[:limit]
 
         traces = []
         for filepath in trace_files:
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     data = json.load(f)
-                    traces.append({
-                        "trace_id": data["trace_id"],
-                        "session_id": data["session_id"],
-                        "created_at": data["created_at"],
-                        "span_count": len(data.get("spans", []))
-                    })
-            except Exception as e:
+                    traces.append(
+                        {
+                            "trace_id": data["trace_id"],
+                            "session_id": data["session_id"],
+                            "created_at": data["created_at"],
+                            "span_count": len(data.get("spans", [])),
+                        }
+                    )
+            except Exception:
                 # 손상된 트레이스 파일 무시
                 continue
 

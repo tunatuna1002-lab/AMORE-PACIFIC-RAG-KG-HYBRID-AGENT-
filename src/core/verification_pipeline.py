@@ -20,9 +20,13 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from src.tools.claim_extractor import Claim, ClaimExtractor
-from src.tools.claim_verifier import ClaimVerifier, VerificationResult
-from src.tools.confidence_scorer import ConfidenceGrade, ConfidenceReport, ConfidenceScorer
+from src.tools.intelligence.claim_extractor import Claim, ClaimExtractor
+from src.tools.intelligence.claim_verifier import ClaimVerifier, VerificationResult
+from src.tools.intelligence.confidence_scorer import (
+    ConfidenceGrade,
+    ConfidenceReport,
+    ConfidenceScorer,
+)
 
 logger = logging.getLogger(__name__)
 

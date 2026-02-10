@@ -5,29 +5,32 @@ Amazon 베스트셀러 크롤링 에이전트
 
 import asyncio
 import json
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 # 한국 시간대 (UTC+9)
 KST = timezone(timedelta(hours=9))
 
-from src.tools.amazon_scraper import AmazonScraper
-from src.domain.entities import RankRecord, Product, Category
+from src.domain.entities import RankRecord
 from src.monitoring.logger import AgentLogger
-from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics
+from src.monitoring.tracer import ExecutionTracer
+from src.tools.scrapers.amazon_scraper import AmazonScraper
 
 
 class CrawlerAgent:
-    """Amazon 크롤링 에이전트"""
+    """
+    Amazon 크롤링 에이전트
+    Implements CrawlerAgentProtocol (src.domain.interfaces.agent)
+    """
 
     def __init__(
         self,
         config_path: str = "./config/thresholds.json",
-        logger: Optional[AgentLogger] = None,
-        tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None
+        logger: AgentLogger | None = None,
+        tracer: ExecutionTracer | None = None,
+        metrics: QualityMetrics | None = None,
     ):
         """
         Args:
@@ -43,14 +46,14 @@ class CrawlerAgent:
         self.metrics = metrics
 
         # 결과 저장
-        self._results: Dict[str, Any] = {}
+        self._results: dict[str, Any] = {}
 
-    def _load_config(self, path: str) -> Dict:
+    def _load_config(self, path: str) -> dict:
         """설정 로드"""
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
-    async def execute(self, categories: Optional[List[str]] = None) -> Dict[str, Any]:
+    async def execute(self, categories: list[str] | None = None) -> dict[str, Any]:
         """
         크롤링 실행
 
@@ -86,7 +89,7 @@ class CrawlerAgent:
                 "categories": {},
                 "all_products": [],
                 "laneige_products": [],
-                "errors": []
+                "errors": [],
             }
 
             # 각 카테고리 크롤링
@@ -128,23 +131,27 @@ class CrawlerAgent:
                             rating=product.get("rating"),
                             reviews_count=product.get("reviews_count", product.get("review_count")),
                             badge=product.get("badge", ""),
-                            product_url=product.get("url", product.get("product_url", f"https://www.amazon.com/dp/{product.get('asin', '')}"))
+                            product_url=product.get(
+                                "url",
+                                product.get(
+                                    "product_url",
+                                    f"https://www.amazon.com/dp/{product.get('asin', '')}",
+                                ),
+                            ),
                         )
                         rank_records.append(record)
 
                         # LANEIGE 제품 필터링
                         if self._is_laneige_product(product):
-                            results["laneige_products"].append({
-                                **product,
-                                "category": cat_key,
-                                "category_name": cat_name
-                            })
+                            results["laneige_products"].append(
+                                {**product, "category": cat_key, "category_name": cat_name}
+                            )
 
                     results["categories"][cat_key] = {
                         "name": cat_name,
                         "product_count": len(products),
                         "rank_records": [r.model_dump() for r in rank_records],
-                        "duration_seconds": round(cat_duration, 2)
+                        "duration_seconds": round(cat_duration, 2),
                     }
                     results["all_products"].extend(products)
 
@@ -153,7 +160,7 @@ class CrawlerAgent:
                             category=cat_key,
                             products_count=len(products),
                             duration_seconds=cat_duration,
-                            success=True
+                            success=True,
                         )
 
                     if self.tracer:
@@ -161,15 +168,12 @@ class CrawlerAgent:
 
                     self.logger.info(
                         f"Category {cat_name}: {len(products)} products",
-                        {"laneige_count": sum(1 for p in products if self._is_laneige_product(p))}
+                        {"laneige_count": sum(1 for p in products if self._is_laneige_product(p))},
                     )
 
                 except Exception as e:
                     error_msg = str(e)
-                    results["errors"].append({
-                        "category": cat_key,
-                        "error": error_msg
-                    })
+                    results["errors"].append({"category": cat_key, "error": error_msg})
                     results["status"] = "partial"
 
                     if self.metrics:
@@ -205,15 +209,18 @@ class CrawlerAgent:
                 self.tracer.end_span("completed")
 
             if self.metrics:
-                self.metrics.record_agent_complete("crawler", {
-                    "total_products": results["total_products"],
-                    "laneige_count": results["laneige_count"]
-                })
+                self.metrics.record_agent_complete(
+                    "crawler",
+                    {
+                        "total_products": results["total_products"],
+                        "laneige_count": results["laneige_count"],
+                    },
+                )
 
             self.logger.agent_complete(
                 "CrawlerAgent",
                 duration,
-                f"{results['total_products']} products, {results['laneige_count']} LANEIGE"
+                f"{results['total_products']} products, {results['laneige_count']} LANEIGE",
             )
 
             return results
@@ -230,14 +237,14 @@ class CrawlerAgent:
             self.logger.agent_error("CrawlerAgent", str(e), duration)
             raise
 
-    def _is_laneige_product(self, product: Dict) -> bool:
+    def _is_laneige_product(self, product: dict) -> bool:
         """LANEIGE 제품 여부 확인"""
         title = product.get("title", "").lower()
         brand = product.get("brand", "").lower()
 
         return "laneige" in title or "laneige" in brand
 
-    async def _scrape_tracked_competitors(self) -> List[Dict[str, Any]]:
+    async def _scrape_tracked_competitors(self) -> list[dict[str, Any]]:
         """
         tracked_competitors.json에 정의된 경쟁사 제품 크롤링
         """
@@ -247,7 +254,7 @@ class CrawlerAgent:
                 self.logger.info("No tracked_competitors.json found, skipping competitor tracking")
                 return []
 
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 config = json.load(f)
 
             competitors = config.get("competitors", {})
@@ -276,11 +283,11 @@ class CrawlerAgent:
         """리소스 정리"""
         await self.scraper.close()
 
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """마지막 실행 결과 반환"""
         return self._results
 
-    def get_laneige_summary(self) -> Dict[str, Any]:
+    def get_laneige_summary(self) -> dict[str, Any]:
         """LANEIGE 제품 요약"""
         if not self._results:
             return {}
@@ -288,12 +295,7 @@ class CrawlerAgent:
         products = self._results.get("laneige_products", [])
 
         if not products:
-            return {
-                "total_count": 0,
-                "categories": {},
-                "best_rank": None,
-                "products": []
-            }
+            return {"total_count": 0, "categories": {}, "best_rank": None, "products": []}
 
         # 카테고리별 집계
         by_category = {}
@@ -310,7 +312,7 @@ class CrawlerAgent:
                 "count": len(cat_products),
                 "best_rank": min(ranks),
                 "worst_rank": max(ranks),
-                "avg_rank": round(sum(ranks) / len(ranks), 1)
+                "avg_rank": round(sum(ranks) / len(ranks), 1),
             }
 
         # 전체 베스트 순위
@@ -324,7 +326,7 @@ class CrawlerAgent:
             "best_product": {
                 "title": best.get("title"),
                 "rank": best.get("rank"),
-                "category": best.get("category_name")
+                "category": best.get("category_name"),
             },
-            "products": products
+            "products": products,
         }

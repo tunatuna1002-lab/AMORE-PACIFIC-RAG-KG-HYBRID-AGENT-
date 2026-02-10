@@ -6,7 +6,7 @@ IR 보고서 파서 테스트
 
 import pytest
 
-from src.tools.ir_report_parser import (
+from src.tools.intelligence.ir_report_parser import (
     BrandHighlight,
     IRReport,
     IRReportParser,

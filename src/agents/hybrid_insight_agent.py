@@ -31,14 +31,14 @@ from src.rag.hybrid_retriever import HybridContext, HybridRetriever
 from src.rag.rag_kg_extractor import RAGKGExtractor
 from src.rag.retriever import DocumentRetriever
 from src.rag.templates import ResponseTemplates
-from src.tools.external_signal_collector import ExternalSignalCollector
-from src.tools.insight_formatter import format_insight
-from src.tools.market_intelligence import DataLayer, MarketIntelligenceEngine
-from src.tools.source_manager import InsightSourceBuilder
+from src.tools.collectors.external_signal_collector import ExternalSignalCollector
+from src.tools.exporters.insight_formatter import format_insight
+from src.tools.intelligence.market_intelligence import DataLayer, MarketIntelligenceEngine
+from src.tools.intelligence.source_manager import InsightSourceBuilder
 
 # New collectors (Phase 1 & 2)
 try:
-    from src.tools.google_trends_collector import GoogleTrendsCollector
+    from src.tools.collectors.google_trends_collector import GoogleTrendsCollector
 
     GOOGLE_TRENDS_AVAILABLE = True
 except ImportError as e:
@@ -54,11 +54,14 @@ except ImportError as e:
 class HybridInsightAgent:
     """
     Ontology-RAG 하이브리드 인사이트 생성 에이전트
+    Implements InsightAgentProtocol
 
     기존 InsightAgent와의 차이점:
     - 온톨로지 추론 결과를 기반으로 인사이트 생성
     - 규칙 기반 추론으로 일관성 보장
     - 추론 과정 설명 가능 (Explainability)
+    - OWL Reasoner 지원 (선택적, 고급 추론)
+    - TrueHybridRetriever 지원 (선택적, Entity Linking)
 
     사용 예:
         agent = HybridInsightAgent(model="gpt-4.1-mini")

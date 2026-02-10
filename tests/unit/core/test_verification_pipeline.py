@@ -8,7 +8,7 @@ from src.core.verification_pipeline import (
     ResponseVerificationPipeline,
     VerificationPipelineFactory,
 )
-from src.tools.confidence_scorer import ConfidenceGrade
+from src.tools.intelligence.confidence_scorer import ConfidenceGrade
 
 
 class TestResponseVerificationPipeline:

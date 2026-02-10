@@ -15,7 +15,7 @@
 ## 사용 예시
 ```python
 from src.agents.period_insight_agent import PeriodInsightAgent
-from src.tools.period_analyzer import PeriodAnalyzer
+from src.tools.calculators.period_analyzer import PeriodAnalyzer
 
 # 기간 분석
 analyzer = PeriodAnalyzer()
@@ -34,10 +34,10 @@ from typing import TYPE_CHECKING, Any
 from litellm import acompletion
 
 from src.monitoring.logger import AgentLogger
-from src.tools.insight_formatter import format_insight
+from src.tools.exporters.insight_formatter import format_insight
 
 if TYPE_CHECKING:
-    from src.tools.insight_verifier import VerificationResult
+    from src.tools.intelligence.insight_verifier import VerificationResult
 
 logger = AgentLogger(__name__)
 
@@ -290,7 +290,7 @@ class PeriodInsightAgent:
     async def _verify_report(self, report: "PeriodReport", analysis) -> "VerificationResult":
         """보고서 최종 검증"""
         try:
-            from src.tools.insight_verifier import InsightVerifier
+            from src.tools.intelligence.insight_verifier import InsightVerifier
 
             verifier = InsightVerifier(model=self.model)
 
@@ -309,7 +309,7 @@ class PeriodInsightAgent:
         except Exception as e:
             logger.error(f"Verification failed: {e}")
             # 검증 실패해도 보고서 생성은 계속
-            from src.tools.insight_verifier import VerificationResult
+            from src.tools.intelligence.insight_verifier import VerificationResult
 
             return VerificationResult(
                 verified_at=datetime.now().isoformat(),

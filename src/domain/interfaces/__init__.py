@@ -20,27 +20,36 @@ Clean Architecture에서 내부 레이어(Domain, Application)는 외부 레이�
     workflow = BatchWorkflow(repo)  # Protocol 만족하면 주입 가능
 """
 
-from src.domain.interfaces.repository import (
-    ProductRepository,
-    MetricsRepository,
-)
 from src.domain.interfaces.agent import (
-    CrawlerAgentProtocol,
-    StorageAgentProtocol,
-    MetricsAgentProtocol,
-    InsightAgentProtocol,
     ChatAgentProtocol,
+    CrawlerAgentProtocol,
+    InsightAgentProtocol,
+    MetricsAgentProtocol,
+    StorageAgentProtocol,
 )
-from src.domain.interfaces.scraper import ScraperProtocol
-from src.domain.interfaces.llm_client import LLMClientProtocol
+from src.domain.interfaces.alert import AlertAgentProtocol
+
+# New protocols for circular dependency resolution
+from src.domain.interfaces.brain import BrainProtocol
+from src.domain.interfaces.chatbot import ChatbotAgentProtocol
+from src.domain.interfaces.insight import InsightAgentProtocol as HybridInsightAgentProtocol
 from src.domain.interfaces.knowledge_graph import KnowledgeGraphProtocol
-from src.domain.interfaces.retriever import RetrieverProtocol, DocumentRetrieverProtocol
+from src.domain.interfaces.llm_client import LLMClientProtocol
+from src.domain.interfaces.metric import MetricCalculatorProtocol
+from src.domain.interfaces.repository import (
+    MetricsRepository,
+    ProductRepository,
+)
+from src.domain.interfaces.retriever import DocumentRetrieverProtocol, RetrieverProtocol
+from src.domain.interfaces.scraper import ScraperProtocol
+from src.domain.interfaces.signal import SignalCollectorProtocol
+from src.domain.interfaces.storage import StorageProtocol
 
 __all__ = [
     # Repository
     "ProductRepository",
     "MetricsRepository",
-    # Agents
+    # Agents (legacy)
     "CrawlerAgentProtocol",
     "StorageAgentProtocol",
     "MetricsAgentProtocol",
@@ -52,4 +61,12 @@ __all__ = [
     "KnowledgeGraphProtocol",
     "RetrieverProtocol",
     "DocumentRetrieverProtocol",
+    # New protocols (2026-02-10)
+    "BrainProtocol",
+    "ChatbotAgentProtocol",
+    "HybridInsightAgentProtocol",
+    "AlertAgentProtocol",
+    "MetricCalculatorProtocol",
+    "StorageProtocol",
+    "SignalCollectorProtocol",
 ]

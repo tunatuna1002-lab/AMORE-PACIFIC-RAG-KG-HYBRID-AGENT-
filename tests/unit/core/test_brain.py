@@ -241,20 +241,12 @@ def test_brain_lazy_init_alert_manager():
     assert brain.alert_manager is alert_manager
 
 
-def test_brain_lazy_init_query_processor():
-    """QueryProcessor should be lazy initialized"""
+def test_brain_lazy_init_query_graph():
+    """QueryGraph should be initialized after brain.initialize()"""
     brain = UnifiedBrain()
 
-    # Initially None
-    assert brain._query_processor is None
-
-    # Access via property triggers initialization
-    query_processor = brain.query_processor
-    assert query_processor is not None
-    assert brain._query_processor is query_processor
-
-    # Second access returns same instance
-    assert brain.query_processor is query_processor
+    # Initially None (before initialize)
+    assert brain._query_graph is None
 
 
 # =============================================================================
@@ -271,19 +263,33 @@ def test_brain_initial_mode_is_idle():
 @pytest.mark.asyncio
 async def test_brain_mode_transition_to_responding(brain_with_mocks):
     """Brain mode should change to RESPONDING during query processing"""
-    # Mock decision_maker
+    from src.core.models import Decision
+    from src.core.query_graph import QueryGraph
+
+    # Mock decision_maker with proper Decision object
     brain_with_mocks._decision_maker = MagicMock()
     brain_with_mocks._decision_maker.decide = AsyncMock(
-        return_value={
-            "tool": "direct_answer",
-            "confidence": 0.8,
-            "reason": "test",
-            "key_points": [],
-        }
+        return_value=Decision(
+            tool="direct_answer",
+            confidence=0.8,
+            reason="test",
+            key_points=[],
+        )
     )
     brain_with_mocks._initialized = True
 
-    # Track mode changes by patching process_query to check mode mid-execution
+    # Initialize query graph so process_query can delegate to it
+    brain_with_mocks._query_graph = QueryGraph(
+        cache=brain_with_mocks.cache,
+        context_gatherer=brain_with_mocks._context_gatherer,
+        confidence_assessor=brain_with_mocks.confidence_assessor,
+        decision_maker=brain_with_mocks.decision_maker,
+        tool_coordinator=brain_with_mocks.tool_coordinator,
+        response_pipeline=brain_with_mocks._response_pipeline,
+        react_agent=brain_with_mocks._react_agent,
+    )
+
+    # Track mode changes by patching response_pipeline to check mode mid-execution
     mode_during_processing = None
 
     original_generate = brain_with_mocks._response_pipeline.generate

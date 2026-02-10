@@ -21,30 +21,43 @@ class PromptGuard:
 
     # Layer 1: 입력 필터링 패턴 (명백한 공격 차단)
     INJECTION_PATTERNS = [
-        # 직접 지시 무시 시도
+        # === 영문 직접 지시 무시 시도 ===
         r"(?i)ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|rules?)",
         r"(?i)disregard\s+(all\s+)?(previous|prior|above|earlier)",
         r"(?i)forget\s+(all\s+)?(previous|prior|above|everything)",
         r"(?i)override\s+(all\s+)?(previous|prior|system)",
-        # 시스템 프롬프트 탈취 시도
-        r"(?i)(show|tell|reveal|display|print|output)\s+(me\s+)?(the\s+)?(system\s+)?prompt",
-        r"(?i)(show|tell|reveal|display|print|output)\s+(me\s+)?(your\s+)?(instructions?|rules?)",
+        # === 한국어 직접 지시 무시 시도 ===
+        r"(이전|모든)\s*(지시|규칙|지시사항)을?\s*무시",
+        r"(원래|기존)\s*(지시사항|지시|설정)을?\s*(알려|보여|출력)",
+        r"내가\s*시킨\s*대로\s*해",
+        # === 영문 시스템 프롬프트 탈취 시도 ===
+        r"(?i)(show|tell|reveal|display|print|output)\s+(me\s+)?(the\s+)?(your\s+)?(system\s+)?prompt",
+        r"(?i)(show|tell|reveal|display|print|output)\s+(me\s+)?(your\s+)?(initial\s+)?(instructions?|rules?|configuration)",
         r"(?i)what\s+(are|is)\s+(your\s+)?(system\s+)?(prompt|instructions?)",
-        r"(?i)(repeat|echo)\s+(the\s+)?(system\s+)?(prompt|instructions?)",
-        # 역할 탈취 시도
-        r"(?i)you\s+are\s+now\s+(a|an)\s+",
+        r"(?i)(repeat|echo)\s+(the\s+)?(your\s+)?(system\s+)?(prompt|instructions?)",
+        # === 한국어 시스템 프롬프트 탈취 시도 ===
+        r"시스템\s*프롬프트",
+        r"(?i)system\s+prompt를?\s+.{0,10}(출력|보여|알려)",
+        r"(?i)system\s+prompt.{0,20}(출력|보여|알려|보내)",
+        r"너의\s*(설정|지시|명령)을?\s*(알려|보여|출력)",
+        # === 영문 역할 탈취 시도 ===
+        r"(?i)you\s+are\s+now\s+(a|an|in)\s+",
         r"(?i)act\s+as\s+(a|an)\s+(?!laneige|amazon|market)",
         r"(?i)pretend\s+(to\s+be|you('re|are))",
         r"(?i)roleplay\s+as",
-        r"(?i)switch\s+(to\s+)?(a\s+)?different\s+(role|mode|persona)",
-        # 컨텍스트 혼동 시도
-        r"(?i)---\s*(end|start)\s+(of\s+)?(system|prompt|instructions?)",
+        r"(?i)switch\s+(to\s+)?(a\s+)?(different\s+)?(role|mode|persona|unrestricted)",
+        r"(?i)no\s+(content\s+)?policy",
+        # === 한국어 역할 탈취 시도 ===
+        r"새로운\s*역할",
+        r"제한\s*없는\s*(AI|어시스턴트|모드)",
+        # === 컨텍스트 혼동 시도 ===
+        r"(?i)---\s*(end|start)\s+(of\s+)?(new\s+)?(system|prompt|instructions?)",
         r"(?i)\[\s*(system|end|new)\s*(prompt|instructions?)?\s*\]",
         r"(?i)<\s*/?\s*(system|prompt|instructions?)\s*>",
-        # 인코딩 우회 시도
+        # === 인코딩 우회 시도 ===
         r"(?i)(decode|translate|interpret)\s+(this\s+)?(base64|hex|rot13|binary)",
         r"(?i)base64[:\s]",
-        # DAN/탈옥 시도
+        # === DAN/탈옥 시도 ===
         r"(?i)\bDAN\b",
         r"(?i)jailbreak",
         r"(?i)developer\s+mode",
@@ -129,11 +142,39 @@ class PromptGuard:
                 return False, "injection_detected", ""
 
         # 2. 범위 외 키워드 검사 (차단하지 않고 플래그만)
+        # 비즈니스 관련 키워드가 포함되면 범위 외 판단 건너뛰기
+        business_keywords = [
+            "laneige",
+            "cosrx",
+            "amazon",
+            "sos",
+            "hhi",
+            "cpi",
+            "lip care",
+            "lip sleeping",
+            "순위",
+            "점유율",
+            "경쟁",
+            "분석",
+            "카테고리",
+            "브랜드",
+            "market",
+            "rank",
+            "share",
+        ]
         text_lower = text.lower()
-        for keyword in cls.OUT_OF_SCOPE_KEYWORDS:
-            if keyword.lower() in text_lower:
-                # 차단하지 않고 sanitized에 플래그 추가
-                return True, "out_of_scope_warning", text
+        has_business_context = any(bk in text_lower for bk in business_keywords)
+
+        if not has_business_context:
+            for keyword in cls.OUT_OF_SCOPE_KEYWORDS:
+                kw_lower = keyword.lower()
+                # 한글 키워드: 2글자 이상만 부분 매칭, 1글자는 정확 매칭
+                if len(kw_lower) <= 1:
+                    # 1글자 한글 (비, 눈 등)은 단독 단어일 때만 매칭
+                    if re.search(rf"(?:^|[\s,.]){re.escape(kw_lower)}(?:$|[\s,.])", text_lower):
+                        return True, "out_of_scope_warning", text
+                elif kw_lower in text_lower:
+                    return True, "out_of_scope_warning", text
 
         return True, None, text
 
@@ -145,20 +186,20 @@ class PromptGuard:
         Returns:
             (is_safe, sanitized_text)
         """
-        # 민감 정보 노출 검사
-        for pattern in cls.SENSITIVE_OUTPUT_PATTERNS:
-            if re.search(pattern, text):
-                # 매칭된 부분 제거 또는 마스킹
-                text = re.sub(pattern, "[REDACTED]", text)
-                logger.warning(f"Sensitive output detected and redacted: {pattern[:30]}")
-
-        # 시스템 프롬프트 전체 노출 감지 (긴 시스템 정보)
-        if "namespace functions" in text.lower() or "type get_brand_status" in text.lower():
+        # 시스템 프롬프트 전체 노출 감지 (먼저 체크 — regex 치환 전)
+        text_lower = text.lower()
+        if "namespace functions" in text_lower or "type get_brand_status" in text_lower:
             logger.warning("System prompt leak detected - blocking response")
             return (
                 False,
                 "시스템 정보는 공개할 수 없습니다. LANEIGE 마켓 분석에 관해 질문해 주세요.",
             )
+
+        # 민감 정보 노출 검사 (키워드 마스킹)
+        for pattern in cls.SENSITIVE_OUTPUT_PATTERNS:
+            if re.search(pattern, text):
+                text = re.sub(pattern, "[REDACTED]", text)
+                logger.warning(f"Sensitive output detected and redacted: {pattern[:30]}")
 
         return True, text
 

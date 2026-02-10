@@ -4,9 +4,9 @@ ConfidenceScorer 단위 테스트
 
 import pytest
 
-from src.tools.claim_extractor import Claim, ClaimType
-from src.tools.claim_verifier import VerificationResult, VerificationStatus
-from src.tools.confidence_scorer import ConfidenceGrade, ConfidenceScorer
+from src.tools.intelligence.claim_extractor import Claim, ClaimType
+from src.tools.intelligence.claim_verifier import VerificationResult, VerificationStatus
+from src.tools.intelligence.confidence_scorer import ConfidenceGrade, ConfidenceScorer
 
 
 class TestConfidenceScorer:

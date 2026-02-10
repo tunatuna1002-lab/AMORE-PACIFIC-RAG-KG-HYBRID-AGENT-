@@ -1,33 +1,60 @@
 """
-Tool modules for agent operations
+Tool modules for agent operations - organized into sub-packages
 
-Includes:
-- Amazon scraping tools
-- Data storage tools (Sheets, SQLite)
-- Market intelligence (v2026.01.26)
-  - Public data API collectors
-  - IR report parser
-  - External signal collector
-  - Source manager
-- Google Trends Collector
+Sub-packages:
+- scrapers: Web crawling tools (Amazon, deals)
+- collectors: Data collection (social media, trends, public data, external signals)
+- calculators: Pure computation (metrics, period analysis, exchange rates)
+- storage: Data storage (SQLite, Google Sheets)
+- exporters: Export and reporting (dashboard, charts, reports)
+- notifications: Alerts and messaging (email, Telegram)
+- intelligence: Analysis and verification (market intel, claims, insights)
+- utilities: General utilities (brand resolver, KG backup, data integrity)
+
+Legacy imports maintained for backward compatibility.
 """
 
-from .amazon_scraper import AmazonScraper
-from .external_signal_collector import ExternalSignal, ExternalSignalCollector
-from .ir_report_parser import IRReport, IRReportParser, QuarterlyFinancials
-from .market_intelligence import MarketIntelligenceEngine
+# ============================================================================
+# Backward Compatibility Layer
+# All imports below maintain existing import paths (e.g., from src.tools.amazon_scraper)
+# ============================================================================
 
-# Market Intelligence System (v2026.01.26)
-from .public_data_collector import CosmeticsProduct, PublicDataCollector, TradeData
-from .sheets_writer import SheetsWriter
-from .source_manager import InsightSourceBuilder, Source, SourceManager
+# Scrapers
+# Collectors
+from .collectors.external_signal_collector import ExternalSignal, ExternalSignalCollector
+from .collectors.public_data_collector import CosmeticsProduct, PublicDataCollector, TradeData
+from .collectors.tavily_search import TavilySearchClient
+from .scrapers.amazon_product_scraper import AmazonProductScraper
+from .scrapers.amazon_scraper import AmazonScraper
+from .scrapers.deals_scraper import AmazonDealsScraper
 
-# Google Trends Collector (trendspyg or pytrends)
+# Google Trends (optional dependency)
 try:
-    from .google_trends_collector import GoogleTrendsCollector, TrendData
+    from .collectors.google_trends_collector import GoogleTrendsCollector, TrendData
 except ImportError:
     GoogleTrendsCollector = None
     TrendData = None
+
+# Storage
+from .intelligence.ir_report_parser import IRReport, IRReportParser, QuarterlyFinancials
+
+# Intelligence
+from .intelligence.market_intelligence import MarketIntelligenceEngine
+from .intelligence.source_manager import InsightSourceBuilder, Source, SourceManager
+from .storage.sheets_writer import SheetsWriter
+from .storage.sqlite_storage import SQLiteStorage
+
+# Insight Verifier (optional)
+try:
+    from .intelligence.insight_verifier import (
+        InsightVerifier,
+        VerificationResult,
+        verify_insight_report,
+    )
+except ImportError:
+    InsightVerifier = None
+    VerificationResult = None
+    verify_insight_report = None
 
 # Legacy Apify (removed, kept for backward compatibility)
 try:
@@ -35,39 +62,36 @@ try:
 except ImportError:
     ApifyAmazonScraper = None
 
-# Insight Verifier (v2026.01.27)
-try:
-    from .insight_verifier import InsightVerifier, VerificationResult, verify_insight_report
-except ImportError:
-    InsightVerifier = None
-    VerificationResult = None
-    verify_insight_report = None
-
 __all__ = [
-    # Existing tools
+    # Scrapers
     "AmazonScraper",
+    "AmazonProductScraper",
+    "AmazonDealsScraper",
+    # Storage
     "SheetsWriter",
-    # Public Data API
+    "SQLiteStorage",
+    # Collectors - Public Data API
     "PublicDataCollector",
     "TradeData",
     "CosmeticsProduct",
-    # IR Report Parser
+    # Collectors - External Signals
+    "ExternalSignalCollector",
+    "ExternalSignal",
+    "TavilySearchClient",
+    # Collectors - Google Trends
+    "GoogleTrendsCollector",
+    "TrendData",
+    # Intelligence - IR Report Parser
     "IRReportParser",
     "IRReport",
     "QuarterlyFinancials",
-    # External Signals
-    "ExternalSignalCollector",
-    "ExternalSignal",
-    # Source Manager
+    # Intelligence - Source Manager
     "SourceManager",
     "Source",
     "InsightSourceBuilder",
-    # Market Intelligence Engine
+    # Intelligence - Market Intelligence Engine
     "MarketIntelligenceEngine",
-    # Google Trends
-    "GoogleTrendsCollector",
-    "TrendData",
-    # Insight Verifier
+    # Intelligence - Insight Verifier
     "InsightVerifier",
     "VerificationResult",
     "verify_insight_report",

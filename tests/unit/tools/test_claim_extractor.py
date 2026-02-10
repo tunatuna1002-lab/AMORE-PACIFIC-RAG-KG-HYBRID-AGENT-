@@ -4,7 +4,7 @@ ClaimExtractor 단위 테스트
 
 import pytest
 
-from src.tools.claim_extractor import ClaimExtractor, ClaimType
+from src.tools.intelligence.claim_extractor import ClaimExtractor, ClaimType
 
 
 class TestClaimExtractor:

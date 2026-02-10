@@ -4,10 +4,9 @@ History Manager
 """
 
 import json
-import os
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
 from pathlib import Path
+from typing import Any
 
 
 class HistoryManager:
@@ -21,14 +20,14 @@ class HistoryManager:
         self.history_dir = Path(history_dir)
         self.history_dir.mkdir(parents=True, exist_ok=True)
         self._history_file = self.history_dir / "execution_history.json"
-        self._history: List[Dict] = []
+        self._history: list[dict] = []
         self._load_history()
 
     def _load_history(self) -> None:
         """히스토리 파일 로드"""
         if self._history_file.exists():
             try:
-                with open(self._history_file, "r", encoding="utf-8") as f:
+                with open(self._history_file, encoding="utf-8") as f:
                     self._history = json.load(f)
             except json.JSONDecodeError:
                 self._history = []
@@ -38,17 +37,14 @@ class HistoryManager:
         with open(self._history_file, "w", encoding="utf-8") as f:
             json.dump(self._history, f, ensure_ascii=False, indent=2, default=str)
 
-    def add_execution(self, session_summary: Dict[str, Any]) -> None:
+    def add_execution(self, session_summary: dict[str, Any]) -> None:
         """
         실행 기록 추가
 
         Args:
             session_summary: 세션 요약 정보
         """
-        record = {
-            "timestamp": datetime.now().isoformat(),
-            **session_summary
-        }
+        record = {"timestamp": datetime.now().isoformat(), **session_summary}
         self._history.append(record)
 
         # 최대 1000개 유지
@@ -57,7 +53,7 @@ class HistoryManager:
 
         self._save_history()
 
-    def get_recent_executions(self, days: int = 7, limit: int = 50) -> List[Dict]:
+    def get_recent_executions(self, days: int = 7, limit: int = 50) -> list[dict]:
         """
         최근 실행 기록 조회
 
@@ -71,14 +67,11 @@ class HistoryManager:
         cutoff = datetime.now() - timedelta(days=days)
         cutoff_str = cutoff.isoformat()
 
-        recent = [
-            h for h in self._history
-            if h.get("timestamp", "") >= cutoff_str
-        ]
+        recent = [h for h in self._history if h.get("timestamp", "") >= cutoff_str]
 
         return recent[-limit:]
 
-    def get_success_rate(self, days: int = 7) -> Dict[str, float]:
+    def get_success_rate(self, days: int = 7) -> dict[str, float]:
         """
         성공률 계산
 
@@ -120,7 +113,7 @@ class HistoryManager:
 
         return rates
 
-    def get_average_duration(self, days: int = 7) -> Dict[str, float]:
+    def get_average_duration(self, days: int = 7) -> dict[str, float]:
         """
         평균 실행 시간 계산
 
@@ -158,7 +151,7 @@ class HistoryManager:
 
         return averages
 
-    def get_error_summary(self, days: int = 7) -> List[Dict]:
+    def get_error_summary(self, days: int = 7) -> list[dict]:
         """
         에러 요약 조회
 
@@ -173,26 +166,30 @@ class HistoryManager:
 
         for record in recent:
             if record.get("status") == "failed":
-                errors.append({
-                    "timestamp": record.get("timestamp"),
-                    "session_id": record.get("session_id"),
-                    "error": record.get("error")
-                })
+                errors.append(
+                    {
+                        "timestamp": record.get("timestamp"),
+                        "session_id": record.get("session_id"),
+                        "error": record.get("error"),
+                    }
+                )
 
             # 에이전트별 에러
             agents = record.get("agents", {})
             for agent_name, agent_data in agents.items():
                 if agent_data.get("status") == "failed":
-                    errors.append({
-                        "timestamp": record.get("timestamp"),
-                        "session_id": record.get("session_id"),
-                        "agent": agent_name,
-                        "error": agent_data.get("error")
-                    })
+                    errors.append(
+                        {
+                            "timestamp": record.get("timestamp"),
+                            "session_id": record.get("session_id"),
+                            "agent": agent_name,
+                            "error": agent_data.get("error"),
+                        }
+                    )
 
         return errors
 
-    def get_daily_stats(self, days: int = 30) -> List[Dict]:
+    def get_daily_stats(self, days: int = 30) -> list[dict]:
         """
         일별 통계 조회
 
@@ -221,7 +218,9 @@ class HistoryManager:
         stats = []
         for date, data in sorted(daily.items()):
             data["date"] = date
-            data["success_rate"] = round(data["success"] / data["total"], 3) if data["total"] > 0 else 0
+            data["success_rate"] = (
+                round(data["success"] / data["total"], 3) if data["total"] > 0 else 0
+            )
             stats.append(data)
 
         return stats

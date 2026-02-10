@@ -4,8 +4,8 @@ ClaimVerifier 단위 테스트
 
 import pytest
 
-from src.tools.claim_extractor import Claim, ClaimType
-from src.tools.claim_verifier import (
+from src.tools.intelligence.claim_extractor import Claim, ClaimType
+from src.tools.intelligence.claim_verifier import (
     ClaimVerifier,
     LogicVerifier,
     NumericalVerifier,

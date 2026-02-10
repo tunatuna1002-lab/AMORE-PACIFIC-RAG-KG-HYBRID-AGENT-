@@ -155,7 +155,7 @@ class CrawlManager:
             해당 날짜 데이터 존재 여부
         """
         try:
-            from src.tools.sheets_writer import SheetsWriter
+            from src.tools.storage.sheets_writer import SheetsWriter
 
             sheets = SheetsWriter()
             await sheets.initialize()
@@ -288,7 +288,7 @@ class CrawlManager:
         """실제 크롤링 실행"""
         from src.agents.crawler_agent import CrawlerAgent
         from src.agents.storage_agent import StorageAgent
-        from src.tools.dashboard_exporter import DashboardExporter
+        from src.tools.exporters.dashboard_exporter import DashboardExporter
 
         kst_today = self.get_kst_today()
 

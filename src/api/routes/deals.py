@@ -1,45 +1,45 @@
 """
 Deals Routes - Amazon Deals monitoring endpoints
 """
+
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from src.api.dependencies import verify_api_key
-from src.tools.deals_scraper import AmazonDealsScraper, get_deals_scraper
-from src.tools.sqlite_storage import get_sqlite_storage
+from src.tools.scrapers.deals_scraper import get_deals_scraper
+from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 router = APIRouter(prefix="/api/deals", tags=["deals"])
 
 
 class DealsRequest(BaseModel):
     """Deals 크롤링 요청"""
+
     max_items: int = 50
     beauty_only: bool = True
 
 
 class DealsResponse(BaseModel):
     """Deals 응답"""
+
     success: bool
     count: int
     lightning_count: int
     competitor_count: int
     snapshot_datetime: str
-    deals: List[Dict[str, Any]]
-    competitor_deals: List[Dict[str, Any]]
-    error: Optional[str] = None
+    deals: list[dict[str, Any]]
+    competitor_deals: list[dict[str, Any]]
+    error: str | None = None
 
 
 @router.get("/")
-async def get_deals_data(
-    brand: Optional[str] = None,
-    hours: int = 24,
-    limit: int = 100
-):
+async def get_deals_data(brand: str | None = None, hours: int = 24, limit: int = 100):
     """
     저장된 Deals 데이터 조회
 
@@ -70,20 +70,12 @@ async def get_deals_data(
             "deals": deals,
             "count": len(deals),
             "summary": summary,
-            "filters": {
-                "brand": brand,
-                "hours": hours
-            }
+            "filters": {"brand": brand, "hours": hours},
         }
 
     except Exception as e:
         logging.error(f"Deals data error: {e}")
-        return {
-            "success": False,
-            "deals": [],
-            "count": 0,
-            "error": str(e)
-        }
+        return {"success": False, "deals": [], "count": 0, "error": str(e)}
 
 
 @router.get("/summary")
@@ -104,17 +96,11 @@ async def get_deals_summary(days: int = 7):
 
         summary = await storage.get_deals_summary(days=days)
 
-        return {
-            "success": True,
-            **summary
-        }
+        return {"success": True, **summary}
 
     except Exception as e:
         logging.error(f"Deals summary error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @router.post("/scrape", dependencies=[Depends(verify_api_key)])
@@ -138,8 +124,7 @@ async def scrape_deals(request: DealsRequest):
 
         # 크롤링 실행
         result = await scraper.scrape_deals(
-            max_items=request.max_items,
-            beauty_only=request.beauty_only
+            max_items=request.max_items, beauty_only=request.beauty_only
         )
 
         if result["success"]:
@@ -155,6 +140,7 @@ async def scrape_deals(request: DealsRequest):
             if result["competitor_deals"]:
                 try:
                     from src.agents.alert_agent import AlertAgent
+
                     alert_agent = AlertAgent()
 
                     for deal in result["competitor_deals"]:
@@ -164,7 +150,9 @@ async def scrape_deals(request: DealsRequest):
                     logging.error(f"Alert processing error: {alert_err}")
                     # 알림 실패해도 크롤링 결과는 반환
 
-            logging.info(f"Deals scraped: {result['count']} total, {len(result['competitor_deals'])} competitors")
+            logging.info(
+                f"Deals scraped: {result['count']} total, {len(result['competitor_deals'])} competitors"
+            )
 
         return DealsResponse(
             success=result["success"],
@@ -174,7 +162,7 @@ async def scrape_deals(request: DealsRequest):
             snapshot_datetime=result["snapshot_datetime"],
             deals=result["deals"],
             competitor_deals=result["competitor_deals"],
-            error=result.get("error")
+            error=result.get("error"),
         )
 
     except Exception as e:
@@ -187,15 +175,12 @@ async def scrape_deals(request: DealsRequest):
             snapshot_datetime=datetime.now().isoformat(),
             deals=[],
             competitor_deals=[],
-            error=str(e)
+            error=str(e),
         )
 
 
 @router.get("/alerts")
-async def get_deals_alerts(
-    limit: int = 50,
-    unsent_only: bool = False
-):
+async def get_deals_alerts(limit: int = 50, unsent_only: bool = False):
     """
     Deals 알림 목록 조회
 
@@ -216,34 +201,25 @@ async def get_deals_alerts(
         else:
             # 모든 알림 조회 (최근 7일)
             with storage.get_connection() as conn:
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT * FROM deals_alerts
                     ORDER BY alert_datetime DESC
                     LIMIT ?
-                """, (limit,))
+                """,
+                    (limit,),
+                )
                 alerts = [dict(row) for row in cursor.fetchall()]
 
-        return {
-            "success": True,
-            "alerts": alerts,
-            "count": len(alerts)
-        }
+        return {"success": True, "alerts": alerts, "count": len(alerts)}
 
     except Exception as e:
         logging.error(f"Deals alerts error: {e}")
-        return {
-            "success": False,
-            "alerts": [],
-            "count": 0,
-            "error": str(e)
-        }
+        return {"success": False, "alerts": [], "count": 0, "error": str(e)}
 
 
 @router.post("/export")
-async def export_deals_report(
-    days: int = 7,
-    format: str = "excel"
-):
+async def export_deals_report(days: int = 7, format: str = "excel"):
     """
     Deals 리포트 내보내기
 
@@ -266,11 +242,14 @@ async def export_deals_report(
             # 전체 딜 데이터
             with storage.get_connection() as conn:
                 cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT * FROM deals
                     WHERE DATE(snapshot_datetime) >= ?
                     ORDER BY snapshot_datetime DESC
-                """, (cutoff_date,))
+                """,
+                    (cutoff_date,),
+                )
                 deals = [dict(row) for row in cursor.fetchall()]
 
             return {
@@ -281,8 +260,8 @@ async def export_deals_report(
                 "period": {
                     "days": days,
                     "start_date": cutoff_date,
-                    "end_date": datetime.now().strftime("%Y-%m-%d")
-                }
+                    "end_date": datetime.now().strftime("%Y-%m-%d"),
+                },
             }
 
         elif format == "excel":
@@ -290,10 +269,7 @@ async def export_deals_report(
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = f"./data/exports/Deals_Report_{timestamp}.xlsx"
 
-            result = storage.export_deals_to_excel(
-                output_path=output_path,
-                days=days
-            )
+            result = storage.export_deals_to_excel(output_path=output_path, days=days)
 
             if not result.get("success"):
                 raise HTTPException(status_code=500, detail=result.get("error", "Export failed"))
@@ -305,7 +281,7 @@ async def export_deals_report(
             return FileResponse(
                 path=str(file_path),
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                headers={"Content-Disposition": f"attachment; filename={file_path.name}"}
+                headers={"Content-Disposition": f"attachment; filename={file_path.name}"},
             )
 
     except HTTPException:

@@ -52,23 +52,28 @@ class TestReActIntegration:
         """신뢰도 라우팅이 ReAct 경로를 보존하는지 확인
 
         MEDIUM/LOW 신뢰도에서 복잡한 질문은 여전히 ReAct로 가야 함
+        (3.1: process_query가 QueryGraph에 위임, 라우팅은 QueryGraph에서 처리)
         """
-        from src.core.brain import UnifiedBrain
+        from src.core.query_graph import QueryGraph
 
-        # process_query 소스코드에서 ReAct 경로 확인
-        source = inspect.getsource(UnifiedBrain.process_query)
-        assert "_is_complex_query" in source
-        assert "_process_with_react" in source
+        # QueryGraph의 라우팅에서 ReAct 경로 확인
+        route_source = inspect.getsource(QueryGraph._route_after_confidence)
+        assert "_is_complex_query" in route_source
+
+        # QueryGraph.run에서 ReAct 노드 호출 확인
+        run_source = inspect.getsource(QueryGraph.run)
+        assert "_node_react" in run_source
 
     def test_high_confidence_skips_react(self):
         """HIGH 신뢰도에서는 ReAct를 건너뛰는지 확인
 
         HIGH 신뢰도 → direct response (ReAct 불필요)
+        (3.1: 라우팅 로직이 QueryGraph._route_after_confidence로 이동)
         """
-        from src.core.brain import UnifiedBrain
+        from src.core.query_graph import QueryGraph
 
-        source = inspect.getsource(UnifiedBrain.process_query)
-        # HIGH confidence path should come before ReAct check
+        source = inspect.getsource(QueryGraph._route_after_confidence)
+        # HIGH confidence path (should_skip_llm_decision) should come before ReAct check
         high_pos = source.find("should_skip_llm_decision")
         react_pos = source.find("_is_complex_query")
         if high_pos >= 0 and react_pos >= 0:

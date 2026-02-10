@@ -5,24 +5,26 @@ Metrics Agent
 
 import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
 
-from src.tools.metric_calculator import MetricCalculator
-from src.domain.entities import BrandMetrics, ProductMetrics, MarketMetrics
 from src.monitoring.logger import AgentLogger
-from src.monitoring.tracer import ExecutionTracer
 from src.monitoring.metrics import QualityMetrics
+from src.monitoring.tracer import ExecutionTracer
+from src.tools.calculators.metric_calculator import MetricCalculator
 
 
 class MetricsAgent:
-    """지표 계산 에이전트"""
+    """
+    지표 계산 에이전트
+    Implements MetricsAgentProtocol (src.domain.interfaces.agent)
+    """
 
     def __init__(
         self,
         config_path: str = "./config/thresholds.json",
-        logger: Optional[AgentLogger] = None,
-        tracer: Optional[ExecutionTracer] = None,
-        metrics: Optional[QualityMetrics] = None
+        logger: AgentLogger | None = None,
+        tracer: ExecutionTracer | None = None,
+        metrics: QualityMetrics | None = None,
     ):
         """
         Args:
@@ -37,18 +39,16 @@ class MetricsAgent:
         self.tracer = tracer
         self.metrics = metrics
 
-        self._results: Dict[str, Any] = {}
+        self._results: dict[str, Any] = {}
 
-    def _load_config(self, path: str) -> Dict:
+    def _load_config(self, path: str) -> dict:
         """설정 로드"""
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     async def execute(
-        self,
-        crawl_data: Dict[str, Any],
-        historical_data: Optional[Dict[str, List]] = None
-    ) -> Dict[str, Any]:
+        self, crawl_data: dict[str, Any], historical_data: dict[str, list] | None = None
+    ) -> dict[str, Any]:
         """
         지표 계산 실행
 
@@ -82,7 +82,7 @@ class MetricsAgent:
                 "product_metrics": [],
                 "market_metrics": [],
                 "alerts": [],
-                "summary": {}
+                "summary": {},
             }
 
             historical = historical_data or {}
@@ -108,18 +108,13 @@ class MetricsAgent:
                 results["brand_metrics"].extend(brand_metrics)
 
                 # Level 2 & 3: 제품별 지표 (LANEIGE만)
-                laneige_products = [
-                    p for p in products
-                    if self._is_laneige(p)
-                ]
+                laneige_products = [p for p in products if self._is_laneige(p)]
 
                 for product in laneige_products:
                     asin = product.get("product_asin")
                     history = historical.get(asin, [])
 
-                    product_metric = self._calculate_product_metrics(
-                        product, history, cat_key
-                    )
+                    product_metric = self._calculate_product_metrics(product, history, cat_key)
                     results["product_metrics"].append(product_metric)
 
                     # 알림 체크
@@ -139,16 +134,19 @@ class MetricsAgent:
                 self.tracer.end_span("completed")
 
             if self.metrics:
-                self.metrics.record_agent_complete("metrics", {
-                    "brand_metrics": len(results["brand_metrics"]),
-                    "product_metrics": len(results["product_metrics"]),
-                    "alerts": len(results["alerts"])
-                })
+                self.metrics.record_agent_complete(
+                    "metrics",
+                    {
+                        "brand_metrics": len(results["brand_metrics"]),
+                        "product_metrics": len(results["product_metrics"]),
+                        "alerts": len(results["alerts"]),
+                    },
+                )
 
             self.logger.agent_complete(
                 "MetricsAgent",
                 duration,
-                f"{len(results['brand_metrics'])} brands, {len(results['product_metrics'])} products"
+                f"{len(results['brand_metrics'])} brands, {len(results['product_metrics'])} products",
             )
 
             return results
@@ -165,11 +163,7 @@ class MetricsAgent:
             self.logger.agent_error("MetricsAgent", str(e), duration)
             raise
 
-    def _calculate_market_metrics(
-        self,
-        category_id: str,
-        products: List[Dict]
-    ) -> Dict[str, Any]:
+    def _calculate_market_metrics(self, category_id: str, products: list[dict]) -> dict[str, Any]:
         """시장 지표 계산"""
         # HHI - products 리스트를 직접 전달
         hhi = self.calculator.calculate_hhi(products)
@@ -195,14 +189,12 @@ class MetricsAgent:
             "avg_rating_gap": self._calc_avg_rating_gap(products),
             "top_brand": top_brand[0],
             "top_brand_sos": round(top_brand_sos, 3),
-            "total_products": len(products)
+            "total_products": len(products),
         }
 
     def _calculate_brand_metrics(
-        self,
-        category_id: str,
-        products: List[Dict]
-    ) -> List[Dict[str, Any]]:
+        self, category_id: str, products: list[dict]
+    ) -> list[dict[str, Any]]:
         """브랜드별 지표 계산"""
         # 브랜드별 그룹핑
         by_brand = {}
@@ -222,25 +214,24 @@ class MetricsAgent:
             # calculate_brand_avg_rank: 전체 products와 brand명을 전달
             avg_rank = self.calculator.calculate_brand_avg_rank(products, brand)
 
-            brand_metrics.append({
-                "brand_name": brand,
-                "category_id": category_id,
-                "share_of_shelf": sos,
-                "avg_rank": avg_rank,
-                "product_count": len(brand_products),
-                "top10_count": sum(1 for r in ranks if r <= 10),
-                "top20_count": sum(1 for r in ranks if r <= 20),
-                "is_laneige": brand.lower() == "laneige"
-            })
+            brand_metrics.append(
+                {
+                    "brand_name": brand,
+                    "category_id": category_id,
+                    "share_of_shelf": sos,
+                    "avg_rank": avg_rank,
+                    "product_count": len(brand_products),
+                    "top10_count": sum(1 for r in ranks if r <= 10),
+                    "top20_count": sum(1 for r in ranks if r <= 20),
+                    "is_laneige": brand.lower() == "laneige",
+                }
+            )
 
         return brand_metrics
 
     def _calculate_product_metrics(
-        self,
-        product: Dict,
-        history: List[Dict],
-        category_id: str
-    ) -> Dict[str, Any]:
+        self, product: dict, history: list[dict], category_id: str
+    ) -> dict[str, Any]:
         """제품별 지표 계산"""
         current_rank = product.get("rank", 0)
         asin = product.get("product_asin", product.get("asin", ""))
@@ -257,9 +248,11 @@ class MetricsAgent:
             rank_change_7d = current_rank - rank_history[-7]
 
         # 변동성 (List[int] 전달)
-        volatility = self.calculator.calculate_rank_volatility(
-            rank_history + [current_rank]
-        ) if rank_history else 0
+        volatility = (
+            self.calculator.calculate_rank_volatility(rank_history + [current_rank])
+            if rank_history
+            else 0
+        )
 
         # 연속 기간 (List[Dict], asin, top_n 전달)
         top_n = self.config.get("ranking", {}).get("top_n_tiers", [3, 5, 10, 20])[2]  # Top 10
@@ -280,15 +273,10 @@ class MetricsAgent:
             "rating": product.get("rating"),
             "rating_trend": rating_trend,
             "price": product.get("price"),
-            "review_count": product.get("review_count")
+            "review_count": product.get("review_count"),
         }
 
-    def _check_alerts(
-        self,
-        product_metric: Dict,
-        product: Dict,
-        history: List[Dict]
-    ) -> List[Dict]:
+    def _check_alerts(self, product_metric: dict, product: dict, history: list[dict]) -> list[dict]:
         """알림 조건 체크"""
         alerts = []
         thresholds = self.config.get("thresholds", {})
@@ -299,34 +287,38 @@ class MetricsAgent:
         # 순위 급락 알림
         significant_drop = thresholds.get("significant_rank_drop", 5)
         if rank_change_1d and rank_change_1d >= significant_drop:
-            alerts.append({
-                "type": "rank_drop",
-                "severity": "warning" if rank_change_1d < 10 else "critical",
-                "asin": product_metric["asin"],
-                "title": product_metric["product_title"],
-                "message": f"순위 {rank_change_1d}단계 하락 (현재 {current_rank}위)",
-                "details": {
-                    "previous_rank": current_rank - rank_change_1d,
-                    "current_rank": current_rank,
-                    "change": rank_change_1d
+            alerts.append(
+                {
+                    "type": "rank_drop",
+                    "severity": "warning" if rank_change_1d < 10 else "critical",
+                    "asin": product_metric["asin"],
+                    "title": product_metric["product_title"],
+                    "message": f"순위 {rank_change_1d}단계 하락 (현재 {current_rank}위)",
+                    "details": {
+                        "previous_rank": current_rank - rank_change_1d,
+                        "current_rank": current_rank,
+                        "change": rank_change_1d,
+                    },
                 }
-            })
+            )
 
         # Top 10 진입 알림
         if current_rank <= 10:
             previous_rank = current_rank - (rank_change_1d or 0)
             if previous_rank > 10:
-                alerts.append({
-                    "type": "top10_entry",
-                    "severity": "info",
-                    "asin": product_metric["asin"],
-                    "title": product_metric["product_title"],
-                    "message": f"Top 10 진입 ({current_rank}위)",
-                    "details": {
-                        "current_rank": current_rank,
-                        "category": product_metric["category_id"]
+                alerts.append(
+                    {
+                        "type": "top10_entry",
+                        "severity": "info",
+                        "asin": product_metric["asin"],
+                        "title": product_metric["product_title"],
+                        "message": f"Top 10 진입 ({current_rank}위)",
+                        "details": {
+                            "current_rank": current_rank,
+                            "category": product_metric["category_id"],
+                        },
                     }
-                })
+                )
 
         # Rank Shock (급변동)
         if history and len(history) >= 1:
@@ -334,23 +326,25 @@ class MetricsAgent:
             is_shock = self.calculator.calculate_rank_shock(current_rank, yesterday_rank)
             if is_shock:
                 rank_change = current_rank - yesterday_rank
-                alerts.append({
-                    "type": "rank_shock",
-                    "severity": "warning",
-                    "asin": product_metric["asin"],
-                    "title": product_metric["product_title"],
-                    "message": f"순위 급변동 감지 (변동폭: {abs(rank_change)})",
-                    "details": {
-                        "is_shock": True,
-                        "change": rank_change,
-                        "previous_rank": yesterday_rank,
-                        "current_rank": current_rank
+                alerts.append(
+                    {
+                        "type": "rank_shock",
+                        "severity": "warning",
+                        "asin": product_metric["asin"],
+                        "title": product_metric["product_title"],
+                        "message": f"순위 급변동 감지 (변동폭: {abs(rank_change)})",
+                        "details": {
+                            "is_shock": True,
+                            "change": rank_change,
+                            "previous_rank": yesterday_rank,
+                            "current_rank": current_rank,
+                        },
                     }
-                })
+                )
 
         return alerts
 
-    def _calc_avg_rating_gap(self, products: List[Dict]) -> Optional[float]:
+    def _calc_avg_rating_gap(self, products: list[dict]) -> float | None:
         """평균 평점 갭 계산"""
         ratings = [p.get("rating", 0) for p in products if p.get("rating")]
         if not ratings:
@@ -360,13 +354,13 @@ class MetricsAgent:
         min_rating = min(ratings)
         return round(max_rating - min_rating, 2)
 
-    def _is_laneige(self, product: Dict) -> bool:
+    def _is_laneige(self, product: dict) -> bool:
         """LANEIGE 제품 여부"""
         title = str(product.get("title", "")).lower()
         brand = str(product.get("brand", "")).lower()
         return "laneige" in title or "laneige" in brand
 
-    def _generate_summary(self, results: Dict) -> Dict[str, Any]:
+    def _generate_summary(self, results: dict) -> dict[str, Any]:
         """결과 요약 생성"""
         brand_metrics = results.get("brand_metrics", [])
         product_metrics = results.get("product_metrics", [])
@@ -389,7 +383,7 @@ class MetricsAgent:
                 "asin": best.get("asin"),
                 "title": best.get("product_title"),
                 "rank": best.get("current_rank"),
-                "category": best.get("category_id")
+                "category": best.get("category_id"),
             }
 
         return {
@@ -398,9 +392,9 @@ class MetricsAgent:
             "best_ranking_product": best_product,
             "alert_count": len(alerts),
             "critical_alerts": len([a for a in alerts if a.get("severity") == "critical"]),
-            "warning_alerts": len([a for a in alerts if a.get("severity") == "warning"])
+            "warning_alerts": len([a for a in alerts if a.get("severity") == "warning"]),
         }
 
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """마지막 실행 결과"""
         return self._results

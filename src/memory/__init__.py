@@ -2,12 +2,9 @@
 Memory management modules for agent state and history
 """
 
-from .session import SessionManager
-from .history import HistoryManager
 from .context import ContextManager
+from .conversation_memory import ConversationMemory
+from .history import HistoryManager
+from .session import SessionManager
 
-__all__ = [
-    "SessionManager",
-    "HistoryManager",
-    "ContextManager"
-]
+__all__ = ["SessionManager", "HistoryManager", "ContextManager", "ConversationMemory"]
