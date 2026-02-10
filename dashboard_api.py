@@ -1087,12 +1087,47 @@ async def _get_historical_from_local(
         # brand_metrics 계산 (현재 대시보드 데이터에서)
         brand_metrics = _get_brand_metrics_from_dashboard(data, brand)
 
+        # rank_history 생성 (CPI 차트용 - 모든 브랜드 제품 포함)
+        rank_history = {}
+        latest_crawl_path = Path("./data/latest_crawl_result.json")
+        if latest_crawl_path.exists():
+            try:
+                with open(latest_crawl_path, encoding="utf-8") as f:
+                    crawl_data = json.load(f)
+                for _cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    for product in cat_data.get("products", []):
+                        snap_date = product.get("snapshot_date", "")
+                        if not snap_date or snap_date < start_date or snap_date > end_date:
+                            continue
+                        if snap_date not in rank_history:
+                            rank_history[snap_date] = {"products": []}
+                        price_val = product.get("price", 0)
+                        try:
+                            price = (
+                                float(str(price_val).replace("$", "").replace(",", ""))
+                                if price_val
+                                else 0
+                            )
+                        except (ValueError, TypeError):
+                            price = 0
+                        rank_history[snap_date]["products"].append(
+                            {
+                                "name": product.get("product_name", ""),
+                                "brand": product.get("brand", ""),
+                                "rank": product.get("rank", 0),
+                                "price": price,
+                            }
+                        )
+            except (json.JSONDecodeError, ValueError) as e:
+                logging.warning(f"Failed to build rank_history from local: {e}")
+
         if not sos_history:
             return {
                 "success": False,
                 "error": "No historical data found for the specified period",
                 "available_dates": [],
                 "brand_metrics": [],
+                "rank_history": rank_history,
                 "data": None,
             }
 
@@ -1100,6 +1135,7 @@ async def _get_historical_from_local(
             "success": True,
             "available_dates": available_dates,
             "brand_metrics": brand_metrics,
+            "rank_history": rank_history,
             "data": {
                 "sos_history": sos_history,
                 "raw_data": raw_data,
