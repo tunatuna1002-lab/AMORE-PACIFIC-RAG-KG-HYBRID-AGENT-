@@ -286,6 +286,28 @@ class AmazonScraper:
         except Exception as e:
             logger.debug(f"Human behavior simulation failed: {e}")
 
+    async def _scroll_to_load_all(self, page: Page) -> None:
+        """페이지를 끝까지 스크롤하여 lazy-loaded 제품 카드를 모두 로드"""
+        try:
+            prev_count = 0
+            for i in range(10):
+                await page.evaluate(f"window.scrollBy(0, {800 + i * 200})")
+                await asyncio.sleep(random.uniform(0.4, 0.8))
+
+                # 현재 로드된 카드 수 확인
+                count = await page.evaluate(
+                    "document.querySelectorAll('[data-asin]:not([data-asin=\"\"])').length"
+                )
+                if count >= 50 or (count == prev_count and i >= 3):
+                    break
+                prev_count = count
+
+            # 마지막에 약간 위로 스크롤 (자연스러운 행동)
+            await page.evaluate("window.scrollBy(0, -200)")
+            await asyncio.sleep(random.uniform(0.3, 0.6))
+        except Exception as e:
+            logger.debug(f"Scroll to load all failed: {e}")
+
     async def _random_delay_advanced(self, delay_type: str = "base") -> None:
         """더 자연스러운 랜덤 딜레이 (안티봇용) - 설정 파일에서 로드"""
         # 설정 파일 값 기반 딜레이 (config/thresholds.json → system.crawler)
@@ -398,9 +420,13 @@ class AmazonScraper:
                 raise
 
         try:
+            # 스크롤하여 lazy-loaded 제품 모두 로드 (Amazon은 초기 30개만 표시)
+            await self._scroll_to_load_all(page)
+
             # 첫 페이지 파싱 (1-50위)
             products_page1 = await self._parse_bestseller_page(page, category_id, start_rank=1)
             result["products"].extend(products_page1)
+            logger.info(f"Page 1 loaded: {len(products_page1)} products for {category_id}")
 
             # 페이지 2 로드 (51-100위)
             page2_url = self._get_page2_url(category_url)
@@ -409,10 +435,16 @@ class AmazonScraper:
                 await self._random_delay()
 
                 if not await self._is_blocked(page):
+                    # 페이지 2도 스크롤하여 lazy-loaded 제품 로드
+                    await self._scroll_to_load_all(page)
+
                     products_page2 = await self._parse_bestseller_page(
                         page, category_id, start_rank=51
                     )
                     result["products"].extend(products_page2)
+                    logger.info(f"Page 2 loaded: {len(products_page2)} products for {category_id}")
+                else:
+                    logger.warning(f"Page 2 blocked for {category_id}")
 
             result["count"] = len(result["products"])
             result["success"] = True
@@ -472,21 +504,33 @@ class AmazonScraper:
     async def _parse_bestseller_page(
         self, page: Page, category_id: str, start_rank: int = 1
     ) -> list[dict]:
-        """베스트셀러 페이지 파싱"""
+        """베스트셀러 페이지 파싱 (순위 배지 기반)"""
         products = []
         snapshot_date = datetime.now(KST).date().isoformat()
 
-        # 제품 카드 선택자들 (Amazon 구조에 따라 조정 필요)
-        product_cards = await page.query_selector_all('[data-asin]:not([data-asin=""])')
+        # #zg-right-col 내의 실제 제품 카드만 선택 (광고 제외)
+        container = await page.query_selector("#zg-right-col")
+        if not container:
+            container = page
 
-        rank = start_rank
+        product_cards = await container.query_selector_all('[data-asin]:not([data-asin=""])')
+
         for card in product_cards:
-            if rank > start_rank + 49:  # 페이지당 최대 50개
-                break
-
             try:
                 asin = await card.get_attribute("data-asin")
                 if not asin:
+                    continue
+
+                # 순위 배지에서 실제 rank 읽기 (Amazon이 부여한 순위)
+                badge = await card.query_selector("span.zg-bdg-text")
+                if badge:
+                    badge_text = (await badge.inner_text()).strip().replace("#", "")
+                    try:
+                        rank = int(badge_text)
+                    except ValueError:
+                        continue
+                else:
+                    # 배지 없는 카드는 광고/스폰서 → 스킵
                     continue
 
                 product_data = await self._extract_product_data(
@@ -494,11 +538,9 @@ class AmazonScraper:
                 )
                 if product_data:
                     products.append(product_data)
-                    rank += 1
 
             except Exception as e:
-                # 제품 파싱 오류 로깅 (디버깅용)
-                logger.warning(f"Product parsing failed at rank {rank}: {str(e)[:100]}")
+                logger.warning(f"Product parsing failed: {str(e)[:100]}")
                 continue
 
         return products
