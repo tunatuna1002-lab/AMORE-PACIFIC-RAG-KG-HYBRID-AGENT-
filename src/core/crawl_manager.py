@@ -387,8 +387,8 @@ class CrawlManager:
                 await exporter.export_dashboard_data(self.DATA_FILE)
                 logger.info(f"Dashboard data exported to {self.DATA_FILE}")
             except Exception as export_error:
-                logger.error(f"Dashboard export failed: {export_error}")
-                raise
+                logger.error(f"Dashboard export failed (non-fatal): {export_error}")
+                # 크롤링+저장은 성공 → export 실패는 치명적이지 않으므로 계속 진행
 
             self.state.progress = 100
             self.state.status = CrawlStatus.COMPLETED
@@ -402,7 +402,7 @@ class CrawlManager:
             try:
                 from src.core.brain import get_brain
 
-                brain = get_brain()
+                brain = await get_brain()
                 if brain and hasattr(brain, "_response_pipeline") and brain._response_pipeline:
                     brain._response_pipeline._cache.clear()
                     logger.info("Brain response cache invalidated")
