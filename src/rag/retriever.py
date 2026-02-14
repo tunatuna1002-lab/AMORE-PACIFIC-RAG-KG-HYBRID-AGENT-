@@ -429,11 +429,18 @@ class DocumentRetriever:
         # Reranker 인스턴스 (lazy loading)
         self._reranker = None
 
-        # Embedding 캐시
-        self._embedding_cache: dict[str, list[float]] = {}
-        self._EMBEDDING_CACHE_MAX = 1000
-        self._embedding_cache_hits = 0
-        self._embedding_cache_misses = 0
+        # Embedding 캐시 (feature-flag-guarded)
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        flags = FeatureFlags.get_instance()
+        if flags.use_sqlite_embedding_cache():
+            from src.rag.embedding_cache import SQLiteEmbeddingCache
+
+            self._embedding_cache = SQLiteEmbeddingCache()
+        else:
+            from src.rag.embedding_cache import InMemoryEmbeddingCache
+
+            self._embedding_cache = InMemoryEmbeddingCache(max_size=1000)
 
     def _check_vector_search(self) -> bool:
         """벡터 검색 가능 여부 확인 (OpenAI Embeddings + ChromaDB)"""
@@ -734,7 +741,7 @@ class DocumentRetriever:
         """텍스트 해시 생성"""
         return hashlib.md5(text.encode()).hexdigest()
 
-    def _embed_texts(self, texts: list[str]) -> list[list[float]]:
+    async def _embed_texts(self, texts: list[str]) -> list[list[float]]:
         """OpenAI Embeddings API로 텍스트 임베딩 생성 (캐시 적용)"""
         if not self.openai_client:
             return []
@@ -746,14 +753,13 @@ class DocumentRetriever:
         # 캐시 확인
         for i, text in enumerate(texts):
             text_hash = self._get_text_hash(text)
-            if text_hash in self._embedding_cache:
-                results.append(self._embedding_cache[text_hash])
-                self._embedding_cache_hits += 1
+            cached = await self._embedding_cache.get(text_hash)
+            if cached is not None:
+                results.append(cached)
             else:
                 results.append(None)  # placeholder
                 texts_to_embed.append(text)
                 indices_to_embed.append(i)
-                self._embedding_cache_misses += 1
 
         # 캐시 미스 텍스트만 임베딩
         if texts_to_embed:
@@ -766,25 +772,15 @@ class DocumentRetriever:
                 embedding = embedding_data.embedding
                 results[idx] = embedding
 
-                # 캐시 저장 (크기 제한)
+                # 캐시 저장
                 text_hash = self._get_text_hash(texts_to_embed[j])
-                if len(self._embedding_cache) >= self._EMBEDDING_CACHE_MAX:
-                    # 가장 오래된 항목 제거 (FIFO)
-                    oldest_key = next(iter(self._embedding_cache))
-                    del self._embedding_cache[oldest_key]
-                self._embedding_cache[text_hash] = embedding
+                await self._embedding_cache.put(text_hash, embedding)
 
         return results
 
     def get_embedding_cache_stats(self) -> dict:
         """캐시 통계 반환"""
-        total_requests = self._embedding_cache_hits + self._embedding_cache_misses
-        return {
-            "size": len(self._embedding_cache),
-            "hits": self._embedding_cache_hits,
-            "misses": self._embedding_cache_misses,
-            "hit_rate": self._embedding_cache_hits / max(1, total_requests),
-        }
+        return self._embedding_cache.get_stats()
 
     async def expand_query(self, query: str) -> list[str]:
         """
@@ -871,7 +867,7 @@ Do not include any explanation."""
                 batch_metadatas = metadatas[i : i + batch_size]
 
                 try:
-                    embeddings = self._embed_texts(batch_docs)
+                    embeddings = await self._embed_texts(batch_docs)
                     if embeddings:
                         self.collection.add(
                             ids=batch_ids,
@@ -1021,7 +1017,7 @@ Do not include any explanation."""
         """벡터 유사도 검색"""
         if not self.openai_client:
             return []
-        query_embedding = self._embed_texts([query])
+        query_embedding = await self._embed_texts([query])
         if not query_embedding:
             return []
 

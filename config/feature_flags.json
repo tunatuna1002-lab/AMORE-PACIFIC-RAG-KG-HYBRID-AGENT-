@@ -1,0 +1,22 @@
+{
+  "retriever": {
+    "use_true_hybrid_retriever": true,
+    "use_unified_retriever": true
+  },
+  "reasoner": {
+    "use_unified_reasoner": true,
+    "use_owl_reasoner": true
+  },
+  "ontology": {
+    "use_ontology_kg": true
+  },
+  "cache": {
+    "use_sqlite_embedding_cache": false
+  },
+  "prompts": {
+    "use_centralized_prompts": false
+  },
+  "agents": {
+    "use_decomposed_chatbot": false
+  }
+}

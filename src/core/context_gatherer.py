@@ -115,51 +115,86 @@ class ContextGatherer:
         try:
             # 1. HybridRetriever를 통한 RAG + KG 조회
             if self.retriever:
-                # TrueHybridRetriever vs HybridRetriever 시그니처 분기
-                if hasattr(self.retriever, "owl_reasoner"):
-                    # TrueHybridRetriever (OWL + Entity Linking + Confidence Fusion)
-                    hybrid_context = await self.retriever.retrieve(
+                # Feature-flag-based: check if using UnifiedRetriever
+                from ..domain.interfaces.retriever import UnifiedRetrievalResult
+                from ..infrastructure.feature_flags import FeatureFlags
+
+                flags = FeatureFlags.get_instance()
+
+                if flags.use_unified_retriever():
+                    # UnifiedRetriever path (returns UnifiedRetrievalResult)
+                    result = await self.retriever.retrieve(
                         query=query, current_metrics=current_metrics, top_k=self.max_rag_docs
                     )
+
+                    # Check if result is UnifiedRetrievalResult
+                    if isinstance(result, UnifiedRetrievalResult):
+                        if not entities:
+                            context.entities = result.entities
+
+                        context.rag_docs = result.rag_chunks[: self.max_rag_docs]
+                        context.kg_facts = self._convert_kg_facts(result.ontology_facts)
+                        context.kg_inferences = result.inferences
+
+                        if result.combined_context:
+                            context.summary = result.combined_context
+
+                        logger.debug(
+                            f"UnifiedRetriever ({result.retriever_type}): "
+                            f"confidence={result.confidence:.2f}, "
+                            f"entities={len(result.entity_links)}"
+                        )
+                    else:
+                        # Fallback for unexpected result type
+                        logger.warning(
+                            f"Expected UnifiedRetrievalResult but got {type(result).__name__}"
+                        )
                 else:
-                    # 기존 HybridRetriever
-                    hybrid_context = await self.retriever.retrieve(
-                        query=query, current_metrics=current_metrics, include_explanations=True
-                    )
+                    # Legacy path: TrueHybridRetriever vs HybridRetriever 시그니처 분기
+                    if hasattr(self.retriever, "owl_reasoner"):
+                        # TrueHybridRetriever (OWL + Entity Linking + Confidence Fusion)
+                        hybrid_context = await self.retriever.retrieve(
+                            query=query, current_metrics=current_metrics, top_k=self.max_rag_docs
+                        )
+                    else:
+                        # 기존 HybridRetriever
+                        hybrid_context = await self.retriever.retrieve(
+                            query=query, current_metrics=current_metrics, include_explanations=True
+                        )
 
-                # HybridResult (TrueHybridRetriever) vs HybridContext (HybridRetriever) 감지
-                if hasattr(hybrid_context, "entity_links"):
-                    # TrueHybridRetriever → to_dict()로 호환 포맷 변환
-                    compat = hybrid_context.to_dict()
+                    # HybridResult (TrueHybridRetriever) vs HybridContext (HybridRetriever) 감지
+                    if hasattr(hybrid_context, "entity_links"):
+                        # TrueHybridRetriever → to_dict()로 호환 포맷 변환
+                        compat = hybrid_context.to_dict()
 
-                    if not entities:
-                        context.entities = compat.get("entities", {})
+                        if not entities:
+                            context.entities = compat.get("entities", {})
 
-                    context.rag_docs = compat.get("rag_chunks", [])[: self.max_rag_docs]
+                        context.rag_docs = compat.get("rag_chunks", [])[: self.max_rag_docs]
 
-                    context.kg_facts = self._convert_kg_facts(compat.get("ontology_facts", []))
+                        context.kg_facts = self._convert_kg_facts(compat.get("ontology_facts", []))
 
-                    # inferences는 이미 dict 리스트 (to_dict()에서 변환됨)
-                    context.kg_inferences = compat.get("inferences", [])
+                        # inferences는 이미 dict 리스트 (to_dict()에서 변환됨)
+                        context.kg_inferences = compat.get("inferences", [])
 
-                    # TrueHybridRetriever의 combined_context를 요약으로 활용
-                    if hybrid_context.combined_context:
-                        context.summary = hybrid_context.combined_context
+                        # TrueHybridRetriever의 combined_context를 요약으로 활용
+                        if hybrid_context.combined_context:
+                            context.summary = hybrid_context.combined_context
 
-                    logger.debug(
-                        f"TrueHybridRetriever: confidence={hybrid_context.confidence:.2f}, "
-                        f"entities={len(hybrid_context.entity_links)}"
-                    )
-                else:
-                    # 기존 HybridRetriever → HybridContext 처리
-                    if hybrid_context.entities and not entities:
-                        context.entities = hybrid_context.entities
+                        logger.debug(
+                            f"TrueHybridRetriever: confidence={hybrid_context.confidence:.2f}, "
+                            f"entities={len(hybrid_context.entity_links)}"
+                        )
+                    else:
+                        # 기존 HybridRetriever → HybridContext 처리
+                        if hybrid_context.entities and not entities:
+                            context.entities = hybrid_context.entities
 
-                    context.rag_docs = hybrid_context.rag_chunks[: self.max_rag_docs]
+                        context.rag_docs = hybrid_context.rag_chunks[: self.max_rag_docs]
 
-                    context.kg_facts = self._convert_kg_facts(hybrid_context.ontology_facts)
+                        context.kg_facts = self._convert_kg_facts(hybrid_context.ontology_facts)
 
-                    context.kg_inferences = [inf.to_dict() for inf in hybrid_context.inferences]
+                        context.kg_inferences = [inf.to_dict() for inf in hybrid_context.inferences]
 
             # 2. 시스템 상태
             if include_system_state:

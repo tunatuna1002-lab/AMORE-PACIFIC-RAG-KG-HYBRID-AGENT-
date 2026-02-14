@@ -101,14 +101,19 @@
 │   │   ├── alert_agent.py            # 알림 에이전트
 │   │   ├── metrics_agent.py          # 메트릭 에이전트
 │   │   ├── storage_agent.py          # 저장 에이전트
-│   │   ├── suggestion_generator.py   # 후속 질문 생성
+│   │   ├── suggestion_generator.py   # 후속 질문 생성 (deprecated)
+│   │   ├── suggestion_engine.py      # 후속 질문 생성 엔진
+│   │   ├── source_provider.py        # 출처 추출 및 포매팅
+│   │   ├── external_signal_manager.py # 외부 신호 수집 관리
 │   │   ├── period_insight_agent.py   # 기간별 인사이트
 │   │   └── true_hybrid_insight_agent.py
 │   │
 │   ├── rag/                      # RAG 시스템
 │   │   ├── hybrid_retriever.py   # KG + RAG 통합 검색
-│   │   ├── true_hybrid_retriever.py
+│   │   ├── true_hybrid_retriever.py # 진정한 RAG-Ontology 하이브리드
+│   │   ├── unified_retriever.py  # Retriever 통합 Facade
 │   │   ├── retriever.py          # 문서 검색 + 임베딩 캐시
+│   │   ├── embedding_cache.py    # 임베딩 캐시 (InMemory/SQLite)
 │   │   ├── reranker.py           # 재순위화
 │   │   ├── entity_linker.py      # 엔티티 링킹
 │   │   ├── chunker.py            # 문서 청킹
@@ -220,6 +225,7 @@
 │   ├── infrastructure/           # Clean Architecture Layer 4
 │   │   ├── bootstrap.py
 │   │   ├── container.py          # DI 컨테이너
+│   │   ├── feature_flags.py      # Feature flag 시스템
 │   │   ├── config/
 │   │   │   └── config_manager.py
 │   │   └── persistence/
@@ -274,6 +280,7 @@
 │   ├── query_router.txt
 │   ├── metrics.json
 │   ├── version_manager.py
+│   ├── registry.py               # 프롬프트 중앙 관리
 │   └── components/               # 프롬프트 컴포넌트
 │
 ├── dashboard/                    # 프론트엔드
@@ -484,10 +491,18 @@ class MyWorkflow:
 | HybridChatbot | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
 | HybridInsight | `src/agents/hybrid_insight_agent.py` | 인사이트 생성 |
 | AlertAgent | `src/agents/alert_agent.py` | 순위 변동 알림 |
+| SuggestionEngine | `src/agents/suggestion_engine.py` | 후속 질문 생성 엔진 |
+| SourceProvider | `src/agents/source_provider.py` | 출처 추출 및 포매팅 |
+| ExternalSignalManager | `src/agents/external_signal_manager.py` | 외부 신호 수집 관리 |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
+| TrueHybridRetriever | `src/rag/true_hybrid_retriever.py` | 진정한 RAG-Ontology 하이브리드 검색 |
+| UnifiedRetriever | `src/rag/unified_retriever.py` | Retriever 통합 Facade |
 | Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
+| EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |
-| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 |
+| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 (OWL + Rules) |
+| PromptRegistry | `prompts/registry.py` | 프롬프트 중앙 관리 |
+| FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default) |
 | MetricCalculator | `src/tools/calculators/metric_calculator.py` | SoS, HHI, CPI |
 | AmazonScraper | `src/tools/scrapers/amazon_scraper.py` | Playwright 크롤러 |
 | KGBackup | `src/tools/utilities/kg_backup.py` | KG 백업 (7일 롤링) |

@@ -454,6 +454,18 @@ class ContextBuilder:
         Returns:
             시스템 프롬프트
         """
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        flags = FeatureFlags.get_instance()
+        if flags.use_centralized_prompts():
+            from prompts.registry import PromptRegistry
+
+            registry = PromptRegistry.get_instance()
+            return registry.get_system_prompt(
+                "chatbot", include_guardrails=include_guardrails, data_date=data_date
+            )
+
+        # ── Legacy inline prompt logic (unchanged) ──
         from prompts.components import (
             build_date_context,
             get_hallucination_prevention,

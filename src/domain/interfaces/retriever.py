@@ -8,7 +8,7 @@ RAG Retriever에 대한 추상 인터페이스
 - DocumentRetriever (src/adapters/rag/retriever.py)
 """
 
-from typing import Protocol, List, Dict, Any, Optional, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -34,10 +34,7 @@ class RetrieverProtocol(Protocol):
         ...
 
     async def retrieve(
-        self,
-        query: str,
-        current_metrics: Optional[Dict[str, Any]] = None,
-        top_k: int = 5
+        self, query: str, current_metrics: dict[str, Any] | None = None, top_k: int = 5
     ) -> Any:
         """
         질문에 대한 컨텍스트를 검색합니다.
@@ -53,11 +50,8 @@ class RetrieverProtocol(Protocol):
         ...
 
     async def search(
-        self,
-        query: str,
-        top_k: int = 5,
-        doc_filter: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, top_k: int = 5, doc_filter: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         문서를 검색합니다.
 
@@ -90,11 +84,8 @@ class DocumentRetrieverProtocol(Protocol):
         ...
 
     async def search(
-        self,
-        query: str,
-        top_k: int = 5,
-        doc_filter: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, top_k: int = 5, doc_filter: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         문서를 검색합니다.
 
@@ -108,11 +99,7 @@ class DocumentRetrieverProtocol(Protocol):
         """
         ...
 
-    def get_relevant_context(
-        self,
-        query: str,
-        max_tokens: int = 2000
-    ) -> str:
+    def get_relevant_context(self, query: str, max_tokens: int = 2000) -> str:
         """
         토큰 제한 내에서 관련 컨텍스트를 반환합니다.
 
@@ -124,3 +111,38 @@ class DocumentRetrieverProtocol(Protocol):
             결합된 컨텍스트 문자열
         """
         ...
+
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class UnifiedRetrievalResult:
+    """Unified result type for all retriever backends.
+
+    This dataclass provides a common interface for both HybridRetriever
+    (returns HybridContext) and TrueHybridRetriever (returns HybridResult).
+
+    Attributes:
+        query: Original user query
+        entities: Extracted entities by type (brands, categories, indicators, products)
+        ontology_facts: Facts retrieved from knowledge graph
+        inferences: Reasoning inferences from ontology
+        rag_chunks: RAG document chunks
+        combined_context: Merged context string for LLM prompts
+        confidence: Overall confidence score (0.0-1.0)
+        entity_links: Linked entities (from TrueHybridRetriever)
+        metadata: Additional metadata
+        retriever_type: Backend type ("hybrid" | "true_hybrid")
+    """
+
+    query: str
+    entities: dict[str, list[str]] = field(default_factory=dict)
+    ontology_facts: list[dict] = field(default_factory=list)
+    inferences: list[dict] = field(default_factory=list)
+    rag_chunks: list[dict] = field(default_factory=list)
+    combined_context: str = ""
+    confidence: float = 0.0
+    entity_links: list = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
+    retriever_type: str = "unknown"  # "hybrid" | "true_hybrid"

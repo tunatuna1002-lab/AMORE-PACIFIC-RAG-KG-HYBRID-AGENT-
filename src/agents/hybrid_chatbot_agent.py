@@ -188,6 +188,19 @@ class HybridChatbotAgent:
         self._verification_pipeline: Any = None
         self._enable_verification = config.get("enable_verification", True)
 
+        # 분해된 컴포넌트 (feature-flag-guarded)
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        flags = FeatureFlags.get_instance()
+        if flags.use_decomposed_chatbot():
+            from src.agents.external_signal_manager import ExternalSignalManager
+            from src.agents.source_provider import SourceProvider
+            from src.agents.suggestion_engine import SuggestionEngine
+
+            self.suggestion_engine = SuggestionEngine(knowledge_graph=self.kg, config=config)
+            self.source_provider = SourceProvider(config=config, knowledge_graph=self.kg)
+            self.signal_manager = ExternalSignalManager(config=config)
+
     @property
     def verification_pipeline(self) -> Any:
         """검증 파이프라인 (지연 초기화)"""
@@ -253,7 +266,9 @@ class HybridChatbotAgent:
                     "is_fallback": True,
                     "inferences": [],
                     "sources": [],
-                    "suggestions": self._get_fallback_suggestions(),
+                    "suggestions": self.suggestion_engine.get_fallback_suggestions()
+                    if hasattr(self, "suggestion_engine")
+                    else self._get_fallback_suggestions(),
                 }
 
             # 2.5 질문 재구성 (대화 맥락 기반)
@@ -303,13 +318,18 @@ class HybridChatbotAgent:
                 self.tracer.end_span("completed")
 
             # 3.5. 외부 신호 수집 (Tavily 뉴스, RSS, Reddit)
-            external_signals = await self._collect_external_signals(
-                query=search_query, entities=hybrid_context.entities
-            )
-            self._last_external_signals = external_signals
-
-            # 실패한 신호 수집기 추적
-            failed_signals = self._get_failed_signal_collectors()
+            if hasattr(self, "signal_manager"):
+                external_signals = await self.signal_manager.collect(
+                    query=search_query, entities=hybrid_context.entities
+                )
+                self._last_external_signals = external_signals
+                failed_signals = self.signal_manager.get_failed_collectors()
+            else:
+                external_signals = await self._collect_external_signals(
+                    query=search_query, entities=hybrid_context.entities
+                )
+                self._last_external_signals = external_signals
+                failed_signals = self._get_failed_signal_collectors()
 
             # 4. 컨텍스트 구성
             if self.tracer:
@@ -351,8 +371,17 @@ class HybridChatbotAgent:
                 self.tracer.end_span("completed")
 
             # 6. 출처 정보 추출 및 포맷팅 (외부 신호 포함)
-            sources = self._extract_sources(hybrid_context, external_signals)
-            formatted_sources = self._format_sources_for_response(sources)
+            if hasattr(self, "source_provider"):
+                sources = self.source_provider.extract_sources(
+                    hybrid_context=hybrid_context,
+                    current_data=self._current_data,
+                    external_signals=external_signals,
+                    model=self.model,
+                )
+                formatted_sources = self.source_provider.format_sources_for_display(sources)
+            else:
+                sources = self._extract_sources(hybrid_context, external_signals)
+                formatted_sources = self._format_sources_for_response(sources)
 
             # 실패한 신호 수집기 경고 추가
             failed_signal_warning = ""
@@ -370,12 +399,20 @@ class HybridChatbotAgent:
             self.context.add_assistant_message(full_response)
 
             # 9. 후속 질문 제안 (v2 - 응답 내용 분석 포함)
-            suggestions = self._generate_suggestions(
-                query_type=query_type,
-                entities=hybrid_context.entities,
-                inferences=hybrid_context.inferences,
-                response=full_response,
-            )
+            if hasattr(self, "suggestion_engine"):
+                suggestions = self.suggestion_engine.generate(
+                    query_type=query_type,
+                    entities=hybrid_context.entities,
+                    inferences=hybrid_context.inferences,
+                    response=full_response,
+                )
+            else:
+                suggestions = self._generate_suggestions(
+                    query_type=query_type,
+                    entities=hybrid_context.entities,
+                    inferences=hybrid_context.inferences,
+                    response=full_response,
+                )
 
             duration = (datetime.now() - start_time).total_seconds()
 
@@ -469,7 +506,9 @@ class HybridChatbotAgent:
                 "error": str(e),
                 "inferences": [],
                 "sources": [],
-                "suggestions": self._get_fallback_suggestions(),
+                "suggestions": self.suggestion_engine.get_fallback_suggestions()
+                if hasattr(self, "suggestion_engine")
+                else self._get_fallback_suggestions(),
             }
 
     async def _generate_response(
