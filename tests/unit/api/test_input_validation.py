@@ -29,6 +29,7 @@ class TestInputValidator:
     def test_detects_prompt_injection_system_override(self):
         """'system:' 또는 'SYSTEM:' 패턴 탐지"""
         from src.api.validators.input_validator import InputValidator
+        from src.domain.exceptions import DataValidationError
 
         validator = InputValidator()
 
@@ -39,12 +40,13 @@ class TestInputValidator:
         ]
 
         for pattern in patterns:
-            with pytest.raises(ValueError):
+            with pytest.raises(DataValidationError):
                 validator.validate(pattern)
 
     def test_detects_prompt_injection_jailbreak(self):
         """일반적인 jailbreak 패턴 탐지"""
         from src.api.validators.input_validator import InputValidator
+        from src.domain.exceptions import DataValidationError
 
         validator = InputValidator()
 
@@ -57,7 +59,7 @@ class TestInputValidator:
         ]
 
         for pattern in patterns:
-            with pytest.raises(ValueError):
+            with pytest.raises(DataValidationError):
                 validator.validate(pattern)
 
     def test_sanitizes_html_tags(self):

@@ -164,7 +164,7 @@ Documents to score:
         for i, doc in enumerate(documents):
             # 문서 길이 제한 (토큰 절약)
             truncated_doc = doc[:500] if len(doc) > 500 else doc
-            prompt += f"\n[Document {i+1}]: {truncated_doc}\n"
+            prompt += f"\n[Document {i + 1}]: {truncated_doc}\n"
 
         prompt += """
 Return ONLY a JSON array of scores in order, like: [8.5, 6.2, 9.1, ...]

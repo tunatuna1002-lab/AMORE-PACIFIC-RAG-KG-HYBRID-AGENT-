@@ -11,23 +11,23 @@ DEPRECATED: 이 모듈은 기존 import 경로 호환성을 위해 유지됩니�
 """
 
 import warnings
-from typing import TYPE_CHECKING
 
-# Re-export from new domain layer for backward compatibility
-from src.domain.entities.product import (
-    BadgeType,
-    Product,
-    RankRecord,
-)
 from src.domain.entities.brand import (
     Brand,
     BrandMetrics,
 )
 from src.domain.entities.market import (
     Category,
-    Snapshot,
-    ProductMetrics,
     MarketMetrics,
+    ProductMetrics,
+    Snapshot,
+)
+
+# Re-export from new domain layer for backward compatibility
+from src.domain.entities.product import (
+    BadgeType,
+    Product,
+    RankRecord,
 )
 
 # All exports for star import
@@ -54,7 +54,7 @@ def __getattr__(name: str):
             f"Importing {name} from src.ontology.schema is deprecated. "
             f"Use 'from src.domain.entities import {name}' instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         # Return the already imported symbol
         return globals().get(name)

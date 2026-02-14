@@ -20,21 +20,20 @@ LLM 기반 동적 라우팅 및 도구 선택
 - rag/router.py: RAGRouter (Rule 기반)
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
 
-from .models import (
-    Context, Response, Decision, ToolResult,
-    ConfidenceLevel
-)
-from .confidence import ConfidenceAssessor
+from src.shared.constants import DEFAULT_MODEL
+
 from .cache import ResponseCache
-from .state import OrchestratorState
+from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
-from .tools import ToolExecutor, get_tools_for_context, AGENT_TOOLS
+from .models import ConfidenceLevel, Context, Decision, Response
 from .response_pipeline import ResponsePipeline
+from .state import OrchestratorState
+from .tools import AGENT_TOOLS, ToolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -96,14 +95,14 @@ class LLMOrchestrator:
 
     def __init__(
         self,
-        openai_client: Optional[Any] = None,
-        rag_router: Optional[Any] = None,
-        context_gatherer: Optional[ContextGatherer] = None,
-        tool_executor: Optional[ToolExecutor] = None,
-        response_pipeline: Optional[ResponsePipeline] = None,
-        cache: Optional[ResponseCache] = None,
-        state: Optional[OrchestratorState] = None,
-        model: str = "gpt-4o-mini"
+        openai_client: Any | None = None,
+        rag_router: Any | None = None,
+        context_gatherer: ContextGatherer | None = None,
+        tool_executor: ToolExecutor | None = None,
+        response_pipeline: ResponsePipeline | None = None,
+        cache: ResponseCache | None = None,
+        state: OrchestratorState | None = None,
+        model: str = DEFAULT_MODEL,
     ):
         """
         Args:
@@ -135,7 +134,7 @@ class LLMOrchestrator:
             "rule_handled": 0,
             "llm_decisions": 0,
             "tools_called": 0,
-            "clarifications": 0
+            "clarifications": 0,
         }
 
     # =========================================================================
@@ -167,9 +166,9 @@ class LLMOrchestrator:
     async def process(
         self,
         query: str,
-        session_id: Optional[str] = None,
-        current_metrics: Optional[Dict[str, Any]] = None,
-        skip_cache: bool = False
+        session_id: str | None = None,
+        current_metrics: dict[str, Any] | None = None,
+        skip_cache: bool = False,
     ) -> Response:
         """
         질문 처리 메인 엔트리
@@ -204,9 +203,7 @@ class LLMOrchestrator:
 
             # 3. 컨텍스트 수집 (LLM 판단용)
             context = await self.context_gatherer.gather(
-                query=query,
-                entities=entities,
-                current_metrics=current_metrics
+                query=query, entities=entities, current_metrics=current_metrics
             )
 
             # 4. 신뢰도 평가
@@ -224,13 +221,11 @@ class LLMOrchestrator:
                 context=context,
                 route_result=route_result,
                 confidence=confidence,
-                current_metrics=current_metrics
+                current_metrics=current_metrics,
             )
 
             # 처리 시간 업데이트
-            response.processing_time_ms = (
-                datetime.now() - start_time
-            ).total_seconds() * 1000
+            response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
 
             # 캐시 저장
             if not skip_cache and not response.is_fallback:
@@ -246,10 +241,7 @@ class LLMOrchestrator:
     # 라우팅
     # =========================================================================
 
-    def _rule_based_routing(
-        self,
-        query: str
-    ) -> Tuple[Dict[str, Any], Dict[str, List[str]]]:
+    def _rule_based_routing(self, query: str) -> tuple[dict[str, Any], dict[str, list[str]]]:
         """
         Rule 기반 라우팅 (1단계)
 
@@ -268,7 +260,7 @@ class LLMOrchestrator:
                 "query_type": "unknown",
                 "confidence": 0.0,
                 "requires_data": False,
-                "requires_rag": True
+                "requires_rag": True,
             }
             entities = {}
 
@@ -278,9 +270,9 @@ class LLMOrchestrator:
         self,
         query: str,
         context: Context,
-        route_result: Dict[str, Any],
+        route_result: dict[str, Any],
         confidence: ConfidenceLevel,
-        current_metrics: Optional[Dict[str, Any]]
+        current_metrics: dict[str, Any] | None,
     ) -> Response:
         """
         신뢰도에 따른 분기 처리
@@ -311,7 +303,7 @@ class LLMOrchestrator:
             context=context,
             route_result=route_result,
             confidence=confidence,
-            current_metrics=current_metrics
+            current_metrics=current_metrics,
         )
 
     # =========================================================================
@@ -322,9 +314,9 @@ class LLMOrchestrator:
         self,
         query: str,
         context: Context,
-        route_result: Dict[str, Any],
+        route_result: dict[str, Any],
         confidence: ConfidenceLevel,
-        current_metrics: Optional[Dict[str, Any]]
+        current_metrics: dict[str, Any] | None,
     ) -> Response:
         """
         LLM 판단 기반 처리 흐름
@@ -347,30 +339,20 @@ class LLMOrchestrator:
         # 도구 실행 필요 여부
         if decision.requires_tool():
             self._stats["tools_called"] += 1
-            tool_result = await self.tool_executor.execute(
-                decision.tool,
-                decision.tool_params
-            )
+            tool_result = await self.tool_executor.execute(decision.tool, decision.tool_params)
 
             # 도구 결과로 응답 생성
             return await self.response_pipeline.generate_with_tool_result(
-                query=query,
-                context=context,
-                tool_result=tool_result
+                query=query, context=context, tool_result=tool_result
             )
 
         # direct_answer: 컨텍스트로 응답
         return await self.response_pipeline.generate(
-            query=query,
-            context=context,
-            decision=decision
+            query=query, context=context, decision=decision
         )
 
     async def _get_llm_decision(
-        self,
-        query: str,
-        context: Context,
-        route_result: Dict[str, Any]
+        self, query: str, context: Context, route_result: dict[str, Any]
     ) -> Decision:
         """
         LLM에게 도구 선택 판단 요청
@@ -395,7 +377,7 @@ class LLMOrchestrator:
             prompt = self.DECISION_PROMPT.format(
                 tools_description=tools_desc,
                 context_summary=context.summary or "컨텍스트 없음",
-                query=query
+                query=query,
             )
 
             # LLM 호출
@@ -403,13 +385,11 @@ class LLMOrchestrator:
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=500,
-                temperature=0.1
+                temperature=0.1,
             )
 
             # 응답 파싱
-            return self._parse_decision_response(
-                response.choices[0].message.content
-            )
+            return self._parse_decision_response(response.choices[0].message.content)
 
         except Exception as e:
             logger.error(f"LLM decision failed: {e}")
@@ -446,7 +426,7 @@ class LLMOrchestrator:
                     tool_params=data.get("tool_params", {}),
                     reason=data.get("reason", ""),
                     key_points=data.get("key_points", []),
-                    confidence=0.8
+                    confidence=0.8,
                 )
 
         except json.JSONDecodeError as e:
@@ -454,16 +434,10 @@ class LLMOrchestrator:
 
         # 파싱 실패 시 기본값
         return Decision(
-            tool="direct_answer",
-            reason="LLM 응답 파싱 실패, 직접 응답",
-            confidence=0.5
+            tool="direct_answer", reason="LLM 응답 파싱 실패, 직접 응답", confidence=0.5
         )
 
-    def _default_decision(
-        self,
-        query: str,
-        route_result: Dict[str, Any]
-    ) -> Decision:
+    def _default_decision(self, query: str, route_result: dict[str, Any]) -> Decision:
         """
         기본 판단 로직 (LLM 없을 때)
 
@@ -474,23 +448,15 @@ class LLMOrchestrator:
         Returns:
             Decision
         """
-        query_type = route_result.get("query_type", "unknown")
+        route_result.get("query_type", "unknown")
 
         # 크롤링 요청 감지
         if any(kw in query.lower() for kw in ["크롤링", "수집", "업데이트", "refresh"]):
-            return Decision(
-                tool="crawl_amazon",
-                reason="크롤링 요청 감지",
-                confidence=0.9
-            )
+            return Decision(tool="crawl_amazon", reason="크롤링 요청 감지", confidence=0.9)
 
         # 지표 계산 요청 감지
         if any(kw in query.lower() for kw in ["계산", "분석", "지표"]):
-            return Decision(
-                tool="calculate_metrics",
-                reason="지표 계산 요청 감지",
-                confidence=0.8
-            )
+            return Decision(tool="calculate_metrics", reason="지표 계산 요청 감지", confidence=0.8)
 
         # 데이터 조회 필요
         if route_result.get("requires_data"):
@@ -498,25 +464,17 @@ class LLMOrchestrator:
                 tool="query_data",
                 tool_params={"query_type": "brand_metrics"},
                 reason="데이터 조회 필요",
-                confidence=0.7
+                confidence=0.7,
             )
 
         # 기본: 직접 응답
-        return Decision(
-            tool="direct_answer",
-            reason="컨텍스트로 응답 가능",
-            confidence=0.6
-        )
+        return Decision(tool="direct_answer", reason="컨텍스트로 응답 가능", confidence=0.6)
 
     # =========================================================================
     # 응답 생성
     # =========================================================================
 
-    async def _generate_direct_response(
-        self,
-        query: str,
-        context: Context
-    ) -> Response:
+    async def _generate_direct_response(self, query: str, context: Context) -> Response:
         """
         컨텍스트 기반 직접 응답 생성
 
@@ -531,16 +489,9 @@ class LLMOrchestrator:
         if context.rag_docs:
             return self._generate_rag_based_response(query, context)
 
-        return await self.response_pipeline.generate(
-            query=query,
-            context=context
-        )
+        return await self.response_pipeline.generate(query=query, context=context)
 
-    def _generate_rag_based_response(
-        self,
-        query: str,
-        context: Context
-    ) -> Response:
+    def _generate_rag_based_response(self, query: str, context: Context) -> Response:
         """
         RAG 문서 기반 직접 응답 생성 (LLM 없이)
 
@@ -564,7 +515,9 @@ class LLMOrchestrator:
             if title and title not in sources:
                 sources.append(title)
 
-        response_text = "\n\n".join(response_parts) if response_parts else "관련 정보를 찾을 수 없습니다."
+        response_text = (
+            "\n\n".join(response_parts) if response_parts else "관련 정보를 찾을 수 없습니다."
+        )
 
         # 질문 유형 추론
         query_type = self._infer_query_type_from_query(query)
@@ -577,7 +530,7 @@ class LLMOrchestrator:
             sources=sources,
             entities=context.entities,
             suggestions=["더 궁금한 점이 있으신가요?", "다른 지표도 알아볼까요?"],
-            processing_time_ms=0
+            processing_time_ms=0,
         )
 
     def _infer_query_type_from_query(self, query: str) -> str:
@@ -594,10 +547,7 @@ class LLMOrchestrator:
         return "general"
 
     def _generate_clarification(
-        self,
-        query: str,
-        context: Context,
-        route_result: Dict[str, Any]
+        self, query: str, context: Context, route_result: dict[str, Any]
     ) -> Response:
         """
         명확화 요청 응답 생성
@@ -611,15 +561,12 @@ class LLMOrchestrator:
             Response
         """
         # 기본 명확화 메시지
-        message = route_result.get(
-            "fallback_message",
-            "질문의 의도를 정확히 파악하지 못했습니다."
-        )
+        message = route_result.get("fallback_message", "질문의 의도를 정확히 파악하지 못했습니다.")
 
         suggestions = [
             "어떤 브랜드/제품을 분석할까요?",
             "SoS 정의가 궁금하신가요?",
-            "현재 순위를 조회할까요?"
+            "현재 순위를 조회할까요?",
         ]
 
         return Response.clarification(message, suggestions)
@@ -628,13 +575,9 @@ class LLMOrchestrator:
     # 상태 및 통계
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """오케스트레이터 통계"""
-        return {
-            **self._stats,
-            "cache_stats": self.cache.get_stats(),
-            "state": self.state.to_dict()
-        }
+        return {**self._stats, "cache_stats": self.cache.get_stats(), "state": self.state.to_dict()}
 
     def reset_stats(self) -> None:
         """통계 초기화"""
@@ -644,7 +587,7 @@ class LLMOrchestrator:
             "rule_handled": 0,
             "llm_decisions": 0,
             "tools_called": 0,
-            "clarifications": 0
+            "clarifications": 0,
         }
 
     def get_state_summary(self) -> str:

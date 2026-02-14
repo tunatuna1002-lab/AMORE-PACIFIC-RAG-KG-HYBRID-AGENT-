@@ -124,7 +124,7 @@ RULE_CATEGORY_OPPORTUNITY = InferenceRule(
     ],
     conclusion=lambda ctx: {
         "insight": f"{ctx.get('category', '해당 카테고리')}는 분산된 시장 구조(HHI: {ctx.get('hhi', 0):.3f})로 "
-        f"현재 {ctx.get('brand', '타겟 브랜드')}의 존재감이 낮아({ctx.get('sos', 0)*100:.1f}%) "
+        f"현재 {ctx.get('brand', '타겟 브랜드')}의 존재감이 낮아({ctx.get('sos', 0) * 100:.1f}%) "
         f"진입 확대 기회가 있을 수 있습니다.",
         "opportunity": "category_entry",
         "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. "

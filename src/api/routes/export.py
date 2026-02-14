@@ -27,6 +27,7 @@ from src.tools.exporters.chart_generator import ChartGenerator
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 from src.tools.utilities.reference_tracker import ReferenceTracker
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/export", tags=["export"])
 
 
@@ -353,7 +354,7 @@ async def _get_external_signals(
         try:
             await collector.close()
         except Exception:
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
 
 
 @router.post("/docx")

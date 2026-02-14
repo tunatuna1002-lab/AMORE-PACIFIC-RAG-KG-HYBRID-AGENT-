@@ -15,17 +15,17 @@ Morning Brief Generator
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any
 
 from litellm import acompletion
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class MorningBriefData:
     """Morning Brief에 들어갈 데이터"""

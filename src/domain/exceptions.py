@@ -14,7 +14,8 @@ AMORE Agent 커스텀 예외 타입
         if e.retry_count < 3:
             retry()
 """
-from typing import Any, Optional, Dict
+
+from typing import Any
 
 
 class AmoreAgentError(Exception):
@@ -30,6 +31,7 @@ class AmoreAgentError(Exception):
         except AmoreAgentError as e:
             logger.error(f"Agent error: {e}")
     """
+
     pass
 
 
@@ -60,9 +62,9 @@ class NetworkError(AmoreAgentError):
     def __init__(
         self,
         message: str,
-        url: Optional[str] = None,
-        status_code: Optional[int] = None,
-        retry_count: int = 0
+        url: str | None = None,
+        status_code: int | None = None,
+        retry_count: int = 0,
     ):
         super().__init__(message)
         self.url = url
@@ -98,9 +100,9 @@ class LLMAPIError(AmoreAgentError):
     def __init__(
         self,
         message: str,
-        model: Optional[str] = None,
-        error_code: Optional[str] = None,
-        is_retryable: bool = False
+        model: str | None = None,
+        error_code: str | None = None,
+        is_retryable: bool = False,
     ):
         super().__init__(message)
         self.model = model
@@ -135,9 +137,9 @@ class DataValidationError(AmoreAgentError):
     def __init__(
         self,
         message: str,
-        field: Optional[str] = None,
-        value: Optional[Any] = None,
-        constraint: Optional[str] = None
+        field: str | None = None,
+        value: Any | None = None,
+        constraint: str | None = None,
     ):
         super().__init__(message)
         self.field = field
@@ -172,9 +174,9 @@ class ScraperError(AmoreAgentError):
     def __init__(
         self,
         message: str,
-        category: Optional[str] = None,
-        asin: Optional[str] = None,
-        error_type: Optional[str] = None
+        category: str | None = None,
+        asin: str | None = None,
+        error_type: str | None = None,
     ):
         super().__init__(message)
         self.category = category
@@ -209,9 +211,9 @@ class KnowledgeGraphError(AmoreAgentError):
     def __init__(
         self,
         message: str,
-        entity: Optional[str] = None,
-        relation: Optional[str] = None,
-        operation: Optional[str] = None
+        entity: str | None = None,
+        relation: str | None = None,
+        operation: str | None = None,
     ):
         super().__init__(message)
         self.entity = entity
@@ -242,10 +244,7 @@ class ReasonerError(AmoreAgentError):
     """
 
     def __init__(
-        self,
-        message: str,
-        rule_name: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
+        self, message: str, rule_name: str | None = None, context: dict[str, Any] | None = None
     ):
         super().__init__(message)
         self.rule_name = rule_name
@@ -273,12 +272,7 @@ class RetrieverError(AmoreAgentError):
         )
     """
 
-    def __init__(
-        self,
-        message: str,
-        query: Optional[str] = None,
-        retriever_type: Optional[str] = None
-    ):
+    def __init__(self, message: str, query: str | None = None, retriever_type: str | None = None):
         super().__init__(message)
         self.query = query
         self.retriever_type = retriever_type
@@ -310,9 +304,9 @@ class ConfigurationError(AmoreAgentError):
     def __init__(
         self,
         message: str,
-        config_key: Optional[str] = None,
-        expected: Optional[Any] = None,
-        actual: Optional[Any] = None
+        config_key: str | None = None,
+        expected: Any | None = None,
+        actual: Any | None = None,
     ):
         super().__init__(message)
         self.config_key = config_key

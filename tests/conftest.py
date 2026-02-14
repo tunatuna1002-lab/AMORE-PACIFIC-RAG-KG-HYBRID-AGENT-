@@ -1,25 +1,21 @@
 import os
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
-
-from tests.test_rag_integration import TestResult
-from src.rag.retriever import DocumentRetriever
 
 
 def pytest_configure(config):
     """테스트 시작 전 환경 설정 로드"""
     project_root = Path(__file__).parent.parent
 
-    # 1. 먼저 .env 로드 (기본 API 키들)
     main_env_path = project_root / ".env"
     if main_env_path.exists():
         load_dotenv(main_env_path, override=False)
         print(f"\n[conftest] Loaded base environment from: {main_env_path}")
 
-    # 2. 테스트 전용 설정 덮어쓰기 (.env.test)
     env_file = os.environ.get("ENV_FILE", ".env.test")
     env_path = project_root / env_file
 
@@ -32,11 +28,22 @@ def pytest_configure(config):
 
 @pytest.fixture
 def results():
+    """테스트 결과 객체 (인라인 정의, 외부 의존 제거)"""
+
+    class TestResult:
+        def __init__(self):
+            self.passed = 0
+            self.failed = 0
+            self.errors = []
+
     return TestResult()
 
 
 @pytest_asyncio.fixture
 async def retriever():
-    retriever = DocumentRetriever(docs_path="./docs")
-    await retriever.initialize()
-    return retriever
+    """Mock retriever - 실제 ChromaDB/디스크 의존성 제거"""
+    mock = MagicMock()
+    mock.initialize = AsyncMock()
+    mock.retrieve = AsyncMock(return_value=[])
+    mock.get_relevant_documents = AsyncMock(return_value=[])
+    return mock

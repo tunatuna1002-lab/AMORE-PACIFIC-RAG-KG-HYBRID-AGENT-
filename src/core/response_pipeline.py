@@ -21,6 +21,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from src.shared.constants import DEFAULT_MODEL
+
 from .hallucination_detector import HallucinationDetector
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 
@@ -58,7 +60,7 @@ class ResponsePipeline:
     def __init__(
         self,
         openai_client: Any | None = None,
-        model: str = "gpt-4o-mini",
+        model: str = DEFAULT_MODEL,
         max_tokens: int = 1500,
         temperature: float = 0.3,
     ):
@@ -145,9 +147,6 @@ class ResponsePipeline:
             processed_text = self._post_process(response_text, context)
 
             # 환각 감지 (low confidence 응답만)
-            hallucination_warning = False
-            groundedness_score = None
-            groundedness_method = None
             if decision and hasattr(decision, "confidence") and decision.confidence < 0.8:
                 try:
                     context_text = context.summary or ""
@@ -155,9 +154,6 @@ class ResponsePipeline:
                         processed_text, context_text
                     )
                     if not groundedness.is_grounded:
-                        hallucination_warning = True
-                        groundedness_score = groundedness.score
-                        groundedness_method = groundedness.method
                         logger.warning(f"Hallucination warning: score={groundedness.score:.2f}")
                 except Exception as e:
                     logger.debug(f"Hallucination check skipped: {e}")

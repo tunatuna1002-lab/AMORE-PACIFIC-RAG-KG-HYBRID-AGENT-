@@ -23,8 +23,8 @@ Usage:
 import hashlib
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
 from threading import Lock
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,44 +42,31 @@ class ResponseCache:
     # =========================================================================
 
     DEFAULT_TTL = {
-        "query": timedelta(hours=24),    # 동일 질문: 24시간
-        "kg": timedelta(hours=1),        # KG 조회: 1시간
-        "crawl": timedelta(days=1),      # 크롤링: 당일
-        "context": timedelta(minutes=30) # 컨텍스트: 30분
+        "query": timedelta(hours=24),  # 동일 질문: 24시간
+        "kg": timedelta(hours=1),  # KG 조회: 1시간
+        "crawl": timedelta(days=1),  # 크롤링: 당일
+        "context": timedelta(minutes=30),  # 컨텍스트: 30분
     }
 
-    def __init__(
-        self,
-        max_size: int = 1000,
-        ttl_config: Dict[str, timedelta] = None
-    ):
+    def __init__(self, max_size: int = 1000, ttl_config: dict[str, timedelta] = None):
         """
         Args:
             max_size: 최대 캐시 항목 수
             ttl_config: 캐시 유형별 TTL 설정
         """
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
         self._lock = Lock()
         self._max_size = max_size
         self._ttl = ttl_config or self.DEFAULT_TTL.copy()
 
         # 통계
-        self._stats = {
-            "hits": 0,
-            "misses": 0,
-            "sets": 0,
-            "evictions": 0
-        }
+        self._stats = {"hits": 0, "misses": 0, "sets": 0, "evictions": 0}
 
     # =========================================================================
     # 기본 CRUD 연산
     # =========================================================================
 
-    def get(
-        self,
-        key: str,
-        cache_type: str = "query"
-    ) -> Optional[Any]:
+    def get(self, key: str, cache_type: str = "query") -> Any | None:
         """
         캐시 조회
 
@@ -110,12 +97,7 @@ class ResponseCache:
             logger.debug(f"Cache hit: {key[:20]}...")
             return cached["value"]
 
-    def set(
-        self,
-        key: str,
-        value: Any,
-        cache_type: str = "query"
-    ) -> None:
+    def set(self, key: str, value: Any, cache_type: str = "query") -> None:
         """
         캐시 저장
 
@@ -129,11 +111,7 @@ class ResponseCache:
             if len(self._cache) >= self._max_size:
                 self._evict_oldest()
 
-            self._cache[key] = {
-                "value": value,
-                "timestamp": datetime.now(),
-                "type": cache_type
-            }
+            self._cache[key] = {"value": value, "timestamp": datetime.now(), "type": cache_type}
             self._stats["sets"] += 1
             logger.debug(f"Cache set: {key[:20]}... (type={cache_type})")
 
@@ -187,15 +165,14 @@ class ResponseCache:
             for key in keys_to_delete:
                 del self._cache[key]
 
-            logger.info(f"Cache invalidated: {len(keys_to_delete)} items (pattern={pattern}, type={cache_type})")
+            logger.info(
+                f"Cache invalidated: {len(keys_to_delete)} items (pattern={pattern}, type={cache_type})"
+            )
             return len(keys_to_delete)
 
     def _invalidate_by_type_internal(self, cache_type: str) -> int:
         """내부용: 특정 유형 캐시 무효화 (lock 없이)"""
-        keys_to_delete = [
-            k for k, v in self._cache.items()
-            if v.get("type") == cache_type
-        ]
+        keys_to_delete = [k for k, v in self._cache.items() if v.get("type") == cache_type]
         for key in keys_to_delete:
             del self._cache[key]
         logger.info(f"Cache invalidated by type: {len(keys_to_delete)} items (type={cache_type})")
@@ -212,10 +189,7 @@ class ResponseCache:
             삭제된 항목 수
         """
         with self._lock:
-            keys_to_delete = [
-                k for k, v in self._cache.items()
-                if v.get("type") == cache_type
-            ]
+            keys_to_delete = [k for k, v in self._cache.items() if v.get("type") == cache_type]
             for key in keys_to_delete:
                 del self._cache[key]
 
@@ -263,10 +237,7 @@ class ResponseCache:
         if not self._cache:
             return
 
-        oldest_key = min(
-            self._cache.keys(),
-            key=lambda k: self._cache[k]["timestamp"]
-        )
+        oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k]["timestamp"])
         del self._cache[oldest_key]
         self._stats["evictions"] += 1
         logger.debug(f"Cache evicted: {oldest_key[:20]}...")
@@ -301,7 +272,7 @@ class ResponseCache:
     # 통계 및 상태
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         캐시 통계 조회
 
@@ -310,10 +281,7 @@ class ResponseCache:
         """
         with self._lock:
             total_requests = self._stats["hits"] + self._stats["misses"]
-            hit_rate = (
-                self._stats["hits"] / total_requests
-                if total_requests > 0 else 0
-            )
+            hit_rate = self._stats["hits"] / total_requests if total_requests > 0 else 0
 
             return {
                 "size": len(self._cache),
@@ -322,7 +290,7 @@ class ResponseCache:
                 "misses": self._stats["misses"],
                 "hit_rate": round(hit_rate, 4),
                 "sets": self._stats["sets"],
-                "evictions": self._stats["evictions"]
+                "evictions": self._stats["evictions"],
             }
 
     def __len__(self) -> int:

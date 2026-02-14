@@ -19,7 +19,7 @@ RULE_MARKET_DOMINANCE = InferenceRule(
     ],
     conclusion=lambda ctx: {
         "insight": f"{ctx.get('brand', '해당 브랜드')}는 분산된 시장 구조에서 "
-        f"{ctx.get('sos', 0)*100:.1f}%의 점유율로 강한 존재감을 보유하고 있습니다.",
+        f"{ctx.get('sos', 0) * 100:.1f}%의 점유율로 강한 존재감을 보유하고 있습니다.",
         "position": MarketPosition.DOMINANT_IN_FRAGMENTED.value,
         "recommendation": "현재 포지션 유지 및 점유율 확대 기회 모색. "
         "신규 진입자 동향 모니터링 권장.",
@@ -46,7 +46,7 @@ RULE_DOMINANT_CONCENTRATED = InferenceRule(
     ],
     conclusion=lambda ctx: {
         "insight": f"{ctx.get('brand', '해당 브랜드')}는 집중된 시장에서 "
-        f"{ctx.get('sos', 0)*100:.1f}%의 높은 점유율을 보유한 주요 플레이어입니다.",
+        f"{ctx.get('sos', 0) * 100:.1f}%의 높은 점유율을 보유한 주요 플레이어입니다.",
         "position": MarketPosition.DOMINANT.value,
         "recommendation": "현재 지배적 포지션 유지. 시장 구조 변화 및 규제 리스크 모니터링.",
         "related_entities": [ctx.get("brand", "")],
@@ -76,7 +76,7 @@ RULE_CHALLENGER_POSITION = InferenceRule(
     ],
     conclusion=lambda ctx: {
         "insight": f"{ctx.get('brand', '해당 브랜드')}는 집중된 시장에서 "
-        f"{ctx.get('sos', 0)*100:.1f}%의 점유율로 도전자 위치에 있습니다.",
+        f"{ctx.get('sos', 0) * 100:.1f}%의 점유율로 도전자 위치에 있습니다.",
         "position": MarketPosition.CHALLENGER.value,
         "recommendation": "니치 전략 또는 차별화 강화를 통한 점유율 확대 검토. "
         "선두 브랜드 대비 경쟁 우위 요소 발굴 필요.",
@@ -172,7 +172,7 @@ RULE_COMPETITIVE_PRESSURE = InferenceRule(
         StandardConditions.has_competitors(3),  # 경쟁사 3개 이상
     ],
     conclusion=lambda ctx: {
-        "insight": f"점유율이 하락 추세({ctx.get('sos_change', 0)*100:+.1f}%p)이며 "
+        "insight": f"점유율이 하락 추세({ctx.get('sos_change', 0) * 100:+.1f}%p)이며 "
         f"{ctx.get('competitor_count', 0)}개 경쟁 브랜드의 활동이 활발하여 "
         f"경쟁 압박이 증가하고 있을 수 있습니다.",
         "threat": "competitive_pressure",

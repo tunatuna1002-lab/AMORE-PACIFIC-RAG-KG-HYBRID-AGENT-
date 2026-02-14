@@ -6,18 +6,31 @@ ProductRepository Protocol 구현 - 로컬 JSON 파일 백엔드
 로컬 개발 및 테스트용으로 사용됩니다.
 """
 
+import asyncio
 import json
 import logging
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-from src.domain.entities.product import RankRecord
 from src.domain.entities.brand import BrandMetrics
 from src.domain.entities.market import MarketMetrics
-from src.domain.interfaces.repository import ProductRepository, MetricsRepository
+from src.domain.entities.product import RankRecord
+from src.domain.interfaces.repository import MetricsRepository, ProductRepository
+
+
+def _read_json(path):
+    """동기 JSON 읽기 (to_thread에서 사용)"""
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _write_json(path, data, **kwargs):
+    """동기 JSON 쓰기 (to_thread에서 사용)"""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, **kwargs)
 
 
 class JsonFileRepository(ProductRepository, MetricsRepository):
@@ -44,14 +57,13 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
             return obj.isoformat()
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
-    async def save_records(self, records: List[RankRecord]) -> bool:
+    async def save_records(self, records: list[RankRecord]) -> bool:
         """레코드 저장"""
         try:
             # Load existing records
             existing = []
             if self._records_file.exists():
-                with open(self._records_file, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
+                existing = await asyncio.to_thread(_read_json, self._records_file)
 
             # Convert new records to dicts
             new_records = [
@@ -83,12 +95,12 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
 
             # Keep only recent 30 days
             from datetime import timedelta
+
             cutoff = str(date.today() - timedelta(days=30))
             existing = [r for r in existing if r.get("snapshot_date", "") >= cutoff]
 
             # Save
-            with open(self._records_file, "w", encoding="utf-8") as f:
-                json.dump(existing, f, ensure_ascii=False, indent=2)
+            await asyncio.to_thread(_write_json, self._records_file, existing)
 
             return True
 
@@ -96,16 +108,16 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
             logger.error(f"Error saving records: {e}")
             return False
 
-    async def get_recent(self, days: int = 7) -> List[RankRecord]:
+    async def get_recent(self, days: int = 7) -> list[RankRecord]:
         """최근 N일 레코드 조회"""
         try:
             if not self._records_file.exists():
                 return []
 
-            with open(self._records_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = await asyncio.to_thread(_read_json, self._records_file)
 
             from datetime import timedelta
+
             cutoff = str(date.today() - timedelta(days=days))
 
             result = []
@@ -121,14 +133,18 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
                             rank=int(row["rank"]),
                             price=float(row["price"]) if row.get("price") else None,
                             list_price=float(row["list_price"]) if row.get("list_price") else None,
-                            discount_percent=float(row["discount_percent"]) if row.get("discount_percent") else None,
+                            discount_percent=float(row["discount_percent"])
+                            if row.get("discount_percent")
+                            else None,
                             rating=float(row["rating"]) if row.get("rating") else None,
-                            reviews_count=int(row["reviews_count"]) if row.get("reviews_count") else None,
+                            reviews_count=int(row["reviews_count"])
+                            if row.get("reviews_count")
+                            else None,
                             badge=row.get("badge", ""),
                             coupon_text=row.get("coupon_text", ""),
                             is_subscribe_save=row.get("is_subscribe_save", False),
                             promo_badges=row.get("promo_badges", ""),
-                            product_url=row.get("product_url", "")
+                            product_url=row.get("product_url", ""),
                         )
                         result.append(record)
                     except Exception:
@@ -140,19 +156,19 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
             logger.error(f"Error getting records: {e}")
             return []
 
-    async def get_by_brand(self, brand: str, days: int = 7) -> List[RankRecord]:
+    async def get_by_brand(self, brand: str, days: int = 7) -> list[RankRecord]:
         """브랜드별 레코드 조회"""
         records = await self.get_recent(days)
         return [r for r in records if r.brand.upper() == brand.upper()]
 
-    async def get_by_category(self, category_id: str, days: int = 7) -> List[RankRecord]:
+    async def get_by_category(self, category_id: str, days: int = 7) -> list[RankRecord]:
         """카테고리별 레코드 조회"""
         records = await self.get_recent(days)
         return [r for r in records if r.category_id == category_id]
 
     # MetricsRepository Implementation
 
-    async def save_brand_metrics(self, metrics: List[BrandMetrics]) -> bool:
+    async def save_brand_metrics(self, metrics: list[BrandMetrics]) -> bool:
         """브랜드 메트릭 저장"""
         try:
             data = [
@@ -169,8 +185,7 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
                 for m in metrics
             ]
 
-            with open(self._brand_metrics_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            await asyncio.to_thread(_write_json, self._brand_metrics_file, data)
 
             return True
 
@@ -178,7 +193,7 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
             logger.error(f"Error saving brand metrics: {e}")
             return False
 
-    async def save_market_metrics(self, metrics: List[MarketMetrics]) -> bool:
+    async def save_market_metrics(self, metrics: list[MarketMetrics]) -> bool:
         """마켓 메트릭 저장"""
         try:
             data = [
@@ -194,8 +209,7 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
                 for m in metrics
             ]
 
-            with open(self._market_metrics_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            await asyncio.to_thread(_write_json, self._market_metrics_file, data)
 
             return True
 
@@ -204,15 +218,14 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
             return False
 
     async def get_brand_metrics(
-        self, brand: str, category_id: Optional[str] = None
-    ) -> Optional[BrandMetrics]:
+        self, brand: str, category_id: str | None = None
+    ) -> BrandMetrics | None:
         """브랜드 메트릭 조회"""
         try:
             if not self._brand_metrics_file.exists():
                 return None
 
-            with open(self._brand_metrics_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = await asyncio.to_thread(_read_json, self._brand_metrics_file)
 
             for row in data:
                 if row["brand"].upper() == brand.upper():
@@ -223,10 +236,14 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
                         brand=row["brand"],
                         category_id=row["category_id"],
                         sos=float(row["sos"]),
-                        brand_avg_rank=float(row["brand_avg_rank"]) if row.get("brand_avg_rank") else None,
+                        brand_avg_rank=float(row["brand_avg_rank"])
+                        if row.get("brand_avg_rank")
+                        else None,
                         product_count=int(row["product_count"]),
                         cpi=float(row["cpi"]) if row.get("cpi") else None,
-                        avg_rating_gap=float(row["avg_rating_gap"]) if row.get("avg_rating_gap") else None,
+                        avg_rating_gap=float(row["avg_rating_gap"])
+                        if row.get("avg_rating_gap")
+                        else None,
                     )
 
             return None
@@ -236,15 +253,14 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
             return None
 
     async def get_market_metrics(
-        self, category_id: str, snapshot_date: Optional[date] = None
-    ) -> Optional[MarketMetrics]:
+        self, category_id: str, snapshot_date: date | None = None
+    ) -> MarketMetrics | None:
         """마켓 메트릭 조회"""
         try:
             if not self._market_metrics_file.exists():
                 return None
 
-            with open(self._market_metrics_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = await asyncio.to_thread(_read_json, self._market_metrics_file)
 
             for row in data:
                 if row["category_id"] == category_id:
@@ -256,8 +272,12 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
                         snapshot_date=date.fromisoformat(row["snapshot_date"]),
                         hhi=float(row["hhi"]),
                         churn_rate=float(row["churn_rate"]) if row.get("churn_rate") else None,
-                        category_avg_price=float(row["category_avg_price"]) if row.get("category_avg_price") else None,
-                        category_avg_rating=float(row["category_avg_rating"]) if row.get("category_avg_rating") else None,
+                        category_avg_price=float(row["category_avg_price"])
+                        if row.get("category_avg_price")
+                        else None,
+                        category_avg_rating=float(row["category_avg_rating"])
+                        if row.get("category_avg_rating")
+                        else None,
                     )
 
             return None

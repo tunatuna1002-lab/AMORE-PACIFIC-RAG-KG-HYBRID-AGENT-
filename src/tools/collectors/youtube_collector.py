@@ -31,8 +31,10 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
+
+from src.shared.constants import KST
 
 try:
     import yt_dlp
@@ -43,10 +45,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class YouTubeVideo:
     """YouTube 비디오 데이터"""
@@ -186,7 +186,7 @@ class YouTubeCollector:
                 try:
                     upload_date = datetime.strptime(date_str, "%Y%m%d").replace(tzinfo=UTC)
                 except ValueError:
-                    pass
+                    logger.debug("Suppressed ValueError", exc_info=True)
 
             return YouTubeVideo(
                 video_id=video_id,

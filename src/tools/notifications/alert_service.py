@@ -16,19 +16,19 @@ import logging
 import os
 import smtplib
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
 
 import aiohttp
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class AlertConfig:
     """알림 설정"""

@@ -25,24 +25,26 @@ Usage:
 
 import json
 import logging
-from datetime import datetime, time
-from pathlib import Path
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+from datetime import datetime, time
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class ConditionType(Enum):
     """규칙 조건 유형"""
-    SCHEDULE = "schedule"      # 시간 기반
-    EVENT = "event"            # 이벤트 기반
-    THRESHOLD = "threshold"    # 임계값 기반
+
+    SCHEDULE = "schedule"  # 시간 기반
+    EVENT = "event"  # 이벤트 기반
+    THRESHOLD = "threshold"  # 임계값 기반
 
 
 class ActionType(Enum):
     """규칙 액션 유형"""
+
     CRAWL_WORKFLOW = "crawl_workflow"
     UPDATE_DASHBOARD = "update_dashboard"
     SEND_ALERT = "send_alert"
@@ -55,16 +57,17 @@ class ActionType(Enum):
 @dataclass
 class Rule:
     """규칙 정의"""
+
     id: str
     name: str
-    condition: Dict[str, Any]
+    condition: dict[str, Any]
     action: str
     priority: int
     enabled: bool
-    alert_type: Optional[str] = None  # 알림 규칙용
+    alert_type: str | None = None  # 알림 규칙용
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Rule":
+    def from_dict(cls, data: dict[str, Any]) -> "Rule":
         """딕셔너리에서 Rule 생성"""
         return cls(
             id=data["id"],
@@ -73,17 +76,18 @@ class Rule:
             action=data["action"],
             priority=data.get("priority", 5),
             enabled=data.get("enabled", True),
-            alert_type=data.get("alert_type")
+            alert_type=data.get("alert_type"),
         )
 
 
 @dataclass
 class RuleMatch:
     """규칙 매칭 결과"""
+
     rule: Rule
     action: str
     priority: int
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
     def __lt__(self, other):
         """우선순위 기반 정렬 (낮은 숫자가 높은 우선순위)"""
@@ -98,7 +102,7 @@ class RulesEngine:
     조건을 평가하여 적절한 액션을 반환합니다.
     """
 
-    def __init__(self, rules_path: Optional[Path] = None):
+    def __init__(self, rules_path: Path | None = None):
         """
         Args:
             rules_path: 규칙 파일 경로 (기본: config/rules.json)
@@ -107,11 +111,11 @@ class RulesEngine:
             rules_path = Path("./config/rules.json")
 
         self.rules_path = rules_path
-        self.schedule_rules: List[Rule] = []
-        self.alert_rules: List[Rule] = []
-        self.priority_rules: List[Rule] = []
-        self.thresholds: Dict[str, Any] = {}
-        self.permissions: Dict[str, List[str]] = {}
+        self.schedule_rules: list[Rule] = []
+        self.alert_rules: list[Rule] = []
+        self.priority_rules: list[Rule] = []
+        self.thresholds: dict[str, Any] = {}
+        self.permissions: dict[str, list[str]] = {}
 
         self._load_rules()
 
@@ -126,7 +130,7 @@ class RulesEngine:
                 logger.warning(f"Rules file not found: {self.rules_path}")
                 return
 
-            with open(self.rules_path, "r", encoding="utf-8") as f:
+            with open(self.rules_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # 스케줄 규칙
@@ -170,7 +174,9 @@ class RulesEngine:
     # 이벤트 기반 규칙 평가
     # =========================================================================
 
-    def evaluate_event(self, event_name: str, context: Optional[Dict[str, Any]] = None) -> List[RuleMatch]:
+    def evaluate_event(
+        self, event_name: str, context: dict[str, Any] | None = None
+    ) -> list[RuleMatch]:
         """
         이벤트에 매칭되는 규칙 찾기
 
@@ -182,7 +188,7 @@ class RulesEngine:
             매칭된 규칙 목록 (우선순위 순)
         """
         context = context or {}
-        matches: List[RuleMatch] = []
+        matches: list[RuleMatch] = []
 
         # 모든 규칙 검사
         all_rules = self.schedule_rules + self.alert_rules + self.priority_rules
@@ -190,12 +196,11 @@ class RulesEngine:
         for rule in all_rules:
             if rule.condition.get("type") == "event":
                 if rule.condition.get("event") == event_name:
-                    matches.append(RuleMatch(
-                        rule=rule,
-                        action=rule.action,
-                        priority=rule.priority,
-                        context=context
-                    ))
+                    matches.append(
+                        RuleMatch(
+                            rule=rule, action=rule.action, priority=rule.priority, context=context
+                        )
+                    )
 
         # 우선순위 순 정렬
         matches.sort()
@@ -205,7 +210,9 @@ class RulesEngine:
     # 임계값 기반 규칙 평가
     # =========================================================================
 
-    def evaluate_threshold(self, metric: str, value: float, context: Optional[Dict[str, Any]] = None) -> List[RuleMatch]:
+    def evaluate_threshold(
+        self, metric: str, value: float, context: dict[str, Any] | None = None
+    ) -> list[RuleMatch]:
         """
         임계값 조건을 만족하는 규칙 찾기
 
@@ -220,7 +227,7 @@ class RulesEngine:
         context = context or {}
         context["metric"] = metric
         context["value"] = value
-        matches: List[RuleMatch] = []
+        matches: list[RuleMatch] = []
 
         for rule in self.alert_rules:
             if rule.condition.get("type") != "threshold":
@@ -234,12 +241,11 @@ class RulesEngine:
 
             # 조건 평가
             if self._evaluate_operator(value, operator, threshold):
-                matches.append(RuleMatch(
-                    rule=rule,
-                    action=rule.action,
-                    priority=rule.priority,
-                    context=context
-                ))
+                matches.append(
+                    RuleMatch(
+                        rule=rule, action=rule.action, priority=rule.priority, context=context
+                    )
+                )
 
         matches.sort()
         return matches
@@ -266,8 +272,9 @@ class RulesEngine:
     # 스케줄 기반 규칙 평가
     # =========================================================================
 
-    def get_scheduled_actions(self, current_time: Optional[datetime] = None,
-                              state_context: Optional[Dict[str, Any]] = None) -> List[RuleMatch]:
+    def get_scheduled_actions(
+        self, current_time: datetime | None = None, state_context: dict[str, Any] | None = None
+    ) -> list[RuleMatch]:
         """
         현재 시간에 실행해야 할 스케줄 규칙 반환
 
@@ -282,7 +289,7 @@ class RulesEngine:
             current_time = datetime.now()
 
         state_context = state_context or {}
-        matches: List[RuleMatch] = []
+        matches: list[RuleMatch] = []
 
         for rule in self.schedule_rules:
             if rule.condition.get("type") != "schedule":
@@ -298,23 +305,25 @@ class RulesEngine:
                 continue
 
             # 현재 시간이 스케줄 시간과 일치하는지 (분 단위)
-            if current_time.hour == schedule_time.hour and current_time.minute == schedule_time.minute:
+            if (
+                current_time.hour == schedule_time.hour
+                and current_time.minute == schedule_time.minute
+            ):
                 # 추가 조건 확인 (예: no_today_data)
                 check = rule.condition.get("check")
                 if check and not self._evaluate_check(check, state_context):
                     continue
 
-                matches.append(RuleMatch(
-                    rule=rule,
-                    action=rule.action,
-                    priority=rule.priority,
-                    context=state_context
-                ))
+                matches.append(
+                    RuleMatch(
+                        rule=rule, action=rule.action, priority=rule.priority, context=state_context
+                    )
+                )
 
         matches.sort()
         return matches
 
-    def _evaluate_check(self, check: str, state_context: Dict[str, Any]) -> bool:
+    def _evaluate_check(self, check: str, state_context: dict[str, Any]) -> bool:
         """추가 조건 확인"""
         if check == "no_today_data":
             # 오늘 데이터가 없는 경우만 True
@@ -354,7 +363,7 @@ class RulesEngine:
         """액션이 사용자 동의를 필요로 하는지 확인"""
         return action in self.permissions.get("requires_consent", [])
 
-    def get_forbidden_actions(self) -> List[str]:
+    def get_forbidden_actions(self) -> list[str]:
         """금지된 액션 목록 반환"""
         return self.permissions.get("forbidden", [])
 
@@ -379,15 +388,15 @@ class RulesEngine:
     # 유틸리티
     # =========================================================================
 
-    def get_all_rules(self) -> Dict[str, List[Rule]]:
+    def get_all_rules(self) -> dict[str, list[Rule]]:
         """모든 규칙 반환"""
         return {
             "schedule": self.schedule_rules,
             "alert": self.alert_rules,
-            "priority": self.priority_rules
+            "priority": self.priority_rules,
         }
 
-    def get_rule_by_id(self, rule_id: str) -> Optional[Rule]:
+    def get_rule_by_id(self, rule_id: str) -> Rule | None:
         """ID로 규칙 찾기"""
         all_rules = self.schedule_rules + self.alert_rules + self.priority_rules
         for rule in all_rules:

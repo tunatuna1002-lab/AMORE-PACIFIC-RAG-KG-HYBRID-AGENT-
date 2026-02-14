@@ -3,15 +3,16 @@ Session Manager
 현재 실행 세션 상태 관리
 """
 
-from datetime import datetime
-from typing import Dict, Any, Optional, List
-from enum import Enum
-from dataclasses import dataclass, field
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class SessionStatus(str, Enum):
     """세션 상태"""
+
     CREATED = "created"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -21,6 +22,7 @@ class SessionStatus(str, Enum):
 
 class AgentStatus(str, Enum):
     """에이전트 상태"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -31,42 +33,39 @@ class AgentStatus(str, Enum):
 @dataclass
 class AgentState:
     """개별 에이전트 상태"""
+
     agent_name: str
     status: AgentStatus = AgentStatus.PENDING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    input_data: Optional[Dict] = None
-    output_data: Optional[Dict] = None
-    error_message: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    input_data: dict | None = None
+    output_data: dict | None = None
+    error_message: str | None = None
 
 
 @dataclass
 class Session:
     """실행 세션"""
+
     session_id: str
     status: SessionStatus = SessionStatus.CREATED
     created_at: datetime = field(default_factory=datetime.now)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    agents: Dict[str, AgentState] = field(default_factory=dict)
-    context: Dict[str, Any] = field(default_factory=dict)
-    error_message: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    agents: dict[str, AgentState] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
+    error_message: str | None = None
 
 
 class SessionManager:
     """세션 관리자"""
 
-    AGENT_EXECUTION_ORDER = [
-        "crawler_agent",
-        "storage_agent",
-        "metrics_agent",
-        "insight_agent"
-    ]
+    AGENT_EXECUTION_ORDER = ["crawler_agent", "storage_agent", "metrics_agent", "insight_agent"]
 
     def __init__(self):
         """세션 관리자 초기화"""
-        self._current_session: Optional[Session] = None
-        self._sessions: Dict[str, Session] = {}
+        self._current_session: Session | None = None
+        self._sessions: dict[str, Session] = {}
 
     def create_session(self) -> str:
         """
@@ -76,10 +75,7 @@ class SessionManager:
             생성된 세션 ID
         """
         session_id = str(uuid.uuid4())[:8]
-        session = Session(
-            session_id=session_id,
-            status=SessionStatus.CREATED
-        )
+        session = Session(session_id=session_id, status=SessionStatus.CREATED)
 
         # 에이전트 상태 초기화
         for agent_name in self.AGENT_EXECUTION_ORDER:
@@ -90,11 +86,11 @@ class SessionManager:
 
         return session_id
 
-    def get_current_session(self) -> Optional[Session]:
+    def get_current_session(self) -> Session | None:
         """현재 세션 반환"""
         return self._current_session
 
-    def get_session(self, session_id: str) -> Optional[Session]:
+    def get_session(self, session_id: str) -> Session | None:
         """특정 세션 반환"""
         return self._sessions.get(session_id)
 
@@ -104,7 +100,7 @@ class SessionManager:
             self._current_session.status = SessionStatus.RUNNING
             self._current_session.started_at = datetime.now()
 
-    def complete_session(self, success: bool = True, error: Optional[str] = None) -> None:
+    def complete_session(self, success: bool = True, error: str | None = None) -> None:
         """세션 완료"""
         if self._current_session:
             self._current_session.completed_at = datetime.now()
@@ -114,7 +110,7 @@ class SessionManager:
                 self._current_session.status = SessionStatus.FAILED
                 self._current_session.error_message = error
 
-    def end_session(self, session_id: str) -> Dict[str, Any]:
+    def end_session(self, session_id: str) -> dict[str, Any]:
         """
         세션 종료 및 요약 반환
 
@@ -131,7 +127,7 @@ class SessionManager:
         """에이전트 실패 처리"""
         self.complete_agent(session_id, agent_name, success=False, error=error)
 
-    def start_agent(self, session_id: str, agent_name: str, input_data: Optional[Dict] = None) -> None:
+    def start_agent(self, session_id: str, agent_name: str, input_data: dict | None = None) -> None:
         """
         에이전트 시작
 
@@ -153,9 +149,9 @@ class SessionManager:
         self,
         session_id: str,
         agent_name: str,
-        output_data: Optional[Dict] = None,
+        output_data: dict | None = None,
         success: bool = True,
-        error: Optional[str] = None
+        error: str | None = None,
     ) -> None:
         """
         에이전트 완료
@@ -192,7 +188,7 @@ class SessionManager:
             return self._current_session.context.get(key, default)
         return default
 
-    def get_agent_output(self, agent_name: str) -> Optional[Dict]:
+    def get_agent_output(self, agent_name: str) -> dict | None:
         """에이전트 출력 조회"""
         if not self._current_session:
             return None
@@ -200,7 +196,7 @@ class SessionManager:
         agent = self._current_session.agents.get(agent_name)
         return agent.output_data if agent else None
 
-    def get_next_agent(self) -> Optional[str]:
+    def get_next_agent(self) -> str | None:
         """다음 실행할 에이전트 반환"""
         if not self._current_session:
             return None
@@ -212,7 +208,7 @@ class SessionManager:
 
         return None
 
-    def get_session_summary(self) -> Dict[str, Any]:
+    def get_session_summary(self) -> dict[str, Any]:
         """세션 요약 반환"""
         if not self._current_session:
             return {}
@@ -229,7 +225,7 @@ class SessionManager:
                 "status": agent.status.value,
                 "duration_seconds": duration,
                 "has_output": agent.output_data is not None,
-                "error": agent.error_message
+                "error": agent.error_message,
             }
 
         total_duration = None
@@ -241,5 +237,5 @@ class SessionManager:
             "status": session.status.value,
             "created_at": session.created_at.isoformat(),
             "total_duration_seconds": total_duration,
-            "agents": agent_summaries
+            "agents": agent_summaries,
         }

@@ -91,7 +91,7 @@ class StorageAgent:
 
             try:
                 all_records = []
-                for cat_key, cat_data in crawl_data.get("categories", {}).items():
+                for _cat_key, cat_data in crawl_data.get("categories", {}).items():
                     records = cat_data.get("rank_records", [])
                     for record in records:
                         # record가 이미 dict인 경우와 RankRecord인 경우 처리

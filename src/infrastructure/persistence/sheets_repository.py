@@ -4,19 +4,16 @@ Google Sheets Repository Implementation
 ProductRepository Protocol 구현 - Google Sheets 백엔드
 """
 
-import json
-import asyncio
 import logging
-from datetime import datetime, date
+from datetime import date
 from pathlib import Path
-from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-from src.domain.entities.product import RankRecord
 from src.domain.entities.brand import BrandMetrics
 from src.domain.entities.market import MarketMetrics
-from src.domain.interfaces.repository import ProductRepository, MetricsRepository
+from src.domain.entities.product import RankRecord
+from src.domain.interfaces.repository import MetricsRepository, ProductRepository
 
 
 class GoogleSheetsRepository(ProductRepository, MetricsRepository):
@@ -26,11 +23,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
     ProductRepository와 MetricsRepository Protocol을 구현합니다.
     """
 
-    def __init__(
-        self,
-        spreadsheet_id: Optional[str] = None,
-        credentials_path: Optional[str] = None
-    ):
+    def __init__(self, spreadsheet_id: str | None = None, credentials_path: str | None = None):
         self.spreadsheet_id = spreadsheet_id
         self.credentials_path = credentials_path
         self._client = None
@@ -48,19 +41,19 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             from google.oauth2.service_account import Credentials
         except ImportError:
             raise RuntimeError(
-                "Google Sheets dependencies not installed. "
-                "Run: pip install gspread google-auth"
+                "Google Sheets dependencies not installed. Run: pip install gspread google-auth"
             )
 
         if not self.spreadsheet_id:
             import os
+
             self.spreadsheet_id = os.environ.get("GOOGLE_SPREADSHEET_ID")
 
         if not self.credentials_path:
             import os
+
             self.credentials_path = os.environ.get(
-                "GOOGLE_APPLICATION_CREDENTIALS",
-                "./config/google_credentials.json"
+                "GOOGLE_APPLICATION_CREDENTIALS", "./config/google_credentials.json"
             )
 
         if not self.spreadsheet_id:
@@ -71,17 +64,15 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
 
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
+            "https://www.googleapis.com/auth/drive",
         ]
 
-        creds = Credentials.from_service_account_file(
-            self.credentials_path, scopes=scopes
-        )
+        creds = Credentials.from_service_account_file(self.credentials_path, scopes=scopes)
         self._client = gspread.authorize(creds)
         self._sheet = self._client.open_by_key(self.spreadsheet_id)
         self._initialized = True
 
-    async def save_records(self, records: List[RankRecord]) -> bool:
+    async def save_records(self, records: list[RankRecord]) -> bool:
         """레코드 저장"""
         await self.initialize()
 
@@ -91,9 +82,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             try:
                 worksheet = self._sheet.worksheet(worksheet_name)
             except Exception:
-                worksheet = self._sheet.add_worksheet(
-                    title=worksheet_name, rows=1000, cols=20
-                )
+                worksheet = self._sheet.add_worksheet(title=worksheet_name, rows=1000, cols=20)
 
             # Convert to rows
             if not records:
@@ -101,9 +90,18 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
 
             # Headers
             headers = [
-                "snapshot_date", "category_id", "asin", "product_name",
-                "brand", "rank", "price", "rating", "reviews_count",
-                "badge", "coupon_text", "product_url"
+                "snapshot_date",
+                "category_id",
+                "asin",
+                "product_name",
+                "brand",
+                "rank",
+                "price",
+                "rating",
+                "reviews_count",
+                "badge",
+                "coupon_text",
+                "product_url",
             ]
 
             # Data rows
@@ -121,7 +119,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
                     record.reviews_count or "",
                     record.badge,
                     record.coupon_text,
-                    record.product_url
+                    record.product_url,
                 ]
                 rows.append(row)
 
@@ -135,7 +133,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             logger.error(f"Error saving records to Sheets: {e}")
             return False
 
-    async def get_recent(self, days: int = 7) -> List[RankRecord]:
+    async def get_recent(self, days: int = 7) -> list[RankRecord]:
         """최근 N일 레코드 조회"""
         await self.initialize()
 
@@ -144,7 +142,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             records = worksheet.get_all_records()
 
             # Filter by date
-            cutoff = date.today().isoformat()
+            date.today().isoformat()
             result = []
 
             for row in records:
@@ -158,10 +156,12 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
                         rank=int(row["rank"]),
                         price=float(row["price"]) if row.get("price") else None,
                         rating=float(row["rating"]) if row.get("rating") else None,
-                        reviews_count=int(row["reviews_count"]) if row.get("reviews_count") else None,
+                        reviews_count=int(row["reviews_count"])
+                        if row.get("reviews_count")
+                        else None,
                         badge=row.get("badge", ""),
                         coupon_text=row.get("coupon_text", ""),
-                        product_url=row.get("product_url", "")
+                        product_url=row.get("product_url", ""),
                     )
                     result.append(record)
                 except Exception:
@@ -173,19 +173,19 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             logger.error(f"Error getting records from Sheets: {e}")
             return []
 
-    async def get_by_brand(self, brand: str, days: int = 7) -> List[RankRecord]:
+    async def get_by_brand(self, brand: str, days: int = 7) -> list[RankRecord]:
         """브랜드별 레코드 조회"""
         records = await self.get_recent(days)
         return [r for r in records if r.brand.upper() == brand.upper()]
 
-    async def get_by_category(self, category_id: str, days: int = 7) -> List[RankRecord]:
+    async def get_by_category(self, category_id: str, days: int = 7) -> list[RankRecord]:
         """카테고리별 레코드 조회"""
         records = await self.get_recent(days)
         return [r for r in records if r.category_id == category_id]
 
     # MetricsRepository Implementation
 
-    async def save_brand_metrics(self, metrics: List[BrandMetrics]) -> bool:
+    async def save_brand_metrics(self, metrics: list[BrandMetrics]) -> bool:
         """브랜드 메트릭 저장"""
         await self.initialize()
 
@@ -194,13 +194,17 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             try:
                 worksheet = self._sheet.worksheet(worksheet_name)
             except Exception:
-                worksheet = self._sheet.add_worksheet(
-                    title=worksheet_name, rows=500, cols=15
-                )
+                worksheet = self._sheet.add_worksheet(title=worksheet_name, rows=500, cols=15)
 
             headers = [
-                "brand", "category_id", "sos", "brand_avg_rank",
-                "product_count", "cpi", "avg_rating_gap", "calculated_at"
+                "brand",
+                "category_id",
+                "sos",
+                "brand_avg_rank",
+                "product_count",
+                "cpi",
+                "avg_rating_gap",
+                "calculated_at",
             ]
 
             rows = [headers]
@@ -213,7 +217,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
                     m.product_count,
                     m.cpi or "",
                     m.avg_rating_gap or "",
-                    m.calculated_at.isoformat()
+                    m.calculated_at.isoformat(),
                 ]
                 rows.append(row)
 
@@ -226,7 +230,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             logger.error(f"Error saving brand metrics: {e}")
             return False
 
-    async def save_market_metrics(self, metrics: List[MarketMetrics]) -> bool:
+    async def save_market_metrics(self, metrics: list[MarketMetrics]) -> bool:
         """마켓 메트릭 저장"""
         await self.initialize()
 
@@ -235,13 +239,16 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             try:
                 worksheet = self._sheet.worksheet(worksheet_name)
             except Exception:
-                worksheet = self._sheet.add_worksheet(
-                    title=worksheet_name, rows=500, cols=15
-                )
+                worksheet = self._sheet.add_worksheet(title=worksheet_name, rows=500, cols=15)
 
             headers = [
-                "category_id", "snapshot_date", "hhi", "churn_rate",
-                "category_avg_price", "category_avg_rating", "calculated_at"
+                "category_id",
+                "snapshot_date",
+                "hhi",
+                "churn_rate",
+                "category_avg_price",
+                "category_avg_rating",
+                "calculated_at",
             ]
 
             rows = [headers]
@@ -253,7 +260,7 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
                     m.churn_rate or "",
                     m.category_avg_price or "",
                     m.category_avg_rating or "",
-                    m.calculated_at.isoformat()
+                    m.calculated_at.isoformat(),
                 ]
                 rows.append(row)
 
@@ -267,8 +274,8 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             return False
 
     async def get_brand_metrics(
-        self, brand: str, category_id: Optional[str] = None
-    ) -> Optional[BrandMetrics]:
+        self, brand: str, category_id: str | None = None
+    ) -> BrandMetrics | None:
         """브랜드 메트릭 조회"""
         await self.initialize()
 
@@ -285,10 +292,14 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
                         brand=row["brand"],
                         category_id=row["category_id"],
                         sos=float(row["sos"]),
-                        brand_avg_rank=float(row["brand_avg_rank"]) if row.get("brand_avg_rank") else None,
+                        brand_avg_rank=float(row["brand_avg_rank"])
+                        if row.get("brand_avg_rank")
+                        else None,
                         product_count=int(row["product_count"]),
                         cpi=float(row["cpi"]) if row.get("cpi") else None,
-                        avg_rating_gap=float(row["avg_rating_gap"]) if row.get("avg_rating_gap") else None,
+                        avg_rating_gap=float(row["avg_rating_gap"])
+                        if row.get("avg_rating_gap")
+                        else None,
                     )
 
             return None
@@ -298,8 +309,8 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
             return None
 
     async def get_market_metrics(
-        self, category_id: str, snapshot_date: Optional[date] = None
-    ) -> Optional[MarketMetrics]:
+        self, category_id: str, snapshot_date: date | None = None
+    ) -> MarketMetrics | None:
         """마켓 메트릭 조회"""
         await self.initialize()
 
@@ -317,8 +328,12 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
                         snapshot_date=date.fromisoformat(row["snapshot_date"]),
                         hhi=float(row["hhi"]),
                         churn_rate=float(row["churn_rate"]) if row.get("churn_rate") else None,
-                        category_avg_price=float(row["category_avg_price"]) if row.get("category_avg_price") else None,
-                        category_avg_rating=float(row["category_avg_rating"]) if row.get("category_avg_rating") else None,
+                        category_avg_price=float(row["category_avg_price"])
+                        if row.get("category_avg_price")
+                        else None,
+                        category_avg_rating=float(row["category_avg_rating"])
+                        if row.get("category_avg_rating")
+                        else None,
                     )
 
             return None

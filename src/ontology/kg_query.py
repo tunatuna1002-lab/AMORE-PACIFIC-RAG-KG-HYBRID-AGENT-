@@ -469,3 +469,251 @@ class KGQueryMixin:
         all_entities = set(self.subject_index.keys()) | set(self.object_index.keys())
         degrees = [(entity, self.get_entity_degree(entity)["total"]) for entity in all_entities]
         return sorted(degrees, key=lambda x: x[1], reverse=True)[:top_n]
+
+    # =========================================================================
+    # SPARQL-like 쿼리
+    # =========================================================================
+
+    # RelationType name → enum 매핑 (예: "hasProduct" → RelationType.HAS_PRODUCT)
+    _PREDICATE_MAP: dict[str, "RelationType"] | None = None
+
+    @classmethod
+    def _build_predicate_map(cls) -> dict[str, "RelationType"]:
+        if cls._PREDICATE_MAP is None:
+            mapping: dict[str, RelationType] = {}
+            for rt in RelationType:
+                mapping[rt.value] = rt
+                # camelCase alias: HAS_PRODUCT → hasProduct
+                parts = rt.name.split("_")
+                camel = parts[0].lower() + "".join(p.capitalize() for p in parts[1:])
+                mapping[camel] = rt
+            cls._PREDICATE_MAP = mapping
+        return cls._PREDICATE_MAP
+
+    def sparql_query(self, query_str: str) -> list[dict[str, str]]:
+        """
+        기본 SPARQL-like 쿼리 실행
+
+        지원 구문:
+            SELECT ?var1 ?var2
+            WHERE {
+              ?s <predicate> ?o .
+              ?s <predicate> "literal" .
+            }
+            FILTER (?var >= value)
+
+        Args:
+            query_str: SPARQL-like 쿼리 문자열
+
+        Returns:
+            바인딩 딕셔너리 리스트 [{var: value, ...}, ...]
+
+        예:
+            kg.sparql_query('''
+                SELECT ?brand ?product
+                WHERE {
+                    ?brand <hasProduct> ?product .
+                    ?product <belongsToCategory> "lip_care" .
+                }
+            ''')
+        """
+        select_vars, patterns, filters = self._parse_sparql(query_str)
+
+        if not patterns:
+            return []
+
+        # 첫 번째 패턴 매칭
+        bindings = self._match_pattern(patterns[0])
+
+        # 나머지 패턴과 JOIN
+        for pattern in patterns[1:]:
+            new_bindings = self._match_pattern(pattern)
+            bindings = self._join_bindings(bindings, new_bindings)
+
+        # FILTER 적용
+        for filt in filters:
+            bindings = self._apply_filter(bindings, filt)
+
+        # SELECT 변수만 추출
+        if select_vars:
+            bindings = [{k: v for k, v in b.items() if k in select_vars} for b in bindings]
+
+        return bindings
+
+    def _parse_sparql(
+        self, query_str: str
+    ) -> tuple[list[str], list[tuple[str, str, str]], list[str]]:
+        """
+        SPARQL 문자열 파싱
+
+        Returns:
+            (select_vars, triple_patterns, filter_conditions)
+        """
+        import re as _re
+
+        # SELECT 변수 추출
+        select_match = _re.search(r"SELECT\s+(.*?)\s*WHERE", query_str, _re.IGNORECASE | _re.DOTALL)
+        select_vars: list[str] = []
+        if select_match:
+            select_vars = _re.findall(r"\?(\w+)", select_match.group(1))
+
+        # WHERE 블록 추출
+        where_match = _re.search(r"WHERE\s*\{(.*?)\}", query_str, _re.IGNORECASE | _re.DOTALL)
+        patterns: list[tuple[str, str, str]] = []
+        filters: list[str] = []
+
+        if where_match:
+            where_body = where_match.group(1)
+
+            # FILTER 추출
+            for fm in _re.finditer(r"FILTER\s*\((.*?)\)", where_body, _re.IGNORECASE):
+                filters.append(fm.group(1).strip())
+
+            # 트리플 패턴 추출 (subject predicate object .)
+            # 변수: ?var, URI: <pred>, 리터럴: "value"
+            triple_re = _re.compile(
+                r'(\?\w+|"[^"]*")\s+' r"(<[^>]+>|\?\w+)\s+" r'(\?\w+|"[^"]*")\s*\.'
+            )
+            for tm in triple_re.finditer(where_body):
+                s = tm.group(1).strip()
+                p = tm.group(2).strip()
+                o = tm.group(3).strip()
+                patterns.append((s, p, o))
+
+        return select_vars, patterns, filters
+
+    def _match_pattern(self, pattern: tuple[str, str, str]) -> list[dict[str, str]]:
+        """
+        단일 트리플 패턴 매칭
+
+        패턴 요소:
+            ?var  → 변수 (바인딩 대상)
+            <uri> → 프레디케이트 URI
+            "lit" → 리터럴 값
+        """
+        s_pat, p_pat, o_pat = pattern
+        pred_map = self._build_predicate_map()
+
+        # 프레디케이트 결정
+        predicate: RelationType | None = None
+        if p_pat.startswith("<") and p_pat.endswith(">"):
+            pred_name = p_pat[1:-1]
+            predicate = pred_map.get(pred_name)
+
+        # 고정 주체/객체
+        fixed_subject: str | None = None
+        if s_pat.startswith('"') and s_pat.endswith('"'):
+            fixed_subject = s_pat[1:-1]
+
+        fixed_object: str | None = None
+        if o_pat.startswith('"') and o_pat.endswith('"'):
+            fixed_object = o_pat[1:-1]
+
+        # 쿼리 실행
+        relations = self.query(
+            subject=fixed_subject,
+            predicate=predicate,
+            object_=fixed_object,
+        )
+
+        # 바인딩 생성
+        bindings: list[dict[str, str]] = []
+        for rel in relations:
+            binding: dict[str, str] = {}
+
+            if s_pat.startswith("?"):
+                binding[s_pat[1:]] = rel.subject
+            elif fixed_subject and rel.subject != fixed_subject:
+                continue
+
+            if o_pat.startswith("?"):
+                binding[o_pat[1:]] = rel.object
+            elif fixed_object and rel.object != fixed_object:
+                continue
+
+            # 프레디케이트가 변수인 경우
+            if p_pat.startswith("?"):
+                binding[p_pat[1:]] = rel.predicate.value
+
+            bindings.append(binding)
+
+        return bindings
+
+    def _join_bindings(
+        self,
+        left: list[dict[str, str]],
+        right: list[dict[str, str]],
+    ) -> list[dict[str, str]]:
+        """
+        두 바인딩 세트를 공유 변수 기준으로 JOIN
+        """
+        if not left:
+            return right
+        if not right:
+            return left
+
+        # 공유 변수 찾기
+        left_vars = set(left[0].keys()) if left else set()
+        right_vars = set(right[0].keys()) if right else set()
+        shared = left_vars & right_vars
+
+        results: list[dict[str, str]] = []
+        for lb in left:
+            for rb in right:
+                # 공유 변수 값이 일치하는지 확인
+                if all(lb.get(v) == rb.get(v) for v in shared):
+                    merged = {**lb, **rb}
+                    results.append(merged)
+
+        return results
+
+    def _apply_filter(self, bindings: list[dict[str, str]], condition: str) -> list[dict[str, str]]:
+        """
+        FILTER 조건 적용
+
+        지원 연산자: >=, <=, >, <, ==, !=
+        예: "?rank >= 10", "?category == lip_care"
+        """
+        import re as _re
+
+        match = _re.match(r"\?(\w+)\s*(>=|<=|>|<|==|!=)\s*(.+)", condition.strip())
+        if not match:
+            return bindings
+
+        var_name = match.group(1)
+        operator = match.group(2)
+        raw_value = match.group(3).strip().strip('"').strip("'")
+
+        results: list[dict[str, str]] = []
+        for b in bindings:
+            val = b.get(var_name)
+            if val is None:
+                continue
+
+            # 숫자 비교 시도
+            try:
+                num_val = float(val)
+                num_cmp = float(raw_value)
+                passed = (
+                    (operator == ">=" and num_val >= num_cmp)
+                    or (operator == "<=" and num_val <= num_cmp)
+                    or (operator == ">" and num_val > num_cmp)
+                    or (operator == "<" and num_val < num_cmp)
+                    or (operator == "==" and num_val == num_cmp)
+                    or (operator == "!=" and num_val != num_cmp)
+                )
+            except ValueError:
+                # 문자열 비교
+                passed = (
+                    (operator == "==" and val == raw_value)
+                    or (operator == "!=" and val != raw_value)
+                    or (operator == ">=" and val >= raw_value)
+                    or (operator == "<=" and val <= raw_value)
+                    or (operator == ">" and val > raw_value)
+                    or (operator == "<" and val < raw_value)
+                )
+
+            if passed:
+                results.append(b)
+
+        return results

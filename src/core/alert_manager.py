@@ -193,7 +193,7 @@ class AlertManager:
                             }
                         )
                 except ValueError:
-                    pass
+                    logger.debug("Suppressed ValueError", exc_info=True)
 
         # SoS 변동 확인
         brand_kpis = metrics_data.get("brand", {}).get("kpis", {})
@@ -213,7 +213,7 @@ class AlertManager:
                         }
                     )
             except ValueError:
-                pass
+                logger.debug("Suppressed ValueError", exc_info=True)
 
         return alerts
 

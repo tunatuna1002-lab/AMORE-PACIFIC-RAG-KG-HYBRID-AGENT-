@@ -29,9 +29,11 @@ import json
 import logging
 import os
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
+
+from src.shared.constants import KST
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +64,6 @@ except ImportError:
 
 
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class TrendData:
     """트렌드 데이터"""

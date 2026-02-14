@@ -73,9 +73,7 @@ class CircuitBreaker:
             if elapsed >= self.recovery_timeout:
                 self._state = CircuitState.HALF_OPEN
                 self._half_open_calls = 0
-                logger.info(
-                    f"CircuitBreaker[{self.name}]: OPEN → HALF_OPEN " f"(after {elapsed:.1f}s)"
-                )
+                logger.info(f"CircuitBreaker[{self.name}]: OPEN → HALF_OPEN (after {elapsed:.1f}s)")
         return self._state
 
     def can_execute(self) -> bool:
@@ -113,8 +111,7 @@ class CircuitBreaker:
             if self._failure_count >= self.failure_threshold:
                 self._state = CircuitState.OPEN
                 logger.warning(
-                    f"CircuitBreaker[{self.name}]: CLOSED → OPEN "
-                    f"(failures={self._failure_count})"
+                    f"CircuitBreaker[{self.name}]: CLOSED → OPEN (failures={self._failure_count})"
                 )
 
     def reset(self) -> None:

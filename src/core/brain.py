@@ -50,16 +50,11 @@ import logging
 import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from .prompt_guard import PromptGuard
-
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 # SRP 분해된 컴포넌트
 from .alert_manager import AlertManager
 from .cache import ResponseCache
@@ -67,6 +62,7 @@ from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
+from .prompt_guard import PromptGuard
 from .query_graph import QueryGraph
 from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
@@ -79,6 +75,8 @@ if TYPE_CHECKING:
     from ..tools.market_intelligence import MarketIntelligenceEngine
 
 # AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
+from src.shared.constants import DEFAULT_MODEL
+
 from ..core.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
@@ -159,7 +157,7 @@ class UnifiedBrain:
         tool_executor: ToolExecutor | None = None,
         response_pipeline: ResponsePipeline | None = None,
         cache: ResponseCache | None = None,
-        model: str = "gpt-4o-mini",
+        model: str = DEFAULT_MODEL,
         max_retries: int = 2,
     ):
         """

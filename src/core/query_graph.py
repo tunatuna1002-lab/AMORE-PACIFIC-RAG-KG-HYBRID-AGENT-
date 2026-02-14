@@ -196,8 +196,7 @@ class QueryGraph:
 
             if react_result.needs_improvement:
                 logger.warning(
-                    f"ReAct result needs improvement "
-                    f"(confidence: {react_result.confidence:.2f})"
+                    f"ReAct result needs improvement (confidence: {react_result.confidence:.2f})"
                 )
 
         except Exception as e:
@@ -509,12 +508,12 @@ class QueryGraph:
 
         if next_node == "generate_response":
             # HIGH confidence - direct answer (skip LLM decision)
-            logger.info(f"HIGH confidence - skipping LLM decision for: " f"{state.query[:50]}...")
+            logger.info(f"HIGH confidence - skipping LLM decision for: {state.query[:50]}...")
             state.decision = Decision(
                 tool="direct_answer",
                 tool_params={},
                 reason=(
-                    f"HIGH confidence ({state.confidence_level.value}) " f"- direct context answer"
+                    f"HIGH confidence ({state.confidence_level.value}) - direct context answer"
                 ),
                 confidence=0.9,
                 key_points=self._extract_key_points(state.context),
@@ -524,7 +523,7 @@ class QueryGraph:
             state = self._node_output_guard(state)
             return state
         elif next_node == "react":
-            logger.info(f"Complex query detected, using ReAct mode: " f"{state.query[:50]}...")
+            logger.info(f"Complex query detected, using ReAct mode: {state.query[:50]}...")
             state = await self._node_react(state)
             state = self._node_output_guard(state)
             return state

@@ -51,10 +51,12 @@ import asyncio
 import json
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+from src.shared.constants import KST
 
 # HTTP 클라이언트
 try:
@@ -74,10 +76,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class SignalTier(Enum):
     """신호 출처 등급"""
 

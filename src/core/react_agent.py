@@ -25,6 +25,8 @@ from typing import Any
 
 from litellm import acompletion
 
+from src.shared.constants import DEFAULT_MODEL
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +37,7 @@ ALLOWED_ACTIONS: frozenset[str] = frozenset(
         "query_knowledge_graph",
         "calculate_metrics",
         "final_answer",
+        "refine_search",
     }
 )
 
@@ -59,6 +62,11 @@ ACTION_SCHEMAS: dict[str, dict[str, type]] = {
     "final_answer": {
         "answer": str,
         "confidence": float,
+    },
+    "refine_search": {
+        "refined_query": str,
+        "reason": str,
+        "focus_entities": list,
     },
 }
 
@@ -138,8 +146,15 @@ class ReActAgent:
 ReAct 패턴으로 사고하세요:
 
 1. **Thought**: 현재 상황을 분석하세요. 무엇을 알고 있고, 무엇이 필요한가요?
-2. **Action**: 필요한 행동을 선택하세요 (query_data, query_knowledge_graph, calculate_metrics, final_answer 중 하나)
+2. **Action**: 필요한 행동을 선택하세요
+   (query_data, query_knowledge_graph, calculate_metrics, refine_search, final_answer)
 3. **Action Input**: 행동에 필요한 파라미터 (JSON)
+
+**Multi-hop 추론**: 복잡한 질문은 여러 단계로 나눠서 해결하세요.
+- 1단계: 핵심 엔티티 정보 수집
+- 2단계: 관련 엔티티로 확장 (경쟁사, 카테고리 등)
+- 3단계: 수집된 정보를 종합하여 최종 답변
+`refine_search`를 사용하면 이전 관찰 결과를 바탕으로 검색을 정제할 수 있습니다.
 
 JSON 형식으로 응답:
 ```json
@@ -174,7 +189,7 @@ JSON으로 응답:
 ```"""
 
     def __init__(
-        self, model: str = "gpt-4o-mini", max_iterations: int = 3, min_confidence: float = 0.7
+        self, model: str = DEFAULT_MODEL, max_iterations: int = 5, min_confidence: float = 0.7
     ):
         self.model = model
         self.max_iterations = max_iterations
@@ -304,7 +319,7 @@ JSON으로 응답:
                     action_input=data.get("action_input"),
                 )
         except Exception:
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
 
         return ReActStep(thought=content)
 

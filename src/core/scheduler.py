@@ -43,15 +43,15 @@ import logging
 import os
 import tempfile
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
+
+from src.shared.constants import KST
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class AutonomousScheduler:
     """
     자율 작업 스케줄러

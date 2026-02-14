@@ -31,7 +31,6 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from datetime import timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -44,10 +43,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class TavilySearchResult:
     """

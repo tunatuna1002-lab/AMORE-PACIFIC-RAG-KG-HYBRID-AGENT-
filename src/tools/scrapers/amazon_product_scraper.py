@@ -19,18 +19,21 @@ Errors:
 
 import asyncio
 import json
+import logging
 import os
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any
 
 from playwright.async_api import Browser, Page, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 
+from src.shared.constants import KST
+
+logger = logging.getLogger(__name__)
+
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class AmazonProductScraper:
     """Amazon 상품 상세 페이지 크롤러 (AI Customers Say 수집 전용)"""
 
@@ -327,7 +330,7 @@ class AmazonProductScraper:
                     if key and value:
                         details[key] = value
         except Exception:
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
 
         # Feature Bullets (About this item)
         try:
@@ -340,7 +343,7 @@ class AmazonProductScraper:
             if features:
                 details["features"] = features[:5]  # 상위 5개
         except Exception:
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
 
         # A+ Content에서 주요 정보 추출
         try:
@@ -353,7 +356,7 @@ class AmazonProductScraper:
             if aplus_titles:
                 details["aplus_highlights"] = aplus_titles
         except Exception:
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
 
         return details
 

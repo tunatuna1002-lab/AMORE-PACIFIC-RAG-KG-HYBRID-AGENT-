@@ -6,10 +6,10 @@ Application Bootstrap & Dependency Injection Container
 모든 의존성을 중앙에서 생성하고 연결합니다.
 """
 
-from dataclasses import dataclass
-from typing import Optional, ClassVar
-from pathlib import Path
 import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import ClassVar, Optional
 
 from src.infrastructure.config.config_manager import AppConfig
 
@@ -32,20 +32,21 @@ class ApplicationContainer:
         container = ApplicationContainer.get()
         brain = container.brain
     """
+
     config: AppConfig
 
     # Lazy-loaded components (Optional to avoid import issues during init)
-    _brain: Optional[object] = None
-    _crawl_manager: Optional[object] = None
-    _knowledge_graph: Optional[object] = None
-    _reasoner: Optional[object] = None
-    _hybrid_retriever: Optional[object] = None
+    _brain: object | None = None
+    _crawl_manager: object | None = None
+    _knowledge_graph: object | None = None
+    _reasoner: object | None = None
+    _hybrid_retriever: object | None = None
 
     # Singleton instance
     _instance: ClassVar[Optional["ApplicationContainer"]] = None
 
     @classmethod
-    async def create(cls, config_path: Optional[Path] = None) -> "ApplicationContainer":
+    async def create(cls, config_path: Path | None = None) -> "ApplicationContainer":
         """
         Create and initialize the application container.
 
@@ -88,9 +89,9 @@ class ApplicationContainer:
             # Try to initialize optional components
             try:
                 from src.rag.hybrid_retriever import HybridRetriever
+
                 self._hybrid_retriever = HybridRetriever(
-                    knowledge_graph=self._knowledge_graph,
-                    reasoner=self._reasoner
+                    knowledge_graph=self._knowledge_graph, reasoner=self._reasoner
                 )
                 await self._hybrid_retriever.initialize()
                 logger.info("HybridRetriever initialized")
@@ -100,6 +101,7 @@ class ApplicationContainer:
             # Try to initialize Brain (optional, may have dependencies)
             try:
                 from src.core.brain import UnifiedBrain, get_brain
+
                 self._brain = await get_brain()  # Use existing singleton (async)
                 logger.info("UnifiedBrain connected")
             except ImportError as e:
@@ -108,6 +110,7 @@ class ApplicationContainer:
             # Try to initialize CrawlManager (optional)
             try:
                 from src.core.crawl_manager import CrawlManager, get_crawl_manager
+
                 self._crawl_manager = await get_crawl_manager()
                 logger.info("CrawlManager connected")
             except ImportError as e:
@@ -178,7 +181,7 @@ def get_container() -> ApplicationContainer:
     return ApplicationContainer.get()
 
 
-async def initialize_app(config_path: Optional[Path] = None) -> ApplicationContainer:
+async def initialize_app(config_path: Path | None = None) -> ApplicationContainer:
     """
     Initialize the application.
 

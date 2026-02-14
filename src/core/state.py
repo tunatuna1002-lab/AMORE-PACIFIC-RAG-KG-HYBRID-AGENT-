@@ -19,10 +19,10 @@ Usage:
 
 import json
 import logging
-from datetime import datetime, date
-from pathlib import Path
-from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +45,16 @@ class OrchestratorState:
         last_metrics_time: 마지막 지표 계산 시간
     """
 
-    last_crawl_time: Optional[datetime] = None
+    last_crawl_time: datetime | None = None
     data_freshness: str = "unknown"
     kg_initialized: bool = False
     kg_triple_count: int = 0
-    current_session_id: Optional[str] = None
-    active_tools: List[str] = field(default_factory=list)
-    last_metrics_time: Optional[datetime] = None
+    current_session_id: str | None = None
+    active_tools: list[str] = field(default_factory=list)
+    last_metrics_time: datetime | None = None
 
     # 영속화 경로
-    _persist_path: Optional[Path] = field(default=None, repr=False)
+    _persist_path: Path | None = field(default=None, repr=False)
 
     def __post_init__(self):
         """초기화 후 영속화된 상태 로드 시도"""
@@ -98,7 +98,7 @@ class OrchestratorState:
         self.data_freshness = "stale"
         self._save_state()
 
-    def get_data_age_hours(self) -> Optional[float]:
+    def get_data_age_hours(self) -> float | None:
         """
         데이터 경과 시간 (시간 단위)
 
@@ -197,7 +197,7 @@ class OrchestratorState:
     # 직렬화
     # =========================================================================
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """상태를 딕셔너리로 변환"""
         return {
             "last_crawl_time": self.last_crawl_time.isoformat() if self.last_crawl_time else None,
@@ -206,7 +206,9 @@ class OrchestratorState:
             "kg_triple_count": self.kg_triple_count,
             "current_session_id": self.current_session_id,
             "active_tools": self.active_tools,
-            "last_metrics_time": self.last_metrics_time.isoformat() if self.last_metrics_time else None
+            "last_metrics_time": self.last_metrics_time.isoformat()
+            if self.last_metrics_time
+            else None,
         }
 
     def to_context_summary(self) -> str:
@@ -257,7 +259,7 @@ class OrchestratorState:
             if not self._persist_path.exists():
                 return
 
-            with open(self._persist_path, "r", encoding="utf-8") as f:
+            with open(self._persist_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # 값 복원

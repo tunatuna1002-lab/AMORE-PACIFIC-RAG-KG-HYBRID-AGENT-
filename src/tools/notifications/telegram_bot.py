@@ -33,18 +33,18 @@ Usage:
 import logging
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import httpx
 from fastapi import APIRouter, Request
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
 # 한국 시간대
-KST = timezone(timedelta(hours=9))
-
 # Router for webhook
 telegram_router = APIRouter(prefix="/api/telegram", tags=["telegram"])
 
@@ -423,7 +423,7 @@ class TelegramAdminBot:
                     count = storage.execute_query(f"SELECT COUNT(*) FROM {table}")[0][0]
                     stats.append(f"• {table}: {count:,}건")
                 except Exception:
-                    pass
+                    logger.warning("Suppressed Exception", exc_info=True)
 
             return "🗄️ <b>데이터베이스 통계</b>\n\n" + "\n".join(stats)
 

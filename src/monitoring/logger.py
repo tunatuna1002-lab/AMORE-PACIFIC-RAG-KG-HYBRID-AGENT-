@@ -157,8 +157,7 @@ class ErrorDeduplicationFilter(logging.Filter):
         # 첫 억제 시 또는 10건마다 요약 로그
         if entry["suppressed"] == 1 or entry["suppressed"] % 10 == 0:
             record.msg = (
-                f"[Dedup] {entry['suppressed']}건 동일 에러 억제됨 "
-                f"(원본: {str(record.msg)[:100]})"
+                f"[Dedup] {entry['suppressed']}건 동일 에러 억제됨 (원본: {str(record.msg)[:100]})"
             )
             return True
 

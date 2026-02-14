@@ -59,6 +59,8 @@ from typing import Any
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 
+from src.shared.constants import KST
+
 # Anti-bot / Stealth mode packages
 try:
     from playwright_stealth import stealth_async
@@ -84,10 +86,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class CircuitBreaker:
     """연속 실패 시 자동 중단하는 회로 차단기"""
 
@@ -1116,7 +1116,7 @@ class AmazonScraper:
                 if 0.50 <= price <= 500:
                     return price
         except (ValueError, TypeError, AttributeError):
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
         return None
 
     def _parse_rating(self, rating_text: str) -> float | None:
@@ -1149,7 +1149,7 @@ class AmazonScraper:
                     return round(rating, 1)
 
         except (ValueError, TypeError, AttributeError):
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
         return None
 
     def _parse_reviews_count(self, reviews_text: str) -> int | None:
@@ -1167,7 +1167,7 @@ class AmazonScraper:
                 if 0 <= count <= 1000000:
                     return count
         except (ValueError, TypeError, AttributeError):
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
         return None
 
     def _get_page2_url(self, url: str) -> str | None:

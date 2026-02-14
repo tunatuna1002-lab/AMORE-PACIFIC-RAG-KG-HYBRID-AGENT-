@@ -28,7 +28,12 @@ logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:
-    logging.warning("API_KEY 환경변수가 설정되지 않았습니다.")
+    _env = os.getenv("RAILWAY_ENVIRONMENT", os.getenv("ENV", "development"))
+    if _env in ("production", "staging"):
+        raise RuntimeError(
+            "API_KEY 환경변수가 설정되지 않았습니다. 프로덕션/스테이징 환경에서는 필수입니다."
+        )
+    logging.warning("API_KEY 환경변수가 설정되지 않았습니다. (개발 환경)")
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -201,9 +206,9 @@ def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str
     # 메타데이터 (항상 포함)
     metadata = data.get("metadata", {})
     context_parts.append(f"""[데이터 현황]
-- 기준일: {metadata.get('data_date', 'N/A')}
-- 총 제품 수: {metadata.get('total_products', 0)}개
-- LANEIGE 제품 수: {metadata.get('laneige_products', 0)}개""")
+- 기준일: {metadata.get("data_date", "N/A")}
+- 총 제품 수: {metadata.get("total_products", 0)}개
+- LANEIGE 제품 수: {metadata.get("laneige_products", 0)}개""")
 
     # 질문 유형별 데이터 선택
     brand_kpis = data.get("brand", {}).get("kpis", {})
@@ -218,10 +223,10 @@ def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str
         if brand_kpis:
             context_parts.append(f"""
 [LANEIGE 브랜드 KPI] (Ontology: BrandMetrics)
-- SoS (Share of Shelf): {brand_kpis.get('sos', 0)}% {brand_kpis.get('sos_delta', '')}
-- Top 10 제품 수: {brand_kpis.get('top10_count', 0)}개
-- 평균 순위: {brand_kpis.get('avg_rank', 0)}위
-- HHI (시장 집중도): {brand_kpis.get('hhi', 0)}""")
+- SoS (Share of Shelf): {brand_kpis.get("sos", 0)}% {brand_kpis.get("sos_delta", "")}
+- Top 10 제품 수: {brand_kpis.get("top10_count", 0)}개
+- 평균 순위: {brand_kpis.get("avg_rank", 0)}위
+- HHI (시장 집중도): {brand_kpis.get("hhi", 0)}""")
 
     # 경쟁사 정보 (ANALYSIS, DATA_QUERY에서 경쟁사 언급 시)
     competitors = data.get("brand", {}).get("competitors", [])
@@ -246,8 +251,8 @@ def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str
         if products:
             prod_lines = []
             for _asin, p in list(products.items())[:5]:
-                prod_lines.append(f"""  - {p['name'][:40]}
-    순위: #{p['rank']} ({p['rank_delta']}), 평점: {p['rating']}, 변동성: {p.get('volatility_status', 'N/A')}""")
+                prod_lines.append(f"""  - {p["name"][:40]}
+    순위: #{p["rank"]} ({p["rank_delta"]}), 평점: {p["rating"]}, 변동성: {p.get("volatility_status", "N/A")}""")
             context_parts.append(
                 "[LANEIGE 제품 현황] (Ontology: ProductMetrics)\n" + "\n".join(prod_lines)
             )
@@ -463,6 +468,11 @@ import jwt
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 EMAIL_VERIFICATION_EXPIRES_MINUTES = 30
+
+if JWT_SECRET_KEY and len(JWT_SECRET_KEY) < 32:
+    logging.warning(
+        "JWT_SECRET_KEY가 32자 미만입니다. HS256은 최소 256비트(32바이트) 키를 권장합니다."
+    )
 
 
 def create_email_verification_token(

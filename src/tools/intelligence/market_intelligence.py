@@ -53,9 +53,11 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from src.shared.constants import KST
 
 from ..collectors.external_signal_collector import (
     ExternalSignalCollector,
@@ -66,10 +68,8 @@ from .source_manager import SourceManager
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class DataLayer:
     """데이터 레이어 상수"""
 

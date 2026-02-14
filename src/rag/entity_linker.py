@@ -40,15 +40,16 @@ entities = linker.link("LANEIGE Lip Care 경쟁력 분석해줘")
 
 import logging
 import re
-from typing import Dict, List, Any, Optional, Set, Tuple
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # spaCy 선택적 import
 try:
     import spacy
+
     SPACY_AVAILABLE = True
     logger.info("spaCy is available")
 except ImportError:
@@ -69,14 +70,15 @@ class LinkedEntity:
         confidence: 연결 신뢰도 (0-1)
         context: 추가 컨텍스트
     """
+
     text: str
     entity_type: str
     concept_uri: str
     concept_label: str
     confidence: float
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
         return {
             "text": self.text,
@@ -84,7 +86,7 @@ class LinkedEntity:
             "concept_uri": self.concept_uri,
             "concept_label": self.concept_label,
             "confidence": self.confidence,
-            "context": self.context
+            "context": self.context,
         }
 
 
@@ -139,7 +141,7 @@ class EntityLinker:
         "neutrogena": "Neutrogena",
         "e.l.f.": "e.l.f.",
         "nyx": "NYX",
-        "maybelline": "Maybelline"
+        "maybelline": "Maybelline",
     }
 
     # 카테고리 매핑
@@ -157,7 +159,7 @@ class EntityLinker:
         "파우더": ("face_powder", "Face Powder"),
         "페이스파우더": ("face_powder", "Face Powder"),
         "beauty": ("beauty", "Beauty & Personal Care"),
-        "뷰티": ("beauty", "Beauty & Personal Care")
+        "뷰티": ("beauty", "Beauty & Personal Care"),
     }
 
     # 지표 매핑
@@ -177,7 +179,7 @@ class EntityLinker:
         "volatility": ("rank_volatility", "Rank Volatility"),
         "변동성": ("rank_volatility", "Rank Volatility"),
         "shock": ("rank_shock", "Rank Shock"),
-        "급변": ("rank_shock", "Rank Shock")
+        "급변": ("rank_shock", "Rank Shock"),
     }
 
     # 성분 키워드
@@ -200,7 +202,7 @@ class EntityLinker:
         "시카": ("Centella", "시카"),
         "pdrn": ("PDRN", "PDRN"),
         "글래스스킨": ("GlassSkin", "Glass Skin"),
-        "glass skin": ("GlassSkin", "Glass Skin")
+        "glass skin": ("GlassSkin", "Glass Skin"),
     }
 
     # 트렌드 키워드
@@ -214,15 +216,10 @@ class EntityLinker:
         "틱톡": "TikTok",
         "tiktok": "TikTok",
         "인플루언서": "Influencer",
-        "influencer": "Influencer"
+        "influencer": "Influencer",
     }
 
-    def __init__(
-        self,
-        knowledge_graph=None,
-        owl_reasoner=None,
-        use_spacy: bool = True
-    ):
+    def __init__(self, knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True):
         """
         Args:
             knowledge_graph: KnowledgeGraph 인스턴스 (개념 검증용)
@@ -244,23 +241,15 @@ class EntityLinker:
                 self.use_spacy = False
 
         # 통계
-        self._stats = {
-            "total_links": 0,
-            "exact_matches": 0,
-            "fuzzy_matches": 0,
-            "no_matches": 0
-        }
+        self._stats = {"total_links": 0, "exact_matches": 0, "fuzzy_matches": 0, "no_matches": 0}
 
     # =========================================================================
     # 엔티티 링킹 메인 API
     # =========================================================================
 
     def link(
-        self,
-        text: str,
-        entity_types: Optional[List[str]] = None,
-        min_confidence: float = 0.5
-    ) -> List[LinkedEntity]:
+        self, text: str, entity_types: list[str] | None = None, min_confidence: float = 0.5
+    ) -> list[LinkedEntity]:
         """
         텍스트에서 엔티티 추출 및 온톨로지 개념에 링크
 
@@ -300,7 +289,7 @@ class EntityLinker:
                 concept_uri=concept_uri,
                 concept_label=concept_label,
                 confidence=confidence,
-                context=context
+                context=context,
             )
             linked_entities.append(linked)
 
@@ -317,10 +306,7 @@ class EntityLinker:
     # NER 기반 엔티티 추출
     # =========================================================================
 
-    def _extract_with_spacy(
-        self,
-        text: str
-    ) -> List[Tuple[str, str, Dict[str, Any]]]:
+    def _extract_with_spacy(self, text: str) -> list[tuple[str, str, dict[str, Any]]]:
         """
         spaCy NER를 사용한 엔티티 추출
 
@@ -334,11 +320,13 @@ class EntityLinker:
         for ent in doc.ents:
             entity_type = self._map_spacy_label(ent.label_)
             if entity_type:
-                entities.append((
-                    ent.text,
-                    entity_type,
-                    {"spacy_label": ent.label_, "start": ent.start_char, "end": ent.end_char}
-                ))
+                entities.append(
+                    (
+                        ent.text,
+                        entity_type,
+                        {"spacy_label": ent.label_, "start": ent.start_char, "end": ent.end_char},
+                    )
+                )
 
         # 규칙 기반 엔티티 추가 (spaCy가 못 잡은 것들)
         rule_entities = self._extract_with_rules(text)
@@ -349,10 +337,7 @@ class EntityLinker:
 
         return entities
 
-    def _extract_with_rules(
-        self,
-        text: str
-    ) -> List[Tuple[str, str, Dict[str, Any]]]:
+    def _extract_with_rules(self, text: str) -> list[tuple[str, str, dict[str, Any]]]:
         """
         규칙 기반 엔티티 추출 (spaCy 폴백)
 
@@ -368,68 +353,80 @@ class EntityLinker:
                 # 원본 텍스트에서 위치 찾기 (대소문자 무시)
                 pattern = re.compile(re.escape(brand_key), re.IGNORECASE)
                 for match in pattern.finditer(text):
-                    entities.append((
-                        match.group(),
-                        "brand",
-                        {"matched_key": brand_key, "start": match.start(), "end": match.end()}
-                    ))
+                    entities.append(
+                        (
+                            match.group(),
+                            "brand",
+                            {"matched_key": brand_key, "start": match.start(), "end": match.end()},
+                        )
+                    )
 
         # 카테고리 추출
         for cat_key in self.CATEGORY_MAP.keys():
             if cat_key in text_lower:
                 pattern = re.compile(re.escape(cat_key), re.IGNORECASE)
                 for match in pattern.finditer(text):
-                    entities.append((
-                        match.group(),
-                        "category",
-                        {"matched_key": cat_key, "start": match.start(), "end": match.end()}
-                    ))
+                    entities.append(
+                        (
+                            match.group(),
+                            "category",
+                            {"matched_key": cat_key, "start": match.start(), "end": match.end()},
+                        )
+                    )
 
         # 지표 추출
         for ind_key in self.INDICATOR_MAP.keys():
             if ind_key in text_lower:
-                pattern = re.compile(r'\b' + re.escape(ind_key) + r'\b', re.IGNORECASE)
+                pattern = re.compile(r"\b" + re.escape(ind_key) + r"\b", re.IGNORECASE)
                 for match in pattern.finditer(text):
-                    entities.append((
-                        match.group(),
-                        "metric",
-                        {"matched_key": ind_key, "start": match.start(), "end": match.end()}
-                    ))
+                    entities.append(
+                        (
+                            match.group(),
+                            "metric",
+                            {"matched_key": ind_key, "start": match.start(), "end": match.end()},
+                        )
+                    )
 
         # 성분 추출
         for ing_key in self.INGREDIENT_MAP.keys():
             if ing_key in text_lower:
                 pattern = re.compile(re.escape(ing_key), re.IGNORECASE)
                 for match in pattern.finditer(text):
-                    entities.append((
-                        match.group(),
-                        "ingredient",
-                        {"matched_key": ing_key, "start": match.start(), "end": match.end()}
-                    ))
+                    entities.append(
+                        (
+                            match.group(),
+                            "ingredient",
+                            {"matched_key": ing_key, "start": match.start(), "end": match.end()},
+                        )
+                    )
 
         # 트렌드 키워드 추출
         for trend_key in self.TREND_KEYWORDS.keys():
             if trend_key in text_lower:
                 pattern = re.compile(re.escape(trend_key), re.IGNORECASE)
                 for match in pattern.finditer(text):
-                    entities.append((
-                        match.group(),
-                        "trend",
-                        {"matched_key": trend_key, "start": match.start(), "end": match.end()}
-                    ))
+                    entities.append(
+                        (
+                            match.group(),
+                            "trend",
+                            {"matched_key": trend_key, "start": match.start(), "end": match.end()},
+                        )
+                    )
 
         # ASIN 패턴 추출 (제품)
-        asin_pattern = r'\bB0[A-Z0-9]{8}\b'
+        asin_pattern = r"\bB0[A-Z0-9]{8}\b"
         for match in re.finditer(asin_pattern, text):
-            entities.append((
-                match.group(),
-                "product",
-                {"format": "asin", "start": match.start(), "end": match.end()}
-            ))
+            entities.append(
+                (
+                    match.group(),
+                    "product",
+                    {"format": "asin", "start": match.start(), "end": match.end()},
+                )
+            )
 
         return entities
 
-    def _map_spacy_label(self, spacy_label: str) -> Optional[str]:
+    def _map_spacy_label(self, spacy_label: str) -> str | None:
         """
         spaCy 라벨을 도메인 엔티티 유형에 매핑
 
@@ -440,10 +437,10 @@ class EntityLinker:
             엔티티 유형 (brand, product, category 등) 또는 None
         """
         mapping = {
-            "ORG": "brand",        # 조직명 → 브랜드
+            "ORG": "brand",  # 조직명 → 브랜드
             "PRODUCT": "product",  # 제품명
-            "PERCENT": "metric",   # 퍼센트 → 지표
-            "MONEY": "metric",     # 금액 → 가격 지표
+            "PERCENT": "metric",  # 퍼센트 → 지표
+            "MONEY": "metric",  # 금액 → 가격 지표
         }
         return mapping.get(spacy_label)
 
@@ -452,11 +449,8 @@ class EntityLinker:
     # =========================================================================
 
     def _match_concept(
-        self,
-        entity_text: str,
-        entity_type: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+        self, entity_text: str, entity_type: str, context: dict[str, Any]
+    ) -> tuple[str, str, float]:
         """
         엔티티를 온톨로지 개념에 매칭
 
@@ -483,11 +477,7 @@ class EntityLinker:
         else:
             return (f"{self.ONTOLOGY_BASE}Unknown", entity_text, 0.3)
 
-    def _match_brand(
-        self,
-        text: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+    def _match_brand(self, text: str, context: dict[str, Any]) -> tuple[str, str, float]:
         """브랜드 매칭"""
         text_lower = text.lower()
 
@@ -498,10 +488,7 @@ class EntityLinker:
             return (uri, normalized, 1.0)
 
         # Fuzzy match
-        best_match, best_score = self._fuzzy_match(
-            text_lower,
-            list(self.KNOWN_BRANDS.keys())
-        )
+        best_match, best_score = self._fuzzy_match(text_lower, list(self.KNOWN_BRANDS.keys()))
 
         if best_score >= 0.8:
             normalized = self.KNOWN_BRANDS[best_match]
@@ -513,11 +500,7 @@ class EntityLinker:
         uri = f"{self.ONTOLOGY_BASE}Brand/{text.replace(' ', '_')}"
         return (uri, text, 0.5)
 
-    def _match_category(
-        self,
-        text: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+    def _match_category(self, text: str, context: dict[str, Any]) -> tuple[str, str, float]:
         """카테고리 매칭"""
         text_lower = text.lower()
 
@@ -528,10 +511,7 @@ class EntityLinker:
             return (uri, cat_label, 1.0)
 
         # Fuzzy match
-        best_match, best_score = self._fuzzy_match(
-            text_lower,
-            list(self.CATEGORY_MAP.keys())
-        )
+        best_match, best_score = self._fuzzy_match(text_lower, list(self.CATEGORY_MAP.keys()))
 
         if best_score >= 0.7:
             cat_id, cat_label = self.CATEGORY_MAP[best_match]
@@ -543,11 +523,7 @@ class EntityLinker:
         uri = f"{self.ONTOLOGY_BASE}Category/{text.replace(' ', '_')}"
         return (uri, text, 0.5)
 
-    def _match_metric(
-        self,
-        text: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+    def _match_metric(self, text: str, context: dict[str, Any]) -> tuple[str, str, float]:
         """지표 매칭"""
         text_lower = text.lower()
 
@@ -558,10 +534,7 @@ class EntityLinker:
             return (uri, ind_label, 1.0)
 
         # Fuzzy match
-        best_match, best_score = self._fuzzy_match(
-            text_lower,
-            list(self.INDICATOR_MAP.keys())
-        )
+        best_match, best_score = self._fuzzy_match(text_lower, list(self.INDICATOR_MAP.keys()))
 
         if best_score >= 0.7:
             ind_id, ind_label = self.INDICATOR_MAP[best_match]
@@ -573,11 +546,7 @@ class EntityLinker:
         uri = f"{self.ONTOLOGY_BASE}Metric/{text.replace(' ', '_')}"
         return (uri, text, 0.5)
 
-    def _match_ingredient(
-        self,
-        text: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+    def _match_ingredient(self, text: str, context: dict[str, Any]) -> tuple[str, str, float]:
         """성분 매칭"""
         text_lower = text.lower()
 
@@ -588,10 +557,7 @@ class EntityLinker:
             return (uri, ing_label, 1.0)
 
         # Fuzzy match
-        best_match, best_score = self._fuzzy_match(
-            text_lower,
-            list(self.INGREDIENT_MAP.keys())
-        )
+        best_match, best_score = self._fuzzy_match(text_lower, list(self.INGREDIENT_MAP.keys()))
 
         if best_score >= 0.7:
             ing_id, ing_label = self.INGREDIENT_MAP[best_match]
@@ -603,11 +569,7 @@ class EntityLinker:
         uri = f"{self.ONTOLOGY_BASE}Ingredient/{text.replace(' ', '_')}"
         return (uri, text, 0.5)
 
-    def _match_trend(
-        self,
-        text: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+    def _match_trend(self, text: str, context: dict[str, Any]) -> tuple[str, str, float]:
         """트렌드 키워드 매칭"""
         text_lower = text.lower()
 
@@ -618,10 +580,7 @@ class EntityLinker:
             return (uri, text, 1.0)
 
         # Fuzzy match
-        best_match, best_score = self._fuzzy_match(
-            text_lower,
-            list(self.TREND_KEYWORDS.keys())
-        )
+        best_match, best_score = self._fuzzy_match(text_lower, list(self.TREND_KEYWORDS.keys()))
 
         if best_score >= 0.7:
             trend_id = self.TREND_KEYWORDS[best_match]
@@ -633,14 +592,10 @@ class EntityLinker:
         uri = f"{self.ONTOLOGY_BASE}Trend/{text.replace(' ', '_')}"
         return (uri, text, 0.5)
 
-    def _match_product(
-        self,
-        text: str,
-        context: Dict[str, Any]
-    ) -> Tuple[str, str, float]:
+    def _match_product(self, text: str, context: dict[str, Any]) -> tuple[str, str, float]:
         """제품 매칭 (ASIN)"""
         # ASIN 형식 검증
-        if context.get("format") == "asin" and re.match(r'^B0[A-Z0-9]{8}$', text):
+        if context.get("format") == "asin" and re.match(r"^B0[A-Z0-9]{8}$", text):
             uri = f"{self.ONTOLOGY_BASE}Product/{text}"
             return (uri, text, 1.0)
 
@@ -653,11 +608,8 @@ class EntityLinker:
     # =========================================================================
 
     def _fuzzy_match(
-        self,
-        query: str,
-        candidates: List[str],
-        min_ratio: float = 0.6
-    ) -> Tuple[Optional[str], float]:
+        self, query: str, candidates: list[str], min_ratio: float = 0.6
+    ) -> tuple[str | None, float]:
         """
         퍼지 문자열 매칭
 
@@ -680,10 +632,7 @@ class EntityLinker:
 
         return (best_match, best_score)
 
-    def get_ontology_filters(
-        self,
-        entities: List[LinkedEntity]
-    ) -> Dict[str, Any]:
+    def get_ontology_filters(self, entities: list[LinkedEntity]) -> dict[str, Any]:
         """
         연결된 엔티티로부터 ChromaDB 필터 조건 생성
 
@@ -704,7 +653,9 @@ class EntityLinker:
                 conditions.append({"brand": entity.concept_label})
             elif entity.entity_type == "category":
                 # concept_label에서 ID 추출 (예: "Lip Care" → "lip_care")
-                cat_key = entity.context.get("matched_key", entity.concept_label.lower().replace(" ", "_"))
+                cat_key = entity.context.get(
+                    "matched_key", entity.concept_label.lower().replace(" ", "_")
+                )
                 conditions.append({"category": cat_key})
             elif entity.entity_type == "metric":
                 # 지표는 메타데이터 필터로 사용
@@ -724,7 +675,7 @@ class EntityLinker:
         else:
             return {"$or": conditions}
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """통계 조회"""
         return self._stats.copy()
 
@@ -737,13 +688,11 @@ class EntityLinker:
 # 싱글톤 패턴 (선택)
 # =========================================================================
 
-_linker_instance: Optional[EntityLinker] = None
+_linker_instance: EntityLinker | None = None
 
 
 def get_entity_linker(
-    knowledge_graph=None,
-    owl_reasoner=None,
-    use_spacy: bool = True
+    knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True
 ) -> EntityLinker:
     """
     EntityLinker 싱글톤 인스턴스 반환
@@ -759,8 +708,6 @@ def get_entity_linker(
     global _linker_instance
     if _linker_instance is None:
         _linker_instance = EntityLinker(
-            knowledge_graph=knowledge_graph,
-            owl_reasoner=owl_reasoner,
-            use_spacy=use_spacy
+            knowledge_graph=knowledge_graph, owl_reasoner=owl_reasoner, use_spacy=use_spacy
         )
     return _linker_instance

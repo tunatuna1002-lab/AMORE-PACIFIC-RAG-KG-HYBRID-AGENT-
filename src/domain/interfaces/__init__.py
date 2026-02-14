@@ -21,7 +21,6 @@ Clean Architecture에서 내부 레이어(Domain, Application)는 외부 레이�
 """
 
 from src.domain.interfaces.agent import (
-    ChatAgentProtocol,
     CrawlerAgentProtocol,
     InsightAgentProtocol,
     MetricsAgentProtocol,
@@ -54,7 +53,6 @@ __all__ = [
     "StorageAgentProtocol",
     "MetricsAgentProtocol",
     "InsightAgentProtocol",
-    "ChatAgentProtocol",
     # Infrastructure
     "ScraperProtocol",
     "LLMClientProtocol",

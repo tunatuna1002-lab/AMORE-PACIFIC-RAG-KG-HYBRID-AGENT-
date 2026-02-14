@@ -5,17 +5,16 @@ Amazon 베스트셀러 크롤링 에이전트
 
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
 from src.domain.entities import RankRecord
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
+from src.shared.constants import KST
 from src.tools.scrapers.amazon_scraper import AmazonScraper
 
 

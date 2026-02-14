@@ -30,11 +30,19 @@ RAG를 위한 문서 검색 모듈
 """
 
 import hashlib
+import logging
 import os
 import re
 import time
 from pathlib import Path
 from typing import Any
+
+try:
+    from rank_bm25 import BM25Okapi
+
+    BM25_AVAILABLE = True
+except ImportError:
+    BM25_AVAILABLE = False
 
 try:
     from .reranker import get_reranker
@@ -52,6 +60,8 @@ except ImportError:
 
 # Lazy import flag - 실제 사용 시 초기화
 VECTOR_SEARCH_AVAILABLE = None
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentRetriever:
@@ -79,7 +89,7 @@ class DocumentRetriever:
                     config = json.load(f)
                     return config.get("system", {}).get("rag", {})
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 
@@ -428,6 +438,10 @@ class DocumentRetriever:
 
         # Reranker 인스턴스 (lazy loading)
         self._reranker = None
+
+        # BM25 index (lazy init)
+        self._bm25_index = None
+        self._bm25_corpus_ids: list[str] = []
 
         # Embedding 캐시 (feature-flag-guarded)
         from src.infrastructure.feature_flags import FeatureFlags
@@ -936,6 +950,10 @@ Do not include any explanation."""
         if not self._initialized:
             await self.initialize()
 
+        # Self-RAG: Check if retrieval is needed
+        if not self._needs_retrieval(query):
+            return []
+
         # 파라미터 기본값 설정
         if use_query_expansion is None:
             use_query_expansion = self.use_query_expansion
@@ -964,7 +982,7 @@ Do not include any explanation."""
         for q in queries:
             # 벡터 검색 (필수)
             if self.collection is not None and self.openai_client is not None:
-                results = await self._vector_search(
+                vector_results = await self._vector_search(
                     q,
                     top_k * 3 if use_reranking else top_k,  # reranking 시 더 많은 후보 검색
                     doc_filter,
@@ -973,8 +991,28 @@ Do not include any explanation."""
             else:
                 raise RuntimeError("Vector search is required but not available")
 
+            # BM25 검색 (옵션 - RRF 융합용)
+            bm25_results = []
+            if BM25_AVAILABLE:
+                try:
+                    bm25_results = await self._bm25_search(
+                        q,
+                        top_k * 3 if use_reranking else top_k,
+                        doc_filter,
+                        doc_type_filter,
+                    )
+                except Exception as e:
+                    logger.warning(f"BM25 search failed, falling back to vector-only: {e}")
+                    bm25_results = []
+
+            # RRF 융합
+            if bm25_results:
+                merged_results = self._rrf_merge(vector_results, bm25_results)
+            else:
+                merged_results = vector_results
+
             # 중복 제거
-            for result in results:
+            for result in merged_results:
                 if result["id"] not in seen_ids:
                     all_results.append(result)
                     seen_ids.add(result["id"])
@@ -1072,65 +1110,110 @@ Do not include any explanation."""
 
         return search_results
 
-    async def _keyword_search(
+    def _needs_retrieval(self, query: str) -> bool:
+        """Self-RAG: 검색 필요성 판단"""
+        query_lower = query.lower().strip()
+        no_retrieval_patterns = [
+            r"^(안녕|hello|hi|hey|감사|고마워|thank)",
+            r"^(네|예|응|ok|okay|맞아|그래)$",
+            r"^(도움|help|뭐 할 수|무엇을 할)",
+        ]
+        for pattern in no_retrieval_patterns:
+            if re.match(pattern, query_lower):
+                return False
+        if len(query_lower) < 3:
+            return False
+        return True
+
+    def _tokenize(self, text: str) -> list[str]:
+        """Simple tokenizer for Korean+English"""
+        tokens = re.findall(r"[가-힣]+|[a-zA-Z]+|[0-9]+", text.lower())
+        return [t for t in tokens if len(t) > 1]
+
+    def _build_bm25_index(self):
+        """Build BM25 index from current chunks"""
+        if not BM25_AVAILABLE:
+            return
+        tokenized_corpus = []
+        corpus_ids = []
+        for chunk in self.chunks:
+            content = chunk.get("content", "")
+            title = chunk.get("title", "")
+            keywords = " ".join(chunk.get("keywords", []))
+            combined_text = f"{title} {keywords} {content}"
+            tokenized_corpus.append(self._tokenize(combined_text))
+            corpus_ids.append(chunk["id"])
+        if tokenized_corpus:
+            self._bm25_index = BM25Okapi(tokenized_corpus)
+            self._bm25_corpus_ids = corpus_ids
+
+    async def _bm25_search(
         self,
         query: str,
-        top_k: int,
-        doc_filter: str | None,
+        top_k: int = 10,
+        doc_filter: str | None = None,
         doc_type_filter: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """키워드 기반 검색 (폴백)"""
-        query_lower = query.lower()
-        scored_chunks = []
-
-        for chunk in self.chunks:
-            # doc_id 필터
-            if doc_filter and chunk["doc_id"] != doc_filter:
+        """BM25 sparse search"""
+        if not BM25_AVAILABLE:
+            return []
+        if self._bm25_index is None:
+            self._build_bm25_index()
+        if self._bm25_index is None or not self._bm25_corpus_ids:
+            return []
+        tokenized_query = self._tokenize(query)
+        if not tokenized_query:
+            return []
+        scores = self._bm25_index.get_scores(tokenized_query)
+        scored_results = []
+        for _idx, (chunk_id, score) in enumerate(zip(self._bm25_corpus_ids, scores, strict=False)):
+            chunk = self._chunk_index.get(chunk_id)
+            if chunk is None:
                 continue
-
-            # doc_type 필터
+            if doc_filter and chunk.get("doc_id") != doc_filter:
+                continue
             if doc_type_filter and chunk.get("doc_type") not in doc_type_filter:
                 continue
-
-            score = 0
-
-            # 키워드 매칭
-            for keyword in chunk["keywords"]:
-                if keyword.lower() in query_lower:
-                    score += 2
-
-            # 내용 매칭
-            content_lower = chunk["content"].lower()
-            query_words = query_lower.split()
-            for word in query_words:
-                if len(word) > 2 and word in content_lower:
-                    score += 1
-
             if score > 0:
-                scored_chunks.append(
+                scored_results.append(
                     {
-                        "id": chunk["id"],
+                        "id": chunk_id,
                         "content": chunk["content"],
                         "metadata": {
                             "doc_id": chunk["doc_id"],
                             "doc_type": chunk.get("doc_type", "metric_guide"),
-                            "title": chunk["title"],
-                            "description": chunk["description"],
+                            "title": chunk.get("title", ""),
+                            "description": chunk.get("description", ""),
                             "keywords": chunk.get("keywords", []),
                             "content_type": chunk.get("content_type", "text"),
-                            "chunk_id": chunk["id"],
+                            "chunk_id": chunk_id,
                             "source_filename": chunk.get("source_filename", ""),
                             "target_brand": chunk.get("target_brand"),
                             "brands_covered": chunk.get("brands_covered", []),
                         },
-                        "score": score,
+                        "score": float(score),
                     }
                 )
+        scored_results.sort(key=lambda x: x["score"], reverse=True)
+        return scored_results[:top_k]
 
-        # 점수순 정렬
-        scored_chunks.sort(key=lambda x: x["score"], reverse=True)
-
-        return scored_chunks[:top_k]
+    def _rrf_merge(
+        self, dense_results: list[dict], sparse_results: list[dict], k: int = 60
+    ) -> list[dict]:
+        """Reciprocal Rank Fusion: RRF_score(d) = Σ 1/(k + rank_i(d))"""
+        score_map: dict[str, float] = {}
+        result_map: dict[str, dict] = {}
+        for rank, result in enumerate(dense_results):
+            rid = result.get("id", str(rank))
+            score_map[rid] = score_map.get(rid, 0) + 1.0 / (k + rank + 1)
+            result_map[rid] = result
+        for rank, result in enumerate(sparse_results):
+            rid = result.get("id", str(rank))
+            score_map[rid] = score_map.get(rid, 0) + 1.0 / (k + rank + 1)
+            if rid not in result_map:
+                result_map[rid] = result
+        sorted_ids = sorted(score_map, key=lambda x: score_map[x], reverse=True)
+        return [result_map[rid] for rid in sorted_ids]
 
     async def get_document(self, doc_id: str) -> str | None:
         """특정 문서 전체 반환"""

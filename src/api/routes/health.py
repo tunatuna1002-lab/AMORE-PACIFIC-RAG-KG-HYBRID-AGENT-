@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Health"])
 
-# API Key (dashboard HTML injection)
-API_KEY = os.getenv("API_KEY")
+# Dashboard read-only token (서버 API_KEY 노출 방지)
+DASHBOARD_READ_TOKEN = os.getenv("DASHBOARD_READ_TOKEN", "")
 
 
 @router.get("/")
@@ -45,11 +45,12 @@ async def serve_dashboard():
     if not dashboard_path.exists():
         raise HTTPException(status_code=404, detail="Dashboard not found")
 
-    # API_KEY가 설정된 경우 HTML에 자동 주입
-    if API_KEY:
+    # 대시보드 전용 읽기 토큰만 주입 (서버 API_KEY는 절대 노출하지 않음)
+    if DASHBOARD_READ_TOKEN:
         html_content = dashboard_path.read_text(encoding="utf-8")
-        # </head> 직전에 API 키 설정 스크립트 삽입
-        api_key_script = f'<script>window.DASHBOARD_API_KEY = "{API_KEY}";</script>\n</head>'
+        api_key_script = (
+            f'<script>window.DASHBOARD_API_KEY = "{DASHBOARD_READ_TOKEN}";</script>\n</head>'
+        )
         html_content = html_content.replace("</head>", api_key_script)
         return HTMLResponse(content=html_content, media_type="text/html")
 
@@ -178,7 +179,7 @@ async def deep_health_check():
                 "path": str(data_path),
             }
             if used_percent > 90:
-                health["warnings"].append(f"Low disk space: {100-used_percent:.1f}% free")
+                health["warnings"].append(f"Low disk space: {100 - used_percent:.1f}% free")
                 health["status"] = "degraded"
     except Exception as e:
         health["checks"]["disk"] = {"status": "error", "error": str(e)}

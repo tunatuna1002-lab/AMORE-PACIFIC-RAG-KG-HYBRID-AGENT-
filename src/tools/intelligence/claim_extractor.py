@@ -285,7 +285,7 @@ class ClaimExtractor:
                     try:
                         value = float(match.group(1))
                     except (ValueError, IndexError):
-                        pass
+                        logger.warning("Suppressed Exception", exc_info=True)
 
                 # 문맥 추출
                 start = max(0, match.start() - 50)

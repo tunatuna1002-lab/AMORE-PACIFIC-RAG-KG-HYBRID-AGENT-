@@ -16,13 +16,13 @@ Ontology-RAG Hybrid Integration:
 import json
 import os
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-# 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
+from src.shared.constants import KST
 
+# 한국 시간대 (UTC+9)
 from src.tools.storage.sheets_writer import SheetsWriter
 from src.tools.storage.sqlite_storage import SQLiteStorage
 

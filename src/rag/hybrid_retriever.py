@@ -295,7 +295,7 @@ class EntityExtractor:
                     config = json.load(f)
                     return config.get("system", {}).get("rag", {}).get("ttl_seconds", 300)
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
         return 300
 
     @classmethod
@@ -535,7 +535,7 @@ class EntityExtractor:
                 (r"rank\s*(\d+)", "en"),
             ]
 
-            for pattern, lang in rank_patterns:
+            for pattern, _lang in rank_patterns:
                 matches = re.findall(pattern, query_lower)
                 if matches and entities.get("categories"):
                     # 해당 카테고리의 특정 순위 제품 찾기
@@ -845,7 +845,7 @@ class HybridRetriever:
                         }
                     )
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
             # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
             trend_relations = self.kg.query(subject=brand, predicate=RelationType.HAS_TREND)
@@ -895,7 +895,7 @@ class HybridRetriever:
                         }
                     )
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
         # 감성 관련 사실 조회
         sentiment_clusters = entities.get("sentiment_clusters", [])
@@ -915,7 +915,7 @@ class HybridRetriever:
                             }
                         )
                 except Exception:
-                    pass
+                    logger.warning("Suppressed Exception", exc_info=True)
 
             # 브랜드가 지정된 경우 브랜드 감성 프로필 조회
             for brand in entities.get("brands", []):
@@ -926,7 +926,7 @@ class HybridRetriever:
                             {"type": "brand_sentiment", "entity": brand, "data": brand_sentiment}
                         )
                 except Exception:
-                    pass
+                    logger.warning("Suppressed Exception", exc_info=True)
 
             # 특정 감성 클러스터로 제품 검색
             for cluster in sentiment_clusters:
@@ -953,7 +953,7 @@ class HybridRetriever:
                                 )
                                 break
                     except Exception:
-                        pass
+                        logger.warning("Suppressed Exception", exc_info=True)
 
         return facts
 
@@ -1055,7 +1055,7 @@ class HybridRetriever:
                     context["sentiment_clusters"] = brand_sentiment.get("clusters", {})
                     context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
                 except Exception:
-                    pass
+                    logger.warning("Suppressed Exception", exc_info=True)
 
             # 제품별 감성 데이터
             if context.get("asin"):
@@ -1068,7 +1068,7 @@ class HybridRetriever:
                             "sentiment_clusters", {}
                         )
                 except Exception:
-                    pass
+                    logger.warning("Suppressed Exception", exc_info=True)
 
             # 경쟁사 감성 데이터 (비교용)
             if context.get("competitors"):
@@ -1084,7 +1084,7 @@ class HybridRetriever:
                                 competitor_clusters.get(cluster, 0) + count
                             )
                     except Exception:
-                        pass
+                        logger.warning("Suppressed Exception", exc_info=True)
                 context["competitor_sentiment_tags"] = list(set(competitor_tags))
                 context["competitor_sentiment_clusters"] = competitor_clusters
 
@@ -1108,7 +1108,7 @@ class HybridRetriever:
         expansion_terms = []
 
         # 추론된 인사이트 유형에 따라 검색 키워드 추가
-        insight_types = set(inf.insight_type for inf in inferences)
+        insight_types = {inf.insight_type for inf in inferences}
 
         if (
             InsightType.MARKET_POSITION in insight_types
@@ -1378,7 +1378,7 @@ class HybridRetriever:
                 if fact_type == "brand_info":
                     sos = data.get("sos", 0)
                     if sos:
-                        parts.append(f"- **{entity}** SoS: {sos*100:.1f}%")
+                        parts.append(f"- **{entity}** SoS: {sos * 100:.1f}%")
                     if data.get("avg_rank"):
                         parts.append(f"  - 평균 순위: {data['avg_rank']:.1f}")
 

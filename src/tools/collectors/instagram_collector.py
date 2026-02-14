@@ -32,8 +32,10 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
+
+from src.shared.constants import KST
 
 try:
     import instaloader
@@ -44,10 +46,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class InstagramPost:
     """Instagram 포스트 데이터"""

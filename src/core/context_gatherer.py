@@ -382,7 +382,7 @@ class ContextGatherer:
         # 핵심 사실
         for fact in context.kg_facts[:2]:
             if fact.fact_type == "brand_info" and fact.data.get("sos"):
-                parts.append(f"{fact.entity} SoS: {fact.data['sos']*100:.1f}%")
+                parts.append(f"{fact.entity} SoS: {fact.data['sos'] * 100:.1f}%")
 
         return " | ".join(parts)
 
@@ -410,7 +410,7 @@ class ContextGatherer:
             avg_rank = fact.data.get("avg_rank")
             info = f"{fact.entity}"
             if sos:
-                info += f" SoS {sos*100:.1f}%"
+                info += f" SoS {sos * 100:.1f}%"
             if avg_rank:
                 info += f" 평균순위 {avg_rank:.1f}"
             return info

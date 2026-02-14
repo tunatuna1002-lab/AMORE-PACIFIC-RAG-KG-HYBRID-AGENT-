@@ -68,26 +68,26 @@ owl:Thing
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Set
 from pathlib import Path
-from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # owlready2 선택적 import
 try:
     from owlready2 import (
-        get_ontology,
-        Thing,
-        FunctionalProperty,
-        SymmetricProperty,
-        TransitiveProperty,
         DataProperty,
+        FunctionalProperty,
         ObjectProperty,
-        sync_reasoner_pellet,
-        sync_reasoner_hermit,
+        SymmetricProperty,
+        Thing,
+        TransitiveProperty,
         destroy_entity,
+        get_ontology,
+        sync_reasoner_hermit,
+        sync_reasoner_pellet,
     )
+
     OWLREADY2_AVAILABLE = True
     logger.info("owlready2 is available")
 except ImportError:
@@ -110,9 +110,9 @@ class OWLReasoner:
 
     def __init__(
         self,
-        owl_file: Optional[str] = None,
+        owl_file: str | None = None,
         reasoner_type: str = "pellet",
-        fallback_reasoner: Optional[Any] = None
+        fallback_reasoner: Any | None = None,
     ):
         """
         Args:
@@ -129,6 +129,7 @@ class OWLReasoner:
             logger.warning("Using fallback reasoner due to missing owlready2")
             if not self.fallback_reasoner:
                 from .reasoner import OntologyReasoner
+
                 self.fallback_reasoner = OntologyReasoner()
             self.onto = None
             return
@@ -163,33 +164,34 @@ class OWLReasoner:
             # owlready2에서 클래스는 먼저 기존 여부를 확인하고 없으면 생성
 
             # Brand 클래스
-            Brand = self.onto.Brand or type("Brand", (Thing,), {"namespace": self.onto})
+            self.onto.Brand or type("Brand", (Thing,), {"namespace": self.onto})
 
             # Product 클래스
-            Product = self.onto.Product or type("Product", (Thing,), {"namespace": self.onto})
+            self.onto.Product or type("Product", (Thing,), {"namespace": self.onto})
 
             # Category 클래스
-            Category = self.onto.Category or type("Category", (Thing,), {"namespace": self.onto})
+            self.onto.Category or type("Category", (Thing,), {"namespace": self.onto})
 
             # Trend 클래스
-            Trend = self.onto.Trend or type("Trend", (Thing,), {"namespace": self.onto})
+            self.onto.Trend or type("Trend", (Thing,), {"namespace": self.onto})
 
         # 클래스 정의 후 서브클래스와 프로퍼티 정의
         with self.onto:
             # Market Position 서브클래스
             if not self.onto.DominantBrand:
-                DominantBrand = type("DominantBrand", (self.onto.Brand,), {"namespace": self.onto})
+                type("DominantBrand", (self.onto.Brand,), {"namespace": self.onto})
 
             if not self.onto.StrongBrand:
-                StrongBrand = type("StrongBrand", (self.onto.Brand,), {"namespace": self.onto})
+                type("StrongBrand", (self.onto.Brand,), {"namespace": self.onto})
 
             if not self.onto.NicheBrand:
-                NicheBrand = type("NicheBrand", (self.onto.Brand,), {"namespace": self.onto})
+                type("NicheBrand", (self.onto.Brand,), {"namespace": self.onto})
 
             # ===== Object Properties =====
 
             # hasBrand: Product → Brand
             if not self.onto.hasBrand:
+
                 class hasBrand(ObjectProperty):
                     namespace = self.onto
                     domain = [self.onto.Product]
@@ -198,6 +200,7 @@ class OWLReasoner:
 
             # hasProduct: Brand → Product (역관계)
             if not self.onto.hasProduct:
+
                 class hasProduct(ObjectProperty):
                     namespace = self.onto
                     domain = [self.onto.Brand]
@@ -206,6 +209,7 @@ class OWLReasoner:
 
             # belongsToCategory: Product → Category
             if not self.onto.belongsToCategory:
+
                 class belongsToCategory(ObjectProperty):
                     namespace = self.onto
                     domain = [self.onto.Product]
@@ -214,6 +218,7 @@ class OWLReasoner:
 
             # competsWith: Brand → Brand (대칭 관계)
             if not self.onto.competsWith:
+
                 class competsWith(SymmetricProperty, ObjectProperty):
                     namespace = self.onto
                     domain = [self.onto.Brand]
@@ -222,6 +227,7 @@ class OWLReasoner:
 
             # hasTrend: Brand → Trend
             if not self.onto.hasTrend:
+
                 class hasTrend(ObjectProperty):
                     namespace = self.onto
                     domain = [self.onto.Brand]
@@ -232,6 +238,7 @@ class OWLReasoner:
 
             # shareOfShelf: Brand → float
             if not self.onto.shareOfShelf:
+
                 class shareOfShelf(DataProperty, FunctionalProperty):
                     namespace = self.onto
                     domain = [self.onto.Brand]
@@ -240,6 +247,7 @@ class OWLReasoner:
 
             # averageRank: Brand → float
             if not self.onto.averageRank:
+
                 class averageRank(DataProperty, FunctionalProperty):
                     namespace = self.onto
                     domain = [self.onto.Brand]
@@ -248,6 +256,7 @@ class OWLReasoner:
 
             # productCount: Brand → int
             if not self.onto.productCount:
+
                 class productCount(DataProperty, FunctionalProperty):
                     namespace = self.onto
                     domain = [self.onto.Brand]
@@ -256,6 +265,7 @@ class OWLReasoner:
 
             # rank: Product → int
             if not self.onto.rank:
+
                 class rank(DataProperty, FunctionalProperty):
                     namespace = self.onto
                     domain = [self.onto.Product]
@@ -264,6 +274,7 @@ class OWLReasoner:
 
             # price: Product → float
             if not self.onto.price:
+
                 class price(DataProperty):
                     namespace = self.onto
                     domain = [self.onto.Product]
@@ -272,6 +283,7 @@ class OWLReasoner:
 
             # rating: Product → float
             if not self.onto.rating:
+
                 class rating(DataProperty):
                     namespace = self.onto
                     domain = [self.onto.Product]
@@ -285,11 +297,7 @@ class OWLReasoner:
     # =========================================================================
 
     def add_brand(
-        self,
-        name: str,
-        sos: float = 0.0,
-        avg_rank: Optional[float] = None,
-        product_count: int = 0
+        self, name: str, sos: float = 0.0, avg_rank: float | None = None, product_count: int = 0
     ) -> bool:
         """
         브랜드 추가
@@ -331,8 +339,8 @@ class OWLReasoner:
         brand: str,
         category: str,
         rank: int,
-        price: Optional[float] = None,
-        rating: Optional[float] = None
+        price: float | None = None,
+        rating: float | None = None,
     ) -> bool:
         """
         제품 추가
@@ -376,11 +384,7 @@ class OWLReasoner:
             logger.error(f"Failed to add product {asin}: {e}")
             return False
 
-    def add_competitor_relation(
-        self,
-        brand1: str,
-        brand2: str
-    ) -> bool:
+    def add_competitor_relation(self, brand1: str, brand2: str) -> bool:
         """
         경쟁 관계 추가 (대칭 관계)
 
@@ -412,11 +416,7 @@ class OWLReasoner:
             logger.error(f"Failed to add competitor relation {brand1}-{brand2}: {e}")
             return False
 
-    def add_trend(
-        self,
-        keyword: str,
-        brands: List[str]
-    ) -> bool:
+    def add_trend(self, keyword: str, brands: list[str]) -> bool:
         """
         트렌드 키워드 추가
 
@@ -478,7 +478,7 @@ class OWLReasoner:
             logger.error(f"Reasoner execution failed: {e}")
             return False
 
-    def infer_market_positions(self) -> Dict[str, str]:
+    def infer_market_positions(self) -> dict[str, str]:
         """
         SoS 기반 시장 포지션 추론
 
@@ -526,7 +526,7 @@ class OWLReasoner:
             logger.error(f"Failed to infer market positions: {e}")
             return {}
 
-    def get_inferred_facts(self) -> List[Dict[str, Any]]:
+    def get_inferred_facts(self) -> list[dict[str, Any]]:
         """
         추론된 사실들 조회
 
@@ -542,36 +542,44 @@ class OWLReasoner:
             # Brand 서브클래스 추론 결과
             for brand in self.onto.Brand.instances():
                 if self.onto.DominantBrand in brand.is_a:
-                    facts.append({
-                        "type": "market_position",
-                        "subject": brand.name,
-                        "position": "DominantBrand",
-                        "sos": brand.share_of_shelf or 0.0
-                    })
+                    facts.append(
+                        {
+                            "type": "market_position",
+                            "subject": brand.name,
+                            "position": "DominantBrand",
+                            "sos": brand.share_of_shelf or 0.0,
+                        }
+                    )
                 elif self.onto.StrongBrand in brand.is_a:
-                    facts.append({
-                        "type": "market_position",
-                        "subject": brand.name,
-                        "position": "StrongBrand",
-                        "sos": brand.share_of_shelf or 0.0
-                    })
+                    facts.append(
+                        {
+                            "type": "market_position",
+                            "subject": brand.name,
+                            "position": "StrongBrand",
+                            "sos": brand.share_of_shelf or 0.0,
+                        }
+                    )
                 elif self.onto.NicheBrand in brand.is_a:
-                    facts.append({
-                        "type": "market_position",
-                        "subject": brand.name,
-                        "position": "NicheBrand",
-                        "sos": brand.share_of_shelf or 0.0
-                    })
+                    facts.append(
+                        {
+                            "type": "market_position",
+                            "subject": brand.name,
+                            "position": "NicheBrand",
+                            "sos": brand.share_of_shelf or 0.0,
+                        }
+                    )
 
             # 대칭 관계 추론 (competsWith)
             for brand in self.onto.Brand.instances():
                 for competitor in brand.competes_with:
-                    facts.append({
-                        "type": "competition",
-                        "subject": brand.name,
-                        "object": competitor.name,
-                        "relation": "competsWith"
-                    })
+                    facts.append(
+                        {
+                            "type": "competition",
+                            "subject": brand.name,
+                            "object": competitor.name,
+                            "relation": "competsWith",
+                        }
+                    )
 
             logger.info(f"Retrieved {len(facts)} inferred facts")
             return facts
@@ -583,7 +591,7 @@ class OWLReasoner:
     # 쿼리 기능
     # =========================================================================
 
-    def query_sparql(self, sparql_query: str) -> List[Any]:
+    def query_sparql(self, sparql_query: str) -> list[Any]:
         """
         SPARQL 쿼리 실행
 
@@ -606,7 +614,7 @@ class OWLReasoner:
             logger.error(f"SPARQL query failed: {e}")
             return []
 
-    def get_brand_info(self, brand_name: str) -> Optional[Dict[str, Any]]:
+    def get_brand_info(self, brand_name: str) -> dict[str, Any] | None:
         """
         브랜드 정보 조회
 
@@ -633,13 +641,13 @@ class OWLReasoner:
                 "product_count": brand.product_count or 0,
                 "products": [p.name for p in brand.has_product] if brand.has_product else [],
                 "competitors": [c.name for c in brand.competes_with] if brand.competes_with else [],
-                "market_position": self._get_brand_position(brand)
+                "market_position": self._get_brand_position(brand),
             }
         except Exception as e:
             logger.error(f"Failed to get brand info for {brand_name}: {e}")
             return None
 
-    def get_competitors(self, brand_name: str) -> List[str]:
+    def get_competitors(self, brand_name: str) -> list[str]:
         """
         경쟁사 조회 (대칭 관계 활용)
 
@@ -664,7 +672,7 @@ class OWLReasoner:
             logger.error(f"Failed to get competitors for {brand_name}: {e}")
             return []
 
-    def get_all_brands(self) -> List[Dict[str, Any]]:
+    def get_all_brands(self) -> list[dict[str, Any]]:
         """
         모든 브랜드 정보 조회
 
@@ -677,20 +685,24 @@ class OWLReasoner:
         brands = []
         try:
             for brand in self.onto.Brand.instances():
-                brands.append({
-                    "name": brand.name,
-                    "share_of_shelf": brand.share_of_shelf or 0.0,
-                    "average_rank": brand.average_rank,
-                    "product_count": brand.product_count or 0,
-                    "market_position": self._get_brand_position(brand),
-                    "competitors": [c.name for c in brand.competes_with] if brand.competes_with else []
-                })
+                brands.append(
+                    {
+                        "name": brand.name,
+                        "share_of_shelf": brand.share_of_shelf or 0.0,
+                        "average_rank": brand.average_rank,
+                        "product_count": brand.product_count or 0,
+                        "market_position": self._get_brand_position(brand),
+                        "competitors": [c.name for c in brand.competes_with]
+                        if brand.competes_with
+                        else [],
+                    }
+                )
             return brands
         except Exception as e:
             logger.error(f"Failed to get all brands: {e}")
             return []
 
-    def get_category_brands(self, category_id: str) -> List[Dict[str, Any]]:
+    def get_category_brands(self, category_id: str) -> list[dict[str, Any]]:
         """
         카테고리별 브랜드 조회
 
@@ -721,20 +733,16 @@ class OWLReasoner:
                         brands_dict[brand_name] = {
                             "brand": brand_name,
                             "sos": brand.share_of_shelf or 0.0,
-                            "product_count": 0
+                            "product_count": 0,
                         }
                     brands_dict[brand_name]["product_count"] += 1
 
-            return sorted(
-                brands_dict.values(),
-                key=lambda x: x["sos"],
-                reverse=True
-            )
+            return sorted(brands_dict.values(), key=lambda x: x["sos"], reverse=True)
         except Exception as e:
             logger.error(f"Failed to get brands for category {category_id}: {e}")
             return []
 
-    def get_brand_market_position(self, brand_name: str) -> Optional[str]:
+    def get_brand_market_position(self, brand_name: str) -> str | None:
         """
         브랜드의 시장 포지션 조회
 
@@ -759,7 +767,7 @@ class OWLReasoner:
             logger.error(f"Failed to get market position for {brand_name}: {e}")
             return None
 
-    def _get_brand_position(self, brand) -> Optional[str]:
+    def _get_brand_position(self, brand) -> str | None:
         """브랜드 인스턴스에서 포지션 추출"""
         if self.onto.DominantBrand in brand.is_a:
             return "DominantBrand"
@@ -797,12 +805,13 @@ class OWLReasoner:
                         name=entity,
                         sos=metadata.get("sos", 0.0),
                         avg_rank=metadata.get("avg_rank"),
-                        product_count=metadata.get("product_count", 0)
+                        product_count=metadata.get("product_count", 0),
                     )
                     count += 1
 
             # 제품 관계 → OWL Product
             from .relations import RelationType
+
             for rel in kg.query(predicate=RelationType.HAS_PRODUCT):
                 brand = rel.subject
                 asin = rel.object
@@ -814,7 +823,7 @@ class OWLReasoner:
                     category=props.get("category", "unknown"),
                     rank=props.get("rank", 999),
                     price=props.get("price"),
-                    rating=props.get("rating")
+                    rating=props.get("rating"),
                 )
                 count += 1
 
@@ -828,7 +837,7 @@ class OWLReasoner:
             logger.error(f"Failed to import from KnowledgeGraph: {e}")
             return count
 
-    def import_from_metrics(self, metrics_data: Dict[str, Any]) -> int:
+    def import_from_metrics(self, metrics_data: dict[str, Any]) -> int:
         """
         메트릭 데이터를 OWL로 변환
 
@@ -851,7 +860,7 @@ class OWLReasoner:
                         name=brand,
                         sos=brand_metric.get("share_of_shelf", 0.0),
                         avg_rank=brand_metric.get("avg_rank"),
-                        product_count=brand_metric.get("product_count", 0)
+                        product_count=brand_metric.get("product_count", 0),
                     )
                     count += 1
 
@@ -865,7 +874,7 @@ class OWLReasoner:
     # 영속화
     # =========================================================================
 
-    def save(self, path: Optional[str] = None) -> bool:
+    def save(self, path: str | None = None) -> bool:
         """
         OWL 파일 저장
 
@@ -917,7 +926,7 @@ class OWLReasoner:
     # 유틸리티
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """온톨로지 통계"""
         if not OWLREADY2_AVAILABLE or not self.onto:
             return {"error": "owlready2 not available"}
@@ -960,12 +969,10 @@ class OWLReasoner:
 # 싱글톤 패턴
 # =========================================================================
 
-_owl_reasoner_instance: Optional[OWLReasoner] = None
+_owl_reasoner_instance: OWLReasoner | None = None
 
-def get_owl_reasoner(
-    owl_file: Optional[str] = None,
-    reasoner_type: str = "pellet"
-) -> OWLReasoner:
+
+def get_owl_reasoner(owl_file: str | None = None, reasoner_type: str = "pellet") -> OWLReasoner:
     """
     OWLReasoner 싱글톤 인스턴스 반환
 
@@ -978,8 +985,5 @@ def get_owl_reasoner(
     """
     global _owl_reasoner_instance
     if _owl_reasoner_instance is None:
-        _owl_reasoner_instance = OWLReasoner(
-            owl_file=owl_file,
-            reasoner_type=reasoner_type
-        )
+        _owl_reasoner_instance = OWLReasoner(owl_file=owl_file, reasoner_type=reasoner_type)
     return _owl_reasoner_instance

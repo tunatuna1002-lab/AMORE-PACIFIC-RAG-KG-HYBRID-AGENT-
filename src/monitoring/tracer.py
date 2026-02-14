@@ -131,7 +131,7 @@ class ExecutionTracer:
         LLM 호출의 모델, 토큰, 레이턴시를 자동 추적합니다.
 
         Usage:
-            with tracer.llm_span("decision_llm", model="gpt-4o-mini") as span:
+            with tracer.llm_span("decision_llm", model="gpt-4.1-mini") as span:
                 response = await acompletion(...)
                 span.attributes["llm.prompt_tokens"] = response.usage.prompt_tokens
                 span.attributes["llm.completion_tokens"] = response.usage.completion_tokens
@@ -320,7 +320,7 @@ class ExecutionTracer:
             for i, child in enumerate(node["children"]):
                 is_last = i == len(node["children"]) - 1
                 child_indent = indent + ("  └─ " if is_last else "  ├─ ")
-                next_indent = indent + ("     " if is_last else "  │  ")
+                indent + ("     " if is_last else "  │  ")
                 format_node(child, child_indent if indent else "  ")
 
         for node in tree:

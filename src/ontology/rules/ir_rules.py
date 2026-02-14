@@ -64,7 +64,7 @@ RULE_IR_AMERICAS_CORRELATION = InferenceRule(
     ],
     conclusion=lambda ctx: {
         "insight": f"아모레퍼시픽 IR Americas 매출이 전년 대비 {ctx.get('ir_americas_yoy', 0):+.1f}% 성장했고, "
-        f"LANEIGE Amazon SoS도 {ctx.get('sos_change', 0)*100:+.1f}%p 상승했습니다. "
+        f"LANEIGE Amazon SoS도 {ctx.get('sos_change', 0) * 100:+.1f}%p 상승했습니다. "
         f"IR 실적 성장이 Amazon 점유율에 반영된 것으로 판단됩니다.",
         "correlation": "ir_amazon_positive",
         "confidence": 0.80,

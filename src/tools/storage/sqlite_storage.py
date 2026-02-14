@@ -22,18 +22,18 @@ import logging
 import os
 import sqlite3
 from contextlib import asynccontextmanager, contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import aiosqlite
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class SQLiteStorage:
     """SQLite 기반 데이터 저장소"""
 

@@ -4,38 +4,41 @@ Context Manager
 """
 
 import json
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field, asdict
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
 class ConversationTurn:
     """대화 턴"""
+
     role: str  # "user" or "assistant"
     content: str
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class WorkflowContext:
     """워크플로우 실행 컨텍스트"""
+
     current_step: str = ""
-    completed_steps: List[str] = field(default_factory=list)
-    pending_steps: List[str] = field(default_factory=list)
-    step_results: Dict[str, Any] = field(default_factory=dict)
-    errors: List[Dict[str, Any]] = field(default_factory=list)
+    completed_steps: list[str] = field(default_factory=list)
+    pending_steps: list[str] = field(default_factory=list)
+    step_results: dict[str, Any] = field(default_factory=dict)
+    errors: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
 class DataContext:
     """데이터 컨텍스트"""
-    last_crawl_date: Optional[str] = None
-    categories_crawled: List[str] = field(default_factory=list)
+
+    last_crawl_date: str | None = None
+    categories_crawled: list[str] = field(default_factory=list)
     products_count: int = 0
-    laneige_products: List[Dict[str, Any]] = field(default_factory=list)
+    laneige_products: list[dict[str, Any]] = field(default_factory=list)
     metrics_calculated: bool = False
     insights_generated: bool = False
 
@@ -52,40 +55,32 @@ class ContextManager:
         self.context_dir.mkdir(parents=True, exist_ok=True)
 
         # 컨텍스트 상태
-        self._conversation: List[ConversationTurn] = []
+        self._conversation: list[ConversationTurn] = []
         self._workflow: WorkflowContext = WorkflowContext()
         self._data: DataContext = DataContext()
-        self._variables: Dict[str, Any] = {}
+        self._variables: dict[str, Any] = {}
 
         # 최대 대화 기록
         self._max_conversation_turns = 100
 
-    def add_user_message(self, content: str, metadata: Optional[Dict] = None) -> None:
+    def add_user_message(self, content: str, metadata: dict | None = None) -> None:
         """사용자 메시지 추가"""
-        turn = ConversationTurn(
-            role="user",
-            content=content,
-            metadata=metadata or {}
-        )
+        turn = ConversationTurn(role="user", content=content, metadata=metadata or {})
         self._conversation.append(turn)
         self._trim_conversation()
 
-    def add_assistant_message(self, content: str, metadata: Optional[Dict] = None) -> None:
+    def add_assistant_message(self, content: str, metadata: dict | None = None) -> None:
         """어시스턴트 메시지 추가"""
-        turn = ConversationTurn(
-            role="assistant",
-            content=content,
-            metadata=metadata or {}
-        )
+        turn = ConversationTurn(role="assistant", content=content, metadata=metadata or {})
         self._conversation.append(turn)
         self._trim_conversation()
 
     def _trim_conversation(self) -> None:
         """대화 기록 정리 (최대 개수 유지)"""
         if len(self._conversation) > self._max_conversation_turns:
-            self._conversation = self._conversation[-self._max_conversation_turns:]
+            self._conversation = self._conversation[-self._max_conversation_turns :]
 
-    def get_conversation_history(self, limit: int = 10) -> List[Dict]:
+    def get_conversation_history(self, limit: int = 10) -> list[dict]:
         """최근 대화 기록 조회"""
         recent = self._conversation[-limit:]
         return [asdict(turn) for turn in recent]
@@ -105,14 +100,13 @@ class ContextManager:
         return "\n".join(lines)
 
     # 워크플로우 컨텍스트
-    def start_workflow(self, steps: List[str]) -> None:
+    def start_workflow(self, steps: list[str]) -> None:
         """워크플로우 시작"""
         self._workflow = WorkflowContext(
-            pending_steps=steps.copy(),
-            current_step=steps[0] if steps else ""
+            pending_steps=steps.copy(), current_step=steps[0] if steps else ""
         )
 
-    def advance_workflow(self, result: Optional[Any] = None) -> Optional[str]:
+    def advance_workflow(self, result: Any | None = None) -> str | None:
         """
         다음 스텝으로 진행
 
@@ -133,18 +127,16 @@ class ContextManager:
 
     def record_workflow_error(self, step: str, error: str) -> None:
         """워크플로우 에러 기록"""
-        self._workflow.errors.append({
-            "step": step,
-            "error": error,
-            "timestamp": datetime.now().isoformat()
-        })
+        self._workflow.errors.append(
+            {"step": step, "error": error, "timestamp": datetime.now().isoformat()}
+        )
 
-    def get_workflow_status(self) -> Dict[str, Any]:
+    def get_workflow_status(self) -> dict[str, Any]:
         """워크플로우 상태 조회"""
         total = (
-            len(self._workflow.completed_steps) +
-            len(self._workflow.pending_steps) +
-            (1 if self._workflow.current_step else 0)
+            len(self._workflow.completed_steps)
+            + len(self._workflow.pending_steps)
+            + (1 if self._workflow.current_step else 0)
         )
         completed = len(self._workflow.completed_steps)
 
@@ -155,15 +147,12 @@ class ContextManager:
             "progress": f"{completed}/{total}" if total > 0 else "0/0",
             "progress_percent": round(completed / total * 100, 1) if total > 0 else 0,
             "has_errors": len(self._workflow.errors) > 0,
-            "error_count": len(self._workflow.errors)
+            "error_count": len(self._workflow.errors),
         }
 
     # 데이터 컨텍스트
     def update_crawl_data(
-        self,
-        categories: List[str],
-        products_count: int,
-        laneige_products: List[Dict]
+        self, categories: list[str], products_count: int, laneige_products: list[dict]
     ) -> None:
         """크롤링 데이터 업데이트"""
         self._data.last_crawl_date = datetime.now().isoformat()
@@ -179,7 +168,7 @@ class ContextManager:
         """인사이트 생성 완료 표시"""
         self._data.insights_generated = generated
 
-    def get_data_status(self) -> Dict[str, Any]:
+    def get_data_status(self) -> dict[str, Any]:
         """데이터 상태 조회"""
         return {
             "last_crawl": self._data.last_crawl_date,
@@ -187,10 +176,10 @@ class ContextManager:
             "total_products": self._data.products_count,
             "laneige_count": len(self._data.laneige_products),
             "metrics_ready": self._data.metrics_calculated,
-            "insights_ready": self._data.insights_generated
+            "insights_ready": self._data.insights_generated,
         }
 
-    def get_laneige_products(self) -> List[Dict]:
+    def get_laneige_products(self) -> list[dict]:
         """LANEIGE 제품 목록 반환"""
         return self._data.laneige_products
 
@@ -208,13 +197,13 @@ class ContextManager:
         self._variables.clear()
 
     # 전체 컨텍스트
-    def get_full_context(self) -> Dict[str, Any]:
+    def get_full_context(self) -> dict[str, Any]:
         """전체 컨텍스트 조회"""
         return {
             "conversation": self.get_conversation_history(limit=10),
             "workflow": self.get_workflow_status(),
             "data": self.get_data_status(),
-            "variables": self._variables.copy()
+            "variables": self._variables.copy(),
         }
 
     def build_llm_context(self) -> str:
@@ -224,7 +213,7 @@ class ContextManager:
         # 데이터 상태
         data = self.get_data_status()
         if data["last_crawl"]:
-            parts.append(f"[데이터 현황]")
+            parts.append("[데이터 현황]")
             parts.append(f"- 마지막 크롤링: {data['last_crawl'][:10]}")
             parts.append(f"- 수집 카테고리: {', '.join(data['categories'])}")
             parts.append(f"- 전체 제품 수: {data['total_products']}")
@@ -234,7 +223,7 @@ class ContextManager:
         # 워크플로우 상태
         workflow = self.get_workflow_status()
         if workflow["current_step"]:
-            parts.append(f"[워크플로우 진행]")
+            parts.append("[워크플로우 진행]")
             parts.append(f"- 현재 단계: {workflow['current_step']}")
             parts.append(f"- 진행률: {workflow['progress']} ({workflow['progress_percent']}%)")
             parts.append("")
@@ -242,7 +231,7 @@ class ContextManager:
         # 최근 대화
         conversation_summary = self.get_conversation_summary()
         if conversation_summary != "이전 대화 없음":
-            parts.append(f"[최근 대화]")
+            parts.append("[최근 대화]")
             parts.append(conversation_summary)
 
         return "\n".join(parts) if parts else "컨텍스트 없음"
@@ -257,7 +246,7 @@ class ContextManager:
             "workflow": asdict(self._workflow),
             "data": asdict(self._data),
             "variables": self._variables,
-            "saved_at": datetime.now().isoformat()
+            "saved_at": datetime.now().isoformat(),
         }
 
         with open(filepath, "w", encoding="utf-8") as f:
@@ -271,12 +260,10 @@ class ContextManager:
             return False
 
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
 
-            self._conversation = [
-                ConversationTurn(**t) for t in data.get("conversation", [])
-            ]
+            self._conversation = [ConversationTurn(**t) for t in data.get("conversation", [])]
             self._workflow = WorkflowContext(**data.get("workflow", {}))
             self._data = DataContext(**data.get("data", {}))
             self._variables = data.get("variables", {})

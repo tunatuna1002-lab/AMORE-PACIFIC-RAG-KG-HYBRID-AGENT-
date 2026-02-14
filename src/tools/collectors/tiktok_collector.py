@@ -28,9 +28,11 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any
 from urllib.parse import quote
+
+from src.shared.constants import KST
 
 try:
     from playwright.async_api import Browser, Page, async_playwright
@@ -48,10 +50,8 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class TikTokPost:
     """TikTok 포스트 데이터"""

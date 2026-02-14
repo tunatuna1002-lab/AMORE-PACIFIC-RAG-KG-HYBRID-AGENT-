@@ -24,9 +24,8 @@ Usage:
         print(result.rewritten_query)  # "LANEIGE Lip Sleeping Mask의 가격은?"
 """
 
-from dataclasses import dataclass
-from typing import List, Dict, Optional
 import re
+from dataclasses import dataclass
 
 from litellm import acompletion
 
@@ -34,13 +33,14 @@ from litellm import acompletion
 @dataclass
 class RewriteResult:
     """재구성 결과"""
-    original_query: str           # 원본 질문
-    rewritten_query: str          # 재구성된 질문
-    was_rewritten: bool           # 재구성 여부
-    needs_clarification: bool     # 명확화 필요 여부
-    clarification_message: str    # 명확화 요청 메시지
-    confidence: float             # 신뢰도 (0-1)
-    resolved_entities: List[str]  # 해소된 지시어 목록
+
+    original_query: str  # 원본 질문
+    rewritten_query: str  # 재구성된 질문
+    was_rewritten: bool  # 재구성 여부
+    needs_clarification: bool  # 명확화 필요 여부
+    clarification_message: str  # 명확화 요청 메시지
+    confidence: float  # 신뢰도 (0-1)
+    resolved_entities: list[str]  # 해소된 지시어 목록
 
 
 class QueryRewriter:
@@ -67,17 +67,17 @@ class QueryRewriter:
     # 지시어 패턴 (LLM 호출 전 빠른 감지)
     DEMONSTRATIVE_PATTERNS = [
         # 한국어 지시어 (단독)
-        r'(그것|그건|이것|이건|저것|저건)',
+        r"(그것|그건|이것|이건|저것|저건)",
         # 한국어 지시어 + 명사
-        r'(그|이|저|해당|위|아래|앞|뒤)\s*(제품|브랜드|카테고리|지표|수치|결과|분석|데이터|항목)',
+        r"(그|이|저|해당|위|아래|앞|뒤)\s*(제품|브랜드|카테고리|지표|수치|결과|분석|데이터|항목)",
         # 영어 지시어
-        r'\b(it|this|that|these|those)\b',
-        r'\bthe\s+(same|product|brand|category|metric|result|item)\b',
+        r"\b(it|this|that|these|those)\b",
+        r"\bthe\s+(same|product|brand|category|metric|result|item)\b",
         # 생략 패턴 (주어 없는 질문)
-        r'^(왜|어떻게|언제|얼마나)\s',
-        r'^(비교|분석|설명|요약)해',
+        r"^(왜|어떻게|언제|얼마나)\s",
+        r"^(비교|분석|설명|요약)해",
         # 대명사적 사용
-        r'(거기|여기|어디)',
+        r"(거기|여기|어디)",
     ]
 
     # 재구성 프롬프트
@@ -136,7 +136,7 @@ class QueryRewriter:
             model: LLM 모델명 (기본: gpt-4.1-mini)
         """
         self.model = model
-        self._cache: Dict[str, str] = {}
+        self._cache: dict[str, str] = {}
         self._compiled_patterns = [
             re.compile(p, re.IGNORECASE) for p in self.DEMONSTRATIVE_PATTERNS
         ]
@@ -157,10 +157,7 @@ class QueryRewriter:
         return False
 
     async def rewrite(
-        self,
-        query: str,
-        conversation_history: List[Dict],
-        max_history_turns: int = 3
+        self, query: str, conversation_history: list[dict], max_history_turns: int = 3
     ) -> RewriteResult:
         """
         후속 질문을 독립적인 검색 쿼리로 재구성
@@ -188,26 +185,24 @@ class QueryRewriter:
                 needs_clarification=False,
                 clarification_message="",
                 confidence=1.0,
-                resolved_entities=[]
+                resolved_entities=[],
             )
 
         # 히스토리 포맷팅 (최근 N턴만)
-        history_text = self._format_history(
-            conversation_history[-(max_history_turns * 2):]
-        )
+        history_text = self._format_history(conversation_history[-(max_history_turns * 2) :])
 
         # LLM 호출
         try:
             response = await acompletion(
                 model=self.model,
                 messages=[
-                    {"role": "user", "content": self.REWRITE_PROMPT.format(
-                        history=history_text,
-                        query=query
-                    )}
+                    {
+                        "role": "user",
+                        "content": self.REWRITE_PROMPT.format(history=history_text, query=query),
+                    }
                 ],
                 temperature=0.1,
-                max_tokens=150
+                max_tokens=150,
             )
 
             rewritten = response.choices[0].message.content.strip()
@@ -235,28 +230,21 @@ class QueryRewriter:
                 needs_clarification=False,
                 clarification_message="",
                 confidence=0.9,
-                resolved_entities=self._extract_resolved(query, rewritten)
+                resolved_entities=self._extract_resolved(query, rewritten),
             )
 
-        except Exception as e:
+        except Exception:
             # 오류 시 원본 반환 (graceful degradation)
             return self._no_rewrite(query)
 
-    def _make_cache_key(
-        self,
-        query: str,
-        history: List[Dict],
-        max_turns: int
-    ) -> str:
+    def _make_cache_key(self, query: str, history: list[dict], max_turns: int) -> str:
         """캐시 키 생성"""
         # 최근 히스토리의 content만 추출하여 해시
-        recent = history[-(max_turns * 2):]
-        history_str = "|".join(
-            h.get("content", "")[:50] for h in recent
-        )
+        recent = history[-(max_turns * 2) :]
+        history_str = "|".join(h.get("content", "")[:50] for h in recent)
         return f"{query}:{hash(history_str)}"
 
-    def _format_history(self, history: List[Dict]) -> str:
+    def _format_history(self, history: list[dict]) -> str:
         """
         대화 히스토리를 텍스트로 포맷
 
@@ -296,10 +284,10 @@ class QueryRewriter:
         ]
         for prefix in prefixes_to_remove:
             if response.startswith(prefix):
-                response = response[len(prefix):].strip()
+                response = response[len(prefix) :].strip()
 
         # 따옴표 제거
-        response = response.strip('"\'')
+        response = response.strip("\"'")
 
         return response
 
@@ -312,7 +300,7 @@ class QueryRewriter:
             needs_clarification=False,
             clarification_message="",
             confidence=1.0,
-            resolved_entities=[]
+            resolved_entities=[],
         )
 
     def _needs_clarification(self, original: str, rewritten: str) -> RewriteResult:
@@ -324,10 +312,10 @@ class QueryRewriter:
             needs_clarification=True,
             clarification_message="조금 더 구체적으로 말씀해 주세요. 어떤 제품/브랜드/지표를 의미하시나요?",
             confidence=0.3,
-            resolved_entities=[]
+            resolved_entities=[],
         )
 
-    def _extract_resolved(self, original: str, rewritten: str) -> List[str]:
+    def _extract_resolved(self, original: str, rewritten: str) -> list[str]:
         """
         해소된 지시어 추출 (로깅용)
 
@@ -365,5 +353,5 @@ def create_rewrite_result_no_change(query: str) -> RewriteResult:
         needs_clarification=False,
         clarification_message="",
         confidence=1.0,
-        resolved_entities=[]
+        resolved_entities=[],
     )

@@ -18,6 +18,8 @@ from typing import Any
 
 from litellm import acompletion
 
+from src.shared.constants import DEFAULT_MODEL
+
 from .models import Context, Decision
 from .tools import AGENT_TOOLS
 
@@ -86,7 +88,7 @@ class DecisionMaker:
 명확화를 위한 질문을 key_points에 포함하세요.""",
     }
 
-    def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.1, max_tokens: int = 500):
+    def __init__(self, model: str = DEFAULT_MODEL, temperature: float = 0.1, max_tokens: int = 500):
         """
         Args:
             model: LLM 모델

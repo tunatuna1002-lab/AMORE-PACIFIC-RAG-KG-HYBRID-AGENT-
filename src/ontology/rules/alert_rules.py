@@ -46,7 +46,7 @@ RULE_MARKET_DISRUPTION = InferenceRule(
         StandardConditions.churn_rate_high(0.2),
     ],
     conclusion=lambda ctx: {
-        "insight": f"순위 급변과 높은 시장 변동성(Churn Rate: {ctx.get('churn_rate', 0)*100:.1f}%)이 "
+        "insight": f"순위 급변과 높은 시장 변동성(Churn Rate: {ctx.get('churn_rate', 0) * 100:.1f}%)이 "
         f"동시에 관측되어 시장 구조 변화 가능성이 있습니다.",
         "signal": "market_disruption",
         "recommendation": "신규 진입자/이탈자 분석 및 경쟁 구도 변화 모니터링 필요. "

@@ -58,6 +58,7 @@ neighbors = kg.get_neighbors("LANEIGE", direction="outgoing")
 """
 
 import json
+import logging
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -66,6 +67,8 @@ from typing import Any
 from .kg_query import KGQueryMixin
 from .kg_updater import KGUpdaterMixin
 from .relations import Relation, RelationType
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
@@ -114,7 +117,7 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
                     config = json.load(f)
                     return config.get("system", {}).get("knowledge_graph", {})
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 
@@ -199,8 +202,7 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
             import logging
 
             logging.getLogger(__name__).info(
-                f"KnowledgeGraph auto-loaded from {self.persist_path}: "
-                f"{len(self.triples)} triples"
+                f"KnowledgeGraph auto-loaded from {self.persist_path}: {len(self.triples)} triples"
             )
 
     def _calculate_importance(self, relation: Relation) -> float:

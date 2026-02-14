@@ -20,19 +20,19 @@ import logging
 import os
 import re
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
 from playwright.async_api import Browser, Page, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeout
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class DealType(Enum):
     """딜 타입"""
 
@@ -501,7 +501,7 @@ class AmazonDealsScraper:
                 if 0.50 <= price <= 1000:
                     return price
         except (ValueError, TypeError):
-            pass
+            logger.warning("Suppressed Exception", exc_info=True)
         return None
 
     def _parse_time_remaining(self, time_text: str) -> int | None:

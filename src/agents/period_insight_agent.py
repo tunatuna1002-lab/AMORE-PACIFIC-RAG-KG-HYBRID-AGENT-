@@ -350,14 +350,14 @@ class PeriodInsightAgent:
 - "현재"는 {analysis.end_date} 기준으로 해석
 
 📊 핵심 지표:
-- LANEIGE SoS: {metrics.get('start_sos', 0):.1f}% → {metrics.get('end_sos', 0):.1f}% (변화: {metrics.get('sos_change', 0):+.1f}%)
-- 평균 SoS: {metrics.get('avg_sos', 0):.1f}%
-- 평균 진입 제품 수: {metrics.get('avg_product_count', 0):.1f}개
-- 시장 HHI: {market.get('avg_hhi', 0):.0f} ({market.get('hhi_interpretation', '분석 중')})
+- LANEIGE SoS: {metrics.get("start_sos", 0):.1f}% → {metrics.get("end_sos", 0):.1f}% (변화: {metrics.get("sos_change", 0):+.1f}%)
+- 평균 SoS: {metrics.get("avg_sos", 0):.1f}%
+- 평균 진입 제품 수: {metrics.get("avg_product_count", 0):.1f}개
+- 시장 HHI: {market.get("avg_hhi", 0):.0f} ({market.get("hhi_interpretation", "분석 중")})
 
 📈 주요 변동:
-- 상승 제품: {len(metrics.get('rising_products', []))}개
-- 하락 제품: {len(metrics.get('falling_products', []))}개
+- 상승 제품: {len(metrics.get("rising_products", []))}개
+- 하락 제품: {len(metrics.get("falling_products", []))}개
 
 🌍 글로벌 K-Beauty 맥락 (필수 참조):
 - K-Beauty가 2024년 미국 스킨케어 수입시장 1위 달성 (프랑스 추월)
@@ -435,9 +435,9 @@ LANEIGE 심층 분석을 작성하세요. (임원 보고용 - 전략적 관점 �
 
 ## 📊 데이터
 종합 성과:
-- 기간 평균 SoS: {metrics.get('avg_sos', 0):.1f}%
-- SoS 변화율: {metrics.get('sos_change_pct', 0):.1f}%
-- 평균 진입 제품 수: {metrics.get('avg_product_count', 0):.1f}개
+- 기간 평균 SoS: {metrics.get("avg_sos", 0):.1f}%
+- SoS 변화율: {metrics.get("sos_change_pct", 0):.1f}%
+- 평균 진입 제품 수: {metrics.get("avg_product_count", 0):.1f}개
 
 Top 5 제품 순위 변동:
 {top_products_str}
@@ -505,7 +505,7 @@ Top 5 제품 순위 변동:
         brand_str = (
             "\n".join(
                 [
-                    f"  {i+1}. {b['brand']}: {b['avg_sos']:.1f}% (변화: {b['sos_change']:+.1f}%)"
+                    f"  {i + 1}. {b['brand']}: {b['avg_sos']:.1f}% (변화: {b['sos_change']:+.1f}%)"
                     for i, b in enumerate(brands)
                 ]
             )
@@ -522,9 +522,9 @@ Top 5 제품 순위 변동:
 브랜드별 SoS (Top 10):
 {brand_str}
 
-신규 진입 브랜드: {shifts.get('new_entrants', [])[:5]}
-이탈 브랜드: {shifts.get('exits', [])[:5]}
-총 브랜드 수: {shifts.get('total_brands_start', 0)} → {shifts.get('total_brands_end', 0)}
+신규 진입 브랜드: {shifts.get("new_entrants", [])[:5]}
+이탈 브랜드: {shifts.get("exits", [])[:5]}
+총 브랜드 수: {shifts.get("total_brands_start", 0)} → {shifts.get("total_brands_end", 0)}
 
 ## 작성 형식
 
@@ -569,10 +569,10 @@ Top 5 제품 순위 변동:
 
 ## 📊 데이터
 시장 집중도 (HHI):
-- 평균: {market.get('avg_hhi', 0):.0f}
-- 시작일: {market.get('start_hhi', 0):.0f}
-- 종료일: {market.get('end_hhi', 0):.0f}
-- 해석: {market.get('hhi_interpretation', 'N/A')}
+- 평균: {market.get("avg_hhi", 0):.0f}
+- 시작일: {market.get("start_hhi", 0):.0f}
+- 종료일: {market.get("end_hhi", 0):.0f}
+- 해석: {market.get("hhi_interpretation", "N/A")}
 
 ## 🌍 글로벌 K-Beauty 산업 맥락 (필수 참조)
 1. K-Beauty 글로벌 위상:
@@ -782,7 +782,7 @@ Top 5 제품 순위 변동:
 {viral_keywords_str}
 
 ## 기존 외부 신호 보고서
-{signals.get('report_section', '') if signals else ''}
+{signals.get("report_section", "") if signals else ""}
 
 ## 작성 형식 (중요: 상세하고 풍부하게 작성, 각 섹션에 3-5개 bullet point 필수)
 
@@ -860,9 +860,9 @@ Top 5 제품 순위 변동:
 리스크 및 기회 요인을 분석하세요.
 
 ## 컨텍스트
-- LANEIGE SoS 변화: {metrics.get('sos_change', 0):+.1f}%
-- 시장 집중도: {market.get('hhi_interpretation', 'N/A')}
-- 하락 제품 수: {len(metrics.get('falling_products', []))}개
+- LANEIGE SoS 변화: {metrics.get("sos_change", 0):+.1f}%
+- 시장 집중도: {market.get("hhi_interpretation", "N/A")}
+- 하락 제품 수: {len(metrics.get("falling_products", []))}개
 
 ## 작성 형식
 
@@ -899,9 +899,9 @@ Top 5 제품 순위 변동:
 전략 제언을 작성하세요. (임원 보고용 - 구체적이고 실행 가능한 제언 필수)
 
 ## 📊 현황 데이터
-- LANEIGE 현재 SoS: {metrics.get('end_sos', 0):.1f}%
-- 상승 제품: {len(metrics.get('rising_products', []))}개
-- 하락 제품: {len(metrics.get('falling_products', []))}개
+- LANEIGE 현재 SoS: {metrics.get("end_sos", 0):.1f}%
+- 상승 제품: {len(metrics.get("rising_products", []))}개
+- 하락 제품: {len(metrics.get("falling_products", []))}개
 
 ## 🎯 IR 전략 프레임워크 (2025년 3Q 기준)
 1. 그룹 전략 방향:
@@ -947,7 +947,7 @@ Top 5 제품 순위 변동:
   - 프리미엄 포지셔닝 유지 전략
 
 7.4 KPI 목표 (수치화 필수)
-■ SoS 목표: 현재 {metrics.get('end_sos', 0):.1f}% → 목표 [X%] (+X%p)
+■ SoS 목표: 현재 {metrics.get("end_sos", 0):.1f}% → 목표 [X%] (+X%p)
 ■ 제품 순위: Top 10 진입 제품 [N]개 → 목표 [M]개
 ■ 히어로 제품: Lip Sleeping Mask 순위 유지/개선 목표
 ■ IR 기여도: Amazon 채널 매출 성장률 [X%] 기여
@@ -1015,7 +1015,7 @@ Top 5 제품 순위 변동:
             for i, ref in enumerate(all_refs, 1):
                 date_str = f", {ref['date']}" if ref["date"] else ""
                 # 제목 전체 표시 (절대 축약하지 않음)
-                content_lines.append(f"[{i}] {ref['source']}{date_str}, \"{ref['title']}\"")
+                content_lines.append(f'[{i}] {ref["source"]}{date_str}, "{ref["title"]}"')
         else:
             content_lines.append("수집된 외부 신호 없음")
 

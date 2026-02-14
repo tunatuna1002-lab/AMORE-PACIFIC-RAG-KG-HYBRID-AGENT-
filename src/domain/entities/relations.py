@@ -6,10 +6,10 @@ Triple 구조: (Subject, Predicate, Object)
 예: (LANEIGE, hasProduct, "Lip Sleeping Mask")
 """
 
-from enum import Enum
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class RelationType(str, Enum):
@@ -244,15 +244,16 @@ class Relation:
         valid_from: 유효 시작 시간 (시간적 관계용)
         valid_to: 유효 종료 시간 (시간적 관계용)
     """
+
     subject: str
     predicate: RelationType
     object: str
-    properties: Dict[str, Any] = field(default_factory=dict)
+    properties: dict[str, Any] = field(default_factory=dict)
     confidence: float = 1.0
     source: str = "system"
     created_at: datetime = field(default_factory=datetime.now)
-    valid_from: Optional[datetime] = None
-    valid_to: Optional[datetime] = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
 
     def __post_init__(self):
         """유효성 검증"""
@@ -263,7 +264,7 @@ class Relation:
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError("Confidence must be between 0.0 and 1.0")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
         return {
             "subject": self.subject,
@@ -274,11 +275,11 @@ class Relation:
             "source": self.source,
             "created_at": self.created_at.isoformat(),
             "valid_from": self.valid_from.isoformat() if self.valid_from else None,
-            "valid_to": self.valid_to.isoformat() if self.valid_to else None
+            "valid_to": self.valid_to.isoformat() if self.valid_to else None,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Relation":
+    def from_dict(cls, data: dict[str, Any]) -> "Relation":
         """딕셔너리에서 생성"""
         return cls(
             subject=data["subject"],
@@ -287,9 +288,13 @@ class Relation:
             properties=data.get("properties", {}),
             confidence=data.get("confidence", 1.0),
             source=data.get("source", "system"),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
-            valid_from=datetime.fromisoformat(data["valid_from"]) if data.get("valid_from") else None,
-            valid_to=datetime.fromisoformat(data["valid_to"]) if data.get("valid_to") else None
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else datetime.now(),
+            valid_from=datetime.fromisoformat(data["valid_from"])
+            if data.get("valid_from")
+            else None,
+            valid_to=datetime.fromisoformat(data["valid_to"]) if data.get("valid_to") else None,
         )
 
     def is_valid_at(self, timestamp: datetime) -> bool:
@@ -309,9 +314,9 @@ class Relation:
         if not isinstance(other, Relation):
             return False
         return (
-            self.subject == other.subject and
-            self.predicate == other.predicate and
-            self.object == other.object
+            self.subject == other.subject
+            and self.predicate == other.predicate
+            and self.object == other.object
         )
 
     def __repr__(self):
@@ -333,16 +338,17 @@ class InferenceResult:
         related_entities: 관련 엔티티들
         metadata: 추가 메타데이터
     """
+
     rule_name: str
     insight_type: InsightType
     insight: str
     confidence: float = 1.0
-    evidence: Dict[str, Any] = field(default_factory=dict)
-    recommendation: Optional[str] = None
-    related_entities: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    evidence: dict[str, Any] = field(default_factory=dict)
+    recommendation: str | None = None
+    related_entities: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
         return {
             "rule_name": self.rule_name,
@@ -352,7 +358,7 @@ class InferenceResult:
             "evidence": self.evidence,
             "recommendation": self.recommendation,
             "related_entities": self.related_entities,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     def __repr__(self):
@@ -363,54 +369,37 @@ class InferenceResult:
 # 관계 생성 헬퍼 함수
 # =========================================================================
 
+
 def create_brand_product_relation(
-    brand: str,
-    product_asin: str,
-    product_name: str,
-    category: str = None,
-    **properties
+    brand: str, product_asin: str, product_name: str, category: str = None, **properties
 ) -> Relation:
     """브랜드-제품 관계 생성"""
-    props = {
-        "product_name": product_name,
-        "category": category,
-        **properties
-    }
+    props = {"product_name": product_name, "category": category, **properties}
     return Relation(
         subject=brand,
         predicate=RelationType.HAS_PRODUCT,
         object=product_asin,
         properties=props,
-        source="crawl"
+        source="crawl",
     )
 
 
 def create_product_category_relation(
-    product_asin: str,
-    category_id: str,
-    rank: int = None,
-    **properties
+    product_asin: str, category_id: str, rank: int = None, **properties
 ) -> Relation:
     """제품-카테고리 관계 생성"""
-    props = {
-        "rank": rank,
-        **properties
-    }
+    props = {"rank": rank, **properties}
     return Relation(
         subject=product_asin,
         predicate=RelationType.BELONGS_TO_CATEGORY,
         object=category_id,
         properties=props,
-        source="crawl"
+        source="crawl",
     )
 
 
 def create_competition_relation(
-    brand1: str,
-    brand2: str,
-    category: str,
-    competition_type: str = "direct",
-    **properties
+    brand1: str, brand2: str, category: str, competition_type: str = "direct", **properties
 ) -> Relation:
     """경쟁 관계 생성"""
     predicate = (
@@ -418,38 +407,23 @@ def create_competition_relation(
         if competition_type == "direct"
         else RelationType.INDIRECT_COMPETITOR
     )
-    props = {
-        "category": category,
-        "competition_type": competition_type,
-        **properties
-    }
+    props = {"category": category, "competition_type": competition_type, **properties}
     return Relation(
-        subject=brand1,
-        predicate=predicate,
-        object=brand2,
-        properties=props,
-        source="inference"
+        subject=brand1, predicate=predicate, object=brand2, properties=props, source="inference"
     )
 
 
 def create_metric_insight_relation(
-    metric_name: str,
-    insight_type: InsightType,
-    insight_text: str,
-    **properties
+    metric_name: str, insight_type: InsightType, insight_text: str, **properties
 ) -> Relation:
     """지표-인사이트 관계 생성"""
-    props = {
-        "insight_type": insight_type.value,
-        "insight_text": insight_text,
-        **properties
-    }
+    props = {"insight_type": insight_type.value, "insight_text": insight_text, **properties}
     return Relation(
         subject=metric_name,
         predicate=RelationType.INDICATES,
         object=insight_type.value,
         properties=props,
-        source="inference"
+        source="inference",
     )
 
 
@@ -457,11 +431,9 @@ def create_metric_insight_relation(
 # 감성/리뷰 관계 생성 헬퍼 함수
 # =========================================================================
 
+
 def create_ai_summary_relation(
-    product_asin: str,
-    ai_summary: str,
-    collected_at: str = None,
-    **properties
+    product_asin: str, ai_summary: str, collected_at: str = None, **properties
 ) -> Relation:
     """
     제품-AI 요약 관계 생성
@@ -478,14 +450,14 @@ def create_ai_summary_relation(
         "summary_text": ai_summary,
         "collected_at": collected_at or datetime.now().isoformat(),
         "source_type": "amazon_ai_customers_say",
-        **properties
+        **properties,
     }
     return Relation(
         subject=product_asin,
         predicate=RelationType.HAS_AI_SUMMARY,
         object=f"ai_summary_{product_asin}",
         properties=props,
-        source="crawl"
+        source="crawl",
     )
 
 
@@ -494,7 +466,7 @@ def create_sentiment_relation(
     sentiment_tag: str,
     sentiment_cluster: str = None,
     frequency: int = 1,
-    **properties
+    **properties,
 ) -> Relation:
     """
     제품-감성태그 관계 생성
@@ -512,23 +484,23 @@ def create_sentiment_relation(
         "tag": sentiment_tag,
         "cluster": sentiment_cluster,
         "frequency": frequency,
-        **properties
+        **properties,
     }
     return Relation(
         subject=product_asin,
         predicate=RelationType.HAS_SENTIMENT,
         object=sentiment_tag,
         properties=props,
-        source="crawl"
+        source="crawl",
     )
 
 
 def create_brand_sentiment_profile(
     brand: str,
-    sentiment_tags: List[str],
+    sentiment_tags: list[str],
     dominant_sentiment: str = None,
     sentiment_score: float = None,
-    **properties
+    **properties,
 ) -> Relation:
     """
     브랜드 감성 프로필 관계 생성
@@ -547,21 +519,19 @@ def create_brand_sentiment_profile(
         "dominant": dominant_sentiment,
         "score": sentiment_score,
         "tag_count": len(sentiment_tags),
-        **properties
+        **properties,
     }
     return Relation(
         subject=brand,
         predicate=RelationType.BRAND_SENTIMENT,
         object=dominant_sentiment or "sentiment_profile",
         properties=props,
-        source="inference"
+        source="inference",
     )
 
 
 def create_sentiment_cluster_relation(
-    sentiment_tag: str,
-    cluster_name: str,
-    **properties
+    sentiment_tag: str, cluster_name: str, **properties
 ) -> Relation:
     """
     감성태그-클러스터 관계 생성
@@ -580,17 +550,13 @@ def create_sentiment_cluster_relation(
     Returns:
         Relation
     """
-    props = {
-        "tag": sentiment_tag,
-        "cluster": cluster_name,
-        **properties
-    }
+    props = {"tag": sentiment_tag, "cluster": cluster_name, **properties}
     return Relation(
         subject=sentiment_tag,
         predicate=RelationType.BELONGS_TO_CLUSTER,
         object=cluster_name,
         properties=props,
-        source="system"
+        source="system",
     )
 
 
@@ -599,14 +565,26 @@ SENTIMENT_CLUSTERS = {
     "Hydration": ["moisturizing", "hydrating", "nourishing", "hydration", "moisture"],
     "Pricing": ["value for money", "affordable", "expensive", "worth the price", "good value"],
     "Usability": ["easy to use", "convenient", "travel-friendly", "user-friendly", "simple"],
-    "Effectiveness": ["works well", "long-lasting", "effective", "quick results", "noticeable difference"],
+    "Effectiveness": [
+        "works well",
+        "long-lasting",
+        "effective",
+        "quick results",
+        "noticeable difference",
+    ],
     "Sensory": ["nice scent", "good texture", "lightweight", "smooth", "pleasant smell"],
     "Packaging": ["good packaging", "nice design", "travel size", "sturdy", "leak-proof"],
-    "Skin_Compatibility": ["gentle", "non-irritating", "sensitive skin", "hypoallergenic", "dermatologist tested"],
+    "Skin_Compatibility": [
+        "gentle",
+        "non-irritating",
+        "sensitive skin",
+        "hypoallergenic",
+        "dermatologist tested",
+    ],
 }
 
 
-def get_cluster_for_sentiment(sentiment_tag: str) -> Optional[str]:
+def get_cluster_for_sentiment(sentiment_tag: str) -> str | None:
     """
     감성 태그에 해당하는 클러스터 찾기
 

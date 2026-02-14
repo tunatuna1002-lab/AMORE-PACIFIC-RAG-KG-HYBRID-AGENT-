@@ -308,7 +308,7 @@ class BatchWorkflow:
             all_products = []
 
             categories = crawl_result.get("categories", {})
-            for cat_id, cat_data in categories.items():
+            for _cat_id, cat_data in categories.items():
                 products = cat_data.get("products", [])
                 all_products.extend(products)
 
@@ -409,7 +409,7 @@ class BatchWorkflow:
         self.metrics.start_session()
 
         self.logger.info(
-            f"Starting daily workflow - Session: {self._session_id}, " f"Hybrid: {self.use_hybrid}"
+            f"Starting daily workflow - Session: {self._session_id}, Hybrid: {self.use_hybrid}"
         )
 
         # 워크플로우 스텝 정의 (하이브리드 모드에 따라 다름)

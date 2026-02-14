@@ -20,7 +20,7 @@ from src.domain.entities.relations import InferenceResult
 class SourceReference:
     """출처 참조"""
 
-    index: int
+    index: int  # [1], [2], etc.
     source_type: str  # "rag", "kg", "ontology", "data"
     title: str
     detail: str
@@ -102,26 +102,6 @@ class ContextBuilder:
         """
         self.max_tokens = max_tokens
         self.output_format = output_format
-        self._sources: list[SourceReference] = []
-
-    def _register_source(self, source_type: str, title: str, detail: str) -> int:
-        """출처 등록 및 인덱스 반환"""
-        idx = len(self._sources) + 1
-        self._sources.append(SourceReference(idx, source_type, title, detail))
-        return idx
-
-    def get_source_references(self) -> list[SourceReference]:
-        """등록된 출처 목록 반환"""
-        return self._sources.copy()
-
-    def build_source_appendix(self) -> str:
-        """출처 부록 생성"""
-        if not self._sources:
-            return ""
-        lines = ["\n---\n## 출처"]
-        for ref in self._sources:
-            lines.append(f"[{ref.index}] [{ref.source_type}] {ref.title}: {ref.detail}")
-        return "\n".join(lines)
 
     def build(
         self,
@@ -142,7 +122,6 @@ class ContextBuilder:
         Returns:
             LLM 프롬프트용 컨텍스트 문자열
         """
-        self._sources = []
         sections: list[ContextSection] = []
 
         # 1. 카테고리 계층 섹션 (순위 관련 질문 시 우선 배치)
@@ -264,14 +243,7 @@ class ContextBuilder:
             insight_type = inf.insight_type.value.replace("_", " ").title()
 
             lines.append(f"### 인사이트 {i}: {insight_type}")
-
-            # 출처 등록 및 인용
-            src_idx = self._register_source(
-                source_type="ontology",
-                title=f"Ontology Reasoning: {insight_type}",
-                detail=f"Confidence: {inf.confidence:.0%}",
-            )
-            lines.append(f"- **분석 결과**: {inf.insight} [{src_idx}]")
+            lines.append(f"- **분석 결과**: {inf.insight}")
 
             if inf.recommendation:
                 lines.append(f"- **권장 액션**: {inf.recommendation}")
@@ -412,16 +384,10 @@ class ContextBuilder:
             content = chunk.get("content", "")
             doc_id = chunk.get("metadata", {}).get("doc_id", "")
 
-            # 출처 등록
-            display_title = title or doc_id or "Unknown"
-            src_idx = self._register_source(
-                source_type="rag", title=display_title, detail=f"Document ID: {doc_id}"
-            )
-
             if title:
-                lines.append(f"### {title} [{src_idx}]")
+                lines.append(f"### {title}")
             elif doc_id:
-                lines.append(f"### {doc_id} [{src_idx}]")
+                lines.append(f"### {doc_id}")
 
             # 내용 축약
             if len(content) > 400:
@@ -480,11 +446,6 @@ class ContextBuilder:
                 parts.append(f"[{section.title}]\n{section.content}")
             else:
                 parts.append(section.content)
-
-        # 출처 부록 추가
-        source_appendix = self.build_source_appendix()
-        if source_appendix:
-            parts.append(source_appendix)
 
         return "\n\n".join(parts)
 

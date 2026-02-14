@@ -195,7 +195,7 @@ async def get_market_intelligence_insight(include_amazon: bool = False):
                 # 최신 LANEIGE 데이터 조회
                 amazon_data = {"sos": 5.2, "laneige_rank": 15}  # placeholder
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
         insight = engine.generate_layered_insight(amazon_data=amazon_data)
 

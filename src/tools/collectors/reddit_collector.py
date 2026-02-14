@@ -31,9 +31,11 @@ results = await collector.search("LANEIGE review", limit=30)
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
+
+from src.shared.constants import KST
 
 try:
     import aiohttp
@@ -44,10 +46,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대
-KST = timezone(timedelta(hours=9))
-
-
 @dataclass
 class RedditPost:
     """Reddit 포스트 데이터"""

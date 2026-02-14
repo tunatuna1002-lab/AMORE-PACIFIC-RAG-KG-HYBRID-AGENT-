@@ -223,7 +223,7 @@ class ToolCoordinator:
         self._get_breaker(tool_name).record_failure()
 
         logger.warning(
-            f"Error in {tool_name}: {error_info['error_message']} " f"(strategy: {strategy.value})"
+            f"Error in {tool_name}: {error_info['error_message']} (strategy: {strategy.value})"
         )
 
         if strategy == ErrorStrategy.FALLBACK:

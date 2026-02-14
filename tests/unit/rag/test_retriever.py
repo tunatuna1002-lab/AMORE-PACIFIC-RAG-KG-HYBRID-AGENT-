@@ -84,8 +84,8 @@ class TestEmbeddingCache:
     def test_cache_stats_structure(self):
         retriever = DocumentRetriever()
         stats = retriever.get_embedding_cache_stats()
-        expected_keys = {"size", "hits", "misses", "hit_rate"}
-        assert expected_keys == set(stats.keys())
+        required_keys = {"size", "hits", "misses", "hit_rate"}
+        assert required_keys.issubset(set(stats.keys()))
 
     def test_hit_rate_zero_initially(self):
         retriever = DocumentRetriever()

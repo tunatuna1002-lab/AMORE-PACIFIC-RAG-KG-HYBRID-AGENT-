@@ -7,15 +7,15 @@ Batch Workflow with Dependency Injection
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from src.domain.interfaces.agent import (
     CrawlerAgentProtocol,
-    StorageAgentProtocol,
-    MetricsAgentProtocol,
     InsightAgentProtocol,
+    MetricsAgentProtocol,
+    StorageAgentProtocol,
 )
 
 
@@ -29,15 +29,16 @@ class WorkflowStatus(str, Enum):
 @dataclass
 class WorkflowResult:
     """워크플로우 실행 결과"""
+
     status: WorkflowStatus
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     records_count: int = 0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    insights: Optional[str] = None
-    errors: List[str] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    insights: str | None = None
+    errors: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status.value,
             "started_at": self.started_at.isoformat(),
@@ -52,11 +53,12 @@ class WorkflowResult:
 @dataclass
 class WorkflowDependencies:
     """워크플로우 의존성 컨테이너 (DI)"""
+
     crawler: CrawlerAgentProtocol
     storage: StorageAgentProtocol
     metrics: MetricsAgentProtocol
-    insight: Optional[InsightAgentProtocol] = None
-    categories: List[str] = field(default_factory=list)
+    insight: InsightAgentProtocol | None = None
+    categories: list[str] = field(default_factory=list)
 
 
 class BatchWorkflow:
@@ -76,14 +78,11 @@ class BatchWorkflow:
 
     def __init__(self, deps: WorkflowDependencies):
         self.deps = deps
-        self._result: Optional[WorkflowResult] = None
+        self._result: WorkflowResult | None = None
 
     async def execute(self) -> WorkflowResult:
         """워크플로우 실행"""
-        result = WorkflowResult(
-            status=WorkflowStatus.RUNNING,
-            started_at=datetime.now()
-        )
+        result = WorkflowResult(status=WorkflowStatus.RUNNING, started_at=datetime.now())
 
         try:
             # Step 1: Crawl
@@ -115,5 +114,5 @@ class BatchWorkflow:
         return result
 
     @property
-    def result(self) -> Optional[WorkflowResult]:
+    def result(self) -> WorkflowResult | None:
         return self._result

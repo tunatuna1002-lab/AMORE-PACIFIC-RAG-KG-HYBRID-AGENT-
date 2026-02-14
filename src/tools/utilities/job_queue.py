@@ -28,16 +28,16 @@ import traceback
 import uuid
 from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class JobStatus(str, Enum):
     """작업 상태"""
 
@@ -342,7 +342,7 @@ class JobQueue:
             try:
                 await self._worker_task
             except asyncio.CancelledError:
-                pass
+                logger.warning("Suppressed asyncio", exc_info=True)
             self._worker_task = None
             logger.info("JobQueue worker stopped")
 

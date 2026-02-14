@@ -7,7 +7,7 @@ Knowledge Graph에 대한 추상 인터페이스
 - KnowledgeGraph (src/ontology/knowledge_graph.py)
 """
 
-from typing import Protocol, List, Dict, Any, Optional, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -36,7 +36,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def add_relations(self, relations: List[Any]) -> int:
+    def add_relations(self, relations: list[Any]) -> int:
         """
         여러 관계를 그래프에 추가합니다.
 
@@ -49,11 +49,8 @@ class KnowledgeGraphProtocol(Protocol):
         ...
 
     def query(
-        self,
-        subject: Optional[str] = None,
-        predicate: Optional[Any] = None,
-        object: Optional[str] = None
-    ) -> List[Any]:
+        self, subject: str | None = None, predicate: Any | None = None, object: str | None = None
+    ) -> list[Any]:
         """
         그래프를 쿼리합니다.
 
@@ -68,10 +65,8 @@ class KnowledgeGraphProtocol(Protocol):
         ...
 
     def get_entity_relations(
-        self,
-        entity: str,
-        relation_types: Optional[List[Any]] = None
-    ) -> List[Any]:
+        self, entity: str, relation_types: list[Any] | None = None
+    ) -> list[Any]:
         """
         특정 엔티티와 관련된 모든 관계를 조회합니다.
 
@@ -84,11 +79,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_competitors(
-        self,
-        brand: str,
-        category: Optional[str] = None
-    ) -> List[str]:
+    def get_competitors(self, brand: str, category: str | None = None) -> list[str]:
         """
         특정 브랜드의 경쟁자를 조회합니다.
 
@@ -101,7 +92,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_brand_products(self, brand: str) -> List[str]:
+    def get_brand_products(self, brand: str) -> list[str]:
         """
         특정 브랜드의 제품 목록을 조회합니다.
 
@@ -113,7 +104,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_category_brands(self, category_id: str) -> List[str]:
+    def get_category_brands(self, category_id: str) -> list[str]:
         """
         특정 카테고리의 브랜드 목록을 조회합니다.
 
@@ -129,7 +120,7 @@ class KnowledgeGraphProtocol(Protocol):
         """그래프의 모든 데이터를 삭제합니다."""
         ...
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         그래프 통계를 반환합니다.
 

@@ -206,7 +206,7 @@ def rule_discount_dependent(product_data: dict) -> dict | None:
             "tag": "할인 의존형",
             "tag_color": "red",
             "confidence": overlap_ratio,
-            "insight": f"순위 상승의 {overlap_ratio*100:.0f}%가 할인 기간과 일치합니다. 할인 의존도가 높습니다.",
+            "insight": f"순위 상승의 {overlap_ratio * 100:.0f}%가 할인 기간과 일치합니다. 할인 의존도가 높습니다.",
             "recommendation": "브랜드 인지도 강화 및 비가격 경쟁력 확보 전략이 필요합니다.",
             "related_entities": [product_data.get("asin", ""), product_data.get("brand", "")],
         }

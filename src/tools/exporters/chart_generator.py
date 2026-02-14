@@ -20,12 +20,15 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import logging
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
+
+logger = logging.getLogger(__name__)
 
 
 class ChartGenerator:
@@ -198,7 +201,7 @@ class ChartGenerator:
                     missing = expected_days - actual_days
                     data_warning = f"※ 데이터 {actual_days}일분만 존재 (기간 {expected_days}일 중 {missing}일 누락)"
             except ValueError:
-                pass
+                logger.debug("Suppressed ValueError", exc_info=True)
 
         # 데이터가 없거나 적을 때 처리
         if not dates or not sos_values:
@@ -451,7 +454,7 @@ class ChartGenerator:
                     missing = expected_days - actual_days
                     data_warning = f"※ 데이터 {actual_days}일분만 존재 ({missing}일 누락)"
             except ValueError:
-                pass
+                logger.debug("Suppressed ValueError", exc_info=True)
 
         ax.plot(dates, hhi_values, marker="s", color=self.AMORE_BLUE, linewidth=2, markersize=5)
 

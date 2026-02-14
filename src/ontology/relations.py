@@ -13,28 +13,27 @@ DEPRECATED: 이 모듈은 기존 import 경로 호환성을 위해 유지됩니�
 """
 
 import warnings
-from typing import TYPE_CHECKING
 
 # Re-export from new domain layer for backward compatibility
 from src.domain.entities.relations import (
-    # Enums
-    RelationType,
+    # Constants
+    SENTIMENT_CLUSTERS,
+    InferenceResult,
     InsightType,
     MarketPosition,
     # Dataclasses
     Relation,
-    InferenceResult,
+    # Enums
+    RelationType,
+    create_ai_summary_relation,
     # Helper functions
     create_brand_product_relation,
-    create_product_category_relation,
+    create_brand_sentiment_profile,
     create_competition_relation,
     create_metric_insight_relation,
-    create_ai_summary_relation,
-    create_sentiment_relation,
-    create_brand_sentiment_profile,
+    create_product_category_relation,
     create_sentiment_cluster_relation,
-    # Constants
-    SENTIMENT_CLUSTERS,
+    create_sentiment_relation,
     get_cluster_for_sentiment,
 )
 
@@ -69,7 +68,7 @@ def __getattr__(name: str):
             f"Importing {name} from src.ontology.relations is deprecated. "
             f"Use 'from src.domain.entities.relations import {name}' instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return globals().get(name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

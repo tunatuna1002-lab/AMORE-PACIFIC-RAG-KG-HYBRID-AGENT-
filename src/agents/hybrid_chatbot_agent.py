@@ -10,6 +10,7 @@ Flow:
 5. 통합 컨텍스트로 LLM 응답 생성
 """
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -29,6 +30,8 @@ from src.rag.query_rewriter import QueryRewriter, RewriteResult, create_rewrite_
 from src.rag.retriever import DocumentRetriever
 from src.rag.router import QueryType, RAGRouter
 from src.rag.templates import ResponseTemplates
+
+logger = logging.getLogger(__name__)
 
 
 class HybridChatbotAgent:
@@ -92,7 +95,7 @@ class HybridChatbotAgent:
                     config = json.load(f)
                     return config.get("system", {}).get("chatbot", {})
             except Exception:
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 
@@ -871,9 +874,9 @@ class HybridChatbotAgent:
 {response_summary[:300]}
 
 [추출된 엔티티]
-- 브랜드: {', '.join(entities.get('brands', [])) or '없음'}
-- 카테고리: {', '.join(entities.get('categories', [])) or '없음'}
-- 지표: {', '.join(entities.get('indicators', [])) or '없음'}
+- 브랜드: {", ".join(entities.get("brands", [])) or "없음"}
+- 카테고리: {", ".join(entities.get("categories", [])) or "없음"}
+- 지표: {", ".join(entities.get("indicators", [])) or "없음"}
 
 [규칙]
 1. 대화 흐름에 자연스럽게 이어지는 질문

@@ -1133,7 +1133,7 @@ class PdfReportGenerator:
                 logger.info(f"PDF converted via docx2pdf: {output_path}")
                 return output_path
         except ImportError:
-            pass
+            logger.warning("Suppressed ImportError", exc_info=True)
         except Exception as e:
             logger.warning(f"docx2pdf failed: {e}")
 

@@ -1,19 +1,22 @@
 """LLM Client Protocol definition"""
-from typing import Protocol, List, Dict, Any, Optional
+
+from typing import Any, Protocol
+
 
 class LLMClientProtocol(Protocol):
     """Protocol for LLM client implementations"""
+
     async def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
     ) -> str: ...
 
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float = 0.7,
         max_tokens: int = 2000,
     ) -> str: ...
@@ -21,8 +24,8 @@ class LLMClientProtocol(Protocol):
     async def generate_with_context(
         self,
         prompt: str,
-        context: List[Dict[str, Any]],
-        system_prompt: Optional[str] = None,
+        context: list[dict[str, Any]],
+        system_prompt: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
     ) -> str: ...

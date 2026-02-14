@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 
 from src.tools.storage.sheets_writer import SheetsWriter
 
+logger = logging.getLogger(__name__)
 # Data path
 DATA_PATH = "./data/dashboard_data.json"
 
@@ -209,7 +210,7 @@ async def _calculate_brand_metrics_for_period(
                 if 0.5 <= price_val <= 500:
                     brand_data[brand_name]["prices"].append(price_val)
             except (ValueError, TypeError):
-                pass
+                logger.warning("Suppressed Exception", exc_info=True)
 
     # Total product count (all brands)
     total_products = sum(b["product_count"] for b in brand_data.values())
@@ -335,7 +336,7 @@ async def _get_historical_from_local(
                 brand_products = []
                 crawl_date = None
 
-                for cat_id, cat_data in crawl_data.get("categories", {}).items():
+                for _cat_id, cat_data in crawl_data.get("categories", {}).items():
                     for product in cat_data.get("products", []):
                         product_brand = product.get("brand", "")
                         product_name = product.get("product_name", "")

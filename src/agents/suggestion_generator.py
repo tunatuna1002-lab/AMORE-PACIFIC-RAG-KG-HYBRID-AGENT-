@@ -253,9 +253,9 @@ class SuggestionGenerator:
             indicators = entities.get("indicators", [])
 
             context_str = f"""
-브랜드: {', '.join(brands) if brands else '없음'}
-카테고리: {', '.join(categories) if categories else '없음'}
-지표: {', '.join(indicators) if indicators else '없음'}
+브랜드: {", ".join(brands) if brands else "없음"}
+카테고리: {", ".join(categories) if categories else "없음"}
+지표: {", ".join(indicators) if indicators else "없음"}
 """
 
             prompt = f"""사용자 질문: {user_query}

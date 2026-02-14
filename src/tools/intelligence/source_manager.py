@@ -49,17 +49,17 @@ references = manager.generate_references_section()
 import json
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class SourceType(Enum):
     """출처 유형"""
 

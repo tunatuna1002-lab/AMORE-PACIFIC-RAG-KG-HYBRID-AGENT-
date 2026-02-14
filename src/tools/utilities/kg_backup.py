@@ -32,16 +32,16 @@ import json
 import logging
 import os
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from src.shared.constants import KST
+
 logger = logging.getLogger(__name__)
 
+
 # 한국 시간대 (UTC+9)
-KST = timezone(timedelta(hours=9))
-
-
 class KGBackupService:
     """
     Knowledge Graph 백업 서비스
@@ -369,7 +369,7 @@ class KGBackupService:
                     info["triple_count"] = meta.get("triple_count")
                     info["created_at"] = meta.get("created_at")
                 except Exception:
-                    pass
+                    logger.warning("Suppressed Exception", exc_info=True)
 
             backups.append(info)
 

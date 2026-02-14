@@ -8,8 +8,7 @@ Home Page Insight Rules 문서 기반:
 - 원인 확정 금지
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import date
+from typing import Any
 
 
 class ResponseTemplates:
@@ -26,7 +25,7 @@ class ResponseTemplates:
         "반드시 ~해야 합니다",
         "틀림없이",
         "100%",
-        "절대적으로"
+        "절대적으로",
     ]
 
     # 권장 완곡 표현
@@ -36,7 +35,7 @@ class ResponseTemplates:
         "~신호로 해석될 수 있습니다",
         "~로 보입니다",
         "~추정됩니다",
-        "~고려해볼 수 있습니다"
+        "~고려해볼 수 있습니다",
     ]
 
     # 주의 문구
@@ -44,7 +43,7 @@ class ResponseTemplates:
         "단기 노이즈일 가능성도 있어 추이 확인이 필요합니다.",
         "추가 데이터와 내부 판단을 통해 검증이 필요합니다.",
         "카테고리/시장 특성에 따라 해석이 달라질 수 있습니다.",
-        "본 분석은 의사결정 보조 목적이며, 최종 판단은 담당자의 몫입니다."
+        "본 분석은 의사결정 보조 목적이며, 최종 판단은 담당자의 몫입니다.",
     ]
 
     # =========================================================================
@@ -57,8 +56,8 @@ class ResponseTemplates:
             "signals": {
                 "rank_shock": "순위 급변",
                 "rating_drop": "평점 하락",
-                "churn_high": "높은 시장 변동성"
-            }
+                "churn_high": "높은 시장 변동성",
+            },
         },
         "price_quality_mismatch": {
             "template": "프리미엄 가격 포지션 대비 평점 경쟁력이 낮아, 가격-품질 인식 간 불일치 가능성을 점검해볼 수 있습니다."
@@ -67,12 +66,12 @@ class ResponseTemplates:
             "template": "시장 집중도가 {hhi_status}하여 {market_description}, {recommendation}.",
             "hhi_status": {
                 "high": "높아 경쟁 구도가 고착화된 편으로",
-                "low": "낮아 경쟁이 분산된 상태로"
-            }
+                "low": "낮아 경쟁이 분산된 상태로",
+            },
         },
         "stable": {
             "template": "주요 지표가 큰 변동 없이 유지되어 전반적으로 안정적인 흐름으로 보입니다."
-        }
+        },
     }
 
     # =========================================================================
@@ -83,16 +82,13 @@ class ResponseTemplates:
         "sos": {
             "up": "브랜드 노출 확대 (SoS ↑{change}%p)",
             "down": "브랜드 노출 감소 (SoS ↓{change}%p)",
-            "stable": "브랜드 노출 안정 (SoS 유지)"
+            "stable": "브랜드 노출 안정 (SoS 유지)",
         },
         "market_structure": {
             "concentrated": "집중 시장 (소수 브랜드 지배)",
-            "competitive": "분산 시장 (경쟁 치열)"
+            "competitive": "분산 시장 (경쟁 치열)",
         },
-        "alerts": {
-            "detected": "이상 신호 감지 ({count}건)",
-            "none": "이상 신호 없음"
-        }
+        "alerts": {"detected": "이상 신호 감지 ({count}건)", "none": "이상 신호 없음"},
     }
 
     # =========================================================================
@@ -103,23 +99,23 @@ class ResponseTemplates:
         "rank_shock": {
             "title": "순위 급변 상품 {count}개 확인 필요",
             "description": "전일 대비 {threshold}위 이상 변동 상품 발생",
-            "target": "L3 (Product View)"
+            "target": "L3 (Product View)",
         },
         "price_quality": {
             "title": "가격 대비 평점 열위 카테고리 점검 필요",
             "description": "CPI > 100 & Rating Gap < 0 조건 충족",
-            "target": "L2 (Category View)"
+            "target": "L2 (Category View)",
         },
         "churn_high": {
             "title": "시장 변동성 상승: 신규 진입/이탈 흐름 점검",
             "description": "Churn Rate 상승으로 시장 구조 변화 가능성",
-            "target": "L2 (Category View)"
+            "target": "L2 (Category View)",
         },
         "no_action": {
             "title": "오늘은 주요 경고 신호가 없습니다",
             "description": "정기 모니터링 계속 권장",
-            "target": None
-        }
+            "target": None,
+        },
     }
 
     # =========================================================================
@@ -157,11 +153,7 @@ class ResponseTemplates:
     # =========================================================================
 
     @classmethod
-    def generate_daily_insight(
-        cls,
-        metrics: Dict[str, Any],
-        alerts: List[Dict]
-    ) -> str:
+    def generate_daily_insight(cls, metrics: dict[str, Any], alerts: list[dict]) -> str:
         """
         일일 인사이트 요약 생성
 
@@ -201,11 +193,8 @@ class ResponseTemplates:
 
     @classmethod
     def generate_action_queue(
-        cls,
-        alerts: List[Dict],
-        metrics: Dict[str, Any],
-        max_items: int = 3
-    ) -> List[Dict[str, str]]:
+        cls, alerts: list[dict], metrics: dict[str, Any], max_items: int = 3
+    ) -> list[dict[str, str]]:
         """
         Action Queue 생성
 
@@ -222,38 +211,46 @@ class ResponseTemplates:
         # Rank Shock
         shock_count = sum(1 for a in alerts if a.get("type") == "rank_shock")
         if shock_count > 0:
-            actions.append({
-                "title": f"순위 급변 상품 {shock_count}개 확인 필요",
-                "description": "전일 대비 급변 상품 발생",
-                "target": "L3"
-            })
+            actions.append(
+                {
+                    "title": f"순위 급변 상품 {shock_count}개 확인 필요",
+                    "description": "전일 대비 급변 상품 발생",
+                    "target": "L3",
+                }
+            )
 
         # 가격-품질 불일치
         cpi = metrics.get("cpi", 100)
         rating_gap = metrics.get("avg_rating_gap", 0)
         if cpi and rating_gap and cpi > 100 and rating_gap < 0:
-            actions.append({
-                "title": "가격 대비 평점 열위 카테고리 점검 필요",
-                "description": "CPI > 100 & Rating Gap < 0",
-                "target": "L2"
-            })
+            actions.append(
+                {
+                    "title": "가격 대비 평점 열위 카테고리 점검 필요",
+                    "description": "CPI > 100 & Rating Gap < 0",
+                    "target": "L2",
+                }
+            )
 
         # Churn Rate 상승
         churn_rate = metrics.get("churn_rate", 0)
         if churn_rate and churn_rate > 0.2:
-            actions.append({
-                "title": "시장 변동성 상승: 신규 진입/이탈 흐름 점검",
-                "description": f"Churn Rate: {churn_rate:.1%}",
-                "target": "L2"
-            })
+            actions.append(
+                {
+                    "title": "시장 변동성 상승: 신규 진입/이탈 흐름 점검",
+                    "description": f"Churn Rate: {churn_rate:.1%}",
+                    "target": "L2",
+                }
+            )
 
         # 액션 없음
         if not actions:
-            actions.append({
-                "title": "오늘은 주요 경고 신호가 없습니다",
-                "description": "정기 모니터링 계속 권장",
-                "target": None
-            })
+            actions.append(
+                {
+                    "title": "오늘은 주요 경고 신호가 없습니다",
+                    "description": "정기 모니터링 계속 권장",
+                    "target": None,
+                }
+            )
 
         return actions[:max_items]
 
@@ -294,12 +291,7 @@ class ResponseTemplates:
         return f"{text}\n\n_{caution}_"
 
     @classmethod
-    def format_metric_interpretation(
-        cls,
-        indicator: str,
-        value: float,
-        context: str = ""
-    ) -> str:
+    def format_metric_interpretation(cls, indicator: str, value: float, context: str = "") -> str:
         """
         지표 해석 포맷팅
 
@@ -314,16 +306,16 @@ class ResponseTemplates:
         interpretations = {
             "sos": {
                 "high": "시장 내 브랜드 노출력이 높은 상태입니다.",
-                "low": "시장 내 존재감이 상대적으로 약한 상태로 보입니다."
+                "low": "시장 내 존재감이 상대적으로 약한 상태로 보입니다.",
             },
             "hhi": {
                 "high": "소수 브랜드 중심의 집중 시장으로, 신규 진입 난이도가 높을 수 있습니다.",
-                "low": "경쟁이 분산된 시장으로, 단기 기회가 존재할 수 있습니다."
+                "low": "경쟁이 분산된 시장으로, 단기 기회가 존재할 수 있습니다.",
             },
             "cpi": {
                 "high": "카테고리 평균 대비 프리미엄/고가 포지션으로 분류됩니다.",
-                "low": "가성비/저가 포지션으로 분류됩니다."
-            }
+                "low": "가성비/저가 포지션으로 분류됩니다.",
+            },
         }
 
         # 기본 해석
