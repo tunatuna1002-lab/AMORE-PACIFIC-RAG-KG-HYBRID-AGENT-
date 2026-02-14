@@ -258,7 +258,7 @@ class QualityMetrics:
                 if agent in agent_stats:
                     agent_stats[agent]["success"] = value
 
-        for agent, stats in agent_stats.items():
+        for _agent, stats in agent_stats.items():
             total = stats.get("executions", 0)
             success = stats.get("success", 0)
             stats["success_rate"] = round(success / total, 3) if total else 0

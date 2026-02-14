@@ -121,7 +121,7 @@ async def fetch_rss_signals(keywords: list[str] | None = None, max_articles: int
         }
     except Exception as e:
         logger.error(f"RSS fetch failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/fetch/reddit")
@@ -146,7 +146,7 @@ async def fetch_reddit_signals(
         }
     except Exception as e:
         logger.error(f"Reddit fetch failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/manual")
@@ -175,7 +175,7 @@ async def add_manual_signal(input: ManualSignalInput):
         return {"status": "success", "signal": signal.to_dict()}
     except Exception as e:
         logger.error(f"Manual signal input failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/trend-radar")
@@ -197,7 +197,7 @@ async def add_trend_radar(items: list[TrendRadarItem]):
         }
     except Exception as e:
         logger.error(f"Trend radar input failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/clear")

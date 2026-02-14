@@ -81,7 +81,6 @@ try:
         ObjectProperty,
         SymmetricProperty,
         Thing,
-        TransitiveProperty,
         destroy_entity,
         get_ontology,
         sync_reasoner_hermit,

@@ -56,7 +56,7 @@ async def check_duplicates():
         print("\n   중복 상세 (최대 10개):")
         for i, (key, items) in enumerate(list(duplicates.items())[:10]):
             date_str, asin, category = key
-            print(f"\n   [{i+1}] {date_str} / {category} / {asin}")
+            print(f"\n   [{i + 1}] {date_str} / {category} / {asin}")
             for item in items:
                 rank = item.get("rank", "?")
                 name = item.get("product_name", "Unknown")[:30]

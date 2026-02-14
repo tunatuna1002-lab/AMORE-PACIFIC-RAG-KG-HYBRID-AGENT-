@@ -39,10 +39,10 @@ class GoogleSheetsRepository(ProductRepository, MetricsRepository):
         try:
             import gspread
             from google.oauth2.service_account import Credentials
-        except ImportError:
+        except ImportError as exc:
             raise RuntimeError(
                 "Google Sheets dependencies not installed. Run: pip install gspread google-auth"
-            )
+            ) from exc
 
         if not self.spreadsheet_id:
             import os

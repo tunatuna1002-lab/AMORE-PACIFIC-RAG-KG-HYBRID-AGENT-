@@ -3,25 +3,25 @@
 dashboard_data.json의 실제 크롤링/메트릭 데이터를 사용
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # 프로젝트 루트 추가
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.domain.entities.relations import Relation, RelationType
+from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.ontology.business_rules import register_all_rules, ALL_BUSINESS_RULES
-from src.domain.entities.relations import RelationType, Relation, InsightType
 
 
 def load_dashboard_data() -> dict:
     """대시보드 데이터 로드"""
     data_path = PROJECT_ROOT / "data" / "dashboard_data.json"
-    with open(data_path, "r", encoding="utf-8") as f:
+    with open(data_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -64,9 +64,9 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
                 "rank": rank,
                 "rating": rating,
                 "price": price,
-                "category": category
+                "category": category,
             },
-            source="dashboard"
+            source="dashboard",
         )
         kg.add_relation(rel1)
 
@@ -75,10 +75,8 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
             subject=asin,
             predicate=RelationType.BELONGS_TO_CATEGORY,
             object=category,
-            properties={
-                "rank": rank
-            },
-            source="dashboard"
+            properties={"rank": rank},
+            source="dashboard",
         )
         kg.add_relation(rel2)
 
@@ -96,13 +94,16 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
         is_laneige = comp.get("is_laneige", brand_name.upper() == "LANEIGE")
 
         # 브랜드 메타데이터 설정
-        kg.set_entity_metadata(brand_name, {
-            "type": "brand",
-            "sos": sos / 100,  # 퍼센트 → 비율
-            "avg_rank": avg_rank,
-            "product_count": product_count,
-            "is_target": is_laneige
-        })
+        kg.set_entity_metadata(
+            brand_name,
+            {
+                "type": "brand",
+                "sos": sos / 100,  # 퍼센트 → 비율
+                "avg_rank": avg_rank,
+                "product_count": product_count,
+                "is_target": is_laneige,
+            },
+        )
 
         # LANEIGE와 다른 브랜드 간 경쟁 관계
         if not is_laneige and brand_name != "LANEIGE":
@@ -114,9 +115,9 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
                 properties={
                     "competitor_sos": sos / 100,
                     "competitor_avg_rank": avg_rank,
-                    "category": "beauty"  # 전체 카테고리
+                    "category": "beauty",  # 전체 카테고리
                 },
-                source="dashboard"
+                source="dashboard",
             )
             kg.add_relation(rel)
             print(f"  ✅ LANEIGE --competesWith--> {brand_name} (SoS: {sos}%)")
@@ -126,25 +127,28 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
     print(f"\n📁 카테고리 데이터: {len(categories)}개")
 
     for cat_id, cat_data in categories.items():
-        kg.set_entity_metadata(cat_id, {
-            "type": "category",
-            "name": cat_data.get("name"),
-            "sos": cat_data.get("sos", 0) / 100,
-            "best_rank": cat_data.get("best_rank"),
-            "cpi": cat_data.get("cpi"),
-            "product_count": cat_data.get("product_count"),
-            "laneige_count": cat_data.get("laneige_count")
-        })
+        kg.set_entity_metadata(
+            cat_id,
+            {
+                "type": "category",
+                "name": cat_data.get("name"),
+                "sos": cat_data.get("sos", 0) / 100,
+                "best_rank": cat_data.get("best_rank"),
+                "cpi": cat_data.get("cpi"),
+                "product_count": cat_data.get("product_count"),
+                "laneige_count": cat_data.get("laneige_count"),
+            },
+        )
         print(f"  ✅ Category: {cat_id} ({cat_data.get('name')})")
 
     # 통계 출력
     stats = kg.get_stats()
-    print(f"\n📈 Knowledge Graph 통계:")
+    print("\n📈 Knowledge Graph 통계:")
     print(f"  - 총 트리플: {stats['total_triples']}")
     print(f"  - 고유 주체: {stats['unique_subjects']}")
     print(f"  - 고유 객체: {stats['unique_objects']}")
-    print(f"  - 관계 유형별:")
-    for rel_type, count in stats.get('relations_by_type', {}).items():
+    print("  - 관계 유형별:")
+    for rel_type, count in stats.get("relations_by_type", {}).items():
         print(f"      {rel_type}: {count}")
 
     return kg
@@ -180,27 +184,23 @@ def run_inferences(kg: KnowledgeGraph, data: dict) -> list:
         "sos": brand_kpis.get("sos", 0) / 100,  # 2.3% → 0.023
         "avg_rank": brand_kpis.get("avg_rank", 0),
         "product_count": laneige_meta.get("product_count", 0) if laneige_meta else 0,
-
         # 시장 지표
         "hhi": brand_kpis.get("hhi", 0),  # 0.02 (매우 분산된 시장)
         "top1_sos": 0.07,  # e.l.f.가 7%로 1위
-
         # 카테고리 지표 (lip_care 기준)
         "category": "lip_care",
         "cpi": data.get("categories", {}).get("lip_care", {}).get("cpi", 100),
         "best_rank": data.get("categories", {}).get("lip_care", {}).get("best_rank", 0),
-
         # 경쟁 지표
         "competitor_count": len(data.get("brand", {}).get("competitors", [])) - 1,  # LANEIGE 제외
-
         # 제품 지표 (대표 제품 기준)
         "current_rank": 3,  # Lip Glowy Balm 3위
         "rank_change_7d": 0,  # 유지
         "streak_days": 7,  # 가정
-        "rating_gap": 0.1  # 평균 대비 우위 (4.7 vs 4.5 추정)
+        "rating_gap": 0.1,  # 평균 대비 우위 (4.7 vs 4.5 추정)
     }
 
-    print(f"\n📊 추론 컨텍스트:")
+    print("\n📊 추론 컨텍스트:")
     for key, value in inference_context.items():
         print(f"  - {key}: {value}")
 
@@ -247,7 +247,7 @@ def test_graph_queries(kg: KnowledgeGraph):
     print("\n2️⃣ LANEIGE의 경쟁사:")
     competitors = kg.get_competitors("LANEIGE")
     for c in competitors:
-        print(f"   - {c.get('brand')} (SoS: {c.get('competitor_sos', 0)*100:.1f}%)")
+        print(f"   - {c.get('brand')} (SoS: {c.get('competitor_sos', 0) * 100:.1f}%)")
 
     # 3. lip_care 카테고리의 브랜드
     print("\n3️⃣ lip_care 카테고리 제품:")
@@ -266,7 +266,7 @@ def test_graph_queries(kg: KnowledgeGraph):
     context = kg.get_entity_context("LANEIGE", depth=1)
     print(f"   엔티티: {context.get('entity')}")
     print(f"   메타데이터: {context.get('metadata')}")
-    outgoing = context.get('relations', {}).get('outgoing', {})
+    outgoing = context.get("relations", {}).get("outgoing", {})
     for rel_type, targets in outgoing.items():
         print(f"   {rel_type}: {len(targets)}개 연결")
 
@@ -298,7 +298,7 @@ def main():
     # 1. 데이터 로드
     try:
         data = load_dashboard_data()
-        print(f"\n✅ 대시보드 데이터 로드 완료")
+        print("\n✅ 대시보드 데이터 로드 완료")
         print(f"   - 생성일: {data.get('metadata', {}).get('generated_at')}")
         print(f"   - 총 제품: {data.get('metadata', {}).get('total_products')}")
         print(f"   - LANEIGE 제품: {data.get('metadata', {}).get('laneige_products')}")

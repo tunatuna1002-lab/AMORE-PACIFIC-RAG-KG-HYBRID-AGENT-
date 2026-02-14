@@ -4,7 +4,9 @@ Railway 배포용 시작 스크립트
 
 환경변수 PORT를 안전하게 읽어서 uvicorn 서버를 시작합니다.
 """
+
 import os
+
 import uvicorn
 
 if __name__ == "__main__":
@@ -24,5 +26,5 @@ if __name__ == "__main__":
         # 로그 레벨
         log_level="info",
         # 접속 로그 활성화
-        access_log=True
+        access_log=True,
     )

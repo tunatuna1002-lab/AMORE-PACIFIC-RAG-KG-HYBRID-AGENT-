@@ -7,9 +7,9 @@ Domain Entities Tests (TDD - RED Phase)
 구현 후 통과해야 합니다 (GREEN).
 """
 
+from datetime import date
+
 import pytest
-from datetime import date, datetime
-from typing import Optional
 
 
 class TestRankRecord:
@@ -27,7 +27,7 @@ class TestRankRecord:
             product_name="LANEIGE Lip Sleeping Mask - Berry",
             brand="LANEIGE",
             rank=1,
-            product_url="https://www.amazon.com/dp/B08XYZ1234"
+            product_url="https://www.amazon.com/dp/B08XYZ1234",
         )
 
         assert record.asin == "B08XYZ1234"
@@ -52,7 +52,7 @@ class TestRankRecord:
             rating=4.7,
             reviews_count=89234,
             badge="Best Seller",
-            product_url="https://www.amazon.com/dp/B08XYZ1234"
+            product_url="https://www.amazon.com/dp/B08XYZ1234",
         )
 
         assert record.price == 24.00
@@ -73,7 +73,7 @@ class TestRankRecord:
                 product_name="Test",
                 brand="Test",
                 rank=0,  # Invalid
-                product_url="https://www.amazon.com/dp/B08XYZ1234"
+                product_url="https://www.amazon.com/dp/B08XYZ1234",
             )
 
         # rank가 101이면 에러
@@ -85,7 +85,7 @@ class TestRankRecord:
                 product_name="Test",
                 brand="Test",
                 rank=101,  # Invalid
-                product_url="https://www.amazon.com/dp/B08XYZ1234"
+                product_url="https://www.amazon.com/dp/B08XYZ1234",
             )
 
 
@@ -100,7 +100,7 @@ class TestProduct:
             asin="B08XYZ1234",
             product_name="LANEIGE Lip Sleeping Mask - Berry",
             brand="LANEIGE",
-            product_url="https://www.amazon.com/dp/B08XYZ1234"
+            product_url="https://www.amazon.com/dp/B08XYZ1234",
         )
 
         assert product.asin == "B08XYZ1234"
@@ -117,7 +117,7 @@ class TestProduct:
             brand="LANEIGE",
             product_url="https://www.amazon.com/dp/B08XYZ1234",
             first_seen_date=date(2025, 1, 1),
-            launch_date=date(2024, 11, 15)
+            launch_date=date(2024, 11, 15),
         )
 
         assert product.first_seen_date == date(2025, 1, 1)
@@ -153,11 +153,7 @@ class TestBrandMetrics:
         from src.domain.entities.brand import BrandMetrics
 
         metrics = BrandMetrics(
-            brand="LANEIGE",
-            category_id="lip_care",
-            sos=15.5,
-            brand_avg_rank=5.2,
-            product_count=3
+            brand="LANEIGE", category_id="lip_care", sos=15.5, brand_avg_rank=5.2, product_count=3
         )
 
         assert metrics.brand == "LANEIGE"
@@ -170,11 +166,7 @@ class TestBrandMetrics:
         from src.domain.entities.brand import BrandMetrics
 
         metrics = BrandMetrics(
-            brand="LANEIGE",
-            category_id="lip_care",
-            sos=15.5,
-            cpi=105.2,
-            avg_rating_gap=0.3
+            brand="LANEIGE", category_id="lip_care", sos=15.5, cpi=105.2, avg_rating_gap=0.3
         )
 
         assert metrics.cpi == 105.2
@@ -188,11 +180,7 @@ class TestMarketMetrics:
         """MarketMetrics가 올바르게 생성되는지 검증"""
         from src.domain.entities.market import MarketMetrics
 
-        metrics = MarketMetrics(
-            category_id="lip_care",
-            snapshot_date=date(2026, 1, 22),
-            hhi=0.08
-        )
+        metrics = MarketMetrics(category_id="lip_care", snapshot_date=date(2026, 1, 22), hhi=0.08)
 
         assert metrics.category_id == "lip_care"
         assert metrics.hhi == 0.08
@@ -207,7 +195,7 @@ class TestMarketMetrics:
             hhi=0.08,
             churn_rate=12.5,
             category_avg_price=25.99,
-            category_avg_rating=4.3
+            category_avg_rating=4.3,
         )
 
         assert metrics.churn_rate == 12.5
@@ -225,7 +213,7 @@ class TestCategory:
         category = Category(
             id="lip_care",
             name="Lip Care",
-            url="https://www.amazon.com/Best-Sellers-Beauty/zgbs/beauty/3761351"
+            url="https://www.amazon.com/Best-Sellers-Beauty/zgbs/beauty/3761351",
         )
 
         assert category.id == "lip_care"
@@ -242,7 +230,7 @@ class TestCategory:
             parent_id="beauty",
             level=2,
             path=["beauty", "skin_care", "lip_care"],
-            children=[]
+            children=[],
         )
 
         assert category.parent_id == "beauty"
@@ -261,7 +249,7 @@ class TestSnapshot:
             snapshot_date=date(2026, 1, 22),
             category_id="lip_care",
             total_products=100,
-            success=True
+            success=True,
         )
 
         assert snapshot.category_id == "lip_care"
@@ -277,7 +265,7 @@ class TestSnapshot:
             category_id="lip_care",
             total_products=0,
             success=False,
-            error_message="Connection timeout"
+            error_message="Connection timeout",
         )
 
         assert snapshot.success is False

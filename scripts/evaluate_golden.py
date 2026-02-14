@@ -13,14 +13,14 @@ Options:
 Without options, runs both evaluations.
 """
 
+import argparse
 import asyncio
 import json
-import argparse
 import sys
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -30,36 +30,39 @@ sys.path.insert(0, str(project_root))
 @dataclass
 class ChatbotTestResult:
     """Result of a single chatbot test case."""
+
     query: str
     passed: bool
-    brands_found: List[str]
-    expected_brands: List[str]
-    facts_found: List[str]
-    expected_facts: List[str]
-    source_types_found: List[str]
-    expected_source_types: List[str]
+    brands_found: list[str]
+    expected_brands: list[str]
+    facts_found: list[str]
+    expected_facts: list[str]
+    source_types_found: list[str]
+    expected_source_types: list[str]
     latency_ms: float
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class ReportTestResult:
     """Result of a single report test case."""
+
     date: str
     passed: bool
-    sections_found: List[str]
-    expected_sections: List[str]
-    kpis_found: List[str]
-    expected_kpis: List[str]
-    brands_mentioned: List[str]
-    expected_brands: List[str]
+    sections_found: list[str]
+    expected_sections: list[str]
+    kpis_found: list[str]
+    expected_kpis: list[str]
+    brands_mentioned: list[str]
+    expected_brands: list[str]
     latency_ms: float
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class EvaluationMetrics:
     """Aggregated evaluation metrics."""
+
     total: int
     passed: int
     failed: int
@@ -69,14 +72,14 @@ class EvaluationMetrics:
     source_coverage: float
 
 
-def load_golden_set(file_path: Path) -> List[Dict[str, Any]]:
+def load_golden_set(file_path: Path) -> list[dict[str, Any]]:
     """Load golden set from JSONL file."""
     cases = []
     if not file_path.exists():
         print(f"Warning: Golden set file not found: {file_path}")
         return cases
 
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -84,12 +87,25 @@ def load_golden_set(file_path: Path) -> List[Dict[str, Any]]:
     return cases
 
 
-def extract_brands_from_response(response: str) -> List[str]:
+def extract_brands_from_response(response: str) -> list[str]:
     """Extract brand names from chatbot response."""
     known_brands = [
-        "LANEIGE", "COSRX", "TIRTIR", "SKIN1004", "Anua", "MEDICUBE",
-        "Beauty of Joseon", "Innisfree", "MISSHA", "ETUDE", "Torriden",
-        "CeraVe", "Neutrogena", "The Ordinary", "e.l.f.", "NYX"
+        "LANEIGE",
+        "COSRX",
+        "TIRTIR",
+        "SKIN1004",
+        "Anua",
+        "MEDICUBE",
+        "Beauty of Joseon",
+        "Innisfree",
+        "MISSHA",
+        "ETUDE",
+        "Torriden",
+        "CeraVe",
+        "Neutrogena",
+        "The Ordinary",
+        "e.l.f.",
+        "NYX",
     ]
     found = []
     response_upper = response.upper()
@@ -99,7 +115,7 @@ def extract_brands_from_response(response: str) -> List[str]:
     return found
 
 
-def extract_facts_from_response(response: str) -> List[str]:
+def extract_facts_from_response(response: str) -> list[str]:
     """Extract mentioned facts/metrics from response."""
     fact_keywords = {
         "SoS": ["sos", "점유율", "share of shelf", "시장점유"],
@@ -110,7 +126,7 @@ def extract_facts_from_response(response: str) -> List[str]:
         "competition": ["경쟁", "competition", "대비"],
         "product": ["제품", "product", "상품"],
         "strategy": ["전략", "strategy"],
-        "recommendation": ["권고", "추천", "recommendation"]
+        "recommendation": ["권고", "추천", "recommendation"],
     }
 
     found = []
@@ -121,7 +137,7 @@ def extract_facts_from_response(response: str) -> List[str]:
     return found
 
 
-def extract_source_types(sources: List[Dict]) -> List[str]:
+def extract_source_types(sources: list[dict]) -> list[str]:
     """Extract source types from chatbot sources."""
     types = set()
     for source in sources:
@@ -132,20 +148,18 @@ def extract_source_types(sources: List[Dict]) -> List[str]:
     return list(types)
 
 
-def calculate_recall(found: List[str], expected: List[str]) -> float:
+def calculate_recall(found: list[str], expected: list[str]) -> float:
     """Calculate recall metric."""
     if not expected:
         return 1.0
-    found_set = set(item.upper() for item in found)
-    expected_set = set(item.upper() for item in expected)
+    found_set = {item.upper() for item in found}
+    expected_set = {item.upper() for item in expected}
     matches = len(found_set & expected_set)
     return matches / len(expected_set)
 
 
 async def evaluate_chatbot_case(
-    workflow,
-    case: Dict[str, Any],
-    verbose: bool = False
+    workflow, case: dict[str, Any], verbose: bool = False
 ) -> ChatbotTestResult:
     """Evaluate a single chatbot test case."""
     import time
@@ -173,9 +187,9 @@ async def evaluate_chatbot_case(
         source_recall = calculate_recall(source_types_found, expected_sources)
 
         passed = (
-            brand_recall >= 0.5 and
-            fact_recall >= 0.5 and
-            len(response) > 50  # Minimum response length
+            brand_recall >= 0.5
+            and fact_recall >= 0.5
+            and len(response) > 50  # Minimum response length
         )
 
         if verbose:
@@ -195,7 +209,7 @@ async def evaluate_chatbot_case(
             expected_facts=expected_facts,
             source_types_found=source_types_found,
             expected_source_types=expected_sources,
-            latency_ms=latency_ms
+            latency_ms=latency_ms,
         )
 
     except Exception as e:
@@ -213,15 +227,15 @@ async def evaluate_chatbot_case(
             source_types_found=[],
             expected_source_types=expected_sources,
             latency_ms=0,
-            error=str(e)
+            error=str(e),
         )
 
 
 async def evaluate_chatbot(verbose: bool = False) -> EvaluationMetrics:
     """Run chatbot golden set evaluation."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("CHATBOT GOLDEN SET EVALUATION")
-    print("="*60)
+    print("=" * 60)
 
     golden_path = project_root / "tests" / "golden" / "chatbot_golden.jsonl"
     cases = load_golden_set(golden_path)
@@ -235,6 +249,7 @@ async def evaluate_chatbot(verbose: bool = False) -> EvaluationMetrics:
     # Initialize workflow
     try:
         from src.core.batch_workflow import BatchWorkflow
+
         workflow = BatchWorkflow(use_hybrid=True)
     except ImportError as e:
         print(f"Error importing BatchWorkflow: {e}")
@@ -246,10 +261,10 @@ async def evaluate_chatbot(verbose: bool = False) -> EvaluationMetrics:
             avg_latency_ms=0,
             brand_recall=0,
             fact_recall=0,
-            source_coverage=0
+            source_coverage=0,
         )
 
-    results: List[ChatbotTestResult] = []
+    results: list[ChatbotTestResult] = []
 
     for i, case in enumerate(cases, 1):
         print(f"\nTest {i}/{len(cases)}: {case['query'][:40]}...", end="")
@@ -265,17 +280,19 @@ async def evaluate_chatbot(verbose: bool = False) -> EvaluationMetrics:
 
     brand_recalls = [calculate_recall(r.brands_found, r.expected_brands) for r in results]
     fact_recalls = [calculate_recall(r.facts_found, r.expected_facts) for r in results]
-    source_recalls = [calculate_recall(r.source_types_found, r.expected_source_types) for r in results]
+    source_recalls = [
+        calculate_recall(r.source_types_found, r.expected_source_types) for r in results
+    ]
 
     avg_brand_recall = sum(brand_recalls) / len(brand_recalls) if brand_recalls else 0
     avg_fact_recall = sum(fact_recalls) / len(fact_recalls) if fact_recalls else 0
     avg_source_coverage = sum(source_recalls) / len(source_recalls) if source_recalls else 0
 
-    print("\n" + "-"*40)
+    print("\n" + "-" * 40)
     print("CHATBOT EVALUATION RESULTS")
-    print("-"*40)
+    print("-" * 40)
     print(f"Total Tests:     {len(results)}")
-    print(f"Passed:          {passed} ({100*passed/len(results):.1f}%)")
+    print(f"Passed:          {passed} ({100 * passed / len(results):.1f}%)")
     print(f"Failed:          {failed}")
     print(f"Avg Latency:     {avg_latency:.0f}ms")
     print(f"Brand Recall:    {avg_brand_recall:.2f}")
@@ -289,15 +306,15 @@ async def evaluate_chatbot(verbose: bool = False) -> EvaluationMetrics:
         avg_latency_ms=avg_latency,
         brand_recall=avg_brand_recall,
         fact_recall=avg_fact_recall,
-        source_coverage=avg_source_coverage
+        source_coverage=avg_source_coverage,
     )
 
 
 async def evaluate_report(verbose: bool = False) -> EvaluationMetrics:
     """Run report golden set evaluation."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("REPORT GOLDEN SET EVALUATION")
-    print("="*60)
+    print("=" * 60)
 
     golden_path = project_root / "tests" / "golden" / "report_golden.jsonl"
     cases = load_golden_set(golden_path)
@@ -320,9 +337,9 @@ async def evaluate_report(verbose: bool = False) -> EvaluationMetrics:
         if expected_sections and expected_kpis:
             passed += 1
 
-    print("\n" + "-"*40)
+    print("\n" + "-" * 40)
     print("REPORT EVALUATION RESULTS")
-    print("-"*40)
+    print("-" * 40)
     print(f"Total Tests:     {len(cases)}")
     print(f"Schema Valid:    {passed}")
     print("Note: Full evaluation requires running actual report generation")
@@ -334,7 +351,7 @@ async def evaluate_report(verbose: bool = False) -> EvaluationMetrics:
         avg_latency_ms=0,
         brand_recall=0,
         fact_recall=0,
-        source_coverage=0
+        source_coverage=0,
     )
 
 
@@ -349,10 +366,10 @@ async def main():
     run_chatbot = args.chatbot or (not args.chatbot and not args.report)
     run_report = args.report or (not args.chatbot and not args.report)
 
-    print("="*60)
+    print("=" * 60)
     print("AMORE RAG-KG Hybrid Agent - Golden Set Evaluation")
     print(f"Timestamp: {datetime.now().isoformat()}")
-    print("="*60)
+    print("=" * 60)
 
     if run_chatbot:
         chatbot_metrics = await evaluate_chatbot(args.verbose)
@@ -360,19 +377,19 @@ async def main():
     if run_report:
         report_metrics = await evaluate_report(args.verbose)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("EVALUATION COMPLETE")
-    print("="*60)
+    print("=" * 60)
 
     # Save results
     results_path = project_root / "tests" / "golden" / "evaluation_results.json"
     results = {
         "timestamp": datetime.now().isoformat(),
         "chatbot": chatbot_metrics.__dict__ if run_chatbot else None,
-        "report": report_metrics.__dict__ if run_report else None
+        "report": report_metrics.__dict__ if run_report else None,
     }
 
-    with open(results_path, 'w', encoding='utf-8') as f:
+    with open(results_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
     print(f"\nResults saved to: {results_path}")

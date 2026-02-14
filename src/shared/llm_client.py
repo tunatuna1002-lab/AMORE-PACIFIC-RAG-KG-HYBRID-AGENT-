@@ -238,7 +238,7 @@ class LLMClient:
                 "Failed to parse JSON response from LLM",
                 {"error": str(e), "response_preview": response_text[:200]},
             )
-            raise LLMError(f"LLM response was not valid JSON: {e}")
+            raise LLMError(f"LLM response was not valid JSON: {e}") from e
 
     async def complete_with_usage(
         self,

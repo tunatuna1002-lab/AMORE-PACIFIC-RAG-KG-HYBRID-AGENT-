@@ -34,7 +34,7 @@ class TestErrorDeduplicationFilter:
     def test_passes_first_errors(self):
         """첫 max_count개 에러는 통과"""
         f = ErrorDeduplicationFilter(max_count=3)
-        for i in range(3):
+        for _i in range(3):
             record = logging.LogRecord(
                 name="test",
                 level=logging.ERROR,
@@ -50,7 +50,7 @@ class TestErrorDeduplicationFilter:
         """max_count 초과 시 억제"""
         f = ErrorDeduplicationFilter(max_count=2, window_seconds=60)
         results = []
-        for i in range(5):
+        for _i in range(5):
             record = logging.LogRecord(
                 name="test",
                 level=logging.ERROR,
@@ -127,7 +127,7 @@ class TestErrorDeduplicationFilter:
         """통계"""
         f = ErrorDeduplicationFilter(window_seconds=60, max_count=2)
 
-        for i in range(5):
+        for _i in range(5):
             record = logging.LogRecord(
                 name="test",
                 level=logging.ERROR,
@@ -149,7 +149,7 @@ class TestErrorDeduplicationFilter:
         """WARNING도 필터링 대상"""
         f = ErrorDeduplicationFilter(max_count=1)
 
-        for i in range(3):
+        for _i in range(3):
             record = logging.LogRecord(
                 name="test",
                 level=logging.WARNING,

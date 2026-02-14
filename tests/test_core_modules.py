@@ -5,21 +5,22 @@ LLM Orchestrator 핵심 컴포넌트 테스트
 """
 
 import pytest
-import asyncio
-from datetime import datetime, timedelta
+
+from src.core.cache import ResponseCache
+from src.core.confidence import ConfidenceAssessor
 
 # 테스트 대상 모듈
 from src.core.models import (
-    Context, Response, Decision, ToolResult,
-    ConfidenceLevel, KGFact, SystemState
+    ConfidenceLevel,
+    Context,
+    Decision,
+    KGFact,
+    Response,
+    SystemState,
+    ToolResult,
 )
-from src.core.confidence import ConfidenceAssessor
-from src.core.cache import ResponseCache
 from src.core.state import OrchestratorState
-from src.core.tools import (
-    AgentTool, ToolParameter, ToolExecutor,
-    AGENT_TOOLS, get_all_tool_schemas
-)
+from src.core.tools import AGENT_TOOLS, ToolExecutor, get_all_tool_schemas
 
 
 class TestModels:
@@ -34,10 +35,7 @@ class TestModels:
 
     def test_context_creation(self):
         """Context 생성 테스트"""
-        context = Context(
-            query="라네즈 현재 순위 알려줘",
-            entities={"brands": ["laneige"]}
-        )
+        context = Context(query="라네즈 현재 순위 알려줘", entities={"brands": ["laneige"]})
 
         assert context.query == "라네즈 현재 순위 알려줘"
         assert "laneige" in context.entities["brands"]
@@ -54,8 +52,7 @@ class TestModels:
     def test_response_factory_methods(self):
         """Response 팩토리 메서드 테스트"""
         clarification = Response.clarification(
-            "더 구체적으로 질문해주세요",
-            ["SoS가 뭔가요?", "현재 순위 알려주세요"]
+            "더 구체적으로 질문해주세요", ["SoS가 뭔가요?", "현재 순위 알려주세요"]
         )
         assert clarification.is_clarification
         assert clarification.query_type == "clarification"
@@ -75,9 +72,7 @@ class TestModels:
     def test_tool_result_summary(self):
         """ToolResult 요약 생성"""
         result = ToolResult(
-            tool_name="crawl_amazon",
-            success=True,
-            data={"total_products": 100, "laneige_count": 5}
+            tool_name="crawl_amazon", success=True, data={"total_products": 100, "laneige_count": 5}
         )
         summary = result.to_summary()
         assert "100" in summary
@@ -91,14 +86,11 @@ class TestConfidenceAssessor:
         """높은 신뢰도 테스트"""
         assessor = ConfidenceAssessor()
 
-        route_result = {
-            "query_type": "definition",
-            "confidence": 0.9
-        }
+        route_result = {"query_type": "definition", "confidence": 0.9}
         context = Context(
             query="SoS가 뭐야?",
             rag_docs=[{"content": "1"}, {"content": "2"}, {"content": "3"}],
-            kg_inferences=[{"insight": "test"}]
+            kg_inferences=[{"insight": "test"}],
         )
 
         level = assessor.assess(route_result, context)
@@ -108,10 +100,7 @@ class TestConfidenceAssessor:
         """낮은 신뢰도 테스트"""
         assessor = ConfidenceAssessor()
 
-        route_result = {
-            "query_type": "unknown",
-            "confidence": 0.1
-        }
+        route_result = {"query_type": "unknown", "confidence": 0.1}
         context = Context(query="???")
 
         level = assessor.assess(route_result, context)
@@ -274,24 +263,15 @@ class TestIntegration:
         context = Context(
             query="라네즈 분석해줘",
             entities={"brands": ["laneige"]},
-            kg_facts=[KGFact(
-                fact_type="brand_info",
-                entity="laneige",
-                data={"sos": 0.15}
-            )],
+            kg_facts=[KGFact(fact_type="brand_info", entity="laneige", data={"sos": 0.15})],
             system_state=SystemState(
-                data_freshness="fresh",
-                kg_initialized=True,
-                kg_triple_count=500
-            )
+                data_freshness="fresh", kg_initialized=True, kg_triple_count=500
+            ),
         )
 
         # 5. 신뢰도 평가
         assessor = ConfidenceAssessor()
-        level = assessor.assess(
-            {"query_type": "analysis", "confidence": 0.7},
-            context
-        )
+        level = assessor.assess({"query_type": "analysis", "confidence": 0.7}, context)
 
         # 컨텍스트 있으므로 최소 MEDIUM
         assert level in [ConfidenceLevel.HIGH, ConfidenceLevel.MEDIUM]

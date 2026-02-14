@@ -3,8 +3,8 @@ TDD Phase 1: 커스텀 예외 타입 테스트 (RED → GREEN)
 
 테스트 대상: src/domain/exceptions.py
 """
+
 import pytest
-from typing import Any
 
 
 class TestAmoreAgentError:
@@ -29,7 +29,7 @@ class TestNetworkError:
 
     def test_network_error_is_amore_error_subclass(self):
         """NetworkError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import NetworkError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, NetworkError
 
         assert issubclass(NetworkError, AmoreAgentError)
 
@@ -41,7 +41,7 @@ class TestNetworkError:
             message="Connection timeout",
             url="https://amazon.com/product",
             status_code=503,
-            retry_count=3
+            retry_count=3,
         )
 
         assert error.url == "https://amazon.com/product"
@@ -74,7 +74,7 @@ class TestLLMAPIError:
 
     def test_llm_api_error_is_amore_error_subclass(self):
         """LLMAPIError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import LLMAPIError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, LLMAPIError
 
         assert issubclass(LLMAPIError, AmoreAgentError)
 
@@ -86,7 +86,7 @@ class TestLLMAPIError:
             message="Rate limit exceeded",
             model="gpt-4.1-mini",
             error_code="rate_limit_exceeded",
-            is_retryable=True
+            is_retryable=True,
         )
 
         assert error.model == "gpt-4.1-mini"
@@ -120,7 +120,7 @@ class TestDataValidationError:
 
     def test_data_validation_error_is_amore_error_subclass(self):
         """DataValidationError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import DataValidationError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, DataValidationError
 
         assert issubclass(DataValidationError, AmoreAgentError)
 
@@ -129,10 +129,7 @@ class TestDataValidationError:
         from src.domain.exceptions import DataValidationError
 
         error = DataValidationError(
-            message="Invalid price value",
-            field="price",
-            value=-10.5,
-            constraint="price >= 0"
+            message="Invalid price value", field="price", value=-10.5, constraint="price >= 0"
         )
 
         assert error.field == "price"
@@ -155,11 +152,7 @@ class TestDataValidationError:
         from src.domain.exceptions import DataValidationError
 
         complex_value = {"nested": {"data": [1, 2, 3]}}
-        error = DataValidationError(
-            "Invalid structure",
-            field="config",
-            value=complex_value
-        )
+        error = DataValidationError("Invalid structure", field="config", value=complex_value)
 
         assert error.value == complex_value
 
@@ -169,7 +162,7 @@ class TestScraperError:
 
     def test_scraper_error_is_amore_error_subclass(self):
         """ScraperError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import ScraperError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, ScraperError
 
         assert issubclass(ScraperError, AmoreAgentError)
 
@@ -181,7 +174,7 @@ class TestScraperError:
             message="Amazon blocked request",
             category="lip_care",
             asin="B0BSHRYY1S",
-            error_type="BLOCKED"
+            error_type="BLOCKED",
         )
 
         assert error.category == "lip_care"
@@ -217,7 +210,7 @@ class TestKnowledgeGraphError:
 
     def test_knowledge_graph_error_is_amore_error_subclass(self):
         """KnowledgeGraphError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import KnowledgeGraphError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, KnowledgeGraphError
 
         assert issubclass(KnowledgeGraphError, AmoreAgentError)
 
@@ -229,7 +222,7 @@ class TestKnowledgeGraphError:
             message="Entity not found",
             entity="LANEIGE",
             relation="competitor_of",
-            operation="query"
+            operation="query",
         )
 
         assert error.entity == "LANEIGE"
@@ -242,7 +235,7 @@ class TestReasonerError:
 
     def test_reasoner_error_is_amore_error_subclass(self):
         """ReasonerError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import ReasonerError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, ReasonerError
 
         assert issubclass(ReasonerError, AmoreAgentError)
 
@@ -253,7 +246,7 @@ class TestReasonerError:
         error = ReasonerError(
             message="Rule execution failed",
             rule_name="sos_threshold_rule",
-            context={"sos": 0.35, "threshold": 0.3}
+            context={"sos": 0.35, "threshold": 0.3},
         )
 
         assert error.rule_name == "sos_threshold_rule"
@@ -265,7 +258,7 @@ class TestRetrieverError:
 
     def test_retriever_error_is_amore_error_subclass(self):
         """RetrieverError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import RetrieverError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, RetrieverError
 
         assert issubclass(RetrieverError, AmoreAgentError)
 
@@ -274,9 +267,7 @@ class TestRetrieverError:
         from src.domain.exceptions import RetrieverError
 
         error = RetrieverError(
-            message="Vector search failed",
-            query="LANEIGE 경쟁력 분석",
-            retriever_type="hybrid"
+            message="Vector search failed", query="LANEIGE 경쟁력 분석", retriever_type="hybrid"
         )
 
         assert error.query == "LANEIGE 경쟁력 분석"
@@ -298,7 +289,7 @@ class TestConfigurationError:
 
     def test_configuration_error_is_amore_error_subclass(self):
         """ConfigurationError는 AmoreAgentError의 서브클래스여야 함"""
-        from src.domain.exceptions import ConfigurationError, AmoreAgentError
+        from src.domain.exceptions import AmoreAgentError, ConfigurationError
 
         assert issubclass(ConfigurationError, AmoreAgentError)
 
@@ -310,7 +301,7 @@ class TestConfigurationError:
             message="Missing required API key",
             config_key="OPENAI_API_KEY",
             expected="string",
-            actual=None
+            actual=None,
         )
 
         assert error.config_key == "OPENAI_API_KEY"
@@ -336,14 +327,14 @@ class TestExceptionHierarchy:
         """모든 커스텀 예외는 AmoreAgentError를 상속해야 함"""
         from src.domain.exceptions import (
             AmoreAgentError,
-            NetworkError,
-            LLMAPIError,
+            ConfigurationError,
             DataValidationError,
-            ScraperError,
             KnowledgeGraphError,
+            LLMAPIError,
+            NetworkError,
             ReasonerError,
             RetrieverError,
-            ConfigurationError
+            ScraperError,
         )
 
         exceptions = [
@@ -354,26 +345,22 @@ class TestExceptionHierarchy:
             KnowledgeGraphError,
             ReasonerError,
             RetrieverError,
-            ConfigurationError
+            ConfigurationError,
         ]
 
         for exc_class in exceptions:
-            assert issubclass(exc_class, AmoreAgentError), \
-                f"{exc_class.__name__} should inherit from AmoreAgentError"
+            assert issubclass(
+                exc_class, AmoreAgentError
+            ), f"{exc_class.__name__} should inherit from AmoreAgentError"
 
     def test_catch_all_with_base_exception(self):
         """AmoreAgentError로 모든 서브 예외를 잡을 수 있어야 함"""
-        from src.domain.exceptions import (
-            AmoreAgentError,
-            NetworkError,
-            LLMAPIError,
-            ScraperError
-        )
+        from src.domain.exceptions import AmoreAgentError, LLMAPIError, NetworkError, ScraperError
 
         errors_to_test = [
             NetworkError("Network failed"),
             LLMAPIError("LLM failed"),
-            ScraperError("Scraping failed")
+            ScraperError("Scraping failed"),
         ]
 
         for error in errors_to_test:

@@ -50,7 +50,7 @@ async def sync_sheets_to_sqlite():
         return False
 
     # 날짜 범위 확인
-    dates = sorted(set(r.get("snapshot_date", "") for r in records if r.get("snapshot_date")))
+    dates = sorted({r.get("snapshot_date", "") for r in records if r.get("snapshot_date")})
     print(f"✅ 조회 완료: {len(records)} records")
     print(f"   날짜 범위: {dates[0]} ~ {dates[-1]}")
     print(f"   총 {len(dates)}일치 데이터")

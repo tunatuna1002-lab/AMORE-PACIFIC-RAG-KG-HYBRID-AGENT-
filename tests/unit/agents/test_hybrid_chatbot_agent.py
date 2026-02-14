@@ -3,9 +3,11 @@ TDD Phase 2: HybridChatbotAgent 테스트 (RED → GREEN)
 
 테스트 대상: src/agents/hybrid_chatbot_agent.py
 """
+
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from typing import Dict, Any
 
 
 class TestHybridChatbotAgentInit:
@@ -60,7 +62,7 @@ class TestHybridChatbotAgentChat:
         return reasoner
 
     @pytest.fixture
-    def sample_data(self) -> Dict[str, Any]:
+    def sample_data(self) -> dict[str, Any]:
         """샘플 데이터"""
         return {
             "date": "2026-01-23",
@@ -69,41 +71,36 @@ class TestHybridChatbotAgentChat:
                     "total_products": 100,
                     "laneige_count": 3,
                     "sos": 0.15,
-                    "brands": {
-                        "LANEIGE": {"count": 3, "sos": 0.15}
-                    }
+                    "brands": {"LANEIGE": {"count": 3, "sos": 0.15}},
                 }
-            }
+            },
         }
 
     @pytest.mark.asyncio
-    async def test_chat_returns_dict_with_required_keys(
-        self, mock_kg, mock_reasoner
-    ):
+    async def test_chat_returns_dict_with_required_keys(self, mock_kg, mock_reasoner):
         """chat()는 필수 키를 포함한 dict 반환해야 함"""
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
-        with patch('src.agents.hybrid_chatbot_agent.acompletion',
-                   new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "src.agents.hybrid_chatbot_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = MagicMock(
                 choices=[MagicMock(message=MagicMock(content="Test response"))]
             )
 
-            agent = HybridChatbotAgent(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner
-            )
+            agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
             # router.route 모킹
-            with patch.object(agent.router, 'route') as mock_route:
+            with patch.object(agent.router, "route") as mock_route:
                 mock_route.return_value = {
                     "query_type": "METRIC",
-                    "entities": {"brands": ["LANEIGE"]}
+                    "entities": {"brands": ["LANEIGE"]},
                 }
 
                 # hybrid_retriever.retrieve 모킹
-                with patch.object(agent.hybrid_retriever, 'retrieve',
-                                  new_callable=AsyncMock) as mock_retrieve:
+                with patch.object(
+                    agent.hybrid_retriever, "retrieve", new_callable=AsyncMock
+                ) as mock_retrieve:
                     mock_context = MagicMock()
                     mock_context.entities = {}
                     mock_context.ontology_facts = []
@@ -121,22 +118,21 @@ class TestHybridChatbotAgentChat:
         """응답은 문자열이어야 함"""
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
-        with patch('src.agents.hybrid_chatbot_agent.acompletion',
-                   new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "src.agents.hybrid_chatbot_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = MagicMock(
                 choices=[MagicMock(message=MagicMock(content="라네즈의 경쟁력 분석입니다."))]
             )
 
-            agent = HybridChatbotAgent(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner
-            )
+            agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
-            with patch.object(agent.router, 'route') as mock_route:
+            with patch.object(agent.router, "route") as mock_route:
                 mock_route.return_value = {"query_type": "METRIC"}
 
-                with patch.object(agent.hybrid_retriever, 'retrieve',
-                                  new_callable=AsyncMock) as mock_retrieve:
+                with patch.object(
+                    agent.hybrid_retriever, "retrieve", new_callable=AsyncMock
+                ) as mock_retrieve:
                     mock_context = MagicMock()
                     mock_context.entities = {}
                     mock_context.ontology_facts = []
@@ -154,22 +150,21 @@ class TestHybridChatbotAgentChat:
         """쿼리 시 HybridRetriever를 사용해야 함"""
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
-        with patch('src.agents.hybrid_chatbot_agent.acompletion',
-                   new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "src.agents.hybrid_chatbot_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = MagicMock(
                 choices=[MagicMock(message=MagicMock(content="Response"))]
             )
 
-            agent = HybridChatbotAgent(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner
-            )
+            agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
-            with patch.object(agent.router, 'route') as mock_route:
+            with patch.object(agent.router, "route") as mock_route:
                 mock_route.return_value = {"query_type": "METRIC"}
 
-                with patch.object(agent.hybrid_retriever, 'retrieve',
-                                  new_callable=AsyncMock) as mock_retrieve:
+                with patch.object(
+                    agent.hybrid_retriever, "retrieve", new_callable=AsyncMock
+                ) as mock_retrieve:
                     mock_context = MagicMock()
                     mock_context.entities = {}
                     mock_context.ontology_facts = []
@@ -182,35 +177,30 @@ class TestHybridChatbotAgentChat:
                     mock_retrieve.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_chat_includes_sources_when_available(
-        self, mock_kg, mock_reasoner
-    ):
+    async def test_chat_includes_sources_when_available(self, mock_kg, mock_reasoner):
         """RAG 청크가 있으면 sources에 포함해야 함"""
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
-        with patch('src.agents.hybrid_chatbot_agent.acompletion',
-                   new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "src.agents.hybrid_chatbot_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = MagicMock(
                 choices=[MagicMock(message=MagicMock(content="Response"))]
             )
 
-            agent = HybridChatbotAgent(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner
-            )
+            agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
-            with patch.object(agent.router, 'route') as mock_route:
+            with patch.object(agent.router, "route") as mock_route:
                 mock_route.return_value = {"query_type": "DEFINITION"}
 
-                with patch.object(agent.hybrid_retriever, 'retrieve',
-                                  new_callable=AsyncMock) as mock_retrieve:
+                with patch.object(
+                    agent.hybrid_retriever, "retrieve", new_callable=AsyncMock
+                ) as mock_retrieve:
                     mock_context = MagicMock()
                     mock_context.entities = {}
                     mock_context.ontology_facts = []
                     mock_context.inferences = []
-                    mock_context.rag_chunks = [
-                        {"source": "guide1.md", "content": "Content 1"}
-                    ]
+                    mock_context.rag_chunks = [{"source": "guide1.md", "content": "Content 1"}]
                     mock_retrieve.return_value = mock_context
 
                     result = await agent.chat("가이드 검색")
@@ -237,15 +227,12 @@ class TestHybridChatbotAgentErrorHandling:
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
         from src.rag.router import QueryType
 
-        agent = HybridChatbotAgent(
-            knowledge_graph=mock_kg,
-            reasoner=mock_reasoner
-        )
+        agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
-        with patch.object(agent.router, 'route') as mock_route:
+        with patch.object(agent.router, "route") as mock_route:
             mock_route.return_value = {
                 "query_type": QueryType.UNKNOWN,
-                "fallback_message": "죄송합니다. 질문을 이해하지 못했습니다."
+                "fallback_message": "죄송합니다. 질문을 이해하지 못했습니다.",
             }
 
             result = await agent.chat("")
@@ -258,19 +245,19 @@ class TestHybridChatbotAgentErrorHandling:
         """LLM 실패 시 graceful degradation (에러 응답 반환)"""
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
-        with patch('src.agents.hybrid_chatbot_agent.acompletion',
-                   new_callable=AsyncMock,
-                   side_effect=Exception("LLM API failed")):
-            agent = HybridChatbotAgent(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner
-            )
+        with patch(
+            "src.agents.hybrid_chatbot_agent.acompletion",
+            new_callable=AsyncMock,
+            side_effect=Exception("LLM API failed"),
+        ):
+            agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
-            with patch.object(agent.router, 'route') as mock_route:
+            with patch.object(agent.router, "route") as mock_route:
                 mock_route.return_value = {"query_type": "METRIC"}
 
-                with patch.object(agent.hybrid_retriever, 'retrieve',
-                                  new_callable=AsyncMock) as mock_retrieve:
+                with patch.object(
+                    agent.hybrid_retriever, "retrieve", new_callable=AsyncMock
+                ) as mock_retrieve:
                     mock_context = MagicMock()
                     mock_context.entities = {}
                     mock_context.ontology_facts = []
@@ -292,7 +279,7 @@ class TestHybridChatbotAgentQueryRouting:
 
         agent = HybridChatbotAgent()
 
-        assert hasattr(agent, 'router')
+        assert hasattr(agent, "router")
         assert agent.router is not None
 
 
@@ -314,22 +301,21 @@ class TestHybridChatbotAgentSuggestions:
         """응답에 후속 질문 제안이 포함되어야 함"""
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
 
-        with patch('src.agents.hybrid_chatbot_agent.acompletion',
-                   new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "src.agents.hybrid_chatbot_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = MagicMock(
                 choices=[MagicMock(message=MagicMock(content="Response"))]
             )
 
-            agent = HybridChatbotAgent(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner
-            )
+            agent = HybridChatbotAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
-            with patch.object(agent.router, 'route') as mock_route:
+            with patch.object(agent.router, "route") as mock_route:
                 mock_route.return_value = {"query_type": "METRIC"}
 
-                with patch.object(agent.hybrid_retriever, 'retrieve',
-                                  new_callable=AsyncMock) as mock_retrieve:
+                with patch.object(
+                    agent.hybrid_retriever, "retrieve", new_callable=AsyncMock
+                ) as mock_retrieve:
                     mock_context = MagicMock()
                     mock_context.entities = {}
                     mock_context.ontology_facts = []

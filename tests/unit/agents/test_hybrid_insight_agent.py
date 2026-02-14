@@ -3,10 +3,11 @@ TDD Phase 2: HybridInsightAgent 테스트 (RED → GREEN)
 
 테스트 대상: src/agents/hybrid_insight_agent.py
 """
+
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from typing import Dict, Any, List
-from datetime import datetime
 
 
 class TestHybridInsightAgentInit:
@@ -75,7 +76,7 @@ class TestHybridInsightAgentExecute:
         return reasoner
 
     @pytest.fixture
-    def sample_metrics_data(self) -> Dict[str, Any]:
+    def sample_metrics_data(self) -> dict[str, Any]:
         """샘플 메트릭 데이터"""
         return {
             "date": "2026-01-23",
@@ -85,16 +86,14 @@ class TestHybridInsightAgentExecute:
                     "laneige_count": 3,
                     "sos": 0.15,
                     "hhi": 0.05,
-                    "brands": {
-                        "LANEIGE": {"count": 3, "sos": 0.15, "avg_rank": 25}
-                    }
+                    "brands": {"LANEIGE": {"count": 3, "sos": 0.15, "avg_rank": 25}},
                 }
             },
-            "alerts": []
+            "alerts": [],
         }
 
     @pytest.fixture
-    def sample_crawl_data(self) -> Dict[str, Any]:
+    def sample_crawl_data(self) -> dict[str, Any]:
         """샘플 크롤 데이터"""
         return {
             "categories": {
@@ -105,7 +104,7 @@ class TestHybridInsightAgentExecute:
                             "title": "LANEIGE Lip Sleeping Mask",
                             "brand": "LANEIGE",
                             "rank": 1,
-                            "price": 24.00
+                            "price": 24.00,
                         }
                     ]
                 }
@@ -119,10 +118,15 @@ class TestHybridInsightAgentExecute:
         """execute()는 필수 키를 포함한 dict 반환해야 함"""
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-        with patch.object(HybridInsightAgent, '_generate_daily_insight',
-                          new_callable=AsyncMock, return_value="Test insight"):
-            with patch.object(HybridInsightAgent, '_run_hybrid_retrieval',
-                              new_callable=AsyncMock) as mock_retrieval:
+        with patch.object(
+            HybridInsightAgent,
+            "_generate_daily_insight",
+            new_callable=AsyncMock,
+            return_value="Test insight",
+        ):
+            with patch.object(
+                HybridInsightAgent, "_run_hybrid_retrieval", new_callable=AsyncMock
+            ) as mock_retrieval:
                 # HybridContext mock
                 mock_context = MagicMock()
                 mock_context.inferences = []
@@ -130,13 +134,13 @@ class TestHybridInsightAgentExecute:
                 mock_context.ontology_facts = []
                 mock_retrieval.return_value = mock_context
 
-                with patch.object(HybridInsightAgent, '_collect_external_signals',
-                                  new_callable=AsyncMock,
-                                  return_value={"signals": []}):
-                    agent = HybridInsightAgent(
-                        knowledge_graph=mock_kg,
-                        reasoner=mock_reasoner
-                    )
+                with patch.object(
+                    HybridInsightAgent,
+                    "_collect_external_signals",
+                    new_callable=AsyncMock,
+                    return_value={"signals": []},
+                ):
+                    agent = HybridInsightAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
                     result = await agent.execute(sample_metrics_data)
 
         assert isinstance(result, dict)
@@ -153,23 +157,28 @@ class TestHybridInsightAgentExecute:
         """성공 시 status는 'completed'여야 함"""
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-        with patch.object(HybridInsightAgent, '_generate_daily_insight',
-                          new_callable=AsyncMock, return_value="Test insight"):
-            with patch.object(HybridInsightAgent, '_run_hybrid_retrieval',
-                              new_callable=AsyncMock) as mock_retrieval:
+        with patch.object(
+            HybridInsightAgent,
+            "_generate_daily_insight",
+            new_callable=AsyncMock,
+            return_value="Test insight",
+        ):
+            with patch.object(
+                HybridInsightAgent, "_run_hybrid_retrieval", new_callable=AsyncMock
+            ) as mock_retrieval:
                 mock_context = MagicMock()
                 mock_context.inferences = []
                 mock_context.rag_chunks = []
                 mock_context.ontology_facts = []
                 mock_retrieval.return_value = mock_context
 
-                with patch.object(HybridInsightAgent, '_collect_external_signals',
-                                  new_callable=AsyncMock,
-                                  return_value={"signals": []}):
-                    agent = HybridInsightAgent(
-                        knowledge_graph=mock_kg,
-                        reasoner=mock_reasoner
-                    )
+                with patch.object(
+                    HybridInsightAgent,
+                    "_collect_external_signals",
+                    new_callable=AsyncMock,
+                    return_value={"signals": []},
+                ):
+                    agent = HybridInsightAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
                     result = await agent.execute(sample_metrics_data)
 
         assert result["status"] == "completed"
@@ -181,55 +190,60 @@ class TestHybridInsightAgentExecute:
         """execute()는 KnowledgeGraph를 업데이트해야 함"""
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-        with patch.object(HybridInsightAgent, '_generate_daily_insight',
-                          new_callable=AsyncMock, return_value="Test insight"):
-            with patch.object(HybridInsightAgent, '_run_hybrid_retrieval',
-                              new_callable=AsyncMock) as mock_retrieval:
+        with patch.object(
+            HybridInsightAgent,
+            "_generate_daily_insight",
+            new_callable=AsyncMock,
+            return_value="Test insight",
+        ):
+            with patch.object(
+                HybridInsightAgent, "_run_hybrid_retrieval", new_callable=AsyncMock
+            ) as mock_retrieval:
                 mock_context = MagicMock()
                 mock_context.inferences = []
                 mock_context.rag_chunks = []
                 mock_context.ontology_facts = []
                 mock_retrieval.return_value = mock_context
 
-                with patch.object(HybridInsightAgent, '_collect_external_signals',
-                                  new_callable=AsyncMock,
-                                  return_value={"signals": []}):
-                    agent = HybridInsightAgent(
-                        knowledge_graph=mock_kg,
-                        reasoner=mock_reasoner
-                    )
-                    await agent.execute(
-                        sample_metrics_data,
-                        crawl_data=sample_crawl_data
-                    )
+                with patch.object(
+                    HybridInsightAgent,
+                    "_collect_external_signals",
+                    new_callable=AsyncMock,
+                    return_value={"signals": []},
+                ):
+                    agent = HybridInsightAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
+                    await agent.execute(sample_metrics_data, crawl_data=sample_crawl_data)
 
         mock_kg.load_from_crawl_data.assert_called_once()
         mock_kg.load_from_metrics_data.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_execute_includes_hybrid_stats(
-        self, mock_kg, mock_reasoner, sample_metrics_data
-    ):
+    async def test_execute_includes_hybrid_stats(self, mock_kg, mock_reasoner, sample_metrics_data):
         """결과에 hybrid_stats가 포함되어야 함"""
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-        with patch.object(HybridInsightAgent, '_generate_daily_insight',
-                          new_callable=AsyncMock, return_value="Test insight"):
-            with patch.object(HybridInsightAgent, '_run_hybrid_retrieval',
-                              new_callable=AsyncMock) as mock_retrieval:
+        with patch.object(
+            HybridInsightAgent,
+            "_generate_daily_insight",
+            new_callable=AsyncMock,
+            return_value="Test insight",
+        ):
+            with patch.object(
+                HybridInsightAgent, "_run_hybrid_retrieval", new_callable=AsyncMock
+            ) as mock_retrieval:
                 mock_context = MagicMock()
                 mock_context.inferences = []
                 mock_context.rag_chunks = []
                 mock_context.ontology_facts = []
                 mock_retrieval.return_value = mock_context
 
-                with patch.object(HybridInsightAgent, '_collect_external_signals',
-                                  new_callable=AsyncMock,
-                                  return_value={"signals": []}):
-                    agent = HybridInsightAgent(
-                        knowledge_graph=mock_kg,
-                        reasoner=mock_reasoner
-                    )
+                with patch.object(
+                    HybridInsightAgent,
+                    "_collect_external_signals",
+                    new_callable=AsyncMock,
+                    return_value={"signals": []},
+                ):
+                    agent = HybridInsightAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
                     result = await agent.execute(sample_metrics_data)
 
         assert "hybrid_stats" in result
@@ -258,24 +272,28 @@ class TestHybridInsightAgentErrorHandling:
         """LLM 실패 시 예외 발생해야 함"""
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-        with patch.object(HybridInsightAgent, '_run_hybrid_retrieval',
-                          new_callable=AsyncMock) as mock_retrieval:
+        with patch.object(
+            HybridInsightAgent, "_run_hybrid_retrieval", new_callable=AsyncMock
+        ) as mock_retrieval:
             mock_context = MagicMock()
             mock_context.inferences = []
             mock_context.rag_chunks = []
             mock_context.ontology_facts = []
             mock_retrieval.return_value = mock_context
 
-            with patch.object(HybridInsightAgent, '_collect_external_signals',
-                              new_callable=AsyncMock,
-                              return_value={"signals": []}):
-                with patch.object(HybridInsightAgent, '_generate_daily_insight',
-                                  new_callable=AsyncMock,
-                                  side_effect=Exception("LLM API failed")):
-                    agent = HybridInsightAgent(
-                        knowledge_graph=mock_kg,
-                        reasoner=mock_reasoner
-                    )
+            with patch.object(
+                HybridInsightAgent,
+                "_collect_external_signals",
+                new_callable=AsyncMock,
+                return_value={"signals": []},
+            ):
+                with patch.object(
+                    HybridInsightAgent,
+                    "_generate_daily_insight",
+                    new_callable=AsyncMock,
+                    side_effect=Exception("LLM API failed"),
+                ):
+                    agent = HybridInsightAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
 
                     with pytest.raises(Exception) as exc_info:
                         await agent.execute({"categories": {}})
@@ -287,23 +305,28 @@ class TestHybridInsightAgentErrorHandling:
         """빈 메트릭 데이터 처리 가능해야 함"""
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
-        with patch.object(HybridInsightAgent, '_generate_daily_insight',
-                          new_callable=AsyncMock, return_value="No data insight"):
-            with patch.object(HybridInsightAgent, '_run_hybrid_retrieval',
-                              new_callable=AsyncMock) as mock_retrieval:
+        with patch.object(
+            HybridInsightAgent,
+            "_generate_daily_insight",
+            new_callable=AsyncMock,
+            return_value="No data insight",
+        ):
+            with patch.object(
+                HybridInsightAgent, "_run_hybrid_retrieval", new_callable=AsyncMock
+            ) as mock_retrieval:
                 mock_context = MagicMock()
                 mock_context.inferences = []
                 mock_context.rag_chunks = []
                 mock_context.ontology_facts = []
                 mock_retrieval.return_value = mock_context
 
-                with patch.object(HybridInsightAgent, '_collect_external_signals',
-                                  new_callable=AsyncMock,
-                                  return_value={"signals": []}):
-                    agent = HybridInsightAgent(
-                        knowledge_graph=mock_kg,
-                        reasoner=mock_reasoner
-                    )
+                with patch.object(
+                    HybridInsightAgent,
+                    "_collect_external_signals",
+                    new_callable=AsyncMock,
+                    return_value={"signals": []},
+                ):
+                    agent = HybridInsightAgent(knowledge_graph=mock_kg, reasoner=mock_reasoner)
                     result = await agent.execute({})
 
         assert result["status"] == "completed"
@@ -325,15 +348,11 @@ class TestHybridInsightAgentHelperMethods:
                 insight_type=InsightType.GROWTH_OPPORTUNITY,
                 insight="LANEIGE SoS 상승 기회",
                 confidence=0.8,
-                evidence={"sos": 0.15}
+                evidence={"sos": 0.15},
             )
         ]
 
-        metrics_data = {
-            "categories": {
-                "lip_care": {"sos": 0.15}
-            }
-        }
+        metrics_data = {"categories": {"lip_care": {"sos": 0.15}}}
 
         action_items = agent._extract_action_items(inferences, metrics_data)
 
@@ -352,7 +371,7 @@ class TestHybridInsightAgentHelperMethods:
                 insight_type=InsightType.MARKET_POSITION,
                 insight="Lip Sleeping Mask #1 유지",
                 confidence=0.95,
-                evidence={"rank": 1}
+                evidence={"rank": 1},
             )
         ]
 
@@ -375,7 +394,7 @@ class TestHybridInsightAgentHelperMethods:
                 insight_type=InsightType.GROWTH_MOMENTUM,
                 insight="K-Beauty 트렌드 상승",
                 confidence=0.7,
-                evidence={"fact1": "data1", "fact2": "data2"}
+                evidence={"fact1": "data1", "fact2": "data2"},
             )
         ]
 
@@ -397,13 +416,7 @@ class TestHybridInsightAgentIntegration:
 
         metrics_data = {
             "date": "2026-01-23",
-            "categories": {
-                "lip_care": {
-                    "total_products": 100,
-                    "laneige_count": 3,
-                    "sos": 0.15
-                }
-            }
+            "categories": {"lip_care": {"total_products": 100, "laneige_count": 3, "sos": 0.15}},
         }
 
         result = await agent.execute(metrics_data)

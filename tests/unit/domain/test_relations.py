@@ -5,7 +5,6 @@ Domain Relations Tests (TDD - RED Phase)
 """
 
 import pytest
-from datetime import datetime
 
 
 class TestRelationType:
@@ -44,9 +43,7 @@ class TestRelation:
         from src.domain.entities.relations import Relation, RelationType
 
         relation = Relation(
-            subject="LANEIGE",
-            predicate=RelationType.HAS_PRODUCT,
-            object="B08XYZ1234"
+            subject="LANEIGE", predicate=RelationType.HAS_PRODUCT, object="B08XYZ1234"
         )
 
         assert relation.subject == "LANEIGE"
@@ -63,7 +60,7 @@ class TestRelation:
             object="B08XYZ1234",
             properties={"product_name": "Lip Sleeping Mask", "category": "lip_care"},
             confidence=0.95,
-            source="crawl"
+            source="crawl",
         )
 
         assert relation.properties["product_name"] == "Lip Sleeping Mask"
@@ -76,19 +73,11 @@ class TestRelation:
 
         # subject가 비어있으면 에러
         with pytest.raises(ValueError):
-            Relation(
-                subject="",
-                predicate=RelationType.HAS_PRODUCT,
-                object="B08XYZ1234"
-            )
+            Relation(subject="", predicate=RelationType.HAS_PRODUCT, object="B08XYZ1234")
 
         # object가 비어있으면 에러
         with pytest.raises(ValueError):
-            Relation(
-                subject="LANEIGE",
-                predicate=RelationType.HAS_PRODUCT,
-                object=""
-            )
+            Relation(subject="LANEIGE", predicate=RelationType.HAS_PRODUCT, object="")
 
         # confidence가 범위를 벗어나면 에러
         with pytest.raises(ValueError):
@@ -96,7 +85,7 @@ class TestRelation:
                 subject="LANEIGE",
                 predicate=RelationType.HAS_PRODUCT,
                 object="B08XYZ1234",
-                confidence=1.5
+                confidence=1.5,
             )
 
     def test_relation_to_dict(self):
@@ -104,9 +93,7 @@ class TestRelation:
         from src.domain.entities.relations import Relation, RelationType
 
         relation = Relation(
-            subject="LANEIGE",
-            predicate=RelationType.HAS_PRODUCT,
-            object="B08XYZ1234"
+            subject="LANEIGE", predicate=RelationType.HAS_PRODUCT, object="B08XYZ1234"
         )
 
         data = relation.to_dict()
@@ -123,7 +110,7 @@ class TestRelation:
             "subject": "LANEIGE",
             "predicate": "hasProduct",
             "object": "B08XYZ1234",
-            "confidence": 0.9
+            "confidence": 0.9,
         }
 
         relation = Relation.from_dict(data)
@@ -136,23 +123,19 @@ class TestRelation:
         """Relation 동등성 비교 검증"""
         from src.domain.entities.relations import Relation, RelationType
 
-        r1 = Relation(
-            subject="LANEIGE",
-            predicate=RelationType.HAS_PRODUCT,
-            object="B08XYZ1234"
-        )
+        r1 = Relation(subject="LANEIGE", predicate=RelationType.HAS_PRODUCT, object="B08XYZ1234")
 
         r2 = Relation(
             subject="LANEIGE",
             predicate=RelationType.HAS_PRODUCT,
             object="B08XYZ1234",
-            confidence=0.5  # confidence가 달라도 같은 relation
+            confidence=0.5,  # confidence가 달라도 같은 relation
         )
 
         r3 = Relation(
             subject="LANEIGE",
             predicate=RelationType.HAS_PRODUCT,
-            object="B08XYZ5678"  # 다른 object
+            object="B08XYZ5678",  # 다른 object
         )
 
         assert r1 == r2
@@ -162,17 +145,9 @@ class TestRelation:
         """Relation 해시 검증 (중복 제거용)"""
         from src.domain.entities.relations import Relation, RelationType
 
-        r1 = Relation(
-            subject="LANEIGE",
-            predicate=RelationType.HAS_PRODUCT,
-            object="B08XYZ1234"
-        )
+        r1 = Relation(subject="LANEIGE", predicate=RelationType.HAS_PRODUCT, object="B08XYZ1234")
 
-        r2 = Relation(
-            subject="LANEIGE",
-            predicate=RelationType.HAS_PRODUCT,
-            object="B08XYZ1234"
-        )
+        r2 = Relation(subject="LANEIGE", predicate=RelationType.HAS_PRODUCT, object="B08XYZ1234")
 
         # 같은 해시 -> set에서 중복 제거됨
         relations_set = {r1, r2}
@@ -211,7 +186,7 @@ class TestInferenceResult:
             insight_type=InsightType.MARKET_DOMINANCE,
             insight="LANEIGE가 Lip Care 카테고리에서 시장 지배력을 가짐",
             confidence=0.85,
-            evidence={"sos": 15.5, "rank": 1}
+            evidence={"sos": 15.5, "rank": 1},
         )
 
         assert result.rule_name == "market_dominance_rule"
@@ -227,7 +202,7 @@ class TestInferenceResult:
             rule_name="test_rule",
             insight_type=InsightType.MARKET_POSITION,
             insight="Test insight",
-            recommendation="Take action"
+            recommendation="Take action",
         )
 
         data = result.to_dict()
@@ -267,16 +242,13 @@ class TestRelationHelpers:
 
     def test_create_brand_product_relation(self):
         """브랜드-제품 관계 생성 헬퍼 검증"""
-        from src.domain.entities.relations import (
-            create_brand_product_relation,
-            RelationType
-        )
+        from src.domain.entities.relations import RelationType, create_brand_product_relation
 
         relation = create_brand_product_relation(
             brand="LANEIGE",
             product_asin="B08XYZ1234",
             product_name="Lip Sleeping Mask",
-            category="lip_care"
+            category="lip_care",
         )
 
         assert relation.subject == "LANEIGE"
@@ -286,27 +258,21 @@ class TestRelationHelpers:
 
     def test_create_competition_relation(self):
         """경쟁 관계 생성 헬퍼 검증"""
-        from src.domain.entities.relations import (
-            create_competition_relation,
-            RelationType
-        )
+        from src.domain.entities.relations import RelationType, create_competition_relation
 
         # 직접 경쟁자
         direct = create_competition_relation(
             brand1="LANEIGE",
             brand2="Summer Fridays",
             category="lip_care",
-            competition_type="direct"
+            competition_type="direct",
         )
 
         assert direct.predicate == RelationType.DIRECT_COMPETITOR
 
         # 간접 경쟁자
         indirect = create_competition_relation(
-            brand1="LANEIGE",
-            brand2="Burt's Bees",
-            category="lip_care",
-            competition_type="indirect"
+            brand1="LANEIGE", brand2="Burt's Bees", category="lip_care", competition_type="indirect"
         )
 
         assert indirect.predicate == RelationType.INDIRECT_COMPETITOR

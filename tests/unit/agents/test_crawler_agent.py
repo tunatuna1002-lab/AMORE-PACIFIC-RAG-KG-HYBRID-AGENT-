@@ -3,9 +3,10 @@ TDD Phase 2: CrawlerAgent 테스트 (RED → GREEN)
 
 테스트 대상: src/agents/crawler_agent.py
 """
+
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from typing import Dict, Any, List
 
 
 class TestCrawlerAgentInit:
@@ -46,7 +47,7 @@ class TestCrawlerAgentExecute:
                     "rank": 1,
                     "price": 24.00,
                     "rating": 4.7,
-                    "reviews_count": 50000
+                    "reviews_count": 50000,
                 },
                 {
                     "asin": "B0TEST1234",
@@ -55,10 +56,10 @@ class TestCrawlerAgentExecute:
                     "rank": 2,
                     "price": 12.00,
                     "rating": 4.5,
-                    "reviews_count": 10000
-                }
+                    "reviews_count": 10000,
+                },
             ],
-            "total_count": 2
+            "total_count": 2,
         }
 
     @pytest.mark.asyncio
@@ -112,9 +113,7 @@ class TestCrawlerAgentExecute:
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_scraper_result)
 
-        result = await agent.execute(
-            categories=["lip_care", "skin_care", "lip_makeup"]
-        )
+        result = await agent.execute(categories=["lip_care", "skin_care", "lip_makeup"])
 
         # 여러 번 호출되어야 함
         assert agent.scraper.scrape_category.call_count >= 1
@@ -130,7 +129,7 @@ class TestCrawlerAgentErrorHandling:
             "status": "error",
             "error_type": "BLOCKED",
             "message": "Amazon blocked request",
-            "products": []
+            "products": [],
         }
 
     @pytest.fixture
@@ -140,7 +139,7 @@ class TestCrawlerAgentErrorHandling:
             "status": "error",
             "error_type": "TIMEOUT",
             "message": "Page load timeout",
-            "products": []
+            "products": [],
         }
 
     @pytest.mark.asyncio
@@ -184,21 +183,19 @@ class TestCrawlerAgentErrorHandling:
             if "lip" in str(category).lower():
                 return {
                     "status": "success",
-                    "products": [{"asin": "B001", "brand": "LANEIGE", "rank": 1}]
+                    "products": [{"asin": "B001", "brand": "LANEIGE", "rank": 1}],
                 }
             else:
                 return {
                     "status": "error",
                     "error_type": "BLOCKED",
                     "message": "Blocked",
-                    "products": []
+                    "products": [],
                 }
 
         agent.scraper.scrape_category = AsyncMock(side_effect=mock_scrape)
 
-        result = await agent.execute(
-            categories=["lip_care", "skin_care"]
-        )
+        result = await agent.execute(categories=["lip_care", "skin_care"])
 
         # 결과가 있어야 함
         assert result is not None
@@ -214,9 +211,14 @@ class TestCrawlerAgentBrandExtraction:
             "status": "success",
             "products": [
                 {"asin": "B001", "title": "LANEIGE Lip Mask Berry", "brand": "LANEIGE", "rank": 1},
-                {"asin": "B002", "title": "Beauty of Joseon Serum", "brand": "Beauty of Joseon", "rank": 2},
-                {"asin": "B003", "title": "e.l.f. Lip Gloss", "brand": "e.l.f.", "rank": 3}
-            ]
+                {
+                    "asin": "B002",
+                    "title": "Beauty of Joseon Serum",
+                    "brand": "Beauty of Joseon",
+                    "rank": 2,
+                },
+                {"asin": "B003", "title": "e.l.f. Lip Gloss", "brand": "e.l.f.", "rank": 3},
+            ],
         }
 
     @pytest.mark.asyncio
@@ -242,7 +244,7 @@ class TestCrawlerAgentProductValidation:
 
         agent = CrawlerAgent()
 
-        assert hasattr(agent, 'scraper')
+        assert hasattr(agent, "scraper")
         assert agent.scraper is not None
 
 
@@ -277,9 +279,9 @@ class TestCrawlerAgentStatistics:
         return {
             "status": "success",
             "products": [
-                {"asin": f"B00{i}", "brand": "LANEIGE" if i < 5 else "COSRX", "rank": i+1}
+                {"asin": f"B00{i}", "brand": "LANEIGE" if i < 5 else "COSRX", "rank": i + 1}
                 for i in range(10)
-            ]
+            ],
         }
 
     @pytest.mark.asyncio

@@ -50,10 +50,7 @@ class TestLoadDataset:
         """Test loading dataset with empty lines."""
         dataset_file = tmp_path / "test.jsonl"
         dataset_file.write_text(
-            '{"id": "q001", "question": "Test 1?"}\n'
-            "\n"
-            '{"id": "q002", "question": "Test 2?"}\n'
-            "\n"
+            '{"id": "q001", "question": "Test 1?"}\n\n{"id": "q002", "question": "Test 2?"}\n\n'
         )
 
         items = load_dataset(dataset_file)

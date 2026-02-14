@@ -3,7 +3,7 @@ TDD Phase 4: DI 컨테이너 테스트 (RED → GREEN)
 
 테스트 대상: src/infrastructure/container.py
 """
-import pytest
+
 from unittest.mock import MagicMock
 
 
@@ -136,7 +136,7 @@ class TestContainerOverride:
         Container.reset()
 
         mock_kg = MagicMock()
-        Container.override('knowledge_graph', mock_kg)
+        Container.override("knowledge_graph", mock_kg)
 
         result = Container.get_knowledge_graph()
 
@@ -149,7 +149,7 @@ class TestContainerOverride:
         Container.reset()
 
         mock_reasoner = MagicMock()
-        Container.override('reasoner', mock_reasoner)
+        Container.override("reasoner", mock_reasoner)
 
         result = Container.get_reasoner()
 
@@ -162,7 +162,7 @@ class TestContainerOverride:
         Container.reset()
 
         mock_kg = MagicMock()
-        Container.override('knowledge_graph', mock_kg)
+        Container.override("knowledge_graph", mock_kg)
 
         agent = Container.get_insight_agent()
 
@@ -176,7 +176,7 @@ class TestContainerOverride:
         Container.reset()
 
         mock_kg = MagicMock()
-        Container.override('knowledge_graph', mock_kg)
+        Container.override("knowledge_graph", mock_kg)
 
         Container.reset()
 
@@ -190,8 +190,8 @@ class TestContainerAgentCreation:
 
     def test_get_insight_agent_returns_hybrid_insight_agent(self):
         """get_insight_agent()는 HybridInsightAgent 반환"""
-        from src.infrastructure.container import Container
         from src.agents.hybrid_insight_agent import HybridInsightAgent
+        from src.infrastructure.container import Container
 
         Container.reset()
 
@@ -201,8 +201,8 @@ class TestContainerAgentCreation:
 
     def test_get_chatbot_agent_returns_hybrid_chatbot_agent(self):
         """get_chatbot_agent()는 HybridChatbotAgent 반환"""
-        from src.infrastructure.container import Container
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
+        from src.infrastructure.container import Container
 
         Container.reset()
 
@@ -212,8 +212,8 @@ class TestContainerAgentCreation:
 
     def test_get_crawler_agent_returns_crawler_agent(self):
         """get_crawler_agent()는 CrawlerAgent 반환"""
-        from src.infrastructure.container import Container
         from src.agents.crawler_agent import CrawlerAgent
+        from src.infrastructure.container import Container
 
         Container.reset()
 
@@ -249,7 +249,7 @@ class TestContainerContextManager:
         # override를 컨텍스트 매니저로 사용
         mock_kg = MagicMock()
 
-        with Container.test_override('knowledge_graph', mock_kg):
+        with Container.test_override("knowledge_graph", mock_kg):
             result = Container.get_knowledge_graph()
             assert result is mock_kg
 

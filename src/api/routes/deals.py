@@ -288,4 +288,4 @@ async def export_deals_report(days: int = 7, format: str = "excel"):
         raise
     except Exception as e:
         logging.error(f"Deals export error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

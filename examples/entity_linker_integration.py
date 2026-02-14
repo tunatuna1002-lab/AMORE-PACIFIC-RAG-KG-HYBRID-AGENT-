@@ -10,18 +10,18 @@ EntityLinker를 HybridRetriever 및 OWLReasoner와 통합하는 예제
 4. 통합 컨텍스트 생성
 """
 
+import asyncio
 import sys
 from pathlib import Path
-import asyncio
 
 # 프로젝트 루트를 sys.path에 추가
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.rag.entity_linker import EntityLinker, LinkedEntity
-from src.rag.hybrid_retriever import HybridRetriever
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.rag.entity_linker import EntityLinker
+from src.rag.hybrid_retriever import HybridRetriever
 
 
 async def example_basic_integration():
@@ -59,15 +59,22 @@ async def example_basic_integration():
     # EntityLinker 결과를 HybridRetriever 형식으로 변환
     entity_dict = {
         "brands": [e.concept_label for e in entities if e.entity_type == "brand"],
-        "categories": [e.context.get("matched_key", e.text.lower()) for e in entities if e.entity_type == "category"],
-        "indicators": [e.context.get("matched_key", e.text.lower()) for e in entities if e.entity_type == "metric"]
+        "categories": [
+            e.context.get("matched_key", e.text.lower())
+            for e in entities
+            if e.entity_type == "category"
+        ],
+        "indicators": [
+            e.context.get("matched_key", e.text.lower())
+            for e in entities
+            if e.entity_type == "metric"
+        ],
     }
 
     print(f"Entities for retriever: {entity_dict}")
 
     context = await retriever.retrieve(
-        query=query,
-        current_metrics={"summary": {"laneige_sos_by_category": {"lip_care": 0.12}}}
+        query=query, current_metrics={"summary": {"laneige_sos_by_category": {"lip_care": 0.12}}}
     )
 
     print(f"\nOntology facts: {len(context.ontology_facts)}")
@@ -110,10 +117,10 @@ async def example_entity_uri_usage():
     if "brand" in entity_groups and len(entity_groups["brand"]) >= 2:
         brand1 = entity_groups["brand"][0]
         brand2 = entity_groups["brand"][1]
-        print(f"SELECT ?relation")
-        print(f"WHERE {{")
+        print("SELECT ?relation")
+        print("WHERE {")
         print(f"  <{brand1.concept_uri}> ?relation <{brand2.concept_uri}> .")
-        print(f"}}")
+        print("}")
 
 
 async def example_confidence_filtering():
@@ -180,7 +187,7 @@ async def example_multi_language():
         "라네즈 립케어 제품 분석",
         "LANEIGE Lip Care analysis",
         "COSRX 스킨케어 vs 라네즈",
-        "Beauty of Joseon 조선미녀 제품"
+        "Beauty of Joseon 조선미녀 제품",
     ]
 
     for query in queries:
@@ -237,6 +244,7 @@ async def main():
     except Exception as e:
         print(f"\n❌ Example failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

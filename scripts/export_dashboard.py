@@ -76,7 +76,7 @@ async def main():
         )
 
     print("\nProducts:")
-    for asin, product in list(result.get("products", {}).items())[:5]:
+    for _asin, product in list(result.get("products", {}).items())[:5]:
         print(f"  - {product.get('name', 'Unknown')[:30]}: Rank #{product.get('rank', 'N/A')}")
 
     print("\n" + "=" * 50)

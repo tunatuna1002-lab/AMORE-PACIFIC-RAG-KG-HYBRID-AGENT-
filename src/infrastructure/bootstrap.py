@@ -100,7 +100,7 @@ class ApplicationContainer:
 
             # Try to initialize Brain (optional, may have dependencies)
             try:
-                from src.core.brain import UnifiedBrain, get_brain
+                from src.core.brain import get_brain
 
                 self._brain = await get_brain()  # Use existing singleton (async)
                 logger.info("UnifiedBrain connected")
@@ -109,7 +109,7 @@ class ApplicationContainer:
 
             # Try to initialize CrawlManager (optional)
             try:
-                from src.core.crawl_manager import CrawlManager, get_crawl_manager
+                from src.core.crawl_manager import get_crawl_manager
 
                 self._crawl_manager = await get_crawl_manager()
                 logger.info("CrawlManager connected")

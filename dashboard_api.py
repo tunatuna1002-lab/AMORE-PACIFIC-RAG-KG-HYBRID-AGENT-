@@ -332,22 +332,22 @@ Ontology 엔티티 이해:
 {message}
 
 ## 질문 유형
-{query_type.value if hasattr(query_type, 'value') else str(query_type)} (신뢰도: {confidence:.1%})
+{query_type.value if hasattr(query_type, "value") else str(query_type)} (신뢰도: {confidence:.1%})
 
 ## 추출된 엔티티
-- 브랜드: {', '.join(entities.get('brands', [])) or '없음'}
-- 카테고리: {', '.join(entities.get('categories', [])) or '없음'}
-- 지표: {', '.join(entities.get('indicators', [])) or '없음'}
-- 기간: {entities.get('time_range') or '없음'}
+- 브랜드: {", ".join(entities.get("brands", [])) or "없음"}
+- 카테고리: {", ".join(entities.get("categories", [])) or "없음"}
+- 지표: {", ".join(entities.get("indicators", [])) or "없음"}
+- 기간: {entities.get("time_range") or "없음"}
 
 ## RAG 참조 문서
-{rag_context if rag_context else '관련 문서 없음'}
+{rag_context if rag_context else "관련 문서 없음"}
 
 ## 현재 데이터
 {data_context}
 
 ## 이전 대화
-{conversation_history if conversation_history else '이전 대화 없음'}
+{conversation_history if conversation_history else "이전 대화 없음"}
 
 위 정보를 바탕으로 질문에 답변해주세요.
 - 질문 유형에 맞는 응답 스타일을 사용하세요.
@@ -409,9 +409,9 @@ Ontology 엔티티 이해:
         if data and query_type == QueryType.DATA_QUERY:
             brand_kpis = data.get("brand", {}).get("kpis", {})
             fallback = f"""현재 LANEIGE 현황:
-- SoS: {brand_kpis.get('sos', 0)}%
-- Top 10 제품: {brand_kpis.get('top10_count', 0)}개
-- 평균 순위: {brand_kpis.get('avg_rank', 0)}위
+- SoS: {brand_kpis.get("sos", 0)}%
+- Top 10 제품: {brand_kpis.get("top10_count", 0)}개
+- 평균 순위: {brand_kpis.get("avg_rank", 0)}위
 
 (상세 분석을 위해 잠시 후 다시 시도해주세요)"""
 
@@ -1199,15 +1199,15 @@ async def export_docx(request: ExportRequest):
     home_status = data.get("home", {}).get("status", {})
 
     summary_text = f"""
-LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')} 상태입니다.
+LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get("exposure", "N/A")} 상태입니다.
 
-• Share of Shelf (SoS): {brand_kpis.get('sos', 0)}%
-• Top 10 진입 제품: {brand_kpis.get('top10_count', 0)}개
-• 평균 순위: {brand_kpis.get('avg_rank', 0)}위
-• 시장 집중도 (HHI): {brand_kpis.get('hhi', 0)}
+• Share of Shelf (SoS): {brand_kpis.get("sos", 0)}%
+• Top 10 진입 제품: {brand_kpis.get("top10_count", 0)}개
+• 평균 순위: {brand_kpis.get("avg_rank", 0)}위
+• 시장 집중도 (HHI): {brand_kpis.get("hhi", 0)}
 
-현재 시장 포지션: {home_status.get('position', 'N/A')}
-주의 필요 제품: {home_status.get('warning_count', 0)}개
+현재 시장 포지션: {home_status.get("position", "N/A")}
+주의 필요 제품: {home_status.get("warning_count", 0)}개
 """
     doc.add_paragraph(summary_text)
 
@@ -1289,13 +1289,13 @@ LANEIGE 브랜드는 Amazon US 시장에서 {home_status.get('exposure', 'N/A')}
             strategy_prompt = f"""다음 데이터와 가이드라인을 바탕으로 LANEIGE 브랜드의 전략적 권고사항 3가지를 작성해주세요.
 
 데이터:
-- SoS: {brand_kpis.get('sos', 0)}%
-- Top 10 제품: {brand_kpis.get('top10_count', 0)}개
-- 평균 순위: {brand_kpis.get('avg_rank', 0)}위
-- 주요 경쟁사: {', '.join([c['brand'] for c in competitors[:3]])}
+- SoS: {brand_kpis.get("sos", 0)}%
+- Top 10 제품: {brand_kpis.get("top10_count", 0)}개
+- 평균 순위: {brand_kpis.get("avg_rank", 0)}위
+- 주요 경쟁사: {", ".join([c["brand"] for c in competitors[:3]])}
 
 참고 가이드라인:
-{strategy_context if strategy_context else '기본 전략 기준 적용'}
+{strategy_context if strategy_context else "기본 전략 기준 적용"}
 
 각 권고사항은 1-2문장으로 간결하게 작성하세요.
 """
@@ -2908,7 +2908,7 @@ async def confirm_email_page(token: str, email: str):
                 </div>
                 <h1>인증 실패</h1>
                 <p>이메일 인증 링크가 만료되었거나 유효하지 않습니다.</p>
-                <div class="error-msg">{result.get('error', '토큰이 유효하지 않습니다.')}</div>
+                <div class="error-msg">{result.get("error", "토큰이 유효하지 않습니다.")}</div>
                 <p style="margin-top: 20px; font-size: 13px;">대시보드에서 다시 인증을 요청해주세요.</p>
             </div>
         </body>

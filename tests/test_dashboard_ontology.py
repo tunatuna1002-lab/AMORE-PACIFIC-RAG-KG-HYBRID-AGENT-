@@ -3,25 +3,25 @@
 기존 dashboard_data.json을 로드하여 온톨로지 인사이트 추가
 """
 
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # 프로젝트 루트 추가
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.domain.entities.relations import Relation, RelationType
+from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.ontology.business_rules import register_all_rules
-from src.domain.entities.relations import Relation, RelationType
 
 
 def load_dashboard_data() -> dict:
     """대시보드 데이터 로드"""
     data_path = PROJECT_ROOT / "data" / "dashboard_data.json"
-    with open(data_path, "r", encoding="utf-8") as f:
+    with open(data_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -45,8 +45,8 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
             properties={
                 "product_name": product.get("name", "")[:50],
                 "rank": product.get("rank"),
-                "category": product.get("category")
-            }
+                "category": product.get("category"),
+            },
         )
         kg.add_relation(rel1)
         stats["brand_product"] += 1
@@ -58,7 +58,7 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
                 subject=asin,
                 predicate=RelationType.BELONGS_TO_CATEGORY,
                 object=category,
-                properties={"rank": product.get("rank")}
+                properties={"rank": product.get("rank")},
             )
             kg.add_relation(rel2)
             stats["product_category"] += 1
@@ -70,20 +70,23 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
         is_laneige = brand_name.upper() == "LANEIGE"
 
         # 메타데이터 설정
-        kg.set_entity_metadata(brand_name, {
-            "type": "brand",
-            "sos": comp.get("sos", 0) / 100,
-            "avg_rank": comp.get("avg_rank"),
-            "product_count": comp.get("product_count"),
-            "is_target": is_laneige
-        })
+        kg.set_entity_metadata(
+            brand_name,
+            {
+                "type": "brand",
+                "sos": comp.get("sos", 0) / 100,
+                "avg_rank": comp.get("avg_rank"),
+                "product_count": comp.get("product_count"),
+                "is_target": is_laneige,
+            },
+        )
 
         if not is_laneige:
             rel = Relation(
                 subject="LANEIGE",
                 predicate=RelationType.COMPETES_WITH,
                 object=brand_name,
-                properties={"competitor_sos": comp.get("sos", 0) / 100}
+                properties={"competitor_sos": comp.get("sos", 0) / 100},
             )
             kg.add_relation(rel)
             stats["competition"] += 1
@@ -94,7 +97,7 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
 
     # 최고 순위 제품 찾기
     best_rank = 999
-    for asin, product in products.items():
+    for _asin, product in products.items():
         rank = product.get("rank", 999)
         if rank < best_rank:
             best_rank = rank
@@ -112,11 +115,13 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
         "category": next(iter(categories.keys()), "unknown"),
         "cpi": first_cat.get("cpi", 100),
         "best_rank": first_cat.get("best_rank", best_rank),
-        "competitor_count": len([c for c in competitors if c.get("brand", "").upper() != "LANEIGE"]),
+        "competitor_count": len(
+            [c for c in competitors if c.get("brand", "").upper() != "LANEIGE"]
+        ),
         "current_rank": best_rank,
         "rank_change_7d": 0,
         "streak_days": 7,
-        "rating_gap": 0.1
+        "rating_gap": 0.1,
     }
 
     # 3. 추론 실행
@@ -143,7 +148,7 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
             "risk_alert": "bell",
             "entry_opportunity": "door-open",
             "price_position": "tag",
-            "price_quality_gap": "balance-scale"
+            "price_quality_gap": "balance-scale",
         }
         return icons.get(insight_type, "lightbulb")
 
@@ -158,23 +163,25 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
             "risk_alert": "#f59e0b",
             "entry_opportunity": "#14b8a6",
             "price_position": "#6366f1",
-            "price_quality_gap": "#f97316"
+            "price_quality_gap": "#f97316",
         }
         return colors.get(insight_type, "#6b7280")
 
     formatted_inferences = []
     for inf in inferences:
         insight_type = inf.insight_type.value
-        formatted_inferences.append({
-            "rule_name": inf.rule_name,
-            "insight_type": insight_type,
-            "insight": inf.insight,
-            "recommendation": inf.recommendation,
-            "confidence": inf.confidence,
-            "priority": get_priority(insight_type),
-            "icon": get_icon(insight_type),
-            "color": get_color(insight_type)
-        })
+        formatted_inferences.append(
+            {
+                "rule_name": inf.rule_name,
+                "insight_type": insight_type,
+                "insight": inf.insight,
+                "recommendation": inf.recommendation,
+                "confidence": inf.confidence,
+                "priority": get_priority(insight_type),
+                "icon": get_icon(insight_type),
+                "color": get_color(insight_type),
+            }
+        )
 
     # 우선순위로 정렬
     formatted_inferences.sort(
@@ -202,7 +209,7 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
             "total_triples": kg_stats.get("total_triples", 0),
             "brand_product": stats["brand_product"],
             "product_category": stats["product_category"],
-            "competition": stats["competition"]
+            "competition": stats["competition"],
         },
         "inferences": formatted_inferences,
         "summary": {
@@ -211,9 +218,9 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
             "warning_count": warnings,
             "opportunity_count": opportunities,
             "headline": top_inference.insight if top_inference else "추론된 인사이트가 없습니다.",
-            "top_rule": top_inference.rule_name if top_inference else None
+            "top_rule": top_inference.rule_name if top_inference else None,
         },
-        "context": inference_context
+        "context": inference_context,
     }
 
 
@@ -234,19 +241,19 @@ def main():
     print("\n🧠 온톨로지 인사이트 생성 중...")
     ontology_insights = generate_ontology_insights(dashboard_data)
 
-    print(f"\n📈 Knowledge Graph 통계:")
+    print("\n📈 Knowledge Graph 통계:")
     kg_stats = ontology_insights.get("kg_stats", {})
     print(f"   - 총 트리플: {kg_stats.get('total_triples', 0)}")
     print(f"   - 브랜드-제품: {kg_stats.get('brand_product', 0)}")
     print(f"   - 제품-카테고리: {kg_stats.get('product_category', 0)}")
     print(f"   - 경쟁 관계: {kg_stats.get('competition', 0)}")
 
-    print(f"\n🔍 추론 결과:")
+    print("\n🔍 추론 결과:")
     print(f"   - 총 규칙: {ontology_insights.get('total_rules', 0)}개")
     print(f"   - 트리거된 규칙: {ontology_insights.get('triggered_rules', 0)}개")
 
     summary = ontology_insights.get("summary", {})
-    print(f"\n📋 요약:")
+    print("\n📋 요약:")
     print(f"   - 긍정적 인사이트: {summary.get('positive_count', 0)}개")
     print(f"   - 경고: {summary.get('warning_count', 0)}개")
     print(f"   - 기회: {summary.get('opportunity_count', 0)}개")
@@ -258,7 +265,9 @@ def main():
     print("=" * 60)
 
     for i, inf in enumerate(ontology_insights.get("inferences", []), 1):
-        priority_emoji = "🔴" if inf["priority"] == "high" else "🟡" if inf["priority"] == "medium" else "🟢"
+        priority_emoji = (
+            "🔴" if inf["priority"] == "high" else "🟡" if inf["priority"] == "medium" else "🟢"
+        )
         print(f"\n{i}. {priority_emoji} [{inf['insight_type']}] (신뢰도: {inf['confidence']:.0%})")
         print(f"   💡 {inf['insight']}")
         if inf.get("recommendation"):
@@ -281,14 +290,20 @@ def main():
 
     # JSON 구조 미리보기
     print("\n📄 ontology_insights 구조 미리보기:")
-    print(json.dumps({
-        "enabled": ontology_insights["enabled"],
-        "total_rules": ontology_insights["total_rules"],
-        "triggered_rules": ontology_insights["triggered_rules"],
-        "kg_stats": ontology_insights["kg_stats"],
-        "summary": ontology_insights["summary"],
-        "inferences_count": len(ontology_insights["inferences"])
-    }, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "enabled": ontology_insights["enabled"],
+                "total_rules": ontology_insights["total_rules"],
+                "triggered_rules": ontology_insights["triggered_rules"],
+                "kg_stats": ontology_insights["kg_stats"],
+                "summary": ontology_insights["summary"],
+                "inferences_count": len(ontology_insights["inferences"]),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

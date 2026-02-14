@@ -5,27 +5,24 @@ AMORE RAG-Ontology Hybrid Agent System
 일일 Amazon 베스트셀러 크롤링 및 LANEIGE 분석 시스템
 """
 
-import asyncio
 import argparse
+import asyncio
 import os
 import sys
 from datetime import datetime
-from typing import Optional
 
 from dotenv import load_dotenv
 
 from orchestrator import Orchestrator  # 워크플로우용
-from src.core.brain import UnifiedBrain, get_brain  # 챗봇용
+from src.core.brain import get_brain  # 챗봇용
 from src.monitoring.logger import AgentLogger
-
 
 # 환경 변수 로드
 load_dotenv()
 
 
 async def run_daily_workflow(
-    categories: Optional[list] = None,
-    spreadsheet_id: Optional[str] = None
+    categories: list | None = None, spreadsheet_id: str | None = None
 ) -> dict:
     """
     일일 워크플로우 실행
@@ -54,9 +51,7 @@ async def run_daily_workflow(
 
     # 오케스트레이터 초기화
     orchestrator = Orchestrator(
-        config_path="./config/thresholds.json",
-        spreadsheet_id=sheet_id,
-        model="gpt-4.1-mini"
+        config_path="./config/thresholds.json", spreadsheet_id=sheet_id, model="gpt-4.1-mini"
     )
 
     try:
@@ -94,7 +89,7 @@ async def run_daily_workflow(
         await orchestrator.cleanup()
 
 
-async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
+async def run_chatbot(spreadsheet_id: str | None = None) -> None:
     """
     챗봇 인터랙티브 모드 (UnifiedBrain 사용)
 
@@ -115,7 +110,7 @@ async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
     # 현재 데이터 로드
     current_metrics = None
     try:
-        with open("./data/dashboard_data.json", "r", encoding="utf-8") as f:
+        with open("./data/dashboard_data.json", encoding="utf-8") as f:
             current_metrics = json.load(f)
     except FileNotFoundError:
         logger.warning("Dashboard data not found, starting without data context")
@@ -139,16 +134,22 @@ async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
                     continue
 
                 if user_input.lower() == "status":
-                    stats = brain.get_stats() if hasattr(brain, 'get_stats') else {}
+                    stats = brain.get_stats() if hasattr(brain, "get_stats") else {}
                     print(f"\n📊 Status: {stats}\n")
                     continue
 
                 if user_input.lower() == "errors":
-                    errors = brain.get_recent_errors(limit=5) if hasattr(brain, 'get_recent_errors') else []
+                    errors = (
+                        brain.get_recent_errors(limit=5)
+                        if hasattr(brain, "get_recent_errors")
+                        else []
+                    )
                     if errors:
                         print("\n⚠️ Recent Errors:")
                         for err in errors:
-                            print(f"   - [{err.get('agent', 'unknown')}] {err.get('message', 'unknown error')}")
+                            print(
+                                f"   - [{err.get('agent', 'unknown')}] {err.get('message', 'unknown error')}"
+                            )
                     else:
                         print("\n✅ No recent errors")
                     print()
@@ -156,16 +157,19 @@ async def run_chatbot(spreadsheet_id: Optional[str] = None) -> None:
 
                 # UnifiedBrain으로 응답 생성
                 response = await brain.process_query(
-                    query=user_input,
-                    current_metrics=current_metrics
+                    query=user_input, current_metrics=current_metrics
                 )
 
                 # 응답 출력
-                response_dict = response.to_dict() if hasattr(response, 'to_dict') else response
-                print(f"\n🤖 Assistant: {response_dict.get('text', response_dict.get('content', 'No response'))}")
+                response_dict = response.to_dict() if hasattr(response, "to_dict") else response
+                print(
+                    f"\n🤖 Assistant: {response_dict.get('text', response_dict.get('content', 'No response'))}"
+                )
 
                 # 도구 호출 정보
-                tools_called = response_dict.get("tools_called", response_dict.get("tools_used", []))
+                tools_called = response_dict.get(
+                    "tools_called", response_dict.get("tools_used", [])
+                )
                 if tools_called:
                     print(f"   [도구 사용: {', '.join(tools_called)}]")
 
@@ -228,31 +232,19 @@ Examples:
 
   # Specify Google Sheets ID
   python main.py --spreadsheet-id YOUR_SPREADSHEET_ID
-        """
+        """,
     )
 
-    parser.add_argument(
-        "--chat",
-        action="store_true",
-        help="Start interactive chatbot mode"
-    )
+    parser.add_argument("--chat", action="store_true", help="Start interactive chatbot mode")
 
     parser.add_argument(
-        "--categories",
-        nargs="+",
-        help="Specific categories to crawl (default: all)"
+        "--categories", nargs="+", help="Specific categories to crawl (default: all)"
     )
 
-    parser.add_argument(
-        "--spreadsheet-id",
-        type=str,
-        help="Google Sheets spreadsheet ID"
-    )
+    parser.add_argument("--spreadsheet-id", type=str, help="Google Sheets spreadsheet ID")
 
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Run without saving to Google Sheets"
+        "--dry-run", action="store_true", help="Run without saving to Google Sheets"
     )
 
     args = parser.parse_args()
@@ -265,10 +257,9 @@ Examples:
     if args.chat:
         asyncio.run(run_chatbot(args.spreadsheet_id))
     else:
-        result = asyncio.run(run_daily_workflow(
-            categories=args.categories,
-            spreadsheet_id=args.spreadsheet_id
-        ))
+        result = asyncio.run(
+            run_daily_workflow(categories=args.categories, spreadsheet_id=args.spreadsheet_id)
+        )
 
         # 종료 코드 설정
         if result.get("status") == "completed":

@@ -11,7 +11,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from src.rag.entity_linker import EntityLinker, get_entity_linker
+from src.rag.entity_linker import EntityLinker
 
 
 def test_basic_linking():
@@ -30,7 +30,7 @@ def test_basic_linking():
         "SoS와 HHI 지표 해석",
         "Beauty of Joseon 스킨케어 제품",
         "B0BSHRYY1S ASIN 제품 정보",
-        "글래스스킨 트렌드 분석"
+        "글래스스킨 트렌드 분석",
     ]
 
     for query in test_queries:
@@ -74,19 +74,25 @@ def test_entity_type_filtering():
     print("Filter: brands only")
     entities = linker.link(query, entity_types=["brand"])
     for ent in entities:
-        print(f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})")
+        print(
+            f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})"
+        )
 
     # 지표만
     print("\nFilter: metrics only")
     entities = linker.link(query, entity_types=["metric"])
     for ent in entities:
-        print(f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})")
+        print(
+            f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})"
+        )
 
     # 카테고리만
     print("\nFilter: categories only")
     entities = linker.link(query, entity_types=["category"])
     for ent in entities:
-        print(f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})")
+        print(
+            f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})"
+        )
 
 
 def test_confidence_threshold():
@@ -118,17 +124,19 @@ def test_fuzzy_matching():
 
     # 오타/변형 테스트
     test_queries = [
-        "Lanege 제품",      # 오타
-        "라네즈 립케어",     # 한글
-        "스킨 케어 제품",    # 띄어쓰기
-        "peptid 성분",      # 오타
+        "Lanege 제품",  # 오타
+        "라네즈 립케어",  # 한글
+        "스킨 케어 제품",  # 띄어쓰기
+        "peptid 성분",  # 오타
     ]
 
     for query in test_queries:
         print(f"\n🔍 Query: {query}")
         entities = linker.link(query, min_confidence=0.5)
         for ent in entities:
-            print(f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})")
+            print(
+                f"  [{ent.entity_type}] {ent.text} → {ent.concept_label} (conf: {ent.confidence:.2f})"
+            )
 
 
 def test_to_dict():
@@ -143,6 +151,7 @@ def test_to_dict():
     entities = linker.link(query)
 
     import json
+
     for ent in entities:
         print(f"\n{ent.text}:")
         print(json.dumps(ent.to_dict(), indent=2, ensure_ascii=False))
@@ -164,6 +173,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

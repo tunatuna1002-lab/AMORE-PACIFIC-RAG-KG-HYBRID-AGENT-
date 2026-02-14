@@ -3,12 +3,13 @@ LLM API 연동 테스트
 HybridInsightAgent를 사용하여 실제 LLM 인사이트 생성 테스트
 """
 
-import sys
-import json
 import asyncio
-from pathlib import Path
-from datetime import datetime
+import json
 import os
+import sys
+from datetime import datetime
+from pathlib import Path
+
 import pytest
 
 # 프로젝트 루트 추가
@@ -17,23 +18,22 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # 환경변수 로드
 from dotenv import load_dotenv
+
 load_dotenv(PROJECT_ROOT / ".env")
 
+from src.agents.hybrid_insight_agent import HybridInsightAgent
+from src.domain.entities.relations import Relation, RelationType
+from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.ontology.business_rules import register_all_rules
-from src.domain.entities.relations import Relation, RelationType
-
-from src.rag.hybrid_retriever import HybridRetriever, HybridContext
 from src.rag.context_builder import ContextBuilder
-
-from src.agents.hybrid_insight_agent import HybridInsightAgent
+from src.rag.hybrid_retriever import HybridContext
 
 
 def load_dashboard_data() -> dict:
     """대시보드 데이터 로드"""
     data_path = PROJECT_ROOT / "data" / "dashboard_data.json"
-    with open(data_path, "r", encoding="utf-8") as f:
+    with open(data_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -47,46 +47,51 @@ def build_metrics_data_from_dashboard(data: dict) -> dict:
     # 브랜드 메트릭
     brand_metrics = []
     for comp in competitors:
-        brand_metrics.append({
-            "brand_name": comp.get("brand"),
-            "share_of_shelf": comp.get("sos", 0) / 100,
-            "avg_rank": comp.get("avg_rank"),
-            "product_count": comp.get("product_count"),
-            "is_laneige": comp.get("brand", "").upper() == "LANEIGE"
-        })
+        brand_metrics.append(
+            {
+                "brand_name": comp.get("brand"),
+                "share_of_shelf": comp.get("sos", 0) / 100,
+                "avg_rank": comp.get("avg_rank"),
+                "product_count": comp.get("product_count"),
+                "is_laneige": comp.get("brand", "").upper() == "LANEIGE",
+            }
+        )
 
     # 제품 메트릭
     product_metrics = []
     for asin, product in products.items():
-        product_metrics.append({
-            "asin": asin,
-            "product_title": product.get("name", ""),
-            "category_id": product.get("category"),
-            "current_rank": product.get("rank"),
-            "rank_change_1d": 0,  # 데이터에 없음
-            "rank_change_7d": 0,
-            "rating": product.get("rating"),
-            "rank_volatility": product.get("volatility", 0)
-        })
+        product_metrics.append(
+            {
+                "asin": asin,
+                "product_title": product.get("name", ""),
+                "category_id": product.get("category"),
+                "current_rank": product.get("rank"),
+                "rank_change_1d": 0,  # 데이터에 없음
+                "rank_change_7d": 0,
+                "rating": product.get("rating"),
+                "rank_volatility": product.get("volatility", 0),
+            }
+        )
 
     # 마켓 메트릭
     market_metrics = []
     for cat_id, cat_data in categories.items():
-        market_metrics.append({
-            "category_id": cat_id,
-            "hhi": brand_kpis.get("hhi", 0.02),
-            "cpi": cat_data.get("cpi", 100),
-            "avg_rating_gap": 0.1
-        })
+        market_metrics.append(
+            {
+                "category_id": cat_id,
+                "hhi": brand_kpis.get("hhi", 0.02),
+                "cpi": cat_data.get("cpi", 100),
+                "avg_rating_gap": 0.1,
+            }
+        )
 
     # 서머리
     summary = {
         "laneige_products_tracked": len(product_metrics),
         "laneige_sos_by_category": {
-            cat_id: cat_data.get("sos", 0) / 100
-            for cat_id, cat_data in categories.items()
+            cat_id: cat_data.get("sos", 0) / 100 for cat_id, cat_data in categories.items()
         },
-        "alert_count": 0
+        "alert_count": 0,
     }
 
     return {
@@ -94,7 +99,7 @@ def build_metrics_data_from_dashboard(data: dict) -> dict:
         "brand_metrics": brand_metrics,
         "product_metrics": product_metrics,
         "market_metrics": market_metrics,
-        "alerts": []
+        "alerts": [],
     }
 
 
@@ -109,24 +114,28 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
         category = product.get("category", "unknown")
 
         # Brand → Product
-        kg.add_relation(Relation(
-            subject=brand,
-            predicate=RelationType.HAS_PRODUCT,
-            object=asin,
-            properties={
-                "product_name": product.get("name", "")[:50],
-                "rank": product.get("rank"),
-                "category": category
-            }
-        ))
+        kg.add_relation(
+            Relation(
+                subject=brand,
+                predicate=RelationType.HAS_PRODUCT,
+                object=asin,
+                properties={
+                    "product_name": product.get("name", "")[:50],
+                    "rank": product.get("rank"),
+                    "category": category,
+                },
+            )
+        )
 
         # Product → Category
-        kg.add_relation(Relation(
-            subject=asin,
-            predicate=RelationType.BELONGS_TO_CATEGORY,
-            object=category,
-            properties={"rank": product.get("rank")}
-        ))
+        kg.add_relation(
+            Relation(
+                subject=asin,
+                predicate=RelationType.BELONGS_TO_CATEGORY,
+                object=category,
+                properties={"rank": product.get("rank")},
+            )
+        )
 
     # 경쟁사 정보
     competitors = data.get("brand", {}).get("competitors", [])
@@ -134,21 +143,26 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
         brand_name = comp.get("brand", "")
         is_laneige = brand_name.upper() == "LANEIGE"
 
-        kg.set_entity_metadata(brand_name, {
-            "type": "brand",
-            "sos": comp.get("sos", 0) / 100,
-            "avg_rank": comp.get("avg_rank"),
-            "product_count": comp.get("product_count"),
-            "is_target": is_laneige
-        })
+        kg.set_entity_metadata(
+            brand_name,
+            {
+                "type": "brand",
+                "sos": comp.get("sos", 0) / 100,
+                "avg_rank": comp.get("avg_rank"),
+                "product_count": comp.get("product_count"),
+                "is_target": is_laneige,
+            },
+        )
 
         if not is_laneige:
-            kg.add_relation(Relation(
-                subject="LANEIGE",
-                predicate=RelationType.COMPETES_WITH,
-                object=brand_name,
-                properties={"competitor_sos": comp.get("sos", 0) / 100}
-            ))
+            kg.add_relation(
+                Relation(
+                    subject="LANEIGE",
+                    predicate=RelationType.COMPETES_WITH,
+                    object=brand_name,
+                    properties={"competitor_sos": comp.get("sos", 0) / 100},
+                )
+            )
 
     return kg
 
@@ -195,10 +209,7 @@ async def test_hybrid_insight_agent_with_llm():
     model = "gpt-4o-mini"
 
     agent = HybridInsightAgent(
-        model=model,
-        knowledge_graph=kg,
-        reasoner=reasoner,
-        docs_dir=str(PROJECT_ROOT)
+        model=model, knowledge_graph=kg, reasoner=reasoner, docs_dir=str(PROJECT_ROOT)
     )
     print(f"   - 모델: {model}")
 
@@ -208,11 +219,7 @@ async def test_hybrid_insight_agent_with_llm():
     print("=" * 60)
 
     try:
-        result = await agent.execute(
-            metrics_data=metrics_data,
-            crawl_data=None,
-            crawl_summary=None
-        )
+        result = await agent.execute(metrics_data=metrics_data, crawl_data=None, crawl_summary=None)
 
         print("\n✅ 인사이트 생성 완료!")
         print(f"   - 상태: {result.get('status')}")
@@ -234,7 +241,7 @@ async def test_hybrid_insight_agent_with_llm():
         for i, inf in enumerate(result.get("inferences", []), 1):
             print(f"\n{i}. [{inf.get('insight_type')}]")
             print(f"   결론: {inf.get('insight')}")
-            if inf.get('recommendation'):
+            if inf.get("recommendation"):
                 print(f"   권장: {inf.get('recommendation')}")
             print(f"   신뢰도: {inf.get('confidence', 0):.0%}")
 
@@ -268,6 +275,7 @@ async def test_hybrid_insight_agent_with_llm():
     except Exception as e:
         print(f"\n❌ 오류 발생: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -292,7 +300,7 @@ async def test_context_builder_only():
         "hhi": 0.02,
         "category": "lip_care",
         "cpi": 212.0,
-        "current_rank": 3
+        "current_rank": 3,
     }
 
     inferences = reasoner.infer(inference_context)
@@ -300,10 +308,7 @@ async def test_context_builder_only():
 
     # HybridContext 구성
     hybrid_context = HybridContext(
-        query="LANEIGE 시장 분석",
-        inferences=inferences,
-        rag_chunks=[],
-        ontology_facts=[]
+        query="LANEIGE 시장 분석", inferences=inferences, rag_chunks=[], ontology_facts=[]
     )
 
     # 컨텍스트 빌드
@@ -312,7 +317,7 @@ async def test_context_builder_only():
         hybrid_context=hybrid_context,
         current_metrics=None,
         query="시장 분석해줘",
-        knowledge_graph=kg
+        knowledge_graph=kg,
     )
     system_prompt = builder.build_system_prompt()
     user_prompt = builder.build_user_prompt("시장 분석해줘", context)

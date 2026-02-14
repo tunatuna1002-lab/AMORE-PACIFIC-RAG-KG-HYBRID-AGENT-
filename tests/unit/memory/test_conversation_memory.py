@@ -162,7 +162,7 @@ class TestConversationMemory:
     def test_summary_length_limit(self):
         mem = ConversationMemory(max_turns_per_session=2)
         long_content = "x" * 1000
-        for i in range(10):
+        for _i in range(10):
             mem.add_turn("s1", "user", long_content)
         # Summary should be truncated to 2000 chars
         assert len(mem._summaries.get("s1", "")) <= 2000

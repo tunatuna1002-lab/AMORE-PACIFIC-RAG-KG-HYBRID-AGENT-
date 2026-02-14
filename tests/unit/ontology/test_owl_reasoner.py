@@ -1,9 +1,11 @@
 """
 OWL Reasoner 테스트 스크립트
 """
+
 import asyncio
 import logging
-from src.ontology.owl_reasoner import OWLReasoner, OWLREADY2_AVAILABLE
+
+from src.ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,28 +36,13 @@ async def main():
     print("\n2. 제품 추가")
     print("-" * 60)
     reasoner.add_product(
-        asin="B08XYZ123",
-        brand="LANEIGE",
-        category="lip_care",
-        rank=10,
-        price=22.0,
-        rating=4.5
+        asin="B08XYZ123", brand="LANEIGE", category="lip_care", rank=10, price=22.0, rating=4.5
     )
     reasoner.add_product(
-        asin="B09ABC456",
-        brand="COSRX",
-        category="skin_care",
-        rank=5,
-        price=18.0,
-        rating=4.7
+        asin="B09ABC456", brand="COSRX", category="skin_care", rank=5, price=18.0, rating=4.7
     )
     reasoner.add_product(
-        asin="B0ADEF789",
-        brand="e.l.f.",
-        category="lip_care",
-        rank=3,
-        price=8.0,
-        rating=4.3
+        asin="B0ADEF789", brand="e.l.f.", category="lip_care", rank=3, price=8.0, rating=4.3
     )
     print("✓ 3개 제품 추가 완료")
 
@@ -118,7 +105,9 @@ async def main():
     lip_brands = reasoner.get_category_brands("lip_care")
     print(f"Lip Care 카테고리 브랜드: {len(lip_brands)}개")
     for brand_info in lip_brands:
-        print(f"  - {brand_info['brand']}: SoS {brand_info['sos']:.2%}, 제품 {brand_info['product_count']}개")
+        print(
+            f"  - {brand_info['brand']}: SoS {brand_info['sos']:.2%}, 제품 {brand_info['product_count']}개"
+        )
 
     print("\n11. 온톨로지 통계")
     print("-" * 60)

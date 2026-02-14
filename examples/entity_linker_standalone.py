@@ -86,7 +86,7 @@ def example_4_multilingual():
         "라네즈 립케어 제품 분석",
         "LANEIGE Lip Care analysis",
         "COSRX 스킨케어 vs 라네즈",
-        "Beauty of Joseon 조선미녀 제품"
+        "Beauty of Joseon 조선미녀 제품",
     ]
 
     for query in queries:
@@ -159,7 +159,7 @@ def example_7_context_information():
         print(f"\n[{ent.entity_type}] {ent.text}")
         print(f"  Concept: {ent.concept_label}")
         print(f"  Confidence: {ent.confidence:.2f}")
-        print(f"  Context:")
+        print("  Context:")
         for key, value in ent.context.items():
             print(f"    - {key}: {value}")
 
@@ -177,11 +177,11 @@ def example_8_entity_statistics():
         "COSRX vs 라네즈 비교",
         "Peptide 성분 트렌드",
         "SoS와 HHI 지표 해석",
-        "Beauty of Joseon 제품"
+        "Beauty of Joseon 제품",
     ]
 
     for query in queries:
-        entities = linker.link(query)
+        linker.link(query)
 
     print("\nLinker Statistics:")
     print("-" * 80)
@@ -219,7 +219,7 @@ def example_9_comprehensive():
 
     print("\n\nOntology URIs:")
     print("-" * 80)
-    for ent_type, ent_list in sorted(entity_groups.items()):
+    for _ent_type, ent_list in sorted(entity_groups.items()):
         for ent in ent_list:
             print(f"{ent.concept_label}: {ent.concept_uri}")
 
@@ -244,6 +244,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Example failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

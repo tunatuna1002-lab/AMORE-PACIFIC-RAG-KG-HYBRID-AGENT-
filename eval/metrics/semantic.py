@@ -49,8 +49,7 @@ def _get_model(model_name: str = DEFAULT_MODEL) -> SentenceTransformer | None:
         return model
     except ImportError:
         logger.warning(
-            "sentence-transformers not installed. "
-            "Install with: pip install sentence-transformers"
+            "sentence-transformers not installed. Install with: pip install sentence-transformers"
         )
         return None
     except Exception as e:

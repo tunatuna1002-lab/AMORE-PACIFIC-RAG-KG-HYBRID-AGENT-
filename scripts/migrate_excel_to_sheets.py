@@ -94,7 +94,7 @@ spreadsheet_id = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID")
 result = (
     service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="RawData!A:A").execute()
 )
-existing_dates = set(row[0] for row in result.get("values", [])[1:] if row)
+existing_dates = {row[0] for row in result.get("values", [])[1:] if row}
 print(f"   기존 날짜: {sorted(existing_dates)}")
 
 # 새로운 데이터만 필터링 (기존 날짜 제외)

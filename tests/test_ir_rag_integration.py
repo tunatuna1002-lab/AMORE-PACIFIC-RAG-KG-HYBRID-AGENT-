@@ -11,12 +11,12 @@ IR 문서 RAG 통합 테스트
 5. 브랜드 소유권 검증 테스트 (COSRX = 한국 브랜드)
 """
 
-import sys
-import pytest
 import asyncio
-from pathlib import Path
+import sys
 from datetime import datetime
-from typing import List, Dict, Any
+from pathlib import Path
+
+import pytest
 
 # 프로젝트 루트 추가
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -25,10 +25,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 class TestResult:
     """테스트 결과 추적"""
+
     def __init__(self):
         self.passed = 0
         self.failed = 0
-        self.errors: List[str] = []
+        self.errors: list[str] = []
 
     def record_pass(self, test_name: str):
         self.passed += 1
@@ -41,12 +42,13 @@ class TestResult:
 
     def summary(self) -> str:
         total = self.passed + self.failed
-        return f"\n{'='*60}\n총 {total}개 테스트: ✅ {self.passed} 성공, ❌ {self.failed} 실패\n{'='*60}"
+        return f"\n{'=' * 60}\n총 {total}개 테스트: ✅ {self.passed} 성공, ❌ {self.failed} 실패\n{'=' * 60}"
 
 
 # ============================================================================
 # Phase 1: IR 문서 메타데이터 테스트
 # ============================================================================
+
 
 def test_ir_document_metadata(results: TestResult):
     """IR 문서 메타데이터 검증"""
@@ -63,8 +65,16 @@ def test_ir_document_metadata(results: TestResult):
         results.record_pass(f"IR 문서 {len(ir_docs)}개 정의됨")
 
         # 필수 메타데이터 필드 확인
-        required_fields = ["filename", "description", "doc_type", "keywords",
-                          "intent_triggers", "freshness", "quarter", "parent_company"]
+        required_fields = [
+            "filename",
+            "description",
+            "doc_type",
+            "keywords",
+            "intent_triggers",
+            "freshness",
+            "quarter",
+            "parent_company",
+        ]
 
         for doc_id, doc_info in ir_docs.items():
             for field in required_fields:
@@ -80,8 +90,9 @@ def test_ir_document_metadata(results: TestResult):
 
         # parent_company 확인
         for doc_id, doc_info in ir_docs.items():
-            assert doc_info["parent_company"] == "amorepacific", \
-                f"Expected 'amorepacific' for {doc_id}"
+            assert (
+                doc_info["parent_company"] == "amorepacific"
+            ), f"Expected 'amorepacific' for {doc_id}"
         results.record_pass("parent_company = 'amorepacific' 확인")
 
         # 키워드 확인 (Americas, COSRX, LANEIGE 등)
@@ -101,6 +112,7 @@ def test_ir_document_metadata(results: TestResult):
 # ============================================================================
 # Phase 2: IR 문서 로딩 테스트
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_ir_document_loading(results: TestResult):
@@ -160,6 +172,7 @@ async def test_ir_document_loading(results: TestResult):
 # Phase 3: IR 쿼리 검색 테스트
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_ir_query_search(results: TestResult, retriever):
     """IR 관련 쿼리 검색 테스트"""
@@ -177,11 +190,7 @@ async def test_ir_query_search(results: TestResult, retriever):
     try:
         # Q3 Americas 매출 검색
         query1 = "Americas revenue Q3 2025"
-        search_results = await retriever.search(
-            query1,
-            top_k=5,
-            doc_type_filter=["ir_report"]
-        )
+        search_results = await retriever.search(query1, top_k=5, doc_type_filter=["ir_report"])
 
         if search_results:
             results.record_pass(f"Americas Q3 검색: {len(search_results)}개 결과")
@@ -191,11 +200,7 @@ async def test_ir_query_search(results: TestResult, retriever):
 
         # Prime Day 검색
         query2 = "Prime Day performance"
-        search_results = await retriever.search(
-            query2,
-            top_k=5,
-            doc_type_filter=["ir_report"]
-        )
+        search_results = await retriever.search(query2, top_k=5, doc_type_filter=["ir_report"])
 
         if search_results:
             results.record_pass(f"Prime Day 검색: {len(search_results)}개 결과")
@@ -204,11 +209,7 @@ async def test_ir_query_search(results: TestResult, retriever):
 
         # COSRX 편입 검색
         query3 = "COSRX consolidation earnings"
-        search_results = await retriever.search(
-            query3,
-            top_k=5,
-            doc_type_filter=["ir_report"]
-        )
+        search_results = await retriever.search(query3, top_k=5, doc_type_filter=["ir_report"])
 
         if search_results:
             results.record_pass(f"COSRX 편입 검색: {len(search_results)}개 결과")
@@ -217,11 +218,7 @@ async def test_ir_query_search(results: TestResult, retriever):
 
         # Greater China 검색
         query4 = "Greater China turnaround"
-        search_results = await retriever.search(
-            query4,
-            top_k=5,
-            doc_type_filter=["ir_report"]
-        )
+        search_results = await retriever.search(query4, top_k=5, doc_type_filter=["ir_report"])
 
         if search_results:
             results.record_pass(f"Greater China 검색: {len(search_results)}개 결과")
@@ -236,6 +233,7 @@ async def test_ir_query_search(results: TestResult, retriever):
 # Phase 4: 브랜드 소유권 검증 테스트
 # ============================================================================
 
+
 def test_brand_ownership_config(results: TestResult):
     """config/brands.json 브랜드 소유권 검증"""
     print("\n📋 테스트 4: Brand Ownership Config")
@@ -246,7 +244,7 @@ def test_brand_ownership_config(results: TestResult):
         config_path = Path("config/brands.json")
         assert config_path.exists(), "config/brands.json not found"
 
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             brands_config = json.load(f)
         results.record_pass("brands.json 로드 성공")
 
@@ -258,22 +256,25 @@ def test_brand_ownership_config(results: TestResult):
         results.record_pass("COSRX가 amorepacific_brands에 존재")
 
         # COSRX 상세 정보 확인
-        assert cosrx_entry.get("acquired") == "2024", \
-            f"COSRX acquired date should be '2024', got {cosrx_entry.get('acquired')}"
-        assert cosrx_entry.get("country") == "Korea", \
-            f"COSRX country should be 'Korea', got {cosrx_entry.get('country')}"
+        assert (
+            cosrx_entry.get("acquired") == "2024"
+        ), f"COSRX acquired date should be '2024', got {cosrx_entry.get('acquired')}"
+        assert (
+            cosrx_entry.get("country") == "Korea"
+        ), f"COSRX country should be 'Korea', got {cosrx_entry.get('country')}"
         results.record_pass("COSRX: 2024년 인수, 한국 브랜드 확인")
 
         # brand_ownership 상세 정보 확인
         ownership = brands_config.get("brand_ownership", {})
         cosrx_ownership = ownership.get("COSRX", {})
 
-        assert cosrx_ownership.get("owner") == "AMOREPACIFIC", \
-            "COSRX owner should be AMOREPACIFIC"
-        assert cosrx_ownership.get("country_of_origin") == "Korea", \
-            "COSRX country_of_origin should be Korea"
-        assert "NOT Chinese" in cosrx_ownership.get("note", ""), \
-            "COSRX note should mention 'NOT Chinese'"
+        assert cosrx_ownership.get("owner") == "AMOREPACIFIC", "COSRX owner should be AMOREPACIFIC"
+        assert (
+            cosrx_ownership.get("country_of_origin") == "Korea"
+        ), "COSRX country_of_origin should be Korea"
+        assert "NOT Chinese" in cosrx_ownership.get(
+            "note", ""
+        ), "COSRX note should mention 'NOT Chinese'"
         results.record_pass("COSRX 소유권 상세: 아모레퍼시픽 소속, 한국 브랜드 (NOT Chinese)")
 
         # COSRX가 competitor_brands에 없는지 확인
@@ -309,13 +310,15 @@ def test_knowledge_graph_brand_ownership(results: TestResult):
         cosrx_ownership = kg.get_brand_ownership("COSRX")
 
         assert cosrx_ownership is not None, "COSRX ownership not found"
-        assert cosrx_ownership.get("parent_group") == "AMOREPACIFIC", \
-            f"COSRX parent should be AMOREPACIFIC, got {cosrx_ownership.get('parent_group')}"
+        assert (
+            cosrx_ownership.get("parent_group") == "AMOREPACIFIC"
+        ), f"COSRX parent should be AMOREPACIFIC, got {cosrx_ownership.get('parent_group')}"
         results.record_pass("COSRX 소유권: AMOREPACIFIC 확인")
 
         # COSRX 한국 브랜드 확인
-        assert cosrx_ownership.get("country_of_origin") == "Korea", \
-            f"COSRX should be Korean, got {cosrx_ownership.get('country_of_origin')}"
+        assert (
+            cosrx_ownership.get("country_of_origin") == "Korea"
+        ), f"COSRX should be Korean, got {cosrx_ownership.get('country_of_origin')}"
         results.record_pass("COSRX 원산지: Korea 확인 (중국 아님)")
 
         # is_amorepacific_brand 확인
@@ -331,8 +334,9 @@ def test_knowledge_graph_brand_ownership(results: TestResult):
 
         # 세그먼트 필터 테스트
         luxury_brands = kg.get_amorepacific_brands(segment_filter="Luxury")
-        assert any(b["brand"] == "Sulwhasoo" for b in luxury_brands), \
-            "Sulwhasoo should be in Luxury segment"
+        assert any(
+            b["brand"] == "Sulwhasoo" for b in luxury_brands
+        ), "Sulwhasoo should be in Luxury segment"
         results.record_pass("세그먼트 필터링 동작 확인")
 
     except Exception as e:
@@ -343,17 +347,17 @@ def test_knowledge_graph_brand_ownership(results: TestResult):
 # Phase 5: IR 추론 규칙 테스트
 # ============================================================================
 
+
 def test_ir_business_rules(results: TestResult):
     """IR 크로스 분석 추론 규칙 테스트"""
     print("\n📋 테스트 6: IR Business Rules")
 
     try:
         from src.ontology.business_rules import (
-            get_ir_rules,
             ALL_BUSINESS_RULES,
+            RULE_BRAND_OWNERSHIP_VERIFICATION,
             RULE_IR_PRIME_DAY_IMPACT,
-            RULE_IR_AMERICAS_CORRELATION,
-            RULE_BRAND_OWNERSHIP_VERIFICATION
+            get_ir_rules,
         )
 
         # IR 규칙 수 확인
@@ -394,6 +398,7 @@ def test_ir_business_rules(results: TestResult):
 # Phase 6: 온톨로지 확장 테스트
 # ============================================================================
 
+
 def test_ontology_corporate_classes(results: TestResult):
     """온톨로지 기업/브랜드 클래스 테스트"""
     print("\n📋 테스트 7: Ontology Corporate Classes")
@@ -423,6 +428,7 @@ def test_ontology_corporate_classes(results: TestResult):
 # ============================================================================
 # 메인 실행
 # ============================================================================
+
 
 async def run_all_tests():
     """모든 테스트 실행"""

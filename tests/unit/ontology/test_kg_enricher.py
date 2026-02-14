@@ -186,7 +186,7 @@ class TestEnrichFromCrawl:
         enricher = KGEnricher()
         triples = enricher.enrich_from_crawl(sample_crawl_data)
         assert len(triples) > 0
-        predicates = set(t.predicate for t in triples)
+        predicates = {t.predicate for t in triples}
         assert "HAS_PRODUCT" in predicates
         assert "BELONGS_TO_CATEGORY" in predicates
 

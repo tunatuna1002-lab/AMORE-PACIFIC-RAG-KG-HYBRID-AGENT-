@@ -3,9 +3,11 @@ Query Rewriter 테스트
 대화 맥락 기반 질문 재구성 모듈 테스트
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from src.rag.query_rewriter import QueryRewriter, RewriteResult, create_rewrite_result_no_change
+
+from src.rag.query_rewriter import QueryRewriter, create_rewrite_result_no_change
 
 
 @pytest.fixture
@@ -87,13 +89,16 @@ class TestRewrite:
         """기본 재구성 테스트 (Mock)"""
         history = [
             {"role": "user", "content": "LANEIGE Lip Sleeping Mask 분석해줘"},
-            {"role": "assistant", "content": "LANEIGE Lip Sleeping Mask는 Lip Care 카테고리에서..."}
+            {
+                "role": "assistant",
+                "content": "LANEIGE Lip Sleeping Mask는 Lip Care 카테고리에서...",
+            },
         ]
 
         # Mock LLM 응답
         mock_response = create_mock_response("LANEIGE Lip Sleeping Mask의 가격은?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             result = await rewriter.rewrite("그 제품 가격은?", history)
 
@@ -107,12 +112,12 @@ class TestRewrite:
         """브랜드 비교 컨텍스트 재구성 (Mock)"""
         history = [
             {"role": "user", "content": "COSRX와 LANEIGE 비교해줘"},
-            {"role": "assistant", "content": "두 브랜드를 비교하면, COSRX는..."}
+            {"role": "assistant", "content": "두 브랜드를 비교하면, COSRX는..."},
         ]
 
         mock_response = create_mock_response("COSRX와 LANEIGE의 SoS 비교는?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             result = await rewriter.rewrite("그럼 SoS는?", history)
 
@@ -124,12 +129,12 @@ class TestRewrite:
         """카테고리 컨텍스트 재구성 (Mock)"""
         history = [
             {"role": "user", "content": "Skin Care 카테고리 분석해줘"},
-            {"role": "assistant", "content": "Skin Care 카테고리에서는 LANEIGE가..."}
+            {"role": "assistant", "content": "Skin Care 카테고리에서는 LANEIGE가..."},
         ]
 
         mock_response = create_mock_response("Skin Care 카테고리 SoS가 왜 떨어졌어?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             result = await rewriter.rewrite("왜 떨어졌어?", history)
 
@@ -141,12 +146,12 @@ class TestRewrite:
         """캐싱 테스트 (Mock)"""
         history = [
             {"role": "user", "content": "LANEIGE 분석해줘"},
-            {"role": "assistant", "content": "LANEIGE는..."}
+            {"role": "assistant", "content": "LANEIGE는..."},
         ]
 
         mock_response = create_mock_response("LANEIGE의 경쟁사는?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
 
             # 첫 번째 호출
@@ -168,7 +173,7 @@ class TestRewrite:
 
         mock_response = create_mock_response("테스트 재구성")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             await rewriter.rewrite("그건?", history)
 
@@ -181,13 +186,13 @@ class TestRewrite:
         """짧은 재구성 결과 시 명확화 요청"""
         history = [
             {"role": "user", "content": "안녕"},
-            {"role": "assistant", "content": "안녕하세요"}
+            {"role": "assistant", "content": "안녕하세요"},
         ]
 
         # 6자 미만의 짧은 응답
         mock_response = create_mock_response("그건")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             result = await rewriter.rewrite("그건?", history)
 
@@ -199,10 +204,10 @@ class TestRewrite:
         """LLM 오류 시 원본 반환 (graceful degradation)"""
         history = [
             {"role": "user", "content": "LANEIGE 분석해줘"},
-            {"role": "assistant", "content": "LANEIGE는..."}
+            {"role": "assistant", "content": "LANEIGE는..."},
         ]
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.side_effect = Exception("API Error")
             result = await rewriter.rewrite("그 브랜드는?", history)
 
@@ -255,7 +260,7 @@ class TestEdgeCases:
 
         mock_response = create_mock_response("테스트 제품 분석")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             result = await rewriter.rewrite("그 제품은?", history)
 
@@ -267,12 +272,12 @@ class TestEdgeCases:
         """특수 문자 포함 쿼리 (Mock)"""
         history = [
             {"role": "user", "content": "LANEIGE's Lip Sleeping Mask (베리향) 분석해줘"},
-            {"role": "assistant", "content": "LANEIGE's Lip Sleeping Mask는..."}
+            {"role": "assistant", "content": "LANEIGE's Lip Sleeping Mask는..."},
         ]
 
         mock_response = create_mock_response("LANEIGE's Lip Sleeping Mask (베리향)의 가격은?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response
             result = await rewriter.rewrite("그 제품의 가격은?", history)
 
@@ -291,7 +296,10 @@ class TestIntegration:
         # 2. 히스토리 쌓임
         history = [
             {"role": "user", "content": "LANEIGE Lip Sleeping Mask 분석해줘"},
-            {"role": "assistant", "content": "LANEIGE Lip Sleeping Mask는 Lip Care 카테고리에서 1위..."}
+            {
+                "role": "assistant",
+                "content": "LANEIGE Lip Sleeping Mask는 Lip Care 카테고리에서 1위...",
+            },
         ]
 
         # 3. 후속 질문 (재구성 필요)
@@ -300,7 +308,7 @@ class TestIntegration:
         # 4. 재구성 실행 (Mock)
         mock_response1 = create_mock_response("LANEIGE Lip Sleeping Mask의 경쟁사는?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response1
             result = await rewriter.rewrite("그 제품 경쟁사는?", history)
 
@@ -309,12 +317,14 @@ class TestIntegration:
 
         # 5. 히스토리 업데이트
         history.append({"role": "user", "content": "그 제품 경쟁사는?"})
-        history.append({"role": "assistant", "content": "LANEIGE Lip Sleeping Mask의 경쟁 제품으로는..."})
+        history.append(
+            {"role": "assistant", "content": "LANEIGE Lip Sleeping Mask의 경쟁 제품으로는..."}
+        )
 
         # 6. 또 다른 후속 질문 (Mock)
         mock_response2 = create_mock_response("LANEIGE Lip Sleeping Mask와 경쟁사의 가격 비교는?")
 
-        with patch('src.rag.query_rewriter.acompletion', new_callable=AsyncMock) as mock_llm:
+        with patch("src.rag.query_rewriter.acompletion", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_response2
             result2 = await rewriter.rewrite("그럼 가격 비교는?", history)
 

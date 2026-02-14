@@ -258,7 +258,7 @@ class TestEdgeCases:
 
         # Empty input should be safe
         assert isinstance(is_safe, bool)
-        assert isinstance(reason, (str, type(None)))
+        assert isinstance(reason, str | None)
         assert isinstance(sanitized, str)
 
     def test_very_long_input(self):
@@ -268,7 +268,7 @@ class TestEdgeCases:
 
         # Should handle without crashing
         assert isinstance(is_safe, bool)
-        assert isinstance(reason, (str, type(None)))
+        assert isinstance(reason, str | None)
         assert isinstance(sanitized, str)
 
     def test_unicode_emojis(self):
