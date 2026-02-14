@@ -189,7 +189,7 @@ class InferenceRule:
                 evidence={
                     "satisfied_conditions": satisfied_conditions,
                     "context_snapshot": {
-                        k: v for k, v in context.items() if isinstance(v, (str, int, float, bool))
+                        k: v for k, v in context.items() if isinstance(v, str | int | float | bool)
                     },
                 },
                 recommendation=conclusion_data.get("recommendation"),

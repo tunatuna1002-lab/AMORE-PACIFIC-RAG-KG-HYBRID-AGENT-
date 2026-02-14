@@ -203,7 +203,7 @@ class KGEnricher:
         prices = []
         for product in products:
             price = product.get("price")
-            if price and isinstance(price, (int, float)) and price > 0:
+            if price and isinstance(price, int | float) and price > 0:
                 prices.append(price)
 
         if not prices:
@@ -216,7 +216,7 @@ class KGEnricher:
         for product in products:
             brand = product.get("brand", "").strip().lower()
             price = product.get("price")
-            if brand and price and isinstance(price, (int, float)) and price > 0:
+            if brand and price and isinstance(price, int | float) and price > 0:
                 brand_prices.setdefault(brand, []).append(price)
 
         for brand, brand_price_list in brand_prices.items():

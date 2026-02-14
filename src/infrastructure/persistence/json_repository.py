@@ -53,7 +53,7 @@ class JsonFileRepository(ProductRepository, MetricsRepository):
 
     def _date_serializer(self, obj: Any) -> str:
         """JSON 직렬화 헬퍼"""
-        if isinstance(obj, (date, datetime)):
+        if isinstance(obj, date | datetime):
             return obj.isoformat()
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 

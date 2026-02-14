@@ -76,7 +76,7 @@ class SensitiveDataFilter(logging.Filter):
                 value = re.sub(pattern, replacement, value)
         elif isinstance(value, dict):
             return {k: self._mask_value(v) for k, v in value.items()}
-        elif isinstance(value, (list, tuple)):
+        elif isinstance(value, list | tuple):
             return type(value)(self._mask_value(item) for item in value)
         return value
 
