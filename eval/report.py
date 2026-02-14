@@ -176,12 +176,11 @@ class ReportGenerator:
 
     def _compute_domain_breakdown(self, results: list[ItemResult]) -> dict[str, dict[str, float]]:
         """Compute metrics breakdown by domain."""
-        # This would need metadata from items - simplified version
         by_domain: dict[str, list[ItemResult]] = defaultdict(list)
 
         for r in results:
-            # Try to infer domain from trace or use default
-            domain = "general"  # Would need item metadata
+            # Use domain from metadata
+            domain = r.metadata.domain
             by_domain[domain].append(r)
 
         breakdown = {}
@@ -199,12 +198,23 @@ class ReportGenerator:
         self, results: list[ItemResult]
     ) -> dict[str, dict[str, float]]:
         """Compute metrics breakdown by difficulty."""
-        # Simplified - would need item metadata
-        return {
-            "easy": {"count": 0, "pass_rate": 0.0, "avg_score": 0.0},
-            "medium": {"count": len(results), "pass_rate": 0.0, "avg_score": 0.0},
-            "hard": {"count": 0, "pass_rate": 0.0, "avg_score": 0.0},
-        }
+        by_difficulty: dict[str, list[ItemResult]] = defaultdict(list)
+
+        for r in results:
+            # Use difficulty from metadata
+            difficulty = r.metadata.difficulty
+            by_difficulty[difficulty].append(r)
+
+        breakdown = {}
+        for difficulty, difficulty_results in by_difficulty.items():
+            n = len(difficulty_results)
+            breakdown[difficulty] = {
+                "count": n,
+                "pass_rate": sum(1 for r in difficulty_results if r.passed) / n,
+                "avg_score": sum(r.overall_score for r in difficulty_results) / n,
+            }
+
+        return breakdown
 
     def _compute_fail_reason_counts(self, results: list[ItemResult]) -> dict[str, int]:
         """Count occurrences of each fail reason."""

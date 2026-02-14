@@ -135,6 +135,10 @@ class MetricAggregator:
             l5_components.append(l5.groundedness_score)
         if l5.answer_relevance_score is not None:
             l5_components.append(l5.answer_relevance_score)
+        if l5.semantic_similarity is not None:
+            l5_components.append(l5.semantic_similarity)
+        if l5.factuality_score is not None:
+            l5_components.append(l5.factuality_score)
 
         l5_score = sum(l5_components) / len(l5_components)
 

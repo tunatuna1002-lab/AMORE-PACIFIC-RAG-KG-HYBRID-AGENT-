@@ -87,9 +87,16 @@ class L5AnswerMetrics(MetricCalculator):
         groundedness = None
         relevance = None
 
+        factuality = None
+
         if use_judge:
             groundedness = await self.judge.score_groundedness(trace.final_answer, context)
             relevance = await self.judge.score_relevance(trace.final_answer, question)
+
+            # Factuality scoring
+            if gold.answer:
+                facts = [gold.answer]
+                factuality, _ = await self.judge.score_factuality(trace.final_answer, facts)
 
         return L5Metrics(
             answer_exact_match=exact_match,
@@ -97,6 +104,7 @@ class L5AnswerMetrics(MetricCalculator):
             semantic_similarity=semantic_sim,
             groundedness_score=groundedness,
             answer_relevance_score=relevance,
+            factuality_score=factuality,
         )
 
     def compute_sync(

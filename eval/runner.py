@@ -16,6 +16,7 @@ import time
 from datetime import datetime
 from typing import Any
 
+from eval.cost_tracker import CostTracker
 from eval.judge.interface import JudgeInterface
 from eval.judge.stub import StubJudge
 from eval.metrics.aggregator import MetricAggregator
@@ -72,7 +73,7 @@ class EvalRunner:
         self.use_semantic_similarity = use_semantic_similarity
 
         # Initialize metric calculators
-        self.l1_metrics = L1QueryMetrics()
+        self.l1_metrics = L1QueryMetrics(use_fuzzy=True)
         self.l2_metrics = L2RetrievalMetrics(default_k=self.config.top_k)
         self.l3_metrics = L3KGMetrics(default_k=self.config.top_k)
         self.l4_metrics = L4OntologyMetrics(validator=self.validator)
@@ -81,6 +82,9 @@ class EvalRunner:
             use_semantic_similarity=use_semantic_similarity,
         )
         self.aggregator = MetricAggregator()
+
+        # Initialize cost tracker
+        self.cost_tracker = CostTracker()
 
     async def run_item(self, item: EvalItem) -> ItemResult:
         """
@@ -101,6 +105,9 @@ class EvalRunner:
 
             # Capture traces
             trace = await self._capture_trace(item.id, result, start_time)
+
+            # Track item completion
+            self.cost_tracker.track_item_completed()
 
             # Compute metrics
             l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
@@ -256,6 +263,7 @@ class EvalRunner:
             l3_kg_query=l3_trace,
             l4_ontology=l4_trace,
             l5_answer=l5_trace,
+            cost=self.cost_tracker.to_cost_trace(),
             latency_ms=latency_ms,
             error=None,
         )
@@ -416,5 +424,6 @@ class EvalRunner:
             answer_f1=0.0,
             groundedness_score=None,
             answer_relevance_score=None,
+            factuality_score=None,
         )
         return l1, l2, l3, l4, l5

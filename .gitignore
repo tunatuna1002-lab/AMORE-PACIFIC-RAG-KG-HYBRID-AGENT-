@@ -50,6 +50,7 @@ logs/
 # Data directories (런타임에 생성되는 데이터는 git에서 제외)
 data/
 !data/.gitkeep
+!eval/data/
 # dashboard_data.json과 scheduler_state.json은 런타임에 생성되므로 git에서 제외
 # 배포 시 오래된 데이터로 덮어쓰기되는 문제 방지
 

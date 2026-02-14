@@ -50,6 +50,10 @@ class GoldEvidence(BaseModel):
         default_factory=list,
         description="Expected ontology rules/constraints to be applied",
     )
+    expected_values: dict[str, float] = Field(
+        default_factory=dict,
+        description="Expected numerical KPI values for accuracy checking",
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -339,6 +343,9 @@ class L5Metrics(BaseModel):
     )
     answer_relevance_score: float | None = Field(
         default=None, ge=0.0, le=1.0, description="Judge-based relevance (0-1)"
+    )
+    factuality_score: float | None = Field(
+        default=None, ge=0.0, le=1.0, description="Judge-based factuality (0-1)"
     )
 
 
