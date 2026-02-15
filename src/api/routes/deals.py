@@ -1,41 +1,23 @@
 """
 Deals Routes - Amazon Deals monitoring endpoints
+=================================================
+dashboard_api.py의 deals 엔드포인트를 추출한 모듈입니다.
 """
 
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
 from src.api.dependencies import verify_api_key
-from src.tools.scrapers.deals_scraper import get_deals_scraper
+from src.api.models import DealsRequest, DealsResponse
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/deals", tags=["deals"])
-
-
-class DealsRequest(BaseModel):
-    """Deals 크롤링 요청"""
-
-    max_items: int = 50
-    beauty_only: bool = True
-
-
-class DealsResponse(BaseModel):
-    """Deals 응답"""
-
-    success: bool
-    count: int
-    lightning_count: int
-    competitor_count: int
-    snapshot_datetime: str
-    deals: list[dict[str, Any]]
-    competitor_deals: list[dict[str, Any]]
-    error: str | None = None
 
 
 @router.get("/")
@@ -120,6 +102,8 @@ async def scrape_deals(request: DealsRequest):
         - lightning_count: Lightning Deal 수
     """
     try:
+        from src.tools.scrapers.deals_scraper import get_deals_scraper
+
         scraper = await get_deals_scraper()
 
         # 크롤링 실행
@@ -133,19 +117,29 @@ async def scrape_deals(request: DealsRequest):
             await storage.initialize()
 
             # 모든 딜 저장
-            for deal in result["deals"]:
-                await storage.save_deal(deal)
+            if result["deals"]:
+                await storage.save_deals(result["deals"], is_competitor=False)
 
-            # 경쟁사 딜에 대한 알림 생성
+            # 경쟁사 딜은 is_competitor=True로 별도 저장
             if result["competitor_deals"]:
+                await storage.save_deals(result["competitor_deals"], is_competitor=True)
+
+                # 알림 서비스로 알림 처리
                 try:
-                    from src.agents.alert_agent import AlertAgent
+                    from src.tools.notifications.alert_service import get_alert_service
 
-                    alert_agent = AlertAgent()
+                    alert_service = get_alert_service()
+                    alerts = await alert_service.process_deals_for_alerts(
+                        result["competitor_deals"]
+                    )
 
-                    for deal in result["competitor_deals"]:
-                        await alert_agent.process_deal_alert(deal)
+                    # DB에 알림 저장
+                    for alert in alerts:
+                        await storage.save_deal_alert(alert)
 
+                    logging.info(
+                        f"Processed {len(alerts)} alerts from {len(result['competitor_deals'])} competitor deals"
+                    )
                 except Exception as alert_err:
                     logging.error(f"Alert processing error: {alert_err}")
                     # 알림 실패해도 크롤링 결과는 반환
@@ -250,26 +244,22 @@ async def export_deals_report(days: int = 7, format: str = "excel"):
                 """,
                     (cutoff_date,),
                 )
-                deals = [dict(row) for row in cursor.fetchall()]
+                all_deals = [dict(row) for row in cursor.fetchall()]
 
             return {
                 "success": True,
                 "summary": summary,
-                "deals": deals,
-                "count": len(deals),
-                "period": {
-                    "days": days,
-                    "start_date": cutoff_date,
-                    "end_date": datetime.now().strftime("%Y-%m-%d"),
-                },
+                "deals": all_deals,
+                "export_date": datetime.now().isoformat(),
+                "period_days": days,
             }
 
-        elif format == "excel":
+        else:  # Excel
             # 엑셀 파일 생성
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = f"./data/exports/Deals_Report_{timestamp}.xlsx"
 
-            result = storage.export_deals_to_excel(output_path=output_path, days=days)
+            result = storage.export_deals_report(output_path=output_path, days=days)
 
             if not result.get("success"):
                 raise HTTPException(status_code=500, detail=result.get("error", "Export failed"))
@@ -287,5 +277,5 @@ async def export_deals_report(days: int = 7, format: str = "excel"):
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Deals export error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.error(f"Deals export error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Deals 내보내기 중 오류가 발생했습니다") from e
