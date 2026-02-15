@@ -1,7 +1,7 @@
 """
 Data Routes
 ===========
-Dashboard data endpoints
+Dashboard data and historical data endpoints (SQLite-first, Sheets/local fallback)
 """
 
 import json
@@ -12,39 +12,17 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from src.tools.storage.sheets_writer import SheetsWriter
+from src.api.dependencies import get_sheets_writer, load_dashboard_data
+from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
-# Data path
-DATA_PATH = "./data/dashboard_data.json"
 
-# Router
-router = APIRouter()
-
-# SheetsWriter singleton instance
-_sheets_writer: SheetsWriter | None = None
-
-
-def get_sheets_writer() -> SheetsWriter:
-    """SheetsWriter singleton instance"""
-    global _sheets_writer
-    if _sheets_writer is None:
-        _sheets_writer = SheetsWriter()
-    return _sheets_writer
-
-
-def load_dashboard_data() -> dict[str, Any]:
-    """Load dashboard data"""
-    try:
-        with open(DATA_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+router = APIRouter(tags=["data"])
 
 
 @router.get("/api/data")
 async def get_data():
-    """Dashboard data endpoint"""
+    """대시보드 데이터 조회"""
     data = load_dashboard_data()
     if not data:
         raise HTTPException(status_code=404, detail="Dashboard data not found")
@@ -56,43 +34,76 @@ async def get_historical_data(
     start_date: str, end_date: str, category_id: str | None = None, brand: str | None = "LANEIGE"
 ):
     """
-    Historical data endpoint (from Google Sheets)
+    히스토리컬 데이터 조회 (SQLite 우선, Google Sheets fallback)
 
     Args:
-        start_date: Start date (YYYY-MM-DD)
-        end_date: End date (YYYY-MM-DD)
-        category_id: Category filter (optional)
-        brand: Brand filter (default: LANEIGE)
+        start_date: 시작 날짜 (YYYY-MM-DD)
+        end_date: 종료 날짜 (YYYY-MM-DD)
+        category_id: 카테고리 필터 (선택)
+        brand: 브랜드 필터 (기본값: LANEIGE)
 
     Returns:
-        - data: Date-wise metric data
-        - sos_history: SoS trend data
-        - rank_history: Rank trend data
+        - data: 날짜별 지표 데이터
+        - sos_history: SoS 추이 데이터
+        - raw_data: 순위 추이 데이터
     """
     try:
-        sheets_writer = get_sheets_writer()
-        if not sheets_writer._initialized:
-            await sheets_writer.initialize()
+        records = []
+        data_source = None
 
-        # Calculate date range
+        # 1차: SQLite에서 조회 (빠름)
+        try:
+            sqlite = get_sqlite_storage()
+            await sqlite.initialize()
+            records = await sqlite.get_raw_data(
+                start_date=start_date,
+                end_date=end_date,
+                category_id=category_id,
+                limit=50000,
+            )
+            if records:
+                data_source = "sqlite"
+                logging.info(
+                    f"Historical: loaded {len(records)} records from SQLite ({start_date} ~ {end_date})"
+                )
+        except Exception as sqlite_err:
+            logging.warning(f"Historical: SQLite 조회 실패: {sqlite_err}")
+
+        # 2차: SQLite 실패/빈 결과 시 Google Sheets fallback
+        if not records:
+            try:
+                sheets_writer = get_sheets_writer()
+                if not sheets_writer._initialized:
+                    await sheets_writer.initialize()
+                records = await sheets_writer.get_raw_data(
+                    start_date=start_date, end_date=end_date, category_id=category_id
+                )
+                if records:
+                    data_source = "sheets"
+                    logging.info(
+                        f"Historical: loaded {len(records)} records from Sheets ({start_date} ~ {end_date})"
+                    )
+            except Exception as sheets_err:
+                logging.warning(f"Historical: Google Sheets 조회 실패: {sheets_err}")
+
+        if not records:
+            return await _get_historical_from_local(start_date, end_date, brand)
+
+        # 날짜 범위 계산
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         days = (end_dt - start_dt).days + 1
 
-        # Get historical data from Google Sheets
-        records = await sheets_writer.get_rank_history(
-            category_id=category_id, brand=brand, days=days
-        )
-
-        if not records:
-            # If no data in Google Sheets, try local JSON files
-            return await _get_historical_from_local(start_date, end_date, brand)
-
-        # Aggregate data by date
+        # 날짜별 데이터 집계 (특정 브랜드 필터링)
         daily_data = {}
+        brand_lower = brand.lower() if brand else ""
         for record in records:
             snapshot_date = record.get("snapshot_date", "")
             if not snapshot_date or snapshot_date < start_date or snapshot_date > end_date:
+                continue
+
+            record_brand = record.get("brand", "")
+            if brand_lower and record_brand.lower() != brand_lower:
                 continue
 
             if snapshot_date not in daily_data:
@@ -108,6 +119,7 @@ async def get_historical_data(
                 {
                     "asin": record.get("asin", ""),
                     "product_name": record.get("product_name", ""),
+                    "brand": record_brand,
                     "rank": rank,
                     "price": record.get("price", ""),
                     "rating": record.get("rating", ""),
@@ -117,14 +129,13 @@ async def get_historical_data(
             if rank <= 10:
                 daily_data[snapshot_date]["top10_count"] += 1
 
-        # Calculate SoS trend (based on Top 100)
+        # SoS 추이 계산
         sos_history = []
-        rank_history = []
+        raw_data = []
         for date_str in sorted(daily_data.keys()):
             day_data = daily_data[date_str]
             products = day_data["products"]
 
-            # SoS = (LANEIGE product count / 100) * 100
             sos = round(len(products) / 100 * 100, 1) if products else 0
             sos_history.append(
                 {
@@ -135,10 +146,9 @@ async def get_historical_data(
                 }
             )
 
-            # Average rank (if available)
             if products:
                 avg_rank = round(sum(p["rank"] for p in products) / len(products), 1)
-                rank_history.append(
+                raw_data.append(
                     {
                         "date": date_str,
                         "rank": avg_rank,
@@ -147,19 +157,61 @@ async def get_historical_data(
                     }
                 )
 
-        # Calculate available_dates
         available_dates = sorted(daily_data.keys())
 
-        # Calculate brand_metrics (aggregate all brands for entire period)
+        # brand_metrics 계산 (전체 기간 통합 - 모든 브랜드 포함)
         brand_metrics = await _calculate_brand_metrics_for_period(records, daily_data, brand)
+
+        # rank_history 생성 (Product View 차트용)
+        rank_history = {}
+        for record in records:
+            snapshot_date = record.get("snapshot_date", "")
+            if not snapshot_date or snapshot_date < start_date or snapshot_date > end_date:
+                continue
+
+            if snapshot_date not in rank_history:
+                rank_history[snapshot_date] = {"products": []}
+
+            rank = int(record.get("rank", 0)) if record.get("rank") else 0
+            price_val = record.get("price", 0)
+            try:
+                price = float(str(price_val).replace("$", "").replace(",", "")) if price_val else 0
+            except (ValueError, TypeError):
+                price = 0
+
+            rank_history[snapshot_date]["products"].append(
+                {
+                    "name": record.get("product_name", ""),
+                    "product_name": record.get("product_name", ""),
+                    "brand": record.get("brand", ""),
+                    "asin": record.get("asin", ""),
+                    "rank": rank,
+                    "price": price,
+                    "rating": record.get("rating", ""),
+                    "discount_percent": record.get("discount_percent", 0),
+                }
+            )
+
+        # 전체 데이터의 사용 가능한 날짜 범위 조회
+        available_date_range = {"min": None, "max": None}
+        try:
+            sqlite = get_sqlite_storage()
+            stats = sqlite.get_stats()
+            if "date_range" in stats:
+                available_date_range = stats["date_range"]
+        except Exception:
+            pass
 
         return {
             "success": True,
             "available_dates": available_dates,
+            "available_date_range": available_date_range,
+            "data_source": data_source,
             "brand_metrics": brand_metrics,
+            "rank_history": rank_history,
             "data": {
                 "sos_history": sos_history,
-                "rank_history": rank_history,
+                "raw_data": raw_data,
                 "daily_data": list(daily_data.values()),
                 "period": {"start": start_date, "end": end_date, "days": days},
                 "brand": brand,
@@ -168,27 +220,31 @@ async def get_historical_data(
 
     except Exception as e:
         logging.error(f"Historical data error: {e}")
-        # Fallback: try local data
         return await _get_historical_from_local(start_date, end_date, brand)
+
+
+# ============= Helper Functions =============
 
 
 async def _calculate_brand_metrics_for_period(
     records: list[dict], daily_data: dict, target_brand: str
 ) -> list[dict]:
     """
-    Calculate metrics for all brands within period (for SoS × Avg Rank chart)
+    기간 내 모든 브랜드의 메트릭 계산 (SoS x Avg Rank 차트용)
 
-    Returns:
-        Brand-wise SoS, average rank, product count, etc.
+    Note:
+        기간 조회 시 동일 ASIN이 여러 날짜에 중복 등장하므로,
+        ASIN 기준 유니크 카운트를 적용하여 정확한 제품 수 계산
     """
-    # Aggregate all product data (all brands)
     brand_data = {}
+    brand_unique_asins: dict[str, set] = {}
 
     for record in records:
         brand_name = record.get("brand", "Unknown")
+        asin = record.get("asin", "")
         rank = int(record.get("rank", 0)) if record.get("rank") else 0
 
-        if not brand_name or rank == 0:
+        if not brand_name or brand_name.lower() == "unknown" or rank == 0:
             continue
 
         if brand_name not in brand_data:
@@ -198,11 +254,10 @@ async def _calculate_brand_metrics_for_period(
                 "prices": [],
                 "product_count": 0,
             }
+            brand_unique_asins[brand_name] = set()
 
         brand_data[brand_name]["ranks"].append(rank)
-        brand_data[brand_name]["product_count"] += 1
 
-        # Collect prices (valid USD range only)
         price = record.get("price")
         if price is not None:
             try:
@@ -210,12 +265,16 @@ async def _calculate_brand_metrics_for_period(
                 if 0.5 <= price_val <= 500:
                     brand_data[brand_name]["prices"].append(price_val)
             except (ValueError, TypeError):
-                logger.warning("Suppressed Exception", exc_info=True)
+                pass
 
-    # Total product count (all brands)
+        if asin and asin not in brand_unique_asins[brand_name]:
+            brand_unique_asins[brand_name].add(asin)
+            brand_data[brand_name]["product_count"] += 1
+        elif not asin:
+            brand_data[brand_name]["product_count"] += 1
+
     total_products = sum(b["product_count"] for b in brand_data.values())
 
-    # Calculate metrics
     brand_metrics = []
     for brand_name, data in brand_data.items():
         if not data["ranks"]:
@@ -224,12 +283,11 @@ async def _calculate_brand_metrics_for_period(
         sos = round(data["product_count"] / max(total_products, 100) * 100, 2)
         avg_rank = round(sum(data["ranks"]) / len(data["ranks"]), 1)
 
-        # Average price
         prices = data.get("prices", [])
         avg_price = round(sum(prices) / len(prices), 2) if prices else None
 
-        # Bubble size: based on product count (min 5, max 25)
         bubble_size = max(5, min(25, data["product_count"] * 2))
+        is_laneige = target_brand.upper() in brand_name.upper()
 
         brand_metrics.append(
             {
@@ -239,28 +297,97 @@ async def _calculate_brand_metrics_for_period(
                 "product_count": data["product_count"],
                 "avg_price": avg_price,
                 "bubble_size": bubble_size,
-                "is_laneige": target_brand.upper() in brand_name.upper(),
+                "is_laneige": is_laneige,
             }
         )
 
-    # Sort by SoS descending, return top 10 only
     brand_metrics.sort(key=lambda x: x["sos"], reverse=True)
-    return brand_metrics[:10]
+    top_10 = brand_metrics[:10]
+
+    # LANEIGE가 top_10에 없으면 추가
+    laneige_in_top10 = any(b.get("is_laneige") for b in top_10)
+    if not laneige_in_top10 and target_brand:
+        laneige_data = None
+        for key in [
+            target_brand,
+            target_brand.upper(),
+            target_brand.lower(),
+            target_brand.capitalize(),
+        ]:
+            if key in brand_data:
+                laneige_data = brand_data[key]
+                break
+
+        if laneige_data and laneige_data["ranks"]:
+            sos = round(laneige_data["product_count"] / max(total_products, 100) * 100, 2)
+            avg_rank = round(sum(laneige_data["ranks"]) / len(laneige_data["ranks"]), 1)
+            l_prices = laneige_data.get("prices", [])
+            l_avg_price = round(sum(l_prices) / len(l_prices), 2) if l_prices else None
+            bubble_size = max(5, min(25, laneige_data["product_count"] * 2))
+            top_10.append(
+                {
+                    "brand": target_brand,
+                    "sos": sos,
+                    "avg_rank": avg_rank,
+                    "product_count": laneige_data["product_count"],
+                    "avg_price": l_avg_price,
+                    "bubble_size": bubble_size,
+                    "is_laneige": True,
+                }
+            )
+            top_10.sort(key=lambda x: x["sos"], reverse=True)
+
+    # Summer Fridays 특별 처리 (tracked competitor)
+    TRACKED_COMPETITORS = ["Summer Fridays"]
+    for tracked_brand in TRACKED_COMPETITORS:
+        tracked_in_top = any(b.get("brand") == tracked_brand for b in top_10)
+        if not tracked_in_top and tracked_brand in brand_data:
+            tracked_data = brand_data[tracked_brand]
+            if tracked_data["ranks"]:
+                sos = round(tracked_data["product_count"] / max(total_products, 100) * 100, 2)
+                avg_rank = round(sum(tracked_data["ranks"]) / len(tracked_data["ranks"]), 1)
+                t_prices = tracked_data.get("prices", [])
+                t_avg_price = round(sum(t_prices) / len(t_prices), 2) if t_prices else None
+                bubble_size = max(5, min(25, tracked_data["product_count"] * 2))
+                top_10.append(
+                    {
+                        "brand": tracked_brand,
+                        "sos": sos,
+                        "avg_rank": avg_rank,
+                        "product_count": tracked_data["product_count"],
+                        "avg_price": t_avg_price,
+                        "bubble_size": bubble_size,
+                        "is_laneige": False,
+                        "is_tracked": True,
+                    }
+                )
+        elif not tracked_in_top:
+            top_10.append(
+                {
+                    "brand": tracked_brand,
+                    "sos": 0,
+                    "avg_rank": None,
+                    "product_count": 0,
+                    "bubble_size": 5,
+                    "is_laneige": False,
+                    "is_tracked": True,
+                    "no_data": True,
+                }
+            )
+
+    top_10.sort(key=lambda x: (not x.get("is_tracked", False), x["sos"]), reverse=True)
+    return top_10
 
 
 def _get_brand_metrics_from_dashboard(dashboard_data: dict | None, target_brand: str) -> list[dict]:
-    """
-    Extract brand metrics from dashboard data (for local fallback)
-    """
+    """대시보드 데이터에서 브랜드 메트릭 추출 (로컬 폴백용)"""
     if not dashboard_data:
         return []
 
-    # Use brand_matrix data from dashboard
     brand_matrix = dashboard_data.get("charts", {}).get("brand_matrix", [])
     if brand_matrix:
         return brand_matrix
 
-    # Generate from competitor data
     competitors = dashboard_data.get("brand", {}).get("competitors", [])
     if not competitors:
         return []
@@ -285,17 +412,14 @@ async def _get_historical_from_local(
     start_date: str, end_date: str, brand: str = "LANEIGE"
 ) -> dict[str, Any]:
     """
-    Get historical data from local JSON files (fallback)
-
-    Uses date-wise JSON files in data/ folder or historical data from dashboard_data.json
+    로컬 JSON 파일에서 히스토리컬 데이터 조회 (폴백)
     """
     try:
-        # Load main dashboard data
         data = load_dashboard_data()
         sos_history = []
-        rank_history = []
+        raw_data = []
 
-        # 1. Extract current SoS/rank info from dashboard data
+        # 1. 대시보드 데이터에서 현재 SoS/순위 정보 추출
         if data:
             brand_kpis = data.get("brand", {}).get("kpis", {})
             current_sos = brand_kpis.get("sos", 0)
@@ -303,7 +427,6 @@ async def _get_historical_from_local(
                 "data_date", datetime.now().strftime("%Y-%m-%d")
             )
 
-            # Add if current date is within requested range
             if start_date <= data_date <= end_date:
                 sos_history.append(
                     {
@@ -316,7 +439,7 @@ async def _get_historical_from_local(
 
                 avg_rank = brand_kpis.get("avg_rank", 0)
                 if avg_rank:
-                    rank_history.append(
+                    raw_data.append(
                         {
                             "date": data_date,
                             "rank": avg_rank,
@@ -325,14 +448,13 @@ async def _get_historical_from_local(
                         }
                     )
 
-        # 2. Extract data from latest_crawl_result.json
+        # 2. latest_crawl_result.json에서 데이터 추출
         latest_crawl_path = Path("./data/latest_crawl_result.json")
         if latest_crawl_path.exists():
             try:
                 with open(latest_crawl_path, encoding="utf-8") as f:
                     crawl_data = json.load(f)
 
-                # Find brand products across all categories
                 brand_products = []
                 crawl_date = None
 
@@ -341,7 +463,6 @@ async def _get_historical_from_local(
                         product_brand = product.get("brand", "")
                         product_name = product.get("product_name", "")
 
-                        # Brand matching (case insensitive, partial match)
                         if (
                             brand.upper() in product_brand.upper()
                             or brand.upper() in product_name.upper()
@@ -351,9 +472,7 @@ async def _get_historical_from_local(
                                 crawl_date = product.get("snapshot_date")
 
                 if brand_products and crawl_date and start_date <= crawl_date <= end_date:
-                    # Check for duplicates
                     if not any(h["date"] == crawl_date for h in sos_history):
-                        # Total products per category (based on Top 100)
                         total_products = sum(
                             len(cat.get("products", []))
                             for cat in crawl_data.get("categories", {}).values()
@@ -374,7 +493,7 @@ async def _get_historical_from_local(
                                 ),
                             }
                         )
-                        rank_history.append(
+                        raw_data.append(
                             {
                                 "date": crawl_date,
                                 "rank": avg_rank,
@@ -386,17 +505,16 @@ async def _get_historical_from_local(
             except (json.JSONDecodeError, ValueError) as e:
                 logging.warning(f"Failed to parse latest_crawl_result.json: {e}")
 
-        # 3. Search date-wise data in raw_products folder (existing logic)
+        # 3. raw_products 폴더에서 날짜별 데이터 검색
         raw_data_dir = Path("./data/raw_products")
         if raw_data_dir.exists():
             for json_file in raw_data_dir.glob("*.json"):
                 try:
-                    file_date = json_file.stem  # Assume filename is YYYY-MM-DD format
+                    file_date = json_file.stem
                     if start_date <= file_date <= end_date:
                         with open(json_file, encoding="utf-8") as f:
                             daily_raw = json.load(f)
 
-                        # Filter brand products only
                         brand_products = [
                             p
                             for p in daily_raw
@@ -411,7 +529,6 @@ async def _get_historical_from_local(
                                 1,
                             )
 
-                            # Remove duplicates
                             if not any(h["date"] == file_date for h in sos_history):
                                 sos_history.append(
                                     {
@@ -423,7 +540,7 @@ async def _get_historical_from_local(
                                         ),
                                     }
                                 )
-                                rank_history.append(
+                                raw_data.append(
                                     {
                                         "date": file_date,
                                         "rank": avg_rank,
@@ -438,15 +555,45 @@ async def _get_historical_from_local(
                 except (json.JSONDecodeError, ValueError):
                     continue
 
-        # Sort by date
         sos_history.sort(key=lambda x: x["date"])
-        rank_history.sort(key=lambda x: x["date"])
+        raw_data.sort(key=lambda x: x["date"])
 
-        # Calculate available_dates
         available_dates = [h["date"] for h in sos_history]
-
-        # Calculate brand_metrics (from current dashboard data)
         brand_metrics = _get_brand_metrics_from_dashboard(data, brand)
+
+        # rank_history 생성 (CPI 차트용)
+        rank_history = {}
+        latest_crawl_path = Path("./data/latest_crawl_result.json")
+        if latest_crawl_path.exists():
+            try:
+                with open(latest_crawl_path, encoding="utf-8") as f:
+                    crawl_data = json.load(f)
+                for _cat_id, cat_data in crawl_data.get("categories", {}).items():
+                    for product in cat_data.get("products", []):
+                        snap_date = product.get("snapshot_date", "")
+                        if not snap_date or snap_date < start_date or snap_date > end_date:
+                            continue
+                        if snap_date not in rank_history:
+                            rank_history[snap_date] = {"products": []}
+                        price_val = product.get("price", 0)
+                        try:
+                            price = (
+                                float(str(price_val).replace("$", "").replace(",", ""))
+                                if price_val
+                                else 0
+                            )
+                        except (ValueError, TypeError):
+                            price = 0
+                        rank_history[snap_date]["products"].append(
+                            {
+                                "name": product.get("product_name", ""),
+                                "brand": product.get("brand", ""),
+                                "rank": product.get("rank", 0),
+                                "price": price,
+                            }
+                        )
+            except (json.JSONDecodeError, ValueError) as e:
+                logging.warning(f"Failed to build rank_history from local: {e}")
 
         if not sos_history:
             return {
@@ -454,6 +601,7 @@ async def _get_historical_from_local(
                 "error": "No historical data found for the specified period",
                 "available_dates": [],
                 "brand_metrics": [],
+                "rank_history": rank_history,
                 "data": None,
             }
 
@@ -461,9 +609,10 @@ async def _get_historical_from_local(
             "success": True,
             "available_dates": available_dates,
             "brand_metrics": brand_metrics,
+            "rank_history": rank_history,
             "data": {
                 "sos_history": sos_history,
-                "rank_history": rank_history,
+                "raw_data": raw_data,
                 "period": {"start": start_date, "end": end_date},
                 "brand": brand,
                 "source": "local",
@@ -471,7 +620,7 @@ async def _get_historical_from_local(
         }
 
     except Exception as e:
-        logging.error(f"Error loading historical data from local: {e}")
+        logging.error(f"Local historical data error: {e}")
         return {
             "success": False,
             "error": str(e),
