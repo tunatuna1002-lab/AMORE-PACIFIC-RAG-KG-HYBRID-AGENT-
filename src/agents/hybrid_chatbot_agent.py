@@ -196,13 +196,11 @@ class HybridChatbotAgent:
 
         flags = FeatureFlags.get_instance()
         if flags.use_decomposed_chatbot():
-            from src.agents.external_signal_manager import ExternalSignalManager
-            from src.agents.source_provider import SourceProvider
-            from src.agents.suggestion_engine import SuggestionEngine
+            from src.infrastructure.container import Container
 
-            self.suggestion_engine = SuggestionEngine(knowledge_graph=self.kg, config=config)
-            self.source_provider = SourceProvider(config=config, knowledge_graph=self.kg)
-            self.signal_manager = ExternalSignalManager(config=config)
+            self.suggestion_engine = Container.get_suggestion_engine()
+            self.source_provider = Container.get_source_provider()
+            self.signal_manager = Container.get_external_signal_manager()
 
     @property
     def verification_pipeline(self) -> Any:

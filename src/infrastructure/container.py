@@ -38,11 +38,19 @@ class Container:
     - OntologyReasoner
     - HybridRetriever
     - DocumentRetriever
+    - SuggestionEngine
+    - SourceProvider
+    - ExternalSignalManager
+    - MarketIntelligenceEngine
 
     팩토리 컴포넌트 (매번 새로 생성):
     - HybridInsightAgent
     - HybridChatbotAgent
     - CrawlerAgent
+    - AlertAgent
+    - MetricsAgent
+    - StorageAgent
+    - BatchWorkflow
     """
 
     _instances: dict[str, Any] = {}
@@ -274,8 +282,6 @@ class Container:
         """
         BatchWorkflow 생성 (매번 새 인스턴스)
 
-        BatchWorkflow는 배치 작업 실행마다 새로 생성됩니다.
-
         Args:
             **kwargs: BatchWorkflow 생성자 파라미터
 
@@ -288,6 +294,140 @@ class Container:
         from src.application.workflows.batch_workflow import BatchWorkflow
 
         return BatchWorkflow(**kwargs)
+
+    @classmethod
+    def get_alert_agent(cls, **kwargs):
+        """
+        AlertAgent 생성 (매번 새 인스턴스)
+
+        Args:
+            **kwargs: AlertAgent 생성자 파라미터 (state_manager 등)
+
+        Returns:
+            AlertAgent 인스턴스
+        """
+        if "alert_agent" in cls._overrides:
+            return cls._overrides["alert_agent"]
+
+        from src.agents.alert_agent import AlertAgent
+
+        return AlertAgent(**kwargs)
+
+    @classmethod
+    def get_metrics_agent(cls, **kwargs):
+        """
+        MetricsAgent 생성 (매번 새 인스턴스)
+
+        Args:
+            **kwargs: MetricsAgent 생성자 파라미터 (config_path 등)
+
+        Returns:
+            MetricsAgent 인스턴스
+        """
+        if "metrics_agent" in cls._overrides:
+            return cls._overrides["metrics_agent"]
+
+        from src.agents.metrics_agent import MetricsAgent
+
+        return MetricsAgent(**kwargs)
+
+    @classmethod
+    def get_storage_agent(cls, **kwargs):
+        """
+        StorageAgent 생성 (매번 새 인스턴스)
+
+        Args:
+            **kwargs: StorageAgent 생성자 파라미터 (spreadsheet_id 등)
+
+        Returns:
+            StorageAgent 인스턴스
+        """
+        if "storage_agent" in cls._overrides:
+            return cls._overrides["storage_agent"]
+
+        from src.agents.storage_agent import StorageAgent
+
+        return StorageAgent(**kwargs)
+
+    # ========================================
+    # 싱글톤 서비스 컴포넌트
+    # ========================================
+
+    @classmethod
+    def get_suggestion_engine(cls):
+        """
+        SuggestionEngine 싱글톤 반환
+
+        Returns:
+            SuggestionEngine 인스턴스
+        """
+        if "suggestion_engine" in cls._overrides:
+            return cls._overrides["suggestion_engine"]
+
+        if "suggestion_engine" not in cls._instances:
+            from src.agents.suggestion_engine import SuggestionEngine
+
+            cls._instances["suggestion_engine"] = SuggestionEngine(
+                knowledge_graph=cls.get_knowledge_graph()
+            )
+
+        return cls._instances["suggestion_engine"]
+
+    @classmethod
+    def get_source_provider(cls):
+        """
+        SourceProvider 싱글톤 반환
+
+        Returns:
+            SourceProvider 인스턴스
+        """
+        if "source_provider" in cls._overrides:
+            return cls._overrides["source_provider"]
+
+        if "source_provider" not in cls._instances:
+            from src.agents.source_provider import SourceProvider
+
+            cls._instances["source_provider"] = SourceProvider(
+                knowledge_graph=cls.get_knowledge_graph()
+            )
+
+        return cls._instances["source_provider"]
+
+    @classmethod
+    def get_external_signal_manager(cls):
+        """
+        ExternalSignalManager 싱글톤 반환
+
+        Returns:
+            ExternalSignalManager 인스턴스
+        """
+        if "external_signal_manager" in cls._overrides:
+            return cls._overrides["external_signal_manager"]
+
+        if "external_signal_manager" not in cls._instances:
+            from src.agents.external_signal_manager import ExternalSignalManager
+
+            cls._instances["external_signal_manager"] = ExternalSignalManager()
+
+        return cls._instances["external_signal_manager"]
+
+    @classmethod
+    def get_market_intelligence_engine(cls):
+        """
+        MarketIntelligenceEngine 싱글톤 반환
+
+        Returns:
+            MarketIntelligenceEngine 인스턴스
+        """
+        if "market_intelligence_engine" in cls._overrides:
+            return cls._overrides["market_intelligence_engine"]
+
+        if "market_intelligence_engine" not in cls._instances:
+            from src.tools.intelligence.market_intelligence import MarketIntelligenceEngine
+
+            cls._instances["market_intelligence_engine"] = MarketIntelligenceEngine()
+
+        return cls._instances["market_intelligence_engine"]
 
     # ========================================
     # 유틸리티 메서드

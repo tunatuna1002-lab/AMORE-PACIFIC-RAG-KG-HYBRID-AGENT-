@@ -288,9 +288,9 @@ class BatchWorkflow:
     @property
     def storage(self):
         if self._storage is None:
-            from src.agents.storage_agent import StorageAgent
+            from src.infrastructure.container import Container
 
-            self._storage = StorageAgent(
+            self._storage = Container.get_storage_agent(
                 spreadsheet_id=self.spreadsheet_id,
                 logger=AgentLogger("storage"),
                 tracer=self.tracer,
@@ -301,9 +301,9 @@ class BatchWorkflow:
     @property
     def metrics_agent(self):
         if self._metrics_agent is None:
-            from src.agents.metrics_agent import MetricsAgent
+            from src.infrastructure.container import Container
 
-            self._metrics_agent = MetricsAgent(
+            self._metrics_agent = Container.get_metrics_agent(
                 config_path=self.config_path,
                 logger=AgentLogger("metrics"),
                 tracer=self.tracer,

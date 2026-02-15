@@ -9,17 +9,21 @@
 
 ## 1. 완료한 작업
 
-### Phase 4: Batch Workflow 통합 (완료)
-- [x] Phase 4 대상 파일 분석 완료
-- [x] HANDOFF.md / TODO.md 생성
+### Phase 4: Batch Workflow 통합 (완료, PR #10)
 - [x] `src/core/batch_workflow.py` → `src/application/workflows/batch_workflow.py` 이전 (1,059줄)
-- [x] DI 클래스 보존 (WorkflowResult, WorkflowDependencies, WorkflowStatus)
-- [x] `orchestrator.py` import 경로 업데이트
-- [x] `scripts/evaluate_golden.py` import 경로 업데이트
-- [x] `src/application/__init__.py` export 목록 확장
-- [x] `src/core/batch_workflow.py` 삭제
+- [x] Import 경로 업데이트 (orchestrator.py, evaluate_golden.py, __init__.py)
 - [x] `Container.get_batch_workflow()` 팩토리 메서드 추가
-- [x] 검증 통과: ruff 0 err, pytest 453/454 (99.8%, pre-existing 1 fail)
+- [x] 검증 통과: ruff 0 err, pytest 453/454 (99.8%)
+
+### Phase 5: DI Container 완성 (완료)
+- [x] Container에 7개 컴포넌트 추가 등록 (11 → 18 메서드)
+  - 팩토리: AlertAgent, MetricsAgent, StorageAgent
+  - 싱글톤: SuggestionEngine, SourceProvider, ExternalSignalManager, MarketIntelligenceEngine
+- [x] 주요 소비자 직접 import → Container DI 전환
+  - `batch_workflow.py`: StorageAgent, MetricsAgent
+  - `hybrid_chatbot_agent.py`: SuggestionEngine, SourceProvider, ExternalSignalManager
+  - `crawl_manager.py`: CrawlerAgent, StorageAgent
+- [x] 검증 통과: ruff 0 err, pytest 453/454 (99.8%)
 
 ---
 
@@ -73,14 +77,16 @@
 
 | 파일 | 변경 유형 | 요약 |
 |------|-----------|------|
-| `src/application/workflows/batch_workflow.py` | 대체 | core/ 로직 이전 (119줄 → 1,100줄+) |
+| `src/infrastructure/container.py` | 수정 | 7개 컴포넌트 추가 (11→18 메서드) |
+| `src/application/workflows/batch_workflow.py` | 수정 | Phase4: core/ 이전 + Phase5: Container DI 전환 |
+| `src/agents/hybrid_chatbot_agent.py` | 수정 | 직접 import → Container DI 전환 |
+| `src/core/crawl_manager.py` | 수정 | CrawlerAgent/StorageAgent → Container DI 전환 |
 | `src/core/batch_workflow.py` | 삭제 | application/으로 이전 완료 |
 | `orchestrator.py` | 수정 | import 경로 변경 (core → application) |
 | `src/application/__init__.py` | 수정 | 새 export 항목 추가 |
-| `src/infrastructure/container.py` | 수정 | `get_batch_workflow()` 팩토리 추가 |
 | `scripts/evaluate_golden.py` | 수정 | import 경로 변경 |
-| `HANDOFF.md` | 생성 | 이 파일 |
-| `TODO.md` | 생성 | Phase 4-6 체크리스트 |
+| `HANDOFF.md` | 수정 | Phase 5 진행 상황 반영 |
+| `TODO.md` | 수정 | Phase 5 체크리스트 완료 |
 
 ---
 

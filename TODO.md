@@ -40,30 +40,31 @@
 - [x] Container `get_batch_workflow()` → 정상 동작
 
 ### 4-7. 커밋
-- [ ] Phase 4 커밋 생성
+- [x] Phase 4 커밋 생성 + PR #10
 
 ---
 
 ## Phase 5: DI Container 완성 + Clean Architecture 정리 (P2, 2일, MEDIUM risk)
 
 ### 5-1. 누락 컴포넌트 Container 등록
-- [ ] AlertAgent
-- [ ] MetricsAgent
-- [ ] StorageAgent
-- [ ] MarketIntelligenceEngine
-- [ ] ExternalSignalCollector
-- [ ] SuggestionEngine
-- [ ] SourceProvider
+- [x] AlertAgent (`get_alert_agent`)
+- [x] MetricsAgent (`get_metrics_agent`)
+- [x] StorageAgent (`get_storage_agent`)
+- [x] MarketIntelligenceEngine (`get_market_intelligence_engine`)
+- [x] ExternalSignalManager (`get_external_signal_manager`)
+- [x] SuggestionEngine (`get_suggestion_engine`)
+- [x] SourceProvider (`get_source_provider`)
 - [x] BatchWorkflow (Phase 4에서 추가 완료)
 
-### 5-2. agents 직접 import → DI 전환
-- [ ] 대상 agent 목록 식별 (tools 직접 import하는 agent)
-- [ ] Protocol 기반 DI로 전환
+### 5-2. 주요 소비자 직접 import → Container DI 전환
+- [x] `batch_workflow.py`: StorageAgent, MetricsAgent → Container
+- [x] `hybrid_chatbot_agent.py`: SuggestionEngine, SourceProvider, ExternalSignalManager → Container
+- [x] `crawl_manager.py`: CrawlerAgent, StorageAgent → Container
 
 ### 5-3. 검증
-- [ ] `ruff check src/` → 0 errors
-- [ ] `python3 -m pytest tests/ -x --tb=short` → 통과율 95%+
-- [ ] Container 등록 컴포넌트 수 확인 (8개 → 15개+)
+- [x] `ruff check src/` → 0 errors
+- [x] `python3 -m pytest tests/ -x --tb=short` → 99.8% (453/454, pre-existing 1 fail)
+- [x] Container 등록 컴포넌트 수 확인 (11개 → 18개 get_ 메서드)
 
 ---
 
