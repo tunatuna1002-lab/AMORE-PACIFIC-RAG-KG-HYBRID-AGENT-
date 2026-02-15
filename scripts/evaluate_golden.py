@@ -248,7 +248,7 @@ async def evaluate_chatbot(verbose: bool = False) -> EvaluationMetrics:
 
     # Initialize workflow
     try:
-        from src.core.batch_workflow import BatchWorkflow
+        from src.application.workflows.batch_workflow import BatchWorkflow
 
         workflow = BatchWorkflow(use_hybrid=True)
     except ImportError as e:

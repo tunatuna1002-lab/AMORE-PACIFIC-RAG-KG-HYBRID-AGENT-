@@ -269,6 +269,26 @@ class Container:
 
         return CrawlerAgent()
 
+    @classmethod
+    def get_batch_workflow(cls, **kwargs):
+        """
+        BatchWorkflow 생성 (매번 새 인스턴스)
+
+        BatchWorkflow는 배치 작업 실행마다 새로 생성됩니다.
+
+        Args:
+            **kwargs: BatchWorkflow 생성자 파라미터
+
+        Returns:
+            BatchWorkflow 인스턴스
+        """
+        if "batch_workflow" in cls._overrides:
+            return cls._overrides["batch_workflow"]
+
+        from src.application.workflows.batch_workflow import BatchWorkflow
+
+        return BatchWorkflow(**kwargs)
+
     # ========================================
     # 유틸리티 메서드
     # ========================================
