@@ -36,9 +36,6 @@ from .hybrid_insight_agent import HybridInsightAgent
 from .metrics_agent import MetricsAgent
 from .storage_agent import StorageAgent
 
-# Backward compatibility (deprecated)
-from .true_hybrid_insight_agent import TrueHybridInsightAgent
-
 __all__ = [
     # Core Agents
     "CrawlerAgent",
@@ -50,6 +47,4 @@ __all__ = [
     "HybridChatbotSession",
     # Alert Agent
     "AlertAgent",
-    # Backward Compatibility (Deprecated)
-    "TrueHybridInsightAgent",
 ]
