@@ -78,11 +78,16 @@ context = await retriever.retrieve(
 Query → Entity Extraction → [Ontology Reasoning + RAG Search] → Context Merge → LLM
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
 from src.domain.entities.relations import InferenceResult, InsightType, RelationType
 from src.monitoring.rag_metrics import RAGMetricsCollector
@@ -587,6 +592,7 @@ class HybridRetriever:
         reasoner: OntologyReasoner | None = None,
         doc_retriever: DocumentRetriever | None = None,
         auto_init_rules: bool = True,
+        owl_strategy: Any | None = None,
     ):
         """
         Args:
@@ -594,11 +600,16 @@ class HybridRetriever:
             reasoner: 온톨로지 추론기
             doc_retriever: RAG 문서 검색기
             auto_init_rules: 비즈니스 규칙 자동 등록
+            owl_strategy: OWLRetrievalStrategy 인스턴스 (옵션).
+                          설정되면 retrieve_unified()에서 OWL 파이프라인을 사용.
         """
         # 컴포넌트 초기화
         self.kg = knowledge_graph or KnowledgeGraph()
         self.reasoner = reasoner or OntologyReasoner(self.kg)
         self.doc_retriever = doc_retriever or DocumentRetriever()
+
+        # OWL retrieval strategy (optional)
+        self.owl_strategy = owl_strategy
 
         # 엔티티 추출기
         self.entity_extractor = EntityExtractor()
@@ -777,6 +788,87 @@ class HybridRetriever:
             context.metadata["error"] = str(e)
 
         return context
+
+    async def retrieve_unified(
+        self,
+        query: str,
+        current_metrics: dict[str, Any] | None = None,
+        top_k: int = 5,
+        **kwargs: Any,
+    ) -> UnifiedRetrievalResult:
+        """
+        통합 검색 — 모든 백엔드에서 UnifiedRetrievalResult 반환.
+
+        OWL strategy가 설정되어 있으면 OWL 파이프라인 사용,
+        아니면 legacy retrieve() 결과를 변환.
+
+        Args:
+            query: 사용자 쿼리
+            current_metrics: 현재 메트릭 데이터
+            top_k: 반환할 최대 결과 수
+            **kwargs: 추가 인자
+
+        Returns:
+            UnifiedRetrievalResult
+        """
+        from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
+
+        # OWL strategy가 있으면 위임
+        if self.owl_strategy is not None:
+            return await self.owl_strategy.retrieve(
+                query=query,
+                current_metrics=current_metrics,
+                top_k=top_k,
+                **kwargs,
+            )
+
+        # Legacy path: retrieve() → HybridContext → UnifiedRetrievalResult 변환
+        ctx = await self.retrieve(
+            query=query,
+            current_metrics=current_metrics,
+            include_explanations=kwargs.get("include_explanations", True),
+        )
+
+        # InferenceResult → dict 변환
+        inferences_dicts = []
+        for inf in ctx.inferences:
+            if hasattr(inf, "to_dict"):
+                inferences_dicts.append(inf.to_dict())
+            elif isinstance(inf, dict):
+                inferences_dicts.append(inf)
+
+        return UnifiedRetrievalResult(
+            query=query,
+            entities=ctx.entities,
+            ontology_facts=ctx.ontology_facts,
+            inferences=inferences_dicts,
+            rag_chunks=ctx.rag_chunks,
+            combined_context=ctx.combined_context,
+            confidence=0.0,
+            entity_links=[],
+            metadata=ctx.metadata,
+            retriever_type="legacy",
+        )
+
+    async def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        doc_filter: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """문서 검색 (RetrieverProtocol 호환).
+
+        Args:
+            query: 검색 쿼리
+            top_k: 반환할 최대 결과 수
+            doc_filter: 문서 필터
+
+        Returns:
+            검색된 문서 목록
+        """
+        if self.owl_strategy is not None and hasattr(self.owl_strategy, "search"):
+            return await self.owl_strategy.search(query=query, top_k=top_k, doc_filter=doc_filter)
+        return await self.doc_retriever.search(query=query, top_k=top_k, doc_filter=doc_filter)
 
     def _query_knowledge_graph(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
         """

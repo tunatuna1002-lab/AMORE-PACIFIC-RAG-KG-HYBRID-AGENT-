@@ -128,26 +128,50 @@ class Container:
     @classmethod
     def get_unified_retriever(cls, docs_path: str = "./docs"):
         """
-        UnifiedRetriever 싱글톤 반환
+        HybridRetriever (OWL strategy 포함) 싱글톤 반환.
 
-        UnifiedRetriever는 feature flags에 따라 HybridRetriever 또는
-        TrueHybridRetriever를 내부적으로 선택하는 facade입니다.
+        Feature flag에 따라 OWL strategy를 주입합니다.
+        이전 UnifiedRetriever facade를 대체합니다.
 
         Args:
             docs_path: 문서 디렉토리 경로
 
         Returns:
-            UnifiedRetriever 인스턴스
+            HybridRetriever 인스턴스 (retrieve_unified() 지원)
         """
         if "unified_retriever" in cls._overrides:
             return cls._overrides["unified_retriever"]
 
         if "unified_retriever" not in cls._instances:
-            from src.rag.unified_retriever import get_unified_retriever
+            from src.infrastructure.feature_flags import FeatureFlags
+            from src.rag.hybrid_retriever import HybridRetriever
 
-            cls._instances["unified_retriever"] = get_unified_retriever(
-                knowledge_graph=cls.get_knowledge_graph(),
-                config={"docs_path": docs_path},
+            kg = cls.get_knowledge_graph()
+            owl_strategy = None
+
+            flags = FeatureFlags.get_instance()
+            if flags.use_true_hybrid_retriever():
+                try:
+                    from src.ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
+
+                    if OWLREADY2_AVAILABLE:
+                        from src.rag.retrieval_strategy import OWLRetrievalStrategy
+
+                        owl_reasoner = OWLReasoner()
+                        owl_strategy = OWLRetrievalStrategy(
+                            knowledge_graph=kg,
+                            owl_reasoner=owl_reasoner,
+                            docs_path=docs_path,
+                        )
+                except Exception:
+                    pass  # fall back to legacy
+
+            cls._instances["unified_retriever"] = HybridRetriever(
+                knowledge_graph=kg,
+                reasoner=cls.get_reasoner(),
+                doc_retriever=cls.get_document_retriever(),
+                auto_init_rules=True,
+                owl_strategy=owl_strategy,
             )
 
         return cls._instances["unified_retriever"]

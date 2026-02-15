@@ -93,11 +93,11 @@ class FeatureFlags:
     # ── Convenience methods ──────────────────────────────────────────
 
     def use_true_hybrid_retriever(self) -> bool:
-        """Whether to use TrueHybridRetriever over legacy HybridRetriever."""
+        """Whether to enable OWL strategy in HybridRetriever."""
         return self.get_flag("retriever", "use_true_hybrid_retriever", default=True)
 
     def use_unified_retriever(self) -> bool:
-        """Whether to use the UnifiedRetriever facade."""
+        """Whether to use retrieve_unified() path (returns UnifiedRetrievalResult)."""
         return self.get_flag("retriever", "use_unified_retriever", default=True)
 
     def use_unified_reasoner(self) -> bool:

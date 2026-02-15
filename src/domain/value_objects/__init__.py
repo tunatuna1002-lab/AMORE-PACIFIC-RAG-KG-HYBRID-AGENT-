@@ -7,7 +7,8 @@ Value Object는 고유한 식별자가 없이 값으로만 정의되는 객체�
 동일한 속성을 가지면 동일한 것으로 간주됩니다.
 """
 
-# 현재는 대부분의 메트릭이 Entity로 정의되어 있음
-# 필요 시 여기에 순수 Value Object 추가
+from .retrieval_result import UnifiedRetrievalResult
 
-__all__ = []
+__all__ = [
+    "UnifiedRetrievalResult",
+]

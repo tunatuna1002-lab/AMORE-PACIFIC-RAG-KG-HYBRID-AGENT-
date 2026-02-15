@@ -61,7 +61,7 @@ class HybridInsightAgent:
     - 규칙 기반 추론으로 일관성 보장
     - 추론 과정 설명 가능 (Explainability)
     - OWL Reasoner 지원 (선택적, 고급 추론)
-    - TrueHybridRetriever 지원 (선택적, Entity Linking)
+    - OWL RetrievalStrategy 지원 (선택적, Entity Linking)
 
     사용 예:
         agent = HybridInsightAgent(model="gpt-4.1-mini")
