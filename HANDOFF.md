@@ -4,7 +4,7 @@
 > **브랜치**: `refactor/phase4-architecture`
 > **범위**: Phase 4 (Batch Workflow 통합) + Phase 5 (DI Container) + Phase 6 (테스트 보강)
 > **마지막 업데이트**: 2026-02-16
-> **상태**: Phase 4-6 완료, PR #10 리뷰 대기
+> **상태**: Phase 4-6 완료, PR #10 머지 대기 (충돌 해결 후)
 
 ---
 
@@ -91,4 +91,3 @@
 - **전체 계획**: `~/.claude/plans/snoopy-floating-pie.md`
 - **PR**: https://github.com/tunatuna1002-lab/AMORE-PACIFIC-RAG-KG-HYBRID-AGENT-/pull/10
 - **성공 기준**: ruff 0 errors + pytest 통과율 95%+ + 커버리지 60%+
-- **주의**: `dashboard_api.py`는 Phase 3에서 별도 작업 중이므로 건드리지 않음

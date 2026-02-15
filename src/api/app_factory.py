@@ -66,9 +66,14 @@ def create_app() -> FastAPI:
 def _register_routers(app: FastAPI) -> None:
     """라우터 등록"""
     # Already-extracted route modules
+    from src.api.routes.alerts import router as alerts_router
     from src.api.routes.analytics import router as analytics_router
     from src.api.routes.brain import router as brain_router
+    from src.api.routes.chat import router as chat_router
     from src.api.routes.competitors import router as competitors_router
+    from src.api.routes.crawl import router as crawl_router
+    from src.api.routes.data import router as data_router
+    from src.api.routes.deals import router as deals_router
     from src.api.routes.export import router as export_router
     from src.api.routes.health import router as health_router
     from src.api.routes.market_intelligence import router as mi_router
@@ -76,6 +81,11 @@ def _register_routers(app: FastAPI) -> None:
     from src.api.routes.sync import router as sync_router
 
     app.include_router(health_router)
+    app.include_router(crawl_router, prefix="/api/crawl", tags=["crawl"])
+    app.include_router(data_router)
+    app.include_router(deals_router)
+    app.include_router(alerts_router)
+    app.include_router(chat_router)
     app.include_router(brain_router)
     app.include_router(competitors_router)
     app.include_router(analytics_router)

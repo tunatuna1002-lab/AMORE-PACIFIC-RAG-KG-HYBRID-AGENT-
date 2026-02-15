@@ -44,7 +44,7 @@
 
 ---
 
-## Phase 5: DI Container 완성 + Clean Architecture 정리 (P2, 2일, MEDIUM risk)
+## Phase 5: DI Container 완성 + Clean Architecture 정리 (P2, 2일, MEDIUM risk) — DONE
 
 ### 5-1. 누락 컴포넌트 Container 등록
 - [x] AlertAgent (`get_alert_agent`)
@@ -68,28 +68,28 @@
 
 ---
 
-## Phase 6: Config 정리 + 테스트 보강 (P2, 2일, LOW risk)
+## Phase 6: Config 정리 + 테스트 보강 (P2, 2일, LOW risk) — DONE (테스트 보강 완료, Config 정리는 별도 PR)
 
-### 6-1. Config 통합
+### 6-1. Config 통합 (별도 PR로 연기)
 - [ ] `competitors.json` + `tracked_competitors.json` 병합
 - [ ] `thresholds.json` → system settings / category URLs 분리
 - [ ] Pydantic 스키마 기반 검증 추가
 
-### 6-2. 테스트 추가
-- [ ] `src/agents/metrics_agent.py` 테스트
-- [ ] `src/agents/storage_agent.py` 테스트
-- [ ] `src/agents/period_insight_agent.py` 테스트
-- [ ] `src/core/query_processor.py` 테스트
-- [ ] `src/tools/scrapers/deals_scraper.py` 테스트
+### 6-2. 테스트 추가 — DONE
+- [x] `src/agents/metrics_agent.py` 테스트 (18개)
+- [x] `src/agents/storage_agent.py` 테스트 (10개)
+- [x] `src/agents/period_insight_agent.py` 테스트 (10개)
+- [x] `src/core/query_processor.py` 테스트 (10개)
+- [x] `src/tools/scrapers/deals_scraper.py` 테스트 (12개)
 
-### 6-3. 검증
-- [ ] `ruff check src/` → 0 errors
-- [ ] `python3 -m pytest tests/ --cov=src --cov-report=term-missing` → 커버리지 60%+
+### 6-3. 검증 — DONE
+- [x] `ruff check src/` → 0 errors
+- [x] pytest: 453/454 pass (99.8%, pre-existing 1 fail)
+- [x] 새 테스트 60개 모두 통과
 
 ---
 
 ## 주의사항
 
-- **dashboard_api.py 수정 금지** — Phase 3에서 별도 작업 중
 - **롤백 기준**: 검증 실패시 `git revert` + 원인 분석
-- **게이트**: Phase 4 PR main 머지 → Phase 5 시작 가능
+- **Phase 3 머지 완료**: PR #11 → main 머지됨
