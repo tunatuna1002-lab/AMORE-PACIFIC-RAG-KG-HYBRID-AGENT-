@@ -198,15 +198,15 @@ class BatchWorkflow:
             use_hybrid: 하이브리드 에이전트 사용 여부
             kg_persist_path: Knowledge Graph 영속화 경로
         """
+        # 모니터링 컴포넌트 (설정 로드보다 먼저 초기화 — _load_config에서 사용)
+        self.logger = AgentLogger("batch_workflow")
+
         # 설정 로드
         self.config = self._load_config(config_path)
         self.config_path = config_path
         self.spreadsheet_id = spreadsheet_id
         self.model = model
         self.use_hybrid = use_hybrid
-
-        # 모니터링 컴포넌트
-        self.logger = AgentLogger("batch_workflow")
         self.tracer = ExecutionTracer()
         self.metrics = QualityMetrics()
 
