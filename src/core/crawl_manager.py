@@ -286,8 +286,7 @@ class CrawlManager:
 
     async def _run_crawl(self):
         """실제 크롤링 실행"""
-        from src.agents.crawler_agent import CrawlerAgent
-        from src.agents.storage_agent import StorageAgent
+        from src.infrastructure.container import Container
         from src.tools.exporters.dashboard_exporter import DashboardExporter
 
         kst_today = self.get_kst_today()
@@ -305,7 +304,7 @@ class CrawlManager:
 
         try:
             # 1. 크롤링 실행
-            crawler = CrawlerAgent()
+            crawler = Container.get_crawler_agent()
             await crawler.scraper.initialize()
 
             result = await crawler.execute()
@@ -364,7 +363,7 @@ class CrawlManager:
 
             # 2. Google Sheets에 데이터 저장
             logger.info("Saving data to Google Sheets...")
-            storage = StorageAgent()
+            storage = Container.get_storage_agent()
             storage_result = await storage.execute(result)
 
             self.state.progress = 60

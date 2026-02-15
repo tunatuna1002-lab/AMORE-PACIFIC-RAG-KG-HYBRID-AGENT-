@@ -1,88 +1,93 @@
-# Phase 3: dashboard_api.py 분해 — HANDOFF
+# HANDOFF.md — Phase 4-6 Worktree
 
-> **Branch**: `refactor/phase3-api-modularize`
-> **Status**: Steps 1-7 완료, Step 8 최종 검증 진행 중
-> **이전 Phase**: Phase 1-2 완료, PR #9 merged to main
-
----
-
-## 1. 완료된 작업
-
-### Phase 3 결과 요약
-
-| 항목 | Before | After |
-|------|--------|-------|
-| `dashboard_api.py` | 3,235줄 (33 inline endpoints) | **186줄** (thin shell) |
-| `app_factory.py` 라우터 | 8개 등록 | **13개 등록** (전체) |
-| 인라인 엔드포인트 | 33개 `@app.*` | **0개** |
-| Migration tests | 4/23 active | **23/23 passed** |
-| ruff errors | 0 | **0** |
-
-### Step 완료 현황
-
-- [x] **Step 0**: 동기화 분석 — 13개 라우트 파일 1:1 비교 완료
-- [x] **Step 1**: Health + Crawl — crawl_router 등록, inline 제거
-- [x] **Step 2**: Data + Historical — data.py 전면 재작성 (SQLite-first), ~650줄 inline 제거
-- [x] **Step 3**: Deals — deals.py 재작성 (bulk save, alert_service), 5개 endpoint 이전
-- [x] **Step 4**: Alerts — alerts.py 전면 재작성 (16개 endpoint + JWT helpers + HTML pages)
-- [x] **Step 5**: Chat — chat.py 재작성 (v1+memory+v4+stream 4개 endpoint)
-- [x] **Step 6**: Export — dead inline 코드 제거 (이미 등록된 export_router가 우선)
-- [x] **Step 7**: dashboard_api.py 축소 → 186줄 thin shell
-
-### dashboard_api.py 최종 구조 (186줄)
-
-```
-L1-53:   docstring (아키텍처 다이어그램)
-L54-64:  imports (asyncio, logging, os, dotenv, fastapi, app_factory, brain, crawl_manager)
-L65-77:  app = create_app()
-L78-103: global_exception_handler (Telegram 알림)
-L104-178: startup_event (config 검증, 크롤링 체크, 스케줄러, job queue, telegram)
-L179-186: if __name__ == "__main__": uvicorn.run(...)
-```
-
-### app_factory.py 등록 라우터 (13개)
-
-```python
-health, crawl, data, deals, alerts, chat,
-brain, competitors, analytics, sync,
-market_intelligence, signals, export
-+ telegram (optional)
-```
+> **워크트리**: `amore-phase4-arch`
+> **브랜치**: `refactor/phase4-architecture`
+> **범위**: Phase 4 (Batch Workflow 통합) + Phase 5 (DI Container) + Phase 6 (테스트 보강)
+> **마지막 업데이트**: 2026-02-16
+> **상태**: Phase 4-6 완료, PR #10 머지 대기 (충돌 해결 후)
 
 ---
 
-## 2. 다음에 해야 할 작업
+## 1. 완료한 작업
 
-### Step 8: 최종 검증 (남은 항목)
+### Phase 4: Batch Workflow 통합 (완료, PR #10)
+- [x] `src/core/batch_workflow.py` → `src/application/workflows/batch_workflow.py` 이전 (1,059줄)
+- [x] Import 경로 업데이트 (orchestrator.py, evaluate_golden.py, __init__.py)
+- [x] `Container.get_batch_workflow()` 팩토리 메서드 추가
+- [x] logger 초기화 순서 버그 수정 (CodeRabbit 리뷰)
 
-- [x] `ruff check src/ dashboard_api.py` → 0 errors
-- [x] Migration tests → 23/23 passed
-- [ ] `python3 -m pytest tests/ -x --tb=short` → 통과율 확인
-  - Pre-existing failures: `test_ir_rag_integration`, `test_llm_integration`, `test_rag_integration`
-- [ ] PR 생성
+### Phase 5: DI Container 완성 (완료)
+- [x] Container에 7개 컴포넌트 추가 등록 (11 → 18 메서드)
+  - 팩토리: AlertAgent, MetricsAgent, StorageAgent
+  - 싱글톤: SuggestionEngine, SourceProvider, ExternalSignalManager, MarketIntelligenceEngine
+- [x] 주요 소비자 직접 import → Container DI 전환
+  - `batch_workflow.py`: StorageAgent, MetricsAgent
+  - `hybrid_chatbot_agent.py`: SuggestionEngine, SourceProvider, ExternalSignalManager
+  - `crawl_manager.py`: CrawlerAgent, StorageAgent
+
+### Phase 6: 테스트 보강 (완료)
+- [x] 5개 미테스트 모듈에 60개 단위 테스트 추가
+  - `test_metrics_agent.py` (18): 시장/브랜드/제품 지표, 알림
+  - `test_storage_agent.py` (10): Sheets/SQLite 이중저장, 에러 처리
+  - `test_period_insight_agent.py` (10): 데이터클래스, 시스템 프롬프트
+  - `test_query_processor.py` (10): 파이프라인, 캐시, 에러 폴백
+  - `test_deals_scraper.py` (12): 가격 파싱, 브랜드 추출, 딜 타입
+
+### 검증 결과
+- ruff: 0 errors
+- pytest: 453/454 pass (99.8%, pre-existing 1 fail: test_ir_rag_integration)
+- 새 테스트 60개 모두 통과
+
+---
+
+## 2. 미완료 / 향후 작업
+
+### Phase 6 잔여 (Config 정리 — 별도 PR 권장)
+- [ ] `competitors.json` 미사용 dead config → 삭제 검토
+- [ ] `thresholds.json` 분리 (system settings / category URLs) — 20+ 소비자로 HIGH risk
+- [ ] Pydantic 스키마 기반 config 검증 추가
+
+### 남은 직접 import (DI 전환 후보)
+- `hybrid_insight_agent.py`: ExternalSignalCollector, MarketIntelligenceEngine 직접 import
+- `period_insight_agent.py`: PeriodAnalyzer, InsightFormatter 직접 import
+- `api/routes/deals.py`: AlertAgent 직접 import
+- `api/routes/signals.py`: ExternalSignalCollector 직접 import
 
 ---
 
 ## 3. 수정한 파일 목록
 
-| 파일 | 변경 유형 | 요약 |
-|------|-----------|------|
-| `dashboard_api.py` | 축소 | 3,235줄 → 186줄 (thin shell) |
-| `src/api/app_factory.py` | 수정 | 5개 라우터 추가 등록 (alerts, chat, crawl, data, deals) |
-| `src/api/routes/data.py` | 덮어쓰기 | SQLite-first + Sheets fallback + historical endpoint |
-| `src/api/routes/deals.py` | 덮어쓰기 | bulk save_deals + alert_service 연동 |
-| `src/api/routes/alerts.py` | 덮어쓰기 | 16개 endpoint (v3/v4 settings + email verification + insight) |
-| `src/api/routes/chat.py` | 덮어쓰기 | v1 chat + memory + v4 brain + v4 stream |
-| `tests/unit/api/test_route_migration.py` | 수정 | 모든 23개 테스트 활성화 |
-| `TODO.md` | 수정 | Steps 1-7 체크 완료 |
-| `HANDOFF.md` | 덮어쓰기 | 최종 상태 반영 |
+| 파일 | 변경 유형 | Phase |
+|------|-----------|-------|
+| `src/application/workflows/batch_workflow.py` | 대체+수정 | 4, 5 |
+| `src/core/batch_workflow.py` | 삭제 | 4 |
+| `orchestrator.py` | 수정 | 4 |
+| `src/application/__init__.py` | 수정 | 4 |
+| `scripts/evaluate_golden.py` | 수정 | 4 |
+| `src/infrastructure/container.py` | 수정 | 4, 5 |
+| `src/agents/hybrid_chatbot_agent.py` | 수정 | 5 |
+| `src/core/crawl_manager.py` | 수정 | 5 |
+| `tests/unit/agents/test_metrics_agent.py` | 생성 | 6 |
+| `tests/unit/agents/test_storage_agent.py` | 생성 | 6 |
+| `tests/unit/agents/test_period_insight_agent.py` | 생성 | 6 |
+| `tests/unit/core/test_query_processor.py` | 생성 | 6 |
+| `tests/unit/tools/test_deals_scraper.py` | 생성 | 6 |
 
 ---
 
-## 4. 참조
+## 4. 커밋 히스토리
 
-- **Pre-existing test failures** (Phase 3 변경과 무관):
-  - `tests/test_ir_rag_integration.py::test_ir_document_metadata` — AttributeError
-  - `tests/test_llm_integration.py::test_context_builder_only` — FileNotFoundError
-  - `tests/test_rag_integration.py` — similar issues
-- **Coverage threshold**: 14.2% (fail-under=15%) — pre-existing, not caused by Phase 3
+| Hash | Message |
+|------|---------|
+| `b9a3c44` | refactor: move BatchWorkflow to application layer (Phase 4) |
+| `736716b` | refactor: complete DI Container with 7 new components (Phase 5) |
+| `f290026` | fix: initialize logger before _load_config in BatchWorkflow |
+| `150ca02` | test: add 60 unit tests for 5 untested modules (Phase 6) |
+
+---
+
+## 5. 참조 문서
+
+- **전체 계획**: `~/.claude/plans/snoopy-floating-pie.md`
+- **PR**: https://github.com/tunatuna1002-lab/AMORE-PACIFIC-RAG-KG-HYBRID-AGENT-/pull/10
+- **성공 기준**: ruff 0 errors + pytest 통과율 95%+ + 커버리지 60%+
