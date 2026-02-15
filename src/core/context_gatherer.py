@@ -115,19 +115,14 @@ class ContextGatherer:
         try:
             # 1. HybridRetriever를 통한 RAG + KG 조회
             if self.retriever:
-                # Feature-flag-based: check if using UnifiedRetriever
-                from ..domain.interfaces.retriever import UnifiedRetrievalResult
-                from ..infrastructure.feature_flags import FeatureFlags
+                from ..domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
-                flags = FeatureFlags.get_instance()
-
-                if flags.use_unified_retriever():
-                    # UnifiedRetriever path (returns UnifiedRetrievalResult)
-                    result = await self.retriever.retrieve(
+                # retrieve_unified()가 있으면 사용 (통합 경로)
+                if hasattr(self.retriever, "retrieve_unified"):
+                    result = await self.retriever.retrieve_unified(
                         query=query, current_metrics=current_metrics, top_k=self.max_rag_docs
                     )
 
-                    # Check if result is UnifiedRetrievalResult
                     if isinstance(result, UnifiedRetrievalResult):
                         if not entities:
                             context.entities = result.entities
@@ -140,71 +135,39 @@ class ContextGatherer:
                             context.summary = result.combined_context
 
                         logger.debug(
-                            f"UnifiedRetriever ({result.retriever_type}): "
+                            f"HybridRetriever ({result.retriever_type}): "
                             f"confidence={result.confidence:.2f}, "
                             f"entities={len(result.entity_links)}"
                         )
                     else:
-                        # Fallback for unexpected result type
                         logger.warning(
                             f"Expected UnifiedRetrievalResult but got {type(result).__name__}"
                         )
                 else:
-                    # Legacy path: TrueHybridRetriever vs HybridRetriever 시그니처 분기
-                    if hasattr(self.retriever, "owl_reasoner"):
-                        # TrueHybridRetriever (OWL + Entity Linking + Confidence Fusion)
-                        hybrid_context = await self.retriever.retrieve(
-                            query=query, current_metrics=current_metrics, top_k=self.max_rag_docs
-                        )
-                    else:
-                        # 기존 HybridRetriever
-                        hybrid_context = await self.retriever.retrieve(
-                            query=query, current_metrics=current_metrics, include_explanations=True
-                        )
+                    # Fallback: legacy retrieve() → HybridContext
+                    hybrid_context = await self.retriever.retrieve(
+                        query=query, current_metrics=current_metrics, include_explanations=True
+                    )
 
-                    # HybridResult (TrueHybridRetriever) vs HybridContext (HybridRetriever) 감지
-                    if hasattr(hybrid_context, "entity_links"):
-                        # TrueHybridRetriever → to_dict()로 호환 포맷 변환
-                        compat = hybrid_context.to_dict()
+                    if hybrid_context.entities and not entities:
+                        context.entities = hybrid_context.entities
 
-                        if not entities:
-                            context.entities = compat.get("entities", {})
-
-                        context.rag_docs = compat.get("rag_chunks", [])[: self.max_rag_docs]
-
-                        context.kg_facts = self._convert_kg_facts(compat.get("ontology_facts", []))
-
-                        # inferences는 이미 dict 리스트 (to_dict()에서 변환됨)
-                        context.kg_inferences = compat.get("inferences", [])
-
-                        # TrueHybridRetriever의 combined_context를 요약으로 활용
-                        if hybrid_context.combined_context:
-                            context.summary = hybrid_context.combined_context
-
-                        logger.debug(
-                            f"TrueHybridRetriever: confidence={hybrid_context.confidence:.2f}, "
-                            f"entities={len(hybrid_context.entity_links)}"
-                        )
-                    else:
-                        # 기존 HybridRetriever → HybridContext 처리
-                        if hybrid_context.entities and not entities:
-                            context.entities = hybrid_context.entities
-
-                        context.rag_docs = hybrid_context.rag_chunks[: self.max_rag_docs]
-
-                        context.kg_facts = self._convert_kg_facts(hybrid_context.ontology_facts)
-
-                        context.kg_inferences = [inf.to_dict() for inf in hybrid_context.inferences]
+                    context.rag_docs = hybrid_context.rag_chunks[: self.max_rag_docs]
+                    context.kg_facts = self._convert_kg_facts(hybrid_context.ontology_facts)
+                    context.kg_inferences = [
+                        inf.to_dict() if hasattr(inf, "to_dict") else inf
+                        for inf in hybrid_context.inferences
+                    ]
 
             # 2. 시스템 상태
             if include_system_state:
                 context.system_state = self._get_system_state()
 
             # 3. 요약 생성
-            # TrueHybridRetriever가 이미 combined_context를 설정한 경우 그것을 유지.
+            # retrieve_unified()가 이미 combined_context를 설정한 경우 그것을 유지.
             # 두 요약을 이어붙이면 같은 데이터가 중복되어 LLM 토큰 낭비 + 답변 혼란.
             if context.summary:
-                # TrueHybridRetriever의 구조화된 요약 유지, 시스템 상태만 보충
+                # retriever의 구조화된 요약 유지, 시스템 상태만 보충
                 if context.system_state and "[시스템 상태]" not in context.summary:
                     state_str = self._format_system_state(context.system_state)
                     if state_str:

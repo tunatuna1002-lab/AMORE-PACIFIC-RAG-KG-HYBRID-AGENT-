@@ -113,36 +113,11 @@ class DocumentRetrieverProtocol(Protocol):
         ...
 
 
-from dataclasses import dataclass, field
+# Re-export from canonical location for backward compatibility
+from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
-
-@dataclass
-class UnifiedRetrievalResult:
-    """Unified result type for all retriever backends.
-
-    This dataclass provides a common interface for both HybridRetriever
-    (returns HybridContext) and TrueHybridRetriever (returns HybridResult).
-
-    Attributes:
-        query: Original user query
-        entities: Extracted entities by type (brands, categories, indicators, products)
-        ontology_facts: Facts retrieved from knowledge graph
-        inferences: Reasoning inferences from ontology
-        rag_chunks: RAG document chunks
-        combined_context: Merged context string for LLM prompts
-        confidence: Overall confidence score (0.0-1.0)
-        entity_links: Linked entities (from TrueHybridRetriever)
-        metadata: Additional metadata
-        retriever_type: Backend type ("hybrid" | "true_hybrid")
-    """
-
-    query: str
-    entities: dict[str, list[str]] = field(default_factory=dict)
-    ontology_facts: list[dict] = field(default_factory=list)
-    inferences: list[dict] = field(default_factory=list)
-    rag_chunks: list[dict] = field(default_factory=list)
-    combined_context: str = ""
-    confidence: float = 0.0
-    entity_links: list = field(default_factory=list)
-    metadata: dict = field(default_factory=dict)
-    retriever_type: str = "unknown"  # "hybrid" | "true_hybrid"
+__all__ = [
+    "RetrieverProtocol",
+    "DocumentRetrieverProtocol",
+    "UnifiedRetrievalResult",
+]

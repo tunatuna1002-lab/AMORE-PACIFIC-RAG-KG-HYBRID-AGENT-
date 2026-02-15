@@ -295,44 +295,39 @@ class UnifiedBrain:
             kg = KnowledgeGraph(persist_path="./data/knowledge_graph.json")
             self._knowledge_graph = kg
 
-            # Feature-flag-based retriever selection
+            # HybridRetriever with optional OWL strategy
             from ..infrastructure.feature_flags import FeatureFlags
+            from ..ontology.reasoner import OntologyReasoner
+            from ..rag.hybrid_retriever import HybridRetriever
 
             flags = FeatureFlags.get_instance()
+            reasoner = OntologyReasoner(kg)
+            owl_strategy = None
+            self._owl_reasoner = None
 
-            if flags.use_unified_retriever():
-                # Use UnifiedRetriever facade (handles backend selection internally)
-                from ..rag.unified_retriever import get_unified_retriever
-
-                hybrid_retriever = get_unified_retriever(
-                    knowledge_graph=kg, config={"docs_path": "./docs"}
-                )
-                logger.info("UnifiedBrain: Using UnifiedRetriever facade")
-                self._owl_reasoner = None
-            else:
-                # Legacy path: OWL Reasoner + TrueHybridRetriever 시도 (고급 경로)
+            if flags.use_true_hybrid_retriever():
                 try:
                     from ..ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
 
                     if OWLREADY2_AVAILABLE:
-                        from ..rag.true_hybrid_retriever import get_true_hybrid_retriever
+                        from ..rag.retrieval_strategy import OWLRetrievalStrategy
 
                         self._owl_reasoner = OWLReasoner()
-                        hybrid_retriever = get_true_hybrid_retriever(
-                            owl_reasoner=self._owl_reasoner, knowledge_graph=kg, docs_path="./docs"
+                        owl_strategy = OWLRetrievalStrategy(
+                            knowledge_graph=kg,
+                            owl_reasoner=self._owl_reasoner,
+                            docs_path="./docs",
                         )
-                        logger.info("UnifiedBrain: Using TrueHybridRetriever with OWL Reasoner")
-                    else:
-                        raise ImportError("owlready2 not available")
+                        logger.info("UnifiedBrain: OWL strategy enabled")
                 except Exception as e:
-                    # Fallback: 기존 HybridRetriever 사용
-                    logger.info(f"UnifiedBrain: Falling back to HybridRetriever ({e})")
-                    from ..ontology.reasoner import OntologyReasoner
-                    from ..rag.hybrid_retriever import HybridRetriever
+                    logger.info(f"UnifiedBrain: OWL strategy unavailable ({e})")
 
-                    reasoner = OntologyReasoner(kg)
-                    hybrid_retriever = HybridRetriever(kg, reasoner)
-                    self._owl_reasoner = None
+            hybrid_retriever = HybridRetriever(
+                knowledge_graph=kg,
+                reasoner=reasoner,
+                owl_strategy=owl_strategy,
+            )
+            logger.info("UnifiedBrain: HybridRetriever initialized")
 
             self._context_gatherer = ContextGatherer(
                 hybrid_retriever=hybrid_retriever, orchestrator_state=self.state
