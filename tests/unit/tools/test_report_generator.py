@@ -513,6 +513,11 @@ class TestPptxReportGenerator:
 
     def test_generate_presentation_pptx_available(self, generator, temp_output_dir):
         """Test generating presentation when python-pptx is available"""
+        try:
+            import pptx  # noqa: F401
+        except ImportError:
+            pytest.skip("python-pptx not installed")
+
         # Set pptx available before mocking
         generator._pptx_available = True
 
