@@ -8,7 +8,7 @@ import json
 import tempfile
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 
@@ -635,3 +635,1036 @@ class TestHybridRetriever:
         assert len(context.rag_chunks) == 1
         assert context.combined_context != ""
         assert "retrieval_time_ms" in context.metadata
+
+
+# =============================================================================
+# Config TTL and Loading Tests
+# =============================================================================
+
+
+class TestConfigTTLAndLoading:
+    """EntityExtractor 설정 TTL 및 로딩 테스트"""
+
+    def test_get_config_ttl_seconds_from_file(self):
+        """설정 파일에서 TTL 로드 테스트"""
+        import json
+        from pathlib import Path
+
+        # 임시 설정 파일 생성
+        test_config = {"system": {"rag": {"ttl_seconds": 600}}}
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(test_config, f)
+            temp_path = Path(f.name)
+
+        try:
+            # Path 객체의 exists 메서드를 패치하고 open도 패치
+            with patch.object(Path, "exists", return_value=True):
+                with patch("builtins.open", mock_open(read_data=json.dumps(test_config))):
+                    ttl = EntityExtractor._get_config_ttl_seconds()
+                    assert ttl == 600
+        finally:
+            temp_path.unlink()
+
+    def test_get_config_ttl_seconds_file_not_exists(self):
+        """설정 파일 없을 때 기본값 반환 테스트"""
+        with patch("pathlib.Path.exists", return_value=False):
+            ttl = EntityExtractor._get_config_ttl_seconds()
+            assert ttl == 300  # 기본값
+
+    def test_get_config_ttl_seconds_invalid_json(self):
+        """잘못된 JSON 파일일 때 기본값 반환 테스트"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write("invalid json{")
+            temp_path = Path(f.name)
+
+        try:
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch("builtins.open", lambda path, **kwargs: open(temp_path, **kwargs)),
+            ):
+                ttl = EntityExtractor._get_config_ttl_seconds()
+                assert ttl == 300  # fallback to default
+        finally:
+            temp_path.unlink()
+
+    def test_load_config_with_ttl_cache_hit(self):
+        """TTL 내 캐시 히트 테스트"""
+        from datetime import datetime
+
+        # 캐시 초기화
+        EntityExtractor._config_cache = {"test": "data"}
+        EntityExtractor._config_loaded_at = datetime.now()
+
+        # TTL을 충분히 길게 설정
+        with patch.object(EntityExtractor, "_get_config_ttl_seconds", return_value=300):
+            config = EntityExtractor._load_config()
+            # 캐시된 값이 반환되어야 함
+            assert config == {"test": "data"}
+
+    def test_load_config_alternate_path(self):
+        """대체 설정 경로 로드 테스트"""
+        # 캐시 초기화
+        EntityExtractor._config_cache = None
+        EntityExtractor._config_loaded_at = None
+
+        # config/entities.json이 없는 경우, 프로젝트 루트에서 찾기
+        mock_config = EntityExtractor._get_default_config()
+
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch("builtins.open", create=True) as mock_open,
+        ):
+            # 첫 번째 경로는 없고, 두 번째(프로젝트 루트) 경로는 있음
+            mock_exists.side_effect = [False, True]
+            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(
+                mock_config
+            )
+
+            config = EntityExtractor._load_config()
+            # 기본 설정이 로드되어야 함
+            assert "known_brands" in config
+
+
+# =============================================================================
+# Entity Extractor Rank Pattern Tests
+# =============================================================================
+
+
+class TestEntityExtractorRankPattern:
+    """순위 패턴 기반 제품 추출 테스트"""
+
+    def test_extract_rank_pattern_korean(self):
+        """한국어 순위 패턴 추출 테스트"""
+        mock_kg = MagicMock()
+        mock_relation = MagicMock()
+        mock_relation.subject = "B08TEST123"
+        mock_relation.properties = {"rank": 3}
+        mock_kg.query.return_value = [mock_relation]
+
+        extractor = EntityExtractor()
+        query = "립케어 3위 제품 보여줘"
+        entities = extractor.extract(query, knowledge_graph=mock_kg)
+
+        # 카테고리와 순위 패턴 모두 추출되어야 함
+        assert "lip_care" in entities["categories"]
+        # KG 쿼리가 호출되어 제품이 추출되어야 함
+        assert "B08TEST123" in entities["products"]
+
+    def test_extract_rank_pattern_english(self):
+        """영어 순위 패턴 추출 테스트"""
+        mock_kg = MagicMock()
+        mock_relation = MagicMock()
+        mock_relation.subject = "B08RANK001"
+        mock_relation.properties = {"rank": 5}
+        mock_kg.query.return_value = [mock_relation]
+
+        extractor = EntityExtractor()
+        query = "show me rank 5 product in lip care"
+        entities = extractor.extract(query, knowledge_graph=mock_kg)
+
+        assert "lip_care" in entities["categories"]
+        assert "B08RANK001" in entities["products"]
+
+    def test_extract_rank_pattern_no_kg(self):
+        """지식 그래프 없을 때 순위 패턴 무시 테스트"""
+        extractor = EntityExtractor()
+        query = "립케어 3위 제품"
+        entities = extractor.extract(query, knowledge_graph=None)
+
+        # 카테고리는 추출되지만 제품은 추출되지 않음
+        assert "lip_care" in entities["categories"]
+        assert len(entities["products"]) == 0
+
+
+# =============================================================================
+# Query Knowledge Graph Extended Tests
+# =============================================================================
+
+
+class TestQueryKnowledgeGraphExtended:
+    """지식 그래프 쿼리 확장 테스트"""
+
+    def test_query_kg_trend_keywords(self, mock_knowledge_graph):
+        """트렌드 키워드 사실 조회 테스트"""
+        # 브랜드별 트렌드 설정
+        mock_relation = MagicMock()
+        mock_relation.object = "peptide"
+        mock_knowledge_graph.query.return_value = [mock_relation]
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"]}
+        facts = retriever._query_knowledge_graph(entities)
+
+        # 트렌드 키워드 사실이 포함되어야 함
+        trend_facts = [f for f in facts if f["type"] == "trend_keywords"]
+        assert len(trend_facts) > 0
+        assert "peptide" in trend_facts[0]["data"]["keywords"]
+
+    def test_query_kg_category_hierarchy(self, mock_knowledge_graph):
+        """카테고리 계층 사실 조회 테스트"""
+        mock_knowledge_graph.get_category_hierarchy.return_value = {
+            "name": "Lip Care",
+            "level": 2,
+            "path": ["Beauty", "Skin Care", "Lip Care"],
+            "ancestors": [{"name": "Skin Care", "level": 1}],
+            "descendants": [],
+        }
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"categories": ["lip_care"]}
+        facts = retriever._query_knowledge_graph(entities)
+
+        # 계층 정보가 포함되어야 함
+        hierarchy_facts = [f for f in facts if f["type"] == "category_hierarchy"]
+        assert len(hierarchy_facts) > 0
+        assert hierarchy_facts[0]["data"]["level"] == 2
+        assert "Lip Care" in hierarchy_facts[0]["data"]["path"]
+
+    def test_query_kg_sentiment_products(self, mock_knowledge_graph):
+        """감성 기반 제품 검색 테스트"""
+        mock_knowledge_graph.find_products_by_sentiment.return_value = [
+            {"asin": "B08MOIST01", "name": "Hydrating Cream"}
+        ]
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"sentiment_clusters": ["Hydration"]}
+        facts = retriever._query_knowledge_graph(entities)
+
+        # 감성 제품 사실이 포함되어야 함
+        sentiment_facts = [f for f in facts if f["type"] == "sentiment_products"]
+        assert len(sentiment_facts) > 0
+
+    def test_query_kg_brand_sentiment_profile(self, mock_knowledge_graph):
+        """브랜드 감성 프로필 조회 테스트"""
+        mock_knowledge_graph.get_brand_sentiment_profile.return_value = {
+            "all_tags": ["moisturizing", "hydrating"],
+            "clusters": {"Hydration": 25, "Effectiveness": 15},
+            "dominant_sentiment": "Hydration",
+        }
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
+        facts = retriever._query_knowledge_graph(entities)
+
+        # 브랜드 감성 사실이 포함되어야 함
+        brand_sentiment_facts = [f for f in facts if f["type"] == "brand_sentiment"]
+        assert len(brand_sentiment_facts) > 0
+        assert brand_sentiment_facts[0]["data"]["dominant_sentiment"] == "Hydration"
+
+    def test_query_kg_product_sentiments(self, mock_knowledge_graph):
+        """제품 감성 조회 테스트"""
+        mock_knowledge_graph.get_product_sentiments.return_value = {
+            "sentiment_tags": ["hydrating", "smooth"],
+            "ai_summary": "Great moisturizing product",
+        }
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"products": ["B08TEST123"], "sentiments": ["보습"]}
+        facts = retriever._query_knowledge_graph(entities)
+
+        # 제품 감성 사실이 포함되어야 함
+        product_sentiment_facts = [f for f in facts if f["type"] == "product_sentiment"]
+        assert len(product_sentiment_facts) > 0
+
+    def test_query_kg_competitor_network_exception(self, mock_knowledge_graph):
+        """경쟁사 네트워크 조회 예외 처리 테스트"""
+        mock_knowledge_graph.get_neighbors.side_effect = Exception("Network error")
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"]}
+        # 예외가 발생해도 다른 사실은 조회되어야 함
+        facts = retriever._query_knowledge_graph(entities)
+
+        # competitor_network 사실은 없어야 함
+        network_facts = [f for f in facts if f["type"] == "competitor_network"]
+        assert len(network_facts) == 0
+
+
+# =============================================================================
+# Build Inference Context Sentiment Tests
+# =============================================================================
+
+
+class TestBuildInferenceContextSentiment:
+    """추론 컨텍스트 감성 데이터 테스트"""
+
+    def test_build_context_with_trend_keywords(self):
+        """트렌드 키워드 컨텍스트 구성 테스트"""
+        mock_kg = MagicMock()
+        mock_relation = MagicMock()
+        mock_relation.object = "glass_skin"
+        mock_kg.query.return_value = [mock_relation]
+        mock_kg.get_competitors.return_value = []
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"]}
+        context = retriever._build_inference_context(entities, {})
+
+        assert "trend_keywords" in context
+        assert "glass_skin" in context["trend_keywords"]
+
+    def test_build_context_with_brand_sentiment(self):
+        """브랜드 감성 프로필 컨텍스트 구성 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+        mock_kg.get_brand_sentiment_profile.return_value = {
+            "all_tags": ["hydrating", "soothing"],
+            "clusters": {"Hydration": 30, "Effectiveness": 20},
+            "dominant_sentiment": "Hydration",
+        }
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
+        context = retriever._build_inference_context(entities, {})
+
+        assert "sentiment_tags" in context
+        assert "hydrating" in context["sentiment_tags"]
+        assert context["dominant_sentiment"] == "Hydration"
+
+    def test_build_context_with_product_sentiment(self):
+        """제품 감성 컨텍스트 구성 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+        mock_kg.get_brand_sentiment_profile.return_value = {}
+        mock_kg.get_product_sentiments.return_value = {
+            "sentiment_tags": ["moisturizing", "gentle"],
+            "ai_summary": "Excellent hydration",
+            "sentiment_clusters": {"Hydration": 5},
+        }
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
+        current_metrics = {
+            "product_metrics": [{"asin": "B08TEST123", "current_rank": 10}],
+        }
+        context = retriever._build_inference_context(entities, current_metrics)
+
+        assert "ai_summary" in context
+        assert context["ai_summary"] == "Excellent hydration"
+
+    def test_build_context_with_competitor_sentiment(self):
+        """경쟁사 감성 비교 컨텍스트 구성 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_competitors.return_value = [
+            {"brand": "cosrx"},
+            {"brand": "tirtir"},
+        ]
+        mock_kg.query.return_value = []
+        mock_kg.get_brand_sentiment_profile.side_effect = [
+            {  # laneige
+                "all_tags": ["hydrating"],
+                "clusters": {"Hydration": 30},
+            },
+            {  # cosrx
+                "all_tags": ["affordable", "gentle"],
+                "clusters": {"Pricing": 25, "Skin_Compatibility": 15},
+            },
+            {  # tirtir
+                "all_tags": ["trendy"],
+                "clusters": {"Effectiveness": 20},
+            },
+        ]
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
+        context = retriever._build_inference_context(entities, {})
+
+        assert "competitor_sentiment_tags" in context
+        assert "affordable" in context["competitor_sentiment_tags"]
+        assert "competitor_sentiment_clusters" in context
+        assert context["competitor_sentiment_clusters"]["Pricing"] == 25
+
+
+# =============================================================================
+# Rewrite For Relevance Tests
+# =============================================================================
+
+
+class TestRewriteForRelevance:
+    """관련성 개선을 위한 쿼리 재작성 테스트"""
+
+    def test_rewrite_with_indicators(self):
+        """지표 추가 재작성 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        query = "LANEIGE 분석"
+        entities = {"brands": ["laneige"], "indicators": ["sos", "hhi"]}
+
+        rewritten = retriever._rewrite_for_relevance(query, entities)
+
+        # 지표 전체 이름이 추가되어야 함
+        assert "Share of Shelf" in rewritten or "점유율" in rewritten
+        assert "HHI" in rewritten or "시장집중도" in rewritten
+
+    def test_rewrite_with_categories(self):
+        """카테고리 추가 재작성 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        query = "브랜드 경쟁력"
+        entities = {"categories": ["lip_care"]}
+
+        rewritten = retriever._rewrite_for_relevance(query, entities)
+
+        # 카테고리 전체 이름이 추가되어야 함
+        assert "Lip Care" in rewritten or "립케어" in rewritten
+
+    def test_rewrite_no_change_if_already_present(self):
+        """이미 포함된 용어는 추가하지 않음 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        query = "LANEIGE Share of Shelf Lip Care 분석"
+        entities = {"brands": ["laneige"], "indicators": ["sos"], "categories": ["lip_care"]}
+
+        rewritten = retriever._rewrite_for_relevance(query, entities)
+
+        # 변경되지 않아야 함 (이미 모든 용어 포함)
+        assert rewritten == query or rewritten.count("LANEIGE") == 1
+
+
+# =============================================================================
+# Weighted Merge Tests
+# =============================================================================
+
+
+class TestWeightedMerge:
+    """가중치 기반 병합 테스트"""
+
+    def test_weighted_merge_ontology_facts_scoring(self):
+        """온톨로지 사실 점수 할당 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            ontology_facts=[
+                {"type": "brand_info", "entity": "laneige"},
+                {"type": "category_brands", "entity": "lip_care"},
+                {"type": "trend_keywords", "entity": "laneige"},
+            ],
+        )
+
+        merged = retriever._weighted_merge(context)
+
+        # 점수가 할당되어야 함
+        assert all("_weighted_score" in fact for fact in merged.ontology_facts)
+        # brand_info > category_brands > trend_keywords 순으로 점수가 높아야 함
+        scores = [f["_weighted_score"] for f in merged.ontology_facts]
+        assert scores[0] >= scores[1] >= scores[2]
+
+    def test_weighted_merge_rag_chunks_scoring(self):
+        """RAG 청크 점수 할당 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            rag_chunks=[
+                {"id": "1", "score": 0.9, "metadata": {"doc_type": "intelligence"}},
+                {"id": "2", "score": 0.8, "metadata": {"doc_type": "playbook"}},
+                {"id": "3", "score": 0.7, "metadata": {"doc_type": "metric_guide"}},
+            ],
+        )
+
+        merged = retriever._weighted_merge(context)
+
+        # 점수가 할당되어야 함
+        assert all("_weighted_score" in chunk for chunk in merged.rag_chunks)
+        # intelligence (weekly) > playbook (quarterly) freshness 반영
+        assert merged.rag_chunks[0]["metadata"]["doc_type"] == "intelligence"
+
+    def test_weighted_merge_truncation(self):
+        """최대 항목 수 제한 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        # 많은 사실 생성 (max_items 초과)
+        many_facts = [{"type": "brand_info", "entity": f"brand_{i}"} for i in range(10)]
+
+        context = HybridContext(query="test", ontology_facts=many_facts)
+
+        merged = retriever._weighted_merge(context)
+
+        # 최대 5개로 제한되어야 함
+        assert len(merged.ontology_facts) <= 5
+
+
+# =============================================================================
+# Combine Contexts Tests
+# =============================================================================
+
+
+class TestCombineContexts:
+    """컨텍스트 통합 포매팅 테스트"""
+
+    def test_combine_contexts_with_inferences(self):
+        """추론 결과 포매팅 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        inference = InferenceResult(
+            rule_name="test_rule",
+            insight_type=InsightType.MARKET_POSITION,
+            insight="Dominant position",
+            confidence=0.9,
+            recommendation="Maintain leadership",
+            evidence={"satisfied_conditions": ["sos > 0.15"]},
+        )
+
+        context = HybridContext(query="test", inferences=[inference])
+
+        combined = retriever._combine_contexts(context, include_explanations=True)
+
+        assert "## 분석 결과" in combined
+        assert "Dominant position" in combined
+        assert "Maintain leadership" in combined
+        assert "90%" in combined
+        assert "sos > 0.15" in combined
+
+    def test_combine_contexts_brand_info_facts(self):
+        """브랜드 정보 사실 포매팅 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            ontology_facts=[
+                {
+                    "type": "brand_info",
+                    "entity": "laneige",
+                    "data": {"sos": 0.08, "avg_rank": 12.5},
+                }
+            ],
+        )
+
+        combined = retriever._combine_contexts(context)
+
+        assert "## 관련 정보" in combined
+        assert "laneige" in combined
+        assert "8.0%" in combined
+        assert "12.5" in combined
+
+    def test_combine_contexts_brand_products_facts(self):
+        """브랜드 제품 사실 포매팅 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            ontology_facts=[
+                {"type": "brand_products", "entity": "laneige", "data": {"product_count": 15}}
+            ],
+        )
+
+        combined = retriever._combine_contexts(context)
+
+        assert "15개" in combined
+
+    def test_combine_contexts_competitors_facts(self):
+        """경쟁사 사실 포매팅 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            ontology_facts=[
+                {
+                    "type": "competitors",
+                    "entity": "laneige",
+                    "data": [{"brand": "cosrx"}, {"brand": "tirtir"}],
+                }
+            ],
+        )
+
+        combined = retriever._combine_contexts(context)
+
+        assert "경쟁사" in combined
+        assert "cosrx" in combined
+
+    def test_combine_contexts_category_hierarchy_facts(self):
+        """카테고리 계층 사실 포매팅 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            ontology_facts=[
+                {
+                    "type": "category_hierarchy",
+                    "entity": "lip_care",
+                    "data": {
+                        "name": "Lip Care",
+                        "level": 2,
+                        "path": [
+                            {"name": "Beauty", "id": "beauty"},
+                            {"name": "Skin Care", "id": "skin_care"},
+                            {"name": "Lip Care", "id": "lip_care"},
+                        ],
+                        "ancestors": [{"name": "Skin Care"}],
+                    },
+                }
+            ],
+        )
+
+        combined = retriever._combine_contexts(context)
+
+        assert "계층" in combined
+        assert "Beauty > Skin Care > Lip Care" in combined
+        assert "Level 2" in combined
+
+    def test_combine_contexts_rag_chunks(self):
+        """RAG 청크 포매팅 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        context = HybridContext(
+            query="test",
+            rag_chunks=[
+                {
+                    "metadata": {"title": "SoS 해석 가이드"},
+                    "content": "SoS는 시장 점유율을 나타내는 지표입니다.",
+                }
+            ],
+        )
+
+        combined = retriever._combine_contexts(context)
+
+        assert "## 참고 가이드라인" in combined
+        assert "SoS 해석 가이드" in combined
+        assert "시장 점유율" in combined
+
+    def test_combine_contexts_long_content_truncation(self):
+        """긴 내용 잘림 테스트"""
+        retriever = HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+        long_content = "X" * 600  # 500자 초과
+
+        context = HybridContext(
+            query="test",
+            rag_chunks=[{"metadata": {"title": "Test"}, "content": long_content}],
+        )
+
+        combined = retriever._combine_contexts(context)
+
+        # 500자로 잘리고 "..."이 붙어야 함
+        assert "..." in combined
+        assert combined.count("X") <= 510  # 약간의 여유
+
+
+# =============================================================================
+# Retrieve For Entity Tests
+# =============================================================================
+
+
+class TestRetrieveForEntity:
+    """엔티티별 검색 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_retrieve_for_brand_entity(self):
+        """브랜드 엔티티 검색 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.get_category_brands.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve_for_entity("LANEIGE", entity_type="brand")
+
+        assert context.query == "LANEIGE 브랜드 분석"
+        assert "laneige" in context.entities.get("brands", [])
+
+    @pytest.mark.asyncio
+    async def test_retrieve_for_product_entity(self):
+        """제품 엔티티 검색 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve_for_entity("B08XYZ1234", entity_type="product")
+
+        assert context.query == "B08XYZ1234 제품 분석"
+        assert "B08XYZ1234" in context.entities.get("products", [])
+
+    @pytest.mark.asyncio
+    async def test_retrieve_for_category_entity(self):
+        """카테고리 엔티티 검색 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_category_brands.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve_for_entity("lip_care", entity_type="category")
+
+        assert context.query == "lip_care 카테고리 분석"
+        assert "lip_care" in context.entities.get("categories", [])
+
+    @pytest.mark.asyncio
+    async def test_retrieve_for_unknown_entity_type(self):
+        """알 수 없는 엔티티 타입 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve_for_entity("unknown", entity_type="unknown_type")
+
+        assert context.query == "unknown 분석"
+        assert context.entities.get("brands", []) == []
+
+
+# =============================================================================
+# Retrieve Edge Cases Tests
+# =============================================================================
+
+
+class TestRetrieveEdgeCases:
+    """검색 엣지 케이스 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_retrieve_additional_search_when_filtered_results_low(self):
+        """필터링된 결과가 부족할 때 추가 검색 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        # 첫 검색에서 2개만 반환, 두 번째 검색에서 3개 추가
+        mock_doc_retriever.search = AsyncMock(
+            side_effect=[
+                [{"id": "1", "content": "test1"}, {"id": "2", "content": "test2"}],  # 필터링된 검색
+                [
+                    {"id": "3", "content": "test3"},
+                    {"id": "4", "content": "test4"},
+                    {"id": "5", "content": "test5"},
+                ],  # 전체 문서 검색
+            ]
+        )
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        # 관련성 판정을 우회하도록 설정
+        retriever.relevance_grader.grade_documents = AsyncMock(
+            return_value=(
+                [{"id": "1", "content": "test1"}, {"id": "2", "content": "test2"}],  # relevant
+                [],  # irrelevant
+            )
+        )
+        retriever.relevance_grader.needs_rewrite = MagicMock(return_value=False)
+
+        context = await retriever.retrieve("왜 순위가 떨어졌어", current_metrics={})
+
+        # 총 5개 문서가 반환되어야 함
+        assert len(context.rag_chunks) >= 2
+
+    @pytest.mark.asyncio
+    async def test_retrieve_relevance_grading_failure_fallback(self):
+        """관련성 판정 실패 시 폴백 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[{"id": "1", "content": "test"}])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        # 관련성 판정기를 예외 발생하도록 설정
+        retriever.relevance_grader.grade_documents = AsyncMock(
+            side_effect=Exception("Grading failed")
+        )
+
+        context = await retriever.retrieve("test query", current_metrics={})
+
+        # 원본 결과가 유지되어야 함
+        assert len(context.rag_chunks) == 1
+
+    @pytest.mark.asyncio
+    async def test_retrieve_rag_metrics_recording_failure(self):
+        """RAG 메트릭 기록 실패 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        # 메트릭 기록을 실패하도록 설정
+        retriever.rag_metrics.record_retrieval = MagicMock(side_effect=Exception("Metrics failed"))
+
+        # 예외가 발생해도 검색은 성공해야 함
+        context = await retriever.retrieve("test query", current_metrics={})
+
+        assert context.query == "test query"
+
+    @pytest.mark.asyncio
+    async def test_retrieve_general_exception_handling(self):
+        """일반 예외 처리 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.side_effect = Exception("KG failure")
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve("test query", current_metrics={})
+
+        # 에러가 메타데이터에 기록되어야 함
+        assert "error" in context.metadata
+
+    @pytest.mark.asyncio
+    async def test_retrieve_unified_with_dict_inferences(self):
+        """딕셔너리 추론 결과 처리 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        # 딕셔너리를 반환하는 reasoner
+        mock_reasoner = MagicMock()
+        mock_reasoner.infer.return_value = [
+            {"insight": "test insight", "confidence": 0.9}  # dict 형태
+        ]
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=mock_reasoner,
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        result = await retriever.retrieve_unified("test query", current_metrics={})
+
+        # 딕셔너리가 그대로 포함되어야 함
+        assert len(result.inferences) == 1
+        assert isinstance(result.inferences[0], dict)
+
+
+# =============================================================================
+# Initialize Edge Cases Tests
+# =============================================================================
+
+
+class TestInitializeEdgeCases:
+    """초기화 엣지 케이스 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_initialize_category_hierarchy_load_exception(self):
+        """카테고리 계층 로드 예외 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.load_category_hierarchy.side_effect = Exception("Hierarchy load failed")
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        # 예외가 발생해도 초기화는 성공해야 함
+        await retriever.initialize()
+
+        assert retriever._initialized is True

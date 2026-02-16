@@ -149,3 +149,452 @@ class TestStorageAgent:
         result = agent.get_historical_data("B084RGF8YJ", days=7)
         assert result == [{"rank": 5}]
         agent.sheets.get_rank_history.assert_called_once_with("B084RGF8YJ", 7)
+
+
+# =========================================================================
+# Tracer / Metrics integration
+# =========================================================================
+
+
+class TestStorageAgentTracerMetrics:
+    """tracer와 metrics가 활성화된 경우 테스트"""
+
+    @pytest.fixture
+    def agent_with_tracer(self, mock_sheets, mock_sqlite):
+        """tracer + metrics 활성화된 agent"""
+        tracer = MagicMock()
+        metrics = MagicMock()
+        with (
+            patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets),
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=mock_sqlite),
+        ):
+            a = StorageAgent(
+                spreadsheet_id="test-id",
+                enable_sqlite=True,
+                tracer=tracer,
+                metrics=metrics,
+            )
+            a.sheets = mock_sheets
+            a.sqlite = mock_sqlite
+            return a
+
+    @pytest.mark.asyncio
+    async def test_tracer_spans_called(self, agent_with_tracer, sample_crawl_data):
+        """tracer가 올바르게 호출되는지"""
+        result = await agent_with_tracer.execute(sample_crawl_data)
+        tracer = agent_with_tracer.tracer
+        assert tracer.start_span.call_count >= 2  # storage_agent, save_raw_data, upsert_products
+        assert tracer.end_span.call_count >= 2
+        assert result["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_metrics_recorded(self, agent_with_tracer, sample_crawl_data):
+        """metrics가 기록되는지"""
+        await agent_with_tracer.execute(sample_crawl_data)
+        m = agent_with_tracer.metrics
+        m.record_agent_start.assert_called_once_with("storage")
+        m.record_agent_complete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_tracer_on_competitor_data(self, agent_with_tracer):
+        """competitor 데이터 저장 시 tracer 호출"""
+        data = {
+            "categories": {},
+            "all_products": [],
+            "competitor_products": [{"asin": "B0C42HJRBF", "brand": "Test"}],
+        }
+        await agent_with_tracer.execute(data)
+        tracer = agent_with_tracer.tracer
+        calls = [str(c) for c in tracer.start_span.call_args_list]
+        assert any("competitor" in c for c in calls)
+
+    @pytest.mark.asyncio
+    async def test_tracer_on_raw_data_exception(self, agent_with_tracer):
+        """raw data 저장 중 예외 시 tracer end_span(failed) 호출"""
+        agent_with_tracer.sheets.append_rank_records = AsyncMock(
+            side_effect=Exception("Sheet crash")
+        )
+        data = {
+            "categories": {
+                "lip_care": {"rank_records": [{"rank": 1, "brand": "X", "asin": "A01"}]}
+            },
+        }
+        result = await agent_with_tracer.execute(data)
+        tracer = agent_with_tracer.tracer
+        # end_span should be called with "failed"
+        failed_calls = [c for c in tracer.end_span.call_args_list if "failed" in str(c)]
+        assert len(failed_calls) >= 1
+
+    @pytest.mark.asyncio
+    async def test_tracer_on_upsert_exception(self, agent_with_tracer, sample_crawl_data):
+        """upsert 예외 시 tracer end_span(failed) 호출"""
+        agent_with_tracer.sheets.upsert_products_batch = AsyncMock(
+            side_effect=Exception("Upsert crash")
+        )
+        result = await agent_with_tracer.execute(sample_crawl_data)
+        tracer = agent_with_tracer.tracer
+        failed_calls = [c for c in tracer.end_span.call_args_list if "failed" in str(c)]
+        assert len(failed_calls) >= 1
+
+
+# =========================================================================
+# Non-dict records (model_dump path)
+# =========================================================================
+
+
+class TestStorageAgentRecordTypes:
+    """다양한 record 타입 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_non_dict_record_with_model_dump(self, agent):
+        """model_dump()을 가진 non-dict record 처리"""
+        mock_record = MagicMock()
+        mock_record.model_dump.return_value = {"rank": 1, "brand": "LANEIGE", "asin": "B001"}
+        data = {"categories": {"lip_care": {"rank_records": [mock_record]}}}
+        result = await agent.execute(data)
+        mock_record.model_dump.assert_called_once()
+        assert result["raw_records"] == 1
+
+    @pytest.mark.asyncio
+    async def test_non_dict_record_without_model_dump(self, agent):
+        """model_dump() 없는 non-dict record (fallback)"""
+
+        class SimpleRecord:
+            pass
+
+        record = SimpleRecord()
+        data = {"categories": {"lip_care": {"rank_records": [record]}}}
+        result = await agent.execute(data)
+        # record itself is appended as-is
+        assert result["raw_records"] == 1
+
+
+# =========================================================================
+# SQLite response failure (success=False)
+# =========================================================================
+
+
+class TestStorageAgentSQLiteFailures:
+    """SQLite 저장 실패 세부 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_sqlite_append_returns_failure(self, agent, sample_crawl_data):
+        """SQLite append가 success=False 반환"""
+        agent.sqlite.append_rank_records = AsyncMock(
+            return_value={"success": False, "error": "constraint violation"}
+        )
+        result = await agent.execute(sample_crawl_data)
+        sqlite_errors = [e for e in result["errors"] if e["step"] == "raw_data_sqlite"]
+        assert len(sqlite_errors) == 1
+        assert "constraint" in sqlite_errors[0]["error"]
+
+    @pytest.mark.asyncio
+    async def test_competitor_sqlite_failure_response(self, agent):
+        """competitor SQLite 저장이 success=False 반환"""
+        agent.sqlite.save_competitor_products = AsyncMock(
+            return_value={"success": False, "error": "table not found"}
+        )
+        data = {
+            "categories": {},
+            "all_products": [],
+            "competitor_products": [{"asin": "B001", "brand": "Test"}],
+        }
+        result = await agent.execute(data)
+        comp_errors = [e for e in result["errors"] if e["step"] == "competitor_sqlite"]
+        assert len(comp_errors) == 1
+
+    @pytest.mark.asyncio
+    async def test_competitor_general_exception(self, agent):
+        """competitor 저장 중 일반 예외"""
+        agent.sqlite.save_competitor_products = AsyncMock(side_effect=Exception("Unexpected"))
+        data = {
+            "categories": {},
+            "all_products": [],
+            "competitor_products": [{"asin": "B001", "brand": "Test"}],
+        }
+        result = await agent.execute(data)
+        comp_errors = [e for e in result["errors"] if e["step"] == "competitor_data"]
+        assert len(comp_errors) == 1
+
+    @pytest.mark.asyncio
+    async def test_competitor_json_save_failure(self, agent):
+        """competitor JSON 파일 저장 실패 (경고만, 에러 아님)"""
+        agent.sqlite.save_competitor_products = AsyncMock(
+            return_value={"success": True, "rows_added": 1}
+        )
+        data = {
+            "categories": {},
+            "all_products": [],
+            "competitor_products": [{"asin": "B001", "brand": "Test"}],
+        }
+        # json.dump를 실패시킴
+        with patch("builtins.open", side_effect=PermissionError("No write")):
+            result = await agent.execute(data)
+        # JSON 실패는 warning이므로 errors에 추가되지 않거나 competitor_data로 추가
+        assert result["competitor_products_saved"] == 1
+
+    @pytest.mark.asyncio
+    async def test_sqlite_disabled(self, mock_sheets):
+        """SQLite 비활성화 시 SQLite 호출 없음"""
+        with patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets):
+            a = StorageAgent(spreadsheet_id="test-id", enable_sqlite=False)
+            a.sheets = mock_sheets
+        data = {
+            "categories": {"lip_care": {"rank_records": [{"rank": 1, "brand": "X", "asin": "A01"}]}}
+        }
+        result = await a.execute(data)
+        assert result["sqlite_records"] == 0
+
+
+# =========================================================================
+# Top-level exception (lines 275-285)
+# =========================================================================
+
+
+class TestStorageAgentTopLevelError:
+    """execute 최상위 예외 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_top_level_exception_raised(self, mock_sheets, mock_sqlite):
+        """execute 최상위 예외 → raise (outer except, lines 275-285)"""
+        tracer = MagicMock()
+        metrics = MagicMock()
+        with (
+            patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets),
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=mock_sqlite),
+        ):
+            a = StorageAgent(
+                spreadsheet_id="test-id",
+                enable_sqlite=True,
+                tracer=tracer,
+                metrics=metrics,
+            )
+            a.sheets = mock_sheets
+            a.sqlite = mock_sqlite
+
+        # logger.agent_complete (line 267, inside try) 를 예외로 만들어 outer except 진입
+        a.logger = MagicMock()
+        a.logger.agent_complete = MagicMock(side_effect=RuntimeError("Fatal"))
+
+        with pytest.raises(RuntimeError, match="Fatal"):
+            await a.execute({"categories": {}})
+
+        tracer.end_span.assert_called()
+        metrics.record_agent_error.assert_called_once_with("storage", "Fatal")
+
+
+# =========================================================================
+# save_metrics (lines 304-372)
+# =========================================================================
+
+
+class TestStorageAgentSaveMetrics:
+    """save_metrics 메서드 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_save_brand_metrics(self, agent):
+        """브랜드 지표 저장"""
+        bm = MagicMock()
+        bm.brand_name = "LANEIGE"
+        bm.category_id = "lip_care"
+        bm.share_of_shelf = 15.0
+        bm.avg_rank = 3.2
+        bm.product_count = 5
+        bm.top10_count = 3
+        bm.top20_count = 5
+
+        result = await agent.save_metrics(brand_metrics=[bm])
+        assert result["brand_metrics"] == 1
+        agent.sheets._append_row.assert_called_once()
+        call_args = agent.sheets._append_row.call_args
+        assert call_args[0][0] == "BrandMetrics"
+
+    @pytest.mark.asyncio
+    async def test_save_product_metrics(self, agent):
+        """제품 지표 저장"""
+        pm = MagicMock()
+        pm.asin = "B08XYZ001"
+        pm.product_title = "Lip Mask"
+        pm.category_id = "lip_care"
+        pm.current_rank = 1
+        pm.rank_change_1d = -2
+        pm.rank_change_7d = 5
+        pm.rank_volatility = 1.2
+        pm.streak_days = 10
+        pm.rating_trend = 0.01
+
+        result = await agent.save_metrics(product_metrics=[pm])
+        assert result["product_metrics"] == 1
+        call_args = agent.sheets._append_row.call_args
+        assert call_args[0][0] == "ProductMetrics"
+
+    @pytest.mark.asyncio
+    async def test_save_market_metrics(self, agent):
+        """시장 지표 저장"""
+        mm = MagicMock()
+        mm.category_id = "lip_care"
+        mm.hhi = 0.08
+        mm.cpi = 105.2
+        mm.churn_rate_7d = 12.5
+        mm.avg_rating_gap = 0.3
+        mm.top_brand = "LANEIGE"
+        mm.top_brand_sos = 15.0
+
+        result = await agent.save_metrics(market_metrics=[mm])
+        assert result["market_metrics"] == 1
+        call_args = agent.sheets._append_row.call_args
+        assert call_args[0][0] == "MarketMetrics"
+
+    @pytest.mark.asyncio
+    async def test_save_all_metrics(self, agent):
+        """모든 지표 동시 저장"""
+        bm = MagicMock()
+        bm.brand_name = "LANEIGE"
+        bm.category_id = "lip_care"
+        bm.share_of_shelf = 15.0
+        bm.avg_rank = 3.2
+        bm.product_count = 5
+        bm.top10_count = 3
+        bm.top20_count = 5
+
+        pm = MagicMock()
+        pm.asin = "B08XYZ001"
+        pm.product_title = "Lip Mask"
+        pm.category_id = "lip_care"
+        pm.current_rank = 1
+        pm.rank_change_1d = -2
+        pm.rank_change_7d = 5
+        pm.rank_volatility = 1.2
+        pm.streak_days = 10
+        pm.rating_trend = 0.01
+
+        mm = MagicMock()
+        mm.category_id = "lip_care"
+        mm.hhi = 0.08
+        mm.cpi = 105.2
+        mm.churn_rate_7d = 12.5
+        mm.avg_rating_gap = 0.3
+        mm.top_brand = "LANEIGE"
+        mm.top_brand_sos = 15.0
+
+        result = await agent.save_metrics(
+            brand_metrics=[bm], product_metrics=[pm], market_metrics=[mm]
+        )
+        assert result["brand_metrics"] == 1
+        assert result["product_metrics"] == 1
+        assert result["market_metrics"] == 1
+        assert agent.sheets._append_row.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_save_metrics_none_args(self, agent):
+        """None 인자 → 0 반환"""
+        result = await agent.save_metrics()
+        assert result["brand_metrics"] == 0
+        assert result["product_metrics"] == 0
+        assert result["market_metrics"] == 0
+        agent.sheets._append_row.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_save_metrics_exception(self, agent):
+        """save_metrics 예외 → raise"""
+        agent.sheets._append_row = MagicMock(side_effect=Exception("API limit"))
+        bm = MagicMock()
+        bm.brand_name = "LANEIGE"
+        bm.category_id = "lip_care"
+        bm.share_of_shelf = 15.0
+        bm.avg_rank = 3.2
+        bm.product_count = 5
+        bm.top10_count = 3
+        bm.top20_count = 5
+
+        with pytest.raises(Exception, match="API limit"):
+            await agent.save_metrics(brand_metrics=[bm])
+
+    @pytest.mark.asyncio
+    async def test_save_metrics_with_tracer(self, mock_sheets, mock_sqlite):
+        """save_metrics tracer 호출 확인"""
+        tracer = MagicMock()
+        with (
+            patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets),
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=mock_sqlite),
+        ):
+            a = StorageAgent(spreadsheet_id="test-id", tracer=tracer)
+            a.sheets = mock_sheets
+
+        result = await a.save_metrics()
+        tracer.start_span.assert_called_once_with("save_metrics")
+        tracer.end_span.assert_called_once_with("completed")
+
+    @pytest.mark.asyncio
+    async def test_save_metrics_exception_with_tracer(self, mock_sheets, mock_sqlite):
+        """save_metrics 예외 시 tracer end_span(failed) 호출"""
+        tracer = MagicMock()
+        with (
+            patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets),
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=mock_sqlite),
+        ):
+            a = StorageAgent(spreadsheet_id="test-id", tracer=tracer)
+            a.sheets = mock_sheets
+            a.sheets._append_row = MagicMock(side_effect=RuntimeError("fail"))
+
+        bm = MagicMock()
+        bm.brand_name = "X"
+        bm.category_id = "c"
+        bm.share_of_shelf = 1.0
+        bm.avg_rank = 1.0
+        bm.product_count = 1
+        bm.top10_count = 1
+        bm.top20_count = 1
+
+        with pytest.raises(RuntimeError):
+            await a.save_metrics(brand_metrics=[bm])
+        failed_calls = [c for c in tracer.end_span.call_args_list if "failed" in str(c)]
+        assert len(failed_calls) >= 1
+
+    @pytest.mark.asyncio
+    async def test_save_multiple_brand_metrics(self, agent):
+        """여러 브랜드 지표 저장"""
+        metrics = []
+        for name in ["LANEIGE", "COSRX", "innisfree"]:
+            bm = MagicMock()
+            bm.brand_name = name
+            bm.category_id = "lip_care"
+            bm.share_of_shelf = 10.0
+            bm.avg_rank = 5.0
+            bm.product_count = 3
+            bm.top10_count = 2
+            bm.top20_count = 3
+            metrics.append(bm)
+
+        result = await agent.save_metrics(brand_metrics=metrics)
+        assert result["brand_metrics"] == 3
+        assert agent.sheets._append_row.call_count == 3
+
+
+# =========================================================================
+# Status determination (failed vs partial)
+# =========================================================================
+
+
+class TestStorageAgentStatus:
+    """상태 결정 로직 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_failed_status_when_no_records_saved(self, agent):
+        """raw_records=0이고 에러가 있으면 failed"""
+        agent.sheets.append_rank_records = AsyncMock(
+            return_value={"success": False, "error": "fail"}
+        )
+        data = {
+            "categories": {"lip_care": {"rank_records": [{"rank": 1, "brand": "X", "asin": "A01"}]}}
+        }
+        result = await agent.execute(data)
+        assert result["status"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_get_results_after_execute(self, agent, sample_crawl_data):
+        """execute 후 get_results가 결과를 반환"""
+        await agent.execute(sample_crawl_data)
+        results = agent.get_results()
+        assert results["status"] == "completed"
+        assert results["raw_records"] == 2
