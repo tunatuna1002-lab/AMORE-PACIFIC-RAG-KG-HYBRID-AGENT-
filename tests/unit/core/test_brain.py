@@ -154,7 +154,7 @@ def test_brain_default_initialization():
     brain = UnifiedBrain()
 
     # Check default attributes
-    assert brain.model == "gpt-4o-mini"
+    assert brain.model == "gpt-4.1-mini"
     assert brain.max_retries == 2
     assert brain.mode == BrainMode.IDLE
     assert brain._current_task is None

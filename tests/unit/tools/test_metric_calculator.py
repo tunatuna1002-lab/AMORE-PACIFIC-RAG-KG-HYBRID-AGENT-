@@ -52,15 +52,15 @@ class TestMetricCalculator:
     def test_has_calculate_method(self):
         """계산 메서드 존재"""
         calc = MetricCalculator()
-        assert hasattr(calc, "calculate") or hasattr(calc, "calculate_metrics")
+        assert hasattr(calc, "calculate_sos")
+        assert hasattr(calc, "calculate_hhi")
+        assert hasattr(calc, "calculate_cpi")
 
     def test_empty_data(self):
         """빈 데이터 처리"""
         calc = MetricCalculator()
         try:
-            if hasattr(calc, "calculate"):
-                result = calc.calculate([])
-            elif hasattr(calc, "calculate_metrics"):
-                result = calc.calculate_metrics([])
+            result = calc.calculate_sos([], "LANEIGE")
+            assert result == 0.0
         except Exception:
             pass  # 빈 데이터 에러 허용

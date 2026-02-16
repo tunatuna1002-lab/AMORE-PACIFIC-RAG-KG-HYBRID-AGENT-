@@ -36,6 +36,19 @@ def results():
             self.failed = 0
             self.errors = []
 
+        def record_pass(self, test_name: str):
+            self.passed += 1
+            print(f"  ✅ {test_name}")
+
+        def record_fail(self, test_name: str, error: str):
+            self.failed += 1
+            self.errors.append(f"{test_name}: {error}")
+            print(f"  ❌ {test_name}: {error}")
+
+        def summary(self) -> str:
+            total = self.passed + self.failed
+            return f"\n{'=' * 60}\n총 {total}개 테스트: ✅ {self.passed} 성공, ❌ {self.failed} 실패\n{'=' * 60}"
+
     return TestResult()
 
 

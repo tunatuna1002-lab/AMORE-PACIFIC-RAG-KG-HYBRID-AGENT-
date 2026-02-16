@@ -153,61 +153,33 @@ class TestIRReportParser:
 
     @pytest.mark.asyncio
     async def test_initialize(self, parser):
-        """초기화 테스트"""
+        """초기화 테스트 - 빈 디렉토리에서는 보고서 없음"""
         await parser.initialize()
 
-        # 미리 정의된 데이터가 로드되어야 함
-        assert len(parser.reports) > 0
-        assert "IR-2025-Q3" in parser.reports
+        # NOTE: Predefined 데이터는 제거됨. 빈 tmp_path이므로 보고서 없음
+        assert len(parser.reports) == 0
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_load_predefined_data(self, parser):
-        """미리 정의된 데이터 로드 테스트"""
+        """미리 정의된 데이터 로드 테스트 - 더 이상 predefined 데이터 없음"""
         await parser.initialize()
 
-        report = parser.reports.get("IR-2025-Q3")
-
-        assert report is not None
-        assert report.year == "2025"
-        assert report.quarter == "Q3"
-        assert report.release_date == "2025-11-06"
-
-        # 재무 데이터 확인
-        assert report.financials is not None
-        assert report.financials.revenue_krw == 1016.9
-        assert report.financials.revenue_yoy == 4.1
-
-        # 지역별 실적 확인
-        assert len(report.regional_performance) > 0
-
-        # Americas 찾기
-        americas = None
-        for perf in report.regional_performance:
-            if perf.region == "Americas":
-                americas = perf
-                break
-
-        assert americas is not None
-        assert americas.revenue_krw == 156.8
-        assert americas.revenue_yoy == 6.9
-
-        # 브랜드 하이라이트 확인
-        assert len(report.brand_highlights) > 0
+        # NOTE: Predefined 데이터는 제거됨. 빈 디렉토리에서는 보고서 없음
+        assert len(parser.reports) == 0
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_get_quarterly_data(self, parser):
-        """분기 데이터 조회 테스트"""
+        """분기 데이터 조회 테스트 - 빈 디렉토리에서는 None 반환"""
         await parser.initialize()
 
         report = parser.get_quarterly_data("2025", "Q3")
 
-        assert report is not None
-        assert report.year == "2025"
-        assert report.quarter == "Q3"
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 None
+        assert report is None
 
         await parser.close()
 
@@ -224,59 +196,55 @@ class TestIRReportParser:
 
     @pytest.mark.asyncio
     async def test_get_latest_report(self, parser):
-        """최신 보고서 조회 테스트"""
+        """최신 보고서 조회 테스트 - 빈 디렉토리에서는 None"""
         await parser.initialize()
 
         report = parser.get_latest_report()
 
-        assert report is not None
-        # 2025 Q3이 최신
-        assert report.year == "2025"
-        assert report.quarter == "Q3"
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 None
+        assert report is None
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_get_regional_performance(self, parser):
-        """지역별 실적 조회 테스트"""
+        """지역별 실적 조회 테스트 - 빈 디렉토리에서는 None"""
         await parser.initialize()
 
         americas = parser.get_regional_performance("Americas", "2025", "Q3")
 
-        assert americas is not None
-        assert americas.region == "Americas"
-        assert americas.revenue_krw == 156.8
-        assert americas.revenue_yoy == 6.9
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 None
+        assert americas is None
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_get_regional_performance_case_insensitive(self, parser):
-        """지역별 실적 조회 - 대소문자 무시"""
+        """지역별 실적 조회 - 대소문자 무시 (빈 디렉토리에서는 None)"""
         await parser.initialize()
 
         americas = parser.get_regional_performance("americas", "2025", "Q3")
 
-        assert americas is not None
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 None
+        assert americas is None
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_get_brand_highlights(self, parser):
-        """브랜드 하이라이트 조회 테스트"""
+        """브랜드 하이라이트 조회 테스트 - 빈 디렉토리에서는 빈 리스트"""
         await parser.initialize()
 
         highlights = parser.get_brand_highlights("LANEIGE", "2025", "Q3")
 
-        assert len(highlights) > 0
-        assert highlights[0].brand == "LANEIGE"
-        assert "Next-Gen Hydration" in highlights[0].highlights[0]
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 빈 리스트
+        assert len(highlights) == 0
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_get_americas_insights(self, parser):
-        """Americas 인사이트 조회 테스트"""
+        """Americas 인사이트 조회 테스트 - 빈 디렉토리에서는 빈 리스트들"""
         await parser.initialize()
 
         insights = parser.get_americas_insights("2025", "Q3")
@@ -285,60 +253,52 @@ class TestIRReportParser:
         assert "brand_highlights" in insights
         assert "key_events" in insights
 
-        # Americas 실적 확인
-        assert len(insights["regional_performance"]) > 0
-        perf = insights["regional_performance"][0]
-        assert perf["revenue_krw"] == 156.8
-        assert perf["revenue_yoy"] == 6.9
-
-        # Americas 브랜드 확인
-        assert len(insights["brand_highlights"]) > 0
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 모두 빈 리스트
+        assert len(insights["regional_performance"]) == 0
+        assert len(insights["brand_highlights"]) == 0
+        assert len(insights["key_events"]) == 0
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_generate_insight_section(self, parser):
-        """인사이트 섹션 생성 테스트"""
+        """인사이트 섹션 생성 테스트 - 빈 디렉토리에서는 "데이터 없음" 메시지"""
         await parser.initialize()
 
         section = parser.generate_insight_section("2025", "Q3")
 
-        assert "아모레퍼시픽 IR 데이터" in section
-        assert "Q3 2025" in section
-        assert "매출" in section
-        assert "Americas" in section
+        # NOTE: Predefined 데이터 제거됨. 보고서 없으면 "IR 데이터가 없습니다." 반환
+        assert section == "IR 데이터가 없습니다."
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_generate_insight_section_latest(self, parser):
-        """인사이트 섹션 생성 - 최신"""
+        """인사이트 섹션 생성 - 최신 (빈 디렉토리에서는 "데이터 없음" 메시지)"""
         await parser.initialize()
 
         section = parser.generate_insight_section()
 
-        assert "아모레퍼시픽 IR 데이터" in section
+        # NOTE: Predefined 데이터 제거됨. 보고서 없으면 "IR 데이터가 없습니다." 반환
+        assert section == "IR 데이터가 없습니다."
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_create_source_reference(self, parser):
-        """출처 참조 생성 테스트"""
+        """출처 참조 생성 테스트 - 빈 디렉토리에서는 빈 딕셔너리"""
         await parser.initialize()
 
         ref = parser.create_source_reference("2025", "Q3")
 
-        assert ref["publisher"] == "아모레퍼시픽 IR"
-        assert ref["source_type"] == "ir"
-        assert ref["reliability_score"] == 1.0
-        assert "2025" in ref["title"]
-        assert "Q3" in ref["title"]
+        # NOTE: Predefined 데이터 제거됨. 보고서 없으면 빈 딕셔너리 반환
+        assert ref == {}
 
         await parser.close()
 
     @pytest.mark.asyncio
     async def test_get_stats(self, parser):
-        """통계 반환 테스트"""
+        """통계 반환 테스트 - 빈 디렉토리에서는 0개 보고서"""
         await parser.initialize()
 
         stats = parser.get_stats()
@@ -346,7 +306,10 @@ class TestIRReportParser:
         assert "total_reports" in stats
         assert "years_covered" in stats
         assert "latest_report" in stats
-        assert stats["total_reports"] > 0
+
+        # NOTE: Predefined 데이터 제거됨. 빈 디렉토리에서는 0개
+        assert stats["total_reports"] == 0
+        assert stats["latest_report"] is None
 
         await parser.close()
 
