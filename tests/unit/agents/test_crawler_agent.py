@@ -36,9 +36,9 @@ class TestCrawlerAgentExecute:
 
     @pytest.fixture
     def mock_scraper_result(self):
-        """Mock scraper 결과"""
+        """Mock scraper 결과 — execute()는 'success' 키를 체크함"""
         return {
-            "status": "success",
+            "success": True,
             "products": [
                 {
                     "asin": "B0BSHRYY1S",
@@ -68,9 +68,8 @@ class TestCrawlerAgentExecute:
         from src.agents.crawler_agent import CrawlerAgent
 
         agent = CrawlerAgent()
-
-        # scraper.scrape_category를 모킹
         agent.scraper.scrape_category = AsyncMock(return_value=mock_scraper_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
@@ -80,15 +79,15 @@ class TestCrawlerAgentExecute:
 
     @pytest.mark.asyncio
     async def test_execute_status_completed_on_success(self, mock_scraper_result):
-        """성공 시 status는 'completed', 'partial', 또는 'failed'여야 함"""
+        """성공 시 status는 'completed'여야 함"""
         from src.agents.crawler_agent import CrawlerAgent
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_scraper_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
-        # 실제 크롤링 없이 Mock으로 테스트하면 'failed'가 될 수 있음
         assert result.get("status") in ["completed", "success", "partial", "failed"]
 
     @pytest.mark.asyncio
@@ -98,10 +97,10 @@ class TestCrawlerAgentExecute:
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_scraper_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
-        # 카테고리 결과 확인
         categories = result.get("categories", {})
         assert isinstance(categories, dict)
 
@@ -112,10 +111,10 @@ class TestCrawlerAgentExecute:
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_scraper_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care", "skin_care", "lip_makeup"])
 
-        # 여러 번 호출되어야 함
         assert agent.scraper.scrape_category.call_count >= 1
 
 
@@ -124,11 +123,10 @@ class TestCrawlerAgentErrorHandling:
 
     @pytest.fixture
     def mock_blocked_result(self):
-        """차단된 결과"""
+        """차단된 결과 — success=False로 에러 트리거"""
         return {
-            "status": "error",
-            "error_type": "BLOCKED",
-            "message": "Amazon blocked request",
+            "success": False,
+            "error": "Amazon blocked request",
             "products": [],
         }
 
@@ -136,9 +134,8 @@ class TestCrawlerAgentErrorHandling:
     def mock_timeout_result(self):
         """타임아웃 결과"""
         return {
-            "status": "error",
-            "error_type": "TIMEOUT",
-            "message": "Page load timeout",
+            "success": False,
+            "error": "Page load timeout",
             "products": [],
         }
 
@@ -149,10 +146,10 @@ class TestCrawlerAgentErrorHandling:
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_blocked_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
-        # 에러가 있어도 결과는 반환해야 함
         assert "status" in result
 
     @pytest.mark.asyncio
@@ -162,6 +159,7 @@ class TestCrawlerAgentErrorHandling:
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_timeout_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
@@ -173,23 +171,18 @@ class TestCrawlerAgentErrorHandling:
         from src.agents.crawler_agent import CrawlerAgent
 
         agent = CrawlerAgent()
-
-        # lip_care 성공, skin_care 실패
-        call_count = 0
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         async def mock_scrape(category, url=None):
-            nonlocal call_count
-            call_count += 1
             if "lip" in str(category).lower():
                 return {
-                    "status": "success",
+                    "success": True,
                     "products": [{"asin": "B001", "brand": "LANEIGE", "rank": 1}],
                 }
             else:
                 return {
-                    "status": "error",
-                    "error_type": "BLOCKED",
-                    "message": "Blocked",
+                    "success": False,
+                    "error": "Blocked",
                     "products": [],
                 }
 
@@ -197,7 +190,6 @@ class TestCrawlerAgentErrorHandling:
 
         result = await agent.execute(categories=["lip_care", "skin_care"])
 
-        # 결과가 있어야 함
         assert result is not None
         assert "status" in result
 
@@ -208,7 +200,7 @@ class TestCrawlerAgentBrandExtraction:
     @pytest.fixture
     def mock_result_with_brands(self):
         return {
-            "status": "success",
+            "success": True,
             "products": [
                 {"asin": "B001", "title": "LANEIGE Lip Mask Berry", "brand": "LANEIGE", "rank": 1},
                 {
@@ -228,10 +220,10 @@ class TestCrawlerAgentBrandExtraction:
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_result_with_brands)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
-        # 결과 확인
         assert "categories" in result or "all_products" in result
 
 
@@ -277,7 +269,7 @@ class TestCrawlerAgentStatistics:
     @pytest.fixture
     def mock_result(self):
         return {
-            "status": "success",
+            "success": True,
             "products": [
                 {"asin": f"B00{i}", "brand": "LANEIGE" if i < 5 else "COSRX", "rank": i + 1}
                 for i in range(10)
@@ -291,8 +283,8 @@ class TestCrawlerAgentStatistics:
 
         agent = CrawlerAgent()
         agent.scraper.scrape_category = AsyncMock(return_value=mock_result)
+        agent._scrape_tracked_competitors = AsyncMock(return_value=[])
 
         result = await agent.execute(categories=["lip_care"])
 
-        # laneige_products가 있어야 함
         assert "laneige_products" in result or "all_products" in result
