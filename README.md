@@ -41,7 +41,8 @@ uvicorn dashboard_api:app --host 0.0.0.0 --port 8001
 6. [배포](#6-배포)
 7. [테스트](#7-테스트)
 8. [문서](#8-문서)
-9. [업데이트 히스토리](#9-업데이트-히스토리)
+9. [리팩토링 & CI/CD 개선 (2026-02)](#9-리팩토링--cicd-개선-2026-02)
+10. [업데이트 히스토리](#10-업데이트-히스토리)
 
 ---
 
@@ -193,7 +194,7 @@ python scripts/test_report_generator.py
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite, Google Sheets, Pandas |
 | **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (60% 최소 커버리지) |
+| **테스트** | pytest, pytest-cov (현재 43%, 목표 60%) |
 
 ---
 
@@ -260,8 +261,11 @@ python scripts/sync_sheets_to_sqlite.py    # Sheets → SQLite
 ## 7. 테스트
 
 ```bash
-# 전체 테스트
+# 전체 테스트 (커버리지 포함)
 python -m pytest tests/ -v
+
+# 단위 테스트만
+python -m pytest tests/unit/ -v --tb=short -x --timeout=60
 
 # 커버리지 리포트
 open coverage_html/index.html
@@ -276,6 +280,15 @@ python -m src.tools.kg_backup list
 # 리포트 생성 테스트
 python scripts/test_report_generator.py
 ```
+
+### 테스트 현황
+
+| 항목 | 수치 |
+|------|------|
+| 총 테스트 수 | 1,905개 |
+| 통과율 | 100% (1,905 passed, 0 failed) |
+| 커버리지 | 43.09% (목표 60%) |
+| 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
 
 ### 테스트 환경 분리
 
@@ -296,7 +309,66 @@ ENV_FILE=.env.test python -m pytest tests/
 
 ---
 
-## 9. 업데이트 히스토리
+## 9. 리팩토링 & CI/CD 개선 (2026-02)
+
+2026-02-10 ~ 02-16, 6개 Phase에 걸쳐 코드 품질 및 테스트 인프라를 대폭 개선했습니다.
+자세한 내용은 [`docs/REFACTORING_RESULTS.md`](docs/REFACTORING_RESULTS.md) 참조.
+
+### 9.1 Before / After
+
+| 지표 | Before (02-09) | After (02-16) | 변화 |
+|------|----------------|---------------|------|
+| src/ 총 코드 | ~97,000 lines | ~70,700 lines | **-27%** |
+| Python 파일 수 | 155개 | 200개 | +29% (모듈 분할) |
+| dashboard_api.py | 5,634줄 monolith | 3,236줄 + 12 route modules | **-43%** |
+| 순환 의존성 | 23 cycles | 0 cycles | **완전 제거** |
+| 테스트 수 | 238개 | 1,905개 | **+700%** |
+| 테스트 커버리지 | 10.11% | 43.09% | **+33%p** |
+| DI Container | 11 get_ 메서드 | 18 get_ 메서드 | +7 컴포넌트 |
+
+### 9.2 Phase별 주요 변경
+
+| Phase | 작업 | 문제 | 해결 |
+|-------|------|------|------|
+| **0** | Dead Code 삭제 | 미사용 코드 ~2,000줄 잔존 | 삭제 + 안전망 테스트 650개 작성 |
+| **1-2** | Retriever 통합 | 4개 Retriever 분산, 순환 의존 | Strategy Pattern으로 2개로 통합, Domain Layer 순수성 확보 |
+| **3** | dashboard_api 모듈화 | 5,634줄 monolith | `src/api/routes/` 12개 모듈로 분리 (-43%) |
+| **4** | BatchWorkflow 이동 | core/에 위치한 Application 로직 | `src/application/workflows/`로 이동, 하위 호환 유지 |
+| **5** | DI Container 완성 | 직접 import 의존 | Container 기반 DI 전환, 7개 컴포넌트 추가 등록 |
+| **6** | 테스트 보강 | 238개, 10% 커버리지 | 5개 미테스트 모듈에 60개 테스트 추가, stale 4개 수정 |
+
+### 9.3 CI/CD 파이프라인
+
+GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로 개선:
+
+| Job | 내용 |
+|-----|------|
+| **test** | Ruff lint → 단위 테스트 (pytest + coverage) → 통합 테스트 (API key 있을 때만) |
+| **security** | Bandit 보안 스캔 (`-ll -ii`) + pip-audit 취약 의존성 검사 |
+
+주요 설정:
+- Python 3.11, Playwright Chromium 설치 포함
+- 커버리지: `--cov=src --cov-report=term-missing` (branch coverage 활성화)
+- `fail_under = 0` (임시 — 안정화 후 점진적 상향 예정)
+
+### 9.4 커버리지 로드맵 (진행 중)
+
+현재 43% → 목표 60% 달성을 위한 6-Phase 계획 수립 완료.
+
+| Phase | 대상 | 예상 커버리지 |
+|-------|------|--------------|
+| 1 | Low-hanging fruit (50-70% 파일 보강) | 45.2% |
+| 2 | Core 비즈니스 로직 (brain, workflow, state) | 48.2% |
+| 3 | 0% 커버리지 고영향 파일 | 49.9% |
+| 4 | Core Agents (brain, chatbot, OWL) | 51.8% |
+| 5 | Infrastructure & Tools (storage, scraper) | 54.1% |
+| 6 | API 통합 테스트 | **59.8%** |
+
+> 상세 분석: `.omc/autopilot/coverage-plan.md` 참조
+
+---
+
+## 10. 업데이트 히스토리
 
 ### 2026-02-10 - Amazon 크롤러 Top 100 수집 복구
 
