@@ -715,6 +715,26 @@ class TestGetBrandSentimentProfile:
         assert result["all_tags"] == []
         assert result["dominant_sentiment"] is None
 
+    def test_brand_profile_with_product_without_asin(self, kg, crawl_data_single, sentiment_data):
+        """ASIN 없는 제품이 포함된 경우 continue 분기 테스트"""
+        from unittest.mock import patch
+
+        kg.load_from_crawl_data(crawl_data_single)
+        kg.load_from_sentiment_data(sentiment_data)
+
+        # get_brand_products가 ASIN 없는 제품을 반환하도록 mock
+        products_with_no_asin = [
+            {"asin": None, "product_name": "No ASIN Product"},  # ASIN이 None
+            {"asin": "B08XYZ001", "product_name": "Valid Product"},  # 정상 ASIN
+        ]
+
+        with patch.object(kg, "get_brand_products", return_value=products_with_no_asin):
+            result = kg.get_brand_sentiment_profile("LANEIGE")
+
+        # ASIN 없는 제품은 건너뛰고 정상 제품만 처리됨
+        assert result["product_count"] == 2
+        assert len(result["all_tags"]) >= 1  # B08XYZ001의 sentiment tags
+
 
 # =========================================================================
 # 9. compare_product_sentiments
@@ -1089,3 +1109,235 @@ class TestIntegrationScenarios:
         # 감성 조회
         profile = kg.get_brand_sentiment_profile("LANEIGE")
         assert profile["product_count"] >= 1
+
+
+# =========================================================================
+# Edge Cases & Branch Coverage
+# =========================================================================
+
+
+class TestEdgeCasesAndBranchCoverage:
+    """추가 엣지 케이스 및 분기 커버리지 테스트"""
+
+    def test_load_crawl_data_with_unknown_brand(self, kg):
+        """Unknown 브랜드 처리"""
+        data = {
+            "categories": {
+                "lip_care": {
+                    "rank_records": [
+                        {
+                            "brand": "Unknown",
+                            "product_asin": "B00UNKNOWN",
+                            "title": "Unknown Product",
+                            "rank": 100,
+                        }
+                    ]
+                }
+            }
+        }
+        added = kg.load_from_crawl_data(data)
+        assert added >= 2  # brand_product + product_category
+
+    def test_load_brand_ownership_with_acquired_true_string(self, kg, tmp_path):
+        """acquired가 문자열 'true'인 경우"""
+        data = {
+            "amorepacific_brands": [
+                {
+                    "name": "TestBrand",
+                    "segment": "Test",
+                    "category": "Test",
+                    "acquired": "true",  # string 'true'
+                    "country": "Korea",
+                    "aliases": [],
+                }
+            ],
+            "brand_ownership": {},
+        }
+        path = tmp_path / "brands_true_string.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        added = kg.load_brand_ownership(str(path))
+        # acquired="true"는 ACQUIRED_IN 관계를 생성하지 않음
+        rels = kg.query(subject="TestBrand", predicate=RelationType.ACQUIRED_IN)
+        assert len(rels) == 0
+
+    def test_load_brand_ownership_with_acquired_year_string(self, kg, tmp_path):
+        """acquired가 연도 문자열인 경우"""
+        data = {
+            "amorepacific_brands": [
+                {
+                    "name": "TestBrand",
+                    "segment": "Test",
+                    "category": "Test",
+                    "acquired": "2023",  # string year
+                    "country": "Korea",
+                    "aliases": [],
+                }
+            ],
+            "brand_ownership": {},
+        }
+        path = tmp_path / "brands_year_string.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        added = kg.load_brand_ownership(str(path))
+        rels = kg.query(subject="TestBrand", predicate=RelationType.ACQUIRED_IN)
+        assert len(rels) == 1
+        assert rels[0].object == "2023"
+
+    def test_load_category_hierarchy_with_empty_categories(self, kg, tmp_path):
+        """빈 categories 딕셔너리"""
+        data = {"categories": {}}
+        path = tmp_path / "empty_categories.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        added = kg.load_category_hierarchy(str(path))
+        assert added == 0
+
+    def test_get_category_hierarchy_with_circular_path(self, kg, category_hierarchy_file):
+        """카테고리 계층 조회 시 순환 방지 (while loop 커버리지)"""
+        kg.load_category_hierarchy(category_hierarchy_file)
+        # lip_care → skin_care → beauty (3 levels)
+        result = kg.get_category_hierarchy("lip_care")
+        # ancestors는 최대 2개 (skin_care, beauty)
+        assert len(result["ancestors"]) == 2
+        # 각 ancestor는 parent_meta가 존재
+        for ancestor in result["ancestors"]:
+            assert "id" in ancestor
+            assert "name" in ancestor
+
+    def test_load_from_metrics_data_with_none_values(self, kg):
+        """메트릭 데이터에 None 값이 포함된 경우"""
+        data = {
+            "brand_metrics": [
+                {
+                    "brand_name": "TestBrand",
+                    "share_of_shelf": None,
+                    "avg_rank": None,
+                    "product_count": 0,
+                }
+            ],
+            "product_metrics": [
+                {
+                    "asin": "TEST_ASIN",
+                    "current_rank": None,
+                    "rank_change_1d": None,
+                }
+            ],
+        }
+        added = kg.load_from_metrics_data(data)
+        meta = kg.get_entity_metadata("TestBrand")
+        assert meta["sos"] is None
+        assert meta["type"] == "brand"
+
+    def test_find_products_by_sentiment_with_empty_brand_filter(self, kg, sentiment_data):
+        """브랜드 필터가 빈 문자열인 경우"""
+        kg.load_from_sentiment_data(sentiment_data)
+        kg.set_entity_metadata("B08XYZ001", {"brand": ""})
+        asins = kg.find_products_by_sentiment("Moisturizing", brand_filter="")
+        assert "B08XYZ001" in asins
+
+    def test_load_category_hierarchy_with_relative_path(self, kg, tmp_path):
+        """상대 경로 처리 확인"""
+        # 실제로는 파일이 없어서 0 반환하지만, 상대 경로 로직 커버
+        added = kg.load_category_hierarchy("config/nonexistent_hierarchy.json")
+        assert added == 0
+
+    def test_load_brand_ownership_with_relative_path(self, kg):
+        """상대 경로 처리 확인"""
+        added = kg.load_brand_ownership("config/nonexistent_brands.json")
+        assert added == 0
+
+    def test_get_brand_sentiment_profile_with_multiple_clusters(
+        self, kg, crawl_data_single, sentiment_data
+    ):
+        """여러 클러스터가 있는 브랜드 감성 프로필"""
+        kg.load_from_crawl_data(crawl_data_single)
+        kg.load_from_sentiment_data(sentiment_data)
+        result = kg.get_brand_sentiment_profile("LANEIGE")
+        # 클러스터 카운트 확인
+        assert isinstance(result["clusters"], dict)
+        assert result["product_count"] >= 1
+
+    def test_load_from_crawl_data_product_with_all_fields(self, kg):
+        """모든 필드가 있는 제품"""
+        data = {
+            "categories": {
+                "test_cat": {
+                    "rank_records": [
+                        {
+                            "brand": "TestBrand",
+                            "product_asin": "B00TEST001",
+                            "title": "Complete Product",
+                            "product_name": "Alt Name",
+                            "rank": 10,
+                            "rating": 4.8,
+                            "price": 29.99,
+                        }
+                    ]
+                }
+            }
+        }
+        added = kg.load_from_crawl_data(data)
+        assert added >= 2
+        # rating과 price가 properties에 포함되었는지 확인
+        rels = kg.query(subject="TestBrand", predicate=RelationType.HAS_PRODUCT)
+        assert len(rels) == 1
+        assert rels[0].properties.get("rating") == 4.8
+        assert rels[0].properties.get("price") == 29.99
+
+    def test_load_brand_ownership_multiple_brand_ownership_entries(self, kg, tmp_path):
+        """여러 brand_ownership 엔트리가 있는 경우"""
+        data = {
+            "amorepacific_brands": [
+                {
+                    "name": "Brand1",
+                    "segment": "A",
+                    "category": "C",
+                    "country": "Korea",
+                    "aliases": [],
+                },
+                {
+                    "name": "Brand2",
+                    "segment": "B",
+                    "category": "D",
+                    "country": "Korea",
+                    "aliases": [],
+                },
+            ],
+            "brand_ownership": {
+                "Brand1": {
+                    "note": "Note for Brand1",
+                    "evidence": ["Evidence1"],
+                    "country_of_origin": "Korea",
+                },
+                "Brand2": {
+                    "note": "Note for Brand2",
+                    "evidence": ["Evidence2"],
+                    "country_of_origin": "Korea",
+                },
+            },
+        }
+        path = tmp_path / "multi_ownership.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        added = kg.load_brand_ownership(str(path))
+        assert added >= 4  # 각 브랜드마다 최소 2개 관계
+
+        # 메타데이터 확인
+        meta1 = kg.get_entity_metadata("Brand1")
+        meta2 = kg.get_entity_metadata("Brand2")
+        assert "Note for Brand1" in meta1.get("ownership_note", "")
+        assert "Note for Brand2" in meta2.get("ownership_note", "")
+
+    def test_get_product_sentiments_with_no_cluster_info(self, kg):
+        """클러스터 정보가 없는 감성 관계"""
+        from src.domain.entities.relations import Relation, RelationType
+
+        # 클러스터 없이 감성 관계만 추가
+        rel = Relation(
+            subject="TEST_ASIN",
+            predicate=RelationType.HAS_SENTIMENT,
+            object="TestTag",
+            properties={},  # cluster 키 없음
+            source="test",
+        )
+        kg.add_relation(rel)
+        result = kg.get_product_sentiments("TEST_ASIN")
+        assert "TestTag" in result["sentiment_tags"]
+        # cluster가 없어도 정상 동작

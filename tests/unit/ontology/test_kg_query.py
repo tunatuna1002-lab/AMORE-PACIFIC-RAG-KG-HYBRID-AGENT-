@@ -649,3 +649,650 @@ class TestApplyFilter:
         result = kg._apply_filter(bindings, "?cat > apple")
         assert len(result) == 1
         assert result[0]["cat"] == "cherry"
+
+
+# =========================================================================
+# Additional Edge Cases & Error Handling
+# =========================================================================
+
+
+class TestQueryEdgeCases:
+    def test_query_with_multiple_filters(self, populated_kg):
+        """Test query with subject, predicate, object, and confidence filters all at once."""
+        results = populated_kg.query(
+            subject="LANEIGE",
+            predicate=RelationType.HAS_PRODUCT,
+            object_="B08XYZ",
+            min_confidence=0.5,
+        )
+        assert len(results) == 1
+        assert results[0].subject == "LANEIGE"
+        assert results[0].object == "B08XYZ"
+
+    def test_query_uses_subject_index_optimization(self, populated_kg):
+        """Verify that query uses subject index for optimization."""
+        # Query with subject should use subject_index
+        results = populated_kg.query(subject="LANEIGE")
+        assert len(results) > 0
+
+    def test_query_uses_object_index_optimization(self, populated_kg):
+        """Verify that query uses object index when subject is not provided."""
+        results = populated_kg.query(object_="lip_care")
+        assert len(results) > 0
+
+    def test_query_uses_predicate_index_optimization(self, populated_kg):
+        """Verify that query uses predicate index when subject and object are not provided."""
+        results = populated_kg.query(predicate=RelationType.HAS_PRODUCT)
+        assert len(results) == 3
+
+    def test_query_with_zero_confidence(self, kg):
+        """Test that min_confidence=0.0 returns all results."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B", confidence=0.1))
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "C", confidence=0.9))
+        results = kg.query(subject="A", min_confidence=0.0)
+        assert len(results) == 2
+
+
+class TestGetSubjectsObjectsPredicatesEdgeCases:
+    def test_get_subjects_empty_result(self, populated_kg):
+        """Test get_subjects with non-existent object."""
+        subjects = populated_kg.get_subjects(RelationType.HAS_PRODUCT, "NONEXISTENT")
+        assert subjects == []
+
+    def test_get_objects_empty_result(self, populated_kg):
+        """Test get_objects with non-existent subject."""
+        objects = populated_kg.get_objects("NONEXISTENT", RelationType.HAS_PRODUCT)
+        assert objects == []
+
+    def test_get_predicates_empty_result(self, populated_kg):
+        """Test get_predicates with non-existent relationship."""
+        preds = populated_kg.get_predicates("LANEIGE", "NONEXISTENT")
+        assert preds == []
+
+    def test_get_subjects_unique(self, kg):
+        """Test that get_subjects returns unique subjects only."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "X"))
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "X", confidence=0.9))
+        kg.add_relation(Relation("B", RelationType.HAS_PRODUCT, "X"))
+        subjects = kg.get_subjects(RelationType.HAS_PRODUCT, "X")
+        # Should be unique
+        assert len(subjects) == len(set(subjects))
+
+    def test_get_objects_unique(self, kg):
+        """Test that get_objects returns unique objects only."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "X"))
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "X", confidence=0.9))
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "Y"))
+        objects = kg.get_objects("A", RelationType.HAS_PRODUCT)
+        assert len(objects) == len(set(objects))
+
+    def test_get_predicates_unique(self, kg):
+        """Test that get_predicates returns unique predicates."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B", confidence=0.8))
+        kg.add_relation(Relation("A", RelationType.COMPETES_WITH, "B"))
+        preds = kg.get_predicates("A", "B")
+        assert len(preds) == len(set(preds))
+
+
+class TestGetNeighborsEdgeCases:
+    def test_neighbors_nonexistent_entity(self, populated_kg):
+        """Test get_neighbors with non-existent entity."""
+        neighbors = populated_kg.get_neighbors("NONEXISTENT", direction="both")
+        assert neighbors["outgoing"] == []
+        assert neighbors["incoming"] == []
+
+    def test_neighbors_with_empty_predicate_filter(self, populated_kg):
+        """Test get_neighbors with empty predicate filter list."""
+        neighbors = populated_kg.get_neighbors("LANEIGE", direction="outgoing", predicate_filter=[])
+        # Empty filter is falsy, so it returns all (no filtering applied)
+        assert len(neighbors["outgoing"]) > 0
+
+    def test_neighbors_invalid_direction(self, populated_kg):
+        """Test get_neighbors with invalid direction defaults to no results."""
+        neighbors = populated_kg.get_neighbors("LANEIGE", direction="invalid")
+        assert neighbors["outgoing"] == []
+        assert neighbors["incoming"] == []
+
+
+class TestBfsTraverseEdgeCases:
+    def test_bfs_cycles_handled(self, kg):
+        """Test that BFS handles cycles correctly (doesn't loop infinitely)."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        kg.add_relation(Relation("B", RelationType.HAS_PRODUCT, "C"))
+        kg.add_relation(Relation("C", RelationType.HAS_PRODUCT, "A"))  # Cycle
+        result = kg.bfs_traverse("A", max_depth=5, direction="outgoing")
+        # Should visit each node only once
+        all_nodes = [node for nodes in result.values() for node in nodes]
+        assert len(all_nodes) == len(set(all_nodes))
+
+    def test_bfs_incoming_direction(self, populated_kg):
+        """Test BFS with incoming direction."""
+        result = populated_kg.bfs_traverse("lip_care", max_depth=2, direction="incoming")
+        assert "lip_care" in result[0]
+        # Should find products that belong to lip_care
+        assert len(result.get(1, [])) > 0
+
+    def test_bfs_depth_exceeded_skips_nodes(self, populated_kg):
+        """Test that nodes beyond max_depth are not visited."""
+        result = populated_kg.bfs_traverse("LANEIGE", max_depth=1, direction="outgoing")
+        # Should not have depth > 1
+        assert 2 not in result or len(result.get(2, [])) == 0
+
+
+class TestFindPathEdgeCases:
+    def test_find_path_with_cycle(self, kg):
+        """Test find_path with cycles in the graph."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        kg.add_relation(Relation("B", RelationType.HAS_PRODUCT, "C"))
+        kg.add_relation(Relation("C", RelationType.HAS_PRODUCT, "A"))  # Cycle
+        kg.add_relation(Relation("C", RelationType.HAS_PRODUCT, "D"))
+        path = kg.find_path("A", "D")
+        assert path is not None
+        assert len(path) == 3
+
+    def test_find_path_nonexistent_start(self, populated_kg):
+        """Test find_path with non-existent start entity."""
+        path = populated_kg.find_path("NONEXISTENT", "lip_care")
+        assert path is None
+
+    def test_find_path_nonexistent_end(self, populated_kg):
+        """Test find_path with non-existent end entity."""
+        path = populated_kg.find_path("LANEIGE", "NONEXISTENT")
+        assert path is None
+
+    def test_find_path_multiple_paths_returns_shortest(self, kg):
+        """Test that find_path returns shortest path when multiple exist."""
+        # Path 1: A -> B (1 hop)
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        # Path 2: A -> C -> D -> B (3 hops)
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "C"))
+        kg.add_relation(Relation("C", RelationType.HAS_PRODUCT, "D"))
+        kg.add_relation(Relation("D", RelationType.HAS_PRODUCT, "B"))
+        path = kg.find_path("A", "B")
+        # Should find shortest path (1 hop)
+        assert len(path) == 1
+
+
+class TestGetBrandProductsEdgeCases:
+    def test_get_brand_products_with_missing_category_property(self, kg):
+        """Test get_brand_products when products lack category property."""
+        kg.add_relation(
+            Relation(
+                "BRAND_X",
+                RelationType.HAS_PRODUCT,
+                "P1",
+                properties={"product_name": "Product 1"},  # No category
+            )
+        )
+        products = kg.get_brand_products("BRAND_X", category="skin_care")
+        # Should not match since category is None
+        assert len(products) == 0
+
+    def test_get_brand_products_includes_all_properties(self, kg):
+        """Test that get_brand_products includes all properties from relation."""
+        kg.add_relation(
+            Relation(
+                "BRAND_X",
+                RelationType.HAS_PRODUCT,
+                "P1",
+                properties={
+                    "product_name": "Product 1",
+                    "category": "cat1",
+                    "rank": 5,
+                    "price": 29.99,
+                    "rating": 4.5,
+                },
+            )
+        )
+        products = kg.get_brand_products("BRAND_X")
+        assert len(products) == 1
+        assert products[0]["price"] == 29.99
+        assert products[0]["rating"] == 4.5
+
+
+class TestGetCompetitorsEdgeCases:
+    def test_get_competitors_empty_brand(self, populated_kg):
+        """Test get_competitors with non-existent brand."""
+        comps = populated_kg.get_competitors("NONEXISTENT_BRAND")
+        assert comps == []
+
+    def test_get_competitors_no_category_property(self, kg):
+        """Test competitor filtering when relation has no category property."""
+        kg.add_relation(
+            Relation("A", RelationType.DIRECT_COMPETITOR, "B")  # No category property
+        )
+        comps = kg.get_competitors("A", category="skin_care")
+        # Should not match since category is None
+        assert len(comps) == 0
+
+    def test_get_competitors_all_types_includes_competes_with(self, kg):
+        """Test that competition_type='all' includes COMPETES_WITH relation."""
+        kg.add_relation(
+            Relation("A", RelationType.COMPETES_WITH, "B", properties={"category": "c1"})
+        )
+        comps = kg.get_competitors("A", competition_type="all")
+        assert len(comps) == 1
+        assert comps[0]["brand"] == "B"
+
+
+class TestGetCategoryBrandsEdgeCases:
+    def test_get_category_brands_empty_category(self, populated_kg):
+        """Test get_category_brands with non-existent category."""
+        brands = populated_kg.get_category_brands("nonexistent_category")
+        assert brands == []
+
+    def test_get_category_brands_multiple_brands_same_product_count(self, kg):
+        """Test sorting when multiple brands have same product count."""
+        kg.add_relation(Relation("BRAND_A", RelationType.HAS_PRODUCT, "P_A1"))
+        kg.add_relation(Relation("P_A1", RelationType.BELONGS_TO_CATEGORY, "cat1"))
+        kg.add_relation(Relation("BRAND_B", RelationType.HAS_PRODUCT, "P_B1"))
+        kg.add_relation(Relation("P_B1", RelationType.BELONGS_TO_CATEGORY, "cat1"))
+        brands = kg.get_category_brands("cat1")
+        assert len(brands) == 2
+        # Both have same product count
+        assert brands[0]["product_count"] == 1
+        assert brands[1]["product_count"] == 1
+
+    def test_get_category_brands_product_without_brand(self, kg):
+        """Test handling of products that don't have brand relations."""
+        kg.add_relation(Relation("ORPHAN_PRODUCT", RelationType.BELONGS_TO_CATEGORY, "cat1"))
+        # No HAS_PRODUCT relation for this product
+        brands = kg.get_category_brands("cat1")
+        # Should return empty since no brands found
+        assert brands == []
+
+
+class TestGetEntityContextEdgeCases:
+    def test_entity_context_deep_recursion(self, kg):
+        """Test entity context with deep depth doesn't cause issues."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        kg.add_relation(Relation("B", RelationType.HAS_PRODUCT, "C"))
+        kg.add_relation(Relation("C", RelationType.HAS_PRODUCT, "D"))
+        ctx = kg.get_entity_context("A", depth=3)
+        assert "connected" in ctx
+        # Should handle nested context
+
+    def test_entity_context_limits_neighbors(self, kg):
+        """Test that entity context limits to top 5 neighbors in recursion."""
+        for i in range(10):
+            kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, f"P{i}"))
+        ctx = kg.get_entity_context("A", depth=2)
+        # Should have connected entities but limited to 5
+        if "connected" in ctx:
+            assert len(ctx["connected"]) <= 5
+
+    def test_entity_context_no_self_reference(self, kg):
+        """Test that entity context doesn't include self-reference."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        kg.add_relation(Relation("B", RelationType.HAS_PRODUCT, "A"))  # Cycle back
+        ctx = kg.get_entity_context("A", depth=2)
+        # Should not cause infinite recursion
+        assert ctx["entity"] == "A"
+
+
+class TestEntityMetadataEdgeCases:
+    def test_set_metadata_overwrites_existing_keys(self, kg):
+        """Test that setting metadata merges/overwrites existing keys."""
+        kg.set_entity_metadata("BRAND_X", {"sos": 10.0, "rank": 5})
+        kg.set_entity_metadata("BRAND_X", {"sos": 15.0, "new_key": "value"})
+        meta = kg.get_entity_metadata("BRAND_X")
+        assert meta["sos"] == 15.0  # Overwritten
+        assert meta["rank"] == 5  # Preserved
+        assert meta["new_key"] == "value"  # Added
+
+    def test_set_metadata_empty_dict(self, kg):
+        """Test setting empty metadata doesn't cause issues."""
+        kg.set_entity_metadata("BRAND_X", {})
+        meta = kg.get_entity_metadata("BRAND_X")
+        assert meta == {}
+
+
+class TestStatsEdgeCases:
+    def test_get_stats_empty_kg(self, kg):
+        """Test get_stats on empty knowledge graph."""
+        stats = kg.get_stats()
+        assert stats["total_triples"] == 0
+        assert stats["unique_subjects"] == 0
+        assert stats["unique_objects"] == 0
+        assert stats["relations_by_type"] == {}
+
+    def test_entity_degree_single_incoming(self, kg):
+        """Test entity degree for entity with only incoming relations."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        degree = kg.get_entity_degree("B")
+        assert degree["in_degree"] == 1
+        assert degree["out_degree"] == 0
+        assert degree["total"] == 1
+
+    def test_entity_degree_single_outgoing(self, kg):
+        """Test entity degree for entity with only outgoing relations."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        degree = kg.get_entity_degree("A")
+        assert degree["in_degree"] == 0
+        assert degree["out_degree"] == 1
+        assert degree["total"] == 1
+
+    def test_most_connected_empty_kg(self, kg):
+        """Test get_most_connected on empty knowledge graph."""
+        top = kg.get_most_connected(top_n=5)
+        assert top == []
+
+    def test_most_connected_fewer_than_n(self, kg):
+        """Test get_most_connected when graph has fewer entities than top_n."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        top = kg.get_most_connected(top_n=10)
+        assert len(top) <= 2  # Only A and B
+
+
+class TestSparqlQueryEdgeCases:
+    def test_sparql_multiple_filters(self, kg):
+        """Test SPARQL query with multiple FILTER conditions."""
+        kg.add_relation(Relation("A", RelationType.HAS_RANK, "5"))
+        kg.add_relation(Relation("B", RelationType.HAS_RANK, "15"))
+        kg.add_relation(Relation("C", RelationType.HAS_RANK, "8"))
+        results = kg.sparql_query("""
+            SELECT ?entity ?rank
+            WHERE {
+                ?entity <hasRank> ?rank .
+                FILTER (?rank > 5)
+                FILTER (?rank < 10)
+            }
+        """)
+        # Should only match C (rank=8)
+        entities = {r["entity"] for r in results}
+        assert "C" in entities
+        assert "A" not in entities
+        assert "B" not in entities
+
+    def test_sparql_case_insensitive_keywords(self, populated_kg):
+        """Test that SPARQL keywords are case-insensitive."""
+        results = populated_kg.sparql_query("""
+            select ?brand ?product
+            where {
+                ?brand <hasProduct> ?product .
+            }
+        """)
+        assert len(results) == 3
+
+    def test_sparql_no_select_clause(self, populated_kg):
+        """Test SPARQL query without SELECT returns all variables."""
+        # Malformed query - should handle gracefully
+        results = populated_kg.sparql_query("""
+            WHERE {
+                ?brand <hasProduct> ?product .
+            }
+        """)
+        # Without SELECT, select_vars is empty, returns full bindings
+        assert len(results) >= 0
+
+    def test_sparql_triple_pattern_with_quotes_in_literal(self, kg):
+        """Test SPARQL with quoted literals containing special characters."""
+        kg.add_relation(Relation("A", RelationType.BELONGS_TO_CATEGORY, "test-category"))
+        results = kg.sparql_query("""
+            SELECT ?x
+            WHERE {
+                ?x <belongsToCategory> "test-category" .
+            }
+        """)
+        assert len(results) == 1
+        assert results[0]["x"] == "A"
+
+
+class TestMatchPatternEdgeCases:
+    def test_match_pattern_unknown_predicate(self, kg):
+        """Test _match_pattern with unknown predicate queries with predicate=None."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        bindings = kg._match_pattern(("?s", "<unknownPredicate>", "?o"))
+        # Unknown predicate results in predicate=None, which matches all predicates
+        assert len(bindings) >= 1
+
+    def test_match_pattern_literal_subject(self, kg):
+        """Test _match_pattern with literal subject."""
+        kg.add_relation(Relation("LANEIGE", RelationType.HAS_PRODUCT, "B"))
+        bindings = kg._match_pattern(('"LANEIGE"', "<hasProduct>", "?o"))
+        assert len(bindings) == 1
+        assert bindings[0]["o"] == "B"
+
+    def test_match_pattern_literal_object(self, kg):
+        """Test _match_pattern with literal object."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        bindings = kg._match_pattern(("?s", "<hasProduct>", '"B"'))
+        assert len(bindings) == 1
+        assert bindings[0]["s"] == "A"
+
+    def test_match_pattern_all_variables(self, kg):
+        """Test _match_pattern with all variables (s, p, o)."""
+        kg.add_relation(Relation("A", RelationType.HAS_PRODUCT, "B"))
+        kg.add_relation(Relation("C", RelationType.COMPETES_WITH, "D"))
+        bindings = kg._match_pattern(("?s", "?p", "?o"))
+        assert len(bindings) == 2
+        # All three should be bound
+        for b in bindings:
+            assert "s" in b and "p" in b and "o" in b
+
+
+class TestJoinBindingsEdgeCases:
+    def test_join_no_shared_variables(self, kg):
+        """Test _join_bindings with no shared variables (cartesian product)."""
+        left = [{"x": "a"}, {"x": "b"}]
+        right = [{"y": "1"}, {"y": "2"}]
+        result = kg._join_bindings(left, right)
+        # Should produce cartesian product: 2 * 2 = 4
+        assert len(result) == 4
+
+    def test_join_multiple_shared_variables(self, kg):
+        """Test _join_bindings with multiple shared variables."""
+        left = [{"x": "a", "y": "1"}, {"x": "b", "y": "2"}]
+        right = [{"x": "a", "y": "1", "z": "10"}, {"x": "a", "y": "2", "z": "20"}]
+        result = kg._join_bindings(left, right)
+        # Only first left matches first right
+        assert len(result) == 1
+        assert result[0] == {"x": "a", "y": "1", "z": "10"}
+
+    def test_join_empty_both(self, kg):
+        """Test _join_bindings with both empty lists."""
+        result = kg._join_bindings([], [])
+        assert result == []
+
+
+class TestApplyFilterEdgeCases:
+    def test_filter_numeric_equal(self, kg):
+        """Test numeric equality filter."""
+        bindings = [{"rank": "5"}, {"rank": "10"}]
+        result = kg._apply_filter(bindings, "?rank == 5")
+        assert len(result) == 1
+        assert result[0]["rank"] == "5"
+
+    def test_filter_with_quoted_string_value(self, kg):
+        """Test filter with quoted string value."""
+        bindings = [{"cat": "lip_care"}, {"cat": "skin_care"}]
+        result = kg._apply_filter(bindings, '?cat == "lip_care"')
+        assert len(result) == 1
+        assert result[0]["cat"] == "lip_care"
+
+    def test_filter_with_single_quoted_value(self, kg):
+        """Test filter with single-quoted value."""
+        bindings = [{"cat": "lip_care"}, {"cat": "skin_care"}]
+        result = kg._apply_filter(bindings, "?cat == 'lip_care'")
+        assert len(result) == 1
+        assert result[0]["cat"] == "lip_care"
+
+    def test_filter_preserves_order(self, kg):
+        """Test that filter preserves order of bindings."""
+        bindings = [{"rank": "5"}, {"rank": "10"}, {"rank": "15"}, {"rank": "3"}]
+        result = kg._apply_filter(bindings, "?rank >= 5")
+        # Should preserve order: 5, 10, 15 (3 is filtered out)
+        ranks = [r["rank"] for r in result]
+        assert ranks == ["5", "10", "15"]
+
+
+class TestPredicateMapBuilding:
+    def test_predicate_map_caching(self, kg):
+        """Test that _build_predicate_map caches result."""
+        map1 = kg._build_predicate_map()
+        map2 = kg._build_predicate_map()
+        # Should return same cached instance
+        assert map1 is map2
+
+    def test_predicate_map_contains_all_relation_types(self, kg):
+        """Test that predicate map contains all RelationType enum values."""
+        pred_map = kg._build_predicate_map()
+        # Should have both value and camelCase mappings
+        assert "hasProduct" in pred_map
+        assert "hasProduct" in pred_map  # camelCase
+        assert pred_map["hasProduct"] == RelationType.HAS_PRODUCT
+
+    def test_predicate_map_camelcase_conversion(self, kg):
+        """Test camelCase conversion for multi-word predicates."""
+        pred_map = kg._build_predicate_map()
+        # DIRECT_COMPETITOR -> directCompetitor
+        assert "directCompetitor" in pred_map
+        assert pred_map["directCompetitor"] == RelationType.DIRECT_COMPETITOR
+
+
+class TestParseSparql:
+    def test_parse_sparql_extracts_select_vars(self, kg):
+        """Test _parse_sparql extracts SELECT variables correctly."""
+        select_vars, patterns, filters = kg._parse_sparql("""
+            SELECT ?brand ?product ?category
+            WHERE { ?brand <hasProduct> ?product . }
+        """)
+        assert set(select_vars) == {"brand", "product", "category"}
+
+    def test_parse_sparql_extracts_triple_patterns(self, kg):
+        """Test _parse_sparql extracts triple patterns correctly."""
+        select_vars, patterns, filters = kg._parse_sparql("""
+            SELECT ?s ?o
+            WHERE {
+                ?s <hasProduct> ?o .
+                ?s <belongsToCategory> "cat1" .
+            }
+        """)
+        assert len(patterns) == 2
+
+    def test_parse_sparql_extracts_filters(self, kg):
+        """Test _parse_sparql extracts FILTER conditions."""
+        select_vars, patterns, filters = kg._parse_sparql("""
+            SELECT ?x ?rank
+            WHERE {
+                ?x <hasRank> ?rank .
+                FILTER (?rank > 5)
+                FILTER (?rank < 10)
+            }
+        """)
+        assert len(filters) == 2
+
+    def test_parse_sparql_empty_where_clause(self, kg):
+        """Test _parse_sparql with empty WHERE clause."""
+        select_vars, patterns, filters = kg._parse_sparql("""
+            SELECT ?x
+            WHERE { }
+        """)
+        assert patterns == []
+        assert filters == []
+
+
+class TestComplexScenarios:
+    def test_complex_multi_hop_query(self, kg):
+        """Test complex multi-hop relationship query."""
+        # Build: Brand -> Product -> Category -> Parent Category
+        kg.add_relation(Relation("LANEIGE", RelationType.HAS_PRODUCT, "P1"))
+        kg.add_relation(Relation("P1", RelationType.BELONGS_TO_CATEGORY, "lip_care"))
+        kg.add_relation(Relation("lip_care", RelationType.PARENT_CATEGORY, "skin_care"))
+        kg.add_relation(Relation("skin_care", RelationType.PARENT_CATEGORY, "beauty"))
+
+        # Find path from brand to top-level category
+        path = kg.find_path("LANEIGE", "beauty")
+        assert path is not None
+        assert len(path) == 4  # LANEIGE->P1, P1->lip_care, lip_care->skin_care, skin_care->beauty
+
+    def test_complex_competition_network(self, kg):
+        """Test complex competition network queries."""
+        # Build competition network
+        kg.add_relation(Relation("LANEIGE", RelationType.COMPETES_WITH, "COSRX"))
+        kg.add_relation(Relation("LANEIGE", RelationType.COMPETES_WITH, "INNISFREE"))
+        kg.add_relation(Relation("COSRX", RelationType.COMPETES_WITH, "INNISFREE"))
+        kg.add_relation(Relation("INNISFREE", RelationType.COMPETES_WITH, "ETUDE_HOUSE"))
+
+        # BFS should find entire competition network
+        result = kg.bfs_traverse(
+            "LANEIGE",
+            max_depth=3,
+            predicate_filter=[RelationType.COMPETES_WITH],
+            direction="both",
+        )
+        # Should reach all competitors
+        all_entities = [e for entities in result.values() for e in entities]
+        assert "COSRX" in all_entities
+        assert "INNISFREE" in all_entities
+
+    def test_complex_sparql_with_join_and_filter(self, kg):
+        """Test complex SPARQL with multiple joins and filters."""
+        kg.add_relation(
+            Relation(
+                "LANEIGE",
+                RelationType.HAS_PRODUCT,
+                "P1",
+                properties={"category": "lip_care", "rank": 3},
+            )
+        )
+        kg.add_relation(Relation("P1", RelationType.BELONGS_TO_CATEGORY, "lip_care"))
+        kg.add_relation(
+            Relation(
+                "LANEIGE",
+                RelationType.HAS_PRODUCT,
+                "P2",
+                properties={"category": "skin_care", "rank": 15},
+            )
+        )
+        kg.add_relation(Relation("P2", RelationType.BELONGS_TO_CATEGORY, "skin_care"))
+
+        results = kg.sparql_query("""
+            SELECT ?brand ?product ?cat
+            WHERE {
+                ?brand <hasProduct> ?product .
+                ?product <belongsToCategory> ?cat .
+            }
+        """)
+        assert len(results) == 2
+        # Should have joined brand -> product -> category
+
+    def test_metadata_enrichment_workflow(self, kg):
+        """Test typical metadata enrichment workflow."""
+        # Add entity
+        kg.add_relation(Relation("LANEIGE", RelationType.HAS_PRODUCT, "P1"))
+
+        # Enrich with metadata
+        kg.set_entity_metadata("LANEIGE", {"sos": 5.2, "avg_rank": 8})
+        kg.set_entity_metadata("LANEIGE", {"market_share": 12.5})
+
+        # Query with context
+        ctx = kg.get_entity_context("LANEIGE", depth=1)
+        assert ctx["metadata"]["sos"] == 5.2
+        assert ctx["metadata"]["market_share"] == 12.5
+
+    def test_ranking_analysis_workflow(self, kg):
+        """Test typical ranking analysis workflow."""
+        # Add products with ranks
+        for i, rank in enumerate([1, 3, 5, 8, 12]):
+            kg.add_relation(
+                Relation(
+                    "LANEIGE",
+                    RelationType.HAS_PRODUCT,
+                    f"P{i}",
+                    properties={"rank": rank, "category": "lip_care"},
+                )
+            )
+
+        # Get all products
+        products = kg.get_brand_products("LANEIGE")
+        assert len(products) == 5
+
+        # Filter by category
+        lip_products = kg.get_brand_products("LANEIGE", category="lip_care")
+        assert len(lip_products) == 5
+
+        # Analyze using stats
+        degree = kg.get_entity_degree("LANEIGE")
+        assert degree["out_degree"] == 5

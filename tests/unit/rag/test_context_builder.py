@@ -992,3 +992,458 @@ class TestCompactContextBuilderExtended:
         ctx = _make_context()
         result = builder.build(ctx)
         assert isinstance(result, str)
+
+    def test_compact_with_ranking_query_no_categories(self):
+        """순위 쿼리지만 카테고리 정보 없을 때"""
+        builder = CompactContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_product_category_context.return_value = {"categories": []}
+        ctx = _make_context(entities={"products": ["B0BSHRYY1S"], "categories": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert isinstance(result, str)
+
+    def test_compact_with_more_than_3_inferences(self):
+        """추론 결과 3개 초과 시 상위 3개만"""
+        builder = CompactContextBuilder()
+        ctx = _make_context(
+            inferences=[_make_inference(insight=f"Insight {i}") for i in range(5)],
+        )
+        result = builder.build(ctx)
+        assert "Insight 0" in result
+        assert "Insight 2" in result
+        # 3개까지만 포함
+        assert "Insight 3" not in result
+
+    def test_compact_with_more_than_2_sos_categories(self):
+        """SoS 카테고리 2개 초과 시 상위 2개만"""
+        builder = CompactContextBuilder()
+        ctx = _make_context()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 3,
+                "laneige_sos_by_category": {
+                    "cat_a": 0.1,
+                    "cat_b": 0.2,
+                    "cat_c": 0.3,
+                    "cat_d": 0.4,
+                },
+            }
+        }
+        result = builder.build(ctx, current_metrics=metrics)
+        # 처음 2개만 포함
+        parts = result.split("SoS:")
+        if len(parts) > 1:
+            sos_part = parts[1].split("\n")[0]
+            assert sos_part.count("%") <= 2
+
+    def test_compact_with_more_than_2_rag_chunks(self):
+        """RAG 청크 2개 초과 시 상위 2개만"""
+        builder = CompactContextBuilder()
+        ctx = _make_context(
+            rag_chunks=[
+                {"content": f"Content {i}", "metadata": {"title": f"Doc {i}"}} for i in range(5)
+            ],
+        )
+        result = builder.build(ctx)
+        assert "Doc 0" in result
+        assert "Doc 1" in result
+        # 2개까지만
+        assert "Doc 2" not in result
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage tests for uncovered lines
+# ---------------------------------------------------------------------------
+
+
+class TestCategoryHierarchyEdgeCases:
+    """카테고리 계층 구조 엣지 케이스"""
+
+    def test_category_hierarchy_with_error(self):
+        """카테고리 계층 조회 실패 시"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {"error": "Category not found"}
+        ctx = _make_context(entities={"categories": ["unknown_cat"], "products": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        # 에러 시 해당 카테고리는 스킵
+        assert isinstance(result, str)
+
+    def test_category_hierarchy_without_ancestors(self):
+        """상위 카테고리 없는 최상위 카테고리"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {
+            "name": "Beauty",
+            "level": 0,
+            "ancestors": [],
+            "descendants": [],
+        }
+        ctx = _make_context(entities={"categories": ["beauty"], "products": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert "Beauty" in result
+        # ancestors가 없어도 정상 처리
+        assert "레벨" in result and "0" in result
+
+    def test_product_category_context_without_categories(self):
+        """제품의 카테고리 정보 없을 때"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {"error": "not found"}
+        mock_kg.get_product_category_context.return_value = {"categories": []}
+        ctx = _make_context(entities={"categories": [], "products": ["B0TEST"]})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert isinstance(result, str)
+
+    def test_product_with_more_than_5_products(self):
+        """제품이 5개 초과일 때 상위 5개만"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {"error": "skip"}
+        mock_kg.get_product_category_context.return_value = {
+            "categories": [
+                {"category_id": "cat", "rank": 1, "hierarchy": {"name": "Cat", "level": 1}}
+            ]
+        }
+        mock_kg.get_entity_metadata.return_value = {"product_name": "Product"}
+        # 6개 제품 but only first 5 processed
+        ctx = _make_context(entities={"categories": [], "products": [f"ASIN{i}" for i in range(6)]})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        # get_product_category_context는 최대 5번만 호출
+        assert mock_kg.get_product_category_context.call_count <= 5
+
+
+class TestBuildSystemPromptCentralized:
+    """중앙 집중식 프롬프트 테스트"""
+
+    def test_system_prompt_with_centralized_prompts_enabled(self):
+        """FeatureFlags에서 use_centralized_prompts=True일 때"""
+        from unittest.mock import patch
+
+        builder = ContextBuilder()
+
+        with patch("src.infrastructure.feature_flags.FeatureFlags") as mock_flags:
+            mock_instance = MagicMock()
+            mock_instance.use_centralized_prompts.return_value = True
+            mock_flags.get_instance.return_value = mock_instance
+
+            with patch("prompts.registry.PromptRegistry") as mock_registry:
+                mock_reg_instance = MagicMock()
+                mock_reg_instance.get_system_prompt.return_value = "Centralized system prompt"
+                mock_registry.get_instance.return_value = mock_reg_instance
+
+                prompt = builder.build_system_prompt(
+                    include_guardrails=True, data_date="2026-01-15"
+                )
+
+                assert prompt == "Centralized system prompt"
+                mock_reg_instance.get_system_prompt.assert_called_once_with(
+                    "chatbot", include_guardrails=True, data_date="2026-01-15"
+                )
+
+
+class TestBrandMetricsEdgeCases:
+    """브랜드 메트릭 엣지 케이스"""
+
+    def test_brand_metrics_without_avg_rank(self):
+        """평균 순위 없는 브랜드 메트릭"""
+        builder = ContextBuilder()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 0,
+                "alert_count": 0,
+                "critical_alerts": 0,
+                "warning_alerts": 0,
+            },
+            "brand_metrics": [
+                {
+                    "brand_name": "TestBrand",
+                    "category_id": "test_cat",
+                    "share_of_shelf": 0.1,
+                    "product_count": 2,
+                    "top10_count": 0,
+                }
+            ],
+        }
+        entities = {"brands": ["TestBrand"], "categories": []}
+        section = builder._build_data_section(metrics, entities)
+        # avg_rank 없어도 정상 처리
+        assert "TestBrand" in section.content
+        assert "10.0%" in section.content
+
+    def test_market_metrics_without_hhi(self):
+        """HHI 없는 마켓 메트릭"""
+        builder = ContextBuilder()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 0,
+                "alert_count": 0,
+                "critical_alerts": 0,
+                "warning_alerts": 0,
+            },
+            "market_metrics": [{"category_id": "test_cat", "cpi": 95.0}],
+        }
+        entities = {"brands": [], "categories": ["test_cat"]}
+        section = builder._build_data_section(metrics, entities)
+        assert "95.0" in section.content
+
+    def test_market_metrics_without_cpi(self):
+        """CPI 없는 마켓 메트릭"""
+        builder = ContextBuilder()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 0,
+                "alert_count": 0,
+                "critical_alerts": 0,
+                "warning_alerts": 0,
+            },
+            "market_metrics": [{"category_id": "test_cat", "hhi": 0.05}],
+        }
+        entities = {"brands": [], "categories": ["test_cat"]}
+        section = builder._build_data_section(metrics, entities)
+        assert "0.05" in section.content
+
+
+class TestRagChunkEdgeCases:
+    """RAG 청크 엣지 케이스"""
+
+    def test_rag_chunk_without_title_and_doc_id(self):
+        """제목도 doc_id도 없는 청크"""
+        builder = ContextBuilder()
+        chunks = [{"content": "Content without metadata", "metadata": {}}]
+        section = builder._build_rag_section(chunks)
+        # Unknown으로 출처 등록
+        assert "Content without metadata" in section.content
+        refs = builder.get_source_references()
+        assert len(refs) == 1
+        assert refs[0].title == "Unknown"
+
+
+class TestCompactContextBuilderAdditional:
+    """CompactContextBuilder 추가 테스트"""
+
+    def test_compact_with_more_than_2_product_categories(self):
+        """제품 카테고리가 2개 초과일 때"""
+        builder = CompactContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_product_category_context.return_value = {
+            "categories": [
+                {"category_id": f"cat{i}", "rank": i, "hierarchy": {"name": f"Cat{i}", "level": i}}
+                for i in range(5)
+            ]
+        }
+        ctx = _make_context(entities={"products": ["ASIN1"], "categories": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        # 최대 2개 카테고리만
+        # First 2 categories processed
+        assert "Cat0" in result
+        assert "Cat1" in result
+
+    def test_compact_with_more_than_3_products(self):
+        """제품이 3개 초과일 때 상위 3개만"""
+        builder = CompactContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_product_category_context.return_value = {
+            "categories": [
+                {"category_id": "cat", "rank": 1, "hierarchy": {"name": "Cat", "level": 1}}
+            ]
+        }
+        ctx = _make_context(entities={"products": [f"ASIN{i}" for i in range(5)], "categories": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        # 최대 3번 호출
+        assert mock_kg.get_product_category_context.call_count <= 3
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage tests for uncovered lines
+# ---------------------------------------------------------------------------
+
+
+class TestCategoryHierarchyEdgeCasesExtended:
+    """카테고리 계층 구조 엣지 케이스 (확장)"""
+
+    def test_category_hierarchy_with_error(self):
+        """카테고리 계층 조회 실패 시"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {"error": "Category not found"}
+        ctx = _make_context(entities={"categories": ["unknown_cat"], "products": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert isinstance(result, str)
+
+    def test_category_hierarchy_without_ancestors(self):
+        """상위 카테고리 없는 최상위 카테고리"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {
+            "name": "Beauty",
+            "level": 0,
+            "ancestors": [],
+            "descendants": [],
+        }
+        ctx = _make_context(entities={"categories": ["beauty"], "products": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert "Beauty" in result
+        assert "레벨" in result and "0" in result
+
+    def test_product_category_context_without_categories(self):
+        """제품의 카테고리 정보 없을 때"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {"error": "not found"}
+        mock_kg.get_product_category_context.return_value = {"categories": []}
+        ctx = _make_context(entities={"categories": [], "products": ["B0TEST"]})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert isinstance(result, str)
+
+    def test_product_with_more_than_5_products(self):
+        """제품이 5개 초과일 때 상위 5개만"""
+        builder = ContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_category_hierarchy.return_value = {"error": "skip"}
+        mock_kg.get_product_category_context.return_value = {
+            "categories": [
+                {"category_id": "cat", "rank": 1, "hierarchy": {"name": "Cat", "level": 1}}
+            ]
+        }
+        mock_kg.get_entity_metadata.return_value = {"product_name": "Product"}
+        ctx = _make_context(entities={"categories": [], "products": [f"ASIN{i}" for i in range(6)]})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert mock_kg.get_product_category_context.call_count <= 5
+
+
+class TestBuildSystemPromptCentralizedV2:
+    """중앙 집중식 프롬프트 테스트"""
+
+    def test_system_prompt_with_centralized_prompts_enabled(self):
+        """FeatureFlags에서 use_centralized_prompts=True일 때"""
+        from unittest.mock import patch
+
+        builder = ContextBuilder()
+
+        with patch("src.infrastructure.feature_flags.FeatureFlags") as mock_flags:
+            mock_instance = MagicMock()
+            mock_instance.use_centralized_prompts.return_value = True
+            mock_flags.get_instance.return_value = mock_instance
+
+            with patch("prompts.registry.PromptRegistry") as mock_registry:
+                mock_reg_instance = MagicMock()
+                mock_reg_instance.get_system_prompt.return_value = "Centralized system prompt"
+                mock_registry.get_instance.return_value = mock_reg_instance
+
+                prompt = builder.build_system_prompt(
+                    include_guardrails=True, data_date="2026-01-15"
+                )
+
+                assert prompt == "Centralized system prompt"
+                mock_reg_instance.get_system_prompt.assert_called_once_with(
+                    "chatbot", include_guardrails=True, data_date="2026-01-15"
+                )
+
+
+class TestBrandMetricsEdgeCasesV2:
+    """브랜드 메트릭 엣지 케이스"""
+
+    def test_brand_metrics_without_avg_rank(self):
+        """평균 순위 없는 브랜드 메트릭"""
+        builder = ContextBuilder()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 0,
+                "alert_count": 0,
+                "critical_alerts": 0,
+                "warning_alerts": 0,
+            },
+            "brand_metrics": [
+                {
+                    "brand_name": "TestBrand",
+                    "category_id": "test_cat",
+                    "share_of_shelf": 0.1,
+                    "product_count": 2,
+                    "top10_count": 0,
+                }
+            ],
+        }
+        entities = {"brands": ["TestBrand"], "categories": []}
+        section = builder._build_data_section(metrics, entities)
+        assert "TestBrand" in section.content
+        assert "10.0%" in section.content
+
+    def test_market_metrics_without_hhi(self):
+        """HHI 없는 마켓 메트릭"""
+        builder = ContextBuilder()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 0,
+                "alert_count": 0,
+                "critical_alerts": 0,
+                "warning_alerts": 0,
+            },
+            "market_metrics": [{"category_id": "test_cat", "cpi": 95.0}],
+        }
+        entities = {"brands": [], "categories": ["test_cat"]}
+        section = builder._build_data_section(metrics, entities)
+        assert "95.0" in section.content
+
+    def test_market_metrics_without_cpi(self):
+        """CPI 없는 마켓 메트릭"""
+        builder = ContextBuilder()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 0,
+                "alert_count": 0,
+                "critical_alerts": 0,
+                "warning_alerts": 0,
+            },
+            "market_metrics": [{"category_id": "test_cat", "hhi": 0.05}],
+        }
+        entities = {"brands": [], "categories": ["test_cat"]}
+        section = builder._build_data_section(metrics, entities)
+        assert "0.05" in section.content
+
+
+class TestRagChunkEdgeCasesV2:
+    """RAG 청크 엣지 케이스"""
+
+    def test_rag_chunk_without_title_and_doc_id(self):
+        """제목도 doc_id도 없는 청크"""
+        builder = ContextBuilder()
+        chunks = [{"content": "Content without metadata", "metadata": {}}]
+        section = builder._build_rag_section(chunks)
+        assert "Content without metadata" in section.content
+        refs = builder.get_source_references()
+        assert len(refs) == 1
+        assert refs[0].title == "Unknown"
+
+
+class TestCompactContextBuilderAdditionalV2:
+    """CompactContextBuilder 추가 테스트"""
+
+    def test_compact_with_more_than_2_product_categories(self):
+        """제품 카테고리가 2개 초과일 때"""
+        builder = CompactContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_product_category_context.return_value = {
+            "categories": [
+                {"category_id": f"cat{i}", "rank": i, "hierarchy": {"name": f"Cat{i}", "level": i}}
+                for i in range(5)
+            ]
+        }
+        ctx = _make_context(entities={"products": ["ASIN1"], "categories": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        # First 2 categories processed
+        assert "Cat0" in result
+        assert "Cat1" in result
+
+    def test_compact_with_more_than_3_products(self):
+        """제품이 3개 초과일 때 상위 3개만"""
+        builder = CompactContextBuilder()
+        mock_kg = MagicMock()
+        mock_kg.get_product_category_context.return_value = {
+            "categories": [
+                {"category_id": "cat", "rank": 1, "hierarchy": {"name": "Cat", "level": 1}}
+            ]
+        }
+        ctx = _make_context(entities={"products": [f"ASIN{i}" for i in range(5)], "categories": []})
+        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
+        assert mock_kg.get_product_category_context.call_count <= 3

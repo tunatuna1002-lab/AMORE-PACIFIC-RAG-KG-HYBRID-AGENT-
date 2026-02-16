@@ -572,3 +572,243 @@ class TestKnowledgeGraphConfigLoading:
 
             assert kg.max_triples == KnowledgeGraph.DEFAULT_MAX_TRIPLES
             assert kg.auto_save is True
+
+    def test_config_load_exception_handling(self):
+        """Test config loading handles exceptions gracefully"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "bad_config.json"
+
+            # Create invalid JSON
+            with open(config_path, "w") as f:
+                f.write("{invalid json")
+
+            with patch.object(KnowledgeGraph, "CONFIG_PATH", str(config_path)):
+                # Should not raise, fall back to defaults
+                kg = KnowledgeGraph(auto_load=False)
+
+                assert kg.max_triples == KnowledgeGraph.DEFAULT_MAX_TRIPLES
+
+
+class TestKnowledgeGraphImportanceScoring:
+    """Test importance scoring for eviction"""
+
+    def test_calculate_importance_with_recent_timestamp(self):
+        """Test importance score increases for recent relations"""
+        from datetime import datetime, timedelta
+
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+
+        # Recent relation
+        rel_recent = Relation("LANEIGE", RelationType.HAS_PRODUCT, "B08XYZ", confidence=0.5)
+        rel_recent.created_at = datetime.now()
+
+        score_recent = kg._calculate_importance(rel_recent)
+
+        # Old relation
+        rel_old = Relation("COSRX", RelationType.HAS_PRODUCT, "B09ABC", confidence=0.5)
+        rel_old.created_at = datetime.now() - timedelta(days=60)
+
+        score_old = kg._calculate_importance(rel_old)
+
+        # Recent should have higher score
+        assert score_recent > score_old
+
+    def test_calculate_importance_with_medium_age(self):
+        """Test importance score for medium-age relations"""
+        from datetime import datetime, timedelta
+
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+
+        # Medium age (15 days)
+        rel_medium = Relation("LANEIGE", RelationType.HAS_PRODUCT, "B08XYZ", confidence=0.5)
+        rel_medium.created_at = datetime.now() - timedelta(days=15)
+
+        score = kg._calculate_importance(rel_medium)
+
+        # Should have some bonus but less than very recent
+        assert score > 0.5
+
+
+class TestKnowledgeGraphAutoSave:
+    """Test auto-save functionality"""
+
+    def test_auto_save_batch_threshold(self):
+        """Test auto-save triggers after batch threshold"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = Path(tmpdir) / "kg.json"
+
+            kg = KnowledgeGraph(persist_path=str(persist_path), auto_load=False, auto_save=True)
+
+            # Set low threshold for testing
+            kg._save_batch_threshold = 3
+
+            # Add relations up to threshold
+            kg.add_relation(Relation("Brand1", RelationType.HAS_PRODUCT, "P1"))
+            kg.add_relation(Relation("Brand2", RelationType.HAS_PRODUCT, "P2"))
+
+            # Should not save yet
+            assert kg._save_batch_count == 2
+
+            # This should trigger save
+            kg.add_relation(Relation("Brand3", RelationType.HAS_PRODUCT, "P3"))
+
+            # Counter should reset
+            assert kg._save_batch_count == 0
+            assert persist_path.exists()
+
+    def test_auto_save_disabled(self):
+        """Test auto-save can be disabled"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = Path(tmpdir) / "kg.json"
+
+            kg = KnowledgeGraph(persist_path=str(persist_path), auto_load=False, auto_save=False)
+
+            kg.add_relation(Relation("Brand1", RelationType.HAS_PRODUCT, "P1"))
+
+            # Should not save
+            assert not persist_path.exists()
+
+
+class TestKnowledgeGraphSaveErrorHandling:
+    """Test save error handling"""
+
+    def test_save_handles_write_errors(self):
+        """Test save handles file write errors gracefully"""
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+        kg.add_relation(Relation("LANEIGE", RelationType.HAS_PRODUCT, "B08XYZ"))
+        kg._dirty = True
+
+        # Try to save to invalid path (permission error simulation)
+        result = kg.save(path="/invalid/readonly/path.json")
+
+        # Should return False, not raise
+        assert result is False
+
+    def test_save_skips_when_not_dirty(self):
+        """Test save skips when data hasn't changed"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = Path(tmpdir) / "kg.json"
+
+            kg = KnowledgeGraph(persist_path=str(persist_path), auto_load=False, auto_save=False)
+
+            # Not dirty, not forced
+            result = kg.save()
+
+            # Should skip
+            assert result is False
+
+
+class TestKnowledgeGraphLoadErrorHandling:
+    """Test load error handling"""
+
+    def test_load_handles_corrupted_json(self):
+        """Test loading corrupted JSON raises exception"""
+        import pytest
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = Path(tmpdir) / "kg.json"
+
+            # Create corrupted JSON
+            with open(persist_path, "w") as f:
+                f.write("{corrupted json")
+
+            # Should raise during auto-load
+            with pytest.raises((ValueError, KeyError, TypeError, json.JSONDecodeError)):
+                KnowledgeGraph(persist_path=str(persist_path), auto_load=True)
+
+    def test_load_handles_missing_file_gracefully(self):
+        """Test loading missing file doesn't crash"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = Path(tmpdir) / "nonexistent.json"
+
+            # Should not raise
+            kg = KnowledgeGraph(persist_path=str(persist_path), auto_load=True)
+
+            assert len(kg.triples) == 0
+
+
+class TestKnowledgeGraphRemoveFromIndices:
+    """Test index removal edge cases"""
+
+    def test_remove_relation_cleans_all_indices(self):
+        """Test removing relation cleans up all indices"""
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+
+        rel = Relation("LANEIGE", RelationType.HAS_PRODUCT, "B08XYZ")
+        kg.add_relation(rel)
+
+        # Verify in indices
+        assert rel in kg.subject_index["LANEIGE"]
+        assert rel in kg.object_index["B08XYZ"]
+        assert rel in kg.predicate_index[RelationType.HAS_PRODUCT]
+
+        # Remove
+        kg.remove_relation(rel)
+
+        # Should be gone from all indices
+        assert rel not in kg.subject_index.get("LANEIGE", [])
+        assert rel not in kg.object_index.get("B08XYZ", [])
+        assert rel not in kg.predicate_index.get(RelationType.HAS_PRODUCT, [])
+
+    def test_remove_from_indices_handles_missing_entries(self):
+        """Test _remove_from_indices handles already-removed entries"""
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+
+        rel = Relation("LANEIGE", RelationType.HAS_PRODUCT, "B08XYZ")
+        kg.add_relation(rel)
+
+        # Manually remove from one index
+        kg.subject_index["LANEIGE"].remove(rel)
+
+        # Should not crash when trying to remove again
+        kg._remove_from_indices(rel)
+
+
+class TestKnowledgeGraphSingletonEdgeCases:
+    """Test singleton edge cases"""
+
+    def test_get_knowledge_graph_creates_instance(self):
+        """Test get_knowledge_graph creates instance if none exists"""
+        import src.ontology.knowledge_graph as kg_module
+
+        # Clear singleton
+        kg_module._knowledge_graph_instance = None
+
+        kg = get_knowledge_graph()
+
+        # Should create instance
+        assert kg is not None
+        assert isinstance(kg, KnowledgeGraph)
+
+        # Cleanup
+        kg_module._knowledge_graph_instance = None
+
+
+class TestKnowledgeGraphDuplicateProperties:
+    """Test duplicate relation property updates"""
+
+    def test_add_duplicate_updates_properties(self):
+        """Test adding duplicate relation merges properties"""
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+
+        rel1 = Relation(
+            "LANEIGE",
+            RelationType.HAS_PRODUCT,
+            "B08XYZ",
+            properties={"rank": 5, "category": "lip_care"},
+        )
+        kg.add_relation(rel1)
+
+        rel2 = Relation(
+            "LANEIGE", RelationType.HAS_PRODUCT, "B08XYZ", properties={"rank": 3, "price": 25.99}
+        )
+        result = kg.add_relation(rel2)
+
+        # Should return False (duplicate)
+        assert result is False
+
+        # Properties should be merged
+        existing = kg.triples[0]
+        assert existing.properties["rank"] == 3  # Updated
+        assert existing.properties["category"] == "lip_care"  # Preserved
+        assert existing.properties["price"] == 25.99  # Added

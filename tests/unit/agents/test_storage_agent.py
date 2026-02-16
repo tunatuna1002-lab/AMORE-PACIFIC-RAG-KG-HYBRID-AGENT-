@@ -268,6 +268,24 @@ class TestStorageAgentRecordTypes:
         # record itself is appended as-is
         assert result["raw_records"] == 1
 
+    @pytest.mark.asyncio
+    async def test_dict_and_non_dict_mixed_records(self, agent):
+        """dict와 non-dict record 혼합"""
+        mock_record = MagicMock()
+        mock_record.model_dump.return_value = {"rank": 2, "brand": "COSRX", "asin": "B002"}
+        data = {
+            "categories": {
+                "lip_care": {
+                    "rank_records": [
+                        {"rank": 1, "brand": "LANEIGE", "asin": "B001"},  # dict
+                        mock_record,  # has model_dump
+                    ]
+                }
+            }
+        }
+        result = await agent.execute(data)
+        assert result["raw_records"] == 2
+
 
 # =========================================================================
 # SQLite response failure (success=False)
@@ -598,3 +616,296 @@ class TestStorageAgentStatus:
         results = agent.get_results()
         assert results["status"] == "completed"
         assert results["raw_records"] == 2
+
+
+# =========================================================================
+# Additional edge cases for higher coverage
+# =========================================================================
+
+
+class TestStorageAgentEdgeCases:
+    """추가 엣지 케이스 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_execute_with_all_products_empty(self, agent, mock_sheets, mock_sqlite):
+        """all_products가 빈 리스트인 경우"""
+        data = {
+            "categories": {
+                "lip_care": {"rank_records": [{"rank": 1, "brand": "X", "asin": "A01"}]}
+            },
+            "all_products": [],  # Empty products
+        }
+        result = await agent.execute(data)
+        assert result["status"] == "completed"
+        assert result["products_upserted"] == 0
+
+    @pytest.mark.asyncio
+    async def test_execute_with_products_missing_fields(self, agent):
+        """제품 데이터에 필수 필드가 누락된 경우"""
+        data = {
+            "categories": {},
+            "all_products": [
+                {"asin": "B001"},  # title, brand 누락
+                {"title": "Product", "brand": "Brand"},  # asin 누락
+            ],
+        }
+        result = await agent.execute(data)
+        # 누락된 필드는 기본값으로 처리됨
+        assert result["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_execute_multiple_categories(self, agent):
+        """여러 카테고리 데이터 동시 처리"""
+        data = {
+            "categories": {
+                "lip_care": {
+                    "rank_records": [
+                        {"rank": 1, "brand": "LANEIGE", "asin": "B001"},
+                        {"rank": 2, "brand": "COSRX", "asin": "B002"},
+                    ]
+                },
+                "skin_care": {
+                    "rank_records": [
+                        {"rank": 1, "brand": "innisfree", "asin": "B003"},
+                    ]
+                },
+                "makeup": {
+                    "rank_records": [
+                        {"rank": 5, "brand": "Etude House", "asin": "B004"},
+                    ]
+                },
+            },
+            "all_products": [],
+        }
+        result = await agent.execute(data)
+        assert result["status"] == "completed"
+        assert result["raw_records"] == 4  # 2 + 1 + 1
+
+    @pytest.mark.asyncio
+    async def test_sqlite_initialization_called(self, agent, sample_crawl_data):
+        """SQLite initialize가 호출되는지 확인"""
+        await agent.execute(sample_crawl_data)
+        # initialize should be called at least once
+        assert agent.sqlite.initialize.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_competitor_products_without_sqlite(self, mock_sheets):
+        """SQLite 비활성화 시 competitor products 처리"""
+        with patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets):
+            a = StorageAgent(spreadsheet_id="test-id", enable_sqlite=False)
+            a.sheets = mock_sheets
+
+        data = {
+            "categories": {},
+            "all_products": [],
+            "competitor_products": [{"asin": "B001", "brand": "Test"}],
+        }
+        result = await a.execute(data)
+        # SQLite disabled이므로 competitor_products_saved 키가 없어야 함
+        assert "competitor_products_saved" not in result
+
+    @pytest.mark.asyncio
+    async def test_product_url_generation(self, agent):
+        """product_url이 없을 때 자동 생성"""
+        data = {
+            "categories": {},
+            "all_products": [
+                {"asin": "B084RGF8YJ", "title": "Lip Mask", "brand": "LANEIGE"}
+                # url 필드 없음
+            ],
+        }
+        result = await agent.execute(data)
+        assert result["status"] == "completed"
+        # upsert_products_batch가 호출되었고 url이 생성되었는지 확인
+        agent.sheets.upsert_products_batch.assert_called_once()
+        call_args = agent.sheets.upsert_products_batch.call_args[0][0]
+        assert "amazon.com/dp/B084RGF8YJ" in call_args[0]["product_url"]
+
+    @pytest.mark.asyncio
+    async def test_product_with_explicit_url(self, agent):
+        """명시적으로 제공된 url 사용"""
+        data = {
+            "categories": {},
+            "all_products": [
+                {
+                    "asin": "B084RGF8YJ",
+                    "title": "Lip Mask",
+                    "brand": "LANEIGE",
+                    "url": "https://www.amazon.com/custom/url",
+                }
+            ],
+        }
+        result = await agent.execute(data)
+        agent.sheets.upsert_products_batch.assert_called_once()
+        call_args = agent.sheets.upsert_products_batch.call_args[0][0]
+        assert call_args[0]["product_url"] == "https://www.amazon.com/custom/url"
+
+    @pytest.mark.asyncio
+    async def test_logger_warnings_on_sqlite_failure(self, agent, sample_crawl_data, caplog):
+        """SQLite 실패 시 동기화 불일치 경고 로그"""
+        import logging
+
+        caplog.set_level(logging.WARNING)
+        agent.sqlite.append_rank_records = AsyncMock(side_effect=Exception("DB locked"))
+        await agent.execute(sample_crawl_data)
+        # Warning log should contain sync warning
+        assert any("불일치" in record.message for record in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_empty_category_records(self, agent):
+        """카테고리는 있지만 rank_records가 빈 경우"""
+        data = {
+            "categories": {
+                "lip_care": {"rank_records": []},
+                "skin_care": {"rank_records": []},
+            },
+            "all_products": [],
+        }
+        result = await agent.execute(data)
+        assert result["status"] == "completed"
+        assert result["raw_records"] == 0
+
+    @pytest.mark.asyncio
+    async def test_category_without_rank_records_key(self, agent):
+        """rank_records 키가 없는 카테고리"""
+        data = {
+            "categories": {
+                "lip_care": {},  # No rank_records key
+                "skin_care": {"some_other_key": "value"},
+            },
+            "all_products": [],
+        }
+        result = await agent.execute(data)
+        assert result["status"] == "completed"
+        assert result["raw_records"] == 0
+
+
+# =========================================================================
+# Initialization tests
+# =========================================================================
+
+
+class TestStorageAgentInit:
+    """초기화 관련 테스트"""
+
+    def test_init_with_custom_logger(self):
+        """커스텀 로거로 초기화"""
+        custom_logger = MagicMock()
+        with (
+            patch("src.agents.storage_agent.SheetsWriter"),
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=None),
+        ):
+            agent = StorageAgent(
+                spreadsheet_id="test-id", logger=custom_logger, enable_sqlite=False
+            )
+        assert agent.logger == custom_logger
+
+    def test_init_without_spreadsheet_id(self):
+        """spreadsheet_id 없이 초기화"""
+        with (
+            patch("src.agents.storage_agent.SheetsWriter") as mock_sheets_cls,
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=None),
+        ):
+            agent = StorageAgent(enable_sqlite=False)
+            mock_sheets_cls.assert_called_once_with(None)
+
+    def test_init_with_all_monitoring_tools(self):
+        """모든 모니터링 도구와 함께 초기화"""
+        logger = MagicMock()
+        tracer = MagicMock()
+        metrics = MagicMock()
+        with (
+            patch("src.agents.storage_agent.SheetsWriter"),
+            patch("src.agents.storage_agent.get_sqlite_storage", return_value=MagicMock()),
+        ):
+            agent = StorageAgent(
+                spreadsheet_id="test-id",
+                logger=logger,
+                tracer=tracer,
+                metrics=metrics,
+                enable_sqlite=True,
+            )
+        assert agent.logger == logger
+        assert agent.tracer == tracer
+        assert agent.metrics == metrics
+
+
+# =========================================================================
+# Batch upsert edge cases
+# =========================================================================
+
+
+class TestStorageAgentBatchUpsert:
+    """배치 업서트 엣지 케이스"""
+
+    @pytest.mark.asyncio
+    async def test_batch_upsert_with_product_name_field(self, agent):
+        """product_name 필드가 있는 경우 (title 대신)"""
+        data = {
+            "categories": {},
+            "all_products": [
+                {
+                    "asin": "B001",
+                    "product_name": "Legacy Product Name",  # product_name instead of title
+                    "brand": "Test",
+                }
+            ],
+        }
+        result = await agent.execute(data)
+        agent.sheets.upsert_products_batch.assert_called_once()
+        call_args = agent.sheets.upsert_products_batch.call_args[0][0]
+        assert call_args[0]["product_name"] == "Legacy Product Name"
+
+    @pytest.mark.asyncio
+    async def test_batch_upsert_title_priority(self, agent):
+        """title이 product_name보다 우선"""
+        data = {
+            "categories": {},
+            "all_products": [
+                {
+                    "asin": "B001",
+                    "title": "Title Field",
+                    "product_name": "Product Name Field",
+                    "brand": "Test",
+                }
+            ],
+        }
+        result = await agent.execute(data)
+        call_args = agent.sheets.upsert_products_batch.call_args[0][0]
+        assert call_args[0]["product_name"] == "Title Field"
+
+    @pytest.mark.asyncio
+    async def test_batch_upsert_missing_brand(self, agent):
+        """brand 필드 누락 시 'Unknown' 사용"""
+        data = {
+            "categories": {},
+            "all_products": [
+                {"asin": "B001", "title": "Product"}
+                # brand 누락
+            ],
+        }
+        result = await agent.execute(data)
+        call_args = agent.sheets.upsert_products_batch.call_args[0][0]
+        assert call_args[0]["brand"] == "Unknown"
+
+
+# =========================================================================
+# Historical data retrieval
+# =========================================================================
+
+
+class TestStorageAgentHistoricalData:
+    """히스토리 데이터 조회 테스트"""
+
+    def test_get_historical_data_with_different_days(self, agent):
+        """다양한 일수로 히스토리 조회"""
+        agent.sheets.get_rank_history = MagicMock(return_value=[{"rank": i} for i in range(1, 91)])
+        result = agent.get_historical_data("B084RGF8YJ", days=90)
+        assert len(result) == 90
+        agent.sheets.get_rank_history.assert_called_once_with("B084RGF8YJ", 90)
+
+    def test_get_historical_data_default_days(self, agent):
+        """기본 일수(30일)로 히스토리 조회"""
+        agent.sheets.get_rank_history = MagicMock(return_value=[])
+        result = agent.get_historical_data("B084RGF8YJ")
+        agent.sheets.get_rank_history.assert_called_once_with("B084RGF8YJ", 30)

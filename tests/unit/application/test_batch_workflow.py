@@ -815,3 +815,430 @@ class TestBackwardCompatibility:
         from src.application.workflows.batch_workflow import Orchestrator
 
         assert Orchestrator is BatchWorkflow
+
+
+# =========================================================================
+# Property-based initialization (lazy loading)
+# =========================================================================
+
+
+class TestLazyPropertyInitialization:
+    """Test lazy initialization of properties"""
+
+    def test_knowledge_graph_property(self, workflow):
+        """Test knowledge graph lazy initialization"""
+        assert workflow._knowledge_graph is None
+        kg = workflow.knowledge_graph
+        assert kg is not None
+        assert workflow._knowledge_graph is kg
+        # Second access returns same instance
+        assert workflow.knowledge_graph is kg
+
+    def test_reasoner_property(self, workflow):
+        """Test reasoner lazy initialization"""
+        assert workflow._reasoner is None
+        reasoner = workflow.reasoner
+        assert reasoner is not None
+        assert workflow._reasoner is reasoner
+        # Second access returns same instance
+        assert workflow.reasoner is reasoner
+
+    def test_crawler_property(self, workflow):
+        """Test crawler lazy initialization"""
+        assert workflow._crawler is None
+        with patch("src.agents.crawler_agent.CrawlerAgent") as mock_crawler_class:
+            mock_instance = MagicMock()
+            mock_crawler_class.return_value = mock_instance
+            crawler = workflow.crawler
+            assert crawler is mock_instance
+            # Second access returns same instance
+            assert workflow.crawler is mock_instance
+
+    def test_storage_property(self, workflow):
+        """Test storage lazy initialization"""
+        assert workflow._storage is None
+        with patch("src.infrastructure.container.Container.get_storage_agent") as mock_get:
+            mock_storage = MagicMock()
+            mock_get.return_value = mock_storage
+            storage = workflow.storage
+            assert storage is mock_storage
+            # Second access returns same instance
+            assert workflow.storage is mock_storage
+
+    def test_metrics_agent_property(self, workflow):
+        """Test metrics agent lazy initialization"""
+        assert workflow._metrics_agent is None
+        with patch("src.infrastructure.container.Container.get_metrics_agent") as mock_get:
+            mock_metrics = MagicMock()
+            mock_get.return_value = mock_metrics
+            metrics_agent = workflow.metrics_agent
+            assert metrics_agent is mock_metrics
+            # Second access returns same instance
+            assert workflow.metrics_agent is mock_metrics
+
+    def test_hybrid_insight_property(self, workflow):
+        """Test hybrid insight agent lazy initialization"""
+        assert workflow._hybrid_insight is None
+        with patch("src.agents.hybrid_insight_agent.HybridInsightAgent") as mock_class:
+            mock_instance = MagicMock()
+            mock_class.return_value = mock_instance
+            insight = workflow.hybrid_insight
+            assert insight is mock_instance
+            # Second access returns same instance
+            assert workflow.hybrid_insight is mock_instance
+
+    def test_hybrid_chatbot_property(self, workflow):
+        """Test hybrid chatbot agent lazy initialization"""
+        assert workflow._hybrid_chatbot is None
+        with patch("src.agents.hybrid_chatbot_agent.HybridChatbotAgent") as mock_class:
+            mock_instance = MagicMock()
+            mock_class.return_value = mock_instance
+            chatbot = workflow.hybrid_chatbot
+            assert chatbot is mock_instance
+            # Second access returns same instance
+            assert workflow.hybrid_chatbot is mock_instance
+
+    def test_dashboard_exporter_property(self, workflow):
+        """Test dashboard exporter lazy initialization"""
+        assert workflow._dashboard_exporter is None
+        exporter = workflow.dashboard_exporter
+        assert exporter is not None
+        # Second access returns same instance
+        assert workflow.dashboard_exporter is exporter
+
+
+# =========================================================================
+# Chat and process_query methods (delegation to UnifiedBrain)
+# =========================================================================
+
+
+class TestChatDelegation:
+    """Test chat and process_query delegation to UnifiedBrain"""
+
+    @pytest.mark.skip(
+        reason="get_brain() is async singleton - complex to mock, tested via integration"
+    )
+    @pytest.mark.asyncio
+    async def test_chat_delegates_to_brain(self, workflow):
+        """Test chat method delegates to UnifiedBrain"""
+        # Skipped: get_brain() async singleton mocking is complex
+        # This delegation is tested via integration tests
+        pass
+
+
+# =========================================================================
+# run_full_workflow convenience function
+# =========================================================================
+
+
+class TestRunFullWorkflow:
+    """Test run_full_workflow convenience function"""
+
+    @pytest.mark.asyncio
+    async def test_run_full_workflow_success(self, tmp_config, tmp_path):
+        """Test run_full_workflow creates workflow and executes"""
+        from src.application.workflows.batch_workflow import run_full_workflow
+
+        kg_path = str(tmp_path / "kg.json")
+
+        with patch("src.application.workflows.batch_workflow.BatchWorkflow") as mock_workflow_class:
+            mock_workflow = AsyncMock()
+            mock_workflow.run_daily_workflow = AsyncMock(
+                return_value={"status": "completed", "products_crawled": 100}
+            )
+            mock_workflow.cleanup = AsyncMock()
+            mock_workflow_class.return_value = mock_workflow
+
+            result = await run_full_workflow(
+                categories=["beauty"],
+                config_path=tmp_config,
+                spreadsheet_id="test-123",
+                use_hybrid=True,
+            )
+
+            mock_workflow_class.assert_called_once_with(
+                config_path=tmp_config, spreadsheet_id="test-123", use_hybrid=True
+            )
+            mock_workflow.run_daily_workflow.assert_called_once_with(categories=["beauty"])
+            mock_workflow.cleanup.assert_called_once()
+            assert result["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_run_full_workflow_cleanup_on_exception(self, tmp_config):
+        """Test run_full_workflow calls cleanup even on exception"""
+        from src.application.workflows.batch_workflow import run_full_workflow
+
+        with patch("src.application.workflows.batch_workflow.BatchWorkflow") as mock_workflow_class:
+            mock_workflow = AsyncMock()
+            mock_workflow.run_daily_workflow = AsyncMock(side_effect=RuntimeError("Test error"))
+            mock_workflow.cleanup = AsyncMock()
+            mock_workflow_class.return_value = mock_workflow
+
+            with pytest.raises(RuntimeError, match="Test error"):
+                await run_full_workflow(config_path=tmp_config)
+
+            # Cleanup should still be called
+            mock_workflow.cleanup.assert_called_once()
+
+
+# =========================================================================
+# _observe with LLM brand verification
+# =========================================================================
+
+
+class TestObserveLLMBrandVerification:
+    """Test _observe method's LLM brand verification logic"""
+
+    @pytest.mark.asyncio
+    async def test_observe_crawl_with_llm_brand_verification(self, workflow):
+        """Test crawl observation with LLM brand verification"""
+        act = ActResult(
+            action="crawl",
+            success=True,
+            result={
+                "total_products": 2,
+                "laneige_count": 1,
+                "categories": {
+                    "beauty": {
+                        "products": [
+                            {"asin": "B001", "brand": "Unknown", "title": "Product 1"},
+                            {"asin": "B002", "brand": "LANEIGE", "title": "Product 2"},
+                        ]
+                    }
+                },
+                "laneige_products": [],
+            },
+        )
+
+        with patch("src.tools.utilities.brand_resolver.get_brand_resolver") as mock_resolver_get:
+            mock_resolver = AsyncMock()
+            mock_resolver.verify_brands_with_llm = AsyncMock(
+                return_value={
+                    "verified_count": 1,
+                    "failed_count": 0,
+                    "updated_products": [{"asin": "B001", "brand": "Test Brand"}],
+                }
+            )
+            mock_resolver_get.return_value = mock_resolver
+
+            result = await workflow._observe(act)
+
+            mock_resolver.verify_brands_with_llm.assert_called_once()
+            assert any("브랜드 검증" in obs for obs in result.observations)
+            # Check brand was updated in the result
+            updated_brand = act.result["categories"]["beauty"]["products"][0]["brand"]
+            assert updated_brand == "Test Brand"
+
+    @pytest.mark.asyncio
+    async def test_observe_crawl_no_unknown_brands(self, workflow):
+        """Test crawl observation when no unknown brands"""
+        act = ActResult(
+            action="crawl",
+            success=True,
+            result={
+                "total_products": 1,
+                "laneige_count": 1,
+                "categories": {
+                    "beauty": {"products": [{"asin": "B001", "brand": "LANEIGE", "title": "Mask"}]}
+                },
+                "laneige_products": [],
+            },
+        )
+
+        with patch("src.tools.utilities.brand_resolver.get_brand_resolver") as mock_resolver_get:
+            mock_resolver = AsyncMock()
+            mock_resolver_get.return_value = mock_resolver
+
+            result = await workflow._observe(act)
+
+            # Should not call verify_brands_with_llm when no unknown brands
+            mock_resolver.verify_brands_with_llm.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_observe_crawl_llm_verification_failure(self, workflow):
+        """Test crawl observation when LLM verification fails"""
+        act = ActResult(
+            action="crawl",
+            success=True,
+            result={
+                "total_products": 1,
+                "laneige_count": 0,
+                "categories": {
+                    "beauty": {
+                        "products": [{"asin": "B001", "brand": "Unknown", "title": "Product"}]
+                    }
+                },
+                "laneige_products": [],
+            },
+        )
+
+        with patch(
+            "src.tools.utilities.brand_resolver.get_brand_resolver",
+            side_effect=RuntimeError("Resolver error"),
+        ):
+            # Should not raise, just log warning
+            result = await workflow._observe(act)
+
+            assert result.next_step == WorkflowStep.STORE
+            assert any("크롤링 완료" in obs for obs in result.observations)
+
+    @pytest.mark.asyncio
+    async def test_observe_crawl_saves_json_file(self, workflow, tmp_path):
+        """Test crawl observation saves JSON file"""
+        # Mock the data directory to use tmp_path
+        with patch("pathlib.Path") as mock_path_class:
+            mock_data_dir = tmp_path / "data"
+            mock_data_dir.mkdir(parents=True, exist_ok=True)
+            mock_path_class.return_value = mock_data_dir
+
+            act = ActResult(
+                action="crawl",
+                success=True,
+                result={
+                    "total_products": 50,
+                    "laneige_count": 5,
+                    "categories": {"beauty": {"products": []}},
+                    "laneige_products": [],
+                },
+            )
+
+            with patch("builtins.open", MagicMock()) as mock_open:
+                with patch("json.dump") as mock_json_dump:
+                    result = await workflow._observe(act)
+
+                    # Verify JSON save was attempted
+                    assert any("크롤링 원본 저장" in obs for obs in result.observations)
+
+    @pytest.mark.asyncio
+    async def test_observe_crawl_json_save_failure(self, workflow):
+        """Test crawl observation handles JSON save failure gracefully"""
+        act = ActResult(
+            action="crawl",
+            success=True,
+            result={
+                "total_products": 50,
+                "laneige_count": 5,
+                "categories": {"beauty": {"products": []}},
+                "laneige_products": [],
+            },
+        )
+
+        with patch("builtins.open", side_effect=PermissionError("No write permission")):
+            # Should not raise, just log error
+            result = await workflow._observe(act)
+
+            assert result.next_step == WorkflowStep.STORE
+
+
+# =========================================================================
+# run_daily_workflow with KG auto-backup
+# =========================================================================
+
+
+class TestRunDailyWorkflowKGBackup:
+    """Test run_daily_workflow KG auto-backup logic"""
+
+    @pytest.mark.asyncio
+    async def test_workflow_kg_save_and_backup(self, workflow):
+        """Test KG save and auto-backup on workflow completion"""
+        workflow.use_hybrid = True
+        workflow._knowledge_graph = MagicMock()
+
+        with patch.object(workflow, "_think", new_callable=AsyncMock) as mock_think:
+            mock_think.return_value = ThinkResult(
+                next_action="complete", reasoning="Done", should_continue=False
+            )
+
+            with patch(
+                "src.tools.utilities.kg_backup.get_kg_backup_service"
+            ) as mock_backup_service_get:
+                mock_backup_service = MagicMock()
+                mock_backup_service.auto_backup.return_value = "/path/to/backup.json"
+                mock_backup_service_get.return_value = mock_backup_service
+
+                results = await workflow.run_daily_workflow()
+
+                workflow._knowledge_graph.save.assert_called()
+                mock_backup_service.auto_backup.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_workflow_kg_backup_failure_non_critical(self, workflow):
+        """Test KG backup failure doesn't fail workflow"""
+        workflow.use_hybrid = True
+        workflow._knowledge_graph = MagicMock()
+
+        with patch.object(workflow, "_think", new_callable=AsyncMock) as mock_think:
+            mock_think.return_value = ThinkResult(
+                next_action="complete", reasoning="Done", should_continue=False
+            )
+
+            with patch(
+                "src.tools.utilities.kg_backup.get_kg_backup_service",
+                side_effect=ImportError("Backup not available"),
+            ):
+                results = await workflow.run_daily_workflow()
+
+                # Workflow should still complete successfully
+                assert results["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_workflow_non_hybrid_no_kg_backup(self, workflow):
+        """Test non-hybrid mode doesn't attempt KG backup"""
+        workflow.use_hybrid = False
+
+        with patch.object(workflow, "_think", new_callable=AsyncMock) as mock_think:
+            mock_think.return_value = ThinkResult(
+                next_action="complete", reasoning="Done", should_continue=False
+            )
+
+            with patch(
+                "src.tools.utilities.kg_backup.get_kg_backup_service"
+            ) as mock_backup_service_get:
+                results = await workflow.run_daily_workflow()
+
+                # Should not call backup service in non-hybrid mode
+                mock_backup_service_get.assert_not_called()
+
+
+# =========================================================================
+# WorkflowDependencies dataclass (for future DI)
+# =========================================================================
+
+
+class TestWorkflowDependencies:
+    """Test WorkflowDependencies dataclass"""
+
+    def test_workflow_dependencies_creation(self):
+        """Test WorkflowDependencies can be created"""
+        from src.application.workflows.batch_workflow import WorkflowDependencies
+
+        mock_crawler = MagicMock()
+        mock_storage = MagicMock()
+        mock_metrics = MagicMock()
+
+        deps = WorkflowDependencies(
+            crawler=mock_crawler, storage=mock_storage, metrics=mock_metrics
+        )
+
+        assert deps.crawler is mock_crawler
+        assert deps.storage is mock_storage
+        assert deps.metrics is mock_metrics
+        assert deps.insight is None
+        assert deps.categories == []
+
+    def test_workflow_dependencies_with_insight(self):
+        """Test WorkflowDependencies with insight agent"""
+        from src.application.workflows.batch_workflow import WorkflowDependencies
+
+        mock_insight = MagicMock()
+
+        deps = WorkflowDependencies(
+            crawler=MagicMock(),
+            storage=MagicMock(),
+            metrics=MagicMock(),
+            insight=mock_insight,
+            categories=["beauty", "skincare"],
+        )
+
+        assert deps.insight is mock_insight
+        assert deps.categories == ["beauty", "skincare"]

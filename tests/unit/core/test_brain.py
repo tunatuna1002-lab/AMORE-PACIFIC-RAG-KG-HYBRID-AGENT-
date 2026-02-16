@@ -617,3 +617,845 @@ async def test_brain_process_query_error_handling(brain_with_mocks):
 
     # Error stat should increment
     assert brain_with_mocks._stats["errors"] == 1
+
+
+# =============================================================================
+# 10. Task Scheduling and Execution Tests (Wave 4)
+# =============================================================================
+
+
+class TestAutonomousCycle:
+    """자율 작업 사이클 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_run_autonomous_cycle_skips_when_responding(self):
+        """사용자 응답 중에는 자율 작업 스킵"""
+        brain = UnifiedBrain()
+        brain.mode = BrainMode.RESPONDING
+
+        result = await brain.run_autonomous_cycle()
+
+        assert result["status"] == "skipped"
+        assert "사용자 응답 중" in result["reason"]
+
+    @pytest.mark.asyncio
+    async def test_run_autonomous_cycle_sets_mode(self):
+        """자율 모드 전환 및 복원"""
+        brain = UnifiedBrain()
+        brain.scheduler = MagicMock()
+        brain.scheduler.get_due_tasks = MagicMock(return_value=[])
+
+        mode_during_execution = None
+
+        original_process = brain._process_task_queue
+
+        async def capture_mode():
+            nonlocal mode_during_execution
+            mode_during_execution = brain.mode
+            return await original_process()
+
+        brain._process_task_queue = capture_mode
+
+        result = await brain.run_autonomous_cycle()
+
+        assert mode_during_execution == BrainMode.AUTONOMOUS
+        assert brain.mode == BrainMode.IDLE
+        assert result["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_run_autonomous_cycle_increments_stats(self):
+        """자율 작업 실행 시 통계 증가"""
+        brain = UnifiedBrain()
+        brain.scheduler = MagicMock()
+        brain.scheduler.get_due_tasks = MagicMock(return_value=[])
+
+        initial_count = brain._stats["autonomous_tasks"]
+        await brain.run_autonomous_cycle()
+
+        assert brain._stats["autonomous_tasks"] == initial_count + 1
+
+    @pytest.mark.asyncio
+    async def test_run_autonomous_cycle_executes_due_tasks(self):
+        """스케줄된 작업 실행"""
+        brain = UnifiedBrain()
+        brain.scheduler = MagicMock()
+        due_task = {"id": "task-1", "name": "check_data", "action": "check_data"}
+        brain.scheduler.get_due_tasks = MagicMock(return_value=[due_task])
+
+        brain.state = MagicMock()
+        brain.state.is_crawl_needed = MagicMock(return_value=False)
+
+        result = await brain.run_autonomous_cycle()
+
+        assert result["status"] == "completed"
+        assert len(result["tasks_executed"]) == 1
+        brain.scheduler.mark_completed.assert_called_once_with("task-1")
+
+    @pytest.mark.asyncio
+    async def test_run_autonomous_cycle_error_handling(self):
+        """자율 사이클 에러 처리"""
+        brain = UnifiedBrain()
+        brain.scheduler = MagicMock()
+        brain.scheduler.get_due_tasks = MagicMock(side_effect=Exception("Scheduler error"))
+
+        result = await brain.run_autonomous_cycle()
+
+        assert result["status"] == "error"
+        assert "Scheduler error" in result["error"]
+        assert brain.mode == BrainMode.IDLE  # mode should be restored
+
+
+# =============================================================================
+# 11. Scheduled Task Execution Tests (Wave 4)
+# =============================================================================
+
+
+class TestExecuteScheduledTask:
+    """스케줄된 작업 실행 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_check_data_action(self):
+        """check_data 작업 실행"""
+        brain = UnifiedBrain()
+        brain.state = MagicMock()
+        brain.state.is_crawl_needed = MagicMock(return_value=True)
+
+        task = {"id": "t1", "name": "Data Check", "action": "check_data"}
+        result = await brain._execute_scheduled_task(task)
+
+        assert result["status"] == "completed"
+        assert result["needs_crawl"] is True
+
+    @pytest.mark.asyncio
+    async def test_unknown_action_skipped(self):
+        """알 수 없는 action은 스킵"""
+        brain = UnifiedBrain()
+
+        task = {"id": "t2", "name": "Unknown Task", "action": "unknown_action"}
+        result = await brain._execute_scheduled_task(task)
+
+        assert result["status"] == "skipped"
+        assert "Unknown action" in result["reason"]
+
+    @pytest.mark.asyncio
+    async def test_crawl_workflow_action(self):
+        """crawl_workflow 작업 실행"""
+        brain = UnifiedBrain()
+
+        mock_workflow = AsyncMock()
+        mock_workflow.run_daily_workflow = AsyncMock(
+            return_value={"summary": "crawl done", "products": 100}
+        )
+        brain._workflow_agent = mock_workflow
+
+        # Mock emit_event and collect_market_intelligence
+        brain.emit_event = AsyncMock()
+        brain.collect_market_intelligence = AsyncMock(return_value={"status": "success"})
+
+        task = {"id": "t3", "name": "Daily Crawl", "action": "crawl_workflow"}
+        result = await brain._execute_scheduled_task(task)
+
+        assert result["status"] == "completed"
+        mock_workflow.run_daily_workflow.assert_called_once()
+        brain.emit_event.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_scheduled_task_failure(self):
+        """스케줄된 작업 실패 처리"""
+        brain = UnifiedBrain()
+        brain.state = MagicMock()
+        brain.state.is_crawl_needed = MagicMock(side_effect=Exception("DB error"))
+
+        task = {"id": "t4", "name": "Failing Task", "action": "check_data"}
+        result = await brain._execute_scheduled_task(task)
+
+        assert result["status"] == "failed"
+        assert "DB error" in result["error"]
+
+
+# =============================================================================
+# 12. Task Queue Processing Tests (Wave 4)
+# =============================================================================
+
+
+class TestTaskQueueProcessing:
+    """작업 큐 처리 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_process_task_queue_empty(self):
+        """빈 큐 처리"""
+        brain = UnifiedBrain()
+        # Should not raise
+        await brain._process_task_queue()
+        assert len(brain._task_queue) == 0
+
+    @pytest.mark.asyncio
+    async def test_process_task_queue_stops_when_responding(self):
+        """사용자 응답 모드에서 큐 처리 중단"""
+        brain = UnifiedBrain()
+
+        task1 = BrainTask(
+            id="t1", type="alert", priority=TaskPriority.BACKGROUND, payload={"alert": "test"}
+        )
+        task2 = BrainTask(
+            id="t2", type="alert", priority=TaskPriority.BACKGROUND, payload={"alert": "test2"}
+        )
+        brain.add_task(task1)
+        brain.add_task(task2)
+
+        # Switch to responding mode after first task
+        original_execute = brain._execute_queued_task
+
+        async def switch_mode(task):
+            brain.mode = BrainMode.RESPONDING
+            await original_execute(task)
+
+        brain._execute_queued_task = switch_mode
+
+        await brain._process_task_queue()
+
+        # Should have stopped after mode change, leaving items in queue
+        # (the first task pops, mode changes, loop breaks before second pop)
+        assert brain.mode == BrainMode.RESPONDING
+
+    @pytest.mark.asyncio
+    async def test_execute_queued_task_alert(self):
+        """alert 타입 큐 작업 실행"""
+        brain = UnifiedBrain()
+        brain._alert_manager = MagicMock()
+        brain._alert_manager.process_alert = AsyncMock()
+        brain._alert_manager.check_conditions = AsyncMock(return_value=[])
+        brain.emit_event = AsyncMock()
+
+        task = BrainTask(
+            id="alert-1",
+            type="alert",
+            priority=TaskPriority.CRITICAL_ALERT,
+            payload={"severity": "critical", "message": "test alert"},
+        )
+
+        await brain._execute_queued_task(task)
+
+        assert task.started_at is not None
+        assert task.completed_at is not None
+        assert task.result == {"processed": True}
+        assert task in brain._task_history
+        assert brain._current_task is None
+
+    @pytest.mark.asyncio
+    async def test_execute_queued_task_error(self):
+        """큐 작업 실행 에러 처리"""
+        brain = UnifiedBrain()
+
+        # Create a task that will raise when processed
+        brain._alert_manager = MagicMock()
+        brain._alert_manager.process_alert = AsyncMock(side_effect=Exception("Alert error"))
+        brain._alert_manager.check_conditions = AsyncMock(return_value=[])
+        brain.emit_event = AsyncMock(side_effect=Exception("Alert error"))
+
+        task = BrainTask(
+            id="err-1",
+            type="alert",
+            priority=TaskPriority.CRITICAL_ALERT,
+            payload={"test": "error"},
+        )
+
+        await brain._execute_queued_task(task)
+
+        assert task.error is not None
+        assert brain._current_task is None  # Should be cleaned up
+
+    def test_add_task_maintains_heap(self):
+        """add_task가 힙 구조 유지"""
+        import heapq
+
+        brain = UnifiedBrain()
+
+        tasks = [
+            BrainTask(id="bg", type="bg", priority=TaskPriority.BACKGROUND, payload={}),
+            BrainTask(id="user", type="user", priority=TaskPriority.USER_REQUEST, payload={}),
+            BrainTask(id="sched", type="sched", priority=TaskPriority.SCHEDULED, payload={}),
+        ]
+
+        for t in tasks:
+            brain.add_task(t)
+
+        # Pop should give USER_REQUEST first
+        first = heapq.heappop(brain._task_queue)
+        assert first.id == "user"
+
+
+# =============================================================================
+# 13. State Management Tests (Wave 4)
+# =============================================================================
+
+
+class TestStateManagement:
+    """상태 관리 테스트"""
+
+    def test_get_system_state_without_metrics(self):
+        """메트릭 없이 시스템 상태"""
+        brain = UnifiedBrain()
+        state = brain._get_system_state()
+
+        assert state["data_status"] == "없음"
+        assert state["data_date"] is None
+        assert state["mode"] == "idle"
+
+    def test_get_system_state_with_fresh_metrics(self):
+        """최신 메트릭으로 시스템 상태"""
+        brain = UnifiedBrain()
+        today = datetime.now().strftime("%Y-%m-%d")
+        metrics = {"metadata": {"data_date": today}}
+
+        state = brain._get_system_state(metrics)
+
+        assert state["data_status"] == "최신"
+        assert state["data_date"] == today
+
+    def test_get_system_state_with_stale_metrics(self):
+        """오래된 메트릭으로 시스템 상태"""
+        brain = UnifiedBrain()
+        metrics = {"metadata": {"data_date": "2025-01-01"}}
+
+        state = brain._get_system_state(metrics)
+
+        assert "오래됨" in state["data_status"]
+
+    def test_format_system_state_no_failed_tools(self):
+        """실패 도구 없을 때 포맷"""
+        brain = UnifiedBrain()
+        state = {
+            "data_status": "최신",
+            "mode": "idle",
+            "available_tools": ["get_brand_status"],
+            "failed_tools": [],
+        }
+
+        formatted = brain._format_system_state(state)
+        assert "실패 도구" not in formatted
+
+    def test_get_state_summary_format(self):
+        """상태 요약 포맷 확인"""
+        brain = UnifiedBrain()
+        summary = brain.get_state_summary()
+        assert "idle" in summary
+
+    def test_reset_failed_agents(self):
+        """실패 에이전트 리셋"""
+        brain = UnifiedBrain()
+        brain._tool_coordinator = MagicMock()
+        brain._tool_coordinator.reset_failed_tools = MagicMock()
+
+        brain.reset_failed_agents()
+
+        brain._tool_coordinator.reset_failed_tools.assert_called_once()
+
+
+# =============================================================================
+# 14. Complex Query Detection Tests (Wave 4)
+# =============================================================================
+
+
+class TestComplexQueryDetection:
+    """복잡한 질문 감지 테스트"""
+
+    def test_complex_keyword_detected(self):
+        """복잡도 키워드 감지"""
+        brain = UnifiedBrain()
+        context = Context(
+            query="왜 LANEIGE 순위가 하락했나요?",
+            entities={},
+            rag_docs=[{"content": "doc1"}, {"content": "doc2"}],
+            kg_facts=[],
+        )
+        # "왜" is a complex keyword
+        assert brain._is_complex_query("왜 LANEIGE 순위가 하락했나요?", context) is True
+
+    def test_analysis_keyword_detected(self):
+        """분석 키워드 감지"""
+        brain = UnifiedBrain()
+        context = Context(
+            query="LANEIGE 경쟁사 비교 분석해줘",
+            entities={},
+            rag_docs=[{"content": "doc1"}, {"content": "doc2"}],
+            kg_facts=[],
+        )
+        assert brain._is_complex_query("LANEIGE 경쟁사 비교 분석해줘", context) is True
+
+    def test_simple_query_not_complex(self):
+        """단순 질문은 복잡하지 않음"""
+        brain = UnifiedBrain()
+        context = Context(
+            query="LANEIGE 순위 알려줘",
+            entities={},
+            rag_docs=[{"content": "doc1"}, {"content": "doc2"}, {"content": "doc3"}],
+            kg_facts=[],
+        )
+        # kg_triples is checked via hasattr, set as attribute
+        context.kg_triples = [("LANEIGE", "rank", "5")]
+        result = brain._is_complex_query("LANEIGE 순위 알려줘", context)
+        assert result is False
+
+    def test_low_context_with_multi_step_is_complex(self):
+        """컨텍스트 부족 + 다단계 질문은 복잡"""
+        brain = UnifiedBrain()
+        context = Context(
+            query="LANEIGE 그리고 COSRX?",
+            entities={},
+            rag_docs=[],  # no docs
+            kg_facts=[],
+        )
+        result = brain._is_complex_query("LANEIGE 그리고 COSRX?", context)
+        # low_context and multi_step (contains "그리고")
+        assert result is True
+
+
+# =============================================================================
+# 15. Query Intent Assessment Tests (Wave 4)
+# =============================================================================
+
+
+class TestQueryIntentAssessment:
+    """쿼리 의도 평가 테스트"""
+
+    def test_empty_query_returns_zero(self):
+        """빈 쿼리 → 0점"""
+        brain = UnifiedBrain()
+        assert brain._assess_query_intent("") == 0.0
+        assert brain._assess_query_intent("  ") == 0.0
+
+    def test_short_query_returns_zero(self):
+        """짧은 무의미 입력 → 0점"""
+        brain = UnifiedBrain()
+        assert brain._assess_query_intent("ab") == 0.0
+
+    def test_domain_keyword_score(self):
+        """도메인 키워드 포함 → 1.5+ 점"""
+        brain = UnifiedBrain()
+        score = brain._assess_query_intent("laneige 순위")
+        assert score >= 1.5
+
+    def test_intent_keyword_score(self):
+        """의도 키워드 포함 → 1.5+ 점"""
+        brain = UnifiedBrain()
+        score = brain._assess_query_intent("분석 결과 보여줘")
+        assert score >= 1.5
+
+    def test_meaningful_query_floor(self):
+        """의미 있는 질문은 최소 1.5점"""
+        brain = UnifiedBrain()
+        score = brain._assess_query_intent("오늘 날씨 어때")
+        assert score >= 1.5
+
+    def test_domain_and_intent_combined(self):
+        """도메인 + 의도 키워드 조합"""
+        brain = UnifiedBrain()
+        score = brain._assess_query_intent("laneige 순위 분석해줘")
+        # Both domain and intent keywords
+        assert score >= 2.0
+
+
+# =============================================================================
+# 16. Key Points Extraction Tests (Wave 4)
+# =============================================================================
+
+
+class TestKeyPointsExtraction:
+    """핵심 포인트 추출 테스트"""
+
+    def test_extract_from_kg_facts(self):
+        """KG 사실에서 포인트 추출"""
+        brain = UnifiedBrain()
+        fact = MagicMock()
+        fact.entity = "LANEIGE"
+        fact.fact_type = "market_leader"
+
+        context = Context(
+            query="test",
+            entities={},
+            rag_docs=[],
+            kg_facts=[fact],
+        )
+
+        points = brain._extract_key_points_from_context(context)
+        assert len(points) >= 1
+        assert "LANEIGE" in points[0]
+
+    def test_extract_from_kg_inferences(self):
+        """KG 추론에서 포인트 추출"""
+        brain = UnifiedBrain()
+
+        context = Context(
+            query="test",
+            entities={},
+            rag_docs=[],
+            kg_facts=[],
+            kg_inferences=[{"insight": "LANEIGE SoS is growing"}],
+        )
+
+        points = brain._extract_key_points_from_context(context)
+        assert len(points) >= 1
+        assert "LANEIGE SoS is growing" in points[0]
+
+    def test_extract_empty_context(self):
+        """빈 컨텍스트에서 포인트 추출"""
+        brain = UnifiedBrain()
+
+        context = Context(
+            query="test",
+            entities={},
+            rag_docs=[],
+            kg_facts=[],
+        )
+
+        points = brain._extract_key_points_from_context(context)
+        assert points == []
+
+    def test_extract_limits_results(self):
+        """최대 개수 제한"""
+        brain = UnifiedBrain()
+
+        facts = []
+        for i in range(10):
+            fact = MagicMock()
+            fact.entity = f"Brand{i}"
+            fact.fact_type = f"type{i}"
+            facts.append(fact)
+
+        context = Context(
+            query="test",
+            entities={},
+            rag_docs=[],
+            kg_facts=facts,
+        )
+
+        points = brain._extract_key_points_from_context(context)
+        # Should be limited to 3 facts + 2 inferences max = 5
+        assert len(points) <= 5
+
+
+# =============================================================================
+# 17. Response Generation Tests (Wave 4)
+# =============================================================================
+
+
+class TestResponseGeneration:
+    """응답 생성 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_generate_response_with_pipeline(self):
+        """파이프라인으로 응답 생성"""
+        brain = UnifiedBrain()
+        mock_pipeline = AsyncMock()
+        mock_pipeline.generate = AsyncMock(
+            return_value=Response(text="Pipeline response", confidence_score=0.9)
+        )
+        brain._response_pipeline = mock_pipeline
+
+        from src.core.models import Decision
+
+        context = Context(query="test", entities={}, rag_docs=[], kg_facts=[])
+        decision = Decision(tool="direct_answer", confidence=0.9, reason="test", key_points=[])
+
+        response = await brain._generate_response(
+            query="test", context=context, decision=decision, tool_result=None
+        )
+
+        assert response.text == "Pipeline response"
+        mock_pipeline.generate.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_response_fallback_with_tool_result(self):
+        """파이프라인 없이 도구 결과로 폴백 응답"""
+        brain = UnifiedBrain()
+        brain._response_pipeline = None
+
+        from src.core.models import Decision
+
+        context = Context(query="test", entities={}, rag_docs=[], kg_facts=[])
+        decision = Decision(tool="get_brand_status", confidence=0.8, reason="test", key_points=[])
+        tool_result = ToolResult(
+            tool_name="get_brand_status",
+            success=True,
+            data={"brand": "LANEIGE", "sos": 12.5},
+        )
+
+        response = await brain._generate_response(
+            query="test", context=context, decision=decision, tool_result=tool_result
+        )
+
+        assert "도구 실행 결과" in response.text
+        assert "LANEIGE" in response.text
+
+    @pytest.mark.asyncio
+    async def test_generate_response_fallback_with_context_summary(self):
+        """파이프라인 없이 컨텍스트 요약으로 폴백"""
+        brain = UnifiedBrain()
+        brain._response_pipeline = None
+
+        from src.core.models import Decision
+
+        context = Context(
+            query="test",
+            entities={},
+            rag_docs=[],
+            kg_facts=[],
+            summary="LANEIGE는 Lip Care에서 4위입니다",
+        )
+        decision = Decision(tool="direct_answer", confidence=0.8, reason="test", key_points=[])
+
+        response = await brain._generate_response(
+            query="test", context=context, decision=decision, tool_result=None
+        )
+
+        assert "LANEIGE는 Lip Care에서 4위입니다" in response.text
+
+    @pytest.mark.asyncio
+    async def test_generate_response_fallback_no_info(self):
+        """정보 없을 때 폴백"""
+        brain = UnifiedBrain()
+        brain._response_pipeline = None
+
+        from src.core.models import Decision
+
+        context = Context(query="test", entities={}, rag_docs=[], kg_facts=[])
+        decision = Decision(tool="direct_answer", confidence=0.5, reason="test", key_points=[])
+
+        response = await brain._generate_response(
+            query="test", context=context, decision=decision, tool_result=None
+        )
+
+        assert "관련 정보를 찾을 수 없습니다" in response.text
+
+
+# =============================================================================
+# 18. ReAct Processing Tests (Wave 4)
+# =============================================================================
+
+
+class TestReActProcessing:
+    """ReAct 처리 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_process_with_react_no_agent(self):
+        """ReAct 에이전트 없을 때 폴백"""
+        brain = UnifiedBrain()
+        brain._react_agent = None
+
+        context = Context(query="test", entities={}, rag_docs=[], kg_facts=[])
+        response = await brain._process_with_react("test", context)
+
+        assert response.is_fallback
+        assert "ReAct 에이전트" in response.text
+
+    @pytest.mark.asyncio
+    async def test_process_with_react_success(self):
+        """ReAct 처리 성공"""
+        brain = UnifiedBrain()
+
+        mock_step = MagicMock()
+        mock_step.action = "search_kg"
+
+        mock_result = MagicMock()
+        mock_result.final_answer = "LANEIGE is #4 in Lip Care"
+        mock_result.confidence = 0.85
+        mock_result.steps = [mock_step]
+        mock_result.needs_improvement = False
+
+        mock_agent = AsyncMock()
+        mock_agent.run = AsyncMock(return_value=mock_result)
+        brain._react_agent = mock_agent
+
+        context = Context(
+            query="test",
+            entities={},
+            rag_docs=[{"content": "doc"}],
+            kg_facts=[],
+            summary="test summary",
+        )
+        response = await brain._process_with_react("왜 LANEIGE가 하락했나?", context)
+
+        assert response.text == "LANEIGE is #4 in Lip Care"
+        assert response.confidence_score == 0.85
+        assert "search_kg" in response.tools_called
+
+    @pytest.mark.asyncio
+    async def test_process_with_react_failure(self):
+        """ReAct 처리 실패"""
+        brain = UnifiedBrain()
+
+        mock_agent = AsyncMock()
+        mock_agent.run = AsyncMock(side_effect=Exception("ReAct error"))
+        brain._react_agent = mock_agent
+
+        context = Context(query="test", entities={}, rag_docs=[], kg_facts=[])
+        response = await brain._process_with_react("test", context)
+
+        assert response.is_fallback
+        assert "ReAct 처리 실패" in response.text
+
+
+# =============================================================================
+# 19. Market Intelligence Tests (Wave 4)
+# =============================================================================
+
+
+class TestMarketIntelligence:
+    """Market Intelligence 데이터 수집 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_collect_market_intelligence_success(self):
+        """MI 수집 성공"""
+        brain = UnifiedBrain()
+        brain.emit_event = AsyncMock()
+
+        mock_mi = AsyncMock()
+        mock_mi.collect_all_layers = AsyncMock(return_value={"layer1": {}, "layer2": {}})
+        mock_mi.save_data = MagicMock()
+        brain._market_intelligence = mock_mi
+
+        result = await brain.collect_market_intelligence()
+
+        assert result["status"] == "success"
+        assert "layer1" in result["layers_collected"]
+        assert "layer2" in result["layers_collected"]
+        mock_mi.collect_all_layers.assert_called_once()
+        mock_mi.save_data.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_collect_market_intelligence_failure(self):
+        """MI 수집 실패"""
+        brain = UnifiedBrain()
+
+        mock_mi = AsyncMock()
+        mock_mi.collect_all_layers = AsyncMock(side_effect=Exception("API error"))
+        brain._market_intelligence = mock_mi
+
+        result = await brain.collect_market_intelligence()
+
+        assert result["status"] == "error"
+        assert "API error" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_check_alerts_delegates_to_alert_manager(self):
+        """check_alerts가 AlertManager에 위임"""
+        brain = UnifiedBrain()
+        brain._alert_manager = MagicMock()
+        brain._alert_manager.check_metrics_alerts = AsyncMock(
+            return_value=[{"type": "sos_drop", "message": "SoS dropped"}]
+        )
+
+        alerts = await brain.check_alerts({"sos": 3.0})
+
+        assert len(alerts) == 1
+        assert alerts[0]["type"] == "sos_drop"
+
+
+# =============================================================================
+# 20. Scheduler Management Tests (Wave 4)
+# =============================================================================
+
+
+class TestSchedulerManagement:
+    """스케줄러 관리 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_start_scheduler_already_running(self):
+        """이미 실행 중인 스케줄러 시작 시도"""
+        brain = UnifiedBrain()
+        brain.scheduler = MagicMock()
+        brain.scheduler.running = True
+
+        await brain.start_scheduler()
+
+        # Should not call start again
+        brain.scheduler.start.assert_not_called()
+
+    def test_stop_scheduler(self):
+        """스케줄러 중지"""
+        brain = UnifiedBrain()
+        brain.scheduler = MagicMock()
+        brain.mode = BrainMode.AUTONOMOUS
+
+        brain.stop_scheduler()
+
+        brain.scheduler.stop.assert_called_once()
+        assert brain.mode == BrainMode.IDLE
+
+    def test_get_recent_errors(self):
+        """최근 에러 목록 조회"""
+        brain = UnifiedBrain()
+        brain._tool_coordinator = MagicMock()
+        brain._tool_coordinator.get_recent_errors = MagicMock(
+            return_value=[{"error": "test", "time": "2026-01-01"}]
+        )
+
+        errors = brain.get_recent_errors(limit=5)
+
+        assert len(errors) == 1
+        brain._tool_coordinator.get_recent_errors.assert_called_once_with(5)
+
+
+# =============================================================================
+# 21. KG Sync Tests (Wave 4)
+# =============================================================================
+
+
+class TestKGSync:
+    """Knowledge Graph 동기화 테스트"""
+
+    def test_sync_kg_without_knowledge_graph(self):
+        """KG가 없으면 조기 반환"""
+        brain = UnifiedBrain()
+        # No _knowledge_graph attribute
+        brain._sync_knowledge_graph({"brand": {"competitors": []}})
+        # Should not raise
+
+    def test_sync_kg_with_brand_metrics(self):
+        """브랜드 메트릭 KG 동기화"""
+        brain = UnifiedBrain()
+        mock_kg = MagicMock()
+        brain._knowledge_graph = mock_kg
+
+        data = {
+            "brand": {
+                "competitors": [
+                    {"brand": "LANEIGE", "sos": 12.0, "avg_rank": 5, "products": 3},
+                    {"brand": "COSRX", "sos": 8.0, "avg_rank": 15, "products": 2},
+                ]
+            }
+        }
+        brain._sync_knowledge_graph(data)
+
+        assert mock_kg.add_entity_metadata.call_count == 2
+
+    def test_sync_kg_with_owl_reasoner(self):
+        """OWL Reasoner 동기화"""
+        brain = UnifiedBrain()
+        mock_kg = MagicMock()
+        mock_owl = MagicMock()
+        brain._knowledge_graph = mock_kg
+        brain._owl_reasoner = mock_owl
+
+        data = {
+            "brand": {
+                "competitors": [
+                    {"brand": "LANEIGE", "sos": 12.0, "avg_rank": 5, "products": 3},
+                ]
+            }
+        }
+        brain._sync_knowledge_graph(data)
+
+        mock_owl.add_brand.assert_called_once()
+        mock_owl.infer_market_positions.assert_called_once()
+
+    def test_sync_kg_error_handling(self):
+        """KG 동기화 에러 처리"""
+        brain = UnifiedBrain()
+        mock_kg = MagicMock()
+        mock_kg.add_entity_metadata = MagicMock(side_effect=Exception("KG error"))
+        brain._knowledge_graph = mock_kg
+
+        # Should not raise
+        brain._sync_knowledge_graph({"brand": {"competitors": [{"brand": "LANEIGE"}]}})

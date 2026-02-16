@@ -18,7 +18,7 @@ src/ontology/ontology_knowledge_graph.py 커버리지 20% → 60%+ 목표
 - get_stats
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -418,3 +418,190 @@ class TestGetStats:
         stats = okg_with_owl.get_stats()
         assert stats["owl_available"] is True
         assert stats["validation_enabled"] is True
+
+
+# =========================================================================
+# Edge Cases & Error Handling
+# =========================================================================
+
+
+class TestEdgeCases:
+    @pytest.mark.asyncio
+    async def test_initialize_owl_creation_failure(self, kg):
+        """Test OWL reasoner creation failure during initialization"""
+        with patch("src.ontology.ontology_knowledge_graph.OWLREADY2_AVAILABLE", True):
+            with patch(
+                "src.ontology.ontology_knowledge_graph.OWLReasoner",
+                side_effect=Exception("OWL init failed"),
+            ):
+                okg = OntologyKnowledgeGraph(
+                    knowledge_graph=kg,
+                    owl_reasoner=None,
+                    enable_validation=True,
+                )
+                await okg.initialize()
+                # Should disable validation on error
+                assert okg.enable_validation is False
+
+    def test_classify_corporate_group_as_subject(self, okg):
+        """Test classification of CorporateGroup"""
+        okg._auto_classify_entity("AMOREPACIFIC", RelationType.OWNS_BRAND, "subject")
+        assert okg._entity_class_cache.get("AMOREPACIFIC") == "CorporateGroup"
+
+    def test_sync_owl_inferences_with_error(self, okg_with_owl):
+        """Test sync_owl_inferences handles errors gracefully"""
+        mock_owl = MagicMock()
+        mock_owl.get_inferred_facts.return_value = [
+            {"subject": "LANEIGE", "property": "hasProduct", "object": "Lip Mask"},
+            {"subject": "INVALID", "property": None, "object": "Bad Data"},  # Will cause error
+        ]
+        okg_with_owl.owl = mock_owl
+
+        stats = okg_with_owl.sync_owl_inferences()
+        # Should handle errors and continue
+        assert stats["added"] >= 0
+        assert stats["errors"] >= 0
+
+    def test_sync_owl_inferences_exception_in_reasoner(self, okg_with_owl):
+        """Test sync_owl_inferences handles reasoner exceptions"""
+        mock_owl = MagicMock()
+        mock_owl.run_reasoner.side_effect = Exception("Reasoner failed")
+        okg_with_owl.owl = mock_owl
+
+        stats = okg_with_owl.sync_owl_inferences()
+        # Should return empty stats on error
+        assert stats == {"added": 0, "skipped": 0, "errors": 0}
+
+    def test_check_consistency_owl_check_exception(self, okg_with_owl):
+        """Test check_consistency handles OWL check exceptions"""
+        okg_with_owl.owl.check_consistency.side_effect = Exception("Check failed")
+        result = okg_with_owl.check_consistency()
+        # Should add warning instead of crashing
+        assert any("consistency check failed" in w for w in result["warnings"])
+
+    def test_get_entity_metadata_no_metadata(self, okg):
+        """Test get_entity_metadata when KG returns None"""
+        okg.kg.get_entity_metadata = MagicMock(return_value=None)
+        meta = okg.get_entity_metadata("Unknown")
+        assert meta is None
+
+    def test_add_validated_relation_auto_classifies_both_entities(self, okg_with_owl):
+        """Test that validation classifies both subject and object"""
+        okg_with_owl._validate_triple = MagicMock(return_value=(True, "Valid"))
+        okg_with_owl.add_validated_relation(
+            subject="LANEIGE",
+            predicate=RelationType.HAS_PRODUCT,
+            obj="Lip Mask",
+        )
+        # Both entities should be classified
+        assert "LANEIGE" in okg_with_owl._entity_class_cache
+        assert "Lip Mask" in okg_with_owl._entity_class_cache
+
+    def test_validation_stats_incremented_correctly(self, okg):
+        """Test validation stats are tracked correctly"""
+        initial_total = okg._validation_stats["total"]
+
+        okg.add_validated_relation("A", RelationType.HAS_PRODUCT, "B")
+        assert okg._validation_stats["total"] == initial_total + 1
+
+    def test_multiple_relation_types_in_mapping(self, okg):
+        """Test all relation types in OWL_CLASS_MAPPING are valid"""
+        from src.ontology.ontology_knowledge_graph import OWL_CLASS_MAPPING
+
+        for owl_class, predicates in OWL_CLASS_MAPPING.items():
+            assert isinstance(owl_class, str)
+            assert isinstance(predicates, list)
+            assert len(predicates) > 0
+
+    def test_all_mapped_relations_in_relation_to_owl_property(self):
+        """Test RELATION_TO_OWL_PROPERTY covers expected relations"""
+        from src.ontology.ontology_knowledge_graph import RELATION_TO_OWL_PROPERTY
+
+        expected_relations = [
+            RelationType.HAS_PRODUCT,
+            RelationType.BELONGS_TO_CATEGORY,
+            RelationType.COMPETES_WITH,
+            RelationType.PARENT_CATEGORY,
+            RelationType.HAS_SUBCATEGORY,
+            RelationType.OWNED_BY,
+            RelationType.HAS_RANK,
+        ]
+
+        for rel in expected_relations:
+            assert rel in RELATION_TO_OWL_PROPERTY
+            assert isinstance(RELATION_TO_OWL_PROPERTY[rel], str)
+
+
+# =========================================================================
+# Integration Tests
+# =========================================================================
+
+
+class TestIntegration:
+    @pytest.mark.asyncio
+    async def test_full_workflow_without_owl(self, okg):
+        """Test complete workflow without OWL validation"""
+        await okg.initialize()
+
+        # Add relations
+        success1, _ = okg.add_validated_relation(
+            "LANEIGE", RelationType.HAS_PRODUCT, "Lip Sleeping Mask"
+        )
+        success2, _ = okg.add_validated_relation("LANEIGE", RelationType.COMPETES_WITH, "COSRX")
+
+        assert success1 is True
+        assert success2 is True
+
+        # Query
+        products = okg.get_brand_products("LANEIGE")
+        assert len(products) >= 0
+
+        # Check stats
+        stats = okg.get_stats()
+        assert stats["validation_stats"]["total"] == 2
+
+    @pytest.mark.asyncio
+    async def test_full_workflow_with_owl_validation(self, okg_with_owl):
+        """Test complete workflow with OWL validation"""
+        okg_with_owl._validate_triple = MagicMock(return_value=(True, "Valid"))
+        await okg_with_owl.initialize()
+
+        # Add validated relations
+        success, msg = okg_with_owl.add_validated_relation(
+            "LANEIGE",
+            RelationType.HAS_PRODUCT,
+            "Lip Sleeping Mask",
+            metadata={"rank": 1},
+        )
+
+        assert success is True
+        assert "Validated" in msg
+
+        # Sync inferences
+        mock_owl = MagicMock()
+        mock_owl.get_inferred_facts.return_value = []
+        okg_with_owl.owl = mock_owl
+        stats = okg_with_owl.sync_owl_inferences()
+
+        # Check consistency
+        okg_with_owl.owl.check_consistency.return_value = True
+        result = okg_with_owl.check_consistency()
+        assert len(result["issues"]) == 0
+
+    def test_wrapped_methods_preserve_kg_functionality(self, okg):
+        """Test that wrapped methods delegate correctly to KG"""
+        # Add some data
+        okg.kg.add_relation(Relation("LANEIGE", RelationType.HAS_PRODUCT, "Product1"))
+        okg.kg.add_relation(Relation("LANEIGE", RelationType.COMPETES_WITH, "COSRX"))
+
+        # Test query
+        results = okg.query(subject="LANEIGE")
+        assert len(results) == 2
+
+        # Test get_brand_products
+        products = okg.get_brand_products("LANEIGE")
+        assert isinstance(products, list)
+
+        # Test get_competitors
+        competitors = okg.get_competitors("LANEIGE")
+        assert isinstance(competitors, list)

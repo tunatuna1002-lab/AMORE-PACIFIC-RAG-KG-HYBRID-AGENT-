@@ -1,5 +1,7 @@
 """
 Unit tests for PeriodInsightAgent
+
+Target: Increase coverage from ~20% to 55%+
 """
 
 from datetime import datetime
@@ -8,9 +10,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.agents.period_insight_agent import PeriodInsightAgent, PeriodReport, SectionInsight
-
-# Mark pytest and AsyncMock/patch as used at module level for linter
-_USED = (pytest, AsyncMock, patch)
 
 # =========================================================================
 # Helper: mock analysis object
@@ -191,8 +190,6 @@ class TestCallLLM:
 
     @pytest.mark.asyncio
     async def test_call_llm_success(self):
-        from unittest.mock import AsyncMock, patch
-
         agent = PeriodInsightAgent()
         agent._analysis_start_date = "2026-02-01"
         agent._analysis_end_date = "2026-02-15"
@@ -212,8 +209,6 @@ class TestCallLLM:
 
     @pytest.mark.asyncio
     async def test_call_llm_failure(self):
-        from unittest.mock import AsyncMock, patch
-
         agent = PeriodInsightAgent()
 
         with patch(
@@ -296,8 +291,6 @@ class TestGenerateExternalSignals:
 
     @pytest.mark.asyncio
     async def test_with_news_signals(self):
-        from unittest.mock import AsyncMock, patch
-
         agent = PeriodInsightAgent()
 
         mock_signal = MagicMock()
@@ -404,8 +397,6 @@ class TestFormatReportMarkdown:
 class TestGenerateReport:
     @pytest.mark.asyncio
     async def test_generate_report_success(self):
-        from unittest.mock import AsyncMock, patch
-
         agent = PeriodInsightAgent()
         analysis = _make_analysis()
 
@@ -434,8 +425,6 @@ class TestGenerateReport:
 
     @pytest.mark.asyncio
     async def test_generate_report_with_external_signals(self):
-        from unittest.mock import AsyncMock, patch
-
         agent = PeriodInsightAgent()
         analysis = _make_analysis()
 
@@ -490,3 +479,234 @@ class TestPeriodReportFullToDict:
         for attr in sections:
             assert d[attr] is not None
             assert "content" in d[attr]
+
+
+# =========================================================================
+# Additional section generation tests
+# =========================================================================
+
+
+class TestGenerateExecutiveSummary:
+    """Test _generate_executive_summary method"""
+
+    @pytest.mark.asyncio
+    async def test_generate_executive_summary(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Executive summary content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            result = await agent._generate_executive_summary(analysis)
+
+        assert result.section_id == "1"
+        assert result.section_title == "Executive Summary"
+        assert "Executive summary content" in result.content
+        assert len(result.key_points) > 0
+
+
+class TestGenerateLaneigeAnalysis:
+    """Test _generate_laneige_analysis method"""
+
+    @pytest.mark.asyncio
+    async def test_generate_laneige_analysis(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "LANEIGE analysis content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            result = await agent._generate_laneige_analysis(analysis)
+
+        assert result.section_id == "2"
+        assert result.section_title == "LANEIGE 심층 분석"
+        assert len(result.data_highlights["top_products"]) > 0
+
+
+class TestGenerateCompetitiveAnalysis:
+    """Test _generate_competitive_analysis method"""
+
+    @pytest.mark.asyncio
+    async def test_generate_competitive_analysis(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Competitive analysis content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            result = await agent._generate_competitive_analysis(analysis)
+
+        assert result.section_id == "3"
+        assert result.section_title == "경쟁 환경 분석"
+
+
+class TestGenerateMarketTrends:
+    """Test _generate_market_trends method"""
+
+    @pytest.mark.asyncio
+    async def test_generate_market_trends(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Market trends content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            result = await agent._generate_market_trends(analysis)
+
+        assert result.section_id == "4"
+        assert result.section_title == "시장 동향"
+
+
+class TestGenerateRisksOpportunities:
+    """Test _generate_risks_opportunities method"""
+
+    @pytest.mark.asyncio
+    async def test_generate_risks_opportunities(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Risks and opportunities content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            result = await agent._generate_risks_opportunities(analysis)
+
+        assert result.section_id == "6"
+        assert result.section_title == "리스크 및 기회 요인"
+
+
+class TestGenerateStrategicRecommendations:
+    """Test _generate_strategic_recommendations method"""
+
+    @pytest.mark.asyncio
+    async def test_generate_strategic_recommendations(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Strategic recommendations content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            result = await agent._generate_strategic_recommendations(analysis)
+
+        assert result.section_id == "7"
+        assert result.section_title == "전략 제언"
+
+
+class TestVerifyReport:
+    """Test _verify_report method"""
+
+    @pytest.mark.asyncio
+    async def test_verify_report_success(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+        report = PeriodReport(
+            start_date="2026-02-01",
+            end_date="2026-02-15",
+            generated_at=datetime.now().isoformat(),
+            executive_summary=SectionInsight(
+                section_id="1", section_title="Summary", content="Content"
+            ),
+        )
+
+        # Mock InsightVerifier (imported dynamically in the method)
+        mock_verifier = MagicMock()
+        mock_verify_result = MagicMock()
+        mock_verify_result.to_dict.return_value = {"verified": True}
+        mock_verify_result.has_critical_issues = False
+        mock_verifier.verify_report = AsyncMock(return_value=mock_verify_result)
+
+        with patch(
+            "src.tools.intelligence.insight_verifier.InsightVerifier", return_value=mock_verifier
+        ):
+            result = await agent._verify_report(report, analysis)
+
+        assert result.has_critical_issues is False
+
+    @pytest.mark.asyncio
+    async def test_verify_report_failure(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+        report = PeriodReport(
+            start_date="2026-02-01",
+            end_date="2026-02-15",
+            generated_at=datetime.now().isoformat(),
+        )
+
+        with patch(
+            "src.tools.intelligence.insight_verifier.InsightVerifier",
+            side_effect=Exception("Verification failed"),
+        ):
+            result = await agent._verify_report(report, analysis)
+
+        # Should return fallback verification result
+        assert result.total_checks == 0
+        assert result.confidence_score == 0.0
+
+
+class TestGenerateReportWithVerification:
+    """Test generate_report with verification enabled/disabled"""
+
+    @pytest.mark.asyncio
+    async def test_generate_report_verification_disabled(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Content"
+
+        with patch(
+            "src.agents.period_insight_agent.acompletion", new_callable=AsyncMock
+        ) as mock_llm:
+            mock_llm.return_value = mock_response
+            report = await agent.generate_report(analysis, verify_report=False)
+
+        assert "verification" not in report.metadata
+
+
+class TestGenerateReportErrorHandling:
+    """Test error handling in generate_report"""
+
+    @pytest.mark.asyncio
+    async def test_generate_report_section_error(self):
+        agent = PeriodInsightAgent()
+        analysis = _make_analysis()
+
+        with patch.object(
+            agent, "_generate_executive_summary", new_callable=AsyncMock
+        ) as mock_exec:
+            mock_exec.side_effect = Exception("Section generation failed")
+
+            with pytest.raises(Exception) as exc_info:
+                await agent.generate_report(analysis, verify_report=False)
+
+            assert "Section generation failed" in str(exc_info.value)
