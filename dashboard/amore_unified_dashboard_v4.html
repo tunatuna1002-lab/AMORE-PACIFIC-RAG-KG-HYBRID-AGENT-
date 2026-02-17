@@ -5683,6 +5683,8 @@
 
                 if (!response.ok) {
                     console.warn('Dashboard data not found');
+                    hideLoading();
+                    showToast('대시보드 데이터를 찾을 수 없습니다.', 'error');
                     return false;
                 }
 
@@ -12986,7 +12988,19 @@
 
         window.onload = async function() {
             startClock(); // 실시간 시계 시작
+
+            // 안전장치: 10초 후에도 로딩 오버레이가 남아있으면 강제 해제
+            const loadingSafety = setTimeout(() => {
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay && overlay.classList.contains('show')) {
+                    console.warn('Loading safety timeout: force hiding overlay');
+                    hideLoading();
+                }
+            }, 10000);
+
             await loadDashboardData();
+            clearTimeout(loadingSafety);
+
             updateDataTime(); // 데이터 시간 업데이트
             switchPage('home');
             loadAlertSettings(); // 알림 설정 로드
