@@ -22,7 +22,7 @@
 | src/ 코드 라인 | ~70,700 lines |
 | tests/ 파일 | 111개 |
 | tests/ 코드 라인 | ~22,400 lines |
-| dashboard_api.py | ~3,900 lines |
+| src/api/dashboard_api.py | ~3,900 lines |
 | 커버리지 목표 | 60% (pytest-cov) |
 
 ---
@@ -53,7 +53,7 @@
 | 파일 | 역할 | 실행 방법 |
 |------|------|-----------|
 | `src/api/dashboard_api.py` | **FastAPI 메인 서버** (3,900 lines monolith) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
-| `start.py` | Railway 배포용 시작 스크립트 | `python start.py` (PORT 환경변수 사용) |
+| `scripts/start.py` | Railway 배포용 시작 스크립트 | `python scripts/start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
 | `src/core/orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from src.core.orchestrator import Orchestrator` |
 
@@ -77,10 +77,27 @@
 ├── main.py                       # CLI 진입점
 │
 ├── src/
+│   ├── api/                      # API (FastAPI)
+│   │   ├── dashboard_api.py      # FastAPI 메인 서버 (루트에서 이동)
+│   │   ├── app_factory.py        # 앱 초기화
+│   │   ├── routes/               # 라우트 모듈
+│   │   │   ├── chat.py, crawl.py, data.py
+│   │   │   ├── health.py, brain.py, export.py
+│   │   │   ├── alerts.py, analytics.py
+│   │   │   ├── competitors.py, deals.py
+│   │   │   ├── market_intelligence.py
+│   │   │   ├── signals.py, sync.py
+│   │   │   └── __init__.py
+│   │   ├── validators/
+│   │   │   └── input_validator.py
+│   │   ├── dependencies.py
+│   │   └── models.py
+│   │
 │   ├── core/                     # 핵심 오케스트레이션
 │   │   ├── brain.py              # UnifiedBrain - 자율 스케줄러
 │   │   ├── react_agent.py        # ReAct Self-Reflection Agent
 │   │   ├── batch_workflow.py     # 배치 워크플로우 (=Orchestrator)
+│   │   ├── orchestrator.py       # BatchWorkflow 하위 호환 래퍼 (루트에서 이동)
 │   │   ├── query_router.py       # 쿼리 라우팅
 │   │   ├── query_processor.py    # 쿼리 처리
 │   │   ├── response_pipeline.py  # 응답 파이프라인
@@ -98,7 +115,6 @@
 │   │   ├── alert_agent.py            # 알림 에이전트
 │   │   ├── metrics_agent.py          # 메트릭 에이전트
 │   │   ├── storage_agent.py          # 저장 에이전트
-│   │   ├── suggestion_generator.py   # 후속 질문 생성 (deprecated)
 │   │   ├── suggestion_engine.py      # 후속 질문 생성 엔진
 │   │   ├── source_provider.py        # 출처 추출 및 포매팅
 │   │   ├── external_signal_manager.py # 외부 신호 수집 관리
@@ -229,20 +245,6 @@
 │   │       ├── json_repository.py
 │   │       └── sheets_repository.py
 │   │
-│   ├── api/                      # API 라우트 (FastAPI Router)
-│   │   ├── routes/
-│   │   │   ├── chat.py, crawl.py, data.py
-│   │   │   ├── health.py, brain.py, export.py
-│   │   │   ├── alerts.py, analytics.py
-│   │   │   ├── competitors.py, deals.py
-│   │   │   ├── market_intelligence.py
-│   │   │   ├── signals.py, sync.py
-│   │   │   └── __init__.py
-│   │   ├── validators/
-│   │   │   └── input_validator.py
-│   │   ├── dependencies.py
-│   │   └── models.py
-│   │
 │   ├── memory/                   # 대화 메모리
 │   │   ├── conversation_memory.py
 │   │   ├── session.py
@@ -310,6 +312,8 @@
 │   └── golden/
 │
 ├── scripts/                      # 운영 스크립트
+│   ├── start.py                  # Railway 배포용 시작 (루트에서 이동)
+│   ├── start_dashboard.command   # macOS 원클릭 시작 (루트에서 이동)
 │   ├── sync_from_railway.py
 │   ├── sync_sheets_to_sqlite.py
 │   ├── sync_to_railway.py
@@ -333,20 +337,24 @@
 │   └── ...
 │
 ├── docs/                         # 문서
+│   ├── analysis/                 # 의존성 분석, 정리 계획
+│   ├── architecture/             # 아키텍처 설계
 │   ├── guides/                   # 가이드
-│   ├── architecture/
+│   ├── reports/                  # 분석 리포트
+│   ├── research/                 # 리서치 자료
+│   ├── security/                 # 보안 감사
 │   ├── diagrams/
 │   ├── plans/
-│   └── refactoring/
+│   ├── refactoring/
+│   └── dev/                      # 개발 노트
 │
 ├── logs/                         # 로그 (gitignored)
-├── static/fonts/                 # 웹 폰트
+├── static/fonts/                 # 웹 폰트 + AMOREPACIFIC CI 폰트
 │
 ├── pyproject.toml                # 프로젝트 설정 (pytest, ruff, coverage)
 ├── requirements.txt              # Python 의존성
 ├── Dockerfile                    # Docker 빌드 (python:3.11-slim + Playwright)
 ├── railway.toml                  # Railway 배포 설정
-├── pytest.ini                    # pytest 설정
 ├── .pre-commit-config.yaml       # Pre-commit 훅
 └── .env.example                  # 환경변수 템플릿
 ```
@@ -482,6 +490,8 @@ class MyWorkflow:
 
 | 모듈 | 경로 | 역할 |
 |------|------|------|
+| DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 |
+| Orchestrator | `src/core/orchestrator.py` | BatchWorkflow 하위 호환 래퍼 |
 | UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
 | ReActAgent | `src/core/react_agent.py` | Self-Reflection (복잡한 질문) |
 | BatchWorkflow | `src/core/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
