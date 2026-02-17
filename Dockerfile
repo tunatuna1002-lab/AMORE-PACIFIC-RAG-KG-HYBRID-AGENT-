@@ -28,6 +28,7 @@ EXPOSE 8001
 
 # 환경 변수 설정
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # 서버 실행 (start.py 스크립트 사용)
 CMD ["python", "scripts/start.py"]
