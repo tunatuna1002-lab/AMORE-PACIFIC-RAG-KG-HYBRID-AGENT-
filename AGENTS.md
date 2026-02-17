@@ -12,8 +12,8 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 
 ```
 ./
-├── dashboard_api.py      # FastAPI entry + static UI mount
-├── orchestrator.py       # Compat shim → src/core/batch_workflow
+├── src/api/dashboard_api.py  # FastAPI entry + static UI mount
+├── src/core/orchestrator.py  # Compat shim → src/core/batch_workflow
 ├── main.py               # CLI entry for batch + interactive chat
 ├── src/
 │   ├── core/             # Brain, ReAct, scheduler, orchestration
@@ -99,7 +99,7 @@ infrastructure → adapters    ❌
 
 ```bash
 # Dev server
-uvicorn dashboard_api:app --host 0.0.0.0 --port 8001 --reload
+uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload
 
 # Tests (60% min coverage)
 python -m pytest tests/ -v

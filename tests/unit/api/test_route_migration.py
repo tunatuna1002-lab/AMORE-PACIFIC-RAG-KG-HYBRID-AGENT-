@@ -24,7 +24,7 @@ def _get_router_paths(module_path: str) -> list[str]:
 
 def _get_app_paths() -> list[str]:
     """dashboard_api.py의 app에 등록된 모든 경로를 추출."""
-    from dashboard_api import app
+    from src.api.dashboard_api import app
 
     return [route.path for route in app.routes if hasattr(route, "path")]
 
@@ -184,7 +184,7 @@ class TestDashboardApiSlimmed:
         """dashboard_api.py가 200줄 이하인지."""
         from pathlib import Path
 
-        api_file = Path("dashboard_api.py")
+        api_file = Path("src/api/dashboard_api.py")
         line_count = len(api_file.read_text().splitlines())
         assert line_count <= 200, f"dashboard_api.py is {line_count} lines (target: <=200)"
 
@@ -192,7 +192,7 @@ class TestDashboardApiSlimmed:
         """dashboard_api.py에 @app.get/@app.post 인라인 엔드포인트가 없는지."""
         from pathlib import Path
 
-        content = Path("dashboard_api.py").read_text()
+        content = Path("src/api/dashboard_api.py").read_text()
         inline_endpoints = [
             line
             for line in content.splitlines()
@@ -237,13 +237,13 @@ class TestAppBootstrap:
         """dashboard_api.app이 import 가능하고 FastAPI 인스턴스인지."""
         from fastapi import FastAPI
 
-        from dashboard_api import app
+        from src.api.dashboard_api import app
 
         assert isinstance(app, FastAPI)
 
     def test_app_has_routes(self):
         """app에 최소 20개 라우트가 등록되어 있는지."""
-        from dashboard_api import app
+        from src.api.dashboard_api import app
 
         route_paths = [r.path for r in app.routes if hasattr(r, "path")]
         assert len(route_paths) >= 20, f"Only {len(route_paths)} routes found"

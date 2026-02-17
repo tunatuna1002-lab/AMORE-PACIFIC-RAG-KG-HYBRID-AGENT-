@@ -6,7 +6,7 @@ Orchestrator (Backward Compatibility)
 
 Usage:
     # 기존 방식 (여전히 작동)
-    from orchestrator import Orchestrator, run_full_workflow
+    from src.core.orchestrator import Orchestrator, run_full_workflow
 
     # 새로운 방식 (권장)
     from src.application.workflows.batch_workflow import BatchWorkflow, run_full_workflow

@@ -24,7 +24,7 @@ API_KEY=your-api-key
 AUTO_START_SCHEDULER=true
 
 # 실행
-uvicorn dashboard_api:app --host 0.0.0.0 --port 8001
+uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
 ```
 
 **접속:** http://localhost:8001/dashboard

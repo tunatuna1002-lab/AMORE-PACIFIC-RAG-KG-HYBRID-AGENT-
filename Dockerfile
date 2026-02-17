@@ -30,4 +30,4 @@ EXPOSE 8001
 ENV PYTHONUNBUFFERED=1
 
 # 서버 실행 (start.py 스크립트 사용)
-CMD ["python", "start.py"]
+CMD ["python", "scripts/start.py"]

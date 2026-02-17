@@ -365,7 +365,7 @@ def test_orchestrator_integration(results: TestResult):
     print("\n📋 테스트 9: Orchestrator Integration")
 
     try:
-        from orchestrator import Orchestrator, WorkflowStep
+        from src.core.orchestrator import Orchestrator, WorkflowStep
 
         # Orchestrator 인스턴스 생성 (hybrid 모드)
         orchestrator = Orchestrator(use_hybrid=True)

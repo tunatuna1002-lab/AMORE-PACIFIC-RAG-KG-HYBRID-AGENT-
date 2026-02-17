@@ -52,10 +52,10 @@
 
 | 파일 | 역할 | 실행 방법 |
 |------|------|-----------|
-| `dashboard_api.py` | **FastAPI 메인 서버** (3,900 lines monolith) | `uvicorn dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
+| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (3,900 lines monolith) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
 | `start.py` | Railway 배포용 시작 스크립트 | `python start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
-| `orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from orchestrator import Orchestrator` |
+| `src/core/orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from src.core.orchestrator import Orchestrator` |
 
 ### 주요 API 엔드포인트
 
@@ -74,10 +74,7 @@
 
 ```
 .
-├── dashboard_api.py              # FastAPI 메인 서버 (monolith)
 ├── main.py                       # CLI 진입점
-├── start.py                      # Railway 배포 시작점
-├── orchestrator.py               # BatchWorkflow 하위 호환 래퍼
 │
 ├── src/
 │   ├── core/                     # 핵심 오케스트레이션
@@ -385,7 +382,7 @@ Beauty & Personal Care (L0)
 
 ```bash
 # 서버 실행
-uvicorn dashboard_api:app --host 0.0.0.0 --port 8001 --reload
+uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload
 
 # 테스트 (python3 사용)
 python3 -m pytest tests/ -v                    # 전체 (커버리지 포함)

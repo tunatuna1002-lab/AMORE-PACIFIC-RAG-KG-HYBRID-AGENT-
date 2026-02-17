@@ -16,7 +16,7 @@ if __name__ == "__main__":
     print(f"Starting server on port {port}...")
 
     uvicorn.run(
-        "dashboard_api:app",
+        "src.api.dashboard_api:app",
         host="0.0.0.0",
         port=port,
         # Railway에서는 reload 비활성화 (프로덕션 환경)

@@ -130,7 +130,9 @@ class DocxReportGenerator:
         """프로젝트 루트 디렉토리 찾기"""
         current = Path(__file__).resolve()
         for parent in current.parents:
-            if (parent / "CLAUDE.md").exists() or (parent / "dashboard_api.py").exists():
+            if (parent / "CLAUDE.md").exists() or (
+                parent / "src" / "api" / "dashboard_api.py"
+            ).exists():
                 return parent
         return Path.cwd()
 
@@ -786,7 +788,9 @@ class PptxReportGenerator:
         """프로젝트 루트 디렉토리 찾기"""
         current = Path(__file__).resolve()
         for parent in current.parents:
-            if (parent / "CLAUDE.md").exists() or (parent / "dashboard_api.py").exists():
+            if (parent / "CLAUDE.md").exists() or (
+                parent / "src" / "api" / "dashboard_api.py"
+            ).exists():
                 return parent
         return Path.cwd()
 
