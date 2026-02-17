@@ -194,7 +194,7 @@ python scripts/test_report_generator.py
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite, Google Sheets, Pandas |
 | **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (현재 43%, 목표 60%) |
+| **테스트** | pytest, pytest-cov (현재 69.76%, 목표 60% 달성) |
 
 ---
 
@@ -285,10 +285,38 @@ python scripts/test_report_generator.py
 
 | 항목 | 수치 |
 |------|------|
-| 총 테스트 수 | 1,905개 |
-| 통과율 | 100% (1,905 passed, 0 failed) |
-| 커버리지 | 43.09% (목표 60%) |
+| 총 테스트 수 | **4,125개** |
+| 통과율 | 100% (4,125 passed, 0 failed) |
+| 커버리지 | **69.76%** (목표 60% 달성) |
 | 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
+
+### 레이어별 커버리지
+
+| 레이어 | 커버리지 | 주요 모듈 |
+|--------|----------|----------|
+| **domain/** | 70-100% | entities, value objects, interfaces |
+| **core/** | 42-100% | cache 95%, rules_engine 95%, explainability 95% |
+| **rag/** | 56-98% | retrieval_strategy 90%, reranker 86%, relevance_grader 98% |
+| **ontology/** | 42-100% | category/sentiment 100%, kg_query 98% |
+| **tools/** | 10-99% | metric_calculator 98%, period_analyzer 97%, job_queue 99% |
+| **memory/** | 97-99% | conversation_memory, session, context |
+| **monitoring/** | 86-98% | logger, metrics, tracer |
+
+### 남은 Low Coverage 모듈 (< 30%)
+
+| 모듈 | 커버리지 | 사유 |
+|------|----------|------|
+| `telegram_bot.py` | 12.8% | 실제 Telegram API 의존 |
+| `amazon_product_scraper.py` | 12.5% | Playwright 브라우저 자동화 |
+| `chart_generator.py` | 7.9% | matplotlib 렌더링 |
+| `sheets_writer.py` | 9.6% | Google Sheets API 의존 |
+| `bootstrap.py` | 0% | 앱 시작 와이어링 |
+| `exchange_rate.py` | 13.5% | 외부 환율 API |
+| `deals_scraper.py` | 27.3% | Playwright 크롤링 |
+| `instagram_collector.py` | 22.9% | Instaloader 의존 |
+| `youtube_collector.py` | 21.8% | yt-dlp 의존 |
+
+> 이 모듈들은 외부 I/O(네트워크, 브라우저, API)에 강하게 의존하여 단위 테스트 한계가 있습니다. 통합 테스트로 보완 예정.
 
 ### 테스트 환경 분리
 
@@ -322,8 +350,8 @@ ENV_FILE=.env.test python -m pytest tests/
 | Python 파일 수 | 155개 | 200개 | +29% (모듈 분할) |
 | dashboard_api.py | 5,634줄 monolith | 3,236줄 + 12 route modules | **-43%** |
 | 순환 의존성 | 23 cycles | 0 cycles | **완전 제거** |
-| 테스트 수 | 238개 | 1,905개 | **+700%** |
-| 테스트 커버리지 | 10.11% | 43.09% | **+33%p** |
+| 테스트 수 | 238개 | 4,125개 | **+1,633%** |
+| 테스트 커버리지 | 10.11% | 69.76% | **+59.65%p** |
 | DI Container | 11 get_ 메서드 | 18 get_ 메서드 | +7 컴포넌트 |
 
 ### 9.2 Phase별 주요 변경
@@ -351,20 +379,19 @@ GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로
 - 커버리지: `--cov=src --cov-report=term-missing` (branch coverage 활성화)
 - `fail_under = 0` (임시 — 안정화 후 점진적 상향 예정)
 
-### 9.4 커버리지 로드맵 (진행 중)
+### 9.4 커버리지 달성 (완료)
 
-현재 43% → 목표 60% 달성을 위한 6-Phase 계획 수립 완료.
+10.11% → **69.76%** (목표 60% 초과 달성).
 
-| Phase | 대상 | 예상 커버리지 |
-|-------|------|--------------|
-| 1 | Low-hanging fruit (50-70% 파일 보강) | 45.2% |
-| 2 | Core 비즈니스 로직 (brain, workflow, state) | 48.2% |
-| 3 | 0% 커버리지 고영향 파일 | 49.9% |
-| 4 | Core Agents (brain, chatbot, OWL) | 51.8% |
-| 5 | Infrastructure & Tools (storage, scraper) | 54.1% |
-| 6 | API 통합 테스트 | **59.8%** |
-
-> 상세 분석: `.omc/autopilot/coverage-plan.md` 참조
+| Wave | 대상 | 테스트 수 | 결과 |
+|------|------|----------|------|
+| 1 | Quick Wins (cache, rules, explainability 등) | 202 | 6개 신규 파일 |
+| 2 | RAG Layer (retrieval_strategy, reranker 등) | 171 | 2개 신규 + 2개 확장 |
+| 3 | Ontology + Intelligence (owl_reasoner, metric 등) | 224 | 1개 재작성 + 3개 확장 + 1개 신규 |
+| 4 | Complex Modules (brain, insight_verifier 등) | 166 | 2개 신규 + 1개 확장 |
+| 5 | Utilities (job_queue, brand_resolver 등) | 261 | 4개 신규 |
+| 6 | Services + Exporters (alert_service, dependencies 등) | 215 | 4개 신규 |
+| **합계** | | **~3,900+** | **26개 파일** |
 
 ---
 
