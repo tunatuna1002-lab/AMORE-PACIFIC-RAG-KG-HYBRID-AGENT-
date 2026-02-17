@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Google credentials
 config/google_credentials.json
@@ -70,6 +71,7 @@ Thumbs.db
 .coverage.*
 htmlcov/
 coverage_html/
+coverage_html_react/
 coverage.xml
 
 # OMC plugin data (자동 생성 임시 데이터)
