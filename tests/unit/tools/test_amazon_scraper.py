@@ -602,9 +602,10 @@ class TestAmazonScraper:
         mock_page.goto = AsyncMock()
         mock_page.content = AsyncMock(return_value="Enter the characters you see below")
 
-        result = await scraper.scrape_category(
-            "lip_care", "https://www.amazon.com/bestsellers/beauty/lip-care"
-        )
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await scraper.scrape_category(
+                "lip_care", "https://www.amazon.com/bestsellers/beauty/lip-care"
+            )
 
         assert result["success"] is False
         assert result["error"] == "BLOCKED"
