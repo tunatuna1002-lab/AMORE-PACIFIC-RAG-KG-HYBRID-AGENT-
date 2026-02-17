@@ -1209,7 +1209,7 @@ class UnifiedBrain:
             if action == "crawl_workflow":
                 # BatchWorkflow 호출
                 if not self._workflow_agent:
-                    from .batch_workflow import BatchWorkflow
+                    from src.application.workflows.batch_workflow import BatchWorkflow
 
                     self._workflow_agent = BatchWorkflow()
 

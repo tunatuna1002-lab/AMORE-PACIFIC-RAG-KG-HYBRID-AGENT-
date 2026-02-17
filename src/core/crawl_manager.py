@@ -12,6 +12,7 @@ Crawl Manager
 import asyncio
 import json
 import logging
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -22,6 +23,13 @@ from typing import Any
 from src.shared.constants import KST
 
 logger = logging.getLogger(__name__)
+
+
+def _get_data_dir() -> str:
+    """Railway Volume 또는 로컬 데이터 디렉토리 반환"""
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        return "/data"
+    return "./data"
 
 
 # 한국 시간대 (UTC+9)
@@ -68,8 +76,8 @@ class CrawlState:
 class CrawlManager:
     """일일 크롤링 관리자"""
 
-    STATE_FILE = "./data/crawl_state.json"
-    DATA_FILE = "./data/dashboard_data.json"
+    STATE_FILE = f"{_get_data_dir()}/crawl_state.json"
+    DATA_FILE = f"{_get_data_dir()}/dashboard_data.json"
 
     def __init__(self):
         self.state = CrawlState()
@@ -100,7 +108,6 @@ class CrawlManager:
     def _save_state(self):
         """상태를 파일에 원자적으로 저장 (crash-safe)"""
         try:
-            import os
             import tempfile
 
             Path(self.STATE_FILE).parent.mkdir(parents=True, exist_ok=True)
@@ -323,7 +330,7 @@ class CrawlManager:
 
             # 크롤링 원본 데이터를 JSON으로 저장 (Excel export용)
             try:
-                crawl_json_path = Path("./data/latest_crawl_result.json")
+                crawl_json_path = Path(f"{_get_data_dir()}/latest_crawl_result.json")
 
                 # JSON 직렬화 가능한 형태로 변환 (datetime, Decimal 등 처리)
                 def json_serializer(obj):
@@ -338,7 +345,7 @@ class CrawlManager:
                 logger.info(f"Crawl result saved to {crawl_json_path}")
 
                 # 날짜별 히스토리 데이터 저장 (raw_products 폴더)
-                raw_products_dir = Path("./data/raw_products")
+                raw_products_dir = Path(f"{_get_data_dir()}/raw_products")
                 raw_products_dir.mkdir(parents=True, exist_ok=True)
 
                 snapshot_date = result.get("snapshot_date", datetime.now(KST).strftime("%Y-%m-%d"))
