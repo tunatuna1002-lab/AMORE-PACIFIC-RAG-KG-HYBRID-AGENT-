@@ -37,5 +37,5 @@ RUN mkdir -p /data && groupadd -r appuser && useradd -r -g appuser -d /app -s /s
     && chmod +x scripts/docker-entrypoint.sh
 
 # Entrypoint fixes Railway volume permissions then drops to appuser
-ENTRYPOINT ["scripts/docker-entrypoint.sh"]
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["python", "scripts/start.py"]
