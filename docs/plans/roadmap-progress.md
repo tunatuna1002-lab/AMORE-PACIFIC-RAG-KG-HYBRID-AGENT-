@@ -49,10 +49,14 @@
 
 ## Sprint 3: Dashboard API 분해 (3~5일)
 
-- [ ] 사전 확인: `src/api/routes/` 12개 라우터 include_router 등록 현황
-- [ ] dashboard_api.py 인라인 엔드포인트 → 라우트 모듈로 이동
-- [ ] dashboard_api.py ~200줄로 축소 (시작 + 글로벌 예외 처리만)
-- [ ] 라우트 모듈 12개 app_factory.py에서 등록 완성
+- [x] 사전 확인: `src/api/routes/` 13개 라우터 include_router 등록 현황
+  - [x] alerts, analytics, brain, chat, competitors, crawl, data, deals, export, health, market_intelligence, signals, sync
+- [x] dashboard_api.py 인라인 엔드포인트 → 라우트 모듈로 이동
+  - [x] 이전 작업에서 이미 완료됨 (13개 라우트 모듈 분리)
+- [x] dashboard_api.py ~200줄로 축소 (시작 + 글로벌 예외 처리만)
+  - [x] 현재 183줄 (app 생성 + exception handler + startup event + __main__)
+- [x] 라우트 모듈 app_factory.py에서 등록 완성
+  - [x] 13개 라우터 + Telegram optional 등록 완료
 
 ---
 
@@ -174,7 +178,7 @@
 | Sprint 0 | 완료 | 3/3 |
 | Sprint 1 | **완료** | 3/3 |
 | Sprint 2 | **완료** | 9/9 |
-| Sprint 3 | 대기 | 0/4 |
+| Sprint 3 | **완료** | 4/4 |
 | Sprint 4 | 대기 | 0/8 |
 | Sprint 5 | 대기 | 0/8 |
 | Sprint 6 | 대기 | 0/10 |
