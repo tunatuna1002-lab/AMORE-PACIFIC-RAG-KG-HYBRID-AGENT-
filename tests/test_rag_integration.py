@@ -26,6 +26,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 class TestResult:
     """테스트 결과 추적"""
 
+    __test__ = False  # Prevent pytest collection
+
     def __init__(self):
         self.passed = 0
         self.failed = 0

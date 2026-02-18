@@ -26,6 +26,9 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Maximum document size for indexing (10MB)
+MAX_DOCUMENT_SIZE = 10 * 1024 * 1024  # 10MB
+
 
 @dataclass
 class Chunk:
@@ -382,6 +385,15 @@ class SemanticChunker:
         if not text or not text.strip():
             return []
 
+        # Document size validation
+        text_bytes = len(text.encode("utf-8"))
+        if text_bytes > MAX_DOCUMENT_SIZE:
+            logger.warning(
+                f"Document '{doc_id}' exceeds {MAX_DOCUMENT_SIZE} bytes limit "
+                f"({text_bytes} bytes), skipping"
+            )
+            return []
+
         # OpenAI 클라이언트 초기화 시도
         if not self._initialize():
             # 폴백: 단순 청킹
@@ -442,6 +454,15 @@ class SemanticChunker:
             기존 retriever 포맷의 청크 리스트
         """
         doc_id = doc_info.get("filename", "doc").replace(".md", "").replace(" ", "_")
+
+        # Document size validation
+        content_bytes = len(content.encode("utf-8"))
+        if content_bytes > MAX_DOCUMENT_SIZE:
+            logger.warning(
+                f"Document '{doc_id}' exceeds {MAX_DOCUMENT_SIZE} bytes limit "
+                f"({content_bytes} bytes), skipping"
+            )
+            return []
 
         chunks = self.chunk(
             text=content,

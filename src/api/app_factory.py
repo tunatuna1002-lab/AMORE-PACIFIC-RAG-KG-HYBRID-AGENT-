@@ -8,7 +8,9 @@ dashboard_api.py의 앱 초기화 코드를 추출한 모듈입니다.
 
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,18 +24,27 @@ from src.api.middleware import SecurityHeadersMiddleware
 logger = logging.getLogger(__name__)
 
 
-def create_app() -> FastAPI:
+def create_app(
+    lifespan: Callable[..., Any] | None = None,
+) -> FastAPI:
     """
     FastAPI 앱 생성 및 설정
+
+    Args:
+        lifespan: Optional lifespan async context manager for startup/shutdown.
 
     Returns:
         설정 완료된 FastAPI 인스턴스
     """
-    app = FastAPI(
-        title="AMORE Dashboard API",
-        description="LANEIGE Amazon 대시보드 백엔드 API (RAG + Ontology 통합)",
-        version="2.0.0",
-    )
+    kwargs: dict[str, Any] = {
+        "title": "AMORE Dashboard API",
+        "description": "LANEIGE Amazon 대시보드 백엔드 API (RAG + Ontology 통합)",
+        "version": "2.0.0",
+    }
+    if lifespan is not None:
+        kwargs["lifespan"] = lifespan
+
+    app = FastAPI(**kwargs)
 
     # Rate Limiter
     app.state.limiter = limiter

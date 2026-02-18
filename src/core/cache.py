@@ -205,18 +205,18 @@ class ResponseCache:
         """
         질문을 캐시 키로 변환
 
-        소문자 변환 및 공백 정규화 후 MD5 해시
+        소문자 변환 및 공백 정규화 후 SHA-256 해시
 
         Args:
             query: 사용자 질문
 
         Returns:
-            MD5 해시 문자열
+            SHA-256 해시 문자열
         """
         normalized = query.lower().strip()
         # 연속 공백을 단일 공백으로
         normalized = " ".join(normalized.split())
-        return hashlib.md5(normalized.encode()).hexdigest()
+        return hashlib.sha256(normalized.encode()).hexdigest()
 
     @staticmethod
     def make_key(*parts: str) -> str:
@@ -230,7 +230,7 @@ class ResponseCache:
             조합된 캐시 키
         """
         combined = ":".join(str(p) for p in parts)
-        return hashlib.md5(combined.encode()).hexdigest()
+        return hashlib.sha256(combined.encode()).hexdigest()
 
     def _evict_oldest(self) -> None:
         """가장 오래된 캐시 항목 제거 (LRU 방식)"""

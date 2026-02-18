@@ -278,7 +278,7 @@ class TestResponseCacheMakeKey:
         """단일 파트"""
         key = ResponseCache.make_key("only_one")
         assert isinstance(key, str)
-        assert len(key) == 32  # MD5 hex length
+        assert len(key) == 64  # SHA-256 hex length
 
 
 # =============================================================================

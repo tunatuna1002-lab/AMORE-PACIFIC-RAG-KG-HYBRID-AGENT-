@@ -560,3 +560,40 @@ class TestGetSemanticChunker:
         a = get_semantic_chunker()
         b = get_semantic_chunker()
         assert a is b
+
+
+# =========================================================================
+# MAX_DOCUMENT_SIZE validation
+# =========================================================================
+
+
+class TestDocumentSizeLimit:
+    def test_chunk_rejects_oversized_document(self, chunker):
+        """Documents exceeding MAX_DOCUMENT_SIZE should return empty list."""
+
+        with patch("src.rag.chunker.MAX_DOCUMENT_SIZE", 100):
+            # Create text larger than 100 bytes
+            oversized_text = "A" * 200
+            result = chunker.chunk(oversized_text, doc_id="oversized")
+            assert result == []
+
+    def test_chunk_accepts_normal_document(self, chunker):
+        """Documents within size limit should be processed normally."""
+        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}, clear=False):
+            chunker._initialized = False
+            small_text = "Normal sized document."
+            result = chunker.chunk(small_text, doc_id="normal")
+            assert len(result) >= 1
+
+    def test_chunk_document_rejects_oversized(self, chunker):
+        """chunk_document should also reject oversized documents."""
+        with patch("src.rag.chunker.MAX_DOCUMENT_SIZE", 50):
+            doc_info = {"filename": "big.md", "doc_type": "metric_guide"}
+            result = chunker.chunk_document("X" * 100, doc_info)
+            assert result == []
+
+    def test_max_document_size_constant(self):
+        """MAX_DOCUMENT_SIZE should be 10MB."""
+        from src.rag.chunker import MAX_DOCUMENT_SIZE
+
+        assert MAX_DOCUMENT_SIZE == 10 * 1024 * 1024

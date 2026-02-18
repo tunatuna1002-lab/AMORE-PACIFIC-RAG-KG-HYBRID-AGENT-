@@ -147,7 +147,7 @@ from src.domain.entities.product import Product  # ❌
 
 ```python
 # Embedding 캐시 (src/rag/retriever.py)
-embedding_cache = {}  # MD5 해시 → 벡터 캐싱
+embedding_cache = {}  # SHA-256 해시 → 벡터 캐싱
 ```
 
 ### 토큰 절약 팁

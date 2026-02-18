@@ -49,6 +49,9 @@ class RouteResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+MAX_QUERY_LENGTH = 5000
+
+
 class QueryRouter:
     """
     쿼리 분류 및 라우팅
@@ -126,6 +129,19 @@ class QueryRouter:
     def route(self, query: str) -> RouteResult:
         """쿼리 라우팅"""
         self._stats["total_routes"] += 1
+
+        # ReDoS 방어: 과도하게 긴 쿼리는 regex 전에 차단
+        if len(query) > MAX_QUERY_LENGTH:
+            logger.warning(
+                "Query exceeds MAX_QUERY_LENGTH (%d > %d), returning GENERAL",
+                len(query),
+                MAX_QUERY_LENGTH,
+            )
+            return RouteResult(
+                original_query=query[:MAX_QUERY_LENGTH],
+                category=QueryCategory.GENERAL,
+            )
+
         category = self.classify(query)
         compound = self.is_compound(query)
 

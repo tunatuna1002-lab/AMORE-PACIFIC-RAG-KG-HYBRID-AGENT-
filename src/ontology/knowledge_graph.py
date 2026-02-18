@@ -188,6 +188,11 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
         # 트리플 중요도 점수 (eviction 정책용)
         self._importance_scores: dict[int, float] = {}  # relation id -> score
 
+        # 동시 쓰기 보호 (threading.Lock - save()가 동기 메서드이므로)
+        import threading
+
+        self._write_lock = threading.Lock()
+
         # 통계
         self._stats = {
             "total_triples": 0,
@@ -454,11 +459,12 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
                 "saved_at": datetime.now().isoformat(),
             }
 
-            # Atomic write: write to temp file then rename to avoid corruption
-            tmp_path = save_path.with_suffix(".tmp")
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            tmp_path.replace(save_path)
+            # Atomic write with lock: serialize file access across threads
+            with self._write_lock:
+                tmp_path = save_path.with_suffix(".tmp")
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                tmp_path.replace(save_path)
 
             self._dirty = False
             logger.info(f"KnowledgeGraph saved to {save_path}: {len(self.triples)} triples")

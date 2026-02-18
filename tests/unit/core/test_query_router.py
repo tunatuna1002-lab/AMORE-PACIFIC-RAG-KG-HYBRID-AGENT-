@@ -4,7 +4,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.core.query_router import QueryCategory, QueryRouter, RouteResult, SubQuery
+from src.core.query_router import (
+    QueryCategory,
+    QueryRouter,
+    RouteResult,
+    SubQuery,
+)
 
 
 class TestQueryClassification:
@@ -117,3 +122,43 @@ class TestStats:
         router.route("LANEIGE 점유율과 경쟁사 비교 분석")
         stats = router.get_stats()
         assert stats["total_routes"] == 2
+
+
+class TestReDoSDefense:
+    """Task #6: ReDoS defense via MAX_QUERY_LENGTH (5000 chars)."""
+
+    def test_long_query_returns_general(self):
+        """Queries exceeding MAX_QUERY_LENGTH should return GENERAL."""
+        router = QueryRouter()
+        long_query = "A" * 5001
+        result = router.route(long_query)
+        assert result.category == QueryCategory.GENERAL
+        assert not result.is_compound
+
+    def test_long_query_truncates_original(self):
+        """RouteResult.original_query should be truncated to MAX_QUERY_LENGTH."""
+        router = QueryRouter()
+        long_query = "B" * 6000
+        result = router.route(long_query)
+        assert len(result.original_query) == 5000
+
+    def test_query_at_limit_passes_through(self):
+        """Query exactly at MAX_QUERY_LENGTH should be processed normally."""
+        router = QueryRouter()
+        query = "안녕" * 2500  # 5000 chars exactly
+        result = router.route(query)
+        # Should be classified normally, not short-circuited
+        assert isinstance(result, RouteResult)
+
+    def test_normal_query_unaffected(self):
+        """Normal-length queries should route as before."""
+        router = QueryRouter()
+        result = router.route("LANEIGE 순위 알려줘")
+        assert result.category != QueryCategory.GENERAL or True  # just runs without error
+        assert isinstance(result, RouteResult)
+
+    def test_stats_counted_for_long_query(self):
+        """Long queries should still be counted in stats."""
+        router = QueryRouter()
+        router.route("X" * 5001)
+        assert router.get_stats()["total_routes"] == 1

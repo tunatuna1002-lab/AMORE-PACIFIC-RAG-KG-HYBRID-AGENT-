@@ -812,3 +812,50 @@ class TestKnowledgeGraphDuplicateProperties:
         assert existing.properties["rank"] == 3  # Updated
         assert existing.properties["category"] == "lip_care"  # Preserved
         assert existing.properties["price"] == 25.99  # Added
+
+
+class TestKnowledgeGraphConcurrentWrite:
+    """Test that concurrent writes don't corrupt the KG file."""
+
+    def test_concurrent_saves_produce_valid_json(self):
+        """Multiple threads saving simultaneously should not corrupt the file."""
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = f"{tmpdir}/kg.json"
+            kg = KnowledgeGraph(persist_path=persist_path, auto_save=False, auto_load=False)
+
+            # Add some data so save() has something to write
+            for i in range(20):
+                kg.add_relation(Relation(f"BRAND_{i}", RelationType.HAS_PRODUCT, f"PROD_{i}"))
+            kg._dirty = True
+
+            errors: list[Exception] = []
+            barrier = threading.Barrier(8)
+
+            def _save_worker():
+                try:
+                    barrier.wait()
+                    kg.save(force=True)
+                except Exception as exc:
+                    errors.append(exc)
+
+            threads = [threading.Thread(target=_save_worker) for _ in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            assert not errors, f"Concurrent save errors: {errors}"
+
+            # Verify the file is valid JSON
+            with open(persist_path, encoding="utf-8") as f:
+                data = json.load(f)
+
+            assert data["version"] == "2.0"
+            assert len(data["triples"]) == 20
+
+    def test_write_lock_exists(self):
+        """KnowledgeGraph instances should have a _write_lock attribute."""
+        kg = KnowledgeGraph(auto_load=False, auto_save=False)
+        assert hasattr(kg, "_write_lock")

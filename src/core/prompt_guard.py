@@ -125,6 +125,12 @@ class PromptGuard:
         r"(?i)password",
         r"(?i)secret",
         r"(?i)credential",
+        # === 클라우드/서비스 자격증명 ===
+        r"AKIA[0-9A-Z]{16}",  # AWS Access Key ID
+        r"(?i)aws.{0,20}['\"][0-9a-zA-Z/+]{40}['\"]",  # AWS Secret Key
+        r"gh[pousr]_[A-Za-z0-9_]{36,255}",  # GitHub PAT
+        r"xox[bporas]-[0-9a-zA-Z-]{10,}",  # Slack Token
+        r"-----BEGIN\s+(RSA\s+|EC\s+|DSA\s+|OPENSSH\s+)?PRIVATE\s+KEY-----",
     ]
 
     @classmethod
@@ -135,6 +141,11 @@ class PromptGuard:
         Returns:
             (is_safe, block_reason, sanitized_text)
         """
+        # 0. NFKC 유니코드 정규화 (유니코드 우회 공격 방어)
+        import unicodedata
+
+        text = unicodedata.normalize("NFKC", text)
+
         # 1. 명백한 인젝션 패턴 검사
         for pattern in cls.INJECTION_PATTERNS:
             if re.search(pattern, text):

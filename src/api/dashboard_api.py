@@ -55,9 +55,11 @@ Dashboard API Server
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # App Factory (미들웨어, 라우터, 정적 파일 등록 포함)
@@ -71,49 +73,22 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# App 생성 (app_factory에서 미들웨어, 라우터, 정적 파일 등록 완료)
-app = create_app()
 
-
-# 글로벌 예외 핸들러 - 에러 발생 시 Telegram 알림
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """모든 예외를 잡아서 Telegram 알림 전송"""
-
-    error_detail = f"{type(exc).__name__}: {str(exc)[:200]}"
-    endpoint = f"{request.method} {request.url.path}"
-
-    # 로깅
-    logger.error(f"Unhandled exception at {endpoint}: {error_detail}")
-
-    # Telegram 알림 (비동기, 실패해도 무시)
-    try:
-        from src.tools.notifications.telegram_bot import notify_error
-
-        asyncio.create_task(notify_error(exc, context=f"API: {endpoint}"))
-    except Exception:
-        pass  # Telegram 알림 실패는 무시
-
-    # 클라이언트에게는 일반 에러 응답
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Internal server error", "detail": error_detail},
-    )
-
-
-# ============= 서버 시작 시 자동 스케줄러 =============
+# ============= Lifespan (startup/shutdown) =============
 
 # Railway 배포 시 healthcheck 타임아웃 방지: 기본값 false
 # 로컬 개발 시 AUTO_START_SCHEDULER=true 로 설정하면 스케줄러 자동 시작
 AUTO_START_SCHEDULER = os.getenv("AUTO_START_SCHEDULER", "false").lower() == "true"
 
 
-@app.on_event("startup")
-async def startup_event():
-    """서버 시작 시 설정 검증, 자동 스케줄러 시작 및 즉시 크롤링 체크
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """서버 시작/종료 시 설정 검증, 자동 스케줄러 시작 및 즉시 크롤링 체크
 
     ⚠️ 중요: 크롤링은 백그라운드에서 실행하여 healthcheck 타임아웃 방지
     """
+    # === STARTUP ===
+
     # 0. 설정 검증 (필수 설정 누락 시 경고, 서버는 계속 시작)
     try:
         from src.infrastructure.config.config_manager import AppConfig
@@ -130,13 +105,15 @@ async def startup_event():
         crawl_manager = await get_crawl_manager()
         if crawl_manager.needs_crawl():
             logging.info(
-                f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음 → 크롤링 백그라운드 시작"
+                f"서버 시작: 오늘({crawl_manager.get_kst_today()}) 데이터 없음"
+                " → 크롤링 백그라운드 시작"
             )
             # ⚠️ await 대신 create_task로 백그라운드 실행 (healthcheck 블로킹 방지)
             asyncio.create_task(crawl_manager.start_crawl())
         else:
             logging.info(
-                f"서버 시작: 오늘 데이터 있음 또는 크롤링 중 (data_date={crawl_manager.get_data_date()})"
+                f"서버 시작: 오늘 데이터 있음 또는 크롤링 중"
+                f" (data_date={crawl_manager.get_data_date()})"
             )
     except Exception as e:
         logging.error(f"서버 시작 크롤링 체크 실패: {e}")
@@ -173,6 +150,41 @@ async def startup_event():
             logging.info("Telegram Admin Bot 활성화됨")
     except Exception as e:
         logging.debug(f"Telegram Bot 알림 실패 (무시): {e}")
+
+    yield
+
+    # === SHUTDOWN ===
+    # (현재는 별도 종료 로직 없음)
+
+
+# App 생성 (app_factory에서 미들웨어, 라우터, 정적 파일 등록 완료)
+app = create_app(lifespan=lifespan)
+
+
+# 글로벌 예외 핸들러 - 에러 발생 시 Telegram 알림
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """모든 예외를 잡아서 Telegram 알림 전송"""
+
+    error_detail = f"{type(exc).__name__}: {str(exc)[:200]}"
+    endpoint = f"{request.method} {request.url.path}"
+
+    # 로깅
+    logger.error(f"Unhandled exception at {endpoint}: {error_detail}")
+
+    # Telegram 알림 (비동기, 실패해도 무시)
+    try:
+        from src.tools.notifications.telegram_bot import notify_error
+
+        asyncio.create_task(notify_error(exc, context=f"API: {endpoint}"))
+    except Exception:
+        pass  # Telegram 알림 실패는 무시
+
+    # 클라이언트에게는 일반 에러 응답
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "detail": error_detail},
+    )
 
 
 # ============= 서버 실행 =============

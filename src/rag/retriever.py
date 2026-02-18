@@ -753,7 +753,7 @@ class DocumentRetriever:
 
     def _get_text_hash(self, text: str) -> str:
         """텍스트 해시 생성"""
-        return hashlib.md5(text.encode()).hexdigest()
+        return hashlib.sha256(text.encode()).hexdigest()
 
     async def _embed_texts(self, texts: list[str]) -> list[list[float]]:
         """OpenAI Embeddings API로 텍스트 임베딩 생성 (캐시 적용)"""

@@ -8,7 +8,7 @@ Hybrid retrieval combining vector search (ChromaDB), knowledge graph facts, and 
 
 | Module | File | Role |
 |--------|------|------|
-| DocumentRetriever | `retriever.py` | ChromaDB vector search + MD5 embedding cache |
+| DocumentRetriever | `retriever.py` | ChromaDB vector search + SHA-256 embedding cache |
 | HybridRetriever | `hybrid_retriever.py` | RAG + KG facts + rule inference + OWL strategy |
 | RetrievalStrategy | `retrieval_strategy.py` | OWL + intent-based strategy pattern |
 | EntityLinker | `entity_linker.py` | Text → KG entity mapping (unified extractor) |
@@ -49,7 +49,7 @@ HybridRetriever.retrieve():
 - Client: `PersistentClient` at `CHROMA_PERSIST_DIR` (default: `./data/chroma`)
 - Collection: `amore_docs`
 - Distance: `hnsw:space=cosine`
-- Embeddings: `text-embedding-3-small` with MD5 cache (max 1000 FIFO)
+- Embeddings: `text-embedding-3-small` with SHA-256 cache (max 1000 FIFO)
 
 ## ANTI-PATTERNS
 

@@ -89,18 +89,18 @@
 
 ## Sprint 6: 보안 P2 + 기술 부채 (3~5일)
 
-- [ ] 6-1. 보안 P2
-  - [ ] PromptGuard 유니코드 우회 수정 (NFKC 정규화)
-  - [ ] 출력 필터 패턴 보강 (AWS Key, GitHub PAT 등)
-  - [ ] Embedding Cache MD5 → SHA-256
-  - [ ] RAG 문서 인덱싱 크기 제한 (10MB)
-  - [ ] 소셜 수집기 프록시 자격증명 마스킹
-  - [ ] Query Router ReDoS 방어 (5,000자 제한)
-- [ ] 6-2. 기술 부채
-  - [ ] `@app.on_event("startup")` → lifespan 전환
-  - [ ] `knowledge_graph.json` 동시 쓰기 보호
-  - [ ] `TestResult` 클래스 이름 충돌 해결
-  - [ ] Config 정리 (competitors.json dead config 등)
+- [x] 6-1. 보안 P2
+  - [x] PromptGuard 유니코드 우회 수정 (NFKC 정규화)
+  - [x] 출력 필터 패턴 보강 (AWS Key, GitHub PAT, Slack, Private Key)
+  - [x] Embedding Cache MD5 → SHA-256
+  - [x] RAG 문서 인덱싱 크기 제한 (10MB)
+  - [x] 소셜 수집기 프록시 자격증명 마스킹 (mask_proxy_url)
+  - [x] Query Router ReDoS 방어 (MAX_QUERY_LENGTH=5000)
+- [x] 6-2. 기술 부채
+  - [x] `@app.on_event("startup")` → lifespan context manager 전환
+  - [x] `knowledge_graph.json` 동시 쓰기 보호 (asyncio.Lock)
+  - [x] `TestResult` 클래스 이름 충돌 해결 (`__test__ = False`)
+  - [x] Config 정리 (분석 완료: 모든 config 활발히 사용 중, public_apis.json만 미사용)
 
 ---
 
@@ -181,7 +181,7 @@
 | Sprint 3 | **완료** | 4/4 |
 | Sprint 4 | **완료** | 8/8 |
 | Sprint 5 | **완료** | 8/8 |
-| Sprint 6 | 대기 | 0/10 |
+| Sprint 6 | **완료** | 10/10 |
 | Sprint 7 | 대기 | 0/9 |
 | Sprint 8 | 대기 | 0/9 |
 | Sprint 9 | 대기 | 0/9 |

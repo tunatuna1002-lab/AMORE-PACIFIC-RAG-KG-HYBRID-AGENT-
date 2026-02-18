@@ -30,7 +30,7 @@ def pytest_configure(config):
 def results():
     """테스트 결과 객체 (인라인 정의, 외부 의존 제거)"""
 
-    class TestResult:
+    class _TestResult:
         def __init__(self):
             self.passed = 0
             self.failed = 0
@@ -49,7 +49,7 @@ def results():
             total = self.passed + self.failed
             return f"\n{'=' * 60}\n총 {total}개 테스트: ✅ {self.passed} 성공, ❌ {self.failed} 실패\n{'=' * 60}"
 
-    return TestResult()
+    return _TestResult()
 
 
 @pytest_asyncio.fixture

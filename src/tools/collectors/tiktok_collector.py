@@ -30,7 +30,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse, urlunparse
 
 from src.shared.constants import KST
 
@@ -49,6 +49,17 @@ except Exception:
     AIOHTTP_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+
+def mask_proxy_url(url: str) -> str:
+    """Mask credentials in proxy URL for safe logging."""
+    parsed = urlparse(url)
+    if parsed.username:
+        host = parsed.hostname or ""
+        port_suffix = f":{parsed.port}" if parsed.port else ""
+        masked = parsed._replace(netloc=f"***:***@{host}{port_suffix}")
+        return urlunparse(masked)
+    return url
 
 
 # 한국 시간대
@@ -165,6 +176,7 @@ class TikTokCollector:
 
             if self.proxy:
                 launch_options["proxy"] = {"server": self.proxy}
+                logger.info(f"Using proxy: {mask_proxy_url(self.proxy)}")
 
             self._browser = await playwright.chromium.launch(**launch_options)
             self._page = await self._browser.new_page()
