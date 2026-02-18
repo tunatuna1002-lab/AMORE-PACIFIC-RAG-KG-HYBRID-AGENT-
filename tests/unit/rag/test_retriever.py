@@ -764,3 +764,449 @@ class TestEmbedTexts:
         assert result == [[0.5, 0.6]]
         mock_client.embeddings.create.assert_called_once()
         r._embedding_cache.put.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# _build_bm25_index
+# ---------------------------------------------------------------------------
+
+
+class TestBuildBM25Index:
+    """BM25 인덱스 빌드 테스트"""
+
+    def _make_retriever_with_chunks(self, chunks=None):
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        if chunks is not None:
+            r.chunks = chunks
+            r._chunk_index = {c["id"]: c for c in chunks}
+        return r
+
+    def test_build_index_with_chunks(self):
+        """청크가 있으면 인덱스 빌드 성공"""
+        chunks = [
+            {
+                "id": "c1",
+                "doc_id": "d1",
+                "title": "LANEIGE",
+                "content": "LANEIGE Lip Sleeping Mask is great",
+                "keywords": ["laneige"],
+                "description": "test",
+            },
+            {
+                "id": "c2",
+                "doc_id": "d1",
+                "title": "COSRX",
+                "content": "COSRX Snail Mucin is popular",
+                "keywords": ["cosrx"],
+                "description": "test",
+            },
+        ]
+        r = self._make_retriever_with_chunks(chunks)
+        r._build_bm25_index()
+        if BM25_AVAILABLE:
+            assert r._bm25_index is not None
+            assert len(r._bm25_corpus_ids) == 2
+
+    def test_build_index_empty_chunks(self):
+        """빈 청크 리스트"""
+        r = self._make_retriever_with_chunks([])
+        r._build_bm25_index()
+        assert r._bm25_index is None
+
+    def test_build_index_no_bm25(self):
+        """BM25 라이브러리 없을 때"""
+        r = self._make_retriever_with_chunks(
+            [
+                {
+                    "id": "c1",
+                    "doc_id": "d1",
+                    "title": "",
+                    "content": "text",
+                    "keywords": [],
+                    "description": "",
+                },
+            ]
+        )
+        with patch("src.rag.retriever.BM25_AVAILABLE", False):
+            r._build_bm25_index()
+        # 패치 이후에도 원래 인덱스가 None이어야 함
+        # (BM25_AVAILABLE이 False면 아무 것도 안 함)
+
+
+# ---------------------------------------------------------------------------
+# search_bm25 (public API)
+# ---------------------------------------------------------------------------
+
+
+try:
+    import rank_bm25  # noqa: F401
+
+    BM25_AVAILABLE = True
+except ImportError:
+    BM25_AVAILABLE = False
+
+
+def _bm25_test_chunks():
+    """BM25 테스트용 청크 (5개 이상 필요 - 소규모 코퍼스에서 IDF 음수 방지)"""
+    return [
+        {
+            "id": "c1",
+            "doc_id": "d1",
+            "doc_type": "metric_guide",
+            "title": "LANEIGE Lip",
+            "content_type": "text",
+            "content": "LANEIGE Lip Sleeping Mask Berry flavor product",
+            "keywords": ["laneige", "lip"],
+            "description": "lip care",
+            "source_filename": "t.md",
+            "target_brand": "laneige",
+            "brands_covered": [],
+        },
+        {
+            "id": "c2",
+            "doc_id": "d1",
+            "doc_type": "metric_guide",
+            "title": "COSRX",
+            "content_type": "text",
+            "content": "COSRX Snail 96 Mucin Power Essence review skincare",
+            "keywords": ["cosrx", "snail"],
+            "description": "skincare",
+            "source_filename": "t.md",
+            "target_brand": None,
+            "brands_covered": [],
+        },
+        {
+            "id": "c3",
+            "doc_id": "d2",
+            "doc_type": "playbook",
+            "title": "LANEIGE Water",
+            "content_type": "text",
+            "content": "LANEIGE Water Sleeping Mask overnight treatment care",
+            "keywords": ["laneige", "water"],
+            "description": "sleeping mask",
+            "source_filename": "t.md",
+            "target_brand": "laneige",
+            "brands_covered": [],
+        },
+        {
+            "id": "c4",
+            "doc_id": "d3",
+            "doc_type": "playbook",
+            "title": "Tirtir",
+            "content_type": "text",
+            "content": "TIRTIR Mask Fit Red Cushion foundation makeup product",
+            "keywords": ["tirtir"],
+            "description": "makeup",
+            "source_filename": "t.md",
+            "target_brand": None,
+            "brands_covered": [],
+        },
+        {
+            "id": "c5",
+            "doc_id": "d3",
+            "doc_type": "intelligence",
+            "title": "Anua",
+            "content_type": "text",
+            "content": "ANUA Heartleaf Pore Control Cleansing Oil gentle toner",
+            "keywords": ["anua"],
+            "description": "cleansing",
+            "source_filename": "t.md",
+            "target_brand": None,
+            "brands_covered": [],
+        },
+    ]
+
+
+class TestSearchBM25:
+    """BM25 검색 public API 테스트"""
+
+    def _make_retriever_with_chunks(self):
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        r.chunks = _bm25_test_chunks()
+        r._chunk_index = {c["id"]: c for c in r.chunks}
+        return r
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_returns_results(self):
+        """BM25 검색이 결과 반환"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_bm25("LANEIGE mask", top_k=2)
+        assert len(results) > 0
+        assert results[0]["source"] == "bm25"
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_score_normalized(self):
+        """BM25 점수가 0-1 범위로 정규화"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_bm25("LANEIGE mask", top_k=5)
+        for res in results:
+            assert 0.0 < res["score"] <= 1.0
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_top_k_limit(self):
+        """top_k 제한 준수"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_bm25("LANEIGE", top_k=1)
+        assert len(results) <= 1
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_relevance_order(self):
+        """관련도 높은 문서가 먼저"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_bm25("LANEIGE Lip Sleeping", top_k=3)
+        if len(results) >= 2:
+            assert results[0]["score"] >= results[1]["score"]
+
+    def test_search_bm25_unavailable(self):
+        """BM25 라이브러리 없을 때 빈 결과"""
+        r = self._make_retriever_with_chunks()
+        with patch("src.rag.retriever.BM25_AVAILABLE", False):
+            results = r.search_bm25("LANEIGE mask")
+        assert results == []
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_empty_query_tokens(self):
+        """토큰화 결과가 빈 쿼리"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_bm25("!@#$%")
+        assert results == []
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_has_metadata(self):
+        """결과에 metadata 포함"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_bm25("LANEIGE", top_k=1)
+        if results:
+            assert "metadata" in results[0]
+            assert "id" in results[0]["metadata"]
+
+
+# ---------------------------------------------------------------------------
+# reciprocal_rank_fusion (static method)
+# ---------------------------------------------------------------------------
+
+
+class TestReciprocalRankFusionStatic:
+    """정적 RRF 메서드 테스트"""
+
+    def test_basic_fusion(self):
+        """기본 RRF 병합"""
+        list1 = [
+            {"content": "doc A", "score": 0.9},
+            {"content": "doc B", "score": 0.7},
+        ]
+        list2 = [
+            {"content": "doc B", "score": 0.8},
+            {"content": "doc C", "score": 0.6},
+        ]
+        results = DocumentRetriever.reciprocal_rank_fusion(list1, list2, k=60, top_k=3)
+        assert len(results) > 0
+        # doc B appears in both lists so should rank highest
+        contents = [r["content"] for r in results]
+        assert "doc B" in contents
+        # doc B should be first (appears in both)
+        assert results[0]["content"] == "doc B"
+
+    def test_rrf_score_present(self):
+        """결과에 rrf_score 필드 포함"""
+        list1 = [{"content": "doc A", "score": 0.9}]
+        results = DocumentRetriever.reciprocal_rank_fusion(list1, k=60, top_k=3)
+        assert len(results) == 1
+        assert "rrf_score" in results[0]
+        assert results[0]["source"] == "hybrid_rrf"
+
+    def test_rrf_empty_lists(self):
+        """빈 리스트들"""
+        results = DocumentRetriever.reciprocal_rank_fusion([], [], k=60, top_k=3)
+        assert results == []
+
+    def test_rrf_single_list(self):
+        """단일 리스트"""
+        list1 = [
+            {"content": "doc A", "score": 0.9},
+            {"content": "doc B", "score": 0.7},
+        ]
+        results = DocumentRetriever.reciprocal_rank_fusion(list1, k=60, top_k=5)
+        assert len(results) == 2
+
+    def test_rrf_k_parameter_affects_scores(self):
+        """k 파라미터가 점수에 영향"""
+        list1 = [{"content": "doc A", "score": 0.9}]
+        list2 = [{"content": "doc A", "score": 0.8}]
+
+        res_k10 = DocumentRetriever.reciprocal_rank_fusion(list1, list2, k=10, top_k=1)
+        res_k100 = DocumentRetriever.reciprocal_rank_fusion(list1, list2, k=100, top_k=1)
+        # k가 작을수록 RRF 점수가 높음
+        assert res_k10[0]["rrf_score"] > res_k100[0]["rrf_score"]
+
+    def test_rrf_top_k_limits_output(self):
+        """top_k가 출력 제한"""
+        lists = [{"content": f"doc {i}", "score": 0.5} for i in range(20)]
+        results = DocumentRetriever.reciprocal_rank_fusion(lists, k=60, top_k=5)
+        assert len(results) <= 5
+
+    def test_rrf_deduplication(self):
+        """동일 content 중복 제거"""
+        list1 = [{"content": "same doc", "score": 0.9}]
+        list2 = [{"content": "same doc", "score": 0.8}]
+        results = DocumentRetriever.reciprocal_rank_fusion(list1, list2, k=60, top_k=5)
+        assert len(results) == 1
+        # Score should be sum of two RRF contributions
+        expected_score = 1.0 / (60 + 1) + 1.0 / (60 + 1)
+        assert abs(results[0]["rrf_score"] - expected_score) < 1e-9
+
+    def test_rrf_three_lists(self):
+        """3개 리스트 병합"""
+        l1 = [{"content": "A", "score": 0.9}]
+        l2 = [{"content": "B", "score": 0.8}]
+        l3 = [{"content": "A", "score": 0.7}, {"content": "C", "score": 0.5}]
+        results = DocumentRetriever.reciprocal_rank_fusion(l1, l2, l3, k=60, top_k=5)
+        contents = [r["content"] for r in results]
+        assert "A" in contents
+        assert "B" in contents
+        assert "C" in contents
+        # A appears in 2 lists, should rank higher
+        assert results[0]["content"] == "A"
+
+
+# ---------------------------------------------------------------------------
+# search_hybrid (sync)
+# ---------------------------------------------------------------------------
+
+
+class TestSearchHybrid:
+    """search_hybrid 동기 메서드 테스트"""
+
+    def _make_retriever_with_chunks(self):
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        r.chunks = _bm25_test_chunks()
+        r._chunk_index = {c["id"]: c for c in r.chunks}
+        return r
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_hybrid_returns_results(self):
+        """하이브리드 검색이 결과 반환"""
+        r = self._make_retriever_with_chunks()
+        results = r.search_hybrid("LANEIGE", top_k=2)
+        assert len(results) > 0
+
+    def test_search_hybrid_no_chunks(self):
+        """청크 없으면 빈 결과"""
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        results = r.search_hybrid("LANEIGE", top_k=5)
+        assert results == []
+
+
+# ---------------------------------------------------------------------------
+# search_hybrid_async
+# ---------------------------------------------------------------------------
+
+
+class TestSearchHybridAsync:
+    """search_hybrid_async 비동기 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_method_exists(self):
+        """메서드 존재 확인"""
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        assert hasattr(r, "search_hybrid_async")
+
+    @pytest.mark.asyncio
+    async def test_both_empty(self):
+        """dense와 sparse 모두 빈 결과"""
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        r._initialized = False
+        r.collection = None
+        results = await r.search_hybrid_async("query", top_k=5)
+        assert results == []
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    async def test_sparse_only_fallback(self):
+        """dense 실패 시 sparse만 반환"""
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        r._initialized = False
+        r.collection = None
+        r.chunks = _bm25_test_chunks()
+        r._chunk_index = {c["id"]: c for c in r.chunks}
+        results = await r.search_hybrid_async("LANEIGE Lip", top_k=5)
+        assert len(results) > 0
+
+    @pytest.mark.asyncio
+    async def test_dense_only_fallback(self):
+        """sparse 결과 없을 때 dense만 반환"""
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        r._initialized = True
+        r.collection = MagicMock()
+        mock_dense = [{"id": "d1", "content": "dense result", "metadata": {}, "score": 0.8}]
+        r._vector_search = AsyncMock(return_value=mock_dense)
+        # No chunks -> no BM25 results
+        r.chunks = []
+        r._chunk_index = {}
+        results = await r.search_hybrid_async("query", top_k=5)
+        assert len(results) == 1
+        assert results[0]["content"] == "dense result"
+
+
+# ---------------------------------------------------------------------------
+# _bm25_search (internal async)
+# ---------------------------------------------------------------------------
+
+
+class TestBM25SearchInternal:
+    """_bm25_search 내부 async 메서드 테스트"""
+
+    def _make_retriever_with_chunks(self):
+        r = DocumentRetriever(docs_path="/tmp/fake")
+        r.chunks = _bm25_test_chunks()
+        r._chunk_index = {c["id"]: c for c in r.chunks}
+        return r
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    async def test_bm25_search_returns_results(self):
+        """BM25 내부 검색 결과"""
+        r = self._make_retriever_with_chunks()
+        results = await r._bm25_search("LANEIGE Lip Sleeping", top_k=5)
+        assert len(results) > 0
+        assert "id" in results[0]
+        assert "content" in results[0]
+        assert "metadata" in results[0]
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    async def test_bm25_search_doc_filter(self):
+        """doc_filter 적용"""
+        r = self._make_retriever_with_chunks()
+        results = await r._bm25_search("LANEIGE Lip", top_k=5, doc_filter="d1")
+        for res in results:
+            assert res["metadata"]["doc_id"] == "d1"
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    async def test_bm25_search_type_filter(self):
+        """doc_type_filter 적용"""
+        r = self._make_retriever_with_chunks()
+        results = await r._bm25_search(
+            "LANEIGE Water treatment",
+            top_k=5,
+            doc_type_filter=["playbook"],
+        )
+        for res in results:
+            assert res["metadata"]["doc_type"] == "playbook"
+
+    @pytest.mark.asyncio
+    async def test_bm25_search_unavailable(self):
+        """BM25 없을 때 빈 결과"""
+        r = self._make_retriever_with_chunks()
+        with patch("src.rag.retriever.BM25_AVAILABLE", False):
+            results = await r._bm25_search("query")
+        assert results == []
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    async def test_bm25_search_empty_tokenized_query(self):
+        """토큰화 결과 빈 쿼리"""
+        r = self._make_retriever_with_chunks()
+        results = await r._bm25_search("!@#$%^")
+        assert results == []

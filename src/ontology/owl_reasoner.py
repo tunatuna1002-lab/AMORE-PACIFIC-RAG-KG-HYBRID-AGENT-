@@ -76,6 +76,8 @@ logger = logging.getLogger(__name__)
 # owlready2 선택적 import
 try:
     from owlready2 import (
+        AllDisjoint,
+        ConstrainedDatatype,
         DataProperty,
         FunctionalProperty,
         ObjectProperty,
@@ -186,6 +188,16 @@ class OWLReasoner:
             if not self.onto.NicheBrand:
                 type("NicheBrand", (self.onto.Brand,), {"namespace": self.onto})
 
+            # ===== A-3: Disjointness Axiom =====
+            # Brand 서브클래스 간 상호 배타 (동시에 두 포지션에 속할 수 없음)
+            AllDisjoint(
+                [
+                    self.onto.DominantBrand,
+                    self.onto.StrongBrand,
+                    self.onto.NicheBrand,
+                ]
+            )
+
             # ===== Object Properties =====
 
             # hasBrand: Product → Brand
@@ -214,6 +226,11 @@ class OWLReasoner:
                     domain = [self.onto.Product]
                     range = [self.onto.Category]
                     python_name = "belongs_to_category"
+
+            # Cardinality: Product must belong to exactly 1 Category
+            self.onto.Product.is_a.append(
+                self.onto.belongsToCategory.exactly(1, self.onto.Category)
+            )
 
             # competsWith: Brand → Brand (대칭 관계)
             if not self.onto.competsWith:
@@ -288,6 +305,35 @@ class OWLReasoner:
                     domain = [self.onto.Product]
                     range = [float]
                     python_name = "rating_value"
+
+        # ===== A-1: OWL Class Restrictions =====
+        # equivalent_to를 사용한 형식적 OWL 2 정의
+        with self.onto:
+            # DominantBrand ≡ Brand ⊓ ∃shareOfShelf[≥0.30]
+            self.onto.DominantBrand.equivalent_to = [
+                self.onto.Brand
+                & self.onto.shareOfShelf.some(ConstrainedDatatype(float, min_inclusive=0.30))
+            ]
+
+            # StrongBrand ≡ Brand ⊓ ∃shareOfShelf[≥0.15 ∧ <0.30]
+            self.onto.StrongBrand.equivalent_to = [
+                self.onto.Brand
+                & self.onto.shareOfShelf.some(
+                    ConstrainedDatatype(float, min_inclusive=0.15, max_exclusive=0.30)
+                )
+            ]
+
+            # NicheBrand ≡ Brand ⊓ ∃shareOfShelf[<0.15]
+            self.onto.NicheBrand.equivalent_to = [
+                self.onto.Brand
+                & self.onto.shareOfShelf.some(ConstrainedDatatype(float, max_exclusive=0.15))
+            ]
+
+        # ===== A-2: inverseOf 선언 =====
+        # hasBrand ↔ hasProduct 역관계 연결
+        with self.onto:
+            if self.onto.hasProduct and self.onto.hasBrand:
+                self.onto.hasProduct.inverse_property = self.onto.hasBrand
 
         logger.info("OWL ontology structure defined")
 

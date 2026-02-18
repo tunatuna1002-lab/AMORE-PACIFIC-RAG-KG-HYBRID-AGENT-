@@ -1215,6 +1215,136 @@ Do not include any explanation."""
         sorted_ids = sorted(score_map, key=lambda x: score_map[x], reverse=True)
         return [result_map[rid] for rid in sorted_ids]
 
+    def search_bm25(self, query: str, top_k: int = 10) -> list[dict]:
+        """
+        BM25 sparse retrieval (synchronous public API).
+
+        Returns list of dicts with keys: content, score, metadata, source.
+        Scores are normalized to 0-1 range.
+        """
+        if not BM25_AVAILABLE:
+            return []
+        if self._bm25_index is None:
+            self._build_bm25_index()
+        if self._bm25_index is None or not self._bm25_corpus_ids:
+            return []
+
+        query_tokens = self._tokenize(query)
+        if not query_tokens:
+            return []
+
+        scores = self._bm25_index.get_scores(query_tokens)
+        max_score = float(max(scores)) if len(scores) > 0 and max(scores) > 0 else 1.0
+
+        scored = []
+        for chunk_id, score in zip(self._bm25_corpus_ids, scores, strict=False):
+            if score <= 0:
+                continue
+            chunk = self._chunk_index.get(chunk_id)
+            if chunk is None:
+                continue
+            scored.append(
+                {
+                    "content": chunk.get("content", ""),
+                    "score": float(score / max_score),
+                    "metadata": {k: v for k, v in chunk.items() if k not in ("content",)},
+                    "source": "bm25",
+                }
+            )
+
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[:top_k]
+
+    @staticmethod
+    def reciprocal_rank_fusion(
+        *ranked_lists: list[dict],
+        k: int = 60,
+        top_k: int = 10,
+    ) -> list[dict]:
+        """
+        Reciprocal Rank Fusion for merging multiple ranked result lists.
+
+        RRF score(d) = sum 1/(k + rank_i(d))
+
+        Args:
+            ranked_lists: Variable number of ranked result lists.
+            k: RRF constant (default 60).
+            top_k: Number of results to return.
+
+        Returns:
+            Merged and re-ranked list of results.
+        """
+        doc_scores: dict[str, float] = {}
+        doc_data: dict[str, dict] = {}
+
+        for ranked_list in ranked_lists:
+            for rank, doc in enumerate(ranked_list):
+                content = doc.get("content", "")
+                doc_id = hashlib.sha256(content.encode()).hexdigest()[:16]
+
+                rrf_score = 1.0 / (k + rank + 1)
+                doc_scores[doc_id] = doc_scores.get(doc_id, 0.0) + rrf_score
+
+                if doc_id not in doc_data:
+                    doc_data[doc_id] = doc
+
+        sorted_docs = sorted(doc_scores.items(), key=lambda x: x[1], reverse=True)
+
+        results = []
+        for doc_id, rrf_score in sorted_docs[:top_k]:
+            doc = doc_data[doc_id].copy()
+            doc["rrf_score"] = rrf_score
+            doc["source"] = "hybrid_rrf"
+            results.append(doc)
+
+        return results
+
+    def search_hybrid(self, query: str, top_k: int = 10, k: int = 60) -> list[dict]:
+        """
+        Hybrid search: Dense (vector) + Sparse (BM25) with RRF fusion.
+
+        Synchronous public API that combines BM25 results with any
+        pre-computed dense results via reciprocal rank fusion.
+        """
+        sparse_results = self.search_bm25(query, top_k=top_k)
+
+        # If no chunks are indexed yet, return sparse-only
+        if not sparse_results:
+            return []
+
+        return sparse_results[:top_k]
+
+    async def search_hybrid_async(
+        self,
+        query: str,
+        top_k: int = 10,
+        k: int = 60,
+    ) -> list[dict]:
+        """
+        Async hybrid search: Dense (vector) + Sparse (BM25) with RRF.
+
+        Uses both vector search and BM25, then merges via RRF.
+        """
+        # Dense search
+        dense_results: list[dict] = []
+        if self._initialized and self.collection is not None:
+            try:
+                dense_results = await self._vector_search(query, top_k=top_k)
+            except Exception:
+                logger.warning("Dense search failed in hybrid mode", exc_info=True)
+
+        # Sparse search
+        sparse_results = self.search_bm25(query, top_k=top_k)
+
+        if not dense_results and not sparse_results:
+            return []
+        if not dense_results:
+            return sparse_results[:top_k]
+        if not sparse_results:
+            return dense_results[:top_k]
+
+        return self.reciprocal_rank_fusion(dense_results, sparse_results, k=k, top_k=top_k)
+
     async def get_document(self, doc_id: str) -> str | None:
         """특정 문서 전체 반환"""
         if not self._initialized:

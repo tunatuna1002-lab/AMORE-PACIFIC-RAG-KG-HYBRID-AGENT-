@@ -566,6 +566,175 @@ class TestHybridRetriever:
 
 
 # =============================================================================
+# Self-RAG Tests
+# =============================================================================
+
+
+class TestSelfRAG:
+    """Self-RAG 검색 필요성 판단 테스트"""
+
+    def _make_retriever(self):
+        return HybridRetriever(
+            knowledge_graph=MagicMock(),
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+
+    def test_should_retrieve_greeting_false(self):
+        """인사말 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("안녕하세요")
+        assert should is False
+        assert reason == "greeting_or_command"
+
+    def test_should_retrieve_hello_false(self):
+        """영어 인사말 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("hello")
+        assert should is False
+        assert reason == "greeting_or_command"
+
+    def test_should_retrieve_thanks_false(self):
+        """감사 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("고마워요")
+        assert should is False
+        assert reason == "greeting_or_command"
+
+    def test_should_retrieve_help_false(self):
+        """도움말 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("도움말")
+        assert should is False
+        assert reason == "greeting_or_command"
+
+    def test_should_retrieve_brand_query_true(self):
+        """브랜드 질문 → 검색 필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("LANEIGE의 시장 점유율은?")
+        assert should is True
+        assert reason == "domain_query_detected"
+
+    def test_should_retrieve_metric_query_true(self):
+        """지표 질문 → 검색 필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("SoS 지표 분석해줘")
+        assert should is True
+        assert reason == "domain_query_detected"
+
+    def test_should_retrieve_analysis_keyword_true(self):
+        """분석 키워드 → 검색 필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("시장 경쟁 비교")
+        assert should is True
+        assert reason == "domain_query_detected"
+
+    def test_should_retrieve_question_true(self):
+        """질문형 → 검색 필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("왜 순위가 떨어졌어?")
+        assert should is True
+        assert reason == "domain_query_detected"
+
+    def test_should_retrieve_short_query_false(self):
+        """매우 짧은 쿼리 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("ㅎ")
+        assert should is False
+        assert reason == "query_too_short"
+
+    def test_should_retrieve_empty_query_false(self):
+        """빈 쿼리 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("")
+        assert should is False
+        assert reason == "query_too_short"
+
+    def test_should_retrieve_none_query_false(self):
+        """None 쿼리 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve(None)
+        assert should is False
+        assert reason == "query_too_short"
+
+    def test_should_retrieve_cosrx_true(self):
+        """COSRX 브랜드 → 검색 필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("COSRX 최신 데이터")
+        assert should is True
+        assert reason == "domain_query_detected"
+
+    def test_should_retrieve_default_long_query_true(self):
+        """도메인 키워드 없어도 긴 쿼리는 기본 검색"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("이것저것 알려주세요")
+        assert should is True
+        assert reason == "default_retrieve"
+
+    def test_should_retrieve_short_non_domain_false(self):
+        """짧고 도메인 관련 없는 쿼리 → 검색 불필요"""
+        retriever = self._make_retriever()
+        should, reason = retriever.should_retrieve("ㅋㅋㅋ")
+        assert should is False
+        assert reason == "short_non_domain_query"
+
+    @pytest.mark.asyncio
+    async def test_self_rag_gate_skips_retrieval(self):
+        """should_retrieve=False 시 검색 스킵 통합 테스트"""
+        mock_kg = MagicMock()
+        mock_kg.load_category_hierarchy.return_value = 0
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve("안녕하세요", current_metrics={})
+
+        # 검색이 스킵되어야 함
+        assert context.metadata.get("self_rag_skip") is True
+        assert context.metadata.get("skip_reason") == "greeting_or_command"
+        assert context.rag_chunks == []
+        assert context.inferences == []
+        # doc_retriever.search가 호출되지 않아야 함
+        mock_doc_retriever.search.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_self_rag_gate_allows_domain_query(self):
+        """도메인 쿼리는 정상 검색 수행"""
+        mock_kg = MagicMock()
+        mock_kg.get_entity_metadata.return_value = {}
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.query.return_value = []
+        mock_kg.load_category_hierarchy.return_value = 0
+
+        mock_doc_retriever = MagicMock()
+        mock_doc_retriever.initialize = AsyncMock()
+        mock_doc_retriever.search = AsyncMock(return_value=[])
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+        context = await retriever.retrieve("LANEIGE 점유율 분석", current_metrics={})
+
+        # 정상 검색이 수행되어야 함
+        assert context.metadata.get("self_rag_skip") is not True
+        assert "retrieval_time_ms" in context.metadata
+
+
+# =============================================================================
 # Entity Extractor Rank Pattern Tests
 # =============================================================================
 

@@ -72,11 +72,13 @@ class OntologyKnowledgeGraph:
         owl_reasoner: Any | None = None,
         owl_file: str | None = None,
         enable_validation: bool = True,
+        hard_validation: bool = True,
     ):
         self.kg = knowledge_graph
         self.owl = owl_reasoner
         self.owl_file = owl_file
         self.enable_validation = enable_validation
+        self.hard_validation = hard_validation
         self._initialized = False
         self._validation_stats: dict[str, int] = {
             "total": 0,
@@ -167,9 +169,16 @@ class OntologyKnowledgeGraph:
             self._validation_stats["failed"] += 1
             logger.warning(f"Validation failed: ({subject}, {predicate.value}, {obj}) - {reason}")
 
-            # 검증 실패해도 KG에는 추가 (soft validation)
-            self.kg.add_relation(relation)
-            return False, f"Validation warning: {reason}"
+            if self.hard_validation:
+                # HARD: reject triple, do NOT add to KG
+                logger.warning(
+                    f"Hard validation rejected: ({subject}, {predicate.value}, {obj}) - {reason}"
+                )
+                return False, f"Validation rejected: {reason}"
+            else:
+                # SOFT (legacy): add with warning
+                self.kg.add_relation(relation)
+                return False, f"Validation warning: {reason}"
 
     def _validate_triple(self, subject: str, predicate: RelationType, obj: str) -> tuple[bool, str]:
         """
@@ -195,6 +204,15 @@ class OntologyKnowledgeGraph:
                 return (
                     False,
                     f"{subject} (class={subject_class}) cannot have predicate {predicate.value}",
+                )
+
+        # Cardinality check: belongsToCategory has max cardinality 1
+        if predicate == RelationType.BELONGS_TO_CATEGORY:
+            existing = self.kg.query(subject=subject, predicate=predicate)
+            if existing:
+                return (
+                    False,
+                    f"{subject} already has a category assignment (cardinality=1)",
                 )
 
         return True, "Valid"

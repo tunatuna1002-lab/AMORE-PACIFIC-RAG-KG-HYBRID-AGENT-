@@ -268,6 +268,29 @@ class HybridRetriever:
         context = await retriever.retrieve(query, current_metrics)
     """
 
+    # Self-RAG: patterns that indicate retrieval is NOT needed
+    SKIP_PATTERNS = [
+        # Greetings (no \b for Korean; Korean chars are not word-boundary friendly)
+        r"^(안녕|하이|헬로)",
+        r"^(hi|hello|hey)\b",
+        # Thanks
+        r"^(고마워|감사|thanks|thank you)",
+        # System commands
+        r"^(도움말|설정|help|config)",
+    ]
+
+    # Self-RAG: patterns that indicate retrieval IS needed
+    RETRIEVE_PATTERNS = [
+        # Brand names
+        r"(?i)(laneige|cosrx|anua|tirtir|round\s*lab|innisfree|sulwhasoo)",
+        # Metrics
+        r"(?i)(sos|hhi|cpi|share\s*of\s*shelf|순위|rank|점유율)",
+        # Analysis keywords
+        r"(분석|비교|전략|경쟁|트렌드|시장|매출|성장)",
+        # Question words
+        r"(왜|어떻게|뭐|몇|어디|언제|무엇|how|what|why|which)",
+    ]
+
     def __init__(
         self,
         knowledge_graph: KnowledgeGraph | None = None,
@@ -331,6 +354,36 @@ class HybridRetriever:
 
             self._initialized = True
 
+    def should_retrieve(self, query: str) -> tuple[bool, str]:
+        """
+        Self-RAG gate: determine if retrieval is needed.
+
+        Returns:
+            (should_retrieve, reason)
+        """
+        import re
+
+        if not query or len(query.strip()) <= 2:
+            return False, "query_too_short"
+
+        query_stripped = query.strip()
+
+        # Check skip patterns first
+        for pattern in self.SKIP_PATTERNS:
+            if re.search(pattern, query_stripped, re.IGNORECASE):
+                return False, "greeting_or_command"
+
+        # Check retrieve patterns
+        for pattern in self.RETRIEVE_PATTERNS:
+            if re.search(pattern, query_stripped):
+                return True, "domain_query_detected"
+
+        # Default: retrieve (conservative)
+        if len(query_stripped) > 5:
+            return True, "default_retrieve"
+
+        return False, "short_non_domain_query"
+
     async def retrieve(
         self,
         query: str,
@@ -351,6 +404,20 @@ class HybridRetriever:
         # 초기화 확인
         if not self._initialized:
             await self.initialize()
+
+        # Self-RAG gate
+        should, reason = self.should_retrieve(query)
+        if not should:
+            logger.info(f"Self-RAG: skipping retrieval for query (reason: {reason})")
+            return HybridContext(
+                query=query,
+                ontology_facts=[],
+                inferences=[],
+                rag_chunks=[],
+                combined_context=f"[Retrieval skipped: {reason}]",
+                entities={},
+                metadata={"self_rag_skip": True, "skip_reason": reason},
+            )
 
         start_time = datetime.now()
 

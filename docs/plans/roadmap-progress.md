@@ -1,7 +1,7 @@
 # AMORE RAG-KG Hybrid Agent — 로드맵 진행 상태
 
 > 참조: `docs/plans/master-roadmap.md`
-> 업데이트: 2026-02-18
+> 업데이트: 2026-02-19
 
 ---
 
@@ -125,17 +125,17 @@
 
 ## Sprint 8: 학술 기준 Ontology Track A+B (1~2주)
 
-- [ ] 8-1. Track A: OWL 온톨로지 심화
-  - [ ] A-1: OWL Class Restriction
-  - [ ] A-2: inverseOf 선언
-  - [ ] A-3: Disjointness 공리
-  - [ ] A-4: Cardinality 제약
-  - [ ] A-5: Hard Validation
-- [ ] 8-2. Track B: RAG BM25+RRF
-  - [ ] B-1: BM25 Sparse Retrieval (rank_bm25)
-  - [ ] B-2: RRF 병합 구현 (k=60)
-  - [ ] B-3: ConfidenceFusion에 RRF 전략 추가
-  - [ ] B-4: Self-RAG 검색 필요성 판단
+- [x] 8-1. Track A: OWL 온톨로지 심화
+  - [x] A-1: OWL Class Restriction (DominantBrand ≡ Brand ⊓ ∃shareOfShelf[≥0.30])
+  - [x] A-2: inverseOf 선언 (hasBrand ↔ hasProduct)
+  - [x] A-3: Disjointness 공리 (AllDisjoint Brand subclasses)
+  - [x] A-4: Cardinality 제약 (Product → exactly 1 belongsToCategory)
+  - [x] A-5: Hard Validation (T-Box 위반 시 triple 추가 거부, 플래그 제어)
+- [x] 8-2. Track B: RAG BM25+RRF
+  - [x] B-1: BM25 Sparse Retrieval (rank_bm25 BM25Okapi)
+  - [x] B-2: RRF 병합 구현 (k=60, reciprocal_rank_fusion + search_hybrid)
+  - [x] B-3: ConfidenceFusion에 RRF 전략 추가 (fuse_documents_rrf)
+  - [x] B-4: Self-RAG 검색 필요성 판단 (should_retrieve 규칙 기반 게이트)
 
 ---
 
@@ -185,6 +185,6 @@
 | Sprint 5 | **완료** | 8/8 |
 | Sprint 6 | **완료** | 10/10 |
 | Sprint 7 | **완료** | 12/12 |
-| Sprint 8 | 대기 | 0/9 |
+| Sprint 8 | **완료** | 9/9 |
 | Sprint 9 | 대기 | 0/9 |
 | Sprint 10 | 대기 | 0/10 |

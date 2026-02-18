@@ -451,3 +451,203 @@ class TestOWLReasonerGetBrandPosition:
 
             result = r._get_brand_position(mock_brand)
             assert result is None
+
+
+# =========================================================================
+# owlready2 사용 가능 시 OWL 공리 테스트 (A-1, A-2, A-3)
+# =========================================================================
+
+try:
+    import owlready2  # noqa: F401
+
+    _OWL_AVAILABLE = True
+except ImportError:
+    _OWL_AVAILABLE = False
+
+_skip_no_owl = pytest.mark.skipif(not _OWL_AVAILABLE, reason="owlready2 not installed")
+
+
+@pytest.fixture
+def owl_reasoner():
+    """owlready2 사용 가능한 OWLReasoner 인스턴스"""
+    r = OWLReasoner()
+    assert r.onto is not None
+    return r
+
+
+@_skip_no_owl
+class TestOWLClassRestrictions:
+    """A-1: OWL Class Restriction (equivalent_to) 테스트"""
+
+    def test_dominant_brand_has_equivalent_to(self, owl_reasoner):
+        """DominantBrand에 equivalent_to가 정의되어 있음"""
+        eq = owl_reasoner.onto.DominantBrand.equivalent_to
+        assert len(eq) == 1, "DominantBrand should have exactly 1 equivalent_to"
+
+    def test_dominant_brand_restriction_includes_sos_min(self, owl_reasoner):
+        """DominantBrand restriction에 min_inclusive=0.30 포함"""
+        eq_str = str(owl_reasoner.onto.DominantBrand.equivalent_to[0])
+        assert "min_inclusive" in eq_str
+        assert "0.3" in eq_str
+
+    def test_strong_brand_has_equivalent_to(self, owl_reasoner):
+        """StrongBrand에 equivalent_to가 정의되어 있음"""
+        eq = owl_reasoner.onto.StrongBrand.equivalent_to
+        assert len(eq) == 1, "StrongBrand should have exactly 1 equivalent_to"
+
+    def test_strong_brand_restriction_range(self, owl_reasoner):
+        """StrongBrand restriction에 min_inclusive=0.15, max_exclusive=0.30 포함"""
+        eq_str = str(owl_reasoner.onto.StrongBrand.equivalent_to[0])
+        assert "min_inclusive" in eq_str
+        assert "0.15" in eq_str
+        assert "max_exclusive" in eq_str
+        assert "0.3" in eq_str
+
+    def test_niche_brand_has_equivalent_to(self, owl_reasoner):
+        """NicheBrand에 equivalent_to가 정의되어 있음"""
+        eq = owl_reasoner.onto.NicheBrand.equivalent_to
+        assert len(eq) == 1, "NicheBrand should have exactly 1 equivalent_to"
+
+    def test_niche_brand_restriction_max(self, owl_reasoner):
+        """NicheBrand restriction에 max_exclusive=0.15 포함"""
+        eq_str = str(owl_reasoner.onto.NicheBrand.equivalent_to[0])
+        assert "max_exclusive" in eq_str
+        assert "0.15" in eq_str
+
+    def test_dominant_brand_sos_classification(self, owl_reasoner):
+        """SoS >= 0.30 → DominantBrand로 분류"""
+        owl_reasoner.add_brand("TestDom", sos=0.35)
+        positions = owl_reasoner.infer_market_positions()
+        assert positions.get("TestDom") == "DominantBrand"
+
+    def test_strong_brand_sos_classification(self, owl_reasoner):
+        """0.15 <= SoS < 0.30 → StrongBrand로 분류"""
+        owl_reasoner.add_brand("TestStrong", sos=0.20)
+        positions = owl_reasoner.infer_market_positions()
+        assert positions.get("TestStrong") == "StrongBrand"
+
+    def test_niche_brand_sos_classification(self, owl_reasoner):
+        """SoS < 0.15 → NicheBrand로 분류"""
+        owl_reasoner.add_brand("TestNiche", sos=0.05)
+        positions = owl_reasoner.infer_market_positions()
+        assert positions.get("TestNiche") == "NicheBrand"
+
+    def test_boundary_dominant_at_030(self, owl_reasoner):
+        """SoS == 0.30 경계값 → DominantBrand"""
+        owl_reasoner.add_brand("Boundary30", sos=0.30)
+        positions = owl_reasoner.infer_market_positions()
+        assert positions.get("Boundary30") == "DominantBrand"
+
+    def test_boundary_strong_at_015(self, owl_reasoner):
+        """SoS == 0.15 경계값 → StrongBrand"""
+        owl_reasoner.add_brand("Boundary15", sos=0.15)
+        positions = owl_reasoner.infer_market_positions()
+        assert positions.get("Boundary15") == "StrongBrand"
+
+
+@_skip_no_owl
+class TestOWLInverseProperty:
+    """A-2: inverseOf (hasProduct ↔ hasBrand) 테스트"""
+
+    def test_has_product_inverse_is_has_brand(self, owl_reasoner):
+        """hasProduct.inverse_property == hasBrand"""
+        assert owl_reasoner.onto.hasProduct.inverse_property == owl_reasoner.onto.hasBrand
+
+    def test_has_brand_inverse_is_has_product(self, owl_reasoner):
+        """hasBrand.inverse_property == hasProduct"""
+        assert owl_reasoner.onto.hasBrand.inverse_property == owl_reasoner.onto.hasProduct
+
+    def test_inverse_property_bidirectional(self, owl_reasoner):
+        """역관계가 양방향으로 설정됨"""
+        hp = owl_reasoner.onto.hasProduct
+        hb = owl_reasoner.onto.hasBrand
+        assert hp.inverse_property is hb
+        assert hb.inverse_property is hp
+
+
+@_skip_no_owl
+class TestOWLDisjointClasses:
+    """A-3: AllDisjoint (Brand 서브클래스 상호 배타) 테스트"""
+
+    def test_disjoint_classes_exist(self, owl_reasoner):
+        """AllDisjoint 공리가 존재함"""
+        disjoints = list(owl_reasoner.onto.disjoint_classes())
+        assert len(disjoints) >= 1, "At least one AllDisjoint should exist"
+
+    def test_disjoint_contains_brand_subclasses(self, owl_reasoner):
+        """AllDisjoint에 DominantBrand, StrongBrand, NicheBrand 포함"""
+        disjoints = list(owl_reasoner.onto.disjoint_classes())
+        found = False
+        expected = {
+            owl_reasoner.onto.DominantBrand,
+            owl_reasoner.onto.StrongBrand,
+            owl_reasoner.onto.NicheBrand,
+        }
+        for d in disjoints:
+            if set(d.entities) == expected:
+                found = True
+                break
+        assert (
+            found
+        ), f"Expected AllDisjoint with {expected}, got {[set(d.entities) for d in disjoints]}"
+
+    def test_disjoint_has_three_entities(self, owl_reasoner):
+        """AllDisjoint 공리에 정확히 3개 클래스 포함"""
+        disjoints = list(owl_reasoner.onto.disjoint_classes())
+        brand_disjoint = None
+        for d in disjoints:
+            if owl_reasoner.onto.DominantBrand in d.entities:
+                brand_disjoint = d
+                break
+        assert brand_disjoint is not None
+        assert len(brand_disjoint.entities) == 3
+
+
+@_skip_no_owl
+class TestOWLAxiomsFallbackSafety:
+    """OWL 공리가 fallback 모드에서도 안전한지 테스트"""
+
+    def test_fallback_mode_no_error(self):
+        """owlready2 미설치 시 OWL 공리 정의가 에러 없이 건너뜀"""
+        with patch("src.ontology.owl_reasoner.OWLREADY2_AVAILABLE", False):
+            r = OWLReasoner(fallback_reasoner=MagicMock())
+            assert r.onto is None
+            r._define_ontology_structure()
+
+    def test_owl_reasoner_with_owlready2_creates_onto(self):
+        """owlready2 사용 가능 시 onto 객체가 생성됨"""
+        r = OWLReasoner()
+        assert r.onto is not None
+
+
+# =========================================================================
+# A-4: Cardinality Constraint 테스트
+# =========================================================================
+
+
+class TestOWLCardinality:
+    """A-4: Product.belongsToCategory exactly 1 Category 카디널리티 제약 테스트"""
+
+    def test_cardinality_exactly_one_category(self):
+        """_define_ontology_structure가 cardinality 제약을 Product.is_a에 추가"""
+        with patch("src.ontology.owl_reasoner.OWLREADY2_AVAILABLE", False):
+            r = OWLReasoner(fallback_reasoner=MagicMock())
+
+        # Set up mock ontology that simulates owlready2 classes
+        mock_onto = MagicMock()
+        mock_product_is_a = []
+        mock_onto.Product.is_a = mock_product_is_a
+
+        # Mock the exactly() call on belongsToCategory
+        mock_cardinality = MagicMock(name="exactly_1_Category")
+        mock_onto.belongsToCategory.exactly.return_value = mock_cardinality
+
+        # Simulate owlready2 being available
+        r.onto = mock_onto
+        with patch("src.ontology.owl_reasoner.OWLREADY2_AVAILABLE", True):
+            r._define_ontology_structure()
+
+        # Verify belongsToCategory.exactly(1, Category) was called
+        mock_onto.belongsToCategory.exactly.assert_called_once_with(1, mock_onto.Category)
+        # Verify the cardinality restriction was appended to Product.is_a
+        assert mock_cardinality in mock_product_is_a

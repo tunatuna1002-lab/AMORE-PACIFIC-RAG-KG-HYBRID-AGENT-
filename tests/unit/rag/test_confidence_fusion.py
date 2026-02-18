@@ -335,3 +335,127 @@ class TestFactoryFunctions:
 
         fusion = create_optimistic_fusion()
         assert isinstance(fusion, ConfidenceFusion)
+
+    def test_create_rrf_fusion(self):
+        from src.rag.confidence_fusion import create_rrf_fusion
+
+        fusion = create_rrf_fusion()
+        assert isinstance(fusion, ConfidenceFusion)
+        assert fusion.strategy == FusionStrategy.RRF
+
+    def test_create_rrf_fusion_with_k_parameter(self):
+        from src.rag.confidence_fusion import create_rrf_fusion
+
+        fusion = create_rrf_fusion(k=30)
+        assert isinstance(fusion, ConfidenceFusion)
+        assert fusion.strategy == FusionStrategy.RRF
+
+
+# ---------------------------------------------------------------------------
+# RRF Document Fusion 테스트
+# ---------------------------------------------------------------------------
+
+
+class TestRRFDocumentFusion:
+    """Document-level RRF 융합 테스트"""
+
+    def test_rrf_document_fusion_basic(self):
+        """기본 RRF document fusion 테스트"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        ranked_lists = {
+            "vector": [
+                {"content": "LANEIGE SoS analysis", "score": 0.9},
+                {"content": "COSRX market share", "score": 0.7},
+            ],
+            "bm25": [
+                {"content": "COSRX market share", "score": 0.85},
+                {"content": "LANEIGE SoS analysis", "score": 0.6},
+            ],
+        }
+        results = fusion.fuse_documents_rrf(ranked_lists, k=60, top_n=5)
+        assert len(results) > 0
+        assert all("rrf_score" in doc for doc in results)
+        assert all("rrf_sources" in doc for doc in results)
+
+    def test_rrf_empty_lists(self):
+        """빈 ranked_lists 처리 테스트"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        results = fusion.fuse_documents_rrf({}, k=60, top_n=5)
+        assert results == []
+
+    def test_rrf_single_list(self):
+        """단일 소스 리스트 테스트"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        ranked_lists = {"vector": [{"content": "doc A", "score": 0.9}]}
+        results = fusion.fuse_documents_rrf(ranked_lists)
+        assert len(results) == 1
+        assert results[0]["rrf_score"] > 0
+        assert "vector" in results[0]["rrf_sources"]
+
+    def test_rrf_document_dedup(self):
+        """동일 문서가 여러 소스에서 나타날 때 중복 제거 + 점수 합산"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        ranked_lists = {
+            "vector": [{"content": "shared document", "score": 0.9}],
+            "bm25": [{"content": "shared document", "score": 0.8}],
+            "ontology": [{"content": "shared document", "score": 0.7}],
+        }
+        results = fusion.fuse_documents_rrf(ranked_lists, k=60, top_n=5)
+        # 동일 content이므로 하나의 문서로 합쳐져야 함
+        assert len(results) == 1
+        # 3개 소스에서 모두 1위이므로 점수가 합산됨
+        assert results[0]["rrf_score"] > 1.0 / (60 + 1)
+        assert len(results[0]["rrf_sources"]) == 3
+
+    def test_rrf_top_n_limit(self):
+        """top_n 제한 테스트"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        docs = [{"content": f"doc_{i}", "score": 0.9 - i * 0.1} for i in range(10)]
+        ranked_lists = {"vector": docs}
+        results = fusion.fuse_documents_rrf(ranked_lists, k=60, top_n=3)
+        assert len(results) == 3
+
+    def test_rrf_k_parameter_effect(self):
+        """k 파라미터 효과 테스트: k가 작으면 상위 순위 가중치가 더 높음"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        ranked_lists = {
+            "vector": [
+                {"content": "doc1", "score": 0.9},
+                {"content": "doc2", "score": 0.5},
+            ],
+        }
+        # Small k: bigger gap between rank 1 and rank 2
+        results_small_k = fusion.fuse_documents_rrf(ranked_lists, k=1, top_n=5)
+        # Large k: smaller gap
+        results_large_k = fusion.fuse_documents_rrf(ranked_lists, k=1000, top_n=5)
+
+        if len(results_small_k) >= 2 and len(results_large_k) >= 2:
+            gap_small = results_small_k[0]["rrf_score"] - results_small_k[1]["rrf_score"]
+            gap_large = results_large_k[0]["rrf_score"] - results_large_k[1]["rrf_score"]
+            assert gap_small > gap_large
+
+    def test_rrf_with_insight_key(self):
+        """insight 키를 사용하는 문서 테스트 (ontology 결과)"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        ranked_lists = {
+            "ontology": [
+                {"insight": "market insight 1", "confidence": 0.9},
+                {"insight": "market insight 2", "confidence": 0.7},
+            ],
+        }
+        results = fusion.fuse_documents_rrf(ranked_lists, k=60, top_n=5)
+        assert len(results) == 2
+
+    def test_rrf_scores_descending(self):
+        """결과가 RRF 점수 내림차순으로 정렬되는지 테스트"""
+        fusion = ConfidenceFusion(strategy=FusionStrategy.RRF)
+        ranked_lists = {
+            "vector": [
+                {"content": "doc1", "score": 0.9},
+                {"content": "doc2", "score": 0.7},
+                {"content": "doc3", "score": 0.5},
+            ],
+        }
+        results = fusion.fuse_documents_rrf(ranked_lists, k=60, top_n=5)
+        scores = [r["rrf_score"] for r in results]
+        assert scores == sorted(scores, reverse=True)

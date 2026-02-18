@@ -158,8 +158,8 @@ class TestAddValidatedRelation:
         assert "Validated" in msg
         assert okg_with_owl._validation_stats["passed"] == 1
 
-    def test_with_owl_validation_fail(self, okg_with_owl):
-        # Mock _validate_triple to return False
+    def test_with_owl_validation_fail_hard(self, okg_with_owl):
+        # Hard validation (default): rejects triple
         okg_with_owl._validate_triple = MagicMock(return_value=(False, "Invalid domain"))
         success, msg = okg_with_owl.add_validated_relation(
             subject="LANEIGE",
@@ -167,7 +167,7 @@ class TestAddValidatedRelation:
             obj="Lip Sleeping Mask",
         )
         assert success is False
-        assert "warning" in msg.lower()
+        assert "rejected" in msg.lower()
         assert okg_with_owl._validation_stats["failed"] == 1
 
     def test_with_metadata(self, okg):
@@ -605,3 +605,167 @@ class TestIntegration:
         # Test get_competitors
         competitors = okg.get_competitors("LANEIGE")
         assert isinstance(competitors, list)
+
+
+# =========================================================================
+# A-5: Hard Validation 테스트
+# =========================================================================
+
+
+class TestHardValidation:
+    """A-5: hard_validation=True 시 T-Box 위반 triple 추가 거부"""
+
+    def test_hard_validation_rejects_invalid_triple(self, kg):
+        """hard_validation=True: 검증 실패 시 KG에 추가하지 않음"""
+        mock_owl = MagicMock()
+        okg = OntologyKnowledgeGraph(
+            knowledge_graph=kg,
+            owl_reasoner=mock_owl,
+            enable_validation=True,
+            hard_validation=True,
+        )
+        okg._validate_triple = MagicMock(return_value=(False, "Invalid domain"))
+
+        success, msg = okg.add_validated_relation(
+            subject="Lip Care",
+            predicate=RelationType.HAS_PRODUCT,
+            obj="Product1",
+        )
+
+        assert success is False
+        assert "rejected" in msg.lower()
+        # Triple must NOT be in KG
+        results = kg.query(subject="Lip Care", predicate=RelationType.HAS_PRODUCT)
+        assert len(results) == 0
+
+    def test_hard_validation_accepts_valid_triple(self, kg):
+        """hard_validation=True: 검증 통과 시 KG에 정상 추가"""
+        mock_owl = MagicMock()
+        okg = OntologyKnowledgeGraph(
+            knowledge_graph=kg,
+            owl_reasoner=mock_owl,
+            enable_validation=True,
+            hard_validation=True,
+        )
+        okg._validate_triple = MagicMock(return_value=(True, "Valid"))
+
+        success, msg = okg.add_validated_relation(
+            subject="LANEIGE",
+            predicate=RelationType.HAS_PRODUCT,
+            obj="Lip Sleeping Mask",
+        )
+
+        assert success is True
+        assert "Validated" in msg
+        results = kg.query(subject="LANEIGE", predicate=RelationType.HAS_PRODUCT)
+        assert len(results) == 1
+
+    def test_soft_validation_allows_invalid_triple(self, kg):
+        """hard_validation=False (legacy): 검증 실패해도 KG에 추가"""
+        mock_owl = MagicMock()
+        okg = OntologyKnowledgeGraph(
+            knowledge_graph=kg,
+            owl_reasoner=mock_owl,
+            enable_validation=True,
+            hard_validation=False,
+        )
+        okg._validate_triple = MagicMock(return_value=(False, "Invalid domain"))
+
+        success, msg = okg.add_validated_relation(
+            subject="Lip Care",
+            predicate=RelationType.HAS_PRODUCT,
+            obj="Product1",
+        )
+
+        assert success is False
+        assert "warning" in msg.lower()
+        # Triple IS in KG despite validation failure (soft mode)
+        results = kg.query(subject="Lip Care", predicate=RelationType.HAS_PRODUCT)
+        assert len(results) == 1
+
+    def test_hard_validation_default_is_true(self, kg):
+        """hard_validation 기본값은 True"""
+        okg = OntologyKnowledgeGraph(knowledge_graph=kg)
+        assert okg.hard_validation is True
+
+
+# =========================================================================
+# Cardinality Violation 테스트
+# =========================================================================
+
+
+class TestCardinalityValidation:
+    """belongsToCategory cardinality=1 위반 감지 테스트"""
+
+    def test_cardinality_violation_detected(self, kg):
+        """이미 카테고리가 있는 Product에 두 번째 카테고리 추가 시 거부"""
+        mock_owl = MagicMock()
+        okg = OntologyKnowledgeGraph(
+            knowledge_graph=kg,
+            owl_reasoner=mock_owl,
+            enable_validation=True,
+            hard_validation=True,
+        )
+        # Classify the product so domain check passes
+        okg._entity_class_cache["Lip_Mask"] = "Product"
+
+        # First assignment: should succeed
+        success1, msg1 = okg.add_validated_relation(
+            subject="Lip_Mask",
+            predicate=RelationType.BELONGS_TO_CATEGORY,
+            obj="Lip Care",
+        )
+        assert success1 is True
+
+        # Second assignment: should be rejected (cardinality=1)
+        success2, msg2 = okg.add_validated_relation(
+            subject="Lip_Mask",
+            predicate=RelationType.BELONGS_TO_CATEGORY,
+            obj="Lip Makeup",
+        )
+        assert success2 is False
+        assert "cardinality" in msg2.lower()
+
+    def test_cardinality_allows_first_assignment(self, kg):
+        """첫 번째 카테고리 할당은 허용"""
+        mock_owl = MagicMock()
+        okg = OntologyKnowledgeGraph(
+            knowledge_graph=kg,
+            owl_reasoner=mock_owl,
+            enable_validation=True,
+            hard_validation=True,
+        )
+        okg._entity_class_cache["Lip_Mask"] = "Product"
+
+        success, msg = okg.add_validated_relation(
+            subject="Lip_Mask",
+            predicate=RelationType.BELONGS_TO_CATEGORY,
+            obj="Lip Care",
+        )
+        assert success is True
+        assert "Validated" in msg
+
+    def test_cardinality_different_products_ok(self, kg):
+        """서로 다른 Product는 각각 카테고리 할당 가능"""
+        mock_owl = MagicMock()
+        okg = OntologyKnowledgeGraph(
+            knowledge_graph=kg,
+            owl_reasoner=mock_owl,
+            enable_validation=True,
+            hard_validation=True,
+        )
+        okg._entity_class_cache["Product_A"] = "Product"
+        okg._entity_class_cache["Product_B"] = "Product"
+
+        success1, _ = okg.add_validated_relation(
+            subject="Product_A",
+            predicate=RelationType.BELONGS_TO_CATEGORY,
+            obj="Lip Care",
+        )
+        success2, _ = okg.add_validated_relation(
+            subject="Product_B",
+            predicate=RelationType.BELONGS_TO_CATEGORY,
+            obj="Lip Makeup",
+        )
+        assert success1 is True
+        assert success2 is True

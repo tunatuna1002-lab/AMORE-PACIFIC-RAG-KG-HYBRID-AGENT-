@@ -531,6 +531,62 @@ class ConfidenceFusion:
 
         return " ".join(explanation_parts)
 
+    def fuse_documents_rrf(
+        self,
+        ranked_lists: dict[str, list[dict]],
+        k: int = 60,
+        top_n: int = 10,
+    ) -> list[dict]:
+        """
+        Reciprocal Rank Fusion for document-level merging.
+
+        Takes multiple named ranked lists and produces a single merged ranking.
+
+        Args:
+            ranked_lists: {"vector": [...], "bm25": [...], "ontology": [...]}
+                Each list item should have at least "content" key.
+            k: RRF constant (default 60, higher = more weight to lower ranks)
+            top_n: Number of results to return
+
+        Returns:
+            Merged list of documents sorted by RRF score, each with added
+            "rrf_score" and "rrf_sources" keys
+        """
+        if not ranked_lists:
+            return []
+
+        doc_scores: dict[str, float] = {}
+        doc_data: dict[str, dict] = {}
+        doc_sources: dict[str, list[str]] = {}
+
+        for source_name, ranked_list in ranked_lists.items():
+            for rank, doc in enumerate(ranked_list):
+                # Use content hash for dedup
+                content = doc.get("content", doc.get("insight", ""))
+                doc_id = str(hash(content))[:16] if content else f"{source_name}_{rank}"
+
+                rrf_score = 1.0 / (k + rank + 1)
+                doc_scores[doc_id] = doc_scores.get(doc_id, 0.0) + rrf_score
+
+                if doc_id not in doc_data:
+                    doc_data[doc_id] = doc.copy()
+
+                if doc_id not in doc_sources:
+                    doc_sources[doc_id] = []
+                doc_sources[doc_id].append(source_name)
+
+        # Sort by RRF score descending
+        sorted_ids = sorted(doc_scores, key=doc_scores.get, reverse=True)
+
+        results = []
+        for doc_id in sorted_ids[:top_n]:
+            doc = doc_data[doc_id]
+            doc["rrf_score"] = round(doc_scores[doc_id], 6)
+            doc["rrf_sources"] = doc_sources.get(doc_id, [])
+            results.append(doc)
+
+        return results
+
     def _create_empty_result(self, reason: str) -> FusedResult:
         """빈 결과 생성 (오류 시)"""
         return FusedResult(
@@ -582,6 +638,11 @@ def create_optimistic_fusion() -> ConfidenceFusion:
     )
 
 
-def create_rrf_fusion(**kwargs) -> ConfidenceFusion:
-    """RRF 융합 전략으로 ConfidenceFusion 생성"""
+def create_rrf_fusion(k: int = 60, **kwargs) -> ConfidenceFusion:
+    """RRF 융합 전략으로 ConfidenceFusion 생성
+
+    Args:
+        k: RRF constant (higher = more weight to lower-ranked items)
+        **kwargs: Additional ConfidenceFusion parameters
+    """
     return ConfidenceFusion(strategy=FusionStrategy.RRF, **kwargs)
