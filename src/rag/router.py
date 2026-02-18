@@ -229,7 +229,7 @@ class RAGRouter:
 
     def extract_entities(self, query: str) -> dict[str, Any]:
         """
-        질의에서 엔티티 추출
+        질의에서 엔티티 추출. Delegates to EntityLinker.extract_entities().
 
         Args:
             query: 사용자 질의
@@ -243,72 +243,23 @@ class RAGRouter:
                 "time_range": str or None
             }
         """
-        query_lower = query.lower()
+        from src.rag.entity_linker import EntityLinker
 
-        entities = {
-            "brands": [],
-            "products": [],
-            "categories": [],
-            "indicators": [],
-            "time_range": None,
+        linker = EntityLinker(use_spacy=False)
+        result = linker.extract_entities(query)
+
+        # Backward compat: RAGRouter returns time_range as str|None (first match),
+        # while EntityLinker returns a list.
+        time_range_list = result.get("time_range", [])
+        time_range_val: str | None = time_range_list[0] if time_range_list else None
+
+        return {
+            "brands": result.get("brands", []),
+            "products": result.get("products", []),
+            "categories": result.get("categories", []),
+            "indicators": result.get("indicators", []),
+            "time_range": time_range_val,
         }
-
-        # 브랜드 추출 (동의어 지원)
-        brand_aliases = {
-            "laneige": ["laneige", "라네즈", "라네쥬", "라네이지", "라네지"],
-            "cosrx": ["cosrx", "코스알엑스", "코스아르엑스"],
-            "tirtir": ["tirtir", "티르티르"],
-            "rare beauty": ["rare beauty", "레어뷰티", "레어 뷰티"],
-            "eos": ["eos", "이오에스"],
-            "medicube": ["medicube", "메디큐브"],
-            "innisfree": ["innisfree", "이니스프리"],
-            "sulwhasoo": ["sulwhasoo", "설화수"],
-            "etude": ["etude", "에뛰드", "에뛰드하우스"],
-        }
-
-        for canonical_brand, aliases in brand_aliases.items():
-            for alias in aliases:
-                if alias in query_lower:
-                    entities["brands"].append(canonical_brand)
-                    break  # 하나의 브랜드는 한 번만 추가
-
-        # 카테고리 추출
-        category_map = {
-            "lip care": "lip_care",
-            "립케어": "lip_care",
-            "skin care": "skin_care",
-            "스킨케어": "skin_care",
-            "beauty": "beauty",
-            "뷰티": "beauty",
-            "lip makeup": "lip_makeup",
-            "face powder": "face_powder",
-        }
-        for cat_name, cat_id in category_map.items():
-            if cat_name in query_lower:
-                entities["categories"].append(cat_id)
-
-        # 지표 추출
-        for indicator in self.all_indicators:
-            if indicator in query_lower:
-                entities["indicators"].append(indicator)
-
-        # 시간 범위 추출
-        time_patterns = {
-            "오늘": "today",
-            "어제": "yesterday",
-            "이번 주": "week",
-            "이번 달": "month",
-            "최근 7일": "7days",
-            "최근 30일": "30days",
-            "3개월": "90days",
-            "1개월": "30days",
-        }
-        for pattern, time_range in time_patterns.items():
-            if pattern in query_lower:
-                entities["time_range"] = time_range
-                break
-
-        return entities
 
     def needs_clarification(self, route_result: dict, entities: dict) -> str | None:
         """

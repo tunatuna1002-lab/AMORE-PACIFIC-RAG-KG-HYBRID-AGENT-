@@ -61,61 +61,6 @@ class QueryRouter:
             ...
     """
 
-    # 카테고리별 키워드
-    CATEGORY_KEYWORDS = {
-        QueryCategory.METRIC: [
-            "sos",
-            "hhi",
-            "cpi",
-            "점유율",
-            "순위",
-            "rank",
-            "share",
-            "지표",
-            "수치",
-            "퍼센트",
-            "%",
-            "몇",
-            "얼마",
-        ],
-        QueryCategory.TREND: [
-            "트렌드",
-            "추이",
-            "변화",
-            "변동",
-            "추세",
-            "최근",
-            "증가",
-            "감소",
-            "상승",
-            "하락",
-            "성장",
-        ],
-        QueryCategory.COMPETITIVE: [
-            "경쟁",
-            "비교",
-            "대비",
-            "차이",
-            "경쟁사",
-            "competitor",
-            "versus",
-            "vs",
-            "상대적",
-        ],
-        QueryCategory.DIAGNOSTIC: [
-            "왜",
-            "원인",
-            "이유",
-            "어떻게",
-            "진단",
-            "분석",
-            "문제",
-            "급변",
-            "급등",
-            "급락",
-        ],
-    }
-
     # 복합 쿼리 감지 패턴
     COMPOUND_PATTERNS = [
         r"(.+?)(?:와|과|하고|및|그리고)\s*(.+?)(?:\s*(?:비교|분석|알려|보여))",
@@ -127,25 +72,16 @@ class QueryRouter:
         self._stats = {"total_routes": 0, "compound_queries": 0}
 
     def classify(self, query: str) -> QueryCategory:
-        """쿼리 카테고리 분류"""
-        query_lower = query.lower()
-        scores = {}
+        """쿼리 카테고리 분류 - delegates to unified classifier."""
+        from src.core.intent import classify_intent as _unified_classify
+        from src.core.intent import to_query_category as _to_query_category
 
-        for category, keywords in self.CATEGORY_KEYWORDS.items():
-            score = sum(1 for kw in keywords if kw in query_lower)
-            if score > 0:
-                scores[category] = score
-
-        if not scores:
+        unified = _unified_classify(query)
+        cat_value = _to_query_category(unified)
+        try:
+            return QueryCategory(cat_value)
+        except ValueError:
             return QueryCategory.GENERAL
-
-        # DIAGNOSTIC 우선: "왜", "원인", "이유" 포함 시 DIAGNOSTIC 우선
-        if QueryCategory.DIAGNOSTIC in scores:
-            diagnostic_priority = ["왜", "원인", "이유"]
-            if any(kw in query_lower for kw in diagnostic_priority):
-                return QueryCategory.DIAGNOSTIC
-
-        return max(scores, key=scores.get)
 
     def is_compound(self, query: str) -> bool:
         """복합 쿼리 여부 판단"""

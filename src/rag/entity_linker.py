@@ -109,16 +109,22 @@ class EntityLinker:
         # 한/영 매핑
         "laneige": "LANEIGE",
         "라네즈": "LANEIGE",
+        "라네쥬": "LANEIGE",
+        "라네이지": "LANEIGE",
+        "라네지": "LANEIGE",
         "cosrx": "COSRX",
         "코스알엑스": "COSRX",
+        "코스아르엑스": "COSRX",
         "tirtir": "TIRTIR",
         "티르티르": "TIRTIR",
         "rare beauty": "Rare Beauty",
         "레어뷰티": "Rare Beauty",
+        "레어 뷰티": "Rare Beauty",
         "innisfree": "Innisfree",
         "이니스프리": "Innisfree",
         "etude": "ETUDE",
         "에뛰드": "ETUDE",
+        "에뛰드하우스": "ETUDE",
         "sulwhasoo": "Sulwhasoo",
         "설화수": "Sulwhasoo",
         "hera": "HERA",
@@ -139,6 +145,8 @@ class EntityLinker:
         "la roche-posay": "La Roche-Posay",
         "cerave": "CeraVe",
         "neutrogena": "Neutrogena",
+        "eos": "eos",
+        "이오에스": "eos",
         "e.l.f.": "e.l.f.",
         "nyx": "NYX",
         "maybelline": "Maybelline",
@@ -218,6 +226,70 @@ class EntityLinker:
         "인플루언서": "Influencer",
         "influencer": "Influencer",
     }
+
+    # 시간 범위 매핑 (EntityExtractor + RAGRouter 통합)
+    TIME_RANGE_MAP: dict[str, str] = {
+        "오늘": "today",
+        "today": "today",
+        "어제": "yesterday",
+        "yesterday": "yesterday",
+        "이번 주": "week",
+        "this week": "week",
+        "이번 달": "month",
+        "this month": "month",
+        "최근 7일": "7days",
+        "last 7 days": "7days",
+        "last week": "7days",
+        "지난주": "7days",
+        "최근 30일": "30days",
+        "last 30 days": "30days",
+        "last month": "30days",
+        "3개월": "90days",
+        "90 days": "90days",
+        "1개월": "30days",
+        "1 month": "30days",
+    }
+
+    # 감성 키워드 매핑 (EntityExtractor 통합)
+    SENTIMENT_MAP: dict[str, str] = {
+        "moisturizing": "Hydration",
+        "hydrating": "Hydration",
+        "보습": "Hydration",
+        "수분": "Hydration",
+        "촉촉": "Hydration",
+        "value for money": "Pricing",
+        "가성비": "Pricing",
+        "affordable": "Pricing",
+        "저렴": "Pricing",
+        "easy to use": "Usability",
+        "사용감": "Usability",
+        "편리": "Usability",
+        "효과": "Effectiveness",
+        "effective": "Effectiveness",
+        "works well": "Effectiveness",
+        "scent": "Sensory",
+        "향": "Sensory",
+        "texture": "Sensory",
+        "텍스처": "Sensory",
+        "질감": "Sensory",
+        "packaging": "Packaging",
+        "패키징": "Packaging",
+        "포장": "Packaging",
+        "gentle": "Skin_Compatibility",
+        "순한": "Skin_Compatibility",
+        "민감": "Skin_Compatibility",
+        "sensitive": "Skin_Compatibility",
+        "리뷰": "sentiment_general",
+        "review": "sentiment_general",
+        "고객 반응": "sentiment_general",
+        "customer": "sentiment_general",
+        "customer feedback": "sentiment_general",
+    }
+
+    # config/entities.json 캐시
+    _config_cache: dict | None = None
+    _config_loaded_at: float | None = None
+    _CONFIG_TTL_SECONDS: int = 300
 
     def __init__(self, knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True):
         """
@@ -301,6 +373,250 @@ class EntityLinker:
                 self._stats["fuzzy_matches"] += 1
 
         return linked_entities
+
+    # =========================================================================
+    # Simple dict-format entity extraction (EntityExtractor compat)
+    # =========================================================================
+
+    @classmethod
+    def _load_entity_config(cls) -> dict[str, Any]:
+        """
+        config/entities.json에서 엔티티 매핑 로드 (캐싱 적용).
+
+        Returns:
+            설정 딕셔너리. 파일이 없으면 빈 딕셔너리.
+        """
+        import json
+        import time
+        from pathlib import Path
+
+        now = time.monotonic()
+        if (
+            cls._config_cache is not None
+            and cls._config_loaded_at is not None
+            and (now - cls._config_loaded_at) < cls._CONFIG_TTL_SECONDS
+        ):
+            return cls._config_cache
+
+        config_path = Path("config/entities.json")
+        if not config_path.exists():
+            project_root = Path(__file__).parent.parent.parent
+            config_path = project_root / "config/entities.json"
+
+        if config_path.exists():
+            try:
+                with open(config_path, encoding="utf-8") as f:
+                    cls._config_cache = json.load(f)
+                    cls._config_loaded_at = now
+                    return cls._config_cache
+            except Exception as e:
+                logger.warning(f"Failed to load entity config: {e}")
+
+        return {}
+
+    def _get_merged_brands(self) -> dict[str, str]:
+        """
+        KNOWN_BRANDS (class-level) + config/entities.json 브랜드 통합.
+
+        Config brands use lowercase canonical names (e.g. "laneige").
+        Class-level KNOWN_BRANDS use proper case (e.g. "LANEIGE").
+        Config canonical names take precedence for extract_entities() compat.
+
+        Returns:
+            {lowercase_name_or_alias: normalized_name} 매핑
+        """
+        # Start with config brands (lowercase canonical names)
+        config = self._load_entity_config()
+        config_norm: dict[str, str] = {}
+        for brand_info in config.get("known_brands", []):
+            if not isinstance(brand_info, dict):
+                continue
+            name = brand_info["name"].lower()
+            config_norm[name] = name
+            for alias in brand_info.get("aliases", []):
+                config_norm[alias.lower()] = name
+
+        # Add class-level brands, using config canonical name if available
+        merged: dict[str, str] = dict(config_norm)
+        for key, proper_name in self.KNOWN_BRANDS.items():
+            if key not in merged:
+                # Check if proper_name.lower() is a config canonical name
+                canonical = proper_name.lower()
+                if canonical in config_norm:
+                    merged[key] = config_norm[canonical]
+                else:
+                    merged[key] = canonical
+
+        return merged
+
+    def _get_merged_categories(self) -> dict[str, str]:
+        """
+        CATEGORY_MAP (class-level) + config/entities.json 카테고리 통합.
+
+        Returns:
+            {keyword: category_id} 매핑
+        """
+        merged: dict[str, str] = {}
+        # class-level: (cat_id, cat_label) -> cat_id
+        for key, val in self.CATEGORY_MAP.items():
+            merged[key] = val[0] if isinstance(val, tuple) else val
+
+        config = self._load_entity_config()
+        for key, cat_id in config.get("category_map", {}).items():
+            if key.lower() not in merged:
+                merged[key.lower()] = cat_id
+
+        return merged
+
+    def _get_merged_indicators(self) -> dict[str, str]:
+        """
+        INDICATOR_MAP (class-level) + config/entities.json 지표 통합.
+
+        Returns:
+            {keyword: indicator_id} 매핑
+        """
+        merged: dict[str, str] = {}
+        for key, val in self.INDICATOR_MAP.items():
+            merged[key] = val[0] if isinstance(val, tuple) else val
+
+        config = self._load_entity_config()
+        for key, ind_id in config.get("indicator_map", {}).items():
+            if key.lower() not in merged:
+                merged[key.lower()] = ind_id
+
+        return merged
+
+    def _get_merged_time_ranges(self) -> dict[str, str]:
+        """
+        TIME_RANGE_MAP (class-level) + config/entities.json 시간범위 통합.
+
+        Returns:
+            {keyword: time_id} 매핑
+        """
+        merged: dict[str, str] = dict(self.TIME_RANGE_MAP)
+
+        config = self._load_entity_config()
+        for key, time_id in config.get("time_range_map", {}).items():
+            if key.lower() not in merged:
+                merged[key.lower()] = time_id
+
+        return merged
+
+    def _get_merged_sentiments(self) -> dict[str, str]:
+        """
+        SENTIMENT_MAP (class-level) + config/entities.json 감성 통합.
+
+        Returns:
+            {keyword: cluster_name} 매핑
+        """
+        merged: dict[str, str] = dict(self.SENTIMENT_MAP)
+
+        config = self._load_entity_config()
+        for key, cluster in config.get("sentiment_map", {}).items():
+            if key.lower() not in merged:
+                merged[key.lower()] = cluster
+
+        return merged
+
+    def extract_entities(self, query: str, knowledge_graph: Any | None = None) -> dict[str, Any]:
+        """
+        Simple entity extraction returning dict format.
+
+        Compatible with EntityExtractor.extract() and RAGRouter.extract_entities().
+
+        Args:
+            query: 사용자 쿼리
+            knowledge_graph: 지식 그래프 (순위 기반 제품 검색용, optional)
+
+        Returns:
+            {
+                "brands": [...],
+                "categories": [...],
+                "indicators": [...],
+                "time_range": [...],
+                "products": [...],
+                "sentiments": [...],
+                "sentiment_clusters": [...]
+            }
+        """
+        query_lower = query.lower()
+
+        entities: dict[str, Any] = {
+            "brands": [],
+            "categories": [],
+            "indicators": [],
+            "time_range": [],
+            "products": [],
+            "sentiments": [],
+            "sentiment_clusters": [],
+        }
+
+        # 브랜드 추출 (class-level + config 통합)
+        merged_brands = self._get_merged_brands()
+        for brand_key, normalized in merged_brands.items():
+            if brand_key in query_lower:
+                if normalized not in entities["brands"]:
+                    entities["brands"].append(normalized)
+
+        # 카테고리 추출
+        merged_cats = self._get_merged_categories()
+        for cat_name, cat_id in merged_cats.items():
+            if cat_name in query_lower:
+                if cat_id not in entities["categories"]:
+                    entities["categories"].append(cat_id)
+
+        # 지표 추출
+        merged_indicators = self._get_merged_indicators()
+        for ind_name, ind_id in merged_indicators.items():
+            if ind_name in query_lower:
+                if ind_id not in entities["indicators"]:
+                    entities["indicators"].append(ind_id)
+
+        # 시간 범위 추출
+        merged_time = self._get_merged_time_ranges()
+        for time_name, time_id in merged_time.items():
+            if time_name in query_lower:
+                if time_id not in entities["time_range"]:
+                    entities["time_range"].append(time_id)
+
+        # 제품 ASIN 추출 (B0로 시작하는 10자리)
+        asin_pattern = r"\bB0[A-Z0-9]{8}\b"
+        asins = re.findall(asin_pattern, query)
+        if asins:
+            entities["products"].extend(asins)
+
+        # 순위 기반 제품 추출 (지식 그래프 활용)
+        if knowledge_graph:
+            rank_patterns = [
+                (r"(\d+)위\s*제품", "ko"),
+                (r"top\s*(\d+)\s*product", "en"),
+                (r"(\d+)위", "ko"),
+                (r"rank\s*(\d+)", "en"),
+            ]
+            for pattern, _lang in rank_patterns:
+                matches = re.findall(pattern, query_lower)
+                if matches and entities.get("categories"):
+                    for rank_str in matches:
+                        rank = int(rank_str)
+                        for category in entities["categories"]:
+                            products = knowledge_graph.query(predicate=None, object_=category)
+                            for rel in products:
+                                if rel.properties.get("rank") == rank:
+                                    asin = rel.subject
+                                    if asin not in entities["products"]:
+                                        entities["products"].append(asin)
+                                    break
+
+        # 감성 키워드 추출
+        merged_sentiments = self._get_merged_sentiments()
+        for keyword, cluster in merged_sentiments.items():
+            if keyword in query_lower:
+                if keyword not in entities["sentiments"]:
+                    entities["sentiments"].append(keyword)
+                if cluster not in entities["sentiment_clusters"]:
+                    entities["sentiment_clusters"].append(cluster)
+
+        return entities
 
     # =========================================================================
     # NER 기반 엔티티 추출

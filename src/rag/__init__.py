@@ -18,8 +18,9 @@ Search pipeline (composition, not inheritance):
      ├─ ContextBuilder        – LLM 프롬프트 조립 (토큰 예산 관리)
      └─ ResponseTemplates     – 응답 포맷팅 (guardrails, insight, metrics)
 
-Note: EntityExtractor (hybrid_retriever) vs EntityLinker (entity_linker) vs
-RAGRouter.extract_entities — 3중 엔티티 추출은 Session 7/8에서 통합 예정.
+Note: EntityLinker (entity_linker.py) is the canonical entity extractor.
+EntityExtractor (hybrid_retriever) and RAGRouter.extract_entities both delegate
+to EntityLinker.extract_entities() for unified extraction.
 """
 
 # --- Stage 1: Query preprocessing ---
@@ -54,7 +55,12 @@ from .rag_kg_extractor import RAGKGExtractor
 
 # --- Stage 4: Reranking & fusion ---
 from .reranker import CrossEncoderReranker
-from .retrieval_strategy import OWLRetrievalStrategy, RetrievalStrategy
+from .retrieval_strategy import (
+    IntentRetrievalConfig,
+    OWLRetrievalStrategy,
+    RetrievalStrategy,
+    get_intent_retrieval_config,
+)
 
 # --- Stage 3: Retrieval ---
 from .retriever import DocumentRetriever
@@ -76,6 +82,8 @@ __all__ = [
     "HybridRetriever",
     "RetrievalStrategy",
     "OWLRetrievalStrategy",
+    "IntentRetrievalConfig",
+    "get_intent_retrieval_config",
     "SemanticChunker",
     # Stage 4: Reranking & fusion
     "CrossEncoderReranker",

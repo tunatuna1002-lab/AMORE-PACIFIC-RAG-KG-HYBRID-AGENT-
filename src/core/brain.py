@@ -305,7 +305,7 @@ class UnifiedBrain:
             owl_strategy = None
             self._owl_reasoner = None
 
-            if flags.use_true_hybrid_retriever():
+            if flags.use_owl_strategy():
                 try:
                     from ..ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
 

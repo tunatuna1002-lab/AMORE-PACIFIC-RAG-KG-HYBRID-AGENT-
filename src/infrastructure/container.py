@@ -158,7 +158,7 @@ class Container:
             owl_strategy = None
 
             flags = FeatureFlags.get_instance()
-            if flags.use_true_hybrid_retriever():
+            if flags.use_owl_strategy():
                 try:
                     from src.ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
 
@@ -428,6 +428,106 @@ class Container:
             cls._instances["market_intelligence_engine"] = MarketIntelligenceEngine()
 
         return cls._instances["market_intelligence_engine"]
+
+    # ========================================
+    # Application Layer 워크플로우
+    # ========================================
+
+    @classmethod
+    def get_chat_workflow(cls):
+        """
+        ChatWorkflow 생성 (매번 새 인스턴스)
+
+        의존성은 Container에서 주입됩니다.
+
+        Returns:
+            ChatWorkflow 인스턴스
+        """
+        if "chat_workflow" in cls._overrides:
+            return cls._overrides["chat_workflow"]
+
+        from src.application.workflows.chat_workflow import ChatWorkflow
+
+        return ChatWorkflow(
+            chatbot=cls.get_chatbot_agent(),
+            retriever=cls.get_hybrid_retriever(),
+        )
+
+    @classmethod
+    def get_crawl_workflow(cls, scraper=None, storage=None, metric_calculator=None):
+        """
+        CrawlWorkflow 생성 (매번 새 인스턴스)
+
+        Args:
+            scraper: ScraperProtocol 구현 (None이면 기본 CrawlerAgent)
+            storage: StorageProtocol 구현 (None이면 기본 StorageAgent)
+            metric_calculator: MetricCalculatorProtocol 구현
+
+        Returns:
+            CrawlWorkflow 인스턴스
+        """
+        if "crawl_workflow" in cls._overrides:
+            return cls._overrides["crawl_workflow"]
+
+        from src.application.workflows.crawl_workflow import CrawlWorkflow
+
+        if scraper is None:
+            scraper = cls.get_crawler_agent()
+        if storage is None:
+            storage = cls.get_storage_agent()
+        if metric_calculator is None:
+            metric_calculator = cls.get_metrics_agent()
+
+        return CrawlWorkflow(
+            scraper=scraper,
+            storage=storage,
+            metric_calculator=metric_calculator,
+        )
+
+    @classmethod
+    def get_insight_workflow(cls, storage=None):
+        """
+        InsightWorkflow 생성 (매번 새 인스턴스)
+
+        Args:
+            storage: StorageProtocol 구현 (None이면 기본 StorageAgent)
+
+        Returns:
+            InsightWorkflow 인스턴스
+        """
+        if "insight_workflow" in cls._overrides:
+            return cls._overrides["insight_workflow"]
+
+        from src.application.workflows.insight_workflow import InsightWorkflow
+
+        if storage is None:
+            storage = cls.get_storage_agent()
+
+        return InsightWorkflow(
+            insight_agent=cls.get_insight_agent(),
+            storage=storage,
+        )
+
+    # ========================================
+    # 인텐트 기반 전략 선택
+    # ========================================
+
+    @classmethod
+    def get_retrieval_config_for_intent(cls, intent):
+        """
+        인텐트에 맞는 RetrievalConfig 반환
+
+        Phase 1A의 UnifiedIntent와 Phase 2A의 IntentRetrievalConfig를 연결합니다.
+
+        Args:
+            intent: UnifiedIntent enum 값
+
+        Returns:
+            IntentRetrievalConfig (weights, top_k, doc_type_filter)
+        """
+        from src.rag.retrieval_strategy import get_intent_retrieval_config
+
+        return get_intent_retrieval_config(intent)
 
     # ========================================
     # 유틸리티 메서드

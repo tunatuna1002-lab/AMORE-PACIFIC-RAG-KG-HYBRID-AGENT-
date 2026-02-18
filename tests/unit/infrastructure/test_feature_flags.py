@@ -23,7 +23,7 @@ def flags_config(tmp_path: Path) -> Path:
     """Create a temporary feature flags JSON config."""
     config = {
         "retriever": {
-            "use_true_hybrid_retriever": True,
+            "use_owl_strategy": True,
             "use_unified_retriever": False,
         },
         "cache": {
@@ -43,21 +43,21 @@ class TestFeatureFlagsJSONLoading:
 
     def test_loads_from_json(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
-        assert flags.get_flag("retriever", "use_true_hybrid_retriever") is True
+        assert flags.get_flag("retriever", "use_owl_strategy") is True
         assert flags.get_flag("cache", "use_sqlite_embedding_cache") is True
         assert flags.get_flag("prompts", "use_centralized_prompts") is False
 
     def test_missing_file_uses_defaults(self, tmp_path: Path) -> None:
         missing = tmp_path / "nonexistent.json"
         flags = FeatureFlags(config_path=missing)
-        assert flags.get_flag("retriever", "use_true_hybrid_retriever", default=True) is True
-        assert flags.get_flag("retriever", "use_true_hybrid_retriever", default=False) is False
+        assert flags.get_flag("retriever", "use_owl_strategy", default=True) is True
+        assert flags.get_flag("retriever", "use_owl_strategy", default=False) is False
 
     def test_invalid_json_uses_defaults(self, tmp_path: Path) -> None:
         bad_config = tmp_path / "bad.json"
         bad_config.write_text("not valid json{{{")
         flags = FeatureFlags(config_path=bad_config)
-        assert flags.get_flag("retriever", "use_true_hybrid_retriever", default=True) is True
+        assert flags.get_flag("retriever", "use_owl_strategy", default=True) is True
 
     def test_missing_section_uses_default(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
@@ -82,10 +82,10 @@ class TestFeatureFlagsENVOverride:
     def test_env_overrides_json_false(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("FF_RETRIEVER_USE_TRUE_HYBRID_RETRIEVER", "false")
+        monkeypatch.setenv("FF_RETRIEVER_USE_OWL_STRATEGY", "false")
         flags = FeatureFlags(config_path=flags_config)
         # JSON says True, but ENV says false
-        assert flags.get_flag("retriever", "use_true_hybrid_retriever") is False
+        assert flags.get_flag("retriever", "use_owl_strategy") is False
 
     def test_env_accepts_various_truthy(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
@@ -132,9 +132,9 @@ class TestFeatureFlagsReload:
 class TestFeatureFlagsConvenienceMethods:
     """Test convenience methods."""
 
-    def test_use_true_hybrid_retriever(self, flags_config: Path) -> None:
+    def test_use_owl_strategy(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
-        assert flags.use_true_hybrid_retriever() is True
+        assert flags.use_owl_strategy() is True
 
     def test_use_unified_retriever(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
@@ -151,7 +151,7 @@ class TestFeatureFlagsConvenienceMethods:
     def test_convenience_defaults_when_no_config(self, tmp_path: Path) -> None:
         flags = FeatureFlags(config_path=tmp_path / "missing.json")
         # Defaults defined in each convenience method
-        assert flags.use_true_hybrid_retriever() is True  # default True
+        assert flags.use_owl_strategy() is True  # default True
         assert flags.use_unified_retriever() is True  # default True
         assert flags.use_unified_reasoner() is True  # default True
         assert flags.use_owl_reasoner() is True  # default True
@@ -184,5 +184,5 @@ class TestFeatureFlagsProjectConfig:
         if project_config.exists():
             flags = FeatureFlags(config_path=project_config)
             # Should load without error and have expected sections
-            assert flags.use_true_hybrid_retriever() in (True, False)
+            assert flags.use_owl_strategy() in (True, False)
             assert flags.use_sqlite_embedding_cache() in (True, False)

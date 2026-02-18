@@ -1,7 +1,7 @@
 """Feature Flags infrastructure for safe, incremental rollout of new features.
 
 Supports three levels of override (highest priority first):
-1. Environment variable: FF_{SECTION}_{KEY} (e.g., FF_RETRIEVER_USE_TRUE_HYBRID_RETRIEVER=true)
+1. Environment variable: FF_{SECTION}_{KEY} (e.g., FF_RETRIEVER_USE_OWL_STRATEGY=true)
 2. JSON config file: config/feature_flags.json
 3. Default value passed to get_flag()
 
@@ -9,8 +9,8 @@ Usage:
     from src.infrastructure.feature_flags import FeatureFlags
 
     flags = FeatureFlags()
-    if flags.use_true_hybrid_retriever():
-        # new path
+    if flags.use_owl_strategy():
+        # OWL strategy path
     else:
         # legacy path
 """
@@ -70,7 +70,7 @@ class FeatureFlags:
 
         Args:
             section: Config section (e.g., "retriever", "cache")
-            key: Flag key (e.g., "use_true_hybrid_retriever")
+            key: Flag key (e.g., "use_owl_strategy")
             default: Default value if not found anywhere
 
         Returns:
@@ -92,9 +92,9 @@ class FeatureFlags:
 
     # ── Convenience methods ──────────────────────────────────────────
 
-    def use_true_hybrid_retriever(self) -> bool:
+    def use_owl_strategy(self) -> bool:
         """Whether to enable OWL strategy in HybridRetriever."""
-        return self.get_flag("retriever", "use_true_hybrid_retriever", default=True)
+        return self.get_flag("retriever", "use_owl_strategy", default=True)
 
     def use_unified_retriever(self) -> bool:
         """Whether to use retrieve_unified() path (returns UnifiedRetrievalResult)."""

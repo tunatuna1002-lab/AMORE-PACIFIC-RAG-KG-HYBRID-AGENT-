@@ -9,10 +9,10 @@ Hybrid retrieval combining vector search (ChromaDB), knowledge graph facts, and 
 | Module | File | Role |
 |--------|------|------|
 | DocumentRetriever | `retriever.py` | ChromaDB vector search + MD5 embedding cache |
-| HybridRetriever | `hybrid_retriever.py` | RAG + KG facts + rule inference |
-| TrueHybridRetriever | `true_hybrid_retriever.py` | + OWL reasoning + entity linking + reranking |
-| EntityLinker | `entity_linker.py` | Text → KG entity mapping |
-| ConfidenceFusion | `confidence_fusion.py` | Multi-source score fusion |
+| HybridRetriever | `hybrid_retriever.py` | RAG + KG facts + rule inference + OWL strategy |
+| RetrievalStrategy | `retrieval_strategy.py` | OWL + intent-based strategy pattern |
+| EntityLinker | `entity_linker.py` | Text → KG entity mapping (unified extractor) |
+| ConfidenceFusion | `confidence_fusion.py` | Multi-source score fusion + conflict detection |
 
 ## RETRIEVAL STRATEGIES
 
@@ -20,18 +20,19 @@ Hybrid retrieval combining vector search (ChromaDB), knowledge graph facts, and 
 |----------|-------|-------------|
 | Vector-only | DocumentRetriever | Simple keyword queries |
 | Hybrid | HybridRetriever | Queries needing KG context |
-| True Hybrid | TrueHybridRetriever | Complex analysis requiring OWL reasoning |
+| OWL Strategy | OWLRetrievalStrategy | Complex analysis requiring OWL reasoning |
+
+Intent-based config (`IntentRetrievalConfig`) tunes weights, top_k, doc_type_filter, and fusion_strategy per query intent.
 
 ## PIPELINE FLOW
 
 ```
-HybridRetriever:
+HybridRetriever.retrieve():
   Intent classify → Entity extract → KG lookup → Rule inference
-    → Query expand → RAG search → Merge context → HybridContext
-
-TrueHybridRetriever:
-  Entity link → Ontology filters → Vector search → OWL reason
-    → Rerank → Confidence fusion → HybridResult
+    → Query expand → RAG search → Relevance grading
+    → Weighted merge (intent-based weights)
+    → ConfidenceFusion (overall confidence + conflict detection)
+    → Combine contexts → HybridContext
 ```
 
 ## DATA STRUCTURES
@@ -39,9 +40,9 @@ TrueHybridRetriever:
 | Class | File | Purpose |
 |-------|------|---------|
 | HybridContext | `hybrid_retriever.py` | entities, ontology_facts, inferences, rag_chunks |
-| HybridResult | `true_hybrid_retriever.py` | documents, ontology_context, entity_links, confidence |
+| IntentRetrievalConfig | `retrieval_strategy.py` | weights, top_k, doc_type_filter, fusion_strategy |
 | LinkedEntity | `entity_linker.py` | text, entity_type, concept_uri, confidence |
-| FusedResult | `confidence_fusion.py` | Weighted multi-source fusion |
+| FusedResult | `confidence_fusion.py` | Weighted multi-source fusion with conflict detection |
 
 ## CHROMADB CONFIG
 

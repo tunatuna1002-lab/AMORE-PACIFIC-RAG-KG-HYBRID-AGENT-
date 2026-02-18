@@ -13,14 +13,164 @@ Architecture:
         └─ mode="owl"    → OWLRetrievalStrategy
 
 Both strategies return UnifiedRetrievalResult.
+
+Intent-Based Strategy Selection:
+    UnifiedIntent (from src.core.intent) is mapped to IntentRetrievalConfig,
+    which tunes retrieval weights (kg / rag / inference), top_k, and
+    document-type filters per intent category.
 """
 
+from __future__ import annotations
+
 import logging
+from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
+from src.core.intent import UnifiedIntent
 from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Intent-Based Retrieval Configuration
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class IntentRetrievalConfig:
+    """Per-intent retrieval tuning parameters.
+
+    Attributes:
+        weights: blend ratios for kg / rag / inference (sum to 1.0).
+        top_k: maximum number of RAG chunks to retrieve.
+        doc_type_filter: document types to prioritize (None = all).
+        description: human-readable strategy label (for logging/debug).
+        fusion_strategy: ConfidenceFusion strategy name for overall scoring.
+    """
+
+    weights: dict[str, float] = field(
+        default_factory=lambda: {"kg": 0.4, "rag": 0.4, "inference": 0.2}
+    )
+    top_k: int = 5
+    doc_type_filter: list[str] | None = None
+    description: str = "default"
+    fusion_strategy: str = "weighted_sum"
+
+
+# Mapping from UnifiedIntent → retrieval configuration.
+# Graph-heavy: high kg weight (DIAGNOSIS, COMPETITIVE)
+# Vector-heavy: high rag weight (GENERAL, DEFINITION, DATA_QUERY)
+# Inference-heavy: high inference weight (ANALYSIS, INSIGHT_RULE)
+# Balanced/Hybrid: mixed weights (TREND, CRISIS, METRIC)
+
+_INTENT_STRATEGY_MAP: dict[UnifiedIntent, IntentRetrievalConfig] = {
+    # --- Graph-heavy strategies (KG relationships dominate) ---
+    UnifiedIntent.DIAGNOSIS: IntentRetrievalConfig(
+        weights={"kg": 0.5, "rag": 0.3, "inference": 0.2},
+        top_k=5,
+        doc_type_filter=["playbook", "metric_guide", "intelligence"],
+        description="graph-heavy/diagnosis",
+        fusion_strategy="weighted_sum",
+    ),
+    UnifiedIntent.COMPETITIVE: IntentRetrievalConfig(
+        weights={"kg": 0.5, "rag": 0.25, "inference": 0.25},
+        top_k=5,
+        doc_type_filter=["intelligence", "playbook"],
+        description="graph-heavy/competitive",
+        fusion_strategy="weighted_sum",
+    ),
+    # --- Vector-heavy strategies (RAG document search dominates) ---
+    UnifiedIntent.GENERAL: IntentRetrievalConfig(
+        weights={"kg": 0.3, "rag": 0.5, "inference": 0.2},
+        top_k=5,
+        doc_type_filter=None,
+        description="vector-heavy/general",
+        fusion_strategy="weighted_sum",
+    ),
+    UnifiedIntent.DEFINITION: IntentRetrievalConfig(
+        weights={"kg": 0.2, "rag": 0.6, "inference": 0.2},
+        top_k=5,
+        doc_type_filter=["metric_guide", "playbook"],
+        description="vector-heavy/definition",
+        fusion_strategy="weighted_sum",
+    ),
+    UnifiedIntent.DATA_QUERY: IntentRetrievalConfig(
+        weights={"kg": 0.4, "rag": 0.4, "inference": 0.2},
+        top_k=5,
+        doc_type_filter=None,
+        description="balanced/data_query",
+        fusion_strategy="weighted_sum",
+    ),
+    UnifiedIntent.INTERPRETATION: IntentRetrievalConfig(
+        weights={"kg": 0.3, "rag": 0.5, "inference": 0.2},
+        top_k=5,
+        doc_type_filter=["metric_guide", "playbook"],
+        description="vector-heavy/interpretation",
+        fusion_strategy="weighted_sum",
+    ),
+    # --- Inference-heavy strategies (ontology reasoning dominates) ---
+    UnifiedIntent.ANALYSIS: IntentRetrievalConfig(
+        weights={"kg": 0.3, "rag": 0.3, "inference": 0.4},
+        top_k=5,
+        doc_type_filter=["intelligence", "playbook", "metric_guide"],
+        description="inference-heavy/analysis",
+        fusion_strategy="geometric_mean",
+    ),
+    UnifiedIntent.INSIGHT_RULE: IntentRetrievalConfig(
+        weights={"kg": 0.25, "rag": 0.35, "inference": 0.4},
+        top_k=5,
+        doc_type_filter=["intelligence", "knowledge_base"],
+        description="inference-heavy/insight_rule",
+        fusion_strategy="geometric_mean",
+    ),
+    # --- Hybrid strategies (balanced blend) ---
+    UnifiedIntent.TREND: IntentRetrievalConfig(
+        weights={"kg": 0.35, "rag": 0.35, "inference": 0.3},
+        top_k=7,
+        doc_type_filter=["intelligence", "knowledge_base", "response_guide"],
+        description="hybrid/trend",
+        fusion_strategy="harmonic_mean",
+    ),
+    UnifiedIntent.CRISIS: IntentRetrievalConfig(
+        weights={"kg": 0.35, "rag": 0.4, "inference": 0.25},
+        top_k=7,
+        doc_type_filter=["response_guide", "intelligence", "playbook"],
+        description="hybrid/crisis",
+        fusion_strategy="harmonic_mean",
+    ),
+    UnifiedIntent.METRIC: IntentRetrievalConfig(
+        weights={"kg": 0.4, "rag": 0.4, "inference": 0.2},
+        top_k=5,
+        doc_type_filter=["metric_guide", "playbook"],
+        description="balanced/metric",
+        fusion_strategy="weighted_sum",
+    ),
+    UnifiedIntent.COMBINATION: IntentRetrievalConfig(
+        weights={"kg": 0.35, "rag": 0.35, "inference": 0.3},
+        top_k=7,
+        doc_type_filter=["playbook", "metric_guide"],
+        description="hybrid/combination",
+        fusion_strategy="harmonic_mean",
+    ),
+}
+
+
+def get_intent_retrieval_config(intent: UnifiedIntent) -> IntentRetrievalConfig:
+    """Return the retrieval configuration for a given intent.
+
+    Falls back to the GENERAL config if the intent is not mapped.
+
+    Args:
+        intent: unified query intent
+
+    Returns:
+        IntentRetrievalConfig with weights, top_k, doc_type_filter
+    """
+    return _INTENT_STRATEGY_MAP.get(
+        intent,
+        _INTENT_STRATEGY_MAP[UnifiedIntent.GENERAL],
+    )
 
 
 @runtime_checkable
@@ -77,7 +227,7 @@ class RetrievalStrategy(Protocol):
 class OWLRetrievalStrategy:
     """OWL-based retrieval strategy.
 
-    OWL-based retrieval pipeline (ported from former TrueHybridRetriever):
+    OWL-based retrieval pipeline:
     - Entity linking (query → ontology concepts)
     - OWL reasoning (owlready2-based formal inference)
     - Ontology-guided vector search

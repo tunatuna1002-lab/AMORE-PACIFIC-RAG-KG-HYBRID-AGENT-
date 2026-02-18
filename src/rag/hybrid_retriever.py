@@ -105,11 +105,16 @@ logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Query Intent Classification
+# Delegates to unified classifier (src/core/intent.py).
+# QueryIntent enum and helpers are kept for backward compatibility.
 # ============================================================================
+
+from src.core.intent import classify_intent as _unified_classify
+from src.core.intent import to_query_intent as _to_query_intent
 
 
 class QueryIntent(Enum):
-    """쿼리 의도 분류"""
+    """쿼리 의도 분류 (backward compat - delegates to UnifiedIntent)"""
 
     DIAGNOSIS = "diagnosis"  # 원인 분석 → Type A (플레이북) 우선
     TREND = "trend"  # 트렌드 → Type B (인텔리전스) 우선
@@ -130,7 +135,7 @@ INTENT_DOC_TYPE_PRIORITY = {
 
 def classify_intent(query: str) -> QueryIntent:
     """
-    쿼리 의도 분류
+    쿼리 의도 분류 - delegates to unified classifier.
 
     Args:
         query: 사용자 쿼리
@@ -142,78 +147,12 @@ def classify_intent(query: str) -> QueryIntent:
         키워드 우선순위: TREND > CRISIS > DIAGNOSIS > METRIC > GENERAL
         트렌드/위기 키워드가 있으면 분석 키워드보다 우선
     """
-    query_lower = query.lower()
-
-    # 1순위: 트렌드 의도 (Type B 우선)
-    # "트렌드 분석" 같은 쿼리는 TREND로 분류
-    trend_keywords = [
-        "트렌드",
-        "요즘",
-        "최근",
-        "인기",
-        "바이럴",
-        "키워드",
-        "성분",
-        "펩타이드",
-        "pdrn",
-        "글래스스킨",
-        "모닝쉐드",
-    ]
-    if any(kw in query_lower for kw in trend_keywords):
-        return QueryIntent.TREND
-
-    # 2순위: 위기 대응 의도 (Type C 우선)
-    crisis_keywords = [
-        "부정",
-        "문제",
-        "이슈",
-        "대응",
-        "어떻게 해",
-        "위기",
-        "리뷰",
-        "불만",
-        "인플루언서",
-        "마케팅",
-        "메시지",
-    ]
-    if any(kw in query_lower for kw in crisis_keywords):
-        return QueryIntent.CRISIS
-
-    # 3순위: 원인 분석 의도 (Type A 우선)
-    diagnosis_keywords = [
-        "왜",
-        "원인",
-        "갑자기",
-        "급변",
-        "떨어",
-        "올라",
-        "변동",
-        "이유",
-        "분석",
-        "진단",
-        "체크",
-        "확인",
-    ]
-    if any(kw in query_lower for kw in diagnosis_keywords):
-        return QueryIntent.DIAGNOSIS
-
-    # 4순위: 지표 해석 의도 (Type D 우선)
-    metric_keywords = [
-        "sos",
-        "hhi",
-        "cpi",
-        "지표",
-        "점유율",
-        "해석",
-        "의미",
-        "정의",
-        "공식",
-        "계산",
-    ]
-    if any(kw in query_lower for kw in metric_keywords):
-        return QueryIntent.METRIC
-
-    return QueryIntent.GENERAL
+    unified = _unified_classify(query)
+    value = _to_query_intent(unified)
+    try:
+        return QueryIntent(value)
+    except ValueError:
+        return QueryIntent.GENERAL
 
 
 def get_doc_type_filter(intent: QueryIntent) -> list[str] | None:
@@ -267,210 +206,33 @@ class HybridContext:
 
 class EntityExtractor:
     """
-    쿼리에서 엔티티 추출
+    쿼리에서 엔티티 추출 (thin wrapper around EntityLinker).
 
-    추출 대상:
-    - 브랜드명 (LANEIGE, COSRX 등)
-    - 카테고리 (Lip Care, Skin Care 등)
-    - 지표명 (SoS, HHI, CPI 등)
-    - 시간 범위 (오늘, 최근 7일 등)
-
-    설정 파일:
-    - config/entities.json에서 동적 로드
-    - 브랜드 추가/수정 시 설정 파일만 수정하면 됨
+    All extraction is delegated to EntityLinker.extract_entities().
     """
 
-    # 설정 파일 경로
-    CONFIG_PATH = "config/entities.json"
+    def __init__(self) -> None:
+        from src.rag.entity_linker import EntityLinker
 
-    # 캐시된 설정 (싱글톤 패턴)
-    _config_cache = None
-    _config_loaded_at = None
-
-    @classmethod
-    def _get_config_ttl_seconds(cls) -> int:
-        """설정 파일에서 캐시 TTL 로드 (기본: 300초)"""
-        import json
-        from pathlib import Path
-
-        thresholds_path = Path(__file__).parent.parent.parent / "config/thresholds.json"
-        if thresholds_path.exists():
-            try:
-                with open(thresholds_path, encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("system", {}).get("rag", {}).get("ttl_seconds", 300)
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
-        return 300
-
-    @classmethod
-    def _load_config(cls) -> dict:
-        """설정 파일에서 엔티티 매핑 로드 (캐싱 적용)"""
-        import json
-        from pathlib import Path
-
-        # 캐시가 있으면 반환 (설정 파일 TTL 적용)
-        if cls._config_cache is not None and cls._config_loaded_at is not None:
-            from datetime import datetime, timedelta
-
-            ttl_seconds = cls._get_config_ttl_seconds()
-            if datetime.now() - cls._config_loaded_at < timedelta(seconds=ttl_seconds):
-                return cls._config_cache
-
-        # 설정 파일 경로 찾기
-        config_path = Path(cls.CONFIG_PATH)
-        if not config_path.exists():
-            # 프로젝트 루트에서 찾기
-            project_root = Path(__file__).parent.parent.parent
-            config_path = project_root / cls.CONFIG_PATH
-
-        if config_path.exists():
-            try:
-                with open(config_path, encoding="utf-8") as f:
-                    cls._config_cache = json.load(f)
-                    cls._config_loaded_at = datetime.now()
-                    logger.info(f"EntityExtractor config loaded from {config_path}")
-                    return cls._config_cache
-            except Exception as e:
-                logger.warning(f"Failed to load entity config: {e}, using defaults")
-
-        # 기본값 반환
-        return cls._get_default_config()
-
-    @classmethod
-    def _get_default_config(cls) -> dict:
-        """기본 설정값 (설정 파일 없을 때 fallback)"""
-        return {
-            "known_brands": [
-                {"name": "laneige", "aliases": ["라네즈"]},
-                {"name": "cosrx", "aliases": ["코스알엑스"]},
-                {"name": "tirtir", "aliases": ["티르티르"]},
-                {"name": "rare beauty", "aliases": ["레어뷰티"]},
-                {"name": "innisfree", "aliases": ["이니스프리"]},
-                {"name": "etude", "aliases": ["에뛰드"]},
-                {"name": "sulwhasoo", "aliases": ["설화수"]},
-                {"name": "hera", "aliases": ["헤라"]},
-            ],
-            "category_map": {
-                "lip care": "lip_care",
-                "립케어": "lip_care",
-                "lip makeup": "lip_makeup",
-                "립메이크업": "lip_makeup",
-                "skin care": "skin_care",
-                "스킨케어": "skin_care",
-                "face powder": "face_powder",
-                "파우더": "face_powder",
-                "beauty": "beauty",
-                "뷰티": "beauty",
-            },
-            "indicator_map": {
-                "sos": "sos",
-                "점유율": "sos",
-                "share of shelf": "sos",
-                "hhi": "hhi",
-                "시장집중도": "hhi",
-                "허핀달": "hhi",
-                "cpi": "cpi",
-                "가격지수": "cpi",
-                "churn": "churn_rate",
-                "교체율": "churn_rate",
-                "streak": "streak_days",
-                "연속": "streak_days",
-                "volatility": "rank_volatility",
-                "변동성": "rank_volatility",
-                "shock": "rank_shock",
-                "급변": "rank_shock",
-            },
-            "time_range_map": {
-                "오늘": "today",
-                "today": "today",
-                "어제": "yesterday",
-                "yesterday": "yesterday",
-                "이번 주": "week",
-                "이번 달": "month",
-                "최근 7일": "7days",
-                "최근 30일": "30days",
-                "3개월": "90days",
-                "1개월": "30days",
-            },
-            "sentiment_map": {
-                "moisturizing": "Hydration",
-                "hydrating": "Hydration",
-                "보습": "Hydration",
-                "수분": "Hydration",
-                "촉촉": "Hydration",
-                "value for money": "Pricing",
-                "가성비": "Pricing",
-                "affordable": "Pricing",
-                "저렴": "Pricing",
-                "easy to use": "Usability",
-                "사용감": "Usability",
-                "편리": "Usability",
-                "효과": "Effectiveness",
-                "effective": "Effectiveness",
-                "scent": "Sensory",
-                "향": "Sensory",
-                "texture": "Sensory",
-                "packaging": "Packaging",
-                "패키징": "Packaging",
-                "gentle": "Skin_Compatibility",
-                "순한": "Skin_Compatibility",
-                "리뷰": "sentiment_general",
-                "review": "sentiment_general",
-            },
-        }
+        self._linker = EntityLinker(use_spacy=False)
 
     @classmethod
     def get_known_brands(cls) -> list:
-        """설정에서 브랜드 목록 가져오기 (이름 + 별칭 평탄화)"""
-        config = cls._load_config()
-        brands = []
-        for brand_info in config.get("known_brands", []):
-            if isinstance(brand_info, dict):
-                brands.append(brand_info["name"].lower())
-                for alias in brand_info.get("aliases", []):
-                    brands.append(alias.lower())
-            else:
-                brands.append(str(brand_info).lower())
-        return brands
+        """EntityLinker에서 브랜드 목록 가져오기 (이름 + 별칭 평탄화)"""
+        from src.rag.entity_linker import EntityLinker
+
+        return list(EntityLinker(use_spacy=False)._get_merged_brands().keys())
 
     @classmethod
     def get_brand_normalization_map(cls) -> dict:
-        """별칭 → 정규화된 브랜드명 매핑"""
-        config = cls._load_config()
-        mapping = {}
-        for brand_info in config.get("known_brands", []):
-            if isinstance(brand_info, dict):
-                name = brand_info["name"].lower()
-                mapping[name] = name
-                for alias in brand_info.get("aliases", []):
-                    mapping[alias.lower()] = name
-        return mapping
+        """EntityLinker에서 별칭 → 정규화된 브랜드명 매핑"""
+        from src.rag.entity_linker import EntityLinker
 
-    # 프로퍼티로 동적 로드 (설정 파일 기반)
-    @property
-    def KNOWN_BRANDS(self) -> list:
-        return self.get_known_brands()
-
-    @property
-    def CATEGORY_MAP(self) -> dict:
-        return self._load_config().get("category_map", {})
-
-    @property
-    def INDICATOR_MAP(self) -> dict:
-        return self._load_config().get("indicator_map", {})
-
-    @property
-    def TIME_RANGE_MAP(self) -> dict:
-        return self._load_config().get("time_range_map", {})
-
-    @property
-    def SENTIMENT_MAP(self) -> dict:
-        return self._load_config().get("sentiment_map", {})
+        return EntityLinker(use_spacy=False)._get_merged_brands()
 
     def extract(self, query: str, knowledge_graph=None) -> dict[str, list[str]]:
         """
-        쿼리에서 엔티티 추출
+        쿼리에서 엔티티 추출. Delegates to EntityLinker.extract_entities().
 
         Args:
             query: 사용자 쿼리
@@ -482,92 +244,12 @@ class EntityExtractor:
                 "categories": [...],
                 "indicators": [...],
                 "time_range": [...],
-                "products": [...]
+                "products": [...],
+                "sentiments": [...],
+                "sentiment_clusters": [...]
             }
         """
-        import re
-
-        query_lower = query.lower()
-
-        entities = {
-            "brands": [],
-            "categories": [],
-            "indicators": [],
-            "time_range": [],
-            "products": [],
-        }
-
-        # 브랜드 추출 (설정 파일 기반 정규화)
-        brand_norm_map = self.get_brand_normalization_map()
-        for brand in self.KNOWN_BRANDS:
-            if brand in query_lower:
-                # 설정 파일의 매핑으로 정규화
-                normalized = brand_norm_map.get(brand, brand)
-                if normalized not in entities["brands"]:
-                    entities["brands"].append(normalized)
-
-        # 카테고리 추출
-        for cat_name, cat_id in self.CATEGORY_MAP.items():
-            if cat_name in query_lower:
-                if cat_id not in entities["categories"]:
-                    entities["categories"].append(cat_id)
-
-        # 지표 추출
-        for indicator_name, indicator_id in self.INDICATOR_MAP.items():
-            if indicator_name in query_lower:
-                if indicator_id not in entities["indicators"]:
-                    entities["indicators"].append(indicator_id)
-
-        # 시간 범위 추출
-        for time_name, time_id in self.TIME_RANGE_MAP.items():
-            if time_name in query_lower:
-                if time_id not in entities["time_range"]:
-                    entities["time_range"].append(time_id)
-
-        # 제품 ASIN 추출 (B0로 시작하는 10자리 형식)
-        asin_pattern = r"\bB0[A-Z0-9]{8}\b"
-        asins = re.findall(asin_pattern, query)
-        if asins:
-            entities["products"].extend(asins)
-
-        # 순위 기반 제품 추출 (지식 그래프 활용)
-        if knowledge_graph:
-            # "1위 제품", "top 1 product" 같은 패턴 감지
-            rank_patterns = [
-                (r"(\d+)위\s*제품", "ko"),
-                (r"top\s*(\d+)\s*product", "en"),
-                (r"(\d+)위", "ko"),
-                (r"rank\s*(\d+)", "en"),
-            ]
-
-            for pattern, _lang in rank_patterns:
-                matches = re.findall(pattern, query_lower)
-                if matches and entities.get("categories"):
-                    # 해당 카테고리의 특정 순위 제품 찾기
-                    for rank_str in matches:
-                        rank = int(rank_str)
-                        for category in entities["categories"]:
-                            # 해당 카테고리+순위의 제품 찾기
-                            products = knowledge_graph.query(predicate=None, object_=category)
-                            for rel in products:
-                                if rel.properties.get("rank") == rank:
-                                    asin = rel.subject
-                                    if asin not in entities["products"]:
-                                        entities["products"].append(asin)
-                                    break
-
-        # 감성 키워드 추출
-        entities["sentiments"] = []
-        entities["sentiment_clusters"] = []
-
-        for keyword, cluster in self.SENTIMENT_MAP.items():
-            if keyword in query_lower:
-                if keyword not in entities["sentiments"]:
-                    entities["sentiments"].append(keyword)
-                if cluster not in entities["sentiment_clusters"]:
-                    entities["sentiment_clusters"].append(cluster)
-
-        return entities
+        return self._linker.extract_entities(query, knowledge_graph=knowledge_graph)
 
 
 class HybridRetriever:
@@ -676,10 +358,20 @@ class HybridRetriever:
         context = HybridContext(query=query)
 
         try:
-            # 0. 쿼리 의도 분류
+            # 0. 쿼리 의도 분류 + 인텐트 기반 전략 선택
             query_intent = classify_intent(query)
-            doc_type_filter = get_doc_type_filter(query_intent)
-            logger.debug(f"Query intent: {query_intent.value}, doc_type_filter: {doc_type_filter}")
+            unified_intent = _unified_classify(query)
+
+            from src.rag.retrieval_strategy import get_intent_retrieval_config
+
+            intent_config = get_intent_retrieval_config(unified_intent)
+            doc_type_filter = intent_config.doc_type_filter
+            intent_top_k = intent_config.top_k
+            logger.debug(
+                f"Query intent: {query_intent.value}, "
+                f"strategy: {intent_config.description}, "
+                f"weights: {intent_config.weights}, top_k: {intent_top_k}"
+            )
 
             # 1. 엔티티 추출 (지식 그래프 전달로 제품 ASIN도 추출 가능)
             entities = self.entity_extractor.extract(query, knowledge_graph=self.kg)
@@ -706,14 +398,14 @@ class HybridRetriever:
             # 5. RAG 문서 검색 (추론 결과로 쿼리 확장 + 의도 기반 필터링)
             expanded_query = self._expand_query(search_query, inferences, entities)
             rag_results = await self.doc_retriever.search(
-                expanded_query, top_k=5, doc_type_filter=doc_type_filter
+                expanded_query, top_k=intent_top_k, doc_type_filter=doc_type_filter
             )
 
             # 필터링된 결과가 부족하면 전체 문서에서 추가 검색
             if len(rag_results) < 3 and doc_type_filter:
                 additional_results = await self.doc_retriever.search(
                     expanded_query,
-                    top_k=5 - len(rag_results),
+                    top_k=intent_top_k - len(rag_results),
                     doc_type_filter=None,  # 전체 문서에서 검색
                 )
                 # 중복 제거하며 추가
@@ -738,7 +430,9 @@ class HybridRetriever:
                     rewritten_query = self._rewrite_for_relevance(query, entities)
                     if rewritten_query != query:
                         additional_results = await self.doc_retriever.search(
-                            rewritten_query, top_k=5, doc_type_filter=doc_type_filter
+                            rewritten_query,
+                            top_k=intent_top_k,
+                            doc_type_filter=doc_type_filter,
                         )
                         # 기존 관련 문서 + 새 검색 결과 병합
                         existing_ids = {r.get("id") for r in relevant_docs}
@@ -766,8 +460,8 @@ class HybridRetriever:
             except Exception as e:
                 logger.debug(f"RAG metrics recording failed: {e}")
 
-            # 5.7. 가중치 기반 병합
-            context = self._weighted_merge(context)
+            # 5.7. 가중치 기반 병합 (인텐트 전략 가중치 적용)
+            context = self._weighted_merge(context, intent_weights=intent_config.weights)
 
             # 6. 통합 컨텍스트 생성
             context.combined_context = self._combine_contexts(context, include_explanations)
@@ -781,6 +475,8 @@ class HybridRetriever:
                 "query_expanded": expanded_query != query,
                 "query_intent": query_intent.value,
                 "doc_type_filter": doc_type_filter,
+                "intent_strategy": intent_config.description,
+                "intent_weights": intent_config.weights,
             }
 
         except Exception as e:
@@ -1320,6 +1016,7 @@ class HybridRetriever:
     def _weighted_merge(
         self,
         context: HybridContext,
+        intent_weights: dict[str, float] | None = None,
     ) -> HybridContext:
         """
         가중치 기반 컨텍스트 병합
@@ -1327,16 +1024,21 @@ class HybridRetriever:
         KG facts, RAG chunks, Ontology inferences에 가중치를 부여하고
         최종 점수로 정렬하여 상위 항목만 유지합니다.
 
-        가중치 설정: config/retrieval_weights.json
-        기본값: kg=0.4, rag=0.4, inference=0.2
+        가중치 우선순위:
+        1. intent_weights (인텐트 기반 전략에서 전달)
+        2. config/retrieval_weights.json (파일 설정)
+        3. 기본값: kg=0.4, rag=0.4, inference=0.2
 
         Args:
             context: 병합 전 HybridContext
+            intent_weights: 인텐트 기반 가중치 (optional override)
 
         Returns:
             가중치 적용된 HybridContext
         """
-        weights = self._retrieval_weights["weights"]
+        weights = (
+            intent_weights if intent_weights is not None else self._retrieval_weights["weights"]
+        )
         freshness = self._retrieval_weights["freshness"]
         max_items = self._retrieval_weights["max_context_items"]
 
@@ -1416,12 +1118,160 @@ class HybridRetriever:
             context.metadata = {}
         context.metadata["weighted_scores"] = weighted_scores
 
+        # ConfidenceFusion: 전체 신뢰도 계산 + 충돌 감지
+        fusion_meta = self._compute_fusion_confidence(context, intent_weights)
+        context.metadata["fusion"] = fusion_meta
+
         logger.info(
             f"Weighted merge applied: {len(context.ontology_facts)} facts, "
             f"{len(context.rag_chunks)} chunks, {len(context.inferences)} inferences"
+            f" | fusion_confidence={fusion_meta.get('confidence', 0):.3f}"
+            f" strategy={fusion_meta.get('strategy', 'n/a')}"
         )
 
+        if fusion_meta.get("warnings"):
+            for w in fusion_meta["warnings"]:
+                logger.warning(f"Fusion conflict: {w}")
+
         return context
+
+    def _compute_fusion_confidence(
+        self,
+        context: HybridContext,
+        intent_weights: dict[str, float] | None = None,
+    ) -> dict[str, Any]:
+        """
+        ConfidenceFusion을 사용해 전체 신뢰도를 계산하고 소스 간 충돌을 감지합니다.
+
+        기존 _weighted_merge의 per-item 점수 산정은 유지하고,
+        이 메서드는 3개 소스의 aggregate 신뢰도 + 충돌 경고를 추가합니다.
+
+        Args:
+            context: 가중 병합 완료된 HybridContext
+            intent_weights: 인텐트별 가중치 (kg/rag/inference)
+
+        Returns:
+            dict with confidence, strategy, warnings, source_scores, explanation
+        """
+        try:
+            from src.rag.confidence_fusion import (
+                ConfidenceFusion,
+                FusionStrategy,
+                LinkedEntity,
+                ScoreNormalizationMethod,
+                SearchResult,
+            )
+            from src.rag.confidence_fusion import (
+                InferenceResult as FusionInferenceResult,
+            )
+        except ImportError:
+            logger.debug("confidence_fusion module not available, skipping fusion scoring")
+            return {"confidence": 0.0, "strategy": "unavailable", "warnings": []}
+
+        # 인텐트 가중치 → ConfidenceFusion 가중치 매핑
+        # ConfidenceFusion uses: vector(=rag), ontology(=inference), entity(=kg)
+        w = intent_weights or {"kg": 0.4, "rag": 0.4, "inference": 0.2}
+        fusion_weights = {
+            "vector": w.get("rag", 0.4),
+            "ontology": w.get("inference", 0.2),
+            "entity": w.get("kg", 0.4),
+        }
+
+        # 인텐트 설정에서 fusion_strategy 결정
+        fusion_strategy_name = "weighted_sum"
+        try:
+            from src.core.intent import classify_intent as _cl
+            from src.rag.retrieval_strategy import get_intent_retrieval_config
+
+            intent = _cl(context.query)
+            config = get_intent_retrieval_config(intent)
+            fusion_strategy_name = config.fusion_strategy
+        except Exception:
+            pass
+
+        strategy_map = {
+            "weighted_sum": FusionStrategy.WEIGHTED_SUM,
+            "harmonic_mean": FusionStrategy.HARMONIC_MEAN,
+            "geometric_mean": FusionStrategy.GEOMETRIC_MEAN,
+            "max_score": FusionStrategy.MAX_SCORE,
+            "rrf": FusionStrategy.RRF,
+        }
+        strategy = strategy_map.get(fusion_strategy_name, FusionStrategy.WEIGHTED_SUM)
+
+        # harmonic/geometric mean은 0 점수에 취약 → 정규화 생략 (원점수가 이미 0-1)
+        if strategy in (FusionStrategy.HARMONIC_MEAN, FusionStrategy.GEOMETRIC_MEAN):
+            normalization = ScoreNormalizationMethod.NONE
+        else:
+            normalization = ScoreNormalizationMethod.MIN_MAX
+
+        fusion = ConfidenceFusion(
+            weights=fusion_weights,
+            normalization=normalization,
+            strategy=strategy,
+            min_sources=1,
+            conflict_threshold=0.3,
+        )
+
+        # HybridContext → ConfidenceFusion 입력 변환
+        vector_results = []
+        for chunk in context.rag_chunks or []:
+            vector_results.append(
+                SearchResult(
+                    content=chunk.get("content", chunk.get("text", "")),
+                    score=chunk.get("_weighted_score", chunk.get("score", 0.5)),
+                    metadata=chunk.get("metadata", {}),
+                    source="vector",
+                )
+            )
+
+        ontology_results = []
+        for inf in context.inferences or []:
+            ontology_results.append(
+                FusionInferenceResult(
+                    insight=getattr(inf, "conclusion", str(inf)),
+                    confidence=getattr(inf, "confidence", 0.5),
+                    evidence=getattr(inf, "evidence", {}),
+                    rule_name=getattr(inf, "rule_name", None),
+                )
+            )
+
+        entity_links = []
+        for fact in context.ontology_facts or []:
+            entity_links.append(
+                LinkedEntity(
+                    entity_id=fact.get("type", "unknown"),
+                    entity_name=fact.get("subject", fact.get("type", "")),
+                    entity_type=fact.get("type", "KG_Fact"),
+                    link_confidence=fact.get("_weighted_score", 0.6),
+                    context=str(fact.get("data", "")),
+                )
+            )
+
+        # Fusion 실행
+        result = fusion.fuse(
+            vector_results=vector_results or None,
+            ontology_results=ontology_results or None,
+            entity_links=entity_links or None,
+            query=context.query,
+        )
+
+        return {
+            "confidence": round(result.confidence, 4),
+            "strategy": result.fusion_strategy,
+            "warnings": result.warnings,
+            "explanation": result.explanation,
+            "source_scores": [
+                {
+                    "source": s.source_name,
+                    "raw": round(s.raw_score, 3),
+                    "normalized": round(s.normalized_score, 3),
+                    "weight": round(s.weight, 3),
+                    "contribution": round(s.contribution, 3),
+                    "level": s.confidence_level,
+                }
+                for s in result.source_scores
+            ],
+        }
 
     def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
         """

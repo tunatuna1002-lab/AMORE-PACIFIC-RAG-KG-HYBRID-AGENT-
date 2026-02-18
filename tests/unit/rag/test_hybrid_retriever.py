@@ -5,9 +5,6 @@ src/rag/hybrid_retriever.py의 하이브리드 검색기 테스트
 """
 
 import json
-import tempfile
-from datetime import timedelta
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
@@ -133,11 +130,14 @@ class TestEntityExtractor:
 
     def test_entity_extractor_default_config(self):
         """기본 설정이 로드되는지 테스트"""
+        brands = EntityExtractor.get_known_brands()
+        assert "laneige" in brands
+        assert "cosrx" in brands
+        # category and indicator extraction verified via extract()
         extractor = EntityExtractor()
-        assert "laneige" in extractor.KNOWN_BRANDS
-        assert "cosrx" in extractor.KNOWN_BRANDS
-        assert "lip care" in extractor.CATEGORY_MAP
-        assert "sos" in extractor.INDICATOR_MAP
+        entities = extractor.extract("lip care sos")
+        assert "lip_care" in entities["categories"]
+        assert "sos" in entities["indicators"]
 
     def test_entity_extractor_brand_extraction(self):
         """브랜드 추출 테스트"""
@@ -200,92 +200,20 @@ class TestEntityExtractor:
 
         assert "7days" in entities["time_range"]
 
-    def test_entity_extractor_config_caching(self):
-        """설정 캐싱 테스트"""
-        # 캐시 초기화
-        EntityExtractor._config_cache = None
-        EntityExtractor._config_loaded_at = None
+    def test_get_known_brands_returns_list(self):
+        """get_known_brands()가 브랜드 목록을 반환하는지 테스트"""
+        brands = EntityExtractor.get_known_brands()
+        assert isinstance(brands, list)
+        assert len(brands) > 0
+        assert "laneige" in brands
 
-        # 첫 번째 호출
-        extractor1 = EntityExtractor()
-        config1 = extractor1._load_config()
-        loaded_at1 = EntityExtractor._config_loaded_at
-
-        # 두 번째 호출 (캐시 사용)
-        extractor2 = EntityExtractor()
-        config2 = extractor2._load_config()
-        loaded_at2 = EntityExtractor._config_loaded_at
-
-        # 같은 로드 시점이어야 함 (캐시 사용)
-        assert loaded_at1 == loaded_at2
-        # 같은 내용이어야 함
-        assert config1 == config2
-
-    def test_entity_extractor_config_ttl_expiry(self):
-        """설정 캐시 TTL 만료 테스트"""
-        from datetime import datetime as dt
-
-        # 캐시 초기화
-        EntityExtractor._config_cache = None
-        EntityExtractor._config_loaded_at = None
-
-        # 기본 설정을 mock으로 반환
-        mock_config = EntityExtractor._get_default_config()
-
-        # TTL을 매우 짧게 설정 (0초 = 항상 만료)
-        with patch.object(EntityExtractor, "_get_config_ttl_seconds", return_value=0):
-            extractor = EntityExtractor()
-
-            # 캐시에 직접 설정 주입 (파일 로드 대신)
-            EntityExtractor._config_cache = mock_config
-            EntityExtractor._config_loaded_at = dt.now()
-
-            first_loaded_at = EntityExtractor._config_loaded_at
-            assert first_loaded_at is not None
-
-            # 캐시 만료 시뮬레이션 (과거 시점으로 설정)
-            past_time = dt.now() - timedelta(seconds=2)
-            EntityExtractor._config_loaded_at = past_time
-
-            # 캐시에 다시 설정 (재로드 시뮬레이션)
-            EntityExtractor._config_cache = mock_config
-            EntityExtractor._config_loaded_at = dt.now()
-
-            second_loaded_at = EntityExtractor._config_loaded_at
-
-            # 두 번째 로드 시점이 첫 번째보다 나중이어야 함
-            assert second_loaded_at is not None
-            assert second_loaded_at > past_time
-
-    def test_entity_extractor_custom_config_file(self):
-        """커스텀 설정 파일 로드 테스트"""
-        # 임시 설정 파일 생성
-        temp_config = {
-            "known_brands": [{"name": "testbrand", "aliases": ["테스트브랜드"]}],
-            "category_map": {"test_category": "test_cat"},
-            "indicator_map": {"test_metric": "test_m"},
-            "time_range_map": {},
-            "sentiment_map": {},
-        }
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(temp_config, f)
-            temp_path = f.name
-
-        try:
-            # 캐시 초기화
-            EntityExtractor._config_cache = None
-            EntityExtractor._config_loaded_at = None
-
-            # _load_config를 직접 패치하여 임시 설정 반환
-            with patch.object(EntityExtractor, "_load_config", return_value=temp_config):
-                extractor = EntityExtractor()
-                # _load_config가 temp_config를 반환하므로 testbrand가 포함되어야 함
-                brands = extractor.get_known_brands()
-                assert "testbrand" in brands
-                assert "test_category" in extractor.CATEGORY_MAP
-        finally:
-            Path(temp_path).unlink()
+    def test_get_brand_normalization_map_returns_dict(self):
+        """get_brand_normalization_map()이 정규화 맵을 반환하는지 테스트"""
+        mapping = EntityExtractor.get_brand_normalization_map()
+        assert isinstance(mapping, dict)
+        assert len(mapping) > 0
+        # 모든 값이 문자열이어야 함
+        assert all(isinstance(v, str) for v in mapping.values())
 
 
 # =============================================================================
@@ -635,95 +563,6 @@ class TestHybridRetriever:
         assert len(context.rag_chunks) == 1
         assert context.combined_context != ""
         assert "retrieval_time_ms" in context.metadata
-
-
-# =============================================================================
-# Config TTL and Loading Tests
-# =============================================================================
-
-
-class TestConfigTTLAndLoading:
-    """EntityExtractor 설정 TTL 및 로딩 테스트"""
-
-    def test_get_config_ttl_seconds_from_file(self):
-        """설정 파일에서 TTL 로드 테스트"""
-        import json
-        from pathlib import Path
-
-        # 임시 설정 파일 생성
-        test_config = {"system": {"rag": {"ttl_seconds": 600}}}
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(test_config, f)
-            temp_path = Path(f.name)
-
-        try:
-            # Path 객체의 exists 메서드를 패치하고 open도 패치
-            with patch.object(Path, "exists", return_value=True):
-                with patch("builtins.open", mock_open(read_data=json.dumps(test_config))):
-                    ttl = EntityExtractor._get_config_ttl_seconds()
-                    assert ttl == 600
-        finally:
-            temp_path.unlink()
-
-    def test_get_config_ttl_seconds_file_not_exists(self):
-        """설정 파일 없을 때 기본값 반환 테스트"""
-        with patch("pathlib.Path.exists", return_value=False):
-            ttl = EntityExtractor._get_config_ttl_seconds()
-            assert ttl == 300  # 기본값
-
-    def test_get_config_ttl_seconds_invalid_json(self):
-        """잘못된 JSON 파일일 때 기본값 반환 테스트"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            f.write("invalid json{")
-            temp_path = Path(f.name)
-
-        try:
-            with (
-                patch("pathlib.Path.exists", return_value=True),
-                patch("builtins.open", lambda path, **kwargs: open(temp_path, **kwargs)),
-            ):
-                ttl = EntityExtractor._get_config_ttl_seconds()
-                assert ttl == 300  # fallback to default
-        finally:
-            temp_path.unlink()
-
-    def test_load_config_with_ttl_cache_hit(self):
-        """TTL 내 캐시 히트 테스트"""
-        from datetime import datetime
-
-        # 캐시 초기화
-        EntityExtractor._config_cache = {"test": "data"}
-        EntityExtractor._config_loaded_at = datetime.now()
-
-        # TTL을 충분히 길게 설정
-        with patch.object(EntityExtractor, "_get_config_ttl_seconds", return_value=300):
-            config = EntityExtractor._load_config()
-            # 캐시된 값이 반환되어야 함
-            assert config == {"test": "data"}
-
-    def test_load_config_alternate_path(self):
-        """대체 설정 경로 로드 테스트"""
-        # 캐시 초기화
-        EntityExtractor._config_cache = None
-        EntityExtractor._config_loaded_at = None
-
-        # config/entities.json이 없는 경우, 프로젝트 루트에서 찾기
-        mock_config = EntityExtractor._get_default_config()
-
-        with (
-            patch("pathlib.Path.exists") as mock_exists,
-            patch("builtins.open", create=True) as mock_open,
-        ):
-            # 첫 번째 경로는 없고, 두 번째(프로젝트 루트) 경로는 있음
-            mock_exists.side_effect = [False, True]
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(
-                mock_config
-            )
-
-            config = EntityExtractor._load_config()
-            # 기본 설정이 로드되어야 함
-            assert "known_brands" in config
 
 
 # =============================================================================

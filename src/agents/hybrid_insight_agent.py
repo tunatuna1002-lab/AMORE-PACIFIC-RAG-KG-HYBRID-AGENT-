@@ -14,6 +14,7 @@ from typing import Any
 
 from litellm import acompletion
 
+from src.agents.base_hybrid_agent import BaseHybridAgent
 from src.domain.entities.relations import (
     InferenceResult,
     InsightType,
@@ -23,14 +24,10 @@ from src.domain.entities.relations import (
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.rag.context_builder import ContextBuilder
-from src.rag.hybrid_retriever import HybridContext, HybridRetriever
+from src.rag.hybrid_retriever import HybridContext
 from src.rag.rag_kg_extractor import RAGKGExtractor
-from src.rag.retriever import DocumentRetriever
-from src.rag.templates import ResponseTemplates
 from src.tools.collectors.external_signal_collector import ExternalSignalCollector
 from src.tools.exporters.insight_formatter import format_insight
 from src.tools.intelligence.market_intelligence import DataLayer, MarketIntelligenceEngine
@@ -51,7 +48,7 @@ except ImportError as e:
     GOOGLE_TRENDS_AVAILABLE = False
 
 
-class HybridInsightAgent:
+class HybridInsightAgent(BaseHybridAgent):
     """
     Ontology-RAG 하이브리드 인사이트 생성 에이전트
     Implements InsightAgentProtocol
@@ -67,6 +64,8 @@ class HybridInsightAgent:
         agent = HybridInsightAgent(model="gpt-4.1-mini")
         result = await agent.execute(metrics_data)
     """
+
+    AGENT_NAME = "hybrid_insight"
 
     def __init__(
         self,
@@ -90,7 +89,6 @@ class HybridInsightAgent:
         """
         import os
 
-        self.model = model
         # Temperature: 인사이트 전용 환경변수 > 일반 환경변수 > 기본값(0.6)
         # 인사이트는 창의적 분석/전략 제안을 위해 약간 높은 temperature 사용 (E2E Audit - 2026-01-27)
         from src.shared.constants import INSIGHT_TEMPERATURE
@@ -102,39 +100,20 @@ class HybridInsightAgent:
             )
         )
 
-        # 온톨로지 컴포넌트
-        self.kg = knowledge_graph or KnowledgeGraph()
-        self.reasoner = reasoner or OntologyReasoner(self.kg)
-
-        # 비즈니스 규칙 등록
-        if not self.reasoner.rules:
-            register_all_rules(self.reasoner)
-
-        # RAG 컴포넌트
-        self.doc_retriever = DocumentRetriever(docs_dir)
-
-        # 하이브리드 검색기
-        self.hybrid_retriever = HybridRetriever(
-            knowledge_graph=self.kg,
-            reasoner=self.reasoner,
-            doc_retriever=self.doc_retriever,
-            auto_init_rules=False,  # 이미 등록됨
+        # Base class initialisation (KG, reasoner, retriever, context_builder, etc.)
+        super().__init__(
+            model=model,
+            docs_dir=docs_dir,
+            knowledge_graph=knowledge_graph,
+            reasoner=reasoner,
+            agent_logger=logger,
+            tracer=tracer,
+            metrics=metrics,
+            context_builder_max_tokens=4000,
         )
-
-        # 컨텍스트 빌더
-        self.context_builder = ContextBuilder(max_tokens=4000)
-
-        # 템플릿
-        self.templates = ResponseTemplates()
-
-        # 모니터링
-        self.logger = logger or AgentLogger("hybrid_insight")
-        self.tracer = tracer
-        self.metrics = metrics
 
         # 결과 캐시
         self._results: dict[str, Any] = {}
-        self._last_hybrid_context: HybridContext | None = None
 
         # External Signal Collector
         self._signal_collector: ExternalSignalCollector | None = None
@@ -949,18 +928,6 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
     def get_results(self) -> dict[str, Any]:
         """마지막 실행 결과"""
         return self._results
-
-    def get_last_hybrid_context(self) -> HybridContext | None:
-        """마지막 하이브리드 컨텍스트"""
-        return self._last_hybrid_context
-
-    def get_knowledge_graph(self) -> KnowledgeGraph:
-        """지식 그래프 반환"""
-        return self.kg
-
-    def get_reasoner(self) -> OntologyReasoner:
-        """추론기 반환"""
-        return self.reasoner
 
     async def _collect_external_signals(self) -> dict[str, Any]:
         """

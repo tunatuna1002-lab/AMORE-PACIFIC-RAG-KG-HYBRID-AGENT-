@@ -16,25 +16,23 @@ from typing import Any
 
 from litellm import acompletion
 
+from src.agents.base_hybrid_agent import BaseHybridAgent
 from src.domain.entities.relations import InferenceResult
 from src.memory.context import ContextManager
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.rag.context_builder import CompactContextBuilder, ContextBuilder
-from src.rag.hybrid_retriever import HybridContext, HybridRetriever
+from src.rag.context_builder import CompactContextBuilder
+from src.rag.hybrid_retriever import HybridContext
 from src.rag.query_rewriter import QueryRewriter, RewriteResult, create_rewrite_result_no_change
-from src.rag.retriever import DocumentRetriever
 from src.rag.router import QueryType, RAGRouter
-from src.rag.templates import ResponseTemplates
 
 logger = logging.getLogger(__name__)
 
 
-class HybridChatbotAgent:
+class HybridChatbotAgent(BaseHybridAgent):
     """
     Ontology-RAG 하이브리드 챗봇 에이전트
     Implements ChatbotAgentProtocol (src.domain.interfaces.chatbot)
@@ -48,6 +46,8 @@ class HybridChatbotAgent:
         agent = HybridChatbotAgent()
         result = await agent.chat("LANEIGE Lip Care 경쟁력 분석해줘")
     """
+
+    AGENT_NAME = "hybrid_chatbot"
 
     # 설정 파일 경로
     CONFIG_PATH = "config/thresholds.json"
@@ -125,7 +125,7 @@ class HybridChatbotAgent:
 
         # 설정 파일에서 chatbot 설정 로드
         config = self._load_config()
-        self.model = model or config.get("model", "gpt-4.1-mini")
+        resolved_model = model or config.get("model", "gpt-4.1-mini")
 
         # Temperature: 챗봇 전용 환경변수 > 일반 환경변수 > 설정파일 > 기본값(0.4)
         # 챗봇은 사실적/일관된 답변을 위해 낮은 temperature 사용 (E2E Audit - 2026-01-27)
@@ -139,46 +139,29 @@ class HybridChatbotAgent:
         )
         self.max_context_tokens = config.get("max_context_tokens", 8000)
 
-        # 온톨로지 컴포넌트
-        self.kg = knowledge_graph or KnowledgeGraph()
-        self.reasoner = reasoner or OntologyReasoner(self.kg)
-
-        # 비즈니스 규칙 등록
-        if not self.reasoner.rules:
-            register_all_rules(self.reasoner)
-
-        # RAG 컴포넌트
-        self.doc_retriever = DocumentRetriever(docs_dir)
-        self.router = RAGRouter()
-
-        # 하이브리드 검색기
-        self.hybrid_retriever = HybridRetriever(
-            knowledge_graph=self.kg,
-            reasoner=self.reasoner,
-            doc_retriever=self.doc_retriever,
-            auto_init_rules=False,
+        # Base class initialisation (KG, reasoner, retriever, context_builder, etc.)
+        super().__init__(
+            model=resolved_model,
+            docs_dir=docs_dir,
+            knowledge_graph=knowledge_graph,
+            reasoner=reasoner,
+            agent_logger=logger,
+            tracer=tracer,
+            metrics=metrics,
+            context_builder_max_tokens=3000,
         )
 
-        # 컨텍스트 빌더
-        self.context_builder = ContextBuilder(max_tokens=3000)
-        self.compact_builder = CompactContextBuilder(max_tokens=1500)
+        # Chatbot-specific: RAG router
+        self.router = RAGRouter()
 
-        # 템플릿
-        self.templates = ResponseTemplates()
+        # Chatbot-specific: compact context builder
+        self.compact_builder = CompactContextBuilder(max_tokens=1500)
 
         # 메모리
         self.context = context_manager or ContextManager()
 
-        # 모니터링
-        self.logger = logger or AgentLogger("hybrid_chatbot")
-        self.tracer = tracer
-        self.metrics = metrics
-
         # 현재 데이터 컨텍스트
         self._current_data: dict[str, Any] = {}
-
-        # 마지막 하이브리드 컨텍스트
-        self._last_hybrid_context: HybridContext | None = None
 
         # Query Rewriter (대화 맥락 기반 질문 재구성)
         self.query_rewriter = QueryRewriter(model=model)
@@ -1611,18 +1594,6 @@ class HybridChatbotAgent:
 
         # LLM으로 재구성
         return await self.query_rewriter.rewrite(query, history)
-
-    def get_last_hybrid_context(self) -> HybridContext | None:
-        """마지막 하이브리드 컨텍스트"""
-        return self._last_hybrid_context
-
-    def get_knowledge_graph(self) -> KnowledgeGraph:
-        """지식 그래프 반환"""
-        return self.kg
-
-    def get_reasoner(self) -> OntologyReasoner:
-        """추론기 반환"""
-        return self.reasoner
 
     async def explain_last_response(self) -> str:
         """마지막 응답의 추론 과정 설명"""

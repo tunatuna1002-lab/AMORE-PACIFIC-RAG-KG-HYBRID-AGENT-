@@ -123,8 +123,8 @@
 │   │
 │   ├── rag/                      # RAG 시스템
 │   │   ├── hybrid_retriever.py   # KG + RAG 통합 검색
-│   │   ├── true_hybrid_retriever.py # 진정한 RAG-Ontology 하이브리드
-│   │   ├── unified_retriever.py  # Retriever 통합 Facade
+│   │   ├── retrieval_strategy.py  # OWL + Legacy 전략 패턴
+│   │   ├── confidence_fusion.py  # 다중 소스 신뢰도 융합
 │   │   ├── retriever.py          # 문서 검색 + 임베딩 캐시
 │   │   ├── embedding_cache.py    # 임베딩 캐시 (InMemory/SQLite)
 │   │   ├── reranker.py           # 재순위화
@@ -502,8 +502,8 @@ class MyWorkflow:
 | SourceProvider | `src/agents/source_provider.py` | 출처 추출 및 포매팅 |
 | ExternalSignalManager | `src/agents/external_signal_manager.py` | 외부 신호 수집 관리 |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
-| TrueHybridRetriever | `src/rag/true_hybrid_retriever.py` | 진정한 RAG-Ontology 하이브리드 검색 |
-| UnifiedRetriever | `src/rag/unified_retriever.py` | Retriever 통합 Facade |
+| RetrievalStrategy | `src/rag/retrieval_strategy.py` | OWL + 인텐트 기반 전략 패턴 |
+| ConfidenceFusion | `src/rag/confidence_fusion.py` | 다중 소스 신뢰도 융합 엔진 |
 | Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
 | EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |

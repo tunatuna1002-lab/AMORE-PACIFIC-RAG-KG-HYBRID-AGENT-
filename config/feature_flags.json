@@ -1,6 +1,6 @@
 {
   "retriever": {
-    "use_true_hybrid_retriever": true,
+    "use_owl_strategy": true,
     "use_unified_retriever": true
   },
   "reasoner": {
