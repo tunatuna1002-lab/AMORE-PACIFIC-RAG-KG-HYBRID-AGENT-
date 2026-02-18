@@ -106,18 +106,20 @@
 
 ## Sprint 7: Eval Harness 고도화 (1주)
 
-- [ ] 7-1. Judge 구현
-  - [ ] `eval/judge/llm_judge.py` — GPT-4.1-mini 기반
-  - [ ] `eval/judge/nli_judge.py` — 오프라인 NLI 모델
-  - [ ] `eval/judge/__init__.py` — create_judge() 팩토리
-- [ ] 7-2. Cost Tracking + Regression
-  - [ ] `eval/cost_tracker.py` — 레이어별 토큰/USD 추적
-  - [ ] `eval/regression.py` — 기준선 비교, 회귀 감지
-  - [ ] CLI: `python -m eval compare`, `--baseline` 플래그
-- [ ] 7-3. 테스트
-  - [ ] `tests/eval/test_fuzzy_matching.py`
-  - [ ] `tests/eval/test_judges.py`
-  - [ ] `tests/eval/test_regression.py`
+- [x] 7-1. Judge 구현
+  - [x] `eval/judge/llm.py` — GPT-4.1-mini 기반 LLMJudge (324줄, RAGAS-style)
+  - [x] `eval/judge/nli.py` — 오프라인 NLI 모델 NLIJudge (359줄, cross-encoder)
+  - [x] `eval/judge/__init__.py` — create_judge() 팩토리 (lazy import + fallback)
+- [x] 7-2. Cost Tracking + Regression
+  - [x] `eval/cost_tracker.py` — 레이어별 토큰/USD 추적 (369줄)
+  - [x] `eval/regression.py` — 기준선 비교, 회귀 감지 (592줄)
+  - [x] CLI: `python -m eval compare`, `set-baseline`, `--baseline` 플래그 (609줄)
+  - [x] `eval/report.py` — Cost Summary + Regression Analysis 섹션 추가 (557줄)
+- [x] 7-3. 테스트
+  - [x] `tests/eval/test_fuzzy_matching.py` (기존 완료)
+  - [x] `tests/eval/test_judges.py` (54개 테스트, StubJudge/LLMJudge/NLIJudge/Factory/Interface)
+  - [x] `tests/eval/test_regression.py` (기존 완료)
+  - [x] `tests/eval/test_cost_tracker.py` (기존 완료)
 
 ---
 
@@ -182,7 +184,7 @@
 | Sprint 4 | **완료** | 8/8 |
 | Sprint 5 | **완료** | 8/8 |
 | Sprint 6 | **완료** | 10/10 |
-| Sprint 7 | 대기 | 0/9 |
+| Sprint 7 | **완료** | 12/12 |
 | Sprint 8 | 대기 | 0/9 |
 | Sprint 9 | 대기 | 0/9 |
 | Sprint 10 | 대기 | 0/10 |

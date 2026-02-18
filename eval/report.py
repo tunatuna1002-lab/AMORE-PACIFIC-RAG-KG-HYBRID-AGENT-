@@ -39,6 +39,7 @@ class ReportGenerator:
         self,
         results: list[ItemResult],
         out_dir: Path | str,
+        baseline_path: str | Path | None = None,
     ) -> EvalReport:
         """
         Generate full evaluation report.
@@ -46,6 +47,7 @@ class ReportGenerator:
         Args:
             results: List of evaluation results
             out_dir: Output directory
+            baseline_path: Optional path to baseline report.json for regression analysis
 
         Returns:
             EvalReport object
@@ -68,7 +70,7 @@ class ReportGenerator:
         self._write_json_report(report, out_dir / "report.json")
 
         # Write Markdown summary
-        self._write_markdown_summary(report, out_dir / "summary.md")
+        self._write_markdown_summary(report, out_dir / "summary.md", baseline_path=baseline_path)
 
         # Write individual traces (optional)
         if self.config.save_traces:
@@ -124,6 +126,23 @@ class ReportGenerator:
         # Top fail reasons
         top_fail_reasons = self._compute_fail_reason_counts(results)
 
+        # Cost aggregation
+        total_tokens = 0
+        total_cost_usd = 0.0
+        cost_by_layer: dict[str, float] = defaultdict(float)
+
+        for r in results:
+            if r.trace and r.trace.cost:
+                c = r.trace.cost
+                total_tokens += c.total_tokens
+                total_cost_usd += c.total_cost_usd
+                cost_by_layer["l1"] += c.l1_cost_usd
+                cost_by_layer["l2"] += c.l2_cost_usd
+                cost_by_layer["l3"] += c.l3_cost_usd
+                cost_by_layer["l4"] += c.l4_cost_usd
+                cost_by_layer["l5"] += c.l5_cost_usd
+                cost_by_layer["judge"] += c.judge_cost_usd
+
         return AggregateMetrics(
             total=total,
             passed=passed,
@@ -135,6 +154,11 @@ class ReportGenerator:
             by_domain=by_domain,
             by_difficulty=by_difficulty,
             top_fail_reasons=top_fail_reasons,
+            total_tokens=total_tokens,
+            total_cost_usd=total_cost_usd,
+            avg_tokens_per_item=total_tokens / total if total else 0.0,
+            avg_cost_per_item_usd=total_cost_usd / total if total else 0.0,
+            cost_by_layer=dict(cost_by_layer),
         )
 
     def _compute_layer_averages(self, results: list[ItemResult]) -> dict[str, float]:
@@ -246,7 +270,12 @@ class ReportGenerator:
 
         logger.info(f"JSON report written to {path}")
 
-    def _write_markdown_summary(self, report: EvalReport, path: Path) -> None:
+    def _write_markdown_summary(
+        self,
+        report: EvalReport,
+        path: Path,
+        baseline_path: str | Path | None = None,
+    ) -> None:
         """Write Markdown summary to file."""
         lines = []
 
@@ -301,6 +330,49 @@ class ReportGenerator:
         lines.append(f"| L5 | Groundedness | {by_layer.get('l5_groundedness', 0):.3f} |")
         lines.append("")
 
+        # Cost Summary (only if cost data exists)
+        if report.aggregates.total_tokens > 0:
+            lines.append("## Cost Summary")
+            lines.append("")
+            lines.append("| Layer | Tokens | Cost (USD) |")
+            lines.append("|-------|--------|-----------|")
+
+            layer_names = ["l1", "l2", "l3", "l4", "l5", "judge"]
+            layer_token_fields = {
+                "l1": "l1_tokens",
+                "l2": "l2_tokens",
+                "l3": "l3_tokens",
+                "l4": "l4_tokens",
+                "l5": "l5_tokens",
+                "judge": "judge_tokens",
+            }
+            for layer in layer_names:
+                cost = report.aggregates.cost_by_layer.get(layer, 0.0)
+                # Sum tokens per layer from individual items
+                token_field = layer_token_fields[layer]
+                tokens = sum(
+                    getattr(r.trace.cost, token_field, 0)
+                    for r in report.items
+                    if r.trace and r.trace.cost
+                )
+                if tokens > 0 or cost > 0:
+                    lines.append(f"| {layer.upper()} | {tokens} | ${cost:.4f} |")
+
+            lines.append(
+                f"| **Total** | **{report.aggregates.total_tokens}** "
+                f"| **${report.aggregates.total_cost_usd:.4f}** |"
+            )
+            lines.append("")
+            lines.append(
+                f"Average: {report.aggregates.avg_tokens_per_item:.0f} tokens "
+                f"/ ${report.aggregates.avg_cost_per_item_usd:.4f} per item"
+            )
+            lines.append("")
+
+        # Regression Analysis (only if baseline provided)
+        if baseline_path:
+            self._write_regression_section(lines, report, baseline_path)
+
         # Top Failures
         if report.aggregates.top_fail_reasons:
             lines.append("## Top Failure Reasons")
@@ -328,6 +400,75 @@ class ReportGenerator:
             f.write("\n".join(lines))
 
         logger.info(f"Markdown summary written to {path}")
+
+    def _write_regression_section(
+        self,
+        lines: list[str],
+        report: EvalReport,
+        baseline_path: str | Path,
+    ) -> None:
+        """Add regression analysis section comparing against a baseline."""
+        from eval.regression import RegressionTester
+
+        baseline_path = Path(baseline_path)
+        if not baseline_path.exists():
+            lines.append("## Regression Analysis")
+            lines.append("")
+            lines.append(f"*Baseline not found: {baseline_path}*")
+            lines.append("")
+            return
+
+        try:
+            # Determine baseline_dir and baseline_name from path
+            # baseline_path can be a report.json or a baseline directory
+            if baseline_path.is_file():
+                baseline_dir = baseline_path.parent.parent
+                baseline_name = baseline_path.parent.name
+            else:
+                baseline_dir = baseline_path.parent
+                baseline_name = baseline_path.name
+
+            tester = RegressionTester(baseline_dir=baseline_dir)
+            comparison = tester.compare(baseline_name, report)
+
+            lines.append("## Regression Analysis")
+            lines.append("")
+            lines.append(f"**Baseline**: {comparison.baseline_name}")
+            lines.append("")
+
+            if not comparison.has_regressions:
+                lines.append("No regressions detected.")
+            else:
+                lines.append(f"**{comparison.regression_count} regression(s) detected**")
+                lines.append("")
+                lines.append("| Metric | Baseline | Current | Delta | Severity |")
+                lines.append("|--------|----------|---------|-------|----------|")
+                for r in comparison.metric_results:
+                    if r.is_regression:
+                        lines.append(
+                            f"| {r.metric_name} | {r.baseline_value:.4f} "
+                            f"| {r.current_value:.4f} | {r.delta:+.4f} "
+                            f"| {r.severity} |"
+                        )
+                lines.append("")
+
+            if comparison.new_failures:
+                lines.append(f"**New failures**: {len(comparison.new_failures)}")
+                for item_id in comparison.new_failures[:5]:
+                    lines.append(f"- {item_id}")
+                lines.append("")
+
+            if comparison.fixed_items:
+                lines.append(f"**Fixed items**: {len(comparison.fixed_items)}")
+                for item_id in comparison.fixed_items[:5]:
+                    lines.append(f"- {item_id}")
+                lines.append("")
+
+        except Exception as e:
+            lines.append("## Regression Analysis")
+            lines.append("")
+            lines.append(f"*Error loading baseline: {e}*")
+            lines.append("")
 
     def _add_recommendations(self, lines: list[str], report: EvalReport) -> None:
         """Add recommendations based on metrics."""
