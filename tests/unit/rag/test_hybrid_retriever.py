@@ -337,6 +337,8 @@ def mock_doc_retriever():
     mock = MagicMock()
     mock.initialize = AsyncMock()
     mock.search = AsyncMock(return_value=[])
+    # Default BM25 to empty so _hybrid_search uses dense_only path
+    mock.search_bm25 = MagicMock(return_value=[])
     return mock
 
 
@@ -584,98 +586,98 @@ class TestSelfRAG:
     def test_should_retrieve_greeting_false(self):
         """인사말 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("안녕하세요")
+        should, reason, _conf = retriever.should_retrieve("안녕하세요")
         assert should is False
         assert reason == "greeting_or_command"
 
     def test_should_retrieve_hello_false(self):
         """영어 인사말 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("hello")
+        should, reason, _conf = retriever.should_retrieve("hello")
         assert should is False
         assert reason == "greeting_or_command"
 
     def test_should_retrieve_thanks_false(self):
         """감사 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("고마워요")
+        should, reason, _conf = retriever.should_retrieve("고마워요")
         assert should is False
         assert reason == "greeting_or_command"
 
     def test_should_retrieve_help_false(self):
         """도움말 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("도움말")
+        should, reason, _conf = retriever.should_retrieve("도움말")
         assert should is False
         assert reason == "greeting_or_command"
 
     def test_should_retrieve_brand_query_true(self):
         """브랜드 질문 → 검색 필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("LANEIGE의 시장 점유율은?")
+        should, reason, _conf = retriever.should_retrieve("LANEIGE의 시장 점유율은?")
         assert should is True
         assert reason == "domain_query_detected"
 
     def test_should_retrieve_metric_query_true(self):
         """지표 질문 → 검색 필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("SoS 지표 분석해줘")
+        should, reason, _conf = retriever.should_retrieve("SoS 지표 분석해줘")
         assert should is True
         assert reason == "domain_query_detected"
 
     def test_should_retrieve_analysis_keyword_true(self):
         """분석 키워드 → 검색 필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("시장 경쟁 비교")
+        should, reason, _conf = retriever.should_retrieve("시장 경쟁 비교")
         assert should is True
         assert reason == "domain_query_detected"
 
     def test_should_retrieve_question_true(self):
         """질문형 → 검색 필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("왜 순위가 떨어졌어?")
+        should, reason, _conf = retriever.should_retrieve("왜 순위가 떨어졌어?")
         assert should is True
         assert reason == "domain_query_detected"
 
     def test_should_retrieve_short_query_false(self):
         """매우 짧은 쿼리 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("ㅎ")
+        should, reason, _conf = retriever.should_retrieve("ㅎ")
         assert should is False
         assert reason == "query_too_short"
 
     def test_should_retrieve_empty_query_false(self):
         """빈 쿼리 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("")
+        should, reason, _conf = retriever.should_retrieve("")
         assert should is False
         assert reason == "query_too_short"
 
     def test_should_retrieve_none_query_false(self):
         """None 쿼리 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve(None)
+        should, reason, _conf = retriever.should_retrieve(None)
         assert should is False
         assert reason == "query_too_short"
 
     def test_should_retrieve_cosrx_true(self):
         """COSRX 브랜드 → 검색 필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("COSRX 최신 데이터")
+        should, reason, _conf = retriever.should_retrieve("COSRX 최신 데이터")
         assert should is True
         assert reason == "domain_query_detected"
 
     def test_should_retrieve_default_long_query_true(self):
         """도메인 키워드 없어도 긴 쿼리는 기본 검색"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("이것저것 알려주세요")
+        should, reason, _conf = retriever.should_retrieve("이것저것 알려주세요")
         assert should is True
         assert reason == "default_retrieve"
 
     def test_should_retrieve_short_non_domain_false(self):
         """짧고 도메인 관련 없는 쿼리 → 검색 불필요"""
         retriever = self._make_retriever()
-        should, reason = retriever.should_retrieve("ㅋㅋㅋ")
+        should, reason, _conf = retriever.should_retrieve("ㅋㅋㅋ")
         assert should is False
         assert reason == "short_non_domain_query"
 
@@ -1514,6 +1516,8 @@ class TestRetrieveEdgeCases:
                 ],  # 전체 문서 검색
             ]
         )
+        # BM25 returns empty so _hybrid_search uses dense_only path
+        mock_doc_retriever.search_bm25 = MagicMock(return_value=[])
 
         retriever = HybridRetriever(
             knowledge_graph=mock_kg,
@@ -1548,6 +1552,8 @@ class TestRetrieveEdgeCases:
         mock_doc_retriever = MagicMock()
         mock_doc_retriever.initialize = AsyncMock()
         mock_doc_retriever.search = AsyncMock(return_value=[{"id": "1", "content": "test"}])
+        # BM25 returns empty so _hybrid_search uses dense_only path
+        mock_doc_retriever.search_bm25 = MagicMock(return_value=[])
 
         retriever = HybridRetriever(
             knowledge_graph=mock_kg,

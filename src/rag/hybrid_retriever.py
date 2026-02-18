@@ -354,35 +354,36 @@ class HybridRetriever:
 
             self._initialized = True
 
-    def should_retrieve(self, query: str) -> tuple[bool, str]:
+    def should_retrieve(self, query: str) -> tuple[bool, str, float]:
         """
         Self-RAG gate: determine if retrieval is needed.
 
         Returns:
-            (should_retrieve, reason)
+            (should_retrieve, reason, confidence)
+            confidence: 1.0 for strong domain queries, 0.8 for default, 0.0 for skip
         """
         import re
 
         if not query or len(query.strip()) <= 2:
-            return False, "query_too_short"
+            return False, "query_too_short", 0.0
 
         query_stripped = query.strip()
 
         # Check skip patterns first
         for pattern in self.SKIP_PATTERNS:
             if re.search(pattern, query_stripped, re.IGNORECASE):
-                return False, "greeting_or_command"
+                return False, "greeting_or_command", 0.0
 
         # Check retrieve patterns
         for pattern in self.RETRIEVE_PATTERNS:
             if re.search(pattern, query_stripped):
-                return True, "domain_query_detected"
+                return True, "domain_query_detected", 1.0
 
         # Default: retrieve (conservative)
         if len(query_stripped) > 5:
-            return True, "default_retrieve"
+            return True, "default_retrieve", 0.8
 
-        return False, "short_non_domain_query"
+        return False, "short_non_domain_query", 0.0
 
     async def retrieve(
         self,
@@ -405,8 +406,8 @@ class HybridRetriever:
         if not self._initialized:
             await self.initialize()
 
-        # Self-RAG gate
-        should, reason = self.should_retrieve(query)
+        # Self-RAG gate (3-tuple: should, reason, confidence)
+        should, reason, selfrag_confidence = self.should_retrieve(query)
         if not should:
             logger.info(f"Self-RAG: skipping retrieval for query (reason: {reason})")
             return HybridContext(
@@ -416,7 +417,11 @@ class HybridRetriever:
                 rag_chunks=[],
                 combined_context=f"[Retrieval skipped: {reason}]",
                 entities={},
-                metadata={"self_rag_skip": True, "skip_reason": reason},
+                metadata={
+                    "self_rag_skip": True,
+                    "skip_reason": reason,
+                    "selfrag_confidence": selfrag_confidence,
+                },
             )
 
         start_time = datetime.now()
@@ -434,6 +439,15 @@ class HybridRetriever:
             intent_config = get_intent_retrieval_config(unified_intent)
             doc_type_filter = intent_config.doc_type_filter
             intent_top_k = intent_config.top_k
+
+            # Self-RAG: reduce top_k for low-confidence queries
+            if selfrag_confidence < 0.5:
+                intent_top_k = max(2, intent_top_k // 2)
+                logger.info(
+                    f"Self-RAG: reduced top_k to {intent_top_k} "
+                    f"(confidence={selfrag_confidence:.1f})"
+                )
+
             logger.debug(
                 f"Query intent: {query_intent.value}, "
                 f"strategy: {intent_config.description}, "
@@ -463,14 +477,15 @@ class HybridRetriever:
             logger.debug(f"Generated {len(inferences)} inferences")
 
             # 5. RAG 문서 검색 (추론 결과로 쿼리 확장 + 의도 기반 필터링)
+            #    Uses hybrid (dense + BM25 RRF) when BM25 is available
             expanded_query = self._expand_query(search_query, inferences, entities)
-            rag_results = await self.doc_retriever.search(
+            rag_results, search_method = await self._hybrid_search(
                 expanded_query, top_k=intent_top_k, doc_type_filter=doc_type_filter
             )
 
             # 필터링된 결과가 부족하면 전체 문서에서 추가 검색
             if len(rag_results) < 3 and doc_type_filter:
-                additional_results = await self.doc_retriever.search(
+                additional_results, _fallback_method = await self._hybrid_search(
                     expanded_query,
                     top_k=intent_top_k - len(rag_results),
                     doc_type_filter=None,  # 전체 문서에서 검색
@@ -544,6 +559,9 @@ class HybridRetriever:
                 "doc_type_filter": doc_type_filter,
                 "intent_strategy": intent_config.description,
                 "intent_weights": intent_config.weights,
+                "search_method": search_method,
+                "selfrag_confidence": selfrag_confidence,
+                "bm25_available": hasattr(self.doc_retriever, "search_bm25"),
             }
 
         except Exception as e:
@@ -632,6 +650,60 @@ class HybridRetriever:
         if self.owl_strategy is not None and hasattr(self.owl_strategy, "search"):
             return await self.owl_strategy.search(query=query, top_k=top_k, doc_filter=doc_filter)
         return await self.doc_retriever.search(query=query, top_k=top_k, doc_filter=doc_filter)
+
+    async def _hybrid_search(
+        self,
+        query: str,
+        top_k: int = 5,
+        doc_type_filter: list[str] | None = None,
+    ) -> tuple[list[dict[str, Any]], str]:
+        """
+        Dense + BM25 hybrid search with RRF fusion.
+
+        Args:
+            query: Search query
+            top_k: Number of results to return
+            doc_type_filter: Optional document type filter
+
+        Returns:
+            (results, search_method) where search_method is
+            "hybrid_rrf" or "dense_only"
+        """
+        # 1. Dense search via doc_retriever.search()
+        dense_results = await self.doc_retriever.search(
+            query, top_k=top_k, doc_type_filter=doc_type_filter
+        )
+
+        # 2. BM25 search (if available)
+        bm25_results = []
+        if hasattr(self.doc_retriever, "search_bm25"):
+            try:
+                bm25_results = self.doc_retriever.search_bm25(query, top_k=top_k)
+            except Exception as e:
+                logger.debug(f"BM25 search failed in _hybrid_search: {e}")
+
+        # 3. RRF fusion
+        if bm25_results:
+            if hasattr(self.doc_retriever, "reciprocal_rank_fusion"):
+                fused = self.doc_retriever.reciprocal_rank_fusion(
+                    dense_results, bm25_results, k=60, top_k=top_k
+                )
+                return fused, "hybrid_rrf"
+            # Fallback: try confidence_fusion.fuse_documents_rrf
+            try:
+                from src.rag.confidence_fusion import ConfidenceFusion
+
+                fusion = ConfidenceFusion()
+                fused = fusion.fuse_documents_rrf(
+                    {"dense": dense_results, "bm25": bm25_results},
+                    k=60,
+                    top_n=top_k,
+                )
+                return fused, "hybrid_rrf"
+            except (ImportError, Exception) as e:
+                logger.debug(f"Confidence fusion RRF fallback failed: {e}")
+
+        return dense_results, "dense_only"
 
     def _query_knowledge_graph(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
         """

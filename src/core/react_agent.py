@@ -126,6 +126,7 @@ class ReActResult:
     iterations: int = 0
     confidence: float = 0.0
     needs_improvement: bool = False
+    hop_count: int = 0
 
 
 class ReActAgent:
@@ -155,6 +156,11 @@ ReAct 패턴으로 사고하세요:
 - 2단계: 관련 엔티티로 확장 (경쟁사, 카테고리 등)
 - 3단계: 수집된 정보를 종합하여 최종 답변
 `refine_search`를 사용하면 이전 관찰 결과를 바탕으로 검색을 정제할 수 있습니다.
+
+**IRCoT (Interleaved Retrieval Chain-of-Thought)**:
+정보가 부족하면 refine_search를 사용하여 추가 검색하세요.
+"정보 부족", "확인 필요", "추가 검색" 등의 상황에서는 바로 final_answer하지 말고
+refine_search로 추가 정보를 수집한 뒤 답변하세요.
 
 JSON 형식으로 응답:
 ```json
@@ -188,12 +194,30 @@ JSON으로 응답:
 }}
 ```"""
 
+    # IRCoT: 추가 검색이 필요함을 나타내는 키워드
+    IRCOT_KEYWORDS: tuple[str, ...] = (
+        "정보 부족",
+        "확인 필요",
+        "추가 검색",
+        "더 알아",
+        "need more",
+        "insufficient",
+        "unknown",
+    )
+
     def __init__(
-        self, model: str = DEFAULT_MODEL, max_iterations: int = 5, min_confidence: float = 0.7
+        self,
+        model: str = DEFAULT_MODEL,
+        max_iterations: int = 5,
+        min_confidence: float = 0.7,
+        max_hops: int = 2,
+        ircot_enabled: bool = True,
     ):
         self.model = model
         self.max_iterations = max_iterations
         self.min_confidence = min_confidence
+        self.max_hops = max_hops
+        self.ircot_enabled = ircot_enabled
         self.tool_executor = None  # 외부 주입
 
     def set_tool_executor(self, executor) -> None:
@@ -207,6 +231,7 @@ JSON으로 응답:
         steps: list[ReActStep] = []
         iterations = 0
         final_answer = ""
+        hop_count = 0
 
         while iterations < self.max_iterations:
             iterations += 1
@@ -220,7 +245,23 @@ JSON으로 응답:
                 final_answer = step.observation or ""
                 break
 
-            # 3. 도구 실행 (있다면) - Security: 허용 액션 및 파라미터 검증
+            # 3. IRCoT: 자동 refine_search 주입
+            if (
+                self.ircot_enabled
+                and step.action != "refine_search"
+                and step.thought
+                and self._needs_retrieval(step.thought)
+                and hop_count < self.max_hops
+            ):
+                logger.info("IRCoT: auto-injecting refine_search based on thought")
+                step.action = "refine_search"
+                step.action_input = {
+                    "refined_query": step.thought,
+                    "reason": "IRCoT auto-inject: information insufficient",
+                    "focus_entities": [],
+                }
+
+            # 4. 도구 실행 (있다면) - Security: 허용 액션 및 파라미터 검증
             if step.action and self.tool_executor:
                 # Security: 액션 검증
                 is_valid, error_msg = validate_action(step.action, step.action_input)
@@ -229,13 +270,21 @@ JSON으로 응답:
                     step.observation = f"Security Error: {error_msg}"
                     continue
 
-                try:
-                    result = await self.tool_executor.execute(step.action, step.action_input or {})
-                    step.observation = str(result.data) if result.success else result.error
-                except Exception as e:
-                    step.observation = f"Error: {e}"
+                # Multi-hop: refine_search 처리
+                if step.action == "refine_search" and hop_count < self.max_hops:
+                    hop_count += 1
+                    observation = await self._execute_multihop_search(step, steps, query)
+                    step.observation = observation
+                else:
+                    try:
+                        result = await self.tool_executor.execute(
+                            step.action, step.action_input or {}
+                        )
+                        step.observation = str(result.data) if result.success else result.error
+                    except Exception as e:
+                        step.observation = f"Error: {e}"
 
-        # 4. Self-Reflection
+        # 5. Self-Reflection
         reflection_result = await self._reflect(query, final_answer)
 
         return ReActResult(
@@ -244,7 +293,49 @@ JSON으로 응답:
             iterations=iterations,
             confidence=reflection_result.get("quality_score", 0.5),
             needs_improvement=reflection_result.get("needs_improvement", False),
+            hop_count=hop_count,
         )
+
+    def _needs_retrieval(self, thought: str) -> bool:
+        """IRCoT: thought에서 추가 검색 필요 여부 판단"""
+        thought_lower = thought.lower()
+        return any(keyword in thought_lower for keyword in self.IRCOT_KEYWORDS)
+
+    async def _execute_multihop_search(
+        self,
+        current_step: ReActStep,
+        all_steps: list[ReActStep],
+        original_query: str,
+    ) -> str:
+        """Multi-hop refine_search 실행: 이전 관찰과 새 검색 결과를 결합"""
+        action_input = current_step.action_input or {}
+        refined_query = action_input.get("refined_query", original_query)
+        focus_entities = action_input.get("focus_entities", [])
+
+        # 이전 관찰 수집
+        previous_observations = []
+        for step in all_steps:
+            if step.observation and step is not current_step:
+                previous_observations.append(step.observation)
+
+        # refine_search를 query_data로 실행
+        search_params: dict[str, Any] = {"category": refined_query}
+        if focus_entities:
+            search_params["brand"] = ", ".join(str(e) for e in focus_entities)
+
+        try:
+            result = await self.tool_executor.execute("query_data", search_params)
+            new_observation = str(result.data) if result.success else (result.error or "")
+        except Exception as e:
+            new_observation = f"Error: {e}"
+
+        # 이전 관찰과 새 결과를 결합
+        combined_parts = []
+        if previous_observations:
+            combined_parts.append(f"[Hop 이전 결과] {'; '.join(previous_observations[:3])}")
+        combined_parts.append(f"[Hop 새 결과] {new_observation}")
+
+        return " | ".join(combined_parts)
 
     async def _execute_step(
         self, query: str, context: str, previous_steps: list[ReActStep]

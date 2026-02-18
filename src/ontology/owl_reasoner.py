@@ -417,11 +417,11 @@ class OWLReasoner:
                 # Brand 관계
                 brand_id = brand.replace(" ", "_")
                 brand_instance = self.onto.Brand(brand_id)
-                product.has_brand = brand_instance
+                product.has_brand = [brand_instance]
 
                 # Category 관계
                 cat_instance = self.onto.Category(category)
-                product.belongs_to_category = cat_instance
+                product.belongs_to_category = [cat_instance]
 
                 logger.debug(f"Added product: {asin} (brand: {brand}, rank: {rank})")
                 return True
@@ -1005,9 +1005,246 @@ class OWLReasoner:
         except Exception as e:
             logger.error(f"Failed to clear ontology: {e}")
 
+    # =========================================================================
+    # OWL Consistency Check (D-4)
+    # =========================================================================
+
+    def check_consistency(self) -> "ConsistencyReport":
+        """Check ontology consistency.
+
+        Tries owlready2's sync_reasoner() first.
+        Falls back to rule-based checks if reasoner unavailable.
+
+        Returns:
+            ConsistencyReport with violations and warnings
+        """
+        from datetime import datetime as _dt
+
+        if not OWLREADY2_AVAILABLE or not self.onto:
+            return self._rule_based_consistency_check()
+
+        violations: list[dict[str, Any]] = []
+        warnings: list[str] = []
+
+        try:
+            # Try running reasoner to detect inconsistency
+            with self.onto:
+                try:
+                    if self.reasoner_type.lower() == "pellet":
+                        sync_reasoner_pellet(infer_property_values=True, debug=False)
+                    else:
+                        sync_reasoner_hermit(infer_property_values=True, debug=False)
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    if "inconsistent" in error_msg:
+                        violations.append(
+                            {
+                                "type": "ontology_inconsistency",
+                                "entity": None,
+                                "description": (f"Reasoner detected inconsistency: {e}"),
+                                "severity": "error",
+                            }
+                        )
+                    else:
+                        warnings.append(f"Reasoner execution issue: {e}")
+
+            # Check specific violations
+            violations.extend(self._check_disjointness_violations())
+            violations.extend(self._check_cardinality_violations())
+            violations.extend(self._check_domain_range_violations())
+
+            return ConsistencyReport(
+                is_consistent=len([v for v in violations if v["severity"] == "error"]) == 0,
+                violations=violations,
+                warnings=warnings,
+                checked_at=_dt.now().isoformat(),
+                check_method="owlready2_reasoner",
+            )
+
+        except Exception as e:
+            logger.error(f"Consistency check failed: {e}")
+            return self._rule_based_consistency_check()
+
+    def _check_disjointness_violations(self) -> list[dict[str, Any]]:
+        """Check no entity belongs to 2+ disjoint brand classes."""
+        violations: list[dict[str, Any]] = []
+
+        if not OWLREADY2_AVAILABLE or not self.onto:
+            return violations
+
+        disjoint_classes = [
+            self.onto.DominantBrand,
+            self.onto.StrongBrand,
+            self.onto.NicheBrand,
+        ]
+
+        try:
+            for brand in self.onto.Brand.instances():
+                memberships = [cls for cls in disjoint_classes if cls in brand.is_a]
+                if len(memberships) > 1:
+                    class_names = [cls.name for cls in memberships]
+                    violations.append(
+                        {
+                            "type": "disjointness_violation",
+                            "entity": brand.name,
+                            "description": (
+                                f"Brand '{brand.name}' belongs to multiple "
+                                f"disjoint classes: {class_names}"
+                            ),
+                            "severity": "error",
+                        }
+                    )
+        except Exception as e:
+            logger.error(f"Disjointness check failed: {e}")
+
+        return violations
+
+    def _check_cardinality_violations(self) -> list[dict[str, Any]]:
+        """Check Product has exactly 1 category (Sprint 8 restriction)."""
+        violations: list[dict[str, Any]] = []
+
+        if not OWLREADY2_AVAILABLE or not self.onto:
+            return violations
+
+        try:
+            for product in self.onto.Product.instances():
+                categories = product.belongs_to_category
+                if isinstance(categories, list):
+                    cat_count = len(categories)
+                else:
+                    cat_count = 1 if categories else 0
+
+                if cat_count == 0:
+                    violations.append(
+                        {
+                            "type": "cardinality_violation",
+                            "entity": product.name,
+                            "description": (
+                                f"Product '{product.name}' has no category (exactly 1 required)"
+                            ),
+                            "severity": "warning",
+                        }
+                    )
+                elif cat_count > 1:
+                    violations.append(
+                        {
+                            "type": "cardinality_violation",
+                            "entity": product.name,
+                            "description": (
+                                f"Product '{product.name}' has {cat_count} "
+                                f"categories (exactly 1 required)"
+                            ),
+                            "severity": "error",
+                        }
+                    )
+        except Exception as e:
+            logger.error(f"Cardinality check failed: {e}")
+
+        return violations
+
+    def _check_domain_range_violations(self) -> list[dict[str, Any]]:
+        """Check property values match expected types (domain/range)."""
+        violations: list[dict[str, Any]] = []
+
+        if not OWLREADY2_AVAILABLE or not self.onto:
+            return violations
+
+        try:
+            # Check shareOfShelf is float in [0, 1]
+            for brand in self.onto.Brand.instances():
+                sos = brand.share_of_shelf
+                if sos is not None and not isinstance(sos, int | float):
+                    violations.append(
+                        {
+                            "type": "domain_range_violation",
+                            "entity": brand.name,
+                            "description": (
+                                f"Brand '{brand.name}' shareOfShelf is not "
+                                f"numeric: {type(sos).__name__}"
+                            ),
+                            "severity": "error",
+                        }
+                    )
+                elif sos is not None and (sos < 0 or sos > 1):
+                    violations.append(
+                        {
+                            "type": "domain_range_violation",
+                            "entity": brand.name,
+                            "description": (
+                                f"Brand '{brand.name}' shareOfShelf={sos} out of range [0, 1]"
+                            ),
+                            "severity": "warning",
+                        }
+                    )
+
+            # Check rank is positive integer
+            for product in self.onto.Product.instances():
+                rank = product.rank_value
+                if rank is not None and (not isinstance(rank, int) or rank < 1):
+                    violations.append(
+                        {
+                            "type": "domain_range_violation",
+                            "entity": product.name,
+                            "description": (
+                                f"Product '{product.name}' rank={rank} is not a positive integer"
+                            ),
+                            "severity": "warning",
+                        }
+                    )
+        except Exception as e:
+            logger.error(f"Domain/range check failed: {e}")
+
+        return violations
+
+    def _rule_based_consistency_check(self) -> "ConsistencyReport":
+        """Fallback consistency check without owlready2 reasoner."""
+        from datetime import datetime as _dt
+
+        violations: list[dict[str, Any]] = []
+        warnings: list[str] = ["Using rule-based fallback (owlready2 reasoner not available)"]
+
+        # Without owlready2, we can only do basic structural checks
+        if OWLREADY2_AVAILABLE and self.onto:
+            violations.extend(self._check_disjointness_violations())
+            violations.extend(self._check_cardinality_violations())
+            violations.extend(self._check_domain_range_violations())
+
+        return ConsistencyReport(
+            is_consistent=len([v for v in violations if v["severity"] == "error"]) == 0,
+            violations=violations,
+            warnings=warnings,
+            checked_at=_dt.now().isoformat(),
+            check_method="rule_based_fallback",
+        )
+
     def __repr__(self):
         stats = self.get_stats()
         return f"OWLReasoner(brands={stats.get('brands', 0)}, products={stats.get('products', 0)})"
+
+
+# =========================================================================
+# ConsistencyReport dataclass
+# =========================================================================
+
+
+from dataclasses import dataclass, field  # noqa: E402
+
+
+@dataclass
+class ConsistencyReport:
+    """Result of an OWL ontology consistency check."""
+
+    is_consistent: bool
+    violations: list[dict[str, Any]] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    checked_at: str = ""  # ISO timestamp
+    check_method: str = ""  # "owlready2_reasoner" or "rule_based_fallback"
+
+    def __post_init__(self):
+        if not self.checked_at:
+            from datetime import datetime as _dt
+
+            self.checked_at = _dt.now().isoformat()
 
 
 # =========================================================================

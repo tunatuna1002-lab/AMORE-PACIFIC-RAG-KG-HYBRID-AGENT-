@@ -94,15 +94,81 @@ class ContextBuilder:
 """,
     }
 
-    def __init__(self, max_tokens: int = 4000, output_format: OutputFormat = OutputFormat.MARKDOWN):
+    # Korean stopwords for AIS citation matching
+    _KOREAN_STOPWORDS = frozenset(
+        {
+            "은",
+            "는",
+            "이",
+            "가",
+            "을",
+            "를",
+            "의",
+            "에",
+            "에서",
+            "로",
+            "으로",
+            "와",
+            "과",
+            "도",
+            "만",
+            "까지",
+            "부터",
+            "하고",
+            "그리고",
+            "또는",
+            "하지만",
+            "그러나",
+            "입니다",
+            "합니다",
+            "있습니다",
+            "없습니다",
+            "됩니다",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "and",
+            "or",
+            "but",
+            "with",
+            "from",
+            "by",
+            "as",
+            "it",
+        }
+    )
+
+    def __init__(
+        self,
+        max_tokens: int = 4000,
+        output_format: OutputFormat = OutputFormat.MARKDOWN,
+        enable_ais: bool = True,
+    ):
         """
         Args:
             max_tokens: 최대 토큰 수
             output_format: 출력 포맷
+            enable_ais: AIS 인라인 인용 활성화 여부
         """
         self.max_tokens = max_tokens
         self.output_format = output_format
+        self.enable_ais = enable_ais
         self._sources: list[SourceReference] = []
+        self._citation_stats: dict[str, int] = {
+            "total_sentences": 0,
+            "cited_sentences": 0,
+            "uncited_sentences": 0,
+        }
 
     def _register_source(self, source_type: str, title: str, detail: str) -> int:
         """출처 등록 및 인덱스 반환"""
@@ -122,6 +188,145 @@ class ContextBuilder:
         for ref in self._sources:
             lines.append(f"[{ref.index}] [{ref.source_type}] {ref.title}: {ref.detail}")
         return "\n".join(lines)
+
+    # =========================================================================
+    # AIS (Attributed Information Synthesis) Inline Citation
+    # =========================================================================
+
+    def _split_sentences(self, text: str) -> list[str]:
+        """
+        텍스트를 문장 단위로 분리 (한국어 + 영어 지원)
+
+        Korean endings: 다., 요., 니다., 세요.
+        Also splits on newlines and '. '
+        """
+        import re
+
+        if not text or not text.strip():
+            return []
+
+        # Split on Korean sentence endings and standard period-space
+        # Pattern: sentence-ending punctuation followed by space or newline
+        parts = re.split(
+            r"(?<=[다요죠음임])\.\s+|(?<=니다)\.\s*|(?<=세요)\.\s*|(?<=습니다)\.\s*"
+            r"|(?<=합니다)\.\s*|(?<=됩니다)\.\s*|(?<=있습니다)\.\s*"
+            r"|(?<=없습니다)\.\s*"
+            r"|(?<=[.!?])\s+|\n+",
+            text,
+        )
+
+        # Filter empty strings and whitespace-only
+        return [s.strip() for s in parts if s and s.strip()]
+
+    def _extract_keywords(self, text: str) -> set[str]:
+        """텍스트에서 키워드 추출 (불용어 제거)"""
+        import re
+
+        # Split on non-alphanumeric (keep Korean characters)
+        tokens = re.findall(r"[\w가-힣]+", text.lower())
+        return {t for t in tokens if len(t) > 1 and t not in self._KOREAN_STOPWORDS}
+
+    def _match_sentence_to_sources(self, sentence: str) -> list[int]:
+        """
+        문장과 매칭되는 출처 인덱스 목록 반환
+
+        Args:
+            sentence: 대상 문장
+
+        Returns:
+            매칭되는 SourceReference 인덱스 리스트
+        """
+        if not self._sources or not sentence.strip():
+            return []
+
+        sentence_keywords = self._extract_keywords(sentence)
+        if not sentence_keywords:
+            return []
+
+        matched_indices: list[int] = []
+
+        for ref in self._sources:
+            source_text = f"{ref.title} {ref.detail}"
+            source_keywords = self._extract_keywords(source_text)
+            if not source_keywords:
+                continue
+
+            # Jaccard-like overlap ratio
+            overlap = sentence_keywords & source_keywords
+            # Use ratio relative to sentence keywords (not union)
+            ratio = len(overlap) / len(sentence_keywords) if sentence_keywords else 0
+
+            if ratio >= 0.15:
+                matched_indices.append(ref.index)
+
+        return matched_indices
+
+    def build_ais_response(self, response_text: str) -> str:
+        """
+        응답 텍스트에 AIS 인라인 인용 태그 추가
+
+        Args:
+            response_text: LLM 응답 텍스트
+
+        Returns:
+            [출처N] 태그가 추가된 응답 텍스트
+        """
+        if not self.enable_ais or not self._sources:
+            self._citation_stats = {
+                "total_sentences": 0,
+                "cited_sentences": 0,
+                "uncited_sentences": 0,
+            }
+            return response_text
+
+        sentences = self._split_sentences(response_text)
+        if not sentences:
+            self._citation_stats = {
+                "total_sentences": 0,
+                "cited_sentences": 0,
+                "uncited_sentences": 0,
+            }
+            return response_text
+
+        cited_count = 0
+        annotated_parts: list[str] = []
+
+        for sentence in sentences:
+            matched = self._match_sentence_to_sources(sentence)
+            if matched:
+                cited_count += 1
+                tags = "".join(f"[출처{idx}]" for idx in matched)
+                annotated_parts.append(f"{sentence} {tags}")
+            else:
+                annotated_parts.append(sentence)
+
+        total = len(sentences)
+        self._citation_stats = {
+            "total_sentences": total,
+            "cited_sentences": cited_count,
+            "uncited_sentences": total - cited_count,
+        }
+
+        return " ".join(annotated_parts)
+
+    def get_citation_stats(self) -> dict[str, int | float]:
+        """
+        인용 통계 반환
+
+        Returns:
+            {
+                "total_sentences": int,
+                "cited_sentences": int,
+                "uncited_sentences": int,
+                "citation_rate": float  (0.0 ~ 1.0)
+            }
+        """
+        total = self._citation_stats.get("total_sentences", 0)
+        cited = self._citation_stats.get("cited_sentences", 0)
+        return {
+            **self._citation_stats,
+            "citation_rate": cited / total if total > 0 else 0.0,
+        }
 
     def build(
         self,

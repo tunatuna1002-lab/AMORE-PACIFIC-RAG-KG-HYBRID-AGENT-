@@ -141,17 +141,17 @@
 
 ## Sprint 9: 학술 기준 Track C+D (1~2주)
 
-- [ ] 9-1. Track C: Multi-hop + SPARQL
-  - [ ] C-1: Multi-hop refine_search 액션
-  - [ ] C-2: IRCoT 패턴
-  - [ ] C-3: SPARQL 기본 지원
-  - [ ] C-4: 문장별 인라인 인용 (AIS)
-- [ ] 9-2. Track D: 통합 + 검증
-  - [ ] D-1: IRI 체계 도입
-  - [ ] D-2: KG IRI 마이그레이션
-  - [ ] D-3: HybridRetriever Self-RAG 통합
-  - [ ] D-4: OWL Consistency Check
-  - [ ] D-5: 전체 통합 테스트
+- [x] 9-1. Track C: Multi-hop + SPARQL
+  - [x] C-1: Multi-hop refine_search 액션
+  - [x] C-2: IRCoT 패턴
+  - [x] C-3: SPARQL 기본 지원 (rdflib)
+  - [x] C-4: 문장별 인라인 인용 (AIS)
+- [x] 9-2. Track D: 통합 + 검증
+  - [x] D-1: IRI 체계 도입
+  - [x] D-2: KG IRI 마이그레이션
+  - [x] D-3: HybridRetriever Self-RAG 통합 (BM25+Dense RRF)
+  - [x] D-4: OWL Consistency Check
+  - [x] D-5: 전체 통합 테스트 (188 tests)
 
 ---
 
@@ -186,5 +186,5 @@
 | Sprint 6 | **완료** | 10/10 |
 | Sprint 7 | **완료** | 12/12 |
 | Sprint 8 | **완료** | 9/9 |
-| Sprint 9 | 대기 | 0/9 |
+| Sprint 9 | **완료** | 9/9 |
 | Sprint 10 | 대기 | 0/10 |

@@ -600,3 +600,97 @@ def get_cluster_for_sentiment(sentiment_tag: str) -> str | None:
             if tag in tag_lower or tag_lower in tag:
                 return cluster
     return None
+
+
+# =========================================================================
+# IRI (Internationalized Resource Identifier) Scheme
+# =========================================================================
+
+AMORE_NS = "http://amore.ontology/"
+AMORE_PREFIX = "amore:"
+
+# Entity type prefixes
+IRI_TYPE_MAP = {
+    "brand": "brand/",
+    "product": "product/",
+    "category": "category/",
+    "metric": "metric/",
+    "trend": "trend/",
+    "sentiment": "sentiment/",
+}
+
+
+class IRI:
+    """IRI utility for entity identification in the AMORE ontology."""
+
+    @staticmethod
+    def to_iri(entity_type: str, entity_id: str) -> str:
+        """Convert entity type + ID to prefixed IRI.
+
+        Example: to_iri("brand", "LANEIGE") -> "amore:brand/LANEIGE"
+        """
+        prefix = IRI_TYPE_MAP.get(entity_type)
+        if prefix is None:
+            raise ValueError(
+                f"Unknown entity type: {entity_type}. Valid types: {list(IRI_TYPE_MAP.keys())}"
+            )
+        return f"{AMORE_PREFIX}{prefix}{entity_id}"
+
+    @staticmethod
+    def from_iri(iri: str) -> tuple[str, str]:
+        """Parse IRI to (entity_type, entity_id).
+
+        Example: from_iri("amore:brand/LANEIGE") -> ("brand", "LANEIGE")
+        """
+        # Normalize full IRI to prefixed form
+        if iri.startswith(AMORE_NS):
+            path = iri[len(AMORE_NS) :]
+        elif iri.startswith(AMORE_PREFIX):
+            path = iri[len(AMORE_PREFIX) :]
+        else:
+            raise ValueError(f"Not a valid AMORE IRI: {iri}")
+
+        for entity_type, prefix in IRI_TYPE_MAP.items():
+            if path.startswith(prefix):
+                entity_id = path[len(prefix) :]
+                return entity_type, entity_id
+
+        raise ValueError(f"Cannot parse entity type from IRI path: {path}")
+
+    @staticmethod
+    def is_iri(value: str) -> bool:
+        """Check if value is an AMORE IRI."""
+        return value.startswith(AMORE_PREFIX) or value.startswith(AMORE_NS)
+
+    @staticmethod
+    def to_full_iri(prefixed: str) -> str:
+        """Convert prefixed IRI to full URI.
+
+        Example: "amore:brand/LANEIGE" -> "http://amore.ontology/brand/LANEIGE"
+        """
+        if prefixed.startswith(AMORE_PREFIX):
+            return AMORE_NS + prefixed[len(AMORE_PREFIX) :]
+        if prefixed.startswith(AMORE_NS):
+            return prefixed
+        raise ValueError(f"Not a prefixed AMORE IRI: {prefixed}")
+
+    @staticmethod
+    def to_prefixed(full_iri: str) -> str:
+        """Convert full URI to prefixed IRI.
+
+        Example: "http://amore.ontology/brand/LANEIGE" -> "amore:brand/LANEIGE"
+        """
+        if full_iri.startswith(AMORE_NS):
+            return AMORE_PREFIX + full_iri[len(AMORE_NS) :]
+        if full_iri.startswith(AMORE_PREFIX):
+            return full_iri
+        raise ValueError(f"Not a full AMORE IRI: {full_iri}")
+
+    @staticmethod
+    def extract_id(iri: str) -> str:
+        """Extract bare entity ID from IRI.
+
+        Example: "amore:brand/LANEIGE" -> "LANEIGE"
+        """
+        _, entity_id = IRI.from_iri(iri)
+        return entity_id

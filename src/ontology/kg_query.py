@@ -15,7 +15,11 @@ KnowledgeGraph의 쿼리 및 그래프 탐색 기능을 담당하는 믹스인 �
 from collections import defaultdict
 from typing import Any
 
+from rdflib import Namespace
+
 from .relations import Relation, RelationType
+
+AMORE = Namespace("http://amore.ontology/")
 
 
 class KGQueryMixin:
@@ -715,5 +719,106 @@ class KGQueryMixin:
 
             if passed:
                 results.append(b)
+
+        return results
+
+    # =========================================================================
+    # SPARQL via rdflib
+    # =========================================================================
+
+    _rdf_graph_cache: Any = None
+    _rdf_graph_triple_count: int = -1
+
+    def _kg_to_rdf_graph(self) -> Any:
+        """
+        KG triples를 rdflib.Graph로 변환 (캐시 지원)
+
+        Returns:
+            rdflib.Graph
+        """
+        from rdflib import Graph as RdfGraph
+        from rdflib import Literal as RdfLiteral
+        from rdflib import URIRef
+
+        current_count = len(self.triples)
+        if self._rdf_graph_cache is not None and self._rdf_graph_triple_count == current_count:
+            return self._rdf_graph_cache
+
+        g = RdfGraph()
+        g.bind("amore", AMORE)
+
+        for rel in self.triples:
+            s = URIRef(AMORE[f"entity/{rel.subject}"])
+            p = URIRef(AMORE[rel.predicate.value])
+            # Object: try as entity URI first
+            o = URIRef(AMORE[f"entity/{rel.object}"])
+            g.add((s, p, o))
+
+            # Also add object as literal for FILTER compatibility
+            g.add((s, p, RdfLiteral(rel.object)))
+
+        self._rdf_graph_cache = g
+        self._rdf_graph_triple_count = current_count
+        return g
+
+    def invalidate_rdf_cache(self) -> None:
+        """RDF 그래프 캐시 무효화"""
+        self._rdf_graph_cache = None
+        self._rdf_graph_triple_count = -1
+
+    def query_sparql_rdflib(self, query_str: str) -> list[dict[str, str]]:
+        """
+        rdflib를 이용한 표준 SPARQL 쿼리 실행
+
+        Args:
+            query_str: SPARQL 쿼리 문자열
+                PREFIX 선언이 없으면 자동으로 amore 네임스페이스 추가
+
+        Returns:
+            바인딩 딕셔너리 리스트 [{var: value, ...}, ...]
+
+        Raises:
+            ValueError: 잘못된 SPARQL 쿼리
+
+        예:
+            kg.query_sparql_rdflib('''
+                PREFIX amore: <http://amore.ontology/>
+                SELECT ?brand ?product
+                WHERE {
+                    ?brand amore:hasProduct ?product .
+                }
+            ''')
+        """
+        from rdflib import Literal as RdfLiteral
+        from rdflib import URIRef
+
+        g = self._kg_to_rdf_graph()
+
+        # Auto-add PREFIX if not present
+        if "PREFIX" not in query_str.upper():
+            query_str = "PREFIX amore: <http://amore.ontology/>\n" + query_str
+
+        try:
+            qres = g.query(query_str)
+        except Exception as exc:
+            raise ValueError(f"Invalid SPARQL query: {exc}") from exc
+
+        results: list[dict[str, str]] = []
+        entity_prefix = str(AMORE["entity/"])
+
+        for row in qres:
+            binding: dict[str, str] = {}
+            for var in qres.vars:
+                val = row[var]
+                if val is None:
+                    continue
+                str_val = str(val)
+                # Strip entity URI prefix to return clean IDs
+                if isinstance(val, URIRef) and str_val.startswith(entity_prefix):
+                    str_val = str_val[len(entity_prefix) :]
+                elif isinstance(val, RdfLiteral):
+                    str_val = str(val)
+                binding[str(var)] = str_val
+            results.append(binding)
 
         return results
