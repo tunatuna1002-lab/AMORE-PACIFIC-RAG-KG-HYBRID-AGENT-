@@ -454,8 +454,11 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
                 "saved_at": datetime.now().isoformat(),
             }
 
-            with open(save_path, "w", encoding="utf-8") as f:
+            # Atomic write: write to temp file then rename to avoid corruption
+            tmp_path = save_path.with_suffix(".tmp")
+            with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            tmp_path.replace(save_path)
 
             self._dirty = False
             logger.info(f"KnowledgeGraph saved to {save_path}: {len(self.triples)} triples")
@@ -492,7 +495,8 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
         try:
             with open(self.persist_path, encoding="utf-8") as f:
                 content = f.read().rstrip("\x00")
-            data = json.loads(content)
+            # Use raw_decode to handle files with extra data after valid JSON
+            data, _ = json.JSONDecoder().raw_decode(content)
 
             # 버전 체크
             version = data.get("version", "1.0")
