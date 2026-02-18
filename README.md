@@ -331,6 +331,7 @@ ENV_FILE=.env.test python -m pytest tests/
 | 문서 | 설명 |
 |------|------|
 | [`CLAUDE.md`](CLAUDE.md) | 개발 가이드 (Claude Code용) |
+| [`docs/analysis/rag-ontology-kg-deep-analysis.md`](docs/analysis/rag-ontology-kg-deep-analysis.md) | RAG + Ontology + KG 하이브리드 시스템 심층 분석 |
 | [`docs/guides/react_agent_guide.md`](docs/guides/react_agent_guide.md) | ReAct Agent 가이드 |
 | [`docs/embedding_cache_guide.md`](docs/embedding_cache_guide.md) | Embedding 캐시 가이드 |
 | [`docs/AMOREPACIFIC_DESIGN_SYSTEM.md`](docs/AMOREPACIFIC_DESIGN_SYSTEM.md) | 디자인 시스템 가이드 |
