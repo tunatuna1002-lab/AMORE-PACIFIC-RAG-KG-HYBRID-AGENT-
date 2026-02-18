@@ -188,13 +188,13 @@ python scripts/test_report_generator.py
 |------|------|
 | **Backend** | Python 3.11+, FastAPI, Uvicorn |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
-| **RAG** | ChromaDB + OpenAI Embeddings + MD5 캐시 |
-| **Ontology** | owlready2, Rule-based Reasoner |
+| **RAG** | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) + BM25/RRF + Self-RAG |
+| **Ontology** | owlready2 (OWL DL), rdflib (SPARQL), Rule-based Reasoner |
 | **크롤링** | Playwright, playwright-stealth, browserforge |
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite, Google Sheets, Pandas |
 | **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (현재 69.76%, 목표 60% 달성) |
+| **테스트** | pytest, pytest-cov (현재 72.76%, 목표 60% 달성) |
 
 ---
 
@@ -285,9 +285,9 @@ python scripts/test_report_generator.py
 
 | 항목 | 수치 |
 |------|------|
-| 총 테스트 수 | **4,125개** |
-| 통과율 | 100% (4,125 passed, 0 failed) |
-| 커버리지 | **69.76%** (목표 60% 달성) |
+| 총 테스트 수 | **5,195개** |
+| 통과율 | 100% (5,195 passed, 0 failed) |
+| 커버리지 | **72.76%** (목표 60% 달성) |
 | 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
 
 ### 레이어별 커버리지
@@ -350,9 +350,9 @@ ENV_FILE=.env.test python -m pytest tests/
 | Python 파일 수 | 155개 | 200개 | +29% (모듈 분할) |
 | dashboard_api.py | 5,634줄 monolith | 3,236줄 + 12 route modules | **-43%** |
 | 순환 의존성 | 23 cycles | 0 cycles | **완전 제거** |
-| 테스트 수 | 238개 | 4,125개 | **+1,633%** |
-| 테스트 커버리지 | 10.11% | 69.76% | **+59.65%p** |
-| DI Container | 11 get_ 메서드 | 18 get_ 메서드 | +7 컴포넌트 |
+| 테스트 수 | 238개 | 5,195개 | **+2,082%** |
+| 테스트 커버리지 | 10.11% | 72.76% | **+62.65%p** |
+| DI Container | 11 get_ 메서드 | 22 get_ 메서드 | +11 컴포넌트 |
 
 ### 9.2 Phase별 주요 변경
 
@@ -381,7 +381,7 @@ GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로
 
 ### 9.4 커버리지 달성 (완료)
 
-10.11% → **69.76%** (목표 60% 초과 달성).
+10.11% → **72.76%** (목표 60% 초과 달성).
 
 | Wave | 대상 | 테스트 수 | 결과 |
 |------|------|----------|------|
@@ -396,6 +396,25 @@ GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로
 ---
 
 ## 10. 업데이트 히스토리
+
+### 2026-02-19 - 10-Sprint 마스터 로드맵 완료
+
+**Sprint 7~10 (2026-02-17 ~ 02-19) 주요 변경:**
+
+| Sprint | 주제 | 핵심 변경 |
+|--------|------|----------|
+| **Sprint 7** | Eval Harness 고도화 | LLM/NLI Judge, Cost Tracking, Regression 감지, CLI compare |
+| **Sprint 8** | OWL Ontology + BM25/RRF | OWL Class Restriction, inverseOf, Disjointness, BM25 Sparse + RRF 병합, Self-RAG 게이트 |
+| **Sprint 9** | Multi-hop + SPARQL | IRCoT 멀티홉, rdflib SPARQL, AIS 인라인 인용, IRI 체계, OWL Consistency Check |
+| **Sprint 10** | God Object 분할 + 보안 P3 | chatbot 1353→798줄, KG 1514→550줄, TrustedHost/CSRF 미들웨어, Fernet 세션 암호화, pip-audit/bandit |
+
+**최종 수치:**
+- 테스트: 5,195개 (100% 통과), 커버리지 72.76%
+- God Objects: business_rules 1540→54줄, knowledge_graph 1514→550줄, chatbot 1353→798줄
+- 보안: P0~P3 전체 완료 (TrustedHost, CSRF, Fernet, pip-audit, bandit)
+- DI Container: 22 get_ 메서드 (전체 전환 완료)
+
+---
 
 ### 2026-02-10 - Amazon 크롤러 Top 100 수집 복구
 
