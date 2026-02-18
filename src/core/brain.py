@@ -54,7 +54,9 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-# 한국 시간대 (UTC+9)
+# Resolve data directory: Railway volume at /data/ vs local ./data/
+_DATA_DIR = "/data" if os.path.isdir("/data") else "./data"
+
 # SRP 분해된 컴포넌트
 from .alert_manager import AlertManager
 from .cache import ResponseCache
@@ -292,7 +294,7 @@ class UnifiedBrain:
             # 기본 Context Gatherer 생성
             from ..ontology.knowledge_graph import KnowledgeGraph
 
-            kg = KnowledgeGraph(persist_path="./data/knowledge_graph.json")
+            kg = KnowledgeGraph()  # auto-detects Railway volume vs local path
             self._knowledge_graph = kg
 
             # HybridRetriever with optional OWL strategy
@@ -338,7 +340,7 @@ class UnifiedBrain:
         try:
             import json as _json
 
-            data_path = os.environ.get("DASHBOARD_DATA_PATH", "./data/dashboard_data.json")
+            data_path = os.environ.get("DASHBOARD_DATA_PATH", f"{_DATA_DIR}/dashboard_data.json")
             with open(data_path, encoding="utf-8") as f:
                 initial_data = _json.load(f)
             self._sync_knowledge_graph(initial_data)
@@ -381,7 +383,9 @@ class UnifiedBrain:
             try:
                 import json as _json
 
-                data_path = os.environ.get("DASHBOARD_DATA_PATH", "./data/dashboard_data.json")
+                data_path = os.environ.get(
+                    "DASHBOARD_DATA_PATH", f"{_DATA_DIR}/dashboard_data.json"
+                )
                 with open(data_path, encoding="utf-8") as f:
                     data = _json.load(f)
                 self._sync_knowledge_graph(data)
@@ -794,7 +798,7 @@ class UnifiedBrain:
         """v3 대시보드 조회 도구를 ToolCoordinator에 등록"""
         import json
 
-        data_path = os.environ.get("DASHBOARD_DATA_PATH", "./data/dashboard_data.json")
+        data_path = os.environ.get("DASHBOARD_DATA_PATH", f"{_DATA_DIR}/dashboard_data.json")
 
         def _load_dashboard_data() -> dict:
             """대시보드 데이터 로드"""
