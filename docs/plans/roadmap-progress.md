@@ -15,19 +15,18 @@
 
 ## Sprint 1: 현재 작업 마무리 (1~2일)
 
-- [ ] 1-1. Phase 1B: 엔티티 추출 통합
-  - [ ] `src/rag/entity_linker.py` — 브랜드/카테고리/지표 맵 병합
-  - [ ] `src/rag/hybrid_retriever.py` — EntityExtractor → entity_linker 위임
-  - [ ] `src/rag/router.py` — extract_entities() → entity_linker 위임
-  - [ ] `src/agents/hybrid_chatbot_agent.py` — 브랜드 추출 → entity_linker 위임
-  - [ ] entity_linker 단위 테스트 추가
-- [ ] 1-2. Ruff 잔여 4개 수정
-  - [ ] `scripts/evaluate_golden.py:155-156` — C401: `set(...)` → `{...}`
-  - [ ] `src/infrastructure/bootstrap.py:103,112` — F401: 미사용 import 제거
-- [ ] 1-3. 전체 테스트 통과 + 커밋
-  - [ ] `python3 -m pytest tests/ -v` — 4,816개 전체 통과
-  - [ ] `ruff check . && ruff format --check .` — 린트 통과
-  - [ ] Phase 1A/1B/1C/2A/2B + Ruff 일괄 커밋
+- [x] 1-1. Phase 1B: 엔티티 추출 통합
+  - [x] `src/rag/entity_linker.py` — 브랜드/카테고리/지표 맵 병합
+  - [x] `src/rag/hybrid_retriever.py` — EntityExtractor → entity_linker 위임 (thin wrapper)
+  - [x] `src/rag/router.py` — extract_entities() → entity_linker 위임
+  - [x] `src/agents/hybrid_chatbot_agent.py` — hybrid_context.entities 경유 (직접 추출 없음)
+  - [x] entity_linker 단위 테스트 추가 (38개 pytest)
+- [x] 1-2. Ruff 잔여 수정
+  - [x] `ruff check .` — All checks passed
+- [x] 1-3. 전체 테스트 통과 + 커밋
+  - [x] `python3 -m pytest tests/ -v` — 4,837개 전체 통과 (커버리지 71.99%)
+  - [x] `ruff check . && ruff format --check .` — 린트 통과
+  - [x] Phase 1A/1B/1C/2A/2B + entity consolidation 커밋 (e604b28)
 
 ---
 
@@ -173,7 +172,7 @@
 | Sprint | 상태 | 완료율 |
 |--------|------|--------|
 | Sprint 0 | 완료 | 3/3 |
-| Sprint 1 | 진행 중 | 0/3 |
+| Sprint 1 | **완료** | 3/3 |
 | Sprint 2 | 대기 | 0/9 |
 | Sprint 3 | 대기 | 0/4 |
 | Sprint 4 | 대기 | 0/8 |
