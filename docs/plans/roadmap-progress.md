@@ -75,15 +75,15 @@
 
 ## Sprint 5: Application Layer + 순환 의존성 (1주)
 
-- [ ] 5-1. 핵심 워크플로우 구현
-  - [ ] `src/application/workflows/chat_workflow.py` (~300줄)
-  - [ ] `src/application/workflows/crawl_workflow.py` (~300줄)
-  - [ ] `src/application/workflows/insight_workflow.py` (~300줄)
-  - [ ] API 라우트 → 워크플로우 호출 전환
-- [ ] 5-2. 순환 의존성 해소 잔여
-  - [ ] `export_handlers.py` → PeriodInsightAgent import 제거
-  - [ ] 라우트 핸들러 → application workflow 호출
-  - [ ] `container.py` 와이어링 중앙화
+- [x] 5-1. 핵심 워크플로우 구현
+  - [x] `src/application/workflows/chat_workflow.py` (기존 구현 활용)
+  - [x] `src/application/workflows/crawl_workflow.py` (기존 구현 활용)
+  - [x] `src/application/workflows/insight_workflow.py` (기존 구현 활용)
+  - [x] API 라우트 → 워크플로우 호출 전환 (chat.py v1 → ChatWorkflow)
+- [x] 5-2. 순환 의존성 해소 잔여
+  - [x] `export_handlers.py` → PeriodInsightAgent import 제거 (Container.get_period_insight_agent())
+  - [x] 라우트 핸들러 → application workflow 호출 (chat.py v1 → ChatWorkflow)
+  - [x] `container.py` 와이어링 중앙화 (get_period_insight_agent, get_rag_router 추가)
 
 ---
 
@@ -180,7 +180,7 @@
 | Sprint 2 | **완료** | 9/9 |
 | Sprint 3 | **완료** | 4/4 |
 | Sprint 4 | **완료** | 8/8 |
-| Sprint 5 | 대기 | 0/8 |
+| Sprint 5 | **완료** | 8/8 |
 | Sprint 6 | 대기 | 0/10 |
 | Sprint 7 | 대기 | 0/9 |
 | Sprint 8 | 대기 | 0/9 |
