@@ -110,3 +110,7 @@ exclude = [
     "__pycache__",
     "coverage_html",
 ]
+
+[tool.bandit]
+exclude_dirs = ["tests", "scripts", "examples"]
+skips = ["B101", "B311"]  # B101=assert, B311=random (not crypto)

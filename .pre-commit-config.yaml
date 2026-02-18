@@ -32,7 +32,23 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
 
-  # Security checks
+  # Dependency security audit (run manually: pre-commit run pip-audit --hook-stage manual)
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.3
+    hooks:
+      - id: pip-audit
+        args: ["--strict", "--desc", "on"]
+        stages: [manual]  # Only run on manual trigger, not every commit
+
+  # Static security analysis (run manually: pre-commit run bandit --hook-stage manual)
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.8.3"
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml", "-r", "src/", "-ll"]
+        stages: [manual]  # Only run on manual trigger
+
+  # Secret detection
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:

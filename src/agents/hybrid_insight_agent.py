@@ -76,6 +76,7 @@ class HybridInsightAgent(BaseHybridAgent):
         logger: AgentLogger | None = None,
         tracer: ExecutionTracer | None = None,
         metrics: QualityMetrics | None = None,
+        signal_collector: ExternalSignalCollector | None = None,
     ):
         """
         Args:
@@ -116,7 +117,7 @@ class HybridInsightAgent(BaseHybridAgent):
         self._results: dict[str, Any] = {}
 
         # External Signal Collector
-        self._signal_collector: ExternalSignalCollector | None = None
+        self._signal_collector: ExternalSignalCollector | None = signal_collector
 
         # Market Intelligence Engine
         self._market_intelligence: MarketIntelligenceEngine | None = None

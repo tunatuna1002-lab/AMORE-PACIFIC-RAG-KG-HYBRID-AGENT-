@@ -17,6 +17,6 @@
     "use_centralized_prompts": false
   },
   "agents": {
-    "use_decomposed_chatbot": false
+    "use_decomposed_chatbot": true
   }
 }

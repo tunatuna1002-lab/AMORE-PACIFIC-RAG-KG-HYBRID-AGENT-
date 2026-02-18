@@ -240,7 +240,9 @@ class Container:
         from src.agents.hybrid_insight_agent import HybridInsightAgent
 
         return HybridInsightAgent(
-            knowledge_graph=cls.get_knowledge_graph(), reasoner=cls.get_reasoner()
+            knowledge_graph=cls.get_knowledge_graph(),
+            reasoner=cls.get_reasoner(),
+            signal_collector=cls.get_external_signal_collector(),
         )
 
     @classmethod
@@ -560,6 +562,17 @@ class Container:
 
             cls._instances["alert_service"] = get_alert_service()
         return cls._instances["alert_service"]
+
+    @classmethod
+    def get_period_analyzer(cls):
+        """PeriodAnalyzer 싱글톤 반환"""
+        if "period_analyzer" in cls._overrides:
+            return cls._overrides["period_analyzer"]
+        if "period_analyzer" not in cls._instances:
+            from src.tools.calculators.period_analyzer import PeriodAnalyzer
+
+            cls._instances["period_analyzer"] = PeriodAnalyzer()
+        return cls._instances["period_analyzer"]
 
     @classmethod
     def get_rag_router(cls):

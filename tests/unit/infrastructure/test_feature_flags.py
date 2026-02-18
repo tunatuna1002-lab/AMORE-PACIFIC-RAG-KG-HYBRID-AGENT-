@@ -158,7 +158,7 @@ class TestFeatureFlagsConvenienceMethods:
         assert flags.use_ontology_kg() is True  # default True
         assert flags.use_sqlite_embedding_cache() is False  # default False
         assert flags.use_centralized_prompts() is False  # default False
-        assert flags.use_decomposed_chatbot() is False  # default False
+        assert flags.use_decomposed_chatbot() is True  # default True
 
 
 class TestFeatureFlagsSingleton:

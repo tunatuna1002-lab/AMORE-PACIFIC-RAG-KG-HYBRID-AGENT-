@@ -17,9 +17,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from src.api.dependencies import limiter
 from src.api.middleware import SecurityHeadersMiddleware
+from src.api.middleware.csrf import CSRFMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,12 @@ def create_app(
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+    # Trusted Host (anti-host-header injection)
+    allowed_hosts_str = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,.railway.app")
+    allowed_hosts = [h.strip() for h in allowed_hosts_str.split(",") if h.strip()]
+    if allowed_hosts and "*" not in allowed_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+
     # CORS
     allowed_origins = os.getenv(
         "ALLOWED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001"
@@ -61,6 +69,9 @@ def create_app(
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-API-Key", "Authorization"],
     )
+
+    # CSRF Protection (exempt all /api/ paths — those use API key auth)
+    app.add_middleware(CSRFMiddleware, exempt_paths=["/api/"])
 
     # Security Headers
     app.add_middleware(SecurityHeadersMiddleware)

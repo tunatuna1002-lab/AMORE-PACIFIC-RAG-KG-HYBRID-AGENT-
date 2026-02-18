@@ -129,9 +129,9 @@ async def scrape_deals(request: Request, body: DealsRequest):
 
                 # 알림 서비스로 알림 처리
                 try:
-                    from src.tools.notifications.alert_service import get_alert_service
+                    from src.infrastructure.container import Container
 
-                    alert_service = get_alert_service()
+                    alert_service = Container.get_alert_service()
                     alerts = await alert_service.process_deals_for_alerts(
                         result["competitor_deals"]
                     )

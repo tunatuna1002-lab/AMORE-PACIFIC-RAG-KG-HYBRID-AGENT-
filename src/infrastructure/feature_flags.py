@@ -122,7 +122,7 @@ class FeatureFlags:
 
     def use_decomposed_chatbot(self) -> bool:
         """Whether to use decomposed chatbot components."""
-        return self.get_flag("agents", "use_decomposed_chatbot", default=False)
+        return self.get_flag("agents", "use_decomposed_chatbot", default=True)
 
     # ── Singleton access ─────────────────────────────────────────────
 
