@@ -445,3 +445,84 @@ class EvalReport(BaseModel):
     recommendations: list[str] = Field(
         default_factory=list, description="Improvement recommendations"
     )
+
+
+# =============================================================================
+# Cost & Regression Schemas
+# =============================================================================
+
+
+class LayerCost(BaseModel):
+    """Cost breakdown for a single evaluation layer."""
+
+    tokens: int = Field(default=0, description="Tokens used")
+    cost_usd: float = Field(default=0.0, description="Cost in USD")
+    avg_latency_ms: float = Field(default=0.0, description="Average latency in ms")
+
+
+class CostBreakdown(BaseModel):
+    """Detailed cost analysis for an evaluation run."""
+
+    run_id: str = Field(..., description="Evaluation run identifier")
+    timestamp: datetime = Field(default_factory=datetime.now)
+    total_tokens: int = Field(default=0)
+    total_cost_usd: float = Field(default=0.0)
+    by_layer: dict[str, LayerCost] = Field(default_factory=dict, description="Cost per layer")
+    prev_run_cost_usd: float | None = Field(
+        default=None, description="Previous run cost for comparison"
+    )
+
+    @property
+    def cost_delta_pct(self) -> float | None:
+        """Percentage change from previous run."""
+        if self.prev_run_cost_usd is None or self.prev_run_cost_usd == 0:
+            return None
+        return ((self.total_cost_usd - self.prev_run_cost_usd) / self.prev_run_cost_usd) * 100
+
+    def summary(self) -> dict:
+        """Generate summary dict."""
+        return {
+            "run_id": self.run_id,
+            "total_tokens": self.total_tokens,
+            "total_cost_usd": self.total_cost_usd,
+            "cost_delta_pct": self.cost_delta_pct,
+            "layers": {
+                k: {"tokens": v.tokens, "cost_usd": v.cost_usd} for k, v in self.by_layer.items()
+            },
+        }
+
+
+class RegressionItem(BaseModel):
+    """Single metric regression or improvement."""
+
+    metric: str = Field(..., description="Metric name")
+    baseline_value: float = Field(..., description="Baseline value")
+    current_value: float = Field(..., description="Current value")
+    delta: float = Field(..., description="Absolute change")
+    severity: Literal["low", "medium", "high"] = Field(default="low")
+
+
+class RegressionComparison(BaseModel):
+    """Compare two evaluation runs for regression detection."""
+
+    baseline_run_id: str = Field(...)
+    current_run_id: str = Field(...)
+    timestamp: datetime = Field(default_factory=datetime.now)
+    metric_deltas: dict[str, float] = Field(default_factory=dict)
+    regressions: list[RegressionItem] = Field(default_factory=list)
+    improvements: list[RegressionItem] = Field(default_factory=list)
+
+    def has_regressions(self, threshold: float = 0.05) -> bool:
+        """Check if any regression exceeds threshold."""
+        return any(abs(r.delta) >= threshold for r in self.regressions)
+
+    def summary(self) -> dict:
+        """Generate comparison summary."""
+        return {
+            "baseline": self.baseline_run_id,
+            "current": self.current_run_id,
+            "total_regressions": len(self.regressions),
+            "total_improvements": len(self.improvements),
+            "has_significant_regressions": self.has_regressions(),
+            "worst_regression": max((r.delta for r in self.regressions), default=0.0),
+        }

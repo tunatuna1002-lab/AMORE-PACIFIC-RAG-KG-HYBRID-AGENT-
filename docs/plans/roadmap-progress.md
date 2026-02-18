@@ -62,14 +62,14 @@
 
 ## Sprint 4: Golden QA 확장 + Eval 기초 (1주)
 
-- [ ] 4-1. Golden QA 확장 (40→200+)
-  - [ ] `eval/data/golden/laneige_golden_v2.jsonl` 생성
-  - [ ] 메트릭(30), 제품(30), 브랜드(25), 시장(25), 멀티홉(20), 엣지(15), 시간(15) QA
-  - [ ] 난이도 분포: easy 30%, medium 50%, hard 20%
-- [ ] 4-2. Eval Harness: Fuzzy Matching
-  - [ ] `eval/metrics/base.py` — fuzzy_match, resolve_alias, set_f1_fuzzy
-  - [ ] `eval/metrics/l1_query.py` — alias_map + fuzzy_threshold
-  - [ ] `eval/schemas.py` — CostBreakdown, RegressionComparison 스키마
+- [x] 4-1. Golden QA 확장 (40→200+)
+  - [x] `eval/data/golden/laneige_golden_v2.jsonl` 생성 (160 QA pairs, lg041-lg200)
+  - [x] 메트릭(30), 제품(30), 브랜드(25), 시장(25), 멀티홉(20), 엣지(15), 시간(15) QA
+  - [x] 난이도 분포: easy=28, medium=89, hard=43 (56 eval tests pass)
+- [x] 4-2. Eval Harness: Fuzzy Matching
+  - [x] `eval/metrics/base.py` — fuzzy_match, resolve_alias, set_f1_fuzzy
+  - [x] `eval/metrics/l1_query.py` — alias_map + fuzzy_threshold
+  - [x] `eval/schemas.py` — CostBreakdown, RegressionComparison 스키마
 
 ---
 
@@ -179,7 +179,7 @@
 | Sprint 1 | **완료** | 3/3 |
 | Sprint 2 | **완료** | 9/9 |
 | Sprint 3 | **완료** | 4/4 |
-| Sprint 4 | 대기 | 0/8 |
+| Sprint 4 | **완료** | 8/8 |
 | Sprint 5 | 대기 | 0/8 |
 | Sprint 6 | 대기 | 0/10 |
 | Sprint 7 | 대기 | 0/9 |
