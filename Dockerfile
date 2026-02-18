@@ -4,12 +4,13 @@ FROM python:3.11-slim
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 시스템 패키지 설치 (Playwright용 + 한글 폰트)
+# 시스템 패키지 설치 (Playwright용 + 한글 폰트 + gosu)
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     fonts-noto-cjk \
     fontconfig \
+    gosu \
     && rm -rf /var/lib/apt/lists/* \
     && fc-cache -fv
 
@@ -32,8 +33,9 @@ ENV PYTHONPATH=/app
 
 # Create non-root user
 RUN mkdir -p /data && groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
-    && chown -R appuser:appuser /app /data
-USER appuser
+    && chown -R appuser:appuser /app /data \
+    && chmod +x scripts/docker-entrypoint.sh
 
-# 서버 실행 (start.py 스크립트 사용)
+# Entrypoint fixes Railway volume permissions then drops to appuser
+ENTRYPOINT ["scripts/docker-entrypoint.sh"]
 CMD ["python", "scripts/start.py"]
