@@ -8,10 +8,10 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from src.api.dependencies import verify_api_key
+from src.api.dependencies import limiter, verify_api_key
 from src.api.models import DealsRequest, DealsResponse
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -21,7 +21,10 @@ router = APIRouter(prefix="/api/deals", tags=["deals"])
 
 
 @router.get("/")
-async def get_deals_data(brand: str | None = None, hours: int = 24, limit: int = 100):
+@limiter.limit("10/minute")
+async def get_deals_data(
+    request: Request, brand: str | None = None, hours: int = 24, limit: int = 100
+):
     """
     저장된 Deals 데이터 조회
 
@@ -61,7 +64,8 @@ async def get_deals_data(brand: str | None = None, hours: int = 24, limit: int =
 
 
 @router.get("/summary")
-async def get_deals_summary(days: int = 7):
+@limiter.limit("10/minute")
+async def get_deals_summary(request: Request, days: int = 7):
     """
     Deals 요약 통계
 
@@ -86,7 +90,8 @@ async def get_deals_summary(days: int = 7):
 
 
 @router.post("/scrape", dependencies=[Depends(verify_api_key)])
-async def scrape_deals(request: DealsRequest):
+@limiter.limit("10/minute")
+async def scrape_deals(request: Request, body: DealsRequest):
     """
     Amazon Deals 페이지 크롤링 (API Key 필요)
 
@@ -107,9 +112,7 @@ async def scrape_deals(request: DealsRequest):
         scraper = await get_deals_scraper()
 
         # 크롤링 실행
-        result = await scraper.scrape_deals(
-            max_items=request.max_items, beauty_only=request.beauty_only
-        )
+        result = await scraper.scrape_deals(max_items=body.max_items, beauty_only=body.beauty_only)
 
         if result["success"]:
             # SQLite에 저장
@@ -174,7 +177,8 @@ async def scrape_deals(request: DealsRequest):
 
 
 @router.get("/alerts")
-async def get_deals_alerts(limit: int = 50, unsent_only: bool = False):
+@limiter.limit("10/minute")
+async def get_deals_alerts(request: Request, limit: int = 50, unsent_only: bool = False):
     """
     Deals 알림 목록 조회
 
@@ -213,7 +217,8 @@ async def get_deals_alerts(limit: int = 50, unsent_only: bool = False):
 
 
 @router.post("/export")
-async def export_deals_report(days: int = 7, format: str = "excel"):
+@limiter.limit("10/minute")
+async def export_deals_report(request: Request, days: int = 7, format: str = "excel"):
     """
     Deals 리포트 내보내기
 

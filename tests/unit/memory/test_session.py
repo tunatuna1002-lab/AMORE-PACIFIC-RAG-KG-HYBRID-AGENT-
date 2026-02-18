@@ -47,7 +47,7 @@ class TestSessionManager:
 
     def test_create_session(self, manager):
         session_id = manager.create_session()
-        assert len(session_id) == 8
+        assert len(session_id) == 36
         session = manager.get_current_session()
         assert session is not None
         assert session.session_id == session_id

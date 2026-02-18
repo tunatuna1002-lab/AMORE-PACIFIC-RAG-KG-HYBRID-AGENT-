@@ -30,5 +30,10 @@ EXPOSE 8001
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
+# Create non-root user
+RUN mkdir -p /data && groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
+    && chown -R appuser:appuser /app /data
+USER appuser
+
 # 서버 실행 (start.py 스크립트 사용)
 CMD ["python", "scripts/start.py"]

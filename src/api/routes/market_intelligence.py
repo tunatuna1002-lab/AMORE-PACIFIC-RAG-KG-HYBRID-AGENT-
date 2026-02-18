@@ -8,10 +8,10 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from src.api.dependencies import get_market_intelligence, verify_api_key
+from src.api.dependencies import get_market_intelligence, limiter, verify_api_key
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,8 @@ class LayerDataResponse(BaseModel):
 
 
 @router.get("/api/market-intelligence/status", response_model=MarketIntelligenceStatusResponse)
-async def get_market_intelligence_status():
+@limiter.limit("10/minute")
+async def get_market_intelligence_status(request: Request):
     """
     Market Intelligence 시스템 상태 조회
 
@@ -75,7 +76,8 @@ async def get_market_intelligence_status():
 
 
 @router.get("/api/market-intelligence/layers")
-async def get_market_intelligence_layers(layer: int | None = None):
+@limiter.limit("10/minute")
+async def get_market_intelligence_layers(request: Request, layer: int | None = None):
     """
     4-Layer 데이터 조회
 
@@ -122,7 +124,8 @@ async def get_market_intelligence_layers(layer: int | None = None):
 
 
 @router.post("/api/market-intelligence/collect", dependencies=[Depends(verify_api_key)])
-async def collect_market_intelligence(layers: list[int] | None = None):
+@limiter.limit("10/minute")
+async def collect_market_intelligence(request: Request, layers: list[int] | None = None):
     """
     Market Intelligence 데이터 수집 트리거
 
@@ -170,7 +173,8 @@ async def collect_market_intelligence(layers: list[int] | None = None):
 
 
 @router.get("/api/market-intelligence/insight")
-async def get_market_intelligence_insight(include_amazon: bool = False):
+@limiter.limit("10/minute")
+async def get_market_intelligence_insight(request: Request, include_amazon: bool = False):
     """
     4-Layer 기반 인사이트 생성
 
@@ -210,7 +214,8 @@ async def get_market_intelligence_insight(include_amazon: bool = False):
 
 
 @router.get("/api/insights/sources")
-async def get_insight_sources():
+@limiter.limit("10/minute")
+async def get_insight_sources(request: Request):
     """
     인사이트 출처 정보 조회
 

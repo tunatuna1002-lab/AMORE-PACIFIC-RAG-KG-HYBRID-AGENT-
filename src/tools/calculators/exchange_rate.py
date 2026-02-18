@@ -113,32 +113,15 @@ class ExchangeRateService:
         url = f"https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}"
 
         try:
-            import ssl
-
-            import certifi
-
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-
             async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url, timeout=aiohttp.ClientTimeout(total=10), ssl=ssl_context
-                ) as response:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         data = await response.json()
                         rates = data.get("rates", {})
                         if to_currency in rates:
                             return rates[to_currency]
-        except ImportError:
-            # certifi 없으면 SSL 검증 비활성화 (개발용)
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url, timeout=aiohttp.ClientTimeout(total=10), ssl=False
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        rates = data.get("rates", {})
-                        if to_currency in rates:
-                            return rates[to_currency]
+        except Exception as e:
+            logger.debug(f"Frankfurter API failed: {e}")
         return None
 
     async def _fetch_from_exchangerate_api(
@@ -154,9 +137,7 @@ class ExchangeRateService:
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url, timeout=aiohttp.ClientTimeout(total=10), ssl=False
-                ) as response:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         data = await response.json()
                         rates = data.get("rates", {})

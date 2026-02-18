@@ -399,6 +399,16 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
     # 영속화
     # =========================================================================
 
+    def _validate_save_path(self, path: Path) -> Path:
+        """Validate that save path is within allowed directories."""
+        resolved = path.resolve()
+        allowed_parents = [Path("data").resolve(), Path("/data").resolve()]
+        if self.persist_path:
+            allowed_parents.append(self.persist_path.parent.resolve())
+        if not any(str(resolved).startswith(str(p)) for p in allowed_parents):
+            raise ValueError(f"KG save path outside allowed directory: {resolved}")
+        return resolved
+
     def save(self, path: str | None = None, force: bool = False) -> bool:
         """
         그래프 저장
@@ -424,6 +434,9 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
             return False
 
         try:
+            if path:
+                save_path = self._validate_save_path(save_path)
+
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             data = {
@@ -478,7 +491,8 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin):
 
         try:
             with open(self.persist_path, encoding="utf-8") as f:
-                data = json.load(f)
+                content = f.read().rstrip("\x00")
+            data = json.loads(content)
 
             # 버전 체크
             version = data.get("version", "1.0")

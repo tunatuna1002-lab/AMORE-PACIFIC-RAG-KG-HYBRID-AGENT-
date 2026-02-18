@@ -4,16 +4,17 @@ Brain Routes - UnifiedBrain API endpoints
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.dependencies import load_dashboard_data, verify_api_key
+from src.api.dependencies import limiter, load_dashboard_data, verify_api_key
 from src.core.brain import BrainMode, get_initialized_brain
 
 router = APIRouter(prefix="/api/v4/brain", tags=["brain"])
 
 
 @router.get("/status")
-async def get_brain_status():
+@limiter.limit("20/minute")
+async def get_brain_status(request: Request):
     """
     Brain 상태 조회
 
@@ -45,7 +46,8 @@ async def get_brain_status():
 
 
 @router.post("/scheduler/start", dependencies=[Depends(verify_api_key)])
-async def start_brain_scheduler():
+@limiter.limit("20/minute")
+async def start_brain_scheduler(request: Request):
     """
     자율 스케줄러 시작 (API Key 필요)
 
@@ -71,7 +73,8 @@ async def start_brain_scheduler():
 
 
 @router.post("/scheduler/stop", dependencies=[Depends(verify_api_key)])
-async def stop_brain_scheduler():
+@limiter.limit("20/minute")
+async def stop_brain_scheduler(request: Request):
     """자율 스케줄러 중지 (API Key 필요)"""
     try:
         brain = await get_initialized_brain()
@@ -85,7 +88,8 @@ async def stop_brain_scheduler():
 
 
 @router.post("/autonomous-cycle", dependencies=[Depends(verify_api_key)])
-async def run_autonomous_cycle():
+@limiter.limit("20/minute")
+async def run_autonomous_cycle(request: Request):
     """
     자율 사이클 수동 실행 (API Key 필요)
 
@@ -105,7 +109,8 @@ async def run_autonomous_cycle():
 
 
 @router.post("/check-alerts")
-async def check_brain_alerts():
+@limiter.limit("20/minute")
+async def check_brain_alerts(request: Request):
     """
     알림 조건 수동 체크
 
@@ -126,7 +131,8 @@ async def check_brain_alerts():
 
 
 @router.get("/stats")
-async def get_brain_stats():
+@limiter.limit("20/minute")
+async def get_brain_stats(request: Request):
     """Brain 통계 조회"""
     try:
         brain = await get_initialized_brain()
@@ -136,7 +142,8 @@ async def get_brain_stats():
 
 
 @router.post("/mode", dependencies=[Depends(verify_api_key)])
-async def set_brain_mode(mode: str):
+@limiter.limit("20/minute")
+async def set_brain_mode(request: Request, mode: str):
     """
     Brain 모드 변경 (API Key 필요)
 

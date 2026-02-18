@@ -10,9 +10,10 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 
+from src.api.dependencies import limiter
 from src.core.brain import get_initialized_brain
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,8 @@ DASHBOARD_READ_TOKEN = os.getenv("DASHBOARD_READ_TOKEN", "")
 
 
 @router.get("/")
-async def root():
+@limiter.limit("60/minute")
+async def root(request: Request):
     """헬스 체크"""
     return {
         "status": "ok",
@@ -34,7 +36,8 @@ async def root():
 
 
 @router.get("/dashboard")
-async def serve_dashboard():
+@limiter.limit("60/minute")
+async def serve_dashboard(request: Request):
     """
     대시보드 HTML 페이지 서빙 (API 키 자동 주입)
 
@@ -58,13 +61,15 @@ async def serve_dashboard():
 
 
 @router.get("/api/health")
-async def health_check():
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     """기본 헬스 체크 엔드포인트 (Railway healthcheck용)"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
 @router.get("/api/health/deep")
-async def deep_health_check():
+@limiter.limit("60/minute")
+async def deep_health_check(request: Request):
     """
     Deep Health Check - 모든 서브시스템 상태 확인
 

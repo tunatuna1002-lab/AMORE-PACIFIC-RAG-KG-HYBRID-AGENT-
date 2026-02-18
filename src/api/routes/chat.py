@@ -32,7 +32,9 @@ from src.api.dependencies import (
     verify_api_key,
 )
 from src.api.models import BrainChatRequest, BrainChatResponse, ChatRequest, ChatResponse
+from src.api.validators.input_validator import get_validator
 from src.core.brain import get_initialized_brain
+from src.domain.exceptions import DataValidationError
 from src.rag.router import QueryType
 
 logger = logging.getLogger(__name__)
@@ -46,13 +48,14 @@ async def chat(request: Request, body: ChatRequest):
     """
     ChatGPT + RAG + Ontology 통합 챗봇 API
 
-    1. 질문 분석 (RAGRouter)
-    2. 엔티티 추출 (Ontology 기반)
-    3. 관련 문서 검색 (RAG)
-    4. 데이터 컨텍스트 구성
-    5. 대화 기록 참조
-    6. LLM 응답 생성
-    7. Audit Trail 로깅
+    1. 입력 검증 (Prompt Injection 방어)
+    2. 질문 분석 (RAGRouter)
+    3. 엔티티 추출 (Ontology 기반)
+    4. 관련 문서 검색 (RAG)
+    5. 데이터 컨텍스트 구성
+    6. 대화 기록 참조
+    7. LLM 응답 생성
+    8. Audit Trail 로깅
     """
     start_time = time.time()
 
@@ -61,6 +64,12 @@ async def chat(request: Request, body: ChatRequest):
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
+
+    # 0. 입력 검증 (Prompt Injection 방어)
+    try:
+        _, message = get_validator().validate(message)
+    except DataValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     # 1. 질문 분류 (RAGRouter 사용)
     route_result = rag_router.route(message)
@@ -275,6 +284,12 @@ async def chat_v4(request: Request, body: BrainChatRequest):
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
 
+    # 입력 검증 (Prompt Injection 방어)
+    try:
+        _, message = get_validator().validate(message)
+    except DataValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
     try:
         # Brain 인스턴스 획득
         brain = await get_initialized_brain()
@@ -341,6 +356,12 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
 
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
+
+    # 입력 검증 (Prompt Injection 방어)
+    try:
+        _, message = get_validator().validate(message)
+    except DataValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     try:
         brain = await get_initialized_brain()

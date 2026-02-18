@@ -10,9 +10,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from src.api.dependencies import get_sheets_writer, load_dashboard_data
+from src.api.dependencies import get_sheets_writer, limiter, load_dashboard_data
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,8 @@ router = APIRouter(tags=["data"])
 
 
 @router.get("/api/data")
-async def get_data():
+@limiter.limit("30/minute")
+async def get_data(request: Request):
     """대시보드 데이터 조회"""
     data = load_dashboard_data()
     if not data:
@@ -30,8 +31,13 @@ async def get_data():
 
 
 @router.get("/api/historical")
+@limiter.limit("30/minute")
 async def get_historical_data(
-    start_date: str, end_date: str, category_id: str | None = None, brand: str | None = "LANEIGE"
+    request: Request,
+    start_date: str,
+    end_date: str,
+    category_id: str | None = None,
+    brand: str | None = "LANEIGE",
 ):
     """
     히스토리컬 데이터 조회 (SQLite 우선, Google Sheets fallback)

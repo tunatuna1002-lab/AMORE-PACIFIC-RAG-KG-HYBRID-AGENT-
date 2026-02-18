@@ -5,9 +5,10 @@ External Signal Routes - 외부 트렌드 신호 수집 API
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from src.api.dependencies import limiter
 from src.tools.collectors.external_signal_collector import (
     ExternalSignalCollector,
 )
@@ -54,7 +55,10 @@ class TrendRadarItem(BaseModel):
 
 
 @router.get("/")
-async def get_signals(days: int = 7, tier: str | None = None, source: str | None = None):
+@limiter.limit("10/minute")
+async def get_signals(
+    request: Request, days: int = 7, tier: str | None = None, source: str | None = None
+):
     """
     수집된 신호 조회
 
@@ -89,14 +93,16 @@ async def get_signals(days: int = 7, tier: str | None = None, source: str | None
 
 
 @router.get("/stats")
-async def get_signal_stats():
+@limiter.limit("10/minute")
+async def get_signal_stats(request: Request):
     """신호 통계 조회"""
     collector = await get_collector()
     return collector.get_stats()
 
 
 @router.get("/report")
-async def get_signal_report(days: int = 7):
+@limiter.limit("10/minute")
+async def get_signal_report(request: Request, days: int = 7):
     """보고서용 신호 섹션 생성"""
     collector = await get_collector()
     report = collector.generate_report_section(days=days)
@@ -104,7 +110,10 @@ async def get_signal_report(days: int = 7):
 
 
 @router.post("/fetch/rss")
-async def fetch_rss_signals(keywords: list[str] | None = None, max_articles: int = 10):
+@limiter.limit("10/minute")
+async def fetch_rss_signals(
+    request: Request, keywords: list[str] | None = None, max_articles: int = 10
+):
     """
     RSS 피드에서 기사 수집 (Tier 3: 전문 매체)
 
@@ -125,8 +134,12 @@ async def fetch_rss_signals(keywords: list[str] | None = None, max_articles: int
 
 
 @router.post("/fetch/reddit")
+@limiter.limit("10/minute")
 async def fetch_reddit_signals(
-    subreddits: list[str] | None = None, keywords: list[str] | None = None, max_posts: int = 10
+    request: Request,
+    subreddits: list[str] | None = None,
+    keywords: list[str] | None = None,
+    max_posts: int = 10,
 ):
     """
     Reddit에서 트렌드 수집 (Tier 2: 검증)
@@ -150,7 +163,8 @@ async def fetch_reddit_signals(
 
 
 @router.post("/manual")
-async def add_manual_signal(input: ManualSignalInput):
+@limiter.limit("10/minute")
+async def add_manual_signal(request: Request, input: ManualSignalInput):
     """
     수동 신호 입력
 
@@ -179,7 +193,8 @@ async def add_manual_signal(input: ManualSignalInput):
 
 
 @router.post("/trend-radar")
-async def add_trend_radar(items: list[TrendRadarItem]):
+@limiter.limit("10/minute")
+async def add_trend_radar(request: Request, items: list[TrendRadarItem]):
     """
     주간 트렌드 레이더 일괄 입력
 
@@ -201,7 +216,8 @@ async def add_trend_radar(items: list[TrendRadarItem]):
 
 
 @router.delete("/clear")
-async def clear_signals():
+@limiter.limit("10/minute")
+async def clear_signals(request: Request):
     """모든 신호 삭제 (개발용)"""
     collector = await get_collector()
     collector.signals = []

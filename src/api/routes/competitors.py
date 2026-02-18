@@ -8,9 +8,9 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from src.api.dependencies import load_dashboard_data
+from src.api.dependencies import limiter, load_dashboard_data
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,8 @@ def _detect_product_type(product_name: str) -> str:
 
 
 @router.get("/api/competitors")
-async def get_competitor_data(brand: str | None = None):
+@limiter.limit("10/minute")
+async def get_competitor_data(request: Request, brand: str | None = None):
     """
     경쟁사 추적 데이터 조회
 
@@ -176,7 +177,8 @@ async def get_competitor_data(brand: str | None = None):
 
 
 @router.get("/api/competitors/brands")
-async def get_tracked_brands():
+@limiter.limit("10/minute")
+async def get_tracked_brands(request: Request):
     """추적 중인 경쟁사 브랜드 목록"""
     try:
         config_path = Path("./config/tracked_competitors.json")

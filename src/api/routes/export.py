@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from src.agents.period_insight_agent import PeriodInsightAgent
-from src.api.dependencies import load_dashboard_data
+from src.api.dependencies import limiter, load_dashboard_data
 from src.tools.calculators.period_analyzer import PeriodAnalyzer
 from src.tools.collectors.external_signal_collector import ExternalSignalCollector
 from src.tools.exporters.chart_generator import ChartGenerator
@@ -358,7 +358,8 @@ async def _get_external_signals(
 
 
 @router.post("/docx")
-async def export_docx(request: ExportRequest):
+@limiter.limit("5/minute")
+async def export_docx(http_request: Request, request: ExportRequest):
     """
     인사이트 리포트 DOCX 생성 및 다운로드
     """
@@ -604,7 +605,8 @@ async def export_docx(request: ExportRequest):
 
 
 @router.post("/analyst-report")
-async def export_analyst_report(request: AnalystReportRequest):
+@limiter.limit("5/minute")
+async def export_analyst_report(http_request: Request, request: AnalystReportRequest):
     """
     기간별 애널리스트 리포트 DOCX 생성 (8 Sections)
 
@@ -995,6 +997,7 @@ async def export_analyst_report(request: AnalystReportRequest):
 
 
 @router.post("/excel")
+@limiter.limit("5/minute")
 async def export_excel(request: Request):
     """
     엑셀 데이터 내보내기 (SQLite → Excel)
@@ -1043,7 +1046,8 @@ async def export_excel(request: Request):
 
 
 @router.get("/signals/status")
-async def get_signal_status():
+@limiter.limit("5/minute")
+async def get_signal_status(request: Request):
     """
     외부 신호 API 상태 확인
 
@@ -1117,7 +1121,8 @@ class AsyncExportRequest(BaseModel):
 
 
 @router.post("/async/start")
-async def start_async_export(request: AsyncExportRequest):
+@limiter.limit("5/minute")
+async def start_async_export(http_request: Request, request: AsyncExportRequest):
     """
     비동기 내보내기 작업 시작
 
@@ -1159,7 +1164,8 @@ async def start_async_export(request: AsyncExportRequest):
 
 
 @router.get("/async/status/{job_id}")
-async def get_async_export_status(job_id: str):
+@limiter.limit("5/minute")
+async def get_async_export_status(request: Request, job_id: str):
     """
     비동기 내보내기 작업 상태 조회
 
@@ -1187,7 +1193,8 @@ async def get_async_export_status(job_id: str):
 
 
 @router.get("/download/{job_id}")
-async def download_export_file(job_id: str):
+@limiter.limit("5/minute")
+async def download_export_file(request: Request, job_id: str):
     """
     완료된 내보내기 파일 다운로드
 
@@ -1232,7 +1239,8 @@ async def download_export_file(job_id: str):
 
 
 @router.get("/async/jobs")
-async def list_export_jobs(status: str | None = None, limit: int = 20):
+@limiter.limit("5/minute")
+async def list_export_jobs(request: Request, status: str | None = None, limit: int = 20):
     """
     내보내기 작업 목록 조회
 

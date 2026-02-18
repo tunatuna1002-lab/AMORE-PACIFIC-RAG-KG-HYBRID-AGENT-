@@ -74,7 +74,7 @@ class SessionManager:
         Returns:
             생성된 세션 ID
         """
-        session_id = str(uuid.uuid4())[:8]
+        session_id = str(uuid.uuid4())
         session = Session(session_id=session_id, status=SessionStatus.CREATED)
 
         # 에이전트 상태 초기화

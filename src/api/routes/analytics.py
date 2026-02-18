@@ -10,8 +10,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
+from src.api.dependencies import limiter
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,9 @@ def _load_crawl_data_for_sos():
 
 
 @router.get("/api/category/kpi")
+@limiter.limit("10/minute")
 async def get_category_kpi(
+    request: Request,
     category_id: str,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -154,7 +157,9 @@ async def get_category_kpi(
 
 
 @router.get("/api/sos/category")
+@limiter.limit("10/minute")
 async def get_sos_by_category(
+    request: Request,
     start_date: str | None = None,
     end_date: str | None = None,
     compare_brands: str | None = None,
@@ -384,7 +389,10 @@ async def get_sos_by_category(
 
 
 @router.get("/api/sos/brands")
-async def get_available_brands(category_id: str | None = None, min_count: int = 1):
+@limiter.limit("10/minute")
+async def get_available_brands(
+    request: Request, category_id: str | None = None, min_count: int = 1
+):
     """
     비교 가능한 브랜드 목록 조회 (Top 100에 포함된 브랜드들)
 
@@ -492,7 +500,9 @@ async def get_available_brands(category_id: str | None = None, min_count: int = 
 
 
 @router.get("/api/sos/trend")
+@limiter.limit("10/minute")
 async def get_sos_trend(
+    request: Request,
     brand: str = "LANEIGE",
     category_id: str | None = None,
     days: int = 7,
@@ -604,7 +614,9 @@ async def get_sos_trend(
 
 
 @router.get("/api/sos/trend/competitors-avg")
+@limiter.limit("10/minute")
 async def get_competitors_avg_sos_trend(
+    request: Request,
     category_id: str | None = None,
     days: int = 7,
     start_date: str | None = None,

@@ -10,6 +10,7 @@ import re
 
 from fastapi import APIRouter, HTTPException, Request
 
+from src.api.dependencies import limiter
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,8 @@ router = APIRouter(tags=["Sync"])
 
 
 @router.get("/api/sync/status")
-async def sync_status():
+@limiter.limit("2/minute")
+async def sync_status(request: Request):
     """
     Railway Volume의 데이터 현황 반환
 
@@ -70,7 +72,8 @@ async def sync_status():
 
 
 @router.get("/api/sync/dates")
-async def sync_dates():
+@limiter.limit("2/minute")
+async def sync_dates(request: Request):
     """
     사용 가능한 모든 날짜 목록 반환 (정렬됨)
 
@@ -99,7 +102,8 @@ async def sync_dates():
 
 
 @router.get("/api/sync/download/{date}")
-async def sync_download(date: str):
+@limiter.limit("2/minute")
+async def sync_download(request: Request, date: str):
     """
     특정 날짜의 raw_data를 JSON으로 다운로드
 
@@ -154,6 +158,7 @@ async def sync_download(date: str):
 
 
 @router.post("/api/sync/upload")
+@limiter.limit("2/minute")
 async def sync_upload(request: Request):
     """
     로컬에서 Railway로 raw_data 업로드

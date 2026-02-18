@@ -42,12 +42,17 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
     """API Key 검증 (민감한 엔드포인트용)"""
     import hmac
 
+    if API_KEY is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Server not configured for authenticated access",
+        )
     if api_key is None:
         raise HTTPException(
             status_code=401,
             detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요.",
         )
-    if not API_KEY or not hmac.compare_digest(api_key.encode(), API_KEY.encode()):
+    if not hmac.compare_digest(api_key.encode(), API_KEY.encode()):
         raise HTTPException(
             status_code=403,
             detail="유효하지 않은 API Key입니다.",
@@ -469,10 +474,30 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 EMAIL_VERIFICATION_EXPIRES_MINUTES = 30
 
-if JWT_SECRET_KEY and len(JWT_SECRET_KEY) < 32:
-    logging.warning(
-        "JWT_SECRET_KEY가 32자 미만입니다. HS256은 최소 256비트(32바이트) 키를 권장합니다."
+_jwt_env = os.getenv("RAILWAY_ENVIRONMENT", os.getenv("ENV", "development"))
+if not JWT_SECRET_KEY and _jwt_env in ("production", "staging"):
+    raise RuntimeError(
+        "JWT_SECRET_KEY 환경변수가 설정되지 않았습니다. 프로덕션/스테이징 환경에서는 필수입니다."
     )
+
+if JWT_SECRET_KEY:
+    if len(JWT_SECRET_KEY) < 32:
+        logging.warning(
+            "JWT_SECRET_KEY가 32자 미만입니다. HS256은 최소 256비트(32바이트) 키를 권장합니다."
+        )
+    _weak_patterns = [
+        r"^changeme",
+        r"^secret",
+        r"^password",
+        r"^(.)\1+$",  # all same character
+        r"^0123456789",  # sequential digits
+    ]
+    import re as _re
+
+    if any(_re.match(p, JWT_SECRET_KEY, _re.IGNORECASE) for p in _weak_patterns):
+        logging.warning(
+            "JWT_SECRET_KEY가 취약한 패턴을 사용하고 있습니다. 강력한 랜덤 키로 교체하세요."
+        )
 
 
 def create_email_verification_token(

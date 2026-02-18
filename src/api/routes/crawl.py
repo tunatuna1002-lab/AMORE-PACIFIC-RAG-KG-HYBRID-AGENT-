@@ -4,9 +4,9 @@ Crawl Routes
 Crawling status and control endpoints
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
-from src.api.dependencies import verify_api_key
+from src.api.dependencies import limiter, verify_api_key
 from src.core.crawl_manager import get_crawl_manager
 
 # Router
@@ -14,7 +14,8 @@ router = APIRouter()
 
 
 @router.get("/status")
-async def get_crawl_status():
+@limiter.limit("2/minute")
+async def get_crawl_status(request: Request):
     """
     Get crawling status
 
@@ -36,7 +37,8 @@ async def get_crawl_status():
 
 
 @router.post("/start", dependencies=[Depends(verify_api_key)])
-async def start_crawl():
+@limiter.limit("2/minute")
+async def start_crawl(request: Request):
     """
     Manually start crawling (requires API Key)
 

@@ -32,18 +32,18 @@
 
 ## Sprint 2: 보안 수정 (3~4일)
 
-- [ ] 2-1. P0 Critical
+- [x] 2-1. P0 Critical
   - [x] ~~2.1: API Key HTML 노출~~ (이미 수정됨)
-  - [ ] 2.2: API_KEY 미설정 시 Fail-Open → `src/api/dependencies.py:29-31`
-  - [ ] 2.3: JWT_SECRET_KEY 보안 미검증 → `src/api/dependencies.py:463-465`
-  - [ ] 2.4: InputValidator 채팅 엔드포인트 미적용 → `src/api/routes/chat.py`
-- [ ] 2-2. P1 High
-  - [ ] Docker non-root user → `Dockerfile`
-  - [ ] 보안 헤더 (CSP, HSTS 등) → `src/api/middleware.py`
-  - [ ] Rate Limiting 범위 확대 → `src/api/routes/crawl.py`, `export.py` 등
-  - [ ] Session ID UUID 전체 사용 → `src/memory/session.py:78`
-  - [ ] KG 경로 검증 → `src/ontology/knowledge_graph.py:400-451`
-  - [ ] SSL 검증 활성화 → `src/tools/calculators/exchange_rate.py:135,158`
+  - [x] 2.2: API_KEY 미설정 시 Fail-Open → `src/api/dependencies.py:29-31`
+  - [x] 2.3: JWT_SECRET_KEY 보안 미검증 → `src/api/dependencies.py:463-465`
+  - [x] 2.4: InputValidator 채팅 엔드포인트 미적용 → `src/api/routes/chat.py`
+- [x] 2-2. P1 High
+  - [x] Docker non-root user → `Dockerfile`
+  - [x] 보안 헤더 (CSP, HSTS 등) → `src/api/middleware.py`
+  - [x] Rate Limiting 범위 확대 → `src/api/routes/crawl.py`, `export.py` 등 (11개 라우트)
+  - [x] Session ID UUID 전체 사용 → `src/memory/session.py:78`
+  - [x] KG 경로 검증 → `src/ontology/knowledge_graph.py:400-451`
+  - [x] SSL 검증 활성화 → `src/tools/calculators/exchange_rate.py:135,158`
 
 ---
 
@@ -173,7 +173,7 @@
 |--------|------|--------|
 | Sprint 0 | 완료 | 3/3 |
 | Sprint 1 | **완료** | 3/3 |
-| Sprint 2 | 대기 | 0/9 |
+| Sprint 2 | **완료** | 9/9 |
 | Sprint 3 | 대기 | 0/4 |
 | Sprint 4 | 대기 | 0/8 |
 | Sprint 5 | 대기 | 0/8 |
