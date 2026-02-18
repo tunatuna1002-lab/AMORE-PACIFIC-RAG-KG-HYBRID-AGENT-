@@ -157,19 +157,19 @@
 
 ## Sprint 10: 마무리 + God Objects 분할 (1주)
 
-- [ ] 10-1. God Objects 추가 분할
-  - [ ] `src/ontology/business_rules.py` (1,540줄) → 규칙 카테고리별 분리
-  - [ ] `src/ontology/knowledge_graph.py` (1,514줄) → CRUD/Query 분리
-  - [ ] `src/agents/hybrid_chatbot_agent.py` (1,353줄) → base 상속 후 정리
-- [ ] 10-2. 보안 P3
-  - [ ] TrustedHost 미들웨어
-  - [ ] CSRF 보호
-  - [ ] 의존성 보안 스캔 자동화 (safety, pip-audit, bandit)
-  - [ ] 세션 데이터 암호화
-- [ ] 10-3. DI 전환 잔여
-  - [ ] hybrid_insight_agent.py → ExternalSignalCollector DI
-  - [ ] period_insight_agent.py → PeriodAnalyzer DI
-  - [ ] api/routes/deals.py → AlertAgent DI
+- [x] 10-1. God Objects 추가 분할
+  - [x] `src/ontology/business_rules.py` (1,540줄→54줄) → `rules/` 6개 파일 thin facade
+  - [x] `src/ontology/knowledge_graph.py` (1,514줄→550줄) → `kg_iri.py` mixin 추출
+  - [x] `src/agents/hybrid_chatbot_agent.py` (1,353줄→798줄) → feature flag 제거, Container DI
+- [x] 10-2. 보안 P3
+  - [x] TrustedHost 미들웨어 (`app_factory.py` TrustedHostMiddleware)
+  - [x] CSRF 보호 (`src/api/middleware/csrf.py` CSRFMiddleware)
+  - [x] 의존성 보안 스캔 자동화 (pip-audit, bandit pre-commit hooks)
+  - [x] 세션 데이터 암호화 (`src/memory/session_crypto.py` Fernet)
+- [x] 10-3. DI 전환 잔여
+  - [x] hybrid_insight_agent.py → ExternalSignalCollector DI
+  - [x] period_insight_agent.py → PeriodAnalyzer DI (Container.get_period_analyzer)
+  - [x] api/routes/deals.py → AlertAgent DI (Container.get_alert_service)
 
 ---
 
@@ -187,4 +187,4 @@
 | Sprint 7 | **완료** | 12/12 |
 | Sprint 8 | **완료** | 9/9 |
 | Sprint 9 | **완료** | 9/9 |
-| Sprint 10 | 대기 | 0/10 |
+| Sprint 10 | **완료** | 10/10 |
