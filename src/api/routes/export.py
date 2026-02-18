@@ -19,7 +19,6 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from src.agents.period_insight_agent import PeriodInsightAgent
 from src.api.dependencies import limiter, load_dashboard_data
 from src.tools.calculators.period_analyzer import PeriodAnalyzer
 from src.tools.collectors.external_signal_collector import ExternalSignalCollector
@@ -661,8 +660,10 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
             except Exception as e:
                 logger.warning(f"External signal collection failed: {e}")
 
-        # 3. Generate Insights
-        insight_agent = PeriodInsightAgent()
+        # 3. Generate Insights (via Container to avoid api → agents layer violation)
+        from src.infrastructure.container import Container
+
+        insight_agent = Container.get_period_insight_agent()
         report = await insight_agent.generate_report(analysis, external_signals=external_signals)
 
         # 4. Generate Charts

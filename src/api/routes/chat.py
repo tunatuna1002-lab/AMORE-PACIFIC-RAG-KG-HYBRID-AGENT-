@@ -16,26 +16,20 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from litellm import acompletion
 
 from src.api.dependencies import (
     add_to_memory,
-    build_data_context,
     conversation_memory,
-    generate_dynamic_suggestions,
-    get_conversation_history,
-    get_rag_context,
     limiter,
     load_dashboard_data,
     log_chat_interaction,
-    rag_router,
     verify_api_key,
 )
 from src.api.models import BrainChatRequest, BrainChatResponse, ChatRequest, ChatResponse
 from src.api.validators.input_validator import get_validator
 from src.core.brain import get_initialized_brain
 from src.domain.exceptions import DataValidationError
-from src.rag.router import QueryType
+from src.infrastructure.container import Container
 
 logger = logging.getLogger(__name__)
 
@@ -46,16 +40,11 @@ router = APIRouter(tags=["chat"])
 @limiter.limit("10/minute")
 async def chat(request: Request, body: ChatRequest):
     """
-    ChatGPT + RAG + Ontology 통합 챗봇 API
+    ChatGPT + RAG + Ontology 통합 챗봇 API (via ChatWorkflow)
 
     1. 입력 검증 (Prompt Injection 방어)
-    2. 질문 분석 (RAGRouter)
-    3. 엔티티 추출 (Ontology 기반)
-    4. 관련 문서 검색 (RAG)
-    5. 데이터 컨텍스트 구성
-    6. 대화 기록 참조
-    7. LLM 응답 생성
-    8. Audit Trail 로깅
+    2. ChatWorkflow 실행 (RAG + KG + LLM)
+    3. Audit Trail 로깅
     """
     start_time = time.time()
 
@@ -71,133 +60,39 @@ async def chat(request: Request, body: ChatRequest):
     except DataValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    # 1. 질문 분류 (RAGRouter 사용)
-    route_result = rag_router.route(message)
-    query_type = route_result["query_type"]
-    confidence = route_result["confidence"]
-
-    # 2. 엔티티 추출 (Ontology 기반)
-    entities = rag_router.extract_entities(message)
-
-    # 3. 명확화 필요 여부 확인
-    clarification = rag_router.needs_clarification(route_result, entities)
-    if clarification and confidence < 0.5:
-        # 명확화 요청
-        add_to_memory(session_id, "user", message)
-        add_to_memory(session_id, "assistant", clarification)
-
-        return ChatResponse(
-            response=clarification,
-            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
-            confidence=confidence,
-            sources=[],
-            suggestions=[
-                "예, 전체 브랜드 분석해주세요",
-                "LANEIGE만 분석해주세요",
-                "Lip Care 카테고리만",
-            ],
-            entities=entities,
-        )
-
-    # 4. RAG 컨텍스트 검색
-    rag_context, sources = await get_rag_context(message, query_type)
-
-    # 5. 데이터 로드 및 컨텍스트 구성
+    # 1. 데이터 컨텍스트 로드
     data = load_dashboard_data()
-    data_context = build_data_context(data, query_type, entities)
-
-    # 6. 대화 기록 조회
-    conversation_history = get_conversation_history(session_id)
-
-    # 7. 시스템 프롬프트 구성
-    system_prompt = """당신은 AMORE Pacific의 LANEIGE 브랜드 Amazon 분석 전문가입니다.
-
-역할:
-- Amazon US 베스트셀러 데이터를 분석하여 인사이트 제공
-- LANEIGE 브랜드의 시장 포지션 분석
-- 경쟁사 대비 전략적 권고 제공
-- 지표 정의 및 해석 가이드 제공
-
-Ontology 엔티티 이해:
-- Brand: 브랜드 정보 (LANEIGE, 경쟁사 등)
-- Product: 제품 정보 (ASIN, 순위, 평점, 가격 등)
-- Category: 카테고리 (Lip Care, Skin Care 등)
-- BrandMetrics: SoS, 평균순위, 제품수 등
-- ProductMetrics: 순위변동성, 연속체류일, 평점추세 등
-- MarketMetrics: HHI(시장집중도), 교체율 등
-
-응답 가이드라인:
-1. 데이터에 기반한 구체적인 수치 인용
-2. RAG 문서의 정의/해석 기준 활용
-3. 이전 대화 맥락 고려
-4. 간결하고 액션 가능한 인사이트 제공
-5. 불확실한 경우 명확히 밝힐 것
-6. 단정적 표현 피하기
-7. 한국어로 응답
-
-질문 유형별 응답 스타일:
-- 정의(DEFINITION): 지표의 정의, 산출식, 의미를 설명
-- 해석(INTERPRETATION): 수치의 의미, 좋고 나쁨의 기준 설명
-- 조합(COMBINATION): 여러 지표를 함께 해석, 시나리오별 액션 제안
-- 데이터조회(DATA_QUERY): 현재 수치와 변동 현황 안내
-- 분석(ANALYSIS): 종합 분석과 전략적 권고 제공
-"""
-
-    # 8. 사용자 프롬프트 구성
-    user_prompt = f"""## 사용자 질문
-{message}
-
-## 질문 유형
-{query_type.value if hasattr(query_type, "value") else str(query_type)} (신뢰도: {confidence:.1%})
-
-## 추출된 엔티티
-- 브랜드: {", ".join(entities.get("brands", [])) or "없음"}
-- 카테고리: {", ".join(entities.get("categories", [])) or "없음"}
-- 지표: {", ".join(entities.get("indicators", [])) or "없음"}
-- 기간: {entities.get("time_range") or "없음"}
-
-## RAG 참조 문서
-{rag_context if rag_context else "관련 문서 없음"}
-
-## 현재 데이터
-{data_context}
-
-## 이전 대화
-{conversation_history if conversation_history else "이전 대화 없음"}
-
-위 정보를 바탕으로 질문에 답변해주세요.
-- 질문 유형에 맞는 응답 스타일을 사용하세요.
-- RAG 문서에 관련 정의/해석이 있으면 인용하세요.
-- 이전 대화 맥락이 있으면 고려하세요.
-"""
 
     try:
-        response = await acompletion(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.3,
-            max_tokens=1000,
+        # 2. ChatWorkflow 실행 (Container에서 의존성 주입)
+        workflow = Container.get_chat_workflow()
+        result = await workflow.execute(
+            query=message,
+            session_id=session_id,
+            current_metrics=data if data else None,
         )
 
-        answer = response.choices[0].message.content
+        if result.error:
+            raise RuntimeError(result.error)
 
-        # 9. 대화 메모리에 저장
+        answer = result.response or ""
+        sources = [s if isinstance(s, str) else str(s) for s in result.sources]
+        confidence = result.confidence
+        suggestions = result.suggestions
+        entities = result.entities
+        query_type_str = result.intent
+
+        # 3. 대화 메모리에 저장
         add_to_memory(session_id, "user", message)
         add_to_memory(session_id, "assistant", answer)
 
-        # 10. 동적 후속 질문 제안 (v2 - 개선 버전)
-        suggestions = generate_dynamic_suggestions(query_type, entities, answer, message)
-
-        # 11. Audit Trail 로깅
+        # 4. Audit Trail 로깅
         response_time_ms = (time.time() - start_time) * 1000
         log_chat_interaction(
             session_id=session_id,
             user_query=message,
             ai_response=answer,
-            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
+            query_type=query_type_str,
             confidence=confidence,
             entities=entities,
             sources=sources,
@@ -206,7 +101,7 @@ Ontology 엔티티 이해:
 
         return ChatResponse(
             response=answer,
-            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
+            query_type=query_type_str,
             confidence=confidence,
             sources=sources,
             suggestions=suggestions,
@@ -214,43 +109,29 @@ Ontology 엔티티 이해:
         )
 
     except Exception as e:
-        logger.error(f"LLM Error: {e}")
+        logger.error(f"ChatWorkflow Error: {e}")
 
-        # Fallback 응답
-        fallback = route_result.get("fallback_message") or rag_router.get_fallback_response(
-            "unknown"
-        )
+        fallback = "질문을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
 
-        # 데이터 기반 기본 응답 추가
-        if data and query_type == QueryType.DATA_QUERY:
-            brand_kpis = data.get("brand", {}).get("kpis", {})
-            fallback = f"""현재 LANEIGE 현황:
-- SoS: {brand_kpis.get("sos", 0)}%
-- Top 10 제품: {brand_kpis.get("top10_count", 0)}개
-- 평균 순위: {brand_kpis.get("avg_rank", 0)}위
-
-(상세 분석을 위해 잠시 후 다시 시도해주세요)"""
-
-        # Fallback 응답도 Audit Trail 기록
         response_time_ms = (time.time() - start_time) * 1000
         log_chat_interaction(
             session_id=session_id,
             user_query=message,
             ai_response=f"[ERROR] {str(e)[:100]} | Fallback: {fallback[:200]}",
-            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
+            query_type="unknown",
             confidence=0.0,
-            entities=entities,
+            entities={},
             sources=["fallback"],
             response_time_ms=response_time_ms,
         )
 
         return ChatResponse(
             response=fallback,
-            query_type=query_type.value if hasattr(query_type, "value") else str(query_type),
+            query_type="unknown",
             confidence=0.0,
             sources=[],
             suggestions=["다시 질문해주세요", "SoS가 뭔가요?", "현재 순위 알려주세요"],
-            entities=entities,
+            entities={},
         )
 
 

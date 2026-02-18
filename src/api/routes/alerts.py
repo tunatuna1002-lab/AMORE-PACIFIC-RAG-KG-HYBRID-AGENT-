@@ -518,10 +518,10 @@ async def get_alerts(limit: int = 50, alert_type: str | None = None):
         limit: 최대 개수
         alert_type: 필터할 알림 유형
     """
-    from src.agents.alert_agent import AlertAgent
+    from src.infrastructure.container import Container
 
     state_manager = get_app_state_manager()
-    alert_agent = AlertAgent(state_manager)
+    alert_agent = Container.get_alert_agent(state_manager=state_manager)
 
     return {
         "alerts": alert_agent.get_alerts(limit=limit, alert_type=alert_type),

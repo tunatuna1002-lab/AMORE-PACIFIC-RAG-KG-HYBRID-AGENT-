@@ -314,6 +314,26 @@ class Container:
         return AlertAgent(**kwargs)
 
     @classmethod
+    def get_period_insight_agent(cls, model: str = None):
+        """
+        PeriodInsightAgent 생성 (매번 새 인스턴스)
+
+        Args:
+            model: LLM 모델명 (기본값: gpt-4.1-mini)
+
+        Returns:
+            PeriodInsightAgent 인스턴스
+        """
+        if "period_insight_agent" in cls._overrides:
+            return cls._overrides["period_insight_agent"]
+
+        from src.agents.period_insight_agent import PeriodInsightAgent
+
+        if model is not None:
+            return PeriodInsightAgent(model=model)
+        return PeriodInsightAgent()
+
+    @classmethod
     def get_metrics_agent(cls, **kwargs):
         """
         MetricsAgent 생성 (매번 새 인스턴스)
@@ -507,6 +527,61 @@ class Container:
             insight_agent=cls.get_insight_agent(),
             storage=storage,
         )
+
+    @classmethod
+    def get_sqlite_storage(cls):
+        """Get SQLite storage singleton."""
+        if "sqlite_storage" in cls._overrides:
+            return cls._overrides["sqlite_storage"]
+        if "sqlite_storage" not in cls._instances:
+            from src.tools.storage.sqlite_storage import get_sqlite_storage
+
+            cls._instances["sqlite_storage"] = get_sqlite_storage()
+        return cls._instances["sqlite_storage"]
+
+    @classmethod
+    def get_state_manager(cls):
+        """Get state manager singleton."""
+        if "state_manager" in cls._overrides:
+            return cls._overrides["state_manager"]
+        if "state_manager" not in cls._instances:
+            from src.core.state_manager import get_state_manager
+
+            cls._instances["state_manager"] = get_state_manager()
+        return cls._instances["state_manager"]
+
+    @classmethod
+    def get_alert_service(cls):
+        """Get AlertService singleton."""
+        if "alert_service" in cls._overrides:
+            return cls._overrides["alert_service"]
+        if "alert_service" not in cls._instances:
+            from src.tools.notifications.alert_service import get_alert_service
+
+            cls._instances["alert_service"] = get_alert_service()
+        return cls._instances["alert_service"]
+
+    @classmethod
+    def get_rag_router(cls):
+        """Get RAGRouter singleton."""
+        if "rag_router" in cls._overrides:
+            return cls._overrides["rag_router"]
+        if "rag_router" not in cls._instances:
+            from src.rag.router import RAGRouter
+
+            cls._instances["rag_router"] = RAGRouter()
+        return cls._instances["rag_router"]
+
+    @classmethod
+    def get_external_signal_collector(cls):
+        """Get ExternalSignalCollector singleton."""
+        if "external_signal_collector" in cls._overrides:
+            return cls._overrides["external_signal_collector"]
+        if "external_signal_collector" not in cls._instances:
+            from src.tools.collectors.external_signal_collector import ExternalSignalCollector
+
+            cls._instances["external_signal_collector"] = ExternalSignalCollector()
+        return cls._instances["external_signal_collector"]
 
     # ========================================
     # 인텐트 기반 전략 선택

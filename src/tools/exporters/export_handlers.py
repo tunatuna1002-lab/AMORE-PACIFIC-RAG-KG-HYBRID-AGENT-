@@ -176,10 +176,10 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
 
     await queue.update_progress(job_id, 30, "AI 인사이트 생성 중...")
 
-    # 3. Generate Insights (lazy import to avoid circular dependency)
-    from src.agents.period_insight_agent import PeriodInsightAgent
+    # 3. Generate Insights (via Container to avoid tools → agents layer violation)
+    from src.infrastructure.container import Container
 
-    insight_agent = PeriodInsightAgent()
+    insight_agent = Container.get_period_insight_agent()
     report = await insight_agent.generate_report(analysis, external_signals=external_signals)
 
     await queue.update_progress(job_id, 50, "차트 생성 중...")
