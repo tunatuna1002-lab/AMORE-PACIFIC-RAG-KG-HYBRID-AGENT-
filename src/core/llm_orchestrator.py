@@ -450,9 +450,17 @@ class LLMOrchestrator:
         """
         route_result.get("query_type", "unknown")
 
-        # 크롤링 요청 감지
+        # 크롤링 요청 → 시스템 안내 (챗봇에서 직접 실행 차단)
         if any(kw in query.lower() for kw in ["크롤링", "수집", "업데이트", "refresh"]):
-            return Decision(tool="crawl_amazon", reason="크롤링 요청 감지", confidence=0.9)
+            return Decision(
+                tool="direct_answer",
+                reason="크롤링은 스케줄러를 통해 자동 실행됩니다",
+                confidence=0.8,
+                key_points=[
+                    "크롤링은 매일 22:00 KST에 자동 실행됩니다",
+                    "수동 크롤링은 관리자 API(/api/crawl/start)를 이용하세요",
+                ],
+            )
 
         # 지표 계산 요청 감지
         if any(kw in query.lower() for kw in ["계산", "분석", "지표"]):
