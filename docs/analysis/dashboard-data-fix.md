@@ -543,6 +543,94 @@ AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작
 
 ---
 
+## Round 2: JavaScript TDZ 에러 수정 (2026-02-19)
+
+### 증상
+
+Round 1 수정 후에도 대시보드에서 다음 문제가 지속됨:
+- 사이드바 메뉴 클릭 시 페이지 전환 불가 (Home, Brand View 등)
+- 콘솔에 `ReferenceError: Cannot access 'currentPage' before initialization` 반복 발생
+- `lucide is not defined` 에러로 아이콘 미렌더링
+- Alert Settings 클릭 시 `subscriptionState` TDZ 에러
+
+### 근본 원인: Temporal Dead Zone (TDZ) 연쇄 에러
+
+HTML 파싱 단계 (4165~4171줄)에서 `onclick="switchPage('home')"` 핸들러가 등록되지만,
+핸들러가 참조하는 `currentPage` 변수는 5412줄에서 `let`으로 선언됨.
+
+**에러 연쇄 메커니즘:**
+1. 5411줄: `lucide.createIcons()` — CDN 미로딩 시 `ReferenceError` 발생
+2. 에러로 인해 5412줄 실행 차단 → `let currentPage = 'home'` 초기화 안됨
+3. 사용자 메뉴 클릭 → `switchPage()` → `currentPage` 접근 시도
+4. **TDZ 에러**: `let`으로 선언된 변수는 선언문 실행 전 접근 불가
+5. 결과: 모든 네비게이션 완전 작동 불가
+
+### 발견된 에러 (5건)
+
+| # | 에러 | 줄 | 심각도 | 원인 |
+|---|------|-----|--------|------|
+| 1 | `currentPage` before initialization | 7130 | 치명적 | `let` TDZ |
+| 2 | `lucide` is not defined | 5411 | 치명적 | CDN 가드 없음 |
+| 3 | `subscriptionState` before initialization | 13127 | 높음 | `let` TDZ |
+| 4 | `verificationPollingInterval` before initialization | 13382 | 높음 | `let` TDZ |
+| 5 | 액션보드 스피너 고정 | - | 중간 | 에러로 데이터 로딩 중단 |
+
+### 적용된 수정 사항
+
+#### 1. Lucide 안전 가드 추가 (14곳)
+
+```javascript
+// 수정 전 (5411줄)
+lucide.createIcons();
+
+// 수정 후
+if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+else { document.addEventListener('DOMContentLoaded', () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}); }
+```
+
+모든 `lucide.createIcons()` 호출 (14곳)에 `typeof` 가드 적용.
+
+#### 2. TDZ 변수 `let` → `var` 변경 (4곳)
+
+```javascript
+// 수정 전
+let currentPage = 'home', chatbotOpen = false, charts = {};
+let subscriptionState = { ... };
+let verificationPollingInterval = null;
+let pollingAttempts = 0;
+
+// 수정 후
+var currentPage = 'home', chatbotOpen = false, charts = {};
+var subscriptionState = { ... };
+var verificationPollingInterval = null;
+var pollingAttempts = 0;
+```
+
+`var`는 호이스팅되어 TDZ가 발생하지 않으므로, 스크립트 에러 발생 시에도 변수 접근 가능.
+
+#### 3. `switchPage()` 내 차트 초기화 try/catch 추가
+
+```javascript
+// 수정 전
+initChartsForPage(pageId);
+
+// 수정 후
+try { initChartsForPage(pageId); }
+catch (err) { console.error('[switchPage] Chart init failed for', pageId, err); }
+```
+
+### 수정 파일
+
+| 날짜 | 수정 내용 | 파일 | 상태 |
+|------|----------|------|------|
+| 2026-02-19 | Lucide 가드 (14곳) | `dashboard/amore_unified_dashboard_v4.html` | ✅ |
+| 2026-02-19 | TDZ 변수 var 변환 (4곳) | `dashboard/amore_unified_dashboard_v4.html` | ✅ |
+| 2026-02-19 | switchPage try/catch | `dashboard/amore_unified_dashboard_v4.html` | ✅ |
+
+---
+
 ## 문의 및 추가 정보
 
 - **문제 추적**: GitHub Issues 또는 Notion

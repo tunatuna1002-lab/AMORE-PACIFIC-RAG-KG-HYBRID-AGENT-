@@ -5408,8 +5408,8 @@
     </div>
 
     <script>
-        lucide.createIcons();
-        let currentPage = 'home', chatbotOpen = false, charts = {};
+        if (typeof lucide !== 'undefined') { lucide.createIcons(); } else { console.warn('[Lucide] Not loaded yet, will retry'); document.addEventListener('DOMContentLoaded', () => { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
+        var currentPage = 'home', chatbotOpen = false, charts = {};
 
         // Chart.js 전역 툴팁 설정 - 잘림 방지 및 caret(세모 화살표) 표시
         Chart.defaults.plugins.tooltip.yAlign = 'top';  // 툴팁이 포인터 아래에 표시
@@ -5668,7 +5668,7 @@
 
             // 아이콘 새로고침
             if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
 
@@ -6238,7 +6238,7 @@
 
             // Refresh lucide icons for the warning icon
             if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
 
@@ -6593,7 +6593,7 @@
                         </td>
                     </tr>
                 `;
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
 
@@ -6848,7 +6848,7 @@
                         <p>비교할 경쟁사를 선택하세요</p>
                     </div>
                 `;
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
 
@@ -6884,7 +6884,7 @@
                         <p style="font-size: 12px; margin-top: 12px; color: var(--text-tertiary);">다른 기간을 선택하거나 전체 기간을 조회해 보세요.</p>
                     </div>
                 `;
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
 
@@ -7150,7 +7150,7 @@
             };
             document.getElementById('page-title').textContent = titles[pageId].title;
             document.getElementById('breadcrumb').textContent = titles[pageId].breadcrumb;
-            initChartsForPage(pageId);
+            try { initChartsForPage(pageId); } catch (err) { console.error('[switchPage] Chart init failed for', pageId, err); }
             // Brand View 진입 시 경쟁사 테이블 데이터 업데이트 (글로벌 날짜 범위 사용)
             if (pageId === 'brand') {
                 setTimeout(async () => {
@@ -8057,7 +8057,7 @@
 
             // Lucide 아이콘 재렌더링
             if (window.lucide) {
-                lucide.createIcons({ nodes: [alertDiv] });
+                if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [alertDiv] });
             }
         }
 
@@ -9061,7 +9061,7 @@
 
             // Lucide 아이콘 다시 렌더링
             if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
 
@@ -9257,7 +9257,7 @@
                 overlay.classList.toggle('active', chatbotOpen);
             }
             if (chatbotOpen) {
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
 
@@ -9602,7 +9602,7 @@
             // Recommended Actions 동적 업데이트
             updateRecommendedActions(kpis, brand);
 
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // Inference Path 업데이트 - 논리적 인과관계 표시
@@ -9806,7 +9806,7 @@
                     btn.innerHTML = originalHTML;
                     btn.style.background = '';
                     btn.style.color = '';
-                    lucide.createIcons();
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }, 2000);
 
             } catch (err) {
@@ -9879,7 +9879,7 @@
 
             setTimeout(() => {
                 btn.innerHTML = originalHTML;
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }, 2000);
         }
         function openExportModal() {
@@ -10736,7 +10736,7 @@
 
                     // Lucide 아이콘 새로고침
                     if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
                     }
                 }
 
@@ -13088,7 +13088,7 @@
         // ============================
 
         // Subscription state
-        let subscriptionState = {
+        var subscriptionState = {
             email: null,
             verified: false,
             alertTypes: [],
@@ -13096,10 +13096,10 @@
         };
 
         // Polling variables
-        let verificationPollingInterval = null;
+        var verificationPollingInterval = null;
         const POLLING_INTERVAL_MS = 5000;
         const POLLING_MAX_ATTEMPTS = 60;
-        let pollingAttempts = 0;
+        var pollingAttempts = 0;
 
         // Screen management
         function showSubscribeScreen(screenName) {
