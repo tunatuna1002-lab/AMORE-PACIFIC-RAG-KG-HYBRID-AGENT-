@@ -216,7 +216,7 @@ async def chat_v4(request: Request, body: BrainChatRequest):
         )
 
 
-@router.post("/api/v4/chat/stream")
+@router.post("/api/v4/chat/stream", dependencies=[Depends(verify_api_key)])
 @limiter.limit("10/minute")
 async def chat_v4_stream(request: Request, body: BrainChatRequest):
     """
