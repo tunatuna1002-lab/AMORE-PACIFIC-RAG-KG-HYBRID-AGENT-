@@ -41,10 +41,22 @@ async def get_data(request: Request):
     except Exception as e:
         logger.error(f"/api/data SQLite fallback failed: {e}")
 
-    raise HTTPException(
-        status_code=404,
-        detail="Dashboard data not found. Run a crawl to generate data.",
-    )
+    # Return empty dashboard structure instead of 404 — allows frontend to render gracefully
+    logger.warning("/api/data: No data available, returning empty dashboard structure")
+    return {
+        "metadata": {
+            "data_date": None,
+            "total_products": 0,
+            "_is_stale": False,
+            "_is_empty": True,
+            "_message": "데이터가 없습니다. 크롤링을 실행하여 데이터를 수집하세요.",
+        },
+        "home": {"action_items": [], "status": {}, "summary": {}},
+        "brand": {"kpis": {}, "competitors": []},
+        "products": {},
+        "categories": {},
+        "charts": {},
+    }
 
 
 async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:

@@ -631,6 +631,87 @@ catch (err) { console.error('[switchPage] Chart init failed for', pageId, err); 
 
 ---
 
+## Round 3: Railway 배포 환경 문제 해결 (2026-02-19)
+
+### 증상
+
+Railway 배포 후 대시보드가 여전히 작동하지 않음:
+- `GET /fonts/AritaDotumKR-*.ttf" 404` — 폰트 파일 4개 모두 404
+- `[Config Warning] data 디렉토리가 없습니다: /app/data` — 잘못된 경로
+- 대시보드 데이터 미표시
+
+### 근본 원인
+
+#### 원인 1: Font 404 (우선순위: 낮음 — 기능 미영향)
+- `.gitignore`에 `*.ttf`가 포함 → 폰트 파일이 git에 추적되지 않음
+- Dockerfile `COPY . .`은 git-tracked 파일만 복사 → Docker 이미지에 폰트 없음
+- `app_factory.py:135`에서 `fonts_dir.exists()` 체크 실패 → `/fonts` 라우트 미마운트
+- **BUT**: `font-display: swap` + fallback `'Noto Sans KR'` (Google Fonts CDN)으로 **텍스트 정상 렌더링**
+
+#### 원인 2: AppConfig data_path 경로 불일치 (우선순위: 중간)
+- `config_manager.py:32` → `data_path = Path.cwd() / "data"` = `/app/data` (Railway)
+- Railway WORKDIR = `/app/`, 데이터 볼륨 = `/data/`
+- `/app/data` 미존재 → 경고 발생
+- 다른 모듈(`dependencies.py`, `data.py`, `brain.py`)은 런타임 감지 사용 (`"/data" if exists else "./data"`)
+
+#### 원인 3: 데이터 없을 때 404 반환 (우선순위: 높음)
+- JSON 캐시 + SQLite 모두 데이터 없으면 `/api/data`가 404 반환
+- 프론트엔드에서 에러 표시만 하고 빈 대시보드 렌더링 불가
+
+### 해결 방법
+
+#### 수정 1: AppConfig 런타임 감지
+```python
+# BEFORE (config_manager.py:32):
+data_path: Path = field(default_factory=lambda: Path.cwd() / "data")
+
+# AFTER:
+data_path: Path = field(
+    default_factory=lambda: Path("/data") if Path("/data").exists() else Path.cwd() / "data"
+)
+```
+
+#### 수정 2: 빈 대시보드 구조 반환 (404 대신)
+```python
+# data.py: 데이터 없을 때 200 + 빈 구조 반환
+return {
+    "metadata": {"_is_empty": True, "_message": "데이터가 없습니다..."},
+    "home": {"action_items": [], "status": {}, "summary": {}},
+    "brand": {"kpis": {}, "competitors": []},
+    "products": {}, "categories": {}, "charts": {},
+}
+```
+
+#### 수정 3: @font-face에 local() 추가
+```css
+src: local('AritaDotumKR-Medium'),
+     url('/fonts/AritaDotumKR-Medium.ttf') format('truetype');
+```
+
+#### 수정 4: Dockerfile에 폰트 디렉토리 보장
+```dockerfile
+RUN mkdir -p /app/static/fonts
+```
+
+#### 수정 5: 프론트엔드 빈 데이터 안내
+```javascript
+if (dashboardData.metadata._is_empty) {
+    showToast('데이터가 없습니다. 크롤링을 실행하여 데이터를 수집하세요.', 'warning');
+}
+```
+
+### 수정 파일
+
+| 날짜 | 수정 내용 | 파일 | 상태 |
+|------|----------|------|------|
+| 2026-02-19 | AppConfig 런타임 감지 | `src/infrastructure/config/config_manager.py` | ✅ |
+| 2026-02-19 | 빈 대시보드 구조 반환 | `src/api/routes/data.py` | ✅ |
+| 2026-02-19 | @font-face local() 추가 | `dashboard/amore_unified_dashboard_v4.html` | ✅ |
+| 2026-02-19 | 빈 데이터 안내 UI | `dashboard/amore_unified_dashboard_v4.html` | ✅ |
+| 2026-02-19 | 폰트 디렉토리 mkdir | `Dockerfile` | ✅ |
+
+---
+
 ## 문의 및 추가 정보
 
 - **문제 추적**: GitHub Issues 또는 Notion

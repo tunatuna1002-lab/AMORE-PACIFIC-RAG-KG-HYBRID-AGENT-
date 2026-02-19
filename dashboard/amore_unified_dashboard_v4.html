@@ -13,35 +13,40 @@
         /* === ARITA FONT FAMILY (AMOREPACIFIC Corporate Font) === */
         @font-face {
             font-family: 'Arita Dotum';
-            src: url('/fonts/AritaDotumKR-Thin.ttf') format('truetype');
+            src: local('AritaDotumKR-Thin'),
+                 url('/fonts/AritaDotumKR-Thin.ttf') format('truetype');
             font-weight: 100;
             font-style: normal;
             font-display: swap;
         }
         @font-face {
             font-family: 'Arita Dotum';
-            src: url('/fonts/AritaDotumKR-Light.ttf') format('truetype');
+            src: local('AritaDotumKR-Light'),
+                 url('/fonts/AritaDotumKR-Light.ttf') format('truetype');
             font-weight: 300;
             font-style: normal;
             font-display: swap;
         }
         @font-face {
             font-family: 'Arita Dotum';
-            src: url('/fonts/AritaDotumKR-Medium.ttf') format('truetype');
+            src: local('AritaDotumKR-Medium'),
+                 url('/fonts/AritaDotumKR-Medium.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
         @font-face {
             font-family: 'Arita Dotum';
-            src: url('/fonts/AritaDotumKR-SemiBold.ttf') format('truetype');
+            src: local('AritaDotumKR-SemiBold'),
+                 url('/fonts/AritaDotumKR-SemiBold.ttf') format('truetype');
             font-weight: 600;
             font-style: normal;
             font-display: swap;
         }
         @font-face {
             font-family: 'Arita Dotum';
-            src: url('/fonts/AritaDotumKR-Bold.ttf') format('truetype');
+            src: local('AritaDotumKR-Bold'),
+                 url('/fonts/AritaDotumKR-Bold.ttf') format('truetype');
             font-weight: 700;
             font-style: normal;
             font-display: swap;
@@ -5711,6 +5716,13 @@
 
                 window.dashboardData = dashboardData;
                 console.log('Dashboard data loaded:', dashboardData.metadata);
+
+                // Show empty data notice if no crawl data exists
+                if (dashboardData.metadata._is_empty) {
+                    hideLoading();
+                    showToast('데이터가 없습니다. 크롤링을 실행하여 데이터를 수집하세요.', 'warning');
+                    // Still render the empty dashboard structure
+                }
 
                 // Show staleness warning if data is stale
                 if (dashboardData.metadata._is_stale) {

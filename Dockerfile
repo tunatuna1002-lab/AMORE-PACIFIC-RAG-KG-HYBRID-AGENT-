@@ -33,5 +33,8 @@ ENV PYTHONPATH=/app
 # 데이터 디렉토리 생성
 RUN mkdir -p /data
 
+# 정적 폰트 디렉토리 보장 (폰트 없어도 /fonts 라우트 마운트 보장)
+RUN mkdir -p /app/static/fonts
+
 # 서버 시작
 CMD ["python", "scripts/start.py"]

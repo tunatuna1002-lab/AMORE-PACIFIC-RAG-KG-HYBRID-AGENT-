@@ -29,7 +29,9 @@ class AppConfig:
 
     # Paths
     base_path: Path = field(default_factory=lambda: Path.cwd())
-    data_path: Path = field(default_factory=lambda: Path.cwd() / "data")
+    data_path: Path = field(
+        default_factory=lambda: Path("/data") if Path("/data").exists() else Path.cwd() / "data"
+    )
     docs_path: Path = field(default_factory=lambda: Path.cwd() / "docs" / "guides")
     logs_path: Path = field(default_factory=lambda: Path.cwd() / "logs")
     config_path: Path = field(default_factory=lambda: Path.cwd() / "config")
