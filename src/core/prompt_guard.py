@@ -64,6 +64,14 @@ class PromptGuard:
         r"(?i)unrestricted\s+mode",
     ]
 
+    # 시스템 명령 차단 패턴 (크롤링, 초기화 등 — 챗봇에서 실행 방지)
+    SYSTEM_COMMAND_PATTERNS = [
+        r"(?i)(크롤링|crawl|scrape|스크래핑)\s*(해줘|시작|실행|해\b|하자|해봐|go|start|run)",
+        r"(?i)(초기화|reset|clear|삭제|delete|drop)\s*(해줘|시작|실행|해\b|하자|해봐|go|start|run)",
+        r"(?i)(지식\s*그래프|knowledge\s*graph|KG)\s*(초기화|리셋|reset|clear|삭제)",
+        r"(?i)(데이터\s*)(수집|업데이트|갱신|refresh)\s*(해줘|시작|실행|해\b|하자)",
+    ]
+
     # 범위 외 주제 키워드 (경고 수준)
     OUT_OF_SCOPE_KEYWORDS = [
         # 일반 주제
@@ -152,6 +160,12 @@ class PromptGuard:
                 logger.warning(f"Injection attempt blocked: pattern matched - {pattern[:50]}")
                 return False, "injection_detected", ""
 
+        # 1.5 시스템 명령 차단 (크롤링, 초기화 등)
+        for pattern in cls.SYSTEM_COMMAND_PATTERNS:
+            if re.search(pattern, text):
+                logger.warning(f"System command blocked: {pattern[:50]}")
+                return False, "system_command_blocked", ""
+
         # 2. 범위 외 키워드 검사 (차단하지 않고 플래그만)
         # 비즈니스 관련 키워드가 포함되면 범위 외 판단 건너뛰기
         business_keywords = [
@@ -231,6 +245,14 @@ class PromptGuard:
                 "• 경쟁사 대비 분석\n"
                 "• 카테고리별 트렌드\n"
                 "• 제품별 상세 분석"
+            ),
+            "system_command_blocked": (
+                "시스템 관리 명령은 챗봇에서 실행할 수 없습니다.\n\n"
+                "크롤링, 초기화 등 시스템 작업은 관리자 API를 통해 실행해주세요.\n"
+                "저는 LANEIGE 마켓 분석 질문에 답변드릴 수 있습니다:\n"
+                "• 브랜드 순위 및 점유율 분석\n"
+                "• 경쟁사 비교\n"
+                "• 카테고리 트렌드"
             ),
         }
         return messages.get(reason, messages["out_of_scope"])
