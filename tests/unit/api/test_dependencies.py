@@ -159,7 +159,11 @@ class TestLoadDashboardData:
         with patch("src.api.dependencies.DATA_PATH", str(data_file)):
             result = load_dashboard_data()
 
-        assert result == data
+        # Staleness metadata is injected by load_dashboard_data
+        assert result["home"] == data["home"]
+        assert result["brand"] == data["brand"]
+        assert "_cache_age_hours" in result.get("metadata", {})
+        assert "_is_stale" in result.get("metadata", {})
 
     def test_load_file_not_found(self):
         """파일 없는 경우 빈 딕셔너리"""

@@ -175,17 +175,41 @@ def log_chat_interaction(
 
 # ============= Data Helpers =============
 
-DATA_PATH = "./data/dashboard_data.json"
+# Resolve data directory: Railway volume at /data/ vs local ./data/
+RESOLVED_DATA_DIR = "/data" if Path("/data").exists() else "./data"
+DATA_PATH = f"{RESOLVED_DATA_DIR}/dashboard_data.json"
 DOCS_PATH = "./"
 
 
 def load_dashboard_data() -> dict[str, Any]:
-    """대시보드 데이터 로드"""
+    """대시보드 데이터 로드 (staleness 경고 포함)"""
+    import time
+
     try:
-        with open(DATA_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+        data_path = Path(DATA_PATH)
+        if not data_path.exists():
+            logging.warning(
+                f"Dashboard data file not found: {DATA_PATH} "
+                f"(RESOLVED_DATA_DIR={RESOLVED_DATA_DIR})"
+            )
+            return {}
+
+        file_age_hours = (time.time() - data_path.stat().st_mtime) / 3600
+        if file_age_hours > 24:
+            logging.warning(
+                f"Dashboard data is stale: {file_age_hours:.1f} hours old. "
+                f"Consider running a crawl or calling /api/data/refresh."
+            )
+
+        with open(data_path, encoding="utf-8") as f:
+            data = json.load(f)
+
+        data.setdefault("metadata", {})
+        data["metadata"]["_cache_age_hours"] = round(file_age_hours, 1)
+        data["metadata"]["_is_stale"] = file_age_hours > 24
+
+        return data
+
     except json.JSONDecodeError as e:
         logging.warning(f"Corrupted dashboard data file: {e}")
         return {}

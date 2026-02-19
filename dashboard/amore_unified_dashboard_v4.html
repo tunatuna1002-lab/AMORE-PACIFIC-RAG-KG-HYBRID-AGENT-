@@ -5493,7 +5493,7 @@
                 // API에서 최신 데이터 가져오기
                 const response = await fetch(`${API_BASE}/api/data`);
                 if (!response.ok) {
-                    console.warn('API data not available, falling back to JSON file');
+                    console.warn('API data not available, retrying via loadDashboardData');
                     return await loadDashboardData();
                 }
 
@@ -5504,7 +5504,11 @@
                 // UI 업데이트 (애니메이션 효과)
                 highlightUpdatedElements();
                 updateDashboardFromData();
-                initChartsForPage(currentPage);
+                try {
+                    initChartsForPage(currentPage);
+                } catch (chartErr) {
+                    console.error('Chart initialization failed during refresh:', chartErr);
+                }
 
                 return true;
             } catch (error) {
@@ -5668,29 +5672,51 @@
             }
         }
 
-        // Load Dashboard Data (API 우선, JSON fallback)
+        // Load Dashboard Data (API)
         async function loadDashboardData() {
             showLoading(true, '대시보드 데이터 로딩 중...');
             try {
-                // 1. 먼저 API에서 시도
-                let response = await fetch(`${API_BASE}/api/data`);
-
-                // API 실패 시 JSON 파일로 폴백
-                if (!response.ok) {
-                    console.warn('API not available, trying JSON file');
-                    response = await fetch('../data/dashboard_data.json');
-                }
+                const response = await fetch(`${API_BASE}/api/data`);
 
                 if (!response.ok) {
-                    console.warn('Dashboard data not found');
+                    console.warn(`API /api/data failed: ${response.status} ${response.statusText}`);
                     hideLoading();
-                    showToast('대시보드 데이터를 찾을 수 없습니다.', 'error');
+                    showDataLoadError('데이터를 불러올 수 없습니다. 크롤링이 완료되면 자동으로 업데이트됩니다.');
                     return false;
                 }
 
                 dashboardData = await response.json();
-                window.dashboardData = dashboardData;  // 전역으로 접근 가능하게
+
+                // Validate essential data structure
+                if (!dashboardData || typeof dashboardData !== 'object') {
+                    console.warn('Dashboard data is not a valid object');
+                    hideLoading();
+                    showDataLoadError('데이터 형식이 올바르지 않습니다.');
+                    return false;
+                }
+
+                // Ensure required top-level keys exist with defaults
+                dashboardData.metadata = dashboardData.metadata || {};
+                dashboardData.home = dashboardData.home || {};
+                dashboardData.brand = dashboardData.brand || {};
+                dashboardData.products = dashboardData.products || {};
+                dashboardData.categories = dashboardData.categories || {};
+                dashboardData.charts = dashboardData.charts || {};
+
+                // Ensure nested structures
+                dashboardData.home.action_items = dashboardData.home.action_items || [];
+                dashboardData.home.status = dashboardData.home.status || {};
+                dashboardData.brand.kpis = dashboardData.brand.kpis || {};
+                dashboardData.brand.competitors = dashboardData.brand.competitors || [];
+
+                window.dashboardData = dashboardData;
                 console.log('Dashboard data loaded:', dashboardData.metadata);
+
+                // Show staleness warning if data is stale
+                if (dashboardData.metadata._is_stale) {
+                    const hours = dashboardData.metadata._cache_age_hours || 0;
+                    showToast(`데이터가 ${Math.round(hours)}시간 전 것입니다. 최신 데이터를 위해 크롤링을 실행하세요.`, 'warning');
+                }
 
                 // 마지막 데이터 날짜 저장 (새로고침 감지용)
                 lastDataDate = dashboardData.metadata?.data_date;
@@ -5703,14 +5729,24 @@
             } catch (error) {
                 console.warn('Failed to load dashboard data:', error);
                 hideLoading();
-                // 데이터 로드 실패 시 현재 날짜 표시
-                const dateDisplay = document.getElementById('date-display');
-                if (dateDisplay) {
-                    dateDisplay.textContent = '📅 ' + new Date().toISOString().split('T')[0];
-                }
-                showToast('데이터 로드에 실패했습니다. 페이지를 새로고침해주세요.', 'error');
+                showDataLoadError('데이터 로드에 실패했습니다. 페이지를 새로고침해주세요.');
                 return false;
             }
+        }
+
+        // 데이터 로드 실패 시 에러 상태 UI 표시
+        function showDataLoadError(message) {
+            // 액션 보드 스피너를 에러 메시지로 교체
+            const actionTbody = document.querySelector('.action-table tbody');
+            if (actionTbody) {
+                actionTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--text-secondary);">${message}</td></tr>`;
+            }
+            // 날짜 표시 업데이트
+            const dateDisplay = document.getElementById('date-display');
+            if (dateDisplay) {
+                dateDisplay.textContent = new Date().toISOString().split('T')[0];
+            }
+            showToast(message, 'error');
         }
 
         // Update Dashboard UI from loaded data
@@ -5747,9 +5783,8 @@
             }
 
             // Update action items
-            if (dashboardData.home?.action_items) {
-                updateActionTable(dashboardData.home.action_items);
-            }
+            // Always call to clear loading spinner (handles empty items gracefully)
+            updateActionTable(dashboardData.home?.action_items || []);
 
             // Update exposure status tooltip
             updateExposureStatusTooltip(dashboardData.home, dashboardData.home?.action_items);
@@ -6297,7 +6332,14 @@
         // Update action table with dynamic data
         function updateActionTable(items) {
             const tbody = document.querySelector('.action-table tbody');
-            if (!tbody || !items.length) return;
+            if (!tbody) return;
+
+            if (!items || !items.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--text-secondary);">현재 액션 아이템이 없습니다. 크롤링 후 자동 업데이트됩니다.</td></tr>';
+                const badge = document.getElementById('actionBoardBadge');
+                if (badge) badge.textContent = '0건';
+                return;
+            }
 
             tbody.innerHTML = items.map((item, idx) => {
                 // Generate discount badges if available
@@ -10733,7 +10775,7 @@
                 initSosDateFilters();
                 // SoS 막대그래프 초기화 - API 연동 (내부에서 updateSosChart 호출)
                 initSosBarChart(colors, chartColors, brandColors);
-                loadSosBrands();  // 비교 브랜드 드롭다운 로드
+                loadSosBrands().catch(err => console.error('[initChartsForPage] loadSosBrands failed:', err));  // 비교 브랜드 드롭다운 로드
 
                 // SoS 트렌드 차트 - JSON 데이터 사용
                 // 동적 fallback 날짜 생성
@@ -12989,6 +13031,11 @@
         window.onload = async function() {
             startClock(); // 실시간 시계 시작
 
+            // Safety: ensure globalDateRange has defaults even if data load fails
+            if (typeof globalDateRange !== 'undefined' && globalDateRange && (!globalDateRange.startDate || !globalDateRange.endDate)) {
+                globalDateRange.setDefaultRange();
+            }
+
             // 안전장치: 10초 후에도 로딩 오버레이가 남아있으면 강제 해제
             const loadingSafety = setTimeout(() => {
                 const overlay = document.getElementById('loadingOverlay');
@@ -13005,6 +13052,11 @@
             switchPage('home');
             loadAlertSettings(); // 알림 설정 로드
             initDateRangeSelectors(); // 날짜 범위 선택 초기화
+
+            // Ensure globalDateRange is initialized
+            if (typeof globalDateRange !== 'undefined' && globalDateRange && (!globalDateRange.startDate || !globalDateRange.endDate)) {
+                globalDateRange.setDefaultRange();
+            }
 
             // 글로벌 날짜 범위로 초기 차트 데이터 로드
             await loadInitialChartDataWithGlobalRange();

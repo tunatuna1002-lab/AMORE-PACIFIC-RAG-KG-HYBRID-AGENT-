@@ -17,17 +17,189 @@ from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
 
+# Resolve data directory: Railway volume at /data/ vs local ./data/
+_RESOLVED_DATA_DIR = "/data" if Path("/data").exists() else "./data"
+
 router = APIRouter(tags=["data"])
 
 
 @router.get("/api/data")
 @limiter.limit("30/minute")
 async def get_data(request: Request):
-    """대시보드 데이터 조회"""
+    """대시보드 데이터 조회 (JSON 캐시 우선, SQLite 폴백)"""
     data = load_dashboard_data()
-    if not data:
-        raise HTTPException(status_code=404, detail="Dashboard data not found")
-    return data
+
+    if data:
+        return data
+
+    # Fallback: generate minimal dashboard data from SQLite
+    logger.warning("/api/data: JSON cache missing, attempting SQLite fallback")
+    try:
+        fallback_data = await _generate_dashboard_from_sqlite()
+        if fallback_data:
+            return fallback_data
+    except Exception as e:
+        logger.error(f"/api/data SQLite fallback failed: {e}")
+
+    raise HTTPException(
+        status_code=404,
+        detail="Dashboard data not found. Run a crawl to generate data.",
+    )
+
+
+async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
+    """
+    SQLite에서 최소한의 대시보드 데이터 생성 (JSON 캐시 없을 때 폴백)
+    """
+    try:
+        sqlite = get_sqlite_storage()
+        await sqlite.initialize()
+
+        records = await sqlite.get_latest_data()
+        if not records:
+            return None
+
+        latest_date = records[0].get("snapshot_date", "") if records else ""
+
+        laneige_products = [
+            r
+            for r in records
+            if "laneige" in (r.get("brand", "") or "").lower()
+            or "laneige" in (r.get("product_name", "") or "").lower()
+        ]
+
+        total = len(records)
+
+        # Build action items from LANEIGE products
+        action_items = []
+        for p in laneige_products[:8]:
+            rank = int(p.get("rank", 0)) if p.get("rank") else 0
+            action_items.append(
+                {
+                    "asin": p.get("asin", ""),
+                    "product_name": p.get("product_name", "Unknown"),
+                    "brand_variant": "LANEIGE",
+                    "rank": rank,
+                    "rank_change": 0,
+                    "signal": f"순위 #{rank}",
+                    "signal_detail": "",
+                    "action_tag": "Monitor" if rank <= 10 else "Watch",
+                    "priority": "P1" if rank <= 5 else ("P2" if rank <= 20 else "P3"),
+                }
+            )
+
+        # Build brand metrics
+        brand_counts: dict[str, dict] = {}
+        for r in records:
+            b = r.get("brand", "Unknown")
+            if b not in brand_counts:
+                brand_counts[b] = {"ranks": [], "count": 0}
+            rank_val = int(r.get("rank", 0)) if r.get("rank") else 0
+            brand_counts[b]["ranks"].append(rank_val)
+            brand_counts[b]["count"] += 1
+
+        competitors = []
+        for b_name, b_data in sorted(
+            brand_counts.items(), key=lambda x: x[1]["count"], reverse=True
+        )[:15]:
+            avg_r = round(sum(b_data["ranks"]) / len(b_data["ranks"]), 1) if b_data["ranks"] else 0
+            competitors.append(
+                {
+                    "brand": b_name,
+                    "sos": round(b_data["count"] / max(total, 100) * 100, 2),
+                    "avg_rank": avg_r,
+                    "product_count": b_data["count"],
+                }
+            )
+
+        laneige_ranks = []
+        for key in ["LANEIGE", "Laneige", "laneige"]:
+            if key in brand_counts:
+                laneige_ranks = brand_counts[key].get("ranks", [])
+                break
+
+        return {
+            "metadata": {
+                "generated_at": datetime.now().isoformat(),
+                "data_date": latest_date,
+                "total_products": total,
+                "laneige_products": len(laneige_products),
+                "_source": "sqlite_fallback",
+                "_cache_age_hours": 0,
+                "_is_stale": False,
+            },
+            "home": {
+                "insight_message": f"SQLite 데이터 기준 ({latest_date}). JSON 캐시가 없어 실시간 생성되었습니다.",
+                "status": {
+                    "exposure": "N/A",
+                    "position": f"Top {min((int(p.get('rank', 100)) if p.get('rank') else 100) for p in laneige_products)}"
+                    if laneige_products
+                    else "N/A",
+                    "warning_count": 0,
+                },
+                "action_items": action_items,
+            },
+            "brand": {
+                "kpis": {
+                    "sos": round(len(laneige_products) / max(total, 100) * 100, 2),
+                    "top10_count": sum(
+                        1
+                        for r in laneige_products
+                        if (int(r.get("rank", 100)) if r.get("rank") else 100) <= 10
+                    ),
+                    "avg_rank": round(sum(laneige_ranks) / len(laneige_ranks), 1)
+                    if laneige_ranks
+                    else 0,
+                    "hhi": "N/A",
+                },
+                "competitors": competitors,
+            },
+            "categories": {},
+            "products": {
+                p.get("asin", ""): {
+                    "name": p.get("product_name", "Unknown"),
+                    "rank": int(p.get("rank", 0)) if p.get("rank") else 0,
+                    "rank_delta": "N/A",
+                    "rating": p.get("rating", 0),
+                    "rating_delta": "N/A",
+                    "volatility": 0,
+                    "volatility_status": "N/A",
+                    "category": p.get("category_id", ""),
+                }
+                for p in laneige_products
+                if p.get("asin")
+            },
+            "charts": {},
+        }
+
+    except Exception as e:
+        logger.error(f"SQLite fallback generation failed: {e}")
+        return None
+
+
+@router.post("/api/data/refresh")
+@limiter.limit("5/minute")
+async def refresh_data(request: Request):
+    """dashboard_data.json 재생성 (SQLite 기반)"""
+    try:
+        from src.tools.exporters.dashboard_exporter import DashboardExporter
+
+        exporter = DashboardExporter(enable_ontology=False)
+        await exporter.initialize()
+        output_path = f"{_RESOLVED_DATA_DIR}/dashboard_data.json"
+        result = await exporter.export_dashboard_data(output_path)
+
+        if isinstance(result, dict) and "error" in result:
+            return {"success": False, "error": result["error"]}
+
+        return {
+            "success": True,
+            "message": "Dashboard data refreshed from SQLite",
+        }
+
+    except Exception as e:
+        logger.error(f"Data refresh failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Refresh failed: {e}") from e
 
 
 @router.get("/api/historical")
@@ -455,7 +627,7 @@ async def _get_historical_from_local(
                     )
 
         # 2. latest_crawl_result.json에서 데이터 추출
-        latest_crawl_path = Path("./data/latest_crawl_result.json")
+        latest_crawl_path = Path(f"{_RESOLVED_DATA_DIR}/latest_crawl_result.json")
         if latest_crawl_path.exists():
             try:
                 with open(latest_crawl_path, encoding="utf-8") as f:
@@ -512,7 +684,7 @@ async def _get_historical_from_local(
                 logging.warning(f"Failed to parse latest_crawl_result.json: {e}")
 
         # 3. raw_products 폴더에서 날짜별 데이터 검색
-        raw_data_dir = Path("./data/raw_products")
+        raw_data_dir = Path(f"{_RESOLVED_DATA_DIR}/raw_products")
         if raw_data_dir.exists():
             for json_file in raw_data_dir.glob("*.json"):
                 try:
@@ -569,7 +741,7 @@ async def _get_historical_from_local(
 
         # rank_history 생성 (CPI 차트용)
         rank_history = {}
-        latest_crawl_path = Path("./data/latest_crawl_result.json")
+        latest_crawl_path = Path(f"{_RESOLVED_DATA_DIR}/latest_crawl_result.json")
         if latest_crawl_path.exists():
             try:
                 with open(latest_crawl_path, encoding="utf-8") as f:
