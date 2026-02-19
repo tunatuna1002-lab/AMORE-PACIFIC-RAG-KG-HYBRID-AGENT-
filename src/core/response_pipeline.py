@@ -512,16 +512,16 @@ class ResponsePipeline:
             suggestions.append(f"{brand} 경쟁사 분석해줘")
             suggestions.append(f"{brand} 순위 변동 추이 보여줘")
 
-        # 시스템 상태 기반 제안
+        # 시스템 상태 기반 제안 (분석 질문만 — 시스템 명령 제외)
         if context.system_state:
             if not context.system_state.kg_initialized:
-                suggestions.append("지식 그래프 초기화해줘")
+                suggestions.append("LANEIGE 브랜드 현황 요약해줘")
             if context.system_state.data_freshness != "fresh":
-                suggestions.append("최신 데이터 크롤링해줘")
+                suggestions.append("최근 시장 점유율 변화 분석해줘")
 
-        # 기본 제안
+        # 기본 제안 (분석 질문만)
         if not suggestions:
-            suggestions = ["라네즈 현재 순위 알려줘", "SoS가 뭐야?", "오늘 크롤링 해줘"]
+            suggestions = ["라네즈 현재 순위 알려줘", "SoS가 뭐야?", "오늘 주요 인사이트는?"]
 
         return suggestions[:3]
 
