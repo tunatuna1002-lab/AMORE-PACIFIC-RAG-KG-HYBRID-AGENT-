@@ -634,7 +634,7 @@ class TestGenerateSuggestionsExtended:
 
         suggestions = pipeline._generate_suggestions("질문", context)
 
-        assert "지식 그래프 초기화해줘" in suggestions
+        assert "LANEIGE 브랜드 현황 요약해줘" in suggestions
 
     def test_suggestions_with_stale_data(self, pipeline):
         """데이터가 fresh 아니면 크롤링 제안"""
@@ -645,7 +645,7 @@ class TestGenerateSuggestionsExtended:
 
         suggestions = pipeline._generate_suggestions("질문", context)
 
-        assert "최신 데이터 크롤링해줘" in suggestions
+        assert "최근 시장 점유율 변화 분석해줘" in suggestions
 
     def test_suggestions_no_brands_no_issues(self, pipeline):
         """브랜드 없고 시스템 이슈 없으면 기본 제안"""

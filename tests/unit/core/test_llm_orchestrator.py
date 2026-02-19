@@ -552,7 +552,7 @@ class TestLLMDecisionFlow:
             route_result={},
         )
 
-        assert decision.tool == "crawl_amazon"  # _default_decision 호출
+        assert decision.tool == "direct_answer"  # _default_decision: 크롤링 차단
 
     @pytest.mark.asyncio
     async def test_get_llm_decision_exception(self, orchestrator, mock_openai_client, mock_context):
@@ -609,10 +609,10 @@ class TestLLMDecisionFlow:
         assert "파싱 실패" in decision.reason
 
     def test_default_decision_crawling(self, orchestrator):
-        """크롤링 요청 감지"""
+        """크롤링 요청 → direct_answer로 차단"""
         decision = orchestrator._default_decision("크롤링해줘", {})
-        assert decision.tool == "crawl_amazon"
-        assert decision.confidence == 0.9
+        assert decision.tool == "direct_answer"
+        assert decision.confidence == 0.8
 
     def test_default_decision_metrics(self, orchestrator):
         """지표 계산 요청 감지"""
