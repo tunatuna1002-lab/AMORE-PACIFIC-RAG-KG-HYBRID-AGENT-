@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Job 식별자 -->
+    <key>Label</key>
+    <string>com.amore.daily-crawl</string>
+
+    <!-- 실행할 명령 -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON_PATH__</string>
+        <string>__PROJECT_ROOT__/scripts/daily_crawl.py</string>
+    </array>
+
+    <!-- 작업 디렉토리 -->
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_ROOT__</string>
+
+    <!-- 매일 22:00 KST 실행 (로컬 타임존 기준) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>22</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- 환경변수 (.env에서 로드하지만 핵심 변수는 여기 직접 설정) -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Library/Frameworks/Python.framework/Versions/3.13/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>__HOME__</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+
+    <!-- 로그 출력 -->
+    <key>StandardOutPath</key>
+    <string>__PROJECT_ROOT__/logs/launchd_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_ROOT__/logs/launchd_stderr.log</string>
+
+    <!-- Mac 깨어날 때 놓친 작업 실행 (핵심!) -->
+    <!-- launchd는 StartCalendarInterval 시간에 Mac이 꺼져있으면 -->
+    <!-- 다음 깨어날 때 자동으로 한 번 실행합니다 -->
+
+    <!-- 프로세스 제한 -->
+    <key>TimeOut</key>
+    <integer>3600</integer>
+
+    <!-- 실패 시 재시도하지 않음 (다음 날 재실행) -->
+    <key>StartInterval</key>
+    <false/>
+
+    <!-- 종료 코드와 무관하게 재시작하지 않음 -->
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- 낮은 우선순위 (백그라운드 작업) -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- 네트워크 사용 가능 상태에서만 실행 -->
+    <key>LowPriorityBackgroundIO</key>
+    <true/>
+</dict>
+</plist>
