@@ -60,7 +60,7 @@ class AppConfig:
     scheduler_cron: str = "0 6 * * *"  # 06:00 KST daily
 
     # Server
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 8001
 
     @classmethod

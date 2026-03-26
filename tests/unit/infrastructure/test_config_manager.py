@@ -29,7 +29,7 @@ class TestAppConfigDefaults:
         assert config.competitor_brands == []
         assert config.auto_start_scheduler is False
         assert config.scheduler_cron == "0 6 * * *"
-        assert config.host == "0.0.0.0"
+        assert config.host == "127.0.0.1"
         assert config.port == 8001
 
     def test_default_paths(self):
