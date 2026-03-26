@@ -150,7 +150,7 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
 
 def _needs_run_prefix(argv: list[str]) -> bool:
     """Check if argv lacks a subcommand and should default to 'run'."""
-    known_commands = {"run", "compare", "set-baseline"}
+    known_commands = {"run", "compare", "set-baseline", "portfolio"}
     if not argv:
         return False
     return argv[0] not in known_commands and argv[0].startswith("-")
@@ -251,6 +251,50 @@ Examples:
         help="Directory for baselines (default: eval/baselines)",
     )
     baseline_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        default=False,
+        help="Enable verbose logging",
+    )
+
+    # --- portfolio subcommand ---
+    portfolio_parser = subparsers.add_parser(
+        "portfolio",
+        help="Generate portfolio-grade evaluation report with visualizations",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    portfolio_parser.add_argument(
+        "--report",
+        type=str,
+        required=True,
+        help="Path to existing report.json from a previous evaluation run",
+    )
+    portfolio_parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Path to golden dataset JSONL (for Confusion Matrix computation)",
+    )
+    portfolio_parser.add_argument(
+        "--out",
+        type=str,
+        default="./portfolio_output",
+        help="Output directory (default: ./portfolio_output)",
+    )
+    portfolio_parser.add_argument(
+        "--title",
+        type=str,
+        default="RAG-KG Hybrid Agent Evaluation Report",
+        help="Report title",
+    )
+    portfolio_parser.add_argument(
+        "--dpi",
+        type=int,
+        default=200,
+        help="Chart DPI resolution (default: 200)",
+    )
+    portfolio_parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -499,6 +543,49 @@ def cmd_set_baseline(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# Portfolio Command
+# =============================================================================
+
+
+def cmd_portfolio(args: argparse.Namespace) -> int:
+    """Run the portfolio subcommand — generate portfolio-grade report."""
+    from eval.portfolio_report import PortfolioReportGenerator, load_report_from_json
+
+    report_path = Path(args.report)
+    if not report_path.exists():
+        logger.error(f"Report file not found: {report_path}")
+        return 1
+
+    logger.info(f"Loading evaluation report from {report_path}")
+    try:
+        report = load_report_from_json(report_path)
+    except Exception as e:
+        logger.error(f"Failed to load report: {e}")
+        return 1
+
+    logger.info(f"Report loaded: {report.aggregates.total} items")
+
+    generator = PortfolioReportGenerator(config=report.config, dpi=args.dpi)
+    out_dir = generator.generate(
+        report=report,
+        dataset_path=args.dataset,
+        out_dir=args.out,
+        title=args.title,
+    )
+
+    print("\n" + "=" * 60)
+    print("PORTFOLIO REPORT GENERATED")
+    print("=" * 60)
+    print(f"Output directory: {out_dir}")
+    print("  - portfolio_report.md    (main report)")
+    print("  - metrics_summary.json   (structured metrics)")
+    print("  - charts/                (PNG visualizations)")
+    print("=" * 60 + "\n")
+
+    return 0
+
+
+# =============================================================================
 # Helpers
 # =============================================================================
 
@@ -602,6 +689,9 @@ def main(argv: list[str] | None = None):
 
     elif args.command == "set-baseline":
         exit_code = cmd_set_baseline(args)
+
+    elif args.command == "portfolio":
+        exit_code = cmd_portfolio(args)
 
     else:
         logger.error(f"Unknown command: {args.command}")
