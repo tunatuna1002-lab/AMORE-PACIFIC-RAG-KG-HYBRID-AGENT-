@@ -100,3 +100,7 @@ test_cache_integration.py
 test_embedding_cache.py
 run_type_flow_tests.py
 test_failed_signals.py
+
+# Evaluation outputs
+eval_output/
+portfolio_output/
