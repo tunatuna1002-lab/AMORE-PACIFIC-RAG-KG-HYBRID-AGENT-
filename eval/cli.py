@@ -358,7 +358,7 @@ async def run_evaluation(
     config = EvalConfig(
         top_k=top_k,
         use_judge=use_judge,
-        judge_model=judge_model if judge_type == "llm" else None,
+        judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
         save_traces=save_traces,
     )
 
