@@ -454,6 +454,129 @@ class PortfolioChartGenerator:
         plt.close(fig)
         return path
 
+    # =========================================================================
+    # Ablation Study Comparison Charts
+    # =========================================================================
+
+    def generate_ablation_bar(self, mode_metrics: dict[str, dict[str, float]]) -> Path:
+        """
+        모드별 핵심 지표 비교 그룹 바 차트.
+
+        Args:
+            mode_metrics: {
+                "RAG Only": {"recall": 0.62, "f1": 0.58, "answer_f1": 0.61, "ndcg": 0.65},
+                "RAG + KG": {"recall": 0.78, ...},
+                "Full Hybrid": {"recall": 0.85, ...},
+            }
+        """
+        modes = list(mode_metrics.keys())
+        metric_names = list(next(iter(mode_metrics.values())).keys())
+
+        x = np.arange(len(metric_names))
+        n_modes = len(modes)
+        width = 0.7 / n_modes
+
+        mode_colors = [self.GRAY, self.AMORE_BLUE, self.PACIFIC_BLUE]
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        for i, mode in enumerate(modes):
+            values = [mode_metrics[mode].get(m, 0) for m in metric_names]
+            offset = (i - n_modes / 2 + 0.5) * width
+            color = mode_colors[i] if i < len(mode_colors) else self.LAYER_COLORS[i]
+            bars = ax.bar(
+                x + offset, values, width,
+                label=mode, color=color,
+                edgecolor="white", linewidth=0.5,
+            )
+            for bar in bars:
+                h = bar.get_height()
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2, h + 0.01,
+                    f"{h:.2f}", ha="center", va="bottom",
+                    fontsize=8, fontweight="bold", color=self.PACIFIC_BLUE,
+                )
+
+        ax.set_ylabel("Score", fontsize=12, color=self.PACIFIC_BLUE)
+        ax.set_xticks(x)
+        ax.set_xticklabels(metric_names, fontsize=10, color=self.GRAY)
+        ax.set_ylim(0, 1.15)
+        ax.legend(fontsize=10, loc="upper left")
+        ax.grid(axis="y", alpha=0.3)
+
+        ax.set_title(
+            "Ablation Study: Component Contribution",
+            fontsize=14, fontweight="bold",
+            color=self.PACIFIC_BLUE, pad=15,
+        )
+
+        path = self.charts_dir / "ablation_bar.png"
+        fig.savefig(path, dpi=self.dpi, bbox_inches="tight", facecolor=self.WHITE)
+        plt.close(fig)
+        return path
+
+    def generate_ablation_radar(
+        self, mode_layer_scores: dict[str, dict[str, float]]
+    ) -> Path:
+        """
+        모드별 L1-L5 레이더 차트 오버레이.
+
+        Args:
+            mode_layer_scores: {
+                "RAG Only": {"L1": 0.7, "L2": 0.5, "L3": 0.3, "L4": 0.6, "L5": 0.5},
+                "RAG + KG": {"L1": 0.75, ...},
+                "Full Hybrid": {"L1": 0.8, ...},
+            }
+        """
+        modes = list(mode_layer_scores.keys())
+        labels = list(next(iter(mode_layer_scores.values())).keys())
+        n = len(labels)
+
+        angles = [i / n * 2 * math.pi for i in range(n)]
+        angles_closed = angles + [angles[0]]
+
+        mode_colors = [self.GRAY, self.AMORE_BLUE, self.PACIFIC_BLUE]
+        mode_styles = ["--", "-.", "-"]
+
+        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
+
+        # 배경 원
+        for level in [0.2, 0.4, 0.6, 0.8, 1.0]:
+            circle = np.linspace(0, 2 * math.pi, 100)
+            ax.plot(circle, [level] * 100, color="#E0E0E0", linewidth=0.5)
+
+        for i, mode in enumerate(modes):
+            values = [mode_layer_scores[mode].get(lbl, 0) for lbl in labels]
+            values_closed = values + [values[0]]
+            color = mode_colors[i] if i < len(mode_colors) else self.LAYER_COLORS[i]
+            style = mode_styles[i] if i < len(mode_styles) else "-"
+            lw = 2.0 if i < len(modes) - 1 else 2.5
+
+            ax.fill(angles_closed, values_closed, color=color, alpha=0.08)
+            ax.plot(
+                angles_closed, values_closed,
+                color=color, linewidth=lw, linestyle=style, label=mode,
+            )
+            ax.scatter(angles, values, color=color, s=40, zorder=5)
+
+        ax.set_xticks(angles)
+        ax.set_xticklabels(labels, fontsize=10, color=self.GRAY)
+        ax.set_ylim(0, 1.05)
+        ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+        ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=8, color=self.GRAY)
+        ax.legend(fontsize=10, loc="upper right", bbox_to_anchor=(1.3, 1.1))
+
+        ax.set_title(
+            "Ablation: Layer Performance Comparison",
+            fontsize=14, fontweight="bold",
+            color=self.PACIFIC_BLUE, pad=20,
+        )
+
+        path = self.charts_dir / "ablation_radar.png"
+        fig.savefig(path, dpi=self.dpi, bbox_inches="tight", facecolor=self.WHITE)
+        plt.close(fig)
+        return path
+
     def generate_all(self, report_data: dict[str, Any]) -> dict[str, Path]:
         """
         모든 차트를 한번에 생성.

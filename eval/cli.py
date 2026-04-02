@@ -150,7 +150,7 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
 
 def _needs_run_prefix(argv: list[str]) -> bool:
     """Check if argv lacks a subcommand and should default to 'run'."""
-    known_commands = {"run", "compare", "set-baseline", "portfolio"}
+    known_commands = {"run", "compare", "set-baseline", "portfolio", "ablation"}
     if not argv:
         return False
     return argv[0] not in known_commands and argv[0].startswith("-")
@@ -301,6 +301,38 @@ Examples:
         default=False,
         help="Enable verbose logging",
     )
+
+    # --- ablation subcommand ---
+    ablation_parser = subparsers.add_parser(
+        "ablation",
+        help="Run ablation study (RAG-only vs RAG+KG vs Full Hybrid)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ablation_sub = ablation_parser.add_subparsers(dest="ablation_command")
+
+    # ablation run
+    abl_run = ablation_sub.add_parser("run", help="Run all 3 modes and generate comparison")
+    abl_run.add_argument(
+        "--dataset", type=str, required=True, help="Path to golden dataset JSONL",
+    )
+    abl_run.add_argument("--out", type=str, default="./ablation_output", help="Output directory")
+    abl_run.add_argument("--top-k", type=int, default=8, help="Top-k for retrieval metrics")
+    abl_run.add_argument("--dpi", type=int, default=200, help="Chart DPI")
+    abl_run.add_argument("--verbose", "-v", action="store_true", default=False)
+
+    # ablation report (from existing reports)
+    abl_report = ablation_sub.add_parser(
+        "report", help="Generate comparison from existing report.json files",
+    )
+    abl_report.add_argument("--rag-only", type=str, required=True, help="RAG-only report.json")
+    abl_report.add_argument("--rag-kg", type=str, required=True, help="RAG+KG report.json")
+    abl_report.add_argument("--full-hybrid", type=str, required=True, help="Full Hybrid report.json")
+    abl_report.add_argument(
+        "--dataset", type=str, default=None, help="Golden dataset (for Confusion Matrix)",
+    )
+    abl_report.add_argument("--out", type=str, default="./ablation_output", help="Output directory")
+    abl_report.add_argument("--dpi", type=int, default=200, help="Chart DPI")
+    abl_report.add_argument("--verbose", "-v", action="store_true", default=False)
 
     args = parser.parse_args(raw)
 
@@ -586,6 +618,77 @@ def cmd_portfolio(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# Ablation Command
+# =============================================================================
+
+
+def cmd_ablation_run(args: argparse.Namespace) -> int:
+    """Run ablation study: all 3 modes + comparison."""
+    from eval.ablation_runner import AblationRunner
+
+    config = EvalConfig(top_k=args.top_k)
+    runner = AblationRunner(config=config, dpi=args.dpi)
+
+    reports = asyncio.run(runner.run_all_modes(args.dataset, args.out))
+
+    if not reports:
+        logger.error("No modes completed successfully")
+        return 1
+
+    runner.generate_comparison(reports, dataset_path=args.dataset, out_dir=args.out)
+
+    print("\n" + "=" * 60)
+    print("ABLATION STUDY COMPLETE")
+    print("=" * 60)
+    print(f"Modes completed: {len(reports)}/3")
+    for mode_name, report in reports.items():
+        label = mode_name.replace("_", " ").title()
+        print(
+            f"  {label}: score={report.aggregates.avg_overall_score:.3f}, "
+            f"pass_rate={report.aggregates.pass_rate:.1%}"
+        )
+    print(f"\nComparison report: {Path(args.out) / 'comparison' / 'ablation_report.md'}")
+    print("=" * 60 + "\n")
+
+    return 0
+
+
+def cmd_ablation_report(args: argparse.Namespace) -> int:
+    """Generate ablation comparison from existing reports."""
+    from eval.ablation_runner import AblationRunner
+    from eval.portfolio_report import load_report_from_json
+
+    report_paths = {
+        "rag_only": args.rag_only,
+        "rag_kg": args.rag_kg,
+        "full_hybrid": args.full_hybrid,
+    }
+
+    reports = {}
+    for mode_name, path_str in report_paths.items():
+        path = Path(path_str)
+        if not path.exists():
+            logger.error(f"Report not found: {path}")
+            return 1
+        reports[mode_name] = load_report_from_json(path)
+        logger.info(f"Loaded {mode_name}: {reports[mode_name].aggregates.total} items")
+
+    runner = AblationRunner(dpi=args.dpi)
+    comparison_dir = runner.generate_comparison(
+        reports, dataset_path=args.dataset, out_dir=args.out,
+    )
+
+    print("\n" + "=" * 60)
+    print("ABLATION COMPARISON GENERATED")
+    print("=" * 60)
+    print(f"Report: {comparison_dir / 'ablation_report.md'}")
+    print(f"Charts: {comparison_dir / 'charts/'}")
+    print("=" * 60 + "\n")
+
+    return 0
+
+
+# =============================================================================
 # Helpers
 # =============================================================================
 
@@ -692,6 +795,18 @@ def main(argv: list[str] | None = None):
 
     elif args.command == "portfolio":
         exit_code = cmd_portfolio(args)
+
+    elif args.command == "ablation":
+        if not hasattr(args, "ablation_command") or args.ablation_command is None:
+            print("Usage: eval ablation {run|report} [options]")
+            exit_code = 2
+        elif args.ablation_command == "run":
+            exit_code = cmd_ablation_run(args)
+        elif args.ablation_command == "report":
+            exit_code = cmd_ablation_report(args)
+        else:
+            logger.error(f"Unknown ablation command: {args.ablation_command}")
+            exit_code = 2
 
     else:
         logger.error(f"Unknown command: {args.command}")
