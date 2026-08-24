@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AMORE INSIGHT | AI-Powered Beauty Market Intelligence</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Vendor libraries (self-hosted, CSP 'self' compatible) -->
+    <script src="/static/vendor/js/chart.umd.min.js"></script>
+    <script src="/static/vendor/js/lucide.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+        @import url('/static/vendor/fonts/noto-sans-kr.css');
 
         /* === ARITA FONT FAMILY (AMOREPACIFIC Corporate Font) === */
         @font-face {
@@ -13057,8 +13057,12 @@
                 }
             }, 10000);
 
-            await loadDashboardData();
+            const dataLoaded = await loadDashboardData();
             clearTimeout(loadingSafety);
+            if (!dataLoaded && typeof globalDateRange !== 'undefined') {
+                globalDateRange.setDefaultRange();
+                console.warn('[window.onload] Data load failed, using default date range');
+            }
 
             updateDataTime(); // 데이터 시간 업데이트
             switchPage('home');
@@ -13072,6 +13076,9 @@
 
             // 글로벌 날짜 범위로 초기 차트 데이터 로드
             await loadInitialChartDataWithGlobalRange();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         };
 
         // 글로벌 날짜 범위로 초기 차트 데이터 로드

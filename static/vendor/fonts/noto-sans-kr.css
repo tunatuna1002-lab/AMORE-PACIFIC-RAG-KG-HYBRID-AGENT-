@@ -1,0 +1,48 @@
+/* Noto Sans KR - Self-hosted (Google Fonts 대체) */
+/* Source: https://fonts.google.com/noto/specimen/Noto+Sans+KR */
+/* Version: v39 | Weights: 300, 400, 500, 600, 700 (woff2) */
+
+@font-face {
+    font-family: 'Noto Sans KR';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: local('Noto Sans KR Light'),
+         url('/static/vendor/fonts/NotoSansKR-Light.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Sans KR';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('Noto Sans KR Regular'),
+         url('/static/vendor/fonts/NotoSansKR-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Sans KR';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: local('Noto Sans KR Medium'),
+         url('/static/vendor/fonts/NotoSansKR-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Sans KR';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: local('Noto Sans KR SemiBold'),
+         url('/static/vendor/fonts/NotoSansKR-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Sans KR';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: local('Noto Sans KR Bold'),
+         url('/static/vendor/fonts/NotoSansKR-Bold.woff2') format('woff2');
+}
