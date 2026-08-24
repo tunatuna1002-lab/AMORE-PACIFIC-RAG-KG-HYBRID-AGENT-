@@ -546,5 +546,7 @@ def get_knowledge_graph() -> KnowledgeGraph:
     """
     global _knowledge_graph_instance
     if _knowledge_graph_instance is None:
-        _knowledge_graph_instance = KnowledgeGraph()
+        # 전역 싱글턴(서버 health 체크 등)은 읽기 전용
+        # 정식 기록자는 daily_crawl의 exporter
+        _knowledge_graph_instance = KnowledgeGraph(auto_save=False)
     return _knowledge_graph_instance

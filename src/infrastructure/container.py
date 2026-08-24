@@ -72,7 +72,8 @@ class Container:
             return cls._overrides["knowledge_graph"]
 
         if "knowledge_graph" not in cls._instances:
-            cls._instances["knowledge_graph"] = KnowledgeGraph()
+            # 서버 DI 싱글턴은 읽기 전용 (정식 기록자는 daily_crawl의 exporter)
+            cls._instances["knowledge_graph"] = KnowledgeGraph(auto_save=False)
 
         return cls._instances["knowledge_graph"]
 

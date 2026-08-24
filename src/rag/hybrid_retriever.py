@@ -309,7 +309,8 @@ class HybridRetriever:
                           설정되면 retrieve_unified()에서 OWL 파이프라인을 사용.
         """
         # 컴포넌트 초기화
-        self.kg = knowledge_graph or KnowledgeGraph()
+        # fallback 인스턴스는 읽기 전용 (정식 기록자는 daily_crawl의 exporter)
+        self.kg = knowledge_graph or KnowledgeGraph(auto_save=False)
         self.reasoner = reasoner or OntologyReasoner(self.kg)
         self.doc_retriever = doc_retriever or DocumentRetriever()
 

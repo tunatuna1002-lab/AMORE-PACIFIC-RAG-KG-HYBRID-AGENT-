@@ -294,7 +294,10 @@ class UnifiedBrain:
             # 기본 Context Gatherer 생성
             from ..ontology.knowledge_graph import KnowledgeGraph
 
-            kg = KnowledgeGraph()  # auto-detects Railway volume vs local path
+            # auto-detects Railway volume vs local path.
+            # 서버는 KG 읽기 전용: 정식 기록자는 daily_crawl(exporter)이며,
+            # 장시간 상주하는 서버가 stale 메모리 상태로 파일을 덮어쓰는 것을 방지
+            kg = KnowledgeGraph(auto_save=False)
             self._knowledge_graph = kg
 
             # HybridRetriever with optional OWL strategy

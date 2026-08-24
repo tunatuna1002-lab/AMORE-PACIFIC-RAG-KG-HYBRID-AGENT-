@@ -394,7 +394,7 @@ class TelegramAdminBot:
         try:
             from src.ontology.knowledge_graph import KnowledgeGraph
 
-            kg = KnowledgeGraph()
+            kg = KnowledgeGraph(auto_save=False)  # 상태 조회 전용
             stats = kg.get_stats() if hasattr(kg, "get_stats") else {}
 
             return f"""🧠 <b>Knowledge Graph</b>

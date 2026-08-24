@@ -81,7 +81,8 @@ class ApplicationContainer:
             from src.ontology.reasoner import OntologyReasoner
 
             # Create core domain components
-            self._knowledge_graph = KnowledgeGraph()
+            # 서버 부트스트랩 인스턴스는 읽기 전용 (정식 기록자는 daily_crawl의 exporter)
+            self._knowledge_graph = KnowledgeGraph(auto_save=False)
             self._reasoner = OntologyReasoner(self._knowledge_graph)
 
             logger.info("Core components initialized: KnowledgeGraph, OntologyReasoner")

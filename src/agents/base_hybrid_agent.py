@@ -61,7 +61,8 @@ class BaseHybridAgent:
         self.model = model
 
         # Ontology components
-        self.kg = knowledge_graph or KnowledgeGraph()
+        # fallback 인스턴스는 읽기 전용 (정식 기록자는 daily_crawl의 exporter)
+        self.kg = knowledge_graph or KnowledgeGraph(auto_save=False)
         self.reasoner = reasoner or OntologyReasoner(self.kg)
 
         # Business rules
