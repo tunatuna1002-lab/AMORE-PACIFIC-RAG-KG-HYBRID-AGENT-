@@ -106,7 +106,8 @@ class TestDashboardExporterInit:
         assert exporter.sheets is not None
         assert exporter.sqlite is not None
         assert exporter._initialized is False
-        assert exporter.enable_ontology is False
+        # 임포트 경로 수정 후 온톨로지는 기본 활성화 (ONTOLOGY_AVAILABLE=True)
+        assert exporter.enable_ontology is True
 
     def test_init_with_spreadsheet_id(self, mock_sheets_writer, mock_sqlite_storage):
         """Test initialization with spreadsheet_id"""

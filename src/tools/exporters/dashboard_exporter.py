@@ -14,6 +14,7 @@ Ontology-RAG Hybrid Integration:
 """
 
 import json
+import logging
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -28,14 +29,17 @@ from src.tools.storage.sqlite_storage import SQLiteStorage
 
 # Ontology components (optional import)
 try:
-    from ontology.business_rules import register_all_rules
-    from ontology.knowledge_graph import KnowledgeGraph
-    from ontology.reasoner import OntologyReasoner
-    from ontology.relations import Relation, RelationType
+    from src.domain.entities.relations import Relation, RelationType
+    from src.ontology.business_rules import register_all_rules
+    from src.ontology.knowledge_graph import KnowledgeGraph
+    from src.ontology.reasoner import OntologyReasoner
 
     ONTOLOGY_AVAILABLE = True
-except ImportError:
+except ImportError as _ontology_import_error:
     ONTOLOGY_AVAILABLE = False
+    logging.getLogger(__name__).warning(
+        f"Ontology components unavailable, KG build disabled: {_ontology_import_error}"
+    )
 
 
 class DashboardExporter:
@@ -176,6 +180,9 @@ class DashboardExporter:
         if self.enable_ontology:
             ontology_data = self._generate_ontology_insights(raw_data, dashboard_data)
             dashboard_data["ontology_insights"] = ontology_data
+            # 배치 임계값에 못 미친 잔여 변경분(메타데이터 등)을 디스크로 플러시
+            if self._knowledge_graph:
+                self._knowledge_graph.save_if_dirty()
 
         # JSON 파일 저장
         os.makedirs(os.path.dirname(output_path), exist_ok=True)

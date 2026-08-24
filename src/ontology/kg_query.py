@@ -424,6 +424,8 @@ class KGQueryMixin:
         if entity not in self.entity_metadata:
             self.entity_metadata[entity] = {}
         self.entity_metadata[entity].update(metadata)
+        # 메타데이터 변경도 저장 대상으로 표시 (add_relation과 동일한 dirty 추적)
+        self._maybe_auto_save()
 
     def get_entity_metadata(self, entity: str) -> dict[str, Any]:
         """엔티티 메타데이터 조회"""

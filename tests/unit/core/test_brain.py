@@ -1428,7 +1428,7 @@ class TestKGSync:
         }
         brain._sync_knowledge_graph(data)
 
-        assert mock_kg.add_entity_metadata.call_count == 2
+        assert mock_kg.set_entity_metadata.call_count == 2
 
     def test_sync_kg_with_owl_reasoner(self):
         """OWL Reasoner 동기화"""

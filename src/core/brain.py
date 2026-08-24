@@ -761,7 +761,7 @@ class UnifiedBrain:
             for brand_info in brand_metrics:
                 brand_name = brand_info.get("brand")
                 if brand_name:
-                    self._knowledge_graph.add_entity_metadata(
+                    self._knowledge_graph.set_entity_metadata(
                         entity=brand_name,
                         metadata={
                             "type": "brand",
