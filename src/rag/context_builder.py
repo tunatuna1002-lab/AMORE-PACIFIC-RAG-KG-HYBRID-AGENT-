@@ -691,6 +691,15 @@ class ContextBuilder:
         if source_appendix:
             parts.append(source_appendix)
 
+        # 응답 포맷 가이드 (Grounding 강화)
+        parts.append(
+            "## 응답 가이드\n"
+            "- 위 컨텍스트에 **포함된 데이터만** 사용하여 답변하세요.\n"
+            "- 수치 인용 형식: [지표명] [수치]% ([기간/카테고리])\n"
+            '- 예시: "LANEIGE의 Lip Care SoS는 5.0%입니다 (Top 60 기준)"\n'
+            "- 컨텍스트에 없는 브랜드, 제품, 수치를 생성하지 마세요."
+        )
+
         return "\n\n".join(parts)
 
     def build_system_prompt(

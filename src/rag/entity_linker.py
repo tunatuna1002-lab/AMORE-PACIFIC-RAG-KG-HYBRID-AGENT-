@@ -618,6 +618,63 @@ class EntityLinker:
 
         return entities
 
+    def extract_concepts(self, query: str) -> list[str]:
+        """
+        쿼리에서 의미론적 개념(concepts)을 추출합니다.
+
+        indicators(sos, hhi 등)와 query_type(definition, data_query 등)을 결합하여
+        gold standard의 concepts 필드와 매칭 가능한 개념 리스트를 반환합니다.
+
+        Args:
+            query: 사용자 쿼리
+
+        Returns:
+            개념 리스트 (e.g., ["sos", "data_query", "market_share"])
+        """
+        import json
+        from pathlib import Path
+
+        query_lower = query.lower()
+        concepts: list[str] = []
+
+        # 1. 지표 개념 (indicators → concepts로 매핑)
+        merged_indicators = self._get_merged_indicators()
+        for ind_name, ind_id in merged_indicators.items():
+            if ind_name in query_lower and ind_id not in concepts:
+                concepts.append(ind_id)
+
+        # 2. concept_taxonomy.json 기반 매칭
+        taxonomy_path = Path("config/concept_taxonomy.json")
+        if not taxonomy_path.exists():
+            project_root = Path(__file__).parent.parent.parent
+            taxonomy_path = project_root / "config" / "concept_taxonomy.json"
+
+        if taxonomy_path.exists():
+            try:
+                with open(taxonomy_path, encoding="utf-8") as f:
+                    taxonomy = json.load(f)
+
+                # 메트릭 개념 매칭
+                for concept_id, keywords in taxonomy.get("metric_concepts", {}).items():
+                    if concept_id not in concepts:
+                        for kw in keywords:
+                            if kw in query_lower:
+                                concepts.append(concept_id)
+                                break
+
+                # 쿼리 유형 개념 매칭
+                for concept_id, keywords in taxonomy.get("query_type_concepts", {}).items():
+                    for kw in keywords:
+                        if kw in query_lower:
+                            if concept_id not in concepts:
+                                concepts.append(concept_id)
+                            break
+
+            except Exception as e:
+                logger.warning(f"Failed to load concept taxonomy: {e}")
+
+        return concepts
+
     # =========================================================================
     # NER 기반 엔티티 추출
     # =========================================================================

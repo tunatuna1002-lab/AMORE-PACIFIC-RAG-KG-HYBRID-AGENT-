@@ -110,6 +110,9 @@ class KGEnricher:
         # 4. 카테고리 점유 관계
         triples.extend(self._extract_category_dominance(products, category))
 
+        # 5. 메트릭 관계 (SoS, HHI - ablation P1 개선)
+        triples.extend(self._extract_metric_relations(products, category))
+
         self._stats["triples_extracted"] += len(triples)
         logger.info(
             f"KG enrichment: {len(triples)} triples extracted from {len(products)} products"
@@ -278,6 +281,68 @@ class KGEnricher:
 
         return triples
 
+    def _extract_metric_relations(self, products: list[dict], category: str) -> list[Triple]:
+        """메트릭 관계 Triple 추출 (SoS, HHI, rankedIn)
+
+        크롤링 데이터에서 브랜드별 SoS(점유율), 카테고리 HHI(집중도),
+        브랜드-카테고리 순위 관계를 추출합니다.
+        """
+        triples = []
+
+        # 브랜드별 제품 수 / 가격 합산
+        brand_counts: dict[str, int] = {}
+        brand_prices: dict[str, list[float]] = {}
+        for product in products:
+            brand = product.get("brand", "").strip().lower()
+            price = product.get("price", 0)
+            if brand:
+                brand_counts[brand] = brand_counts.get(brand, 0) + 1
+                if price and price > 0:
+                    brand_prices.setdefault(brand, []).append(price)
+
+        total = len(products)
+        if total == 0:
+            return triples
+
+        # SoS 관계: "brand -hasSoS-> category"
+        for brand, count in brand_counts.items():
+            sos = round(count / total * 100, 2)
+            triples.append(
+                Triple(
+                    subject=brand,
+                    predicate="hasSoS",
+                    object=category,
+                    confidence=0.9,
+                    properties={"sos_pct": sos, "product_count": count, "total": total},
+                )
+            )
+
+            # rankedIn 관계: "brand -rankedIn-> category"
+            triples.append(
+                Triple(
+                    subject=brand,
+                    predicate="rankedIn",
+                    object=category,
+                    confidence=0.95,
+                    properties={"product_count": count},
+                )
+            )
+
+        # HHI 관계: "category -hasHHI-> value"
+        shares = [(c / total) for c in brand_counts.values()]
+        hhi = round(sum(s * s for s in shares) * 10000)  # HHI 0-10000
+        triples.append(
+            Triple(
+                subject=category,
+                predicate="hasHHI",
+                object=str(hhi),
+                confidence=0.9,
+                properties={"hhi": hhi, "brand_count": len(brand_counts)},
+            )
+        )
+
+        return triples
+
     def store_triples(self, triples: list[Triple]) -> int:
         """
         트리플을 KG에 저장
@@ -318,7 +383,10 @@ class KGEnricher:
             "BELONGS_TO_CATEGORY": RelationType.BELONGS_TO_CATEGORY,
             "COMPETES_WITH": RelationType.COMPETES_WITH,
             "PRICE_POSITION": RelationType.HAS_POSITION,
-            "DOMINATES_CATEGORY": RelationType.HAS_POSITION,  # 지배력도 포지션으로
+            "DOMINATES_CATEGORY": RelationType.HAS_POSITION,
+            "hasSoS": RelationType.HAS_POSITION,
+            "hasHHI": RelationType.HAS_POSITION,
+            "rankedIn": RelationType.BELONGS_TO_CATEGORY,
         }
 
         predicate = predicate_map.get(triple.predicate, RelationType.HAS_PRODUCT)

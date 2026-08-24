@@ -124,6 +124,22 @@ class FeatureFlags:
         """Whether to use decomposed chatbot components."""
         return self.get_flag("agents", "use_decomposed_chatbot", default=True)
 
+    def use_reranker(self) -> bool:
+        """Whether to use relevance reranking (grading)."""
+        return self.get_flag("retriever", "use_reranker", default=True)
+
+    def use_query_rewriter(self) -> bool:
+        """Whether to use query rewriting in chatbot agent."""
+        return self.get_flag("agents", "use_query_rewriter", default=True)
+
+    def use_confidence_fusion(self) -> bool:
+        """Whether to use confidence fusion scoring."""
+        return self.get_flag("retriever", "use_confidence_fusion", default=True)
+
+    def use_external_signals(self) -> bool:
+        """Whether to fetch external signals (Tavily, RSS, Reddit) per query."""
+        return self.get_flag("agents", "use_external_signals", default=True)
+
     # ── Singleton access ─────────────────────────────────────────────
 
     @classmethod

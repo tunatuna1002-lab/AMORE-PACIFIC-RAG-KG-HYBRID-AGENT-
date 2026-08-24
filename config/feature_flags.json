@@ -14,7 +14,7 @@
     "use_sqlite_embedding_cache": false
   },
   "prompts": {
-    "use_centralized_prompts": false
+    "use_centralized_prompts": true
   },
   "agents": {
     "use_decomposed_chatbot": true

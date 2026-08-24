@@ -1,0 +1,20 @@
+{
+  "metric_concepts": {
+    "sos": ["sos", "share of shelf", "점유율", "시장 점유", "shelf share"],
+    "hhi": ["hhi", "허핀달", "시장 집중도", "market concentration", "집중도"],
+    "cpi": ["cpi", "가격경쟁력", "가격 지수", "price competitiveness", "가격지수"],
+    "market_share": ["시장점유율", "market share", "ms", "점유비"],
+    "ranking": ["순위", "rank", "ranking", "등수", "위", "bsr"],
+    "price": ["가격", "price", "pricing", "프라이싱"]
+  },
+  "query_type_concepts": {
+    "definition": ["정의", "무엇", "뜻", "의미", "what is", "define", "설명해"],
+    "data_query": ["얼마", "몇", "현재", "지금", "데이터", "how much", "how many", "수치"],
+    "interpretation": ["해석", "분석", "의미하는", "시사점", "interpret", "analyze", "뜻하는"],
+    "comparison": ["비교", "대비", "차이", "vs", "compare", "versus", "보다"],
+    "trend": ["추이", "변화", "트렌드", "동향", "trend", "change", "변동"],
+    "strategy": ["전략", "대응", "방안", "추천", "strategy", "recommend", "어떻게"],
+    "product": ["제품", "product", "상품", "아이템", "asin"],
+    "brand": ["브랜드", "brand", "회사", "경쟁사", "competitor"]
+  }
+}

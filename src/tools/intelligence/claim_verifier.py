@@ -78,7 +78,7 @@ class NumericalVerifier(BaseVerifier):
             db_path: SQLite DB 경로 (None이면 기본 경로)
         """
         if db_path is None:
-            project_root = Path(__file__).parent.parent.parent
+            project_root = Path(__file__).parent.parent.parent.parent
             db_path = project_root / "data" / "amore_data.db"
         self.db_path = Path(db_path)
 
@@ -288,15 +288,19 @@ class NumericalVerifier(BaseVerifier):
             cursor = conn.cursor()
 
             # 최신 크롤링 데이터에서 순위 조회
-            query = """
+            cat_filter = ""
+            params = [f"%{brand.lower()}%"]
+            if category:
+                cat_filter = " AND category_id = ?"
+                params.append(category)
+            query = f"""
                 SELECT rank
-                FROM products
-                WHERE LOWER(brand) LIKE ?
-                ORDER BY crawled_at DESC
+                FROM raw_data
+                WHERE LOWER(brand) LIKE ?{cat_filter}
+                ORDER BY snapshot_date DESC
                 LIMIT 1
             """
-            brand_pattern = f"%{brand.lower()}%"
-            cursor.execute(query, (brand_pattern,))
+            cursor.execute(query, params)
             result = cursor.fetchone()
             conn.close()
 
@@ -357,7 +361,7 @@ class TemporalVerifier(BaseVerifier):
 
     def __init__(self, db_path: str | None = None):
         if db_path is None:
-            project_root = Path(__file__).parent.parent.parent
+            project_root = Path(__file__).parent.parent.parent.parent
             db_path = project_root / "data" / "amore_data.db"
         self.db_path = Path(db_path)
 
@@ -423,8 +427,8 @@ class TemporalVerifier(BaseVerifier):
             cursor = conn.cursor()
 
             query = """
-                SELECT MAX(crawled_at)
-                FROM products
+                SELECT MAX(snapshot_date)
+                FROM raw_data
             """
             cursor.execute(query)
             result = cursor.fetchone()
@@ -468,7 +472,7 @@ class LogicVerifier(BaseVerifier):
 
     def __init__(self, db_path: str | None = None):
         if db_path is None:
-            project_root = Path(__file__).parent.parent.parent
+            project_root = Path(__file__).parent.parent.parent.parent
             db_path = project_root / "data" / "amore_data.db"
         self.db_path = Path(db_path)
 

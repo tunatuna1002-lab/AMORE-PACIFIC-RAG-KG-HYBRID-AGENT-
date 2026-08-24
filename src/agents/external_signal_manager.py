@@ -75,32 +75,48 @@ class ExternalSignalManager:
             if not topics:
                 topics = ["skincare trends", "beauty news"]
 
-            # 신호 수집
+            # Feature flag 체크 (ablation P2 개선)
+            from src.infrastructure.feature_flags import FeatureFlags
+
+            if not FeatureFlags.get_instance().use_external_signals():
+                return []
+
+            # 신호 수집 (병렬 실행으로 지연 최소화)
+            import asyncio
+
             all_signals = []
+            tasks = []
 
-            # Tavily 뉴스 검색 (비동기) - 검색 기간 확장
+            # Tavily 뉴스 검색
             if signal_types is None or "tavily" in signal_types:
-                try:
-                    tavily_signals = await self._collector.fetch_tavily_news(
-                        brands=brands[:3],  # 최대 3개 브랜드
-                        topics=topics[:2],  # 최대 2개 토픽
-                        days=14,  # 2주로 확장 (더 많은 뉴스 수집)
-                        max_results=8,  # 최대 8개로 증가
+                tasks.append(
+                    (
+                        "tavily",
+                        self._collector.fetch_tavily_news(
+                            brands=brands[:3],
+                            topics=topics[:2],
+                            days=14,
+                            max_results=8,
+                        ),
                     )
-                    all_signals.extend(tavily_signals)
-                except Exception as e:
-                    self._failed_collectors.append(f"Tavily ({str(e)})")
+                )
 
-            # RSS 피드 수집 (선택적)
+            # RSS 피드 수집
             if signal_types is None or "rss" in signal_types:
-                try:
-                    keywords = brands + topics
-                    rss_signals = await self._collector.fetch_all_rss_feeds(keywords=keywords[:5])
-                    # 상위 3개만 추가
-                    all_signals.extend(rss_signals[:3])
-                except Exception:
-                    # RSS는 선택적이므로 실패해도 경고만
-                    pass
+                keywords = brands + topics
+                tasks.append(("rss", self._collector.fetch_all_rss_feeds(keywords=keywords[:5])))
+
+            # 병렬 실행 (순차 → 병렬로 변경, 약 50% 시간 절감)
+            if tasks:
+                results = await asyncio.gather(*(t[1] for t in tasks), return_exceptions=True)
+                for (name, _), result in zip(tasks, results, strict=False):
+                    if isinstance(result, Exception):
+                        self._failed_collectors.append(f"{name} ({str(result)})")
+                    elif result:
+                        if name == "rss":
+                            all_signals.extend(result[:3])
+                        else:
+                            all_signals.extend(result)
 
             # 신뢰도 * 관련성 점수로 정렬하여 상위 8개 반환
             all_signals.sort(

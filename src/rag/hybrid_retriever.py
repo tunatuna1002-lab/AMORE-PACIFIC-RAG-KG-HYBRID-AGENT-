@@ -501,6 +501,12 @@ class HybridRetriever:
 
             # 5.5. 관련성 검증 (Relevance Grading)
             try:
+                from src.infrastructure.feature_flags import FeatureFlags
+
+                if not FeatureFlags.get_instance().use_reranker():
+                    logger.info("Reranker disabled by feature flag, skipping relevance grading")
+                    raise RuntimeError("reranker disabled")  # jump to except → keep originals
+
                 relevant_docs, irrelevant_docs = await self.relevance_grader.grade_documents(
                     query, rag_results
                 )
@@ -1293,6 +1299,12 @@ class HybridRetriever:
         Returns:
             dict with confidence, strategy, warnings, source_scores, explanation
         """
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        if not FeatureFlags.get_instance().use_confidence_fusion():
+            logger.info("Confidence fusion disabled by feature flag")
+            return {"confidence": 0.0, "strategy": "disabled", "warnings": []}
+
         try:
             from src.rag.confidence_fusion import (
                 ConfidenceFusion,

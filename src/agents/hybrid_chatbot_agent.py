@@ -249,7 +249,12 @@ class HybridChatbotAgent(BaseHybridAgent):
                 }
 
             # 2.5 질문 재구성 (대화 맥락 기반)
-            rewrite_result = await self._maybe_rewrite_query(user_message)
+            from src.infrastructure.feature_flags import FeatureFlags
+
+            if not FeatureFlags.get_instance().use_query_rewriter():
+                rewrite_result = create_rewrite_result_no_change(user_message)
+            else:
+                rewrite_result = await self._maybe_rewrite_query(user_message)
 
             # 명확화 필요시 바로 반환
             if rewrite_result.needs_clarification:
@@ -305,23 +310,14 @@ class HybridChatbotAgent(BaseHybridAgent):
             if self.tracer:
                 self.tracer.start_span("build_context")
 
-            # 쿼리 유형에 따라 빌더 선택
-            if query_type in [QueryType.DEFINITION, QueryType.INTERPRETATION]:
-                # 간단한 질문은 컴팩트 빌더
-                context = self.compact_builder.build(
-                    hybrid_context=hybrid_context,
-                    current_metrics=self._current_data,
-                    query=user_message,
-                    knowledge_graph=self.kg,
-                )
-            else:
-                # 분석 질문은 풀 빌더 (카테고리 계층 인식 포함)
-                context = self.context_builder.build(
-                    hybrid_context=hybrid_context,
-                    current_metrics=self._current_data,
-                    query=user_message,
-                    knowledge_graph=self.kg,
-                )
+            # 항상 풀 빌더 사용 (AIS 인라인 인용 + 전체 컨텍스트 포함)
+            # CompactBuilder는 제목만 전달하여 Answer F1 저하 유발 (ablation study P0-a)
+            context = self.context_builder.build(
+                hybrid_context=hybrid_context,
+                current_metrics=self._current_data,
+                query=user_message,
+                knowledge_graph=self.kg,
+            )
 
             if self.tracer:
                 self.tracer.end_span("completed")
