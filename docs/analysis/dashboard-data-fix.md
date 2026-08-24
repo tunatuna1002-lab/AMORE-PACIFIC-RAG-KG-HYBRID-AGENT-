@@ -712,6 +712,121 @@ if (dashboardData.metadata._is_empty) {
 
 ---
 
+## Round 4: CDN 제거 + 셀프 호스팅 마이그레이션 (2026-02-19)
+
+> **상태**: ✅ 완료
+> **커밋**: (이번 커밋)
+
+### 근본 원인
+
+`SecurityHeadersMiddleware` (`src/api/middleware/security_headers.py`)의 CSP 정책이 모든 외부 CDN을 차단:
+
+```python
+response.headers["Content-Security-Policy"] = (
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; "
+    "font-src 'self' data:"
+)
+```
+
+이 정책은 Sprint 10 보안 감사에서 도입된 정석 CSP 설정으로, `script-src 'self'`만 허용하여 **모든 외부 CDN 스크립트를 차단**함.
+
+### 증상
+
+브라우저 콘솔에서 CSP 위반 에러 다수 발생:
+- `Refused to load the script 'https://cdn.tailwindcss.com'` → Tailwind CDN 차단
+- `Refused to load the script 'https://cdn.jsdelivr.net/npm/chart.js'` → Chart.js 차단
+- `Refused to load the script 'https://unpkg.com/lucide@latest'` → Lucide Icons 차단
+- `Chart is not defined` → Chart.js 미로드로 차트 렌더링 실패
+- `[Lucide] Not loaded yet, will retry` → 아이콘 미표시
+
+### 해결 방식: 셀프 호스팅 (보안 정석 접근)
+
+CSP에 CDN 도메인을 화이트리스트하는 대신, **모든 외부 의존성을 로컬로 전환**하여 CSP `'self'` 정책과 완전 호환.
+
+#### 의존성 분석 결과
+
+| 리소스 | 현황 | 조치 |
+|--------|------|------|
+| **Tailwind CSS** | CDN 로드하지만 **실제 미사용** (커스텀 CSS 664개 클래스가 전부) | ❌ 삭제 |
+| **Chart.js** | line/bar/bubble 3가지 타입 사용 | ✅ v4.4.8 다운로드 (202KB) |
+| **Lucide Icons** | 44개 아이콘 사용 | ✅ v0.469.0 다운로드 (350KB) |
+| **Noto Sans KR** | 5 weight (300-700) | ✅ TTF 다운로드 (5 × ~5.9MB) |
+
+#### Tailwind CSS 미사용 근거
+
+대시보드 HTML에서 `<style>` 블록이 664개의 커스텀 CSS 클래스와 CSS 변수를 정의하여 모든 스타일링을 담당. Tailwind 유틸리티 클래스(`flex`, `p-4`, `bg-blue-500` 등)의 실사용 없음. CDN 스크립트가 로드되지 않아도 스타일링에 영향 제로.
+
+### 수정 내용
+
+#### 수정 1: 벤더 라이브러리 셀프 호스팅
+```
+static/vendor/
+├── js/
+│   ├── chart.umd.min.js      # Chart.js v4.4.8
+│   └── lucide.min.js         # Lucide v0.469.0
+└── fonts/
+    ├── noto-sans-kr.css       # @font-face 정의
+    ├── NotoSansKR-Light.ttf   # 300
+    ├── NotoSansKR-Regular.ttf # 400
+    ├── NotoSansKR-Medium.ttf  # 500
+    ├── NotoSansKR-SemiBold.ttf # 600
+    └── NotoSansKR-Bold.ttf    # 700
+```
+
+#### 수정 2: 대시보드 HTML CDN → 로컬 경로 변경
+
+```html
+<!-- BEFORE -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- AFTER (Tailwind 삭제, 나머지 로컬) -->
+<script src="/static/vendor/js/chart.umd.min.js"></script>
+<script src="/static/vendor/js/lucide.min.js"></script>
+```
+
+```css
+/* BEFORE */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+/* AFTER */
+@import url('/static/vendor/fonts/noto-sans-kr.css');
+```
+
+#### 수정 3: .gitignore에 벤더 디렉토리 추적 허용
+
+```gitignore
+*.ttf
+!static/vendor/fonts/*.ttf
+
+# Vendor libraries (셀프 호스팅, git 추적 필요)
+!static/vendor/
+```
+
+### 수정 파일
+
+| 날짜 | 수정 내용 | 파일 | 상태 |
+|------|----------|------|------|
+| 2026-02-19 | Tailwind CDN 삭제 + CDN→로컬 경로 | `dashboard/amore_unified_dashboard_v4.html` | ✅ |
+| 2026-02-19 | Chart.js v4.4.8 셀프 호스팅 | `static/vendor/js/chart.umd.min.js` | ✅ |
+| 2026-02-19 | Lucide v0.469.0 셀프 호스팅 | `static/vendor/js/lucide.min.js` | ✅ |
+| 2026-02-19 | Noto Sans KR 폰트 CSS | `static/vendor/fonts/noto-sans-kr.css` | ✅ |
+| 2026-02-19 | Noto Sans KR TTF 5개 | `static/vendor/fonts/NotoSansKR-*.ttf` | ✅ |
+| 2026-02-19 | 벤더 디렉토리 git 추적 | `.gitignore` | ✅ |
+
+### 검증 항목
+
+- [x] `python3 -m pytest tests/unit/api/ -v` — 123 passed
+- [ ] Railway 배포 후 브라우저 콘솔 CSP 에러 제로 확인
+- [ ] Chart.js 차트 렌더링 정상 (line/bar/bubble)
+- [ ] Lucide 아이콘 44개 표시 확인
+- [ ] Noto Sans KR 폰트 정상 로드 확인
+- [ ] Tailwind 제거 후 스타일링 깨짐 없음 확인
+
+---
+
 ## 문의 및 추가 정보
 
 - **문제 추적**: GitHub Issues 또는 Notion
