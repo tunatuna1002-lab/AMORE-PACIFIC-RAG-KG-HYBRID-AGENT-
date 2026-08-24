@@ -150,7 +150,7 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
 
 def _needs_run_prefix(argv: list[str]) -> bool:
     """Check if argv lacks a subcommand and should default to 'run'."""
-    known_commands = {"run", "compare", "set-baseline", "portfolio"}
+    known_commands = {"run", "compare", "set-baseline", "portfolio", "ablation"}
     if not argv:
         return False
     return argv[0] not in known_commands and argv[0].startswith("-")
@@ -164,6 +164,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # prepend 'run' so the old `python -m eval --dataset ...` still works.
     if _needs_run_prefix(raw):
         raw = ["run"] + list(raw)
+
+    # "ablation run ..." → "ablation ..." (strip redundant 'run' sub-action)
+    if len(raw) >= 2 and raw[0] == "ablation" and raw[1] == "run":
+        raw = ["ablation"] + list(raw[2:])
 
     parser = argparse.ArgumentParser(
         description="Evaluation harness for AMORE RAG+KG Hybrid Agent",
@@ -300,6 +304,31 @@ Examples:
         action="store_true",
         default=False,
         help="Enable verbose logging",
+    )
+
+    # --- ablation subcommand ---
+    ablation_parser = subparsers.add_parser(
+        "ablation",
+        help="Run ablation study (disable components one at a time)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Configs:
+    full              baseline (all components enabled)
+    no-kg             disable Knowledge Graph queries
+    no-ontology       disable OWL + rule-based reasoning
+    no-reranker       disable relevance grading / reranking
+    no-query-rewrite  disable query rewriting
+    no-fusion         disable confidence fusion scoring
+        """,
+    )
+    _add_run_args(ablation_parser)
+    ablation_parser.add_argument(
+        "--configs",
+        type=str,
+        nargs="*",
+        default=None,
+        help="Specific configs to run (default: all). "
+        "Choices: full, no-kg, no-ontology, no-reranker, no-query-rewrite, no-fusion",
     )
 
     args = parser.parse_args(raw)
@@ -586,6 +615,56 @@ def cmd_portfolio(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# Ablation Command
+# =============================================================================
+
+
+async def cmd_ablation(
+    dataset_path: str,
+    out_dir: str,
+    top_k: int,
+    judge_type: str,
+    judge_model: str,
+    use_semantic_similarity: bool,
+    concurrency: int,
+    configs: list[str] | None = None,
+) -> int:
+    """Run ablation study."""
+    from eval.ablation import AblationRunner
+
+    use_judge = judge_type in ("nli", "llm")
+    config = EvalConfig(
+        top_k=top_k,
+        use_judge=use_judge,
+        judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
+    )
+
+    # Initialize judge
+    judge = None
+    if judge_type == "nli":
+        judge = await _create_nli_judge()
+    elif judge_type == "llm":
+        judge = await _create_llm_judge(judge_model)
+
+    runner = AblationRunner(
+        dataset_path=dataset_path,
+        out_dir=out_dir,
+        eval_config=config,
+        judge=judge,
+        use_semantic_similarity=use_semantic_similarity,
+        concurrency=concurrency,
+    )
+
+    try:
+        await runner.run_all(configs=configs)
+    except Exception as e:
+        logger.error(f"Ablation study failed: {e}")
+        return 1
+
+    return 0
+
+
+# =============================================================================
 # Helpers
 # =============================================================================
 
@@ -692,6 +771,25 @@ def main(argv: list[str] | None = None):
 
     elif args.command == "portfolio":
         exit_code = cmd_portfolio(args)
+
+    elif args.command == "ablation":
+        # Handle deprecated --use-judge flag
+        judge_type = args.judge
+        if args.use_judge and judge_type == "none":
+            judge_type = "llm"
+
+        exit_code = asyncio.run(
+            cmd_ablation(
+                dataset_path=args.dataset,
+                out_dir=args.out,
+                top_k=args.top_k,
+                judge_type=judge_type,
+                judge_model=args.judge_model,
+                use_semantic_similarity=args.semantic_similarity,
+                concurrency=args.concurrency,
+                configs=args.configs,
+            )
+        )
 
     else:
         logger.error(f"Unknown command: {args.command}")

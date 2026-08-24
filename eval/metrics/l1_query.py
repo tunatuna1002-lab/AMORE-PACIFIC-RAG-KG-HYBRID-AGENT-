@@ -97,10 +97,17 @@ class L1QueryMetrics(MetricCalculator):
         """
         Compute concept mapping F1.
 
-        Maps extracted categories to gold concepts.
+        Combines extracted categories + indicators to match gold concepts.
+        Gold concepts include both metric types (sos, hhi) and query types
+        (definition, data_query), so we union categories and indicators.
         Uses fuzzy matching with alias resolution if enabled.
         """
-        extracted_concepts = set(trace.extracted_categories)
+        # 카테고리 + 지표 + 감성을 합쳐 개념 집합 구성 (ablation P0-b 개선)
+        extracted_concepts = (
+            set(trace.extracted_categories)
+            | set(trace.extracted_indicators)
+            | set(trace.extracted_sentiments)
+        )
         gold_concepts = set(gold.concepts)
 
         if self.use_fuzzy:

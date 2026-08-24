@@ -270,15 +270,15 @@ class EvalRunner:
 
     def _extract_l1_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> EntityLinkingTrace:
         """Extract L1 entity linking trace."""
-        entities = result.get("entities", {})
-
-        # Try to get from hybrid context first
-        if hybrid_ctx:
-            brands = getattr(hybrid_ctx, "brands", []) or []
-            categories = getattr(hybrid_ctx, "categories", []) or []
-            indicators = getattr(hybrid_ctx, "indicators", []) or []
-            products = getattr(hybrid_ctx, "products", []) or []
+        # HybridContext stores entities as a dict: {"brands": [], "categories": [], ...}
+        if hybrid_ctx and hasattr(hybrid_ctx, "entities") and isinstance(hybrid_ctx.entities, dict):
+            ent = hybrid_ctx.entities
+            brands = ent.get("brands", []) or []
+            categories = ent.get("categories", []) or []
+            indicators = ent.get("indicators", []) or []
+            products = ent.get("products", []) or []
         else:
+            entities = result.get("entities", {})
             brands = entities.get("brands", [])
             categories = entities.get("categories", [])
             indicators = entities.get("indicators", [])
@@ -293,14 +293,15 @@ class EvalRunner:
 
     def _extract_l2_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> DocRetrievalTrace:
         """Extract L2 document retrieval trace."""
-        # Try to get from hybrid context
-        if hybrid_ctx and hasattr(hybrid_ctx, "doc_chunks"):
-            chunks = hybrid_ctx.doc_chunks or []
-            return DocRetrievalTrace(
-                chunk_ids=[c.get("id", f"chunk_{i}") for i, c in enumerate(chunks)],
-                snippets=[c.get("text", "")[:200] for c in chunks],
-                scores=[c.get("score", 0.0) for c in chunks],
-            )
+        # HybridContext stores RAG results as rag_chunks (not doc_chunks)
+        if hybrid_ctx and hasattr(hybrid_ctx, "rag_chunks"):
+            chunks = hybrid_ctx.rag_chunks or []
+            if chunks:
+                return DocRetrievalTrace(
+                    chunk_ids=[c.get("id", f"chunk_{i}") for i, c in enumerate(chunks)],
+                    snippets=[c.get("text", c.get("content", ""))[:200] for c in chunks],
+                    scores=[c.get("score", c.get("relevance_score", 0.0)) for c in chunks],
+                )
 
         # Fallback to result sources
         sources = result.get("sources", [])
@@ -312,12 +313,45 @@ class EvalRunner:
 
     def _extract_l3_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> KGQueryTrace:
         """Extract L3 KG query trace."""
-        # Try to get from hybrid context
+        ontology_facts = []
+        kg_entities = []
+        kg_edges = []
+        competitor_network = []
+
         if hybrid_ctx:
-            kg_entities = getattr(hybrid_ctx, "kg_entities", []) or []
-            kg_edges = getattr(hybrid_ctx, "kg_edges", []) or []
+            # ontology_facts is a direct attribute of HybridContext
             ontology_facts = getattr(hybrid_ctx, "ontology_facts", []) or []
-            competitor_network = getattr(hybrid_ctx, "competitor_network", []) or []
+
+            # Extract KG entities from ontology_facts
+            for fact in ontology_facts:
+                if isinstance(fact, dict):
+                    entity = fact.get("entity", "")
+                    if entity and entity not in kg_entities:
+                        kg_entities.append(entity)
+                    fact_type = fact.get("type", "")
+                    if fact_type == "competitor_network":
+                        competitor_network.append(fact)
+                    # Build edge representations from facts
+                    data = fact.get("data", {})
+                    if fact_type == "category_hierarchy":
+                        path = data.get("path", [])
+                        for i in range(len(path) - 1):
+                            edge = f"{path[i]} -hasSubcategory-> {path[i+1]}"
+                            if edge not in kg_edges:
+                                kg_edges.append(edge)
+
+            # Also extract entities from hybrid_ctx.entities
+            if hasattr(hybrid_ctx, "entities") and isinstance(hybrid_ctx.entities, dict):
+                ent = hybrid_ctx.entities
+                for brand in ent.get("brands", []):
+                    if brand and brand not in kg_entities:
+                        kg_entities.append(brand)
+                for cat in ent.get("categories", []):
+                    if cat and cat not in kg_entities:
+                        kg_entities.append(cat)
+                for prod in ent.get("products", []):
+                    if prod and prod not in kg_entities:
+                        kg_entities.append(prod)
         else:
             kg_entities = result.get("kg_entities", [])
             kg_edges = result.get("kg_edges", [])
@@ -333,23 +367,31 @@ class EvalRunner:
 
     def _extract_l4_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> OntologyReasoningTrace:
         """Extract L4 ontology reasoning trace."""
-        inferences = result.get("inferences", [])
         applied_rules = []
         constraint_violations = []
 
-        # Extract rule names from inferences
-        for inf in inferences:
-            if isinstance(inf, dict):
-                rule_name = inf.get("rule_name", "")
+        # HybridContext has inferences as a direct attribute (list[InferenceResult])
+        if hybrid_ctx and hasattr(hybrid_ctx, "inferences"):
+            raw_inferences = hybrid_ctx.inferences or []
+            inferences = []
+            for inf in raw_inferences:
+                if hasattr(inf, "to_dict"):
+                    inf_dict = inf.to_dict()
+                elif isinstance(inf, dict):
+                    inf_dict = inf
+                else:
+                    continue
+                inferences.append(inf_dict)
+                rule_name = inf_dict.get("rule_name", "")
                 if rule_name:
                     applied_rules.append(rule_name)
-
-        # Try to get from hybrid context
-        if hybrid_ctx and hasattr(hybrid_ctx, "reasoning_result"):
-            reasoning = hybrid_ctx.reasoning_result
-            if reasoning:
-                inferences = getattr(reasoning, "inferences", inferences)
-                constraint_violations = getattr(reasoning, "violations", [])
+        else:
+            inferences = result.get("inferences", [])
+            for inf in inferences:
+                if isinstance(inf, dict):
+                    rule_name = inf.get("rule_name", "")
+                    if rule_name:
+                        applied_rules.append(rule_name)
 
         return OntologyReasoningTrace(
             inferences=inferences,
@@ -362,11 +404,16 @@ class EvalRunner:
         response = result.get("response", "")
         citations = result.get("citations", [])
         confidence = result.get("confidence")
+        query_type = result.get("query_type", "unknown")
+        query_info = result.get("query_info", {})
 
         return AnswerTrace(
             final_answer=response,
             citations=citations,
             confidence=confidence,
+            query_type=query_type,
+            was_rewritten=query_info.get("was_rewritten", False),
+            rewritten_query=query_info.get("rewritten", None),
         )
 
     def _build_context_string(self, trace: EvalTrace) -> str:

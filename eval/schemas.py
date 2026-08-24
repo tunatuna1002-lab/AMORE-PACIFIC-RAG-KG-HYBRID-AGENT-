@@ -46,7 +46,7 @@ class GoldEvidence(BaseModel):
         default_factory=list,
         description="Expected ontology concepts/categories",
     )
-    constraints: list[str] = Field(
+    constraints: list[str | dict] = Field(
         default_factory=list,
         description="Expected ontology rules/constraints to be applied",
     )
@@ -73,9 +73,9 @@ class ItemMetadata(BaseModel):
     """Metadata for evaluation item to guide metric calculation."""
 
     requires_kg: bool = Field(default=True, description="Whether this query requires KG lookup")
-    domain: Literal["market", "brand", "product", "metric", "general"] = Field(
-        default="general", description="Domain category of the query"
-    )
+    domain: Literal[
+        "market", "brand", "product", "metric", "general", "multi_hop", "edge", "time"
+    ] = Field(default="general", description="Domain category of the query")
     difficulty: Literal["easy", "medium", "hard"] = Field(
         default="medium", description="Difficulty level for stratified analysis"
     )
@@ -416,7 +416,7 @@ class EvalConfig(BaseModel):
 
     top_k: int = Field(default=8, description="Top-k for retrieval metrics")
     use_judge: bool = Field(default=False, description="Whether to use LLM judge")
-    judge_model: str = Field(default="gpt-4.1-mini", description="Judge model name")
+    judge_model: str | None = Field(default="gpt-4.1-mini", description="Judge model name")
     save_traces: bool = Field(default=False, description="Save individual traces to files")
     weights: dict[str, float] = Field(
         default_factory=lambda: {"l5": 0.45, "l2_l3": 0.35, "l1": 0.10, "l4": 0.10},
