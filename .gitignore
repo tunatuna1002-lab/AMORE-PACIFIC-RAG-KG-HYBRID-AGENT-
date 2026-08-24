@@ -79,11 +79,15 @@ coverage.xml
 
 # Font source files (대용량 바이너리, 원본 폰트)
 *.ttf
+!static/vendor/fonts/*.woff2
 Arita Buri KR/
 Arita Dotum KR/
 Arita Sans LTN/
 Amorepacific_CI_wordmark_v1.00/
 arita_font.zip
+
+# Vendor libraries (셀프 호스팅, git 추적 필요)
+!static/vendor/
 
 # Apple Pages 문서
 *.pages
@@ -104,3 +108,7 @@ test_failed_signals.py
 # Evaluation outputs
 eval_output/
 portfolio_output/
+
+# 세션·실험 산출물 (재생성 가능)
+.claude/worktrees/
+ablation_output*/

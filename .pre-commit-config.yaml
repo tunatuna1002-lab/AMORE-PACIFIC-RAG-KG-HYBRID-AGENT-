@@ -27,6 +27,7 @@ repos:
       - id: detect-private-key
       - id: check-added-large-files
         args: ['--maxkb=1000']  # Block files > 1MB
+        exclude: '^static/vendor/fonts/'  # 셀프호스팅 폰트(woff2, ~2MB)는 의도된 바이너리
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: mixed-line-ending
