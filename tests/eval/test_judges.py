@@ -88,15 +88,13 @@ class TestStubJudge:
         score = await judge.score_relevance("some answer", "")
         assert score == 0.3
 
-    def test_stats_tracking(self):
+    async def test_stats_tracking(self):
         """Stats track call count."""
         judge = StubJudge()
         assert judge.get_stats()["call_count"] == 0
 
-        import asyncio
-
-        asyncio.get_event_loop().run_until_complete(judge.score_groundedness("a", "b"))
-        asyncio.get_event_loop().run_until_complete(judge.score_relevance("a", "b"))
+        await judge.score_groundedness("a", "b")
+        await judge.score_relevance("a", "b")
         assert judge.get_stats()["call_count"] == 2
 
     def test_custom_default_score(self):

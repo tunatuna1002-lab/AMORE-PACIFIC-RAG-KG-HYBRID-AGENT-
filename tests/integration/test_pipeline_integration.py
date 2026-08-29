@@ -81,10 +81,12 @@ class TestDecisionToResponseFlow:
     """Decision → Response 흐름 테스트"""
 
     @pytest.mark.asyncio
-    async def test_response_pipeline_receives_decision(self):
+    async def test_response_pipeline_receives_decision(self, monkeypatch):
         """ResponsePipeline이 Decision을 올바르게 받는지"""
         from src.core.response_pipeline import ResponsePipeline
 
+        # 환경변수 키가 있으면 실 LLM 호출로 새어나가므로 제거해 폴백 경로를 검증
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         pipeline = ResponsePipeline()  # No client = fallback mode
         context = Context(query="LANEIGE 순위", summary="LANEIGE is ranked #3")
         decision = Decision(
