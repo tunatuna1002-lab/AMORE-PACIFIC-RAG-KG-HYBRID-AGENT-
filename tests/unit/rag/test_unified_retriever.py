@@ -106,10 +106,13 @@ class TestRetrieveUnifiedWithOWLStrategy:
                 owl_strategy=mock_owl_strategy,
             )
 
-            await retriever.retrieve_unified("test", current_metrics={"sos": 0.15}, top_k=3)
+            # Self-RAG 게이트를 통과하는 도메인 쿼리여야 OWL 전략까지 도달한다
+            await retriever.retrieve_unified(
+                "LANEIGE SoS 분석", current_metrics={"sos": 0.15}, top_k=3
+            )
 
             mock_owl_strategy.retrieve.assert_awaited_once_with(
-                query="test",
+                query="LANEIGE SoS 분석",
                 current_metrics={"sos": 0.15},
                 top_k=3,
             )

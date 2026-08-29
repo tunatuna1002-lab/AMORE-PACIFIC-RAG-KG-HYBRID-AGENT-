@@ -24,7 +24,6 @@ def flags_config(tmp_path: Path) -> Path:
     config = {
         "retriever": {
             "use_owl_strategy": True,
-            "use_unified_retriever": False,
         },
         "cache": {
             "use_sqlite_embedding_cache": True,
@@ -136,10 +135,6 @@ class TestFeatureFlagsConvenienceMethods:
         flags = FeatureFlags(config_path=flags_config)
         assert flags.use_owl_strategy() is True
 
-    def test_use_unified_retriever(self, flags_config: Path) -> None:
-        flags = FeatureFlags(config_path=flags_config)
-        assert flags.use_unified_retriever() is False
-
     def test_use_sqlite_embedding_cache(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
         assert flags.use_sqlite_embedding_cache() is True
@@ -152,13 +147,11 @@ class TestFeatureFlagsConvenienceMethods:
         flags = FeatureFlags(config_path=tmp_path / "missing.json")
         # Defaults defined in each convenience method
         assert flags.use_owl_strategy() is True  # default True
-        assert flags.use_unified_retriever() is True  # default True
         assert flags.use_unified_reasoner() is True  # default True
         assert flags.use_owl_reasoner() is True  # default True
         assert flags.use_ontology_kg() is True  # default True
         assert flags.use_sqlite_embedding_cache() is False  # default False
         assert flags.use_centralized_prompts() is False  # default False
-        assert flags.use_decomposed_chatbot() is True  # default True
 
 
 class TestFeatureFlagsSingleton:

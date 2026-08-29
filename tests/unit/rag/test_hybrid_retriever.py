@@ -2359,3 +2359,110 @@ class TestWeightedMergeInferences:
         assert "ontology_facts" in merged.metadata["weighted_scores"]
         assert "rag_chunks" in merged.metadata["weighted_scores"]
         assert "inferences" in merged.metadata["weighted_scores"]
+
+
+# =============================================================================
+# Ablation Feature Flag Gating Tests
+# =============================================================================
+
+
+class TestAblationFlagGating:
+    """ablation 구성(no-kg / no-ontology)의 피처 플래그가 실제 분기를 제어하는지 검증"""
+
+    @pytest.fixture
+    def retriever(self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever):
+        return HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=mock_reasoner,
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_ontology_flag_skips_inference(self, retriever, mock_reasoner, monkeypatch):
+        """FF_REASONER_* 둘 다 false면 reasoner.infer가 호출되지 않아야 함"""
+        monkeypatch.setenv("FF_REASONER_USE_UNIFIED_REASONER", "false")
+        monkeypatch.setenv("FF_REASONER_USE_OWL_REASONER", "false")
+
+        context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+
+        mock_reasoner.infer.assert_not_called()
+        assert context.inferences == []
+
+    @pytest.mark.asyncio
+    async def test_no_kg_flag_skips_kg_query(self, retriever, monkeypatch):
+        """FF_ONTOLOGY_USE_ONTOLOGY_KG=false면 KG 조회가 생략되어야 함"""
+        monkeypatch.setenv("FF_ONTOLOGY_USE_ONTOLOGY_KG", "false")
+
+        with patch.object(retriever, "_query_knowledge_graph") as kg_spy:
+            context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+            kg_spy.assert_not_called()
+
+        assert context.ontology_facts == []
+
+    @pytest.mark.asyncio
+    async def test_default_flags_keep_kg_and_inference(self, retriever, mock_reasoner):
+        """기본 플래그(true)에서는 KG 조회와 추론이 모두 수행되어야 함"""
+        with patch.object(retriever, "_query_knowledge_graph", return_value=[]) as kg_spy:
+            await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+            kg_spy.assert_called_once()
+
+        mock_reasoner.infer.assert_called_once()
+
+
+class TestUnifiedSelfRAGGate:
+    """retrieve_unified()에도 Self-RAG 게이트가 적용되는지 검증 (v4 경로)"""
+
+    @pytest.fixture
+    def retriever(self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever):
+        return HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=mock_reasoner,
+            doc_retriever=mock_doc_retriever,
+            auto_init_rules=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_greeting_skips_unified_retrieval(self, retriever, mock_doc_retriever):
+        result = await retriever.retrieve_unified("안녕하세요")
+
+        assert result.metadata.get("self_rag_skip") is True
+        assert result.rag_chunks == []
+        mock_doc_retriever.search.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_greeting_skips_even_with_owl_strategy(
+        self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever
+    ):
+        owl_strategy = MagicMock()
+        owl_strategy.retrieve = AsyncMock()
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=mock_reasoner,
+            doc_retriever=mock_doc_retriever,
+            owl_strategy=owl_strategy,
+            auto_init_rules=False,
+        )
+
+        result = await retriever.retrieve_unified("안녕하세요")
+
+        assert result.metadata.get("self_rag_skip") is True
+        owl_strategy.retrieve.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_analysis_query_passes_gate(
+        self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever
+    ):
+        owl_strategy = MagicMock()
+        owl_strategy.retrieve = AsyncMock(return_value=MagicMock())
+        retriever = HybridRetriever(
+            knowledge_graph=mock_knowledge_graph,
+            reasoner=mock_reasoner,
+            doc_retriever=mock_doc_retriever,
+            owl_strategy=owl_strategy,
+            auto_init_rules=False,
+        )
+
+        await retriever.retrieve_unified("LANEIGE SoS 분석해줘")
+
+        owl_strategy.retrieve.assert_called_once()

@@ -500,8 +500,17 @@ class OWLRetrievalStrategy:
         """Execute OWL ontology reasoning."""
         context: dict[str, Any] = {"inferences": [], "facts": [], "related_docs": []}
 
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        flags = FeatureFlags.get_instance()
+
+        # ablation no-ontology: 두 reasoner 플래그가 모두 false면 추론 전체 생략
+        if not flags.use_unified_reasoner() and not flags.use_owl_reasoner():
+            logger.info("Ontology inference disabled by feature flags (OWL strategy)")
+            return context
+
         try:
-            if self.unified_reasoner:
+            if self.unified_reasoner and flags.use_unified_reasoner():
                 for entity in entities:
                     entity_type = (
                         entity.entity_type.value
@@ -525,7 +534,12 @@ class OWLRetrievalStrategy:
                                 if hasattr(r, "to_dict"):
                                     context["inferences"].append(r.to_dict())
 
-                if self.ontology_kg and hasattr(self.ontology_kg, "owl") and self.ontology_kg.owl:
+                if (
+                    flags.use_ontology_kg()
+                    and self.ontology_kg
+                    and hasattr(self.ontology_kg, "owl")
+                    and self.ontology_kg.owl
+                ):
                     try:
                         context["facts"] = self.ontology_kg.owl.get_inferred_facts()
                     except Exception as e:
@@ -533,7 +547,7 @@ class OWLRetrievalStrategy:
                 return context
 
             # Fallback to OWL-only reasoning
-            if self.owl_reasoner:
+            if self.owl_reasoner and flags.use_owl_reasoner():
                 inferred_facts = self.owl_reasoner.get_inferred_facts()
                 context["facts"] = inferred_facts
 

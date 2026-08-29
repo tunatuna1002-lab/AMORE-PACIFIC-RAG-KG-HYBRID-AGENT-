@@ -96,20 +96,16 @@ class FeatureFlags:
         """Whether to enable OWL strategy in HybridRetriever."""
         return self.get_flag("retriever", "use_owl_strategy", default=True)
 
-    def use_unified_retriever(self) -> bool:
-        """Whether to use retrieve_unified() path (returns UnifiedRetrievalResult)."""
-        return self.get_flag("retriever", "use_unified_retriever", default=True)
-
     def use_unified_reasoner(self) -> bool:
-        """Whether to use UnifiedReasoner over individual reasoners."""
+        """Whether to run unified/rule-based inference during retrieval (ablation: no-ontology)."""
         return self.get_flag("reasoner", "use_unified_reasoner", default=True)
 
     def use_owl_reasoner(self) -> bool:
-        """Whether to enable OWL-based reasoning (requires owlready2)."""
+        """Whether to enable OWL-based reasoning (requires owlready2; ablation: no-ontology)."""
         return self.get_flag("reasoner", "use_owl_reasoner", default=True)
 
     def use_ontology_kg(self) -> bool:
-        """Whether to use OntologyKnowledgeGraph over plain KnowledgeGraph."""
+        """Whether to query the Knowledge Graph during retrieval (ablation: no-kg)."""
         return self.get_flag("ontology", "use_ontology_kg", default=True)
 
     def use_sqlite_embedding_cache(self) -> bool:
@@ -119,10 +115,6 @@ class FeatureFlags:
     def use_centralized_prompts(self) -> bool:
         """Whether to use PromptRegistry for prompt loading."""
         return self.get_flag("prompts", "use_centralized_prompts", default=False)
-
-    def use_decomposed_chatbot(self) -> bool:
-        """Whether to use decomposed chatbot components."""
-        return self.get_flag("agents", "use_decomposed_chatbot", default=True)
 
     def use_reranker(self) -> bool:
         """Whether to use relevance reranking (grading)."""

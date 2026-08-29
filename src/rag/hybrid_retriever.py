@@ -465,15 +465,27 @@ class HybridRetriever:
             search_query = enhanced.search_query
             logger.debug(f"Enhanced query: {search_query}")
 
-            # 2. 지식 그래프에서 사실 조회
-            ontology_facts = self._query_knowledge_graph(entities)
+            from src.infrastructure.feature_flags import FeatureFlags
+
+            flags = FeatureFlags.get_instance()
+
+            # 2. 지식 그래프에서 사실 조회 (ablation no-kg: FF_ONTOLOGY_USE_ONTOLOGY_KG=false)
+            if flags.use_ontology_kg():
+                ontology_facts = self._query_knowledge_graph(entities)
+            else:
+                logger.info("KG query disabled by feature flag (use_ontology_kg=false)")
+                ontology_facts = []
             context.ontology_facts = ontology_facts
 
             # 3. 추론 컨텍스트 구성
             inference_context = self._build_inference_context(entities, current_metrics or {})
 
-            # 4. 온톨로지 추론 실행
-            inferences = self.reasoner.infer(inference_context)
+            # 4. 온톨로지 추론 실행 (ablation no-ontology: reasoner 플래그 둘 다 false)
+            if flags.use_unified_reasoner() or flags.use_owl_reasoner():
+                inferences = self.reasoner.infer(inference_context)
+            else:
+                logger.info("Ontology inference disabled by feature flags")
+                inferences = []
             context.inferences = inferences
             logger.debug(f"Generated {len(inferences)} inferences")
 
@@ -568,7 +580,7 @@ class HybridRetriever:
                 "intent_weights": intent_config.weights,
                 "search_method": search_method,
                 "selfrag_confidence": selfrag_confidence,
-                "bm25_available": hasattr(self.doc_retriever, "search_bm25"),
+                "bm25_available": self._bm25_actually_available(),
             }
 
         except Exception as e:
@@ -600,6 +612,28 @@ class HybridRetriever:
             UnifiedRetrievalResult
         """
         from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
+
+        # Self-RAG 게이트 — OWL 경로 포함 모든 unified 검색에 적용
+        # (인사/도움말 등 검색 불필요 쿼리는 검색 자체를 생략)
+        should, reason, selfrag_confidence = self.should_retrieve(query)
+        if not should:
+            logger.info(f"Self-RAG: skipping unified retrieval (reason: {reason})")
+            return UnifiedRetrievalResult(
+                query=query,
+                entities={},
+                ontology_facts=[],
+                inferences=[],
+                rag_chunks=[],
+                combined_context=f"[Retrieval skipped: {reason}]",
+                confidence=selfrag_confidence,
+                entity_links=[],
+                metadata={
+                    "self_rag_skip": True,
+                    "skip_reason": reason,
+                    "selfrag_confidence": selfrag_confidence,
+                },
+                retriever_type="selfrag_skip",
+            )
 
         # OWL strategy가 있으면 위임
         if self.owl_strategy is not None:
@@ -657,6 +691,17 @@ class HybridRetriever:
         if self.owl_strategy is not None and hasattr(self.owl_strategy, "search"):
             return await self.owl_strategy.search(query=query, top_k=top_k, doc_filter=doc_filter)
         return await self.doc_retriever.search(query=query, top_k=top_k, doc_filter=doc_filter)
+
+    def _bm25_actually_available(self) -> bool:
+        """BM25 sparse 검색 가용 여부 — 메서드 존재가 아니라 rank_bm25 설치 여부까지 확인"""
+        if not hasattr(self.doc_retriever, "search_bm25"):
+            return False
+        try:
+            from src.rag.retriever import BM25_AVAILABLE
+
+            return bool(BM25_AVAILABLE)
+        except ImportError:
+            return False
 
     async def _hybrid_search(
         self,
