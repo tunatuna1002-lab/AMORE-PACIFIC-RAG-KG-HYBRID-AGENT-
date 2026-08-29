@@ -32,6 +32,10 @@ DEFAULT_THRESHOLDS = {
     # L5 gating
     "groundedness_min": 0.70,
     "answer_f1_min": 0.50,
+    # token-F1은 골드(단문 정의)와 에이전트(장문 마크다운)의 스타일 차이에
+    # 구조적으로 취약하므로, semantic similarity가 계산된 경우 이 값 이상이면
+    # answer_f1 미달이어도 정답으로 인정한다
+    "semantic_similarity_min": 0.65,
     # L4 gating
     "constraint_violation_max": 0.05,
     "type_consistency_min": 0.90,
@@ -205,8 +209,13 @@ class MetricAggregator:
         if l4.type_consistency_rate < self.thresholds.get("type_consistency_min", 0.9):
             fail_reasons.append("L4_type_inconsistency")
 
-        # L5 checks
-        if l5.answer_f1 < self.thresholds.get("answer_f1_min", 0.5):
+        # L5 checks — token-F1 미달이어도 semantic similarity가 충분하면 정답 인정
+        answer_ok = l5.answer_f1 >= self.thresholds.get("answer_f1_min", 0.5)
+        if not answer_ok and l5.semantic_similarity is not None:
+            answer_ok = l5.semantic_similarity >= self.thresholds.get(
+                "semantic_similarity_min", 0.65
+            )
+        if not answer_ok:
             fail_reasons.append("L5_wrong_answer")
 
         if l5.groundedness_score is not None:

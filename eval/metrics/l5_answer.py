@@ -31,7 +31,7 @@ class L5AnswerMetrics(MetricCalculator):
         self,
         judge: JudgeInterface | None = None,
         use_semantic_similarity: bool = False,
-        semantic_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+        semantic_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     ):
         """
         Initialize L5 metrics calculator.

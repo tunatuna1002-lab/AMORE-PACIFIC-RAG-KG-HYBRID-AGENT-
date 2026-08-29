@@ -21,7 +21,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Default model for semantic similarity
-DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# 한국어 골든셋 채점이므로 다국어 모델 필수 — all-MiniLM-L6-v2(영어 전용)는
+# 한국어 문장쌍에서 유사/무관 판별이 역전되는 것을 실측으로 확인함 (2026-08-30)
+DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 # Cache for model instance
 _model_cache: dict[str, SentenceTransformer] = {}

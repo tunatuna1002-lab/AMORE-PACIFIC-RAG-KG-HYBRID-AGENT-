@@ -369,3 +369,47 @@ class TestConvenienceFunctions:
 
         desc = get_fail_reason_description("unknown_tag")
         assert "unknown" in desc.lower()
+
+
+class TestSemanticSimilarityGate:
+    """token-F1 미달이어도 semantic similarity가 충분하면 L5 정답 인정"""
+
+    @pytest.fixture
+    def aggregator(self):
+        return MetricAggregator()
+
+    def _metrics(self, answer_f1: float, semantic: float | None):
+        return {
+            "l1": L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0),
+            "l2": L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0),
+            "l3": L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0),
+            "l4": L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0),
+            "l5": L5Metrics(
+                answer_exact_match=0.0,
+                answer_f1=answer_f1,
+                semantic_similarity=semantic,
+                groundedness_score=1.0,
+                answer_relevance_score=1.0,
+            ),
+        }
+
+    def test_low_f1_high_semantic_passes(self, aggregator):
+        m = self._metrics(answer_f1=0.1, semantic=0.8)
+        passed, reasons = aggregator.check_gating(**m, metadata=None)
+        assert "L5_wrong_answer" not in reasons
+        assert passed
+
+    def test_low_f1_low_semantic_fails(self, aggregator):
+        m = self._metrics(answer_f1=0.1, semantic=0.4)
+        _, reasons = aggregator.check_gating(**m, metadata=None)
+        assert "L5_wrong_answer" in reasons
+
+    def test_low_f1_no_semantic_fails(self, aggregator):
+        m = self._metrics(answer_f1=0.1, semantic=None)
+        _, reasons = aggregator.check_gating(**m, metadata=None)
+        assert "L5_wrong_answer" in reasons
+
+    def test_high_f1_ignores_semantic(self, aggregator):
+        m = self._metrics(answer_f1=0.9, semantic=0.1)
+        _, reasons = aggregator.check_gating(**m, metadata=None)
+        assert "L5_wrong_answer" not in reasons
