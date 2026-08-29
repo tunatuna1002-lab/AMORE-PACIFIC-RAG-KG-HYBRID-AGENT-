@@ -58,9 +58,9 @@ uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
 
 | 컴포넌트 | 역할 |
 |---------|------|
-| **RAG** | 문서 지식 검색 + Embedding 캐시 (API 비용 33%↓) |
-| **Knowledge Graph** | 브랜드-제품-카테고리 관계 (50K+ 트리플) |
-| **OWL Ontology** | 도메인 규칙 자동 추론 (29+ 규칙) |
+| **RAG** | ChromaDB 벡터 검색 + Embedding 캐시 (hit-rate 계측 내장) |
+| **Knowledge Graph** | 브랜드-제품-카테고리 관계 Triple Store (1,000+ 트리플, 일일 크롤링으로 누적) |
+| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개 + OWL 스키마 (owlready2) |
 | **ReAct Agent** | 복잡한 질문 자기반성 루프 (최대 3회) |
 | **크롤링 데이터** | 실시간 Amazon 베스트셀러 (매일 22:00 KST) |
 
@@ -125,10 +125,10 @@ Amazon Bestsellers (Top 100 × 5 categories)
 
 ### 3.3 AI 챗봇
 
-- **API**: `POST /api/v3/chat`
+- **API**: `POST /api/v4/chat` (스트리밍: `POST /api/v4/chat/stream`)
 - RAG + KG + Ontology 통합 컨텍스트
 - ReAct Self-Reflection: 복잡한 질문 자동 감지 및 자기반성 루프
-- 7-type 출처 추출 및 참고자료 표시
+- 다중 소스 출처 추출 및 참고자료 표시 (크롤링 데이터·KG·온톨로지 추론·RAG 문서·외부 신호 등 10종)
 
 ### 3.4 IR-Style 리포트 생성 (NEW)
 
@@ -159,13 +159,13 @@ python scripts/test_report_generator.py
 
 ### 3.6 소셜 미디어 수집
 
-| 플랫폼 | 기술 | 수집 대상 |
-|--------|------|----------|
-| **TikTok** | Playwright | #laneige, #kbeauty |
-| **Instagram** | Instaloader | #라네즈, #skincare |
-| **YouTube** | yt-dlp | LANEIGE 리뷰 메타데이터 |
-| **Reddit** | JSON API | r/AsianBeauty |
-| **Google Trends** | trendspyg | 브랜드 검색 관심도 |
+| 플랫폼 | 기술 | 수집 대상 | 상태 |
+|--------|------|----------|------|
+| **Reddit** | JSON API | r/AsianBeauty | 파이프라인 연동 (ExternalSignalCollector 내장) |
+| **Google Trends** | trendspyg | 브랜드 검색 관심도 | 파이프라인 연동 (인사이트 배치) |
+| **TikTok** | Playwright | #laneige, #kbeauty | 모듈 구현 완료, 파이프라인 미연결 |
+| **Instagram** | Instaloader | #라네즈, #skincare | 모듈 구현 완료, 파이프라인 미연결 |
+| **YouTube** | yt-dlp | LANEIGE 리뷰 메타데이터 | 모듈 구현 완료, 파이프라인 미연결 |
 
 ### 3.7 공공데이터 API
 
@@ -188,13 +188,13 @@ python scripts/test_report_generator.py
 |------|------|
 | **Backend** | Python 3.11+, FastAPI, Uvicorn |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
-| **RAG** | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) + BM25/RRF + Self-RAG |
+| **RAG** | ChromaDB (OpenAI text-embedding-3-small) + BM25/RRF (rank-bm25) + CrossEncoder 리랭킹 + Self-RAG 게이트 |
 | **Ontology** | owlready2 (OWL DL), rdflib (SPARQL), Rule-based Reasoner |
 | **크롤링** | Playwright, playwright-stealth, browserforge |
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite, Google Sheets, Pandas |
 | **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (현재 72.76%, 목표 60% 달성) |
+| **테스트** | pytest, pytest-cov (커버리지 72.76%는 2026-02 측정치, 목표 60% 달성) |
 
 ---
 
@@ -205,7 +205,8 @@ python scripts/test_report_generator.py
 | GET | `/api/health` | 헬스 체크 | - |
 | GET | `/api/data` | 대시보드 데이터 | - |
 | GET | `/dashboard` | 대시보드 UI | - |
-| POST | `/api/v3/chat` | AI 챗봇 | - |
+| POST | `/api/v4/chat` | AI 챗봇 (스트리밍: `/api/v4/chat/stream`) | API Key |
+| POST | `/api/chat` | AI 챗봇 v1 (RAG) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
 | GET | `/api/v4/brain/status` | 스케줄러 상태 | - |
 | POST | `/api/export/docx` | DOCX 리포트 생성 | - |
@@ -281,13 +282,13 @@ python -m src.tools.kg_backup list
 python scripts/test_report_generator.py
 ```
 
-### 테스트 현황
+### 테스트 현황 (2026-08-30 실측)
 
 | 항목 | 수치 |
 |------|------|
-| 총 테스트 수 | **5,195개** |
-| 통과율 | 100% (5,195 passed, 0 failed) |
-| 커버리지 | **72.76%** (목표 60% 달성) |
+| 총 테스트 수 | **5,200+개** (수집 기준 5,206개) |
+| 통과율 | 100% (0 failed, 일부 외부 의존 테스트 skip) |
+| 커버리지 | **72.76%** (2026-02 측정, 목표 60% 달성) |
 | 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
 
 ### 레이어별 커버리지
@@ -345,13 +346,12 @@ ENV_FILE=.env.test python -m pytest tests/
 
 ### 9.1 Before / After
 
-| 지표 | Before (02-09) | After (02-16) | 변화 |
+| 지표 | Before (02-09) | 현재 | 변화 |
 |------|----------------|---------------|------|
-| src/ 총 코드 | ~97,000 lines | ~70,700 lines | **-27%** |
-| Python 파일 수 | 155개 | 200개 | +29% (모듈 분할) |
-| dashboard_api.py | 5,634줄 monolith | 3,236줄 + 12 route modules | **-43%** |
+| 프로덕션 코드 (테스트 제외) | ~73,300 lines / 170개 파일 | ~75,700 lines / 214개 파일 | 모놀리스 분해 + 기능 추가 (git 히스토리 실측) |
+| dashboard_api.py | 5,634줄 monolith | 195줄 진입점 + `src/api/routes/` 12개 모듈 | **모듈화 완료** |
 | 순환 의존성 | 23 cycles | 0 cycles | **완전 제거** |
-| 테스트 수 | 238개 | 5,195개 | **+2,082%** |
+| 테스트 수 | 238개 | 5,200+개 | **+2,000%↑** |
 | 테스트 커버리지 | 10.11% | 72.76% | **+62.65%p** |
 | DI Container | 11 get_ 메서드 | 22 get_ 메서드 | +11 컴포넌트 |
 
@@ -398,6 +398,22 @@ GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로
 
 ## 10. 업데이트 히스토리
 
+### 2026-08-30 - 사실 검증 감사 반영 (문서 정합성 + 기능 복구)
+
+리포 전체 사실 검증(`PORTFOLIO_FACTS.md`)에서 발견된 문제를 일괄 수정:
+
+| 분류 | 수정 내용 |
+|------|----------|
+| **검색** | `rank-bm25` 의존성 추가로 BM25/RRF 하이브리드 검색 활성화 (구현만 있고 미설치였음) |
+| **검색** | Self-RAG 게이트를 v4 통합 검색 경로(`retrieve_unified`)에도 적용 |
+| **Ablation** | `no-kg`/`no-ontology` 피처 플래그가 실제 분기를 제어하도록 배선 (기존엔 no-op) + 게이팅 회귀 테스트 추가 |
+| **스케줄러** | `brain.collect_market_intelligence()`의 깨진 임포트 수정 (시장정보 수집 침묵 실패 복구) |
+| **챗봇 v1** | `ChatWorkflow` ↔ `HybridChatbotAgent` 시그니처 불일치로 죽어 있던 `/api/chat` 경로 복구 |
+| **품질** | 환각 감지 결과를 응답 신뢰도에 반영 (`grounding_warning` 필드 추가, 기존엔 로깅만) |
+| **출처** | `external_source` 타입 인용 번호 누락 결함 수정 |
+| **정리** | dead feature flag 2종 제거, orphan 프롬프트 파일 3종 삭제, `python -m eval` 진입점 추가 |
+| **문서** | KG 트리플·테스트 수·라인 수 등 과장/낡은 수치를 실측값으로 교정 |
+
 ### 2026-02-19 - 10-Sprint 마스터 로드맵 완료
 
 **Sprint 7~10 (2026-02-17 ~ 02-19) 주요 변경:**
@@ -410,7 +426,7 @@ GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로
 | **Sprint 10** | God Object 분할 + 보안 P3 | chatbot 1353→798줄, KG 1514→550줄, TrustedHost/CSRF 미들웨어, Fernet 세션 암호화, pip-audit/bandit |
 
 **최종 수치:**
-- 테스트: 5,195개 (100% 통과), 커버리지 72.76%
+- 테스트: 5,200+개 (100% 통과), 커버리지 72.76% (2026-02 측정)
 - God Objects: business_rules 1540→54줄, knowledge_graph 1514→550줄, chatbot 1353→798줄
 - 보안: P0~P3 전체 완료 (TrustedHost, CSRF, Fernet, pip-audit, bandit)
 - DI Container: 22 get_ 메서드 (전체 전환 완료)
@@ -449,7 +465,7 @@ GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로
 
 - **MD5 해시 기반 캐시**: 동일 텍스트 재임베딩 방지
 - **FIFO Eviction**: 최대 1,000개 항목
-- **비용 절감**: OpenAI API 호출 33%+ 절감
+- **비용 절감**: 캐시 적중 시 임베딩 API 호출 생략 (hit/miss 통계 내장)
 
 ### 2026-01-28 (v1) - 카테고리 계층 구조
 

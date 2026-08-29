@@ -41,8 +41,8 @@ Dashboard API Server
 - GET  /           : 헬스체크
 - GET  /api/data   : 대시보드 데이터 JSON
 - POST /api/chat   : 챗봇 v1 (RAG)
-- POST /api/v2/chat: 챗봇 v2 (Unified Brain)
-- POST /api/v3/chat: 챗봇 v3 (Simple Chat)
+- POST /api/v4/chat: 챗봇 v4 (Unified Brain, 권장)
+- POST /api/v4/chat/stream: 챗봇 v4 스트리밍 (대시보드 사용)
 - POST /api/crawl/start: 크롤링 시작 (API Key 필요)
 - GET  /dashboard  : 대시보드 UI
 

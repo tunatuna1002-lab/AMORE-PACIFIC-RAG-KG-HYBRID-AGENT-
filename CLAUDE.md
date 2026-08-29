@@ -18,11 +18,11 @@
 
 | 항목 | 수치 |
 |------|------|
-| src/ Python 파일 | 200개 |
-| src/ 코드 라인 | ~70,700 lines |
-| tests/ 파일 | 111개 |
-| tests/ 코드 라인 | ~22,400 lines |
-| src/api/dashboard_api.py | ~3,900 lines |
+| src/ Python 파일 | 214개 |
+| src/ 코드 라인 | ~75,700 lines |
+| tests/ 파일 | 184개 |
+| tests/ 코드 라인 | ~74,000 lines |
+| src/api/dashboard_api.py | 195 lines (진입점, 라우트는 routes/ 분리) |
 | 커버리지 목표 | 60% (pytest-cov) |
 
 ---
@@ -52,7 +52,7 @@
 
 | 파일 | 역할 | 실행 방법 |
 |------|------|-----------|
-| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (3,900 lines monolith) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
+| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 12개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
 | `scripts/start.py` | Railway 배포용 시작 스크립트 | `python scripts/start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
 | `src/core/orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from src.core.orchestrator import Orchestrator` |
@@ -63,7 +63,7 @@
 |--------|----------|-------------|------|
 | GET | `/api/health` | 헬스체크 | - |
 | GET | `/api/data` | 대시보드 데이터 JSON | - |
-| POST | `/api/v3/chat` | AI 챗봇 (권장) | - |
+| POST | `/api/v4/chat` | AI 챗봇 (권장, 스트리밍: `/api/v4/chat/stream`) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
 | GET | `/api/v4/brain/status` | 스케줄러 상태 | - |
 | GET | `/dashboard` | 대시보드 UI (HTML) | - |
@@ -274,9 +274,8 @@
 │   └── public_apis.json          # 공공 API 설정
 │
 ├── prompts/                      # 프롬프트 템플릿
-│   ├── chat_system.txt
-│   ├── insight_generation.txt
-│   ├── query_router.txt
+│   ├── agents/chatbot_system.txt # 챗봇 시스템 프롬프트 (registry가 로드)
+│   ├── agents/variants/          # 프롬프트 실험 변형 v0~v4
 │   ├── metrics.json
 │   ├── version_manager.py
 │   ├── registry.py               # 프롬프트 중앙 관리

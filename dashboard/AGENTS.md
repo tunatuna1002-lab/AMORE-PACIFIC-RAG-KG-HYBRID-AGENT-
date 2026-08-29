@@ -88,7 +88,7 @@ body { font-family: 'Segoe UI', sans-serif; font-size: 14px; }
 | Method | Endpoint | 설명 |
 |--------|----------|------|
 | GET | `/api/data` | 대시보드 데이터 |
-| POST | `/api/v3/chat` | AI 챗봇 (권장) |
+| POST | `/api/v4/chat` | AI 챗봇 (권장, 스트리밍: `/api/v4/chat/stream`) |
 | GET | `/api/v4/brain/status` | 스케줄러 상태 |
 | POST | `/api/crawl/start` | 크롤링 트리거 |
 
@@ -126,10 +126,10 @@ async function loadDashboardData() {
 
 // AI 챗봇
 async function sendChatMessage(query) {
-    const response = await fetch('/api/v3/chat', {
+    const response = await fetch('/api/v4/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ message: query })
     });
     const result = await response.json();
     return result.response;
