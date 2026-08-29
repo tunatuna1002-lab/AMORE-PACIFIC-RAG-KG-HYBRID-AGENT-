@@ -147,6 +147,8 @@ class ResponsePipeline:
             processed_text = self._post_process(response_text, context)
 
             # 환각 감지 (low confidence 응답만)
+            hallucination_penalty = 1.0
+            grounding_warning = False
             if decision and hasattr(decision, "confidence") and decision.confidence < 0.8:
                 try:
                     context_text = context.summary or ""
@@ -155,6 +157,9 @@ class ResponsePipeline:
                     )
                     if not groundedness.is_grounded:
                         logger.warning(f"Hallucination warning: score={groundedness.score:.2f}")
+                        # 로깅만 하지 않고 응답 신뢰도에 반영 (근거 부족 → 신뢰도 하향)
+                        hallucination_penalty = 0.6
+                        grounding_warning = True
                 except Exception as e:
                     logger.debug(f"Hallucination check skipped: {e}")
 
@@ -177,7 +182,8 @@ class ResponsePipeline:
                 text=processed_text,
                 query_type=self._infer_query_type(query, context),
                 confidence_level=self._assess_confidence(context),
-                confidence_score=final_confidence,
+                confidence_score=final_confidence * hallucination_penalty,
+                grounding_warning=grounding_warning,
                 sources=sources,
                 entities=context.entities,
                 tools_called=[tool_result.tool_name]

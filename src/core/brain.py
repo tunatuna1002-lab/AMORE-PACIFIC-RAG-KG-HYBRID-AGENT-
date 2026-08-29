@@ -74,7 +74,7 @@ from .tools import AGENT_TOOLS, ToolExecutor
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
-    from ..tools.market_intelligence import MarketIntelligenceEngine
+    from ..tools.intelligence.market_intelligence import MarketIntelligenceEngine
 
 # AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
 from src.shared.constants import DEFAULT_MODEL
@@ -1294,7 +1294,7 @@ class UnifiedBrain:
 
         try:
             if not self._market_intelligence:
-                from ..tools.market_intelligence import MarketIntelligenceEngine
+                from ..tools.intelligence.market_intelligence import MarketIntelligenceEngine
 
                 self._market_intelligence = MarketIntelligenceEngine()
                 await self._market_intelligence.initialize()

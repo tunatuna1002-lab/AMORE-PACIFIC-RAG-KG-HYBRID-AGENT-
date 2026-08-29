@@ -261,6 +261,7 @@ class ResponseBase:
     suggestions: list[str] = field(default_factory=list)
     is_fallback: bool = False
     is_clarification: bool = False
+    grounding_warning: bool = False  # 환각 감지기가 근거 부족을 표시한 응답
     processing_time_ms: float = 0.0
     created_at: datetime | None = None
 
@@ -280,6 +281,7 @@ class ResponseBase:
             "suggestions": self.suggestions,
             "is_fallback": self.is_fallback,
             "is_clarification": self.is_clarification,
+            "grounding_warning": self.grounding_warning,
             "processing_time_ms": self.processing_time_ms,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

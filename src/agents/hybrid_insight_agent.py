@@ -977,14 +977,14 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
         try:
             import importlib.util
 
-            if importlib.util.find_spec("src.tools.external_signal_collector") is None:
+            if importlib.util.find_spec("src.tools.collectors.external_signal_collector") is None:
                 failed.append("External Signals (Tavily/RSS/Reddit)")
         except ImportError:
             failed.append("External Signals (Tavily/RSS/Reddit)")
 
         # Market Intelligence 체크
         try:
-            if importlib.util.find_spec("src.tools.market_intelligence") is None:
+            if importlib.util.find_spec("src.tools.intelligence.market_intelligence") is None:
                 failed.append("Market Intelligence")
         except ImportError:
             failed.append("Market Intelligence")
