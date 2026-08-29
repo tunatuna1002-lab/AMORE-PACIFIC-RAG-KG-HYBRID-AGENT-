@@ -375,6 +375,21 @@ class SourceProvider:
                     lines.append(f"   - 참고: {disclaimer}")
                 lines.append("")
 
+            else:
+                # 미분류 외부 소스(external_source 등) — 인용 번호 공백 방지 폴백
+                url = source.get("url", "")
+                published_at = source.get("published_at", "")
+                reliability = source.get("reliability_score", 0.5) * 100
+                source_name = source.get("source", "")
+                lines.append(f"{i}. {icon} **{desc}** (신뢰도: {reliability:.0f}%)")
+                if source_name:
+                    lines.append(f"   - 출처: {source_name}")
+                if published_at:
+                    lines.append(f"   - 날짜: {published_at}")
+                if url:
+                    lines.append(f"   - URL: {url}")
+                lines.append("")
+
         return "\n".join(lines)
 
     def _extract_entity_names(self, ontology_facts) -> list[str]:

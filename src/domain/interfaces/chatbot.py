@@ -32,17 +32,19 @@ class ChatbotAgentProtocol(Protocol):
 
     async def chat(
         self,
-        query: str,
+        user_message: str,
         session_id: str | None = None,
-        current_metrics: dict[str, Any] | None = None,
+        include_reasoning: bool = True,
     ) -> dict[str, Any]:
         """
         사용자 질문을 처리하고 응답을 생성합니다.
 
+        메트릭 데이터는 chat() 인자가 아니라 set_data_context()로 전달합니다.
+
         Args:
-            query: 사용자 질문
+            user_message: 사용자 질문
             session_id: 세션 ID (선택)
-            current_metrics: 현재 메트릭 데이터 (선택)
+            include_reasoning: 추론 과정 포함 여부
 
         Returns:
             응답 딕셔너리

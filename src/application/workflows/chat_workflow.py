@@ -119,17 +119,16 @@ class ChatWorkflow:
         )
 
         try:
-            # Step 2: Retrieve context
-            # Note: Retriever might not be used for all query types,
-            # but we call it to gather potential context
-            await self.retriever.retrieve(query=query, current_metrics=current_metrics, top_k=5)
+            # Step 2: Provide metrics context to the chatbot.
+            # Retrieval itself is performed inside the chatbot agent
+            # (HybridChatbotAgent.chat -> HybridRetriever.retrieve),
+            # so no separate retrieval call is made here.
+            if current_metrics is not None and hasattr(self.chatbot, "set_data_context"):
+                self.chatbot.set_data_context(current_metrics)
 
             # Step 3: Generate response via chatbot
-            chatbot_result = await self.chatbot.chat(
-                query=query,
-                session_id=session_id,
-                current_metrics=current_metrics,
-            )
+            # (positional first arg: HybridChatbotAgent uses `user_message`)
+            chatbot_result = await self.chatbot.chat(query, session_id=session_id)
 
             # Step 4: Populate result
             result.response = chatbot_result.get("response")

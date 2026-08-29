@@ -45,8 +45,8 @@ class TestChatWorkflow:
 
         assert result.response is not None
         mock_chatbot.chat.assert_called_once()
-        call_args = mock_chatbot.chat.call_args
-        assert call_args[1]["current_metrics"] == sample_metrics
+        # Metrics are passed via set_data_context (chat() itself takes no metrics arg)
+        mock_chatbot.set_data_context.assert_called_once_with(sample_metrics)
 
     @pytest.mark.asyncio
     async def test_execute_complex_query(self, workflow, mock_chatbot):
@@ -88,12 +88,12 @@ class TestChatWorkflow:
         assert result.complexity == "simple"
 
     @pytest.mark.asyncio
-    async def test_retrieval_used(self, workflow, mock_retriever, mock_chatbot):
-        """Test that retrieval is used for context gathering"""
+    async def test_retrieval_delegated_to_chatbot(self, workflow, mock_retriever, mock_chatbot):
+        """Retrieval is delegated to the chatbot agent (no duplicate workflow-level call)"""
         await workflow.execute(query="LANEIGE 경쟁력은?")
 
-        # Retriever should be called
-        mock_retriever.retrieve.assert_called_once()
+        mock_retriever.retrieve.assert_not_called()
+        mock_chatbot.chat.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_conversation_history(self, workflow, mock_chatbot):
