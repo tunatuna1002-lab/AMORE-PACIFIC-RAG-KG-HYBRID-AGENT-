@@ -1,0 +1,158 @@
+{
+  "item_id": "lg118",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10447761194029852,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.4844620646766169,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg118",
+    "timestamp": "2026-08-30T01:38:45.574129",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "src_0",
+        "src_1",
+        "src_2",
+        "src_3"
+      ],
+      "snippets": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 아모레퍼시픽 브랜드들의 Amazon 내 시너지 창출 방안\n\n### 인사이트\n- 아모레퍼시픽 내 LANEIGE 등 주요 브랜드는 K-뷰티 요소와 재생·보습 성분 중심의 제품 포트폴리오를 갖추고 있어, 미국 스킨케어 시장의 과학적 효능과 부드러운 사용감 균형 추세에 부합합니다.\n- '핑크 펩타이드'와 같은 신흥 고효율 키워드를 중심으로 브랜드별 강점을 연계하는 마케팅이 가능할 것으로 보입니다.\n- 번들링 전략인 ‘모닝 쉐드 키트’와 같이 고객의 객단가를 높일 수 있는 패키지 구성도 시너지 방안에 포함될 수 있습니다.\n- 아울러, 가품 유통으로 인한 브랜드 신뢰도 하락 위험에 공동 대응하며, 공식 판매처 인증 및 고객 안내를 통합적으로 관리하는 점도 중요해 보입니다.\n\n### 근거\n- LANEIGE는 핑크색 비주얼 자산과 ‘핑크 펩타이드’ 키워드의 검색 점유율 확대가 시급하며, 경쟁사 Medicube 대비 상단 노출 방어가 필요하다고 제시되었습니다 [1].\n- 미국 스킨케어 시장에서 펩타이드, 나이아신아마이드 등 재생 성분과 세라마이드, 히알루론산 장벽 보습 성분의 중요성이 증가하는 추세이며, LANEIGE가 이 트렌드에 부합하는 포트폴리오를 보유하고 있습니다 [3].\n- ‘모닝 쉐드 키트’ 등 번들링 전략은 객단가 상승을 위한 유효 방법으로 권장되고 있습니다 [1].\n- 아모레퍼시픽 브랜드들이 아마존 내 공식 스토어 운영 시 가품 문제에 대한 공동 대응 문구 및 고객 안내를 통일하여 브랜드 신뢰 유지가 필요함이 강조됩니다 [2].\n\n### 권장 사항\n- 아모레퍼시픽 내 개별 브랜드가 ‘핑크 펩타이드’ 등 트렌드 키워드를 중심으로 연계된 프로모션을 공동 기획하여 브랜드 시너지 효과를 도모할 것을 권장합니다.\n- 번들 상품(예: ‘모닝 쉐드 키트’) 개발을 통해 고객의 객단가를 높이고, 다양한 브랜드 제품을 조합하여 교차 구매를 촉진하는 전략을 추진할 필요가 있습니다.\n- 아마존 내 공식 판매처 인증 강화 및 가품 관련 공동 대응 메시지를 통합하여 브랜드 신뢰도를 보호하는 방안을 마련해야 할 것으로 보입니다.\n- 브랜드 간 제품 포트폴리오와 마케팅 전략을 조율하여, K-뷰티의 핵심 요소인 재생 및 보습 성분을 강조하는 공동 캠페인을 전개하는 것도 시너지 창출에 기여할 수 있습니다.\n\n---\n\n현재 확인된 데이터 기준으로 아모레퍼시픽 브랜드들은 위와 같은 전략적 연계와 공동 대응을 통해 Amazon 내 시너지를 낼 수 있을 것으로 판단됩니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 8.03\n\n2. 📄 **---**\n   - 관련도: 7.91\n\n3. 📄 **결론**\n   - 관련도: 7.88\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 14002.221822738647,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

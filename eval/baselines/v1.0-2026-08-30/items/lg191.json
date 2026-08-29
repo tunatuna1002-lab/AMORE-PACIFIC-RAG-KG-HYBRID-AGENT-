@@ -1,0 +1,192 @@
+{
+  "item_id": "lg191",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09691629955947136,
+    "semantic_similarity": null,
+    "groundedness_score": 0.111,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.6
+  },
+  "overall_score": 0.4488072503671072,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg191",
+    "timestamp": "2026-08-30T01:47:51.524415",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "laneige_strategy_2026_4_2",
+        "us_beauty_trends_weekly_table_0"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 "
+      ],
+      "scores": [
+        5.600661277770996,
+        5.241121292114258,
+        4.508090972900391
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care",
+        "laneige"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "lip_care는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "category": "lip_care",
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0,
+              "category_brand_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            "lip_care"
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": "lip_care",
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE 브랜드 개요\n\n### 인사이트\n- LANEIGE는 현재 분석 대상 카테고리 내에서 존재감이 매우 낮아(0.0%) 진입 확대 기회가 있는 브랜드로 보입니다 [Entry Opportunity, 70% 신뢰도, 출처1].\n- 전통적으로 '자극 없는 편안함'과 '수분 진정'에 중점을 둔 제품군을 갖추고 있으며, 스피큘(피부 자극 유발) 트렌드와는 대척점에 있습니다. 때문에 스피큘 사용 후 피부 진정 및 장벽 복구를 위한 ‘애프터 케어’ 제품에 적합한 포지셔닝이 가능할 것으로 평가됩니다 [출처2].\n- 대표 제품으로는 Cream Skin Toner와 Cica Sleeping Mask가 있으며, 이들은 스피큘 사용자의 필수 동반자(Companion Product) 역할을 할 수 있다는 전략적 해석이 있습니다 [출처2].\n- Lip Glowy Balm 등 튜브형 제품도 있으나, 경쟁사 대비 고기능성 이미지가 다소 부족한 점이 지적되어, 기존 제품의 효능을 강조해 ‘트리트먼트’로서 입지를 강화할 필요가 제기되고 있습니다 [출처3].\n\n### 권장 사항\n- 현재 카테고리 내 낮은 점유율을 고려할 때, 시장 트렌드와 소비자 니즈를 면밀히 분석해 제품 라인업 확장 기회를 모색하는 것이 전략적으로 유리할 수 있습니다.\n- 스피큘 후 피부 진정에 초점을 맞춘 제품 및 ‘애프터 케어’ 카테고리로의 확장 검토를 권장합니다.\n- Lip Glowy Balm 등 기존 튜브형 라인의 기능성 강화 및 브랜드 파워 확장을 위한 성분 및 마케팅 전략 보완도 고려할 만합니다.\n\n---\n\n현재 확인된 데이터 기준으로 LANEIGE는 수분 진정과 자극 완화에 중점을 둔 K-뷰티 브랜드로, 미국 등 주요 시장에서의 영향력 확대 가능성이 있으나, 해당 카테고리 내 점유율은 아직 낮은 편임을 알 수 있습니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 8.18\n\n3. 📄 ****전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서****\n   - 관련도: 7.75\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 12475.09217262268,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

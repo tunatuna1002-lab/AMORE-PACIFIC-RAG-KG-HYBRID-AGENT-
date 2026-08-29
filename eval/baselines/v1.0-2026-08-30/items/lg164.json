@@ -1,0 +1,160 @@
+{
+  "item_id": "lg164",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14364640883977903,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.0
+  },
+  "overall_score": 0.3740768876611418,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg164",
+    "timestamp": "2026-08-30T01:45:07.417522",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "src_0",
+        "src_1",
+        "src_2",
+        "src_3",
+        "src_4"
+      ],
+      "snippets": [
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE SoS 현황 및 인사이트 (2026-08-30 기준)\n\n### 인사이트\n- LANEIGE가 현재 소속된 카테고리 내에서 SoS(Share of Shelf)는 0.0%로 나타나고 있습니다.\n- 이는 해당 카테고리 시장 구조가 매우 분산되어 있으며(HHI: 0.000), LANEIGE가 시장 내에서 차지하는 물리적 노출 점유율이 매우 낮아 진입 확대의 여지가 있을 수 있음을 시사합니다 [1].\n- SoS가 0.0%라는 점은 LANEIGE가 현재 이 카테고리 내에서 제품을 진입시키거나 노출시키는 비중이 거의 없음을 의미합니다.\n\n### 근거\n- Ontology Reasoning 결과, 해당 카테고리 HHI가 0.000으로 분산된 시장 구조임에도 불구하고 LANEIGE의 SoS가 0.0%임이 확인됨 [1].\n\n### 권장사항\n- 시장 내 분산 구조와 낮은 LANEIGE의 존재감을 활용하여, 카테고리 트렌드 및 소비자 니즈를 정밀 분석한 뒤 제품 라인업 확장 전략을 검토하는 것이 바람직할 수 있습니다.\n- 특히 기존 LANEIGE 강점과 시너지를 낼 수 있는 인접 카테고리에 우선적으로 진입하는 전략을 고려해볼 수 있습니다.\n\n---\n\n※ 현재 확인된 데이터 기준으로, LANEIGE의 SoS 관련 구체적인 수치가 0.0%임을 중심으로 답변드렸습니다. 추가 세부 데이터가 있을 경우, 보다 정밀한 해석이 가능할 것입니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 4.16\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 3.68\n\n4. 📄 **---**\n   - 관련도: 1.63\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 14081.049919128418,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

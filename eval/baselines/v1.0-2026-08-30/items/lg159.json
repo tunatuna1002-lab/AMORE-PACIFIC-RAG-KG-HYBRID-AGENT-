@@ -1,0 +1,190 @@
+{
+  "item_id": "lg159",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.112,
+    "semantic_similarity": null,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.8
+  },
+  "overall_score": 0.5782944444444444,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg159",
+    "timestamp": "2026-08-30T01:44:28.257684",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "laneige_strategy_2026_4_2",
+        "us_beauty_trends_weekly_table_0"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 "
+      ],
+      "scores": [
+        5.8382248878479,
+        4.99842643737793,
+        4.91433048248291
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care",
+        "laneige"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "lip_care는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "category": "lip_care",
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0,
+              "category_brand_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            "lip_care"
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": "lip_care",
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE Lip Care SoS 최고치 달과 그 이유\n\n### 인사이트\n- 현재 제공된 데이터 내에서는 LANEIGE Lip Care SoS가 특정 월에 가장 높았다는 구체적 수치나 월별 비교 데이터가 명시되어 있지 않습니다.\n- 다만, 립 케어 카테고리 내에서 LANEIGE가 ‘립 베이스팅(Lip Basting)’ 트렌드와 ‘펩타이드 립 트리트먼트’ 경쟁 속에서 독보적인 브랜드 파워를 보유하고 있다는 점이 긍정적 영향을 미칠 가능성이 있습니다 [2].\n- 특히, 틱톡 등에서 #lipcare, #lipoil 해시태그가 겨울철 입술 보습 관심 급증을 반영하며, 보습 밤&오일 기반 립 치료제에 대한 소비자 니즈가 높아지는 시기에는 LANEIGE의 Lip Sleeping Mask가 인기 상승 효과를 누릴 수 있습니다 [4].\n\n### 근거\n- lip_care 시장이 분산된 구조(HHI: 0.000)임에도 LANEIGE의 존재감은 현재 낮아(0.0%) 향후 진입 확대 기회가 존재합니다 [1].\n- ‘립 베이스팅’ 트렌드가 겨울철 보습 중심의 립케어 수요를 견인하는 것으로 관측되며, LANEIGE는 이 트렌드 수혜 브랜드로 분류됩니다 [2].\n- 소비자 니즈가 색조보다 밤·오일 기반 립 트리트먼트에 집중되는 겨울철에 SoS 지표가 높아질 가능성이 있습니다 [4].\n\n### 권장\n- LANEIGE Lip Care SoS가 가장 높은 달을 명확히 파악하려면 월별 판매 및 SoS 지표 추가 데이터가 필요합니다.\n- 현재 확인된 소비자 관심 트렌드와 계절적 요인을 고려할 때, 겨울철(예: 11~2월) 보습 관련 수요가 증가하는 시기에 SoS가 상대적으로 높아질 가능성이 있습니다.\n- 따라서, 겨울 시즌을 중심으로 제품 프로모션 및 마케팅 집중을 검토하는 것이 유리할 수 있습니다.\n- 또한, ‘립 베이스팅’ 트렌드 및 펩타이드 성분 강화 등 제품 라인업 차별화 전략을 통해 SoS 개선을 노려볼 수 있습니다.\n\n---\n\n**요약**  \n현재 데이터 기준으로 LANEIGE Lip Care SoS가 가장 높은 달은 명확하지 않으나, 겨울철 입술 보습 수요가 급증하는 시기에 SoS가 상승할 가능성이 있습니다. ‘립 베이스팅’ 트렌드와 소비자 보습 니즈가 집중되는 계절적 요인을 고려한 마케팅 전략이 권장됩니다 [1][2][4].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n3. 📄 **---**\n   - 관련도: 5.84\n\n4. 📄 **이번 주 Top 10 키워드 및 의미**\n   - 관련도: 4.91\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 16926.63884162903,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

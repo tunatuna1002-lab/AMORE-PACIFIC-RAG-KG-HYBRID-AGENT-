@@ -1,0 +1,146 @@
+{
+  "item_id": "lg078",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1256544502617801,
+    "semantic_similarity": null,
+    "groundedness_score": 0.625,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.3333333333
+  },
+  "overall_score": 0.4740319589840336,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg078",
+    "timestamp": "2026-08-30T01:32:26.957097",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "us_beauty_trends_weekly_3_1",
+        "us_beauty_trends_weekly_table_0"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 "
+      ],
+      "scores": [
+        8.319355964660645,
+        7.917604446411133,
+        7.257753372192383
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Lip Care 카테고리 신규 진입 제품 관련 인사이트\n\n### 인사이트\n- 현재 제공된 데이터 및 온톨로지 추론 결과 내에서는 Lip Care 카테고리 내 신규 진입 제품에 대한 구체적인 명칭이나 순위, 수치 정보가 확인되지 않습니다.\n- 다만, Lip Care 시장은 LANEIGE의 Lip Sleeping Mask를 중심으로 ‘립 베이스팅(Lip Basting)’ 트렌드가 형성되고 있어, 이와 연관된 보습·밤 타입 제품의 관심이 높은 상황으로 보입니다.\n- 신규 진입 제품은 이 트렌드에 부합하는 펩타이드, 나이아신아마이드, 스네일 뮤신 성분을 활용한 기능성 제품일 가능성이 있으나, 구체 제품 정보는 확인이 필요합니다.\n\n### 근거\n- 제공된 자료에서는 Lip Care 카테고리 신규 진입 제품 리스트나 순위 변동 데이터가 포함되어 있지 않습니다.\n- Lip Care 관련 마케팅 테스트 액션 제안과 트렌드 키워드 분석이 주로 LANEIGE와 기존 인기 제품 중심으로 이루어지고 있습니다 [1][2][3].\n\n### 권장\n- 2026-08-30 기준으로 신규 진입 제품에 대한 구체적 데이터 확보가 중요합니다.\n- 브랜드별 신규 출시 현황이나 순위 변동을 정기적으로 모니터링하여 신규 제품의 시장 반응을 파악할 것을 권장합니다.\n- 현재 ‘립 베이스팅’ 트렌드와 관련된 성분 및 포지셔닝을 참고하여 신규 진입 제품 개발 및 마케팅 전략 수립에 반영하는 것을 고려할 수 있습니다.\n\n※ 현재 확인된 데이터 기준으로, Lip Care 카테고리 신규 진입 제품 구체 정보는 제공되지 않았음을 안내드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 8.32\n\n3. 📄 **다음 주 테스트 액션 제안**\n   - 관련도: 7.92\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 11067.696809768677,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

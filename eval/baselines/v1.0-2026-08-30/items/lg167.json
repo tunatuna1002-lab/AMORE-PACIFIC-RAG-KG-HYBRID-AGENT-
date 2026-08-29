@@ -1,0 +1,110 @@
+{
+  "item_id": "lg167",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09045226130653267,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.6667
+  },
+  "overall_score": 0.6585129627303182,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg167",
+    "timestamp": "2026-08-30T01:45:20.325913",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "src_0",
+        "src_1",
+        "src_2"
+      ],
+      "snippets": [
+        "",
+        "",
+        ""
+      ],
+      "scores": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE 제품의 화학물질 관련 인식에 대한 답변\n\n### 인사이트\n- 현재 제공된 데이터 및 온톨로지 추론 결과에 따르면, LANEIGE는 전통적으로 '자극 없는 편안함'과 '수분 진정'에 초점을 맞춰온 브랜드로 평가되고 있습니다. 따라서 제품이 화학물질로 가득 찬 이미지와는 대조적인 포지셔닝을 가지고 있을 가능성이 있습니다 [2].\n- 또한, LANEIGE는 스피큘(미세침) 사용 후 자극받은 피부를 진정시키고 피부 장벽을 복구하는 제품군(예: Cream Skin Toner, Cica Sleeping Mask)을 통해 민감한 피부에도 적합한 ‘애프터 케어’ 솔루션을 제공하는 것으로 분석됩니다 [2].\n- 다만, 구체적인 화학성분 함유 여부나 안전성 검증 데이터는 현재 제공된 정보에 포함되어 있지 않아, 제품 성분에 대한 정확한 판단은 추가 확인이 필요합니다.\n\n### 권장\n- 화학물질 함유 우려가 있는 소비자를 위해 LANEIGE는 자극 완화 및 진정 기능을 강조하는 제품군을 중심으로 안전성과 순함을 적극적으로 홍보하는 전략이 유효할 것으로 보입니다.\n- 소비자 신뢰 제고를 위해 성분에 대한 투명한 공개와 함께 민감 피부용 제품 라인업을 강화하는 것도 권장됩니다.\n\n---\n\n*현재 확인된 데이터 기준으로, LANEIGE 제품이 화학물질로 가득 찼다고 단정하기는 어렵고, 오히려 자극 완화와 수분 진정에 초점을 맞춘 제품 전략으로 이해되는 점 참고 바랍니다.*\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 7.62\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 12747.105836868286,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

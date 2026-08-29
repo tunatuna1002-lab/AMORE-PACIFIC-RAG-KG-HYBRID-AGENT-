@@ -1,0 +1,159 @@
+{
+  "item_id": "lg146",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.02631578947368421,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.24879385964912282,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg146",
+    "timestamp": "2026-08-30T01:42:17.954590",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_table_0",
+        "laneige_influencer_map_table_3"
+      ],
+      "snippets": [
+        "| 트렌드 요인 | 소비자 행동 변화 | LANEIGE 제품 연관성 | 아마존 판매 영향 |\n| :---- | :---- | :---- | :---- |\n| **비주얼 임팩트** | 아침에 벗겨내거나 닦아냈을 때 즉각적인 광채(Glow)를 확인하고 싶어 함 | **Water Sleeping Mask**, **Lip Sleeping Mask**의 두꺼운 도포",
+        "| 구성 요소 | 상세 내용 |\n| :---- | :---- |\n| **주요 목표** | 진정성 있는 정보 공유, 가성비 검증, 트러블 슈팅 |\n| **반복 메시지** | \"마케팅에 속지 말고 성분을 봐라. 구형 버전이 더 나을 수 있다.\" (비판적 시각) |\n| **설득 논리** | 전성분 비교 분석, 가격 대비 용량(Cost per ounce) 계산, "
+      ],
+      "scores": [
+        3.802333354949951,
+        3.5448622703552246
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "질문의 의도를 정확히 파악하지 못했습니다. 다음 중 어떤 정보가 필요하신가요?\n\n1. 지표 정의 (예: 'SoS가 뭐야?')\n2. 지표 해석 (예: 'HHI가 높으면 어떤 의미야?')\n3. 지표 조합 해석 (예: 'CPI 높고 평점 낮으면?')\n4. 순위/데이터 조회 (예: '라네즈 현재 순위?')\n5. 분석 요청 (예: '라네즈 3개월 성과 분석해줘')",
+      "citations": [],
+      "confidence": null,
+      "query_type": "unknown",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 0.8258819580078125,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

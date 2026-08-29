@@ -1,0 +1,156 @@
+{
+  "item_id": "lg124",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.06334841628959277,
+    "semantic_similarity": null,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.2857
+  },
+  "overall_score": 0.4709346135029958,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg124",
+    "timestamp": "2026-08-30T01:39:28.336261",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige",
+        "medicube"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_1",
+        "laneige_strategy_2026_3_3",
+        "laneige_strategy_2026_4_2"
+      ],
+      "snippets": [
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "LANEIGE의 제품군은 전통적으로 '자극 없는 편안함'과 '수분 진정'에 초점을 맞춰왔기에, 이러한 자극 기반의 트렌드와는 대척점에 있다. 그러나 역설적으로 스피큘 제품의 인기는 LANEIGE에게 기회가 될 수 있다. 스피큘 사용 후 자극받은 피부를 진정시키고 장벽을 복구하기 위한 '애프터 케어' 제품으로 **Cream Skin Toner**나 **Cic",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는"
+      ],
+      "scores": [
+        7.485698223114014,
+        7.292627334594727,
+        7.194093227386475
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige",
+        "medicube"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## MEDICUBE와 LANEIGE 브랜드 비교\n\n### 인사이트\n- 현재 제공된 데이터에는 MEDICUBE 브랜드에 관한 구체적인 시장 점유율, 순위, 또는 제품 특성에 대한 정보가 포함되어 있지 않습니다.\n- LANEIGE는 미국 시장 내 특정 스킨케어 및 립케어 카테고리에서 존재감이 낮은 편이며, 해당 카테고리는 매우 분산된 시장 구조(HHI: 0.000)로 나타나 LANEIGE의 진입 확대 기회가 있을 수 있습니다 [Ontology Reasoning, 2026-08-30].\n- LANEIGE는 자극 없는 편안함과 수분 진정에 초점을 맞춘 제품 라인업을 보유하며, 스피큘(Spicule) 트렌드에 맞춰 애프터 케어 제품으로서의 포지셔닝 가능성이 분석된 상태입니다 [LANEIGE 전략, 2026-01].\n- 반면, MEDICUBE 관련 데이터가 없어 직접적인 제품 성향이나 시장 내 위치 비교는 현재 확인된 데이터 기준으로 불가능합니다.\n\n### 근거\n- 시장 구조 및 LANEIGE의 낮은 존재감: HHI 0.000, LANEIGE 점유율 0.0% [Ontology Reasoning, 2026-08-30].\n- LANEIGE 제품 특성 및 전략 방향: 자극 없는 진정, 스피큘 애프터 케어, 펩타이드 관련 고기능성 이미지 부족 [LANEIGE 전략 문서, 2026-01].\n- MEDICUBE 관련 데이터 부재로 비교 불가 [현재 데이터].\n\n### 권장\n- MEDICUBE와 LANEIGE 비교를 위해서는 MEDICUBE의 시장 점유율, 제품 라인업, 소비자 반응 등 추가 데이터 확보가 필요합니다.\n- LANEIGE는 현재 낮은 시장 존재감을 감안하여, 스피큘 트렌드 관련 애프터 케어 제품 강화 및 펩타이드 등 고기능성 성분을 강조하는 전략적 포지셔닝을 검토하는 것이 바람직합니다.\n- 두 브랜드의 경쟁 구도 분석을 위해서는 동일 카테고리 내 순위 및 소비자 선호 지표 확보가 선행되어야 합니다.\n\n---\n\n요약하자면, 현재 확인된 데이터 기준으로는 LANEIGE에 관한 상세한 시장 기회와 전략적 시사점은 제공 가능하나, MEDICUBE와의 직접 비교는 데이터가 부족하여 명확한 분석이 어렵습니다. 추가 데이터 확보 후 비교 분석을 권장드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **분석 범위**\n   - 관련도: 7.49\n\n3. 📄 **---**\n   - 관련도: 7.29\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 13404.303073883057,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

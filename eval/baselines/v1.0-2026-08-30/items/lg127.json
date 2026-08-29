@@ -1,0 +1,154 @@
+{
+  "item_id": "lg127",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10328638497652581,
+    "semantic_similarity": null,
+    "groundedness_score": 0.1818,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.2857
+  },
+  "overall_score": 0.3044218016431925,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg127",
+    "timestamp": "2026-08-30T01:39:57.077819",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_1_2",
+        "laneige_strategy_2026_5_1",
+        "laneige_strategy_2026_4_1"
+      ],
+      "snippets": [
+        "라네즈의 미국 시장 침투 전략은 철저히 \\*\\*'립 슬리핑 마스크(Lip Sleeping Mask)'\\*\\*를 입문 제품(Gateway Product)으로 활용하는 플라이휠 구조를 따릅니다.1 $24라는 비교적 접근 가능한 가격대와 즉각적인 시각적 만족감을 주는 이 제품은 소비자를 라네즈 생태계로 유입시키는 미끼 역할을 합니다. 이후 소비자는 '크림 스킨(",
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "이 트렌드는 겨울철 건조함과 맞물려 폭발적인 반응을 얻고 있으며, **LANEIGE Lip Sleeping Mask**는 이 루틴의 2단계(베이스팅 단계)를 위한 최고의 제품으로 소비자들 사이에서 자연스럽게 바이럴되고 있다.14 특히 경쟁 제품인 일반 립밤이나 얇은 오일 제형은 이러한 '베이스팅' 효과를 내기에 부족하다는 인식이 지배적이다. 따라서 LANE"
+      ],
+      "scores": [
+        5.88564395904541,
+        5.787196159362793,
+        5.655173301696777
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## K-Beauty of Joseon 브랜드의 Skin Care 카테고리 집중도 변화 분석\n\n### 인사이트\n- 2026년 1월 기준 아마존 뷰티 카테고리 내 Skin Care 시장은 크게 세 그룹으로 구분되어 있습니다.  \n  1) 가성비 클리니컬(Value Clinicals): COSRX 등 저가 고효능 제품군  \n  2) 바이럴 K-뷰티(Viral K-Beauty of Joseon): Medicube, Anua, Tirtir 등 틱톡샵 연동 급성장 브랜드  \n  3) 프리미엄 스테디셀러(Premium Staples): LANEIGE 등 안정적 입지를 구축한 브랜드  \n- 이 중 바이럴 K-뷰티 그룹은 최근 SNS 기반 성장세가 두드러지며, K-Beauty of Joseon 내 Skin Care 카테고리에서 점유율 확대 가능성이 보입니다.  \n- LANEIGE는 Skin Care 내 Cream Skin Toner & Moisturizer 제품으로 선구자적 위치를 점하고 있으나, 리뉴얼 제품에 대한 일부 부정적 소비자 반응이 있어 경쟁 브랜드들이 이 틈을 노릴 수 있는 상황입니다.\n\n### 근거\n- 아마존 베스트셀러 분석(2026년 1월)에서 K-뷰티 Skin Care 내 브랜드들은 가성비 클리니컬, 바이럴 K-뷰티, 프리미엄 스테디셀러 3개 그룹으로 분류됨 [3].  \n- LANEIGE Cream Skin Toner & Moisturizer는 Skin Care 카테고리에서 선구자적 위치이나 Rhode Glazing Milk와의 경쟁 심화, 리뉴얼 제품에 대한 부정적 피드백 존재 [1].  \n- Medicube, Anua, Tirtir 등은 틱톡샵과 연동하여 급성장 중인 바이럴 K-뷰티로 Skin Care 내 집중도가 상승하는 경향을 보임 [3].\n\n### 권장\n- K-Beauty of Joseon Skin Care 카테고리 내 집중도 변화는 프리미엄 안정권과 바이럴 성장권으로 이분화되는 양상으로 보입니다.  \n- LANEIGE는 리뉴얼 제품 흡수력과 비코메도제닉 속성을 지속적으로 강조해 소비자 신뢰를 유지하는 전략이 필요할 수 있습니다.  \n- Medicube, Anua, Tirtir 등 바이럴 K-뷰티 성장세를 면밀히 모니터링하며, SNS 마케팅 강화와 제품 포지셔닝 차별화를 고려할 필요가 있습니다.  \n- 단기 변동 가능성 및 추가 데이터 확보를 통해 추이 확인을 권장합니다.  \n\n현재 확인된 데이터 기준으로, K-Beauty of Joseon Skin Care 카테고리 내 브랜드 집중도는 프리미엄과 바이럴 양축으로 변화하고 있는 것으로 판단됩니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 5.71\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 13380.576133728027,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

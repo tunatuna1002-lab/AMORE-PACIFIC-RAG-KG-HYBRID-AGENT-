@@ -1,0 +1,155 @@
+{
+  "item_id": "lg156",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.06766917293233084,
+    "semantic_similarity": null,
+    "groundedness_score": 0.625,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.2222222222222222
+  },
+  "overall_score": 0.4631336152882205,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg156",
+    "timestamp": "2026-08-30T01:44:02.593743",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_2",
+        "laneige_strategy_2026_0",
+        "laneige_influencer_map_0"
+      ],
+      "snippets": [
+        "결론적으로, LANEIGE는 2026년의 기술 중심적 트렌드 속에서도 브랜드 고유의 '수분 과학' 자산을 최신 소비 트렌드 문법(모닝 쉐드, 립 베이스팅, 핑크 펩타이드)에 맞춰 재해석함으로써, 아마존 시장에서의 지배력을 유지하고 강화할 수 있을 것이다.\n\n#### **참고 자료**",
+        "# **2026년 1월 미국 뷰티 트렌드 심층 분석 및 LANEIGE 아마존 판매 전략 보고서**",
+        "# **전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서**"
+      ],
+      "scores": [
+        7.4998779296875,
+        6.834957122802734,
+        6.764579772949219
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Lip Sleeping Mask 리뷰 수가 SoS에 기여하는 경로\n\n### 인사이트\n- Lip Sleeping Mask는 단순 보습제 이상의 입지를 확보하며, 틱톡에서 '모닝 쉐드' 리추얼 필수 아이템으로 자리 잡았습니다. 이 과정에서 제품을 두껍게 바르고 아침에 닦아내는 시각적 만족감이 소비자 경험을 강화하여 리뷰 작성 및 공유를 촉진하는 역할을 하는 것으로 보입니다.\n- 리뷰 수 증가는 제품에 대한 신뢰도 및 인지도를 높여 SoS(Share of Shelf)에 긍정적으로 작용할 가능성이 있습니다. 즉, 많은 리뷰가 소비자의 구매 결정에 영향을 미쳐 판매 순위 상승과 더불어 SoS 확대에 기여할 수 있습니다.\n- 또한, Lip Sleeping Mask는 라네즈 브랜드 생태계 내 입문 제품(Gateway Product) 역할을 하며, 소비자를 브랜드 내 고관여 제품군으로 유도하는 플라이휠 구조를 형성합니다. 리뷰를 통한 긍정적 소비자 피드백은 이 구조를 더욱 강화하는 경로로 작용할 수 있습니다.\n- 틱톡을 중심으로 한 '모닝 쉐드' 트렌드가 제품 소모 속도 증가로 이어지면서 재구매율 상승에 기여하고, 이 역시 리뷰 수 증가와 SoS 확대에 간접적으로 연결되는 요인일 수 있습니다.\n\n### 근거\n- 틱톡 사용자들이 입술에 두껍게 마스크를 올리는 행위를 '모닝 쉐드' 필수 단계로 인식하며, 이는 제품 소모 속도와 재구매 주기 단축에 영향을 미치는 점 [3].\n- Lip Sleeping Mask가 브랜드 입문 제품으로서 라네즈 생태계 내에서 소비자 유입과 전이 역할을 수행한다는 점 [2].\n- 시각적 만족감이 제품의 차별화 요소로 마케팅에 활용되고 있다는 점 [1].\n\n### 권장 사항\n- 리뷰 유도 마케팅을 강화하여 사용자 경험과 시각적 만족감을 적극적으로 소비자에게 전달하는 콘텐츠 제작을 권장합니다.\n- 틱톡 등 소셜 미디어 기반 '모닝 쉐드' 트렌드와 연계한 캠페인을 지속적으로 집행하여 리뷰 생성 및 공유를 촉진할 필요가 있습니다.\n- 리뷰 수 증가가 SoS 확대에 긍정적 영향을 줄 수 있으므로, 초기 구매자를 대상으로 리뷰 작성 인센티브 프로그램 도입을 고려할 수 있습니다.\n- 제품을 단순한 보습제가 아니라 ‘필수 리추얼 단계’로 포지셔닝하는 전략을 유지하며, 리뷰에서 이러한 경험을 강조하도록 유도하는 것이 유리할 수 있습니다.\n\n---\n\n현재 확인된 데이터 기준으로, Lip Sleeping Mask의 리뷰 수는 제품의 SoS 확대에 시각적 만족감과 트렌드 문화에 기반한 소비자 경험 공유 경로를 통해 기여하는 것으로 보입니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 7.10\n\n2. 📄 ****1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝****\n   - 관련도: 6.59\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 17806.619882583618,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

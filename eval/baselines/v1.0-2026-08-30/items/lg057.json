@@ -1,0 +1,180 @@
+{
+  "item_id": "lg057",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.03125,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.38934895833333333,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg057",
+    "timestamp": "2026-08-30T01:29:53.120531",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care",
+        "lip_makeup"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_3_1",
+        "laneige_strategy_2026_4_0",
+        "laneige_strategy_2026_7_1"
+      ],
+      "snippets": [
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완"
+      ],
+      "scores": [
+        6.082126617431641,
+        5.9926371574401855,
+        5.180859565734863
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care",
+        "lip_makeup"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care",
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> lip_makeup"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_makeup",
+          "data": {
+            "name": "Lip Makeup",
+            "level": 2,
+            "path": [
+              "beauty",
+              "makeup",
+              "lip_makeup"
+            ],
+            "ancestors": [
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "질문의 의도를 정확히 파악하지 못했습니다. 다음 중 어떤 정보가 필요하신가요?\n\n1. 지표 정의 (예: 'SoS가 뭐야?')\n2. 지표 해석 (예: 'HHI가 높으면 어떤 의미야?')\n3. 지표 조합 해석 (예: 'CPI 높고 평점 낮으면?')\n4. 순위/데이터 조회 (예: '라네즈 현재 순위?')\n5. 분석 요청 (예: '라네즈 3개월 성과 분석해줘')",
+      "citations": [],
+      "confidence": null,
+      "query_type": "unknown",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 0.6389617919921875,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

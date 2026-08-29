@@ -1,0 +1,158 @@
+{
+  "item_id": "lg059",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09691629955947137,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0833,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.4
+  },
+  "overall_score": 0.3411076670337738,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg059",
+    "timestamp": "2026-08-30T01:30:16.762417",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_2_2"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장"
+      ],
+      "scores": [
+        2.732252597808838,
+        2.428241014480591,
+        2.405580520629883
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE SoS 3개월 연속 하락 원인 분석\n\n### 인사이트\n- LANEIGE가 속한 카테고리는 분산된 시장 구조(HHI: 0.000)로, 브랜드 존재감이 낮아(0.0%) 진입 확대 여지가 있습니다. 이는 현재 시장 내에서 LANEIGE의 점유율이 낮아 순위 변동이 민감하게 나타날 수 있음을 시사합니다 [1].\n- 경쟁사들이 '펩타이드 트리트먼트'와 같은 고기능성 이미지를 강화하는 가운데, LANEIGE는 단순한 '글로시 밤' 이미지로 인식되는 경향이 있어 소비자 선호 변화에 취약할 가능성이 있습니다 [2].\n- 리뉴얼 제품에 대한 일부 기존 고객의 부정적 피드백(끈적임, 트러블 유발 등)이 존재하며, 이는 브랜드 이미지에 영향을 미쳐 순위 하락에 일부 영향을 미칠 수 있습니다 [3].\n\n### 근거\n- 시장 구조(HHI: 0.000)와 낮은 브랜드 존재감(0.0%)은 LANEIGE가 경쟁에서 상대적으로 불리한 위치임을 보여줍니다 [1].\n- 경쟁사들이 고기능성 성분 마케팅에 집중하는 반면, LANEIGE는 기능성 강조가 부족해 소비자 관심을 끌기 어려울 수 있음 [2].\n- 제품 리뉴얼 후 부정적 소비자 반응이 일부 나타나 브랜드 평판에 부정적 영향을 줄 가능성 [3].\n\n### 권장 사항\n- LANEIGE는 기존 강점인 '수분 과학'과 브랜드 파워를 기반으로, 펩타이드 등 고기능성 성분을 강조하여 제품 효능을 재해석하는 전략을 검토할 필요가 있습니다 [4].\n- 소비자 피드백을 면밀히 분석하여 리뉴얼 제품의 부정적 인식을 완화하고, 제품 흡수력 및 저자극성(비코메도제닉) 속성 홍보를 강화하는 것이 권장됩니다 [3].\n- 카테고리 내 진입 기회를 활용해 제품 라인업 확장과 차별화된 마케팅 전략을 추진하는 것이 바람직할 수 있습니다 [1].\n\n---\n\n현재 확인된 데이터 기준으로, LANEIGE SoS의 3개월 연속 순위 하락은 시장 내 낮은 존재감과 경쟁사의 고기능성 강조, 리뉴얼 제품에 대한 일부 부정적 소비자 반응이 복합적으로 작용했을 가능성이 있습니다. 추가적인 상세 데이터 분석과 소비자 반응 모니터링이 필요합니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 5.69\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 15219.860076904297,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "item_id": "lg095",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.2857142857142857,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12422360248447205,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.3,
+    "factuality_score": 0.0
+  },
+  "overall_score": 0.29724896480331264,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg095",
+    "timestamp": "2026-08-30T01:35:23.958784",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "src_0",
+        "src_1",
+        "src_2",
+        "src_3"
+      ],
+      "snippets": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Face Powder 카테고리 Top 5 제품 현황 관련 인사이트\n\n- 현재 제공된 컨텍스트 및 온톨로지 추론 결과 내에는 **Face Powder 카테고리 내 Top 5 제품**에 대한 구체적인 순위 정보나 제품명이 포함되어 있지 않습니다.\n- 따라서, Face Powder 카테고리의 정확한 상위 5개 제품명과 순위는 현재 확인된 데이터 기준으로 파악이 어렵습니다.\n\n### 권장 사항\n- Face Powder 카테고리의 Top 5 제품 정보를 확보하려면, 별도의 최신 순위 데이터 수집이나 Amazon 베스트셀러 페이지 직접 확인이 필요할 것으로 보입니다.\n- 추가 데이터 확보 시, 동일 카테고리 내에서 순위 변동 추이를 분석하여 경쟁 구도 및 마케팅 전략 수립에 참고할 수 있습니다.\n\n요약하면, 현재 제공된 자료에는 Face Powder 카테고리 Top 5 제품에 관한 구체적 정보가 포함되어 있지 않아 답변 제공이 제한적임을 안내드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 4.94\n\n3. 📄 ****1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝****\n   - 관련도: 4.86\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10567.34323501587,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

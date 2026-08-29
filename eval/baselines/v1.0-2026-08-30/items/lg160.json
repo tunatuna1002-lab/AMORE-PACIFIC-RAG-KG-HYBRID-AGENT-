@@ -1,0 +1,148 @@
+{
+  "item_id": "lg160",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13333333333333333,
+    "semantic_similarity": null,
+    "groundedness_score": 0.7272727272727273,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.625
+  },
+  "overall_score": 0.37921401515151515,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg160",
+    "timestamp": "2026-08-30T01:44:34.137591",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_1_0"
+      ],
+      "snippets": [
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "**1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화**\n\n전자상거래의 중력 중심인 아마존 마켓플레이스에서 베스트 셀러 랭킹(Best Sellers Rank, 이하 BSR)은 단순한 숫자가 아닌, 제품의 생존 가능성을 나타내는 바이탈 사인(Vital Sign)과 같습니다. 그러나 2025년과 2026년을 기점으로 아마존의 검색 및 "
+      ],
+      "scores": [
+        5.875373840332031,
+        5.759687423706055,
+        5.5636796951293945
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE 가장 비싼 제품 및 CPI 관련 인사이트\n\n### 인사이트\n- 현재 제공된 데이터 내에서는 LANEIGE의 가장 비싼 제품명과 해당 제품의 구체적 가격 정보가 명시되어 있지 않습니다.\n- 또한, 해당 제품이 속한 카테고리의 평균 가격 대비 CPI(가격대비 성과 지수)에 대한 수치 역시 제공되지 않아 직접적인 산출이 불가능합니다.\n- 다만, 온톨로지 추론 결과에 따르면 LANEIGE가 진입을 확대할 수 있는 분산된 시장 구조(시장 집중도 HHI 0.000, 브랜드 존재감 0.0%)가 확인되어, 고가 제품을 통한 시장 공략 가능성이 시사되고 있습니다[1].\n\n### 근거\n- 온톨로지 추론 결과: \"해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다\" [1].\n- 참고 가이드라인 내 LANEIGE 주요 제품인 Lip Sleeping Mask, Cream Skin Toner & Moisturizer 등의 포지션은 언급되나 가격대 및 CPI 관련 언급은 없음[2][3][4].\n\n### 권장 사항\n- 내부 또는 추가 데이터 확보를 통해 LANEIGE 제품별 가격과 속한 카테고리 평균 가격을 파악한 후, CPI 산출을 권장합니다.\n- 현재 확인된 데이터 기준으로는, LANEIGE는 분산된 시장에서 진입 확대 가능성이 있으므로, 고가 제품을 포함한 라인업 강화 및 가격 전략 수립 시 신중한 시장 분석이 필요할 것으로 보입니다.\n- 가격 대비 성과 지표 확보 시, CPI를 활용해 고가 제품의 시장 경쟁력 평가에 참고하시기 바랍니다.\n\n---\n\n**요약**: LANEIGE의 가장 비싼 제품과 해당 카테고리 평균 가격 대비 CPI 수치는 현재 제공된 데이터에 포함되어 있지 않아 명확한 답변이 어렵습니다. 추가 데이터 수집 후 분석이 필요합니다. 다만, 해당 카테고리는 분산돼 있어 진입 확대 기회가 있을 수 있다는 점은 참고할 만합니다[1].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 5.97\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 14597.630977630615,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

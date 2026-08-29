@@ -1,0 +1,208 @@
+{
+  "item_id": "lg155",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.7499999999999999,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13937282229965156,
+    "semantic_similarity": null,
+    "groundedness_score": 0.5555555555555556,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5174155536198219,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg155",
+    "timestamp": "2026-08-30T01:43:47.358459",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige",
+        "cosrx"
+      ],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_algorithm_guide_1_0",
+        "amazon_ranking_diagnosis_3_2"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "**1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화**\n\n전자상거래의 중력 중심인 아마존 마켓플레이스에서 베스트 셀러 랭킹(Best Sellers Rank, 이하 BSR)은 단순한 숫자가 아닌, 제품의 생존 가능성을 나타내는 바이탈 사인(Vital Sign)과 같습니다. 그러나 2025년과 2026년을 기점으로 아마존의 검색 및 ",
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁"
+      ],
+      "scores": [
+        2.5836827754974365,
+        2.2515575885772705,
+        2.0163817405700684
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care",
+        "laneige",
+        "cosrx"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "skin_care는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "category": "skin_care",
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0,
+              "category_brand_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            "skin_care"
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": "skin_care",
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE가 Skin Care에서 COSRX 수준의 SoS 달성을 위한 인사이트\n\n### 인사이트\n- Skin Care 카테고리는 시장 구조가 매우 분산되어 있으며(HHI: 0.000), LANEIGE의 현재 존재감은 0.0%로 매우 낮아 진입 확대의 여지가 있는 상태입니다. 이는 LANEIGE가 해당 카테고리 내에서 SoS(Share of Shelf)를 높일 수 있는 잠재적 기회가 있음을 시사합니다 [ontology, 출처1].\n- COSRX 수준의 SoS를 달성하기 위해서는 단순히 제품을 늘리는 것뿐 아니라, 아마존의 최신 랭킹 알고리즘 변화(의미론적 밀도, 지식 그래프 적합성, 외부 트래픽 가중치 등)를 고려하는 전략이 필요할 수 있습니다 [rag, 출처2,3].\n- 리뷰 수와 평점, 경쟁 상황, 외부 마케팅 활동 등도 SoS 상승과 랭킹 개선에 중요한 요소로 작용할 수 있으므로, 이 부분에 대한 면밀한 모니터링과 대응이 권장됩니다 [rag, 출처4].\n\n### 근거\n- 시장 구조와 LANEIGE의 현재 존재감: HHI 0.000, LANEIGE 존재감 0.0% (Skin Care) [ontology, 출처1]\n- 아마존 랭킹 알고리즘은 단순 판매량 외에 메타데이터 적합성, 리뷰 감성, 외부 트래픽 등 복합 변수를 반영 [rag, 출처2,3]\n- 리뷰/평점, 경쟁 상황, 외부 마케팅 활동 등은 SoS 및 랭킹에 직·간접적 영향 [rag, 출처4]\n\n### 권장 사항\n1. **제품 라인업 다각화 및 확장**: Skin Care 내 인접 세부 카테고리에서 LANEIGE의 기존 강점과 연계 가능한 제품을 추가하여 시장 내 존재감을 높이는 전략 검토\n2. **아마존 알고리즘 최적화**: 제품 메타데이터를 COSMO 알고리즘의 '상식적 지식'에 부합하도록 개선하고, 리뷰 분석을 통한 감성 관리에 집중\n3. **외부 트래픽 및 마케팅 강화**: TikTok, Instagram 등 외부 채널을 활용한 바이럴 마케팅 전략으로 외부 트래픽 유입을 증대하여 랭킹 상승 효과 기대\n4. **경쟁 상황 모니터링**: 경쟁사 가격, 재고, 신제품 출시에 대한 지속적인 파악 및 대응으로 Buy Box 확보 기회 증대\n\n현재 확인된 데이터 기준으로, LANEIGE가 Skin Care 카테고리에서 COSRX 수준의 SoS를 달성하려면 위와 같은 다각적 접근과 함께 시장 내 존재감 강화가 필수적일 것으로 보입니다. 추가 정량적 SoS 수치나 COSRX의 정확한 SoS 수준 데이터가 제공될 경우 보다 구체적 전략 수립이 가능할 것입니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 2.58\n\n4. 📄 **1. 필수 확인 체크리스트**\n   - 관련도: 2.02\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 14848.480939865112,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "item_id": "lg054",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07142857142857142,
+    "semantic_similarity": null,
+    "groundedness_score": 0.5384615384615384,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5555555555555556
+  },
+  "overall_score": 0.42694597069597073,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg054",
+    "timestamp": "2026-08-30T01:29:34.434656",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_1",
+        "negative_issue_response_1_0",
+        "negative_issue_response_7_2"
+      ],
+      "snippets": [
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "향후 수개월간 '검증된 효능(Clinical Validation)'에 대한 니즈가 더욱 커질 것이다. 우지(Tallow)와 같은 비과학적 민간요법에 대한 반작용으로, 다시금 세라마이드, 스쿠알란 등 검증된 성분이 주목받을 것이다. 또한, 무분별한 틱톡 바이럴보다는 레딧과 같은 커뮤니티 기반의 '찐후기(Authentic Review)'가 구매 결정에 미치는 "
+      ],
+      "scores": [
+        6.112076759338379,
+        6.030546188354492,
+        6.020450592041016
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## SoS(Share of Voice) 증가와 매출 영향에 대한 인사이트\n\n### 인사이트\n- SoS 증가가 매출에 긍정적인 영향을 미칠 가능성이 있습니다. 이는 SoS가 소비자 관심과 검색 점유율을 나타내기 때문입니다.\n- 특히 LANEIGE의 경우, ‘핑크 펩타이드’와 같이 새롭게 부상하는 키워드에 대한 SoS 확대가 브랜드 노출 증가와 연결되어, 관련 제품 매출 증대에 긍정적 영향을 줄 수 있습니다.\n- 다만, SoS 상승이 반드시 매출 상승으로 직결된다고 단정하기는 어려우며, 광고 집행, 제품력, 소비자 반응 등 복합적 요인과 함께 고려되어야 합니다.\n\n### 근거\n- LANEIGE가 ‘핑크 펩타이드’ 키워드를 활용하여 SoS를 높이는 전략이 제안되고 있으며, 경쟁사 대비 상단 노출 방어가 시급한 상황입니다. 이는 SoS가 시장 내 가시성과 관련되어 있음을 시사합니다 [1].\n- 소비자들이 틱톡 등 소셜 미디어에서 본 제품을 검색하는 행위가 SoS 증가로 이어지고, 이는 구매 경로에 영향을 미칠 가능성이 존재합니다 [1].\n- 그러나 보고서에서는 SoS 증가가 매출로 연결되는 과정에 광고, 제품력, 시장 반응 등 여러 변수가 개입됨을 암시하고 있어 단일 지표로 매출 영향을 확정하지는 않습니다 [1],[3].\n\n### 권장사항\n- SoS 증가 전략을 실행할 때는 스폰서드 프로덕트 광고와 같은 상단 노출 마케팅을 병행하여 소비자 인지도를 강화할 필요가 있습니다.\n- SoS 증가는 초기 관심 유발 단계로서, 제품의 임상 검증, 소비자 후기 등 ‘검증된 효능’과 투명성을 함께 강화하는 것이 매출 전환에 도움될 수 있습니다 [3].\n- 단기 변동에 따른 노이즈 가능성을 감안하여, SoS와 매출 간의 중장기적 추이를 면밀히 모니터링하는 것이 바람직합니다.\n\n---\n\n**요약**: SoS가 증가하면 브랜드 및 제품 노출이 확대되어 매출에 긍정적 영향을 줄 가능성이 있으나, 이는 광고, 제품력, 소비자 신뢰 등 복합 요인과 함께 고려되어야 하며 단기간 내 매출 증대를 확정하기는 어렵습니다 [1],[3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 6.11\n\n2. 📄 ****1\\. 서론: 시장 맥락 및 위기 지형도****\n   - 관련도: 6.03\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 11996.045112609863,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

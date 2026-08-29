@@ -26,7 +26,7 @@ repos:
       - id: check-toml
       - id: detect-private-key
       - id: check-added-large-files
-        args: ['--maxkb=1000']  # Block files > 1MB
+        args: ['--maxkb=2048']  # Block files > 2MB (eval baseline report.json ~1.1MB 허용)
         exclude: '^static/vendor/fonts/'  # 셀프호스팅 폰트(woff2, ~2MB)는 의도된 바이너리
       - id: check-merge-conflict
       - id: check-case-conflict

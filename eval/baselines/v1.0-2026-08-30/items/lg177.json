@@ -1,0 +1,152 @@
+{
+  "item_id": "lg177",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07511737089201878,
+    "semantic_similarity": null,
+    "groundedness_score": 0.1,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.6
+  },
+  "overall_score": 0.515950704225352,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg177",
+    "timestamp": "2026-08-30T01:46:22.826792",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_4",
+        "laneige_strategy_2026_1_1"
+      ],
+      "snippets": [
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 "
+      ],
+      "scores": [
+        5.721597671508789,
+        5.706702709197998
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 월별 LANEIGE HHI 변화 패턴 분석 (2026-08-30 기준)\n\n- **인사이트**  \n  현재 제공된 데이터 기준으로, LANEIGE가 속한 카테고리의 HHI는 0.000으로 매우 낮은 분산형 시장 구조를 보이고 있습니다. 이는 LANEIGE의 시장 내 존재감이 0.0%로 측정되어, 월별로도 큰 변화 없이 낮은 수준을 유지하고 있을 가능성이 큽니다. 즉, 월별 HHI 변화 패턴에서 유의미한 상승이나 하락이 관찰되지 않는 것으로 보입니다 [ontology reasoning, 2026-08-30].\n\n- **근거**  \n  - HHI가 0.000으로 나타남  \n  - LANEIGE의 시장 점유율은 0.0%로 기록됨  \n  - 분산된 시장 구조 특성 상, 점유율 및 HHI 변동 폭이 작을 수 있음\n\n- **권장 사항**  \n  - LANEIGE는 현재 존재감이 낮은 시장에서 진입 확장 기회가 있을 수 있으므로, 월별 HHI 변화 모니터링을 지속하며 시장 반응을 면밀히 관찰할 필요가 있습니다.  \n  - 카테고리 트렌드와 소비자 니즈 분석을 병행하여, 제품 라인업 확장이나 프로모션 전략을 통해 점유율을 높일 방안을 모색하는 것이 바람직합니다.\n\n- **참고**  \n  구체적인 월별 HHI 변동 수치나 추이 데이터는 제공되지 않아, 현재 확인된 데이터 기준으로는 월별 패턴 분석에 한계가 있습니다. 추가 데이터 확보 시 상세 분석이 가능할 것으로 판단됩니다.\n\n---\n\n요약하자면, 2026년 8월 기준 LANEIGE의 HHI는 0.000으로 매우 낮아 월별 변화가 뚜렷하지 않은 점을 고려해야 하며, 향후 시장 진입 확대 가능성에 집중하는 전략이 권장됩니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **결론**\n   - 관련도: 5.72\n\n3. 📄 ****1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화****\n   - 관련도: 5.71\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 17458.48321914673,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

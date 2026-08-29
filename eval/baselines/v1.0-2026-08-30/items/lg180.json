@@ -1,0 +1,154 @@
+{
+  "item_id": "lg180",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09734513274336284,
+    "semantic_similarity": null,
+    "groundedness_score": 0.222,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.2857
+  },
+  "overall_score": 0.40015091076696163,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg180",
+    "timestamp": "2026-08-30T01:46:33.996666",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_1",
+        "us_beauty_trends_weekly_table_0"
+      ],
+      "snippets": [
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 "
+      ],
+      "scores": [
+        7.172097206115723,
+        7.1514739990234375
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE Amazon 순위 성장 히스토리 분석 (2026-08-30 기준)\n\n### 인사이트\n- 현재 LANEIGE의 Amazon 내 시장 존재감은 매우 낮은 수준으로, 해당 카테고리 내 점유율이 0.0%에 머무르고 있어 사실상 진입 초기 단계로 보입니다. 이는 분산된 시장 구조(HHI 0.000)와 맞물려 LANEIGE가 아직 뚜렷한 순위 상승을 기록하지 못한 상황일 가능성이 있습니다【1】.\n- 따라서 출시 이후 뚜렷한 순위 성장 히스토리가 관측되지 않으며, 향후 카테고리 내에서 존재감을 키울 수 있는 기회가 존재할 수 있습니다.\n\n### 근거\n- 온톨로지 추론 결과에 따르면, LANEIGE가 속한 카테고리의 HHI가 0.000으로 매우 분산되어 있고, LANEIGE의 시장 존재감이 0.0%로 확인되어 Amazon 내 순위 상승이 아직 가시화되지 않은 것으로 해석됩니다【1】.\n- 최근 7~30일 내 미국 시장 데이터에서도 LANEIGE가 립케어 등 주요 제품에서 인지도를 확대할 잠재력이 있으나, 구체적 순위 변동 데이터는 제공되지 않았습니다【2】【3】.\n\n### 권장 사항\n- 현재 확인된 데이터 기준으로 LANEIGE는 Amazon에서 성장 초기 단계로 평가되므로, 카테고리 내 입지를 확장하기 위해서는 소비자 니즈를 반영한 제품 라인업 확장과 바이럴 마케팅 활용이 필요할 수 있습니다.\n- 특히 TikTok 등 SNS에서의 립케어 관련 인기 키워드(#lipcare, #lipoil)를 활용해 LANEIGE의 강점인 Lip Sleeping Mask를 적극 홍보하는 전략이 유효할 가능성이 있습니다【3】.\n- 지속적인 순위 추이 모니터링을 통해 점진적인 성장 패턴이 형성되는지 확인하는 것이 중요합니다.\n\n---\n\n※ 본 답변은 2026-08-30 기준 Amazon 내 LANEIGE의 구체적인 순위 성장 히스토리 데이터가 제공되지 않아, 온톨로지 추론 결과와 시장 존재감 지표를 기반으로 작성되었습니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **분석 범위**\n   - 관련도: 7.17\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 13502.52389907837,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

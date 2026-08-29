@@ -1,0 +1,119 @@
+{
+  "item_id": "lg090",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10526315789473684,
+    "semantic_similarity": null,
+    "groundedness_score": 0.42857142857142855,
+    "answer_relevance_score": 0.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.30588972431077693,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg090",
+    "timestamp": "2026-08-30T01:34:33.361797",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_13",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_1_1"
+      ],
+      "snippets": [
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는"
+      ],
+      "scores": [
+        1.392706274986267,
+        0.8150355815887451,
+        0.6175464391708374
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "질문의 의도를 정확히 파악하지 못했습니다. 다음 중 어떤 정보가 필요하신가요?\n\n1. 지표 정의 (예: 'SoS가 뭐야?')\n2. 지표 해석 (예: 'HHI가 높으면 어떤 의미야?')\n3. 지표 조합 해석 (예: 'CPI 높고 평점 낮으면?')\n4. 순위/데이터 조회 (예: '라네즈 현재 순위?')\n5. 분석 요청 (예: '라네즈 3개월 성과 분석해줘')",
+      "citations": [],
+      "confidence": null,
+      "query_type": "unknown",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 0.12803077697753906,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

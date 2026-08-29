@@ -1,0 +1,149 @@
+{
+  "item_id": "lg103",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08695652173913045,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.75
+  },
+  "overall_score": 0.4374909420289855,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg103",
+    "timestamp": "2026-08-30T01:36:30.052432",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_1"
+      ],
+      "snippets": [
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였"
+      ],
+      "scores": [
+        7.617049217224121
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## NYX와 LANEIGE의 Lip Makeup 시장 경쟁 관계 분석\n\n### 인사이트\n- 현재 **Lip Makeup** 카테고리 내에서 LANEIGE의 존재감은 매우 낮아(시장 점유율 0.0%) 경쟁력이 부족한 상태로 보입니다. 반면, 시장 구조가 매우 분산되어 있어(HHI: 0.000) 신규 진입이나 점유율 확대에 기회가 있을 가능성이 있습니다 [Ontology Reasoning, 2026-08-30].\n- LANEIGE는 립 케어(Lip Care) 시장에서 강력한 브랜드 파워를 보유하고 있으나, Lip Makeup 내에서는 아직 확실한 입지를 구축하지 못한 상태로 판단됩니다.\n- NYX는 Lip Makeup 카테고리 내에서 상대적으로 더 확고한 입지를 가졌을 가능성이 있으나, 구체적인 수치나 순위 데이터는 제공되지 않아 직접적인 비교는 제한적입니다.\n\n### 근거\n- Lip Makeup 카테고리의 HHI가 0.000으로 분산된 시장이며, LANEIGE의 Lip Makeup 점유율이 0.0%임을 기반으로 한 온톨로지 추론 결과 [1].\n- LANEIGE의 립케어 시장 내 강점과 달리 Lip Makeup 내 영향력은 낮은 점 [2,3,4].\n\n### 권장 사항\n- LANEIGE는 Lip Makeup 시장 진입 및 점유율 확대를 위해 기존 립케어 강점을 활용, 고기능성 펩타이드 트리트먼트 등 차별화된 제품 개발 및 마케팅 강화가 필요할 수 있습니다.\n- NYX와 경쟁하려면 시장 트렌드, 소비자 니즈를 면밀히 분석하고, 제품 라인업 확장과 브랜드 아이덴티티 강화를 고려하는 전략이 유효할 것으로 보입니다.\n- 단기적으로는 Lip Makeup 내 LANEIGE의 점유율이 낮은 점을 감안할 때, 시장 반응과 순위 변동 추이를 지속 모니터링하는 것이 필요합니다.\n\n---\n\n*현재 확인된 데이터 기준으로 NYX의 구체적 Lip Makeup 점유율 및 순위 정보는 제공되지 않아 직접적인 경쟁력 비교에는 한계가 있음을 참고 바랍니다.*\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n3. 📄 **---**\n   - 관련도: 7.28\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 13669.440031051636,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "item_id": "lg045",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1045751633986928,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.25
+  },
+  "overall_score": 0.28009803921568627,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg045",
+    "timestamp": "2026-08-30T01:28:38.196455",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_5_1",
+        "laneige_strategy_2026_5_2"
+      ],
+      "snippets": [
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "LANEIGE가 주력하고 있는 **Bouncy & Firm Sleeping Mask**와 **Serum**은 '슬로우 에이징(Slow-aging)'과 '프리주브네이션(Prejuvenation)' 트렌드를 겨냥하고 있다.9 20대부터 노화를 예방하려는 젊은 층을 타겟으로 하며, 틱톡에서 유행하는 '탱글탱글한 피부(Plump Skin)'를 시각적으로 구현해 주"
+      ],
+      "scores": [
+        3.163811445236206,
+        3.130540609359741
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "# HHI 0.15의 시장 구조 의미\n\n## 인사이트\n- HHI(Herfindahl-Hirschman Index) 값 0.15는 일반적으로 시장 집중도가 낮은 상태를 의미할 가능성이 있습니다.\n- 참고 가이드라인에서는 HHI 0.30 이상을 \"Concentrated\" (집중된 시장 구조)로 분류하고 있어, 0.15는 이보다 낮은 수치로 보입니다.\n- 따라서 HHI 0.15는 경쟁이 상대적으로 활발한 \"Competitive\" (경쟁적) 시장 구조일 수 있습니다.\n\n## 근거\n- 프로토타입 기본 더미 값 예시에서 HHI 0.30은 Concentrated 상태로 설정되어 있음 [rag 1.2]\n- 이 기준에 비추어 0.15는 Concentrated 미만이므로 Competitive 상태에 해당할 가능성이 큽니다.\n\n## 권장\n- HHI 0.15 수준은 시장 내 다수 브랜드가 비교적 고르게 분포된 경쟁적 환경일 수 있으므로, 진입 장벽이 낮거나 브랜드 간 경쟁이 치열할 가능성을 고려할 수 있습니다.\n- 다만, 정확한 시장 구조 판단을 위해서는 해당 카테고리 특성과 경쟁 구도, 시간에 따른 HHI 추이 등 추가 데이터 확인이 권장됩니다.  \n- 단기 변동에 따른 노이즈 가능성도 염두에 두고 지속 모니터링을 병행하는 것이 바람직합니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **4. 프로토타입 기본 더미 값 예시(선택)**\n   - 관련도: 6.92\n\n2. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 13752.785205841064,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

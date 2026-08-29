@@ -1,0 +1,161 @@
+{
+  "item_id": "lg136",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13559322033898305,
+    "semantic_similarity": null,
+    "groundedness_score": 0.3,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.3454625706214689,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg136",
+    "timestamp": "2026-08-30T01:41:13.673623",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_4_0",
+        "amazon_algorithm_guide_3_1",
+        "amazon_algorithm_guide_1_1"
+      ],
+      "snippets": [
+        "1.2 Brand Health Status (브랜드 건강 상태 배지/카드)\n\n### 목표\n- 수치 대신 “상태”로 요약\n- 3개 카드(권장): 브랜드 노출, 시장 구조, 이상 신호\n\n### 상태 정의 (권장 라벨)\n- 브랜드 노출 상태(SoS 중심):\n  - Stable / Up / Down\n- 시장 구조(HHI 중심):\n  - Competitive / C",
+        "* **재고 소진(Stockout)의 여파:** 재고가 '0'이 되는 순간 BSR은 급락하기 시작합니다. 더 심각한 것은 재입고 후에도 이전의 랭킹으로 복구하는 데 최대 2\\~3주의 시간이 소요된다는 점입니다. 이는 '품절 기간' 동안 경쟁사들이 그 자리를 차지하여 알고리즘의 선호도가 이동했기 때문입니다.8  \n* **바이박스(Buy Box) 상실:** 바",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는"
+      ],
+      "scores": [
+        3.6361265182495117,
+        3.1958656311035156,
+        3.0983784198760986
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 경쟁사 신제품 출시가 LANEIGE SoS에 미치는 영향 분석\n\n### 인사이트\n- 현재 LANEIGE가 진입해 있는 카테고리는 시장 집중도가 매우 낮고(HHI: 0.000), LANEIGE의 존재감 또한 0.0%로 매우 낮아 신제품 출시에도 불구하고 시장 내 입지 확대 가능성이 열려 있는 상태로 보입니다 [Entry Opportunity, 70% 신뢰도, 출처1].\n- 경쟁사들이 튜브형 펩타이드 트리트먼트 등 고기능성 제품을 출시하며 기능성 이미지 구축에 집중하는 상황에서, LANEIGE는 기존 Lip Sleeping Mask의 강력한 브랜드 파워를 다른 제품군으로 확장하거나 성분 효능을 강조하는 전략이 필요할 수 있습니다 [출처3].\n- 시장 내 경쟁 제품들이 저가 브랜드까지 펩타이드 마케팅에 뛰어들면서 경쟁 강도가 상승하는 가운데, LANEIGE SoS의 차별화 포인트로 '두께감'과 '밀폐력'을 강점으로 적극 소구하는 것이 소비자 인식 형성에 긍정적일 수 있습니다 [출처2].\n\n### 근거\n- 카테고리 HHI 0.000, LANEIGE 존재감 0.0%로 진입 확대 여지 확인 [Ontology Reasoning, 출처1].\n- 경쟁사 제품들의 펩타이드 고기능성 이미지와 저가 브랜드의 시장 진입 현황 [출처3].\n- LANEIGE 제품 특성(두께감, 밀폐력)이 현재 소비자 니즈와 맞물려 바이럴 효과를 보이고 있음 [출처2].\n\n### 권장 사항\n- 경쟁사 신제품의 펩타이드 기능성 마케팅에 대응하여, LANEIGE는 자사 제품 라인업 내 기능성 성분 강조 및 고기능성 이미지 강화를 검토할 필요가 있습니다.\n- 기존 Lip Sleeping Mask의 브랜드 파워를 활용해 튜브형 제품군 확장 및 인접 카테고리 진출 전략을 추진하는 것이 시장 점유 확대에 도움이 될 수 있습니다.\n- 제품 상세 페이지와 광고 소재에서 제품의 두께감과 밀폐력을 핵심 장점으로 적극 부각하여 소비자 인식을 공고히 할 것을 권장합니다.\n\n현재 확인된 데이터 기준으로 경쟁사 신제품 출시에 따른 LANEIGE SoS 영향은 시장 내 진입 확장 가능성 존재와 함께, 경쟁 기능성 제품 대비 차별화 전략 필요성이 강조되는 상황으로 해석됩니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 6.71\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 13727.473974227905,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

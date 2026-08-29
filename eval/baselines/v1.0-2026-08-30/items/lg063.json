@@ -1,0 +1,114 @@
+{
+  "item_id": "lg063",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08979591836734693,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.3684353741496599,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg063",
+    "timestamp": "2026-08-30T01:30:49.075480",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_6_0",
+        "metric_interpretation_5",
+        "indicator_combination_2_1"
+      ],
+      "snippets": [
+        "---\n\n**6\\. 데이터 검증 소스 및 분석 도구 활용 가이드**\n\n가설을 검증하고 팩트 체크를 수행하기 위해 활용해야 할 필수 데이터 소스와 도구들입니다.\n\n### **6.1 아마존 내부 데이터 (First-Party Data) \\- 가장 정확함**\n\n가장 신뢰할 수 있는 데이터는 아마존이 직접 제공하는 브랜드 분석 데이터입니다.",
+        "해석 범위에 대한 명시\n\n- 본 지표들은 **현상(signal)**을 설명하기 위한 도구이다.\n- 원인 분석, 성과 평가, 전략 확정은  \n  반드시 추가 데이터와 내부 판단을 통해 이루어져야 한다.\n- 지표 조합 기반 판단은  \n  `Indicator_Combination_Playbook.md`를 참고한다.",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat"
+      ],
+      "scores": [
+        7.750759601593018,
+        8.02348518371582,
+        7.842105865478516
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## SoS와 리뷰 수의 상관관계 분석\n\n### 인사이트\n- SoS(Share of Shelf)는 특정 브랜드가 Top N 랭킹 내에서 차지하는 제품 비중을 나타내며, 이는 브랜드의 물리적 노출과 가시성 지표입니다.\n- 리뷰 수는 제품에 대한 소비자의 신뢰와 구매 결정에 중요한 영향을 미치며, 긍정적 리뷰와 높은 전환율은 아마존 검색 알고리즘에서 중요한 신호로 작용할 수 있습니다【1†L408-L415】.\n- 다만, 리뷰 수 자체가 직접적으로 SoS를 결정하지는 않지만, 리뷰가 많고 긍정적인 경우 브랜드 인지도와 소비자 신뢰도가 높아져 SoS 증가에 긍정적 영향을 미칠 가능성이 있습니다.\n- 외부 마케팅이나 캠페인에 의해 리뷰 수가 급증할 경우, SoS 변화와 병행 관찰이 필요하며, 단기적 변동은 노이즈일 수 있습니다【1†L408-L415】.\n- 최근 아마존 랭킹은 단순 판매량뿐 아니라 리뷰 감성, 메타데이터 적합성, 외부 트래픽 등 복합적 요인에 의해 결정되므로 SoS와 리뷰 수 관계도 다변수 함수의 결과일 수 있습니다【3†L187-L197】.\n\n### 근거\n- 리뷰 수와 긍정적 리뷰는 검색 알고리즘 내 구매 전환 가능성 신호로 작용할 수 있다는 점【1†L408-L415】.\n- SoS는 브랜드 제품의 랭킹 내 점유율로, 브랜드 가시성과 직결되므로 리뷰 수 많고 긍정적일수록 노출 증가 가능성 존재【1†L408-L415】.\n- 아마존 랭킹 변동은 리뷰 외에도 메타데이터 적합성, 부정적 감성, 외부 트래픽 등 복합 요인에 의해 결정됨【3†L187-L197】.\n\n### 권장 사항\n- SoS와 리뷰 수간 상관관계를 파악할 때는 동일 카테고리 내에서 장기간 데이터를 관찰하며, 리뷰 수 증가 시 SoS 변화 패턴을 모니터링할 것을 권장합니다.\n- 리뷰 수 급증이 외부 캠페인이나 마케팅 활동에 의한 것인지 확인하여 일시적 효과인지 판단해야 합니다.\n- 긍정적인 리뷰 확보 및 부정적 감성 관리가 SoS 개선과 브랜드 노출 증가에 도움이 될 수 있음을 고려해 리뷰 관리 전략을 강화할 필요가 있습니다.\n- SoS 변화에 단순히 리뷰 수만이 아니라 메타데이터 적합성, 구매 전환율 등 다변수적 요소도 함께 분석하는 복합적 접근이 요구됩니다.\n\n---\n\n현재 확인된 데이터 기준으로 SoS와 리뷰 수는 직접적 인과관계보다는 상호 보완적 신호로 작용할 가능성이 높으며, 구체적 상관관계는 추가 데이터 분석이 필요합니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **1. 필수 확인 체크리스트**\n   - 관련도: 5.73\n\n2. 📄 **---**\n   - 관련도: 5.12\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 5.66\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 14158.55073928833,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "item_id": "lg147",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09448818897637797,
+    "semantic_similarity": null,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.2737549212598425,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg147",
+    "timestamp": "2026-08-30T01:42:44.103675",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_2_2",
+        "amazon_ranking_diagnosis_3_1",
+        "amazon_algorithm_guide_2_1"
+      ],
+      "snippets": [
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "- **가격 및 프로모션**: 가격 변경, 쿠폰 부착 여부, 라이트닝 딜/딜 오브 더 데이 진행 여부. 아마존은 판매량 증가를 통해 BSR을 계산하므로【437377726246902†L408-L415】, 가격을 낮추거나 딜을 제공하면 판매 속도가 빨라져 순위가 상승할 수 있다. Keepa나 CamelCamelCamel 같은 도구로 가격 및 할인 기록을 확인한",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하"
+      ],
+      "scores": [
+        5.760051250457764,
+        5.675158977508545,
+        5.412444114685059
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Amazon 뷰티 시장에서 중소 브랜드의 성장 가능성\n\n### 인사이트\n- 중소 브랜드는 Amazon 뷰티 시장에서 성장 기회를 모색할 수 있으나, 플랫폼 리스크와 소비자 신뢰 문제를 극복해야 할 과제가 존재합니다.\n- 최근 소비자들 사이에서는 Amazon에서 스킨케어 제품 구매에 대한 불신이 확산되고 있어, 가품 유통 문제로 인한 브랜드 평판 훼손 가능성이 중소 브랜드 성장에 부담으로 작용할 수 있습니다.\n- 따라서 중소 브랜드가 성장하려면, 단순 가격 경쟁보다는 과학적 성분 커뮤니케이션과 브랜드만의 독특한 경험, 커뮤니티 소속감을 강화하는 전략이 필요할 것으로 보입니다.\n\n### 근거\n- 소비자들 사이에서 “아마존에서는 절대 스킨케어를 사지 말라”는 극단적인 조언이 퍼지고 있으며, 이는 가품 유통으로 인한 플랫폼 불신 때문입니다. 이에 따라 브랜드는 공식 ‘Sold by’ 표기 확인과 인증된 리테일러 이용을 권장하는 대응 문구를 사용하고 있습니다 [1].\n- 2025~2026년 소셜 미디어 및 이커머스 커뮤니티 분석 결과, ‘성분 민주주의’와 ‘플랫폼 불신’이 결합된 복합 위기 상황이 중소 브랜드에 특히 위협이 될 수 있음을 시사하고 있습니다 [2].\n- 라네즈 사례에서 보듯, 단순 저가 ‘저렴이’ 제품 경쟁에서 벗어나 과학적 커뮤니케이션과 브랜드 경험, 커뮤니티 소속감 강화가 브랜드 성장에 유리한 전략으로 평가됩니다 [3].\n\n### 권장사항\n- 중소 브랜드는 Amazon 내 공식 판매 채널을 명확히 하여 소비자 신뢰 회복에 주력해야 할 것으로 보입니다.\n- 제품 성분과 효능에 대한 과학적이고 투명한 커뮤니케이션을 강화하여 기존 고객 이탈을 방지하고 신규 고객을 유치하는 데 집중하는 것이 필요합니다.\n- 가격 경쟁보다는 브랜드만의 독특한 경험과 커뮤니티 소속감을 형성하는 마케팅 전략을 병행하여 장기적 성장 기반을 마련하는 것이 권장됩니다.\n- 플랫폼 리스크가 높은 상황임을 인지하고, Amazon 외 인증된 리테일러 채널과 병행하여 판매 전략을 다각화하는 것도 고려할 수 있습니다.\n\n---\n\n현재 확인된 데이터 기준으로, Amazon 뷰티 시장 내 중소 브랜드의 성장 가능성은 플랫폼 불신과 가품 유통 문제라는 위험 요인이 있으나, 이를 극복하는 소통과 경험 중심 전략이 성공 요소로 작용할 수 있을 것으로 보입니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 7.74\n\n3. 📄 **---**\n   - 관련도: 7.38\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 15520.725011825562,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
