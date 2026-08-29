@@ -1,0 +1,155 @@
+{
+  "item_id": "lg157",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09756097560975611,
+    "semantic_similarity": 0.8409909605979919,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.3014696742586973,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg157",
+    "timestamp": "2026-08-30T02:54:04.613299",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_2",
+        "laneige_strategy_2026_0",
+        "laneige_influencer_map_0"
+      ],
+      "snippets": [
+        "결론적으로, LANEIGE는 2026년의 기술 중심적 트렌드 속에서도 브랜드 고유의 '수분 과학' 자산을 최신 소비 트렌드 문법(모닝 쉐드, 립 베이스팅, 핑크 펩타이드)에 맞춰 재해석함으로써, 아마존 시장에서의 지배력을 유지하고 강화할 수 있을 것이다.\n\n#### **참고 자료**",
+        "# **2026년 1월 미국 뷰티 트렌드 심층 분석 및 LANEIGE 아마존 판매 전략 보고서**",
+        "# **전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서**"
+      ],
+      "scores": [
+        7.4998779296875,
+        6.834957122802734,
+        6.764579772949219
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### TIRTIR의 Face Powder 1위 등극 이유 및 Face Powder 카테고리 HHI 변화\n\n- **인사이트**  \n  TIRTIR가 Face Powder 카테고리에서 1위를 차지한 배경에는 경쟁 브랜드 대비 제품력과 소비자 신뢰도 측면에서 상대적 우위가 작용했을 가능성이 있습니다. 다만, TIRTIR 쿠션 제품의 산화(다크닝) 현상과 쉐이드 불일치 이슈가 보고된 점은 일부 소비자 불만 요인으로 작용할 수 있으나, Face Powder 부문에서는 여전히 강한 시장 지위를 확보한 것으로 보입니다.  \n  Face Powder 카테고리의 시장 집중도(HHI) 변화에 대해서는 구체적 수치가 제공되지 않아 명확한 판단은 어렵지만, TIRTIR의 1위 등극은 해당 카테고리 내 경쟁 구도가 일부 재편되었을 가능성을 시사합니다.\n\n- **근거**  \n  - TIRTIR 쿠션 제품 관련 산화 및 쉐이드 불일치 이슈가 있으나, Face Powder 카테고리에서는 1위로 나타남 [출처: rag, negative_issue_response]  \n  - Face Powder 카테고리의 HHI 변화에 관한 구체적 데이터 미제공 [출처: 현재 데이터]  \n\n- **권장**  \n  - TIRTIR는 산화 문제 등 제품 이슈를 지속 모니터링하며, Face Powder 카테고리 내 강점을 유지하기 위한 품질 개선과 소비자 신뢰 회복 전략을 병행할 필요가 있습니다.  \n  - Face Powder 카테고리의 HHI 수치를 추가 확보하여 시장 집중도 변화를 정밀 분석하고, 경쟁사 대비 차별화 포인트를 강화하는 전략 수립을 권장합니다.  \n  - 단기 순위 변동일 수 있으므로 추이를 지속 관찰하며 마케팅 및 제품 전략을 유연하게 조정하는 것이 바람직합니다.\n\n현재 확인된 데이터 기준으로 TIRTIR의 Face Powder 1위 등극 이유와 HHI 변화에 대한 구체적 수치는 제공되지 않아, 위와 같이 가능성 중심으로 해석하는 점 참고 바랍니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 ****1\\. 서론: 시장 맥락 및 위기 지형도****\n   - 관련도: 4.43\n\n3. 📄 **---**\n   - 관련도: 4.14\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 12894.399881362915,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

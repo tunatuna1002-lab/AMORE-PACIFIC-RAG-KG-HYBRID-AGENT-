@@ -1,0 +1,155 @@
+{
+  "item_id": "lg071",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08275862068965517,
+    "semantic_similarity": 0.8022713661193848,
+    "groundedness_score": 0.7142857142857143,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.2
+  },
+  "overall_score": 0.6182717464318612,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg071",
+    "timestamp": "2026-08-30T02:44:30.183802",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_1",
+        "amazon_ranking_diagnosis_9_2",
+        "amazon_ranking_diagnosis_3_2"
+      ],
+      "snippets": [
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁"
+      ],
+      "scores": [
+        3.133474588394165,
+        2.566190242767334,
+        2.518897533416748
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE Lip Sleeping Mask 현재 순위 관련 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 LANEIGE Lip Sleeping Mask의 구체적인 아마존 베스트셀러 순위 정보가 명확히 제시되어 있지 않습니다. 다만, 해당 카테고리는 시장 구조가 매우 분산되어 있으며(HHI: 0.000), LANEIGE의 존재감이 0.0%로 매우 낮아 진입 확대 기회가 있을 수 있다는 점이 확인됩니다[출처: Ontology Reasoning].\n\n- **근거**  \n  - 카테고리 내 LANEIGE 점유율 0.0%  \n  - 시장 집중도(HHI) 0.000으로 분산된 구조  \n  - 구체적 순위 데이터 미제공\n\n- **권장 사항**  \n  - 현재 확인된 데이터 기준으로, LANEIGE Lip Sleeping Mask의 순위 파악을 위해 추가적인 아마존 내 실시간 순위 데이터 확인이 필요합니다.  \n  - 시장 내 낮은 점유율을 고려할 때, 제품 라인업 확장 및 마케팅 강화로 진입 기회를 모색하는 전략이 유효할 수 있습니다.\n\n요약하면, LANEIGE Lip Sleeping Mask의 현재 아마존 내 구체적 순위는 제공된 데이터에 포함되어 있지 않아 확인이 필요하며, 해당 카테고리에서 LANEIGE의 존재감은 매우 낮은 상태로 보입니다[출처: Ontology Reasoning].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **개요**\n   - 관련도: 3.13\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6321.755170822144,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

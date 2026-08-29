@@ -1,0 +1,113 @@
+{
+  "item_id": "lg063",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08910891089108912,
+    "semantic_similarity": 0.7315708994865417,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.8888888889
+  },
+  "overall_score": 0.37269451626832006,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg063",
+    "timestamp": "2026-08-30T02:43:45.119170",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_2_0",
+        "amazon_ranking_diagnosis_4_0",
+        "amazon_algorithm_guide_2_1"
+      ],
+      "snippets": [
+        "---\n\n**2\\. 아마존 BSR의 해부학: 변동성의 메커니즘 이해**\n\nBSR의 급등락 원인을 역추적하기 위해서는 먼저 이 숫자가 어떻게 산출되고 갱신되는지에 대한 근본적인 메커니즘을 이해해야 합니다. 아마존의 BSR 공식은 기밀사항이지만, 수년간의 데이터 분석과 셀러들의 경험적 증거를 통해 몇 가지 결정적인 변수들이 밝혀졌습니다.\n\n### **2.1 시",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하"
+      ],
+      "scores": [
+        6.997267723083496,
+        6.967432975769043,
+        6.953300476074219
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### SoS(Share of Shelf)와 리뷰 수의 상관관계에 대한 인사이트\n\n- **인사이트**  \n  리뷰 수 자체는 SoS(Share of Shelf)를 직접 결정하는 요인은 아니지만, 긍정적 리뷰와 높은 전환율이 검색 알고리즘에서 중요한 신호로 작용할 수 있어 SoS에 간접적인 영향을 미칠 가능성이 있습니다. 즉, 리뷰가 많고 긍정적일수록 제품의 검색 노출과 구매 전환율이 높아져 SoS 상승에 기여할 수 있습니다. 반면, 단순히 리뷰 수만 많아도 부정적 감성이 포함되면 구매 전환 가능성이 낮아져 SoS에 부정적 영향을 줄 수 있습니다【1†L408-L415】【3†L187-L197】.\n\n- **근거**  \n  - 리뷰 수는 BSR(베스트셀러 랭킹)을 직접 결정하지 않으나, 긍정적 리뷰는 검색 알고리즘에서 중요한 신호로 작용한다【1†L408-L415】.  \n  - 리뷰 내 부정적 감성은 구매 전환 가능성을 낮춰 SoS 및 랭킹 하락에 영향을 줄 수 있다【3†L187-L197】.  \n  - 외부 트래픽과 의미론적 밀도 등 복합 요인과 함께 리뷰 품질이 SoS에 영향을 미치는 다변수 함수의 일부로 작용한다【3†L187-L197】.\n\n- **권장 사항**  \n  - 단순히 리뷰 수 증가에만 집중하기보다는, 리뷰의 긍정적 품질과 진정성을 확보하는 전략이 SoS 개선에 더욱 효과적일 수 있습니다.  \n  - 리뷰 수집 시 캠페인 여부와 리뷰의 감성 분석을 병행하여 부정적 영향 요소를 최소화하는 것이 바람직합니다.  \n  - SoS와 리뷰 수 간 관계는 단기 노이즈 가능성이 있으므로, 장기적 추이 관찰과 함께 외부 마케팅 활동 및 경쟁 상황도 함께 고려하는 것이 필요합니다.\n\n현재 확인된 데이터 기준으로, SoS와 리뷰 수는 직접적 상관관계보다는 리뷰의 질과 감성, 그리고 외부 요인과 복합적으로 작용하는 관계로 보입니다【1†L408-L415】【3†L187-L197】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **1. 필수 확인 체크리스트**\n   - 관련도: 5.73\n\n2. 📄 **---**\n   - 관련도: 5.12\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 5.66\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7961.355924606323,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

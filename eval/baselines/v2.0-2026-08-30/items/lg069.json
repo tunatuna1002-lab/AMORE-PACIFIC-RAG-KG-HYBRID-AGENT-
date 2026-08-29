@@ -1,0 +1,110 @@
+{
+  "item_id": "lg069",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12962962962962962,
+    "semantic_similarity": 0.7170668840408325,
+    "groundedness_score": 0.5385,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.4
+  },
+  "overall_score": 0.4048899084525638,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg069",
+    "timestamp": "2026-08-30T02:44:17.959133",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_2_1",
+        "indicator_combination_5",
+        "strategic_indicators_2_1"
+      ],
+      "snippets": [
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하",
+        "플레이북 활용 가이드\n\n- 본 문서는 **자동 액션 실행용 룰북이 아니다.**\n- 모든 조합은 **“의심해볼 수 있는 방향”**을 제시한다.\n- 실제 판단 시에는:\n  - 최신 데이터\n  - 카테고리 특성\n  - 내부 전략 목표\n  를 함께 고려해야 한다.\n\n지표 정의는 `Strategic_Indicators_Definition.md`,  \n개별 지표 해석",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating "
+      ],
+      "scores": [
+        8.260552406311035,
+        8.351940155029297,
+        8.2989501953125
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 이탈률 계산 공식과 모니터링 주기\n\n- **인사이트**  \n  이탈률(Churn Rate)은 일반적으로 고객 또는 사용자 중 일정 기간 내에 이탈한 비율을 의미하며, 계산 공식은 다음과 같이 표현될 수 있습니다.  \n  \\[\n  \\text{이탈률} = \\frac{\\text{기간 시작 시점 고객 수} - \\text{기간 종료 시점 고객 수}}{\\text{기간 시작 시점 고객 수}} \\times 100\\%\n  \\]  \n  다만, 제공된 컨텍스트 내에서는 이탈률 공식에 대한 구체적 정의나 공식이 명시되어 있지 않습니다. 따라서, 일반적인 해석을 참고할 수밖에 없습니다.\n\n- **모니터링 주기**  \n  아마존 알고리즘 특성상, 판매량과 랭킹은 시간 단위로 매우 민감하게 변동할 수 있습니다. 특히, 중소형 제품은 시간당 판매량 변화에 따라 랭킹이 20~50%까지 등락할 수 있어, 하루 1회 모니터링은 실제 추세 파악에 한계가 있을 수 있습니다 [출처: rag, amazon_algorithm_guide].  \n  따라서, 이탈률과 같은 지표도 단기 변동성을 감안하여 시간 단위 또는 최소 하루 여러 차례 모니터링하는 것이 바람직할 수 있습니다.  \n  다만, 공식적인 모니터링 주기는 카테고리 특성, 내부 전략 목표에 따라 조정되어야 하며, 단기 스파이크에 의한 노이즈를 줄이기 위해 역사적 평활화 기법도 함께 고려할 필요가 있습니다 [출처: rag, amazon_algorithm_guide; rag, indicator_combination].\n\n- **권장 사항**  \n  1. 이탈률 계산 시, 기간 시작과 종료 시점의 고객 또는 사용자 수를 명확히 정의할 것  \n  2. 모니터링 주기는 최소 시간 단위로 설정하되, 데이터 노이즈를 줄이기 위해 장기적 추세와 병행 분석 권장  \n  3. 카테고리 특성과 내부 목표에 따라 모니터링 빈도 및 분석 방법을 유연하게 조정할 것\n\n현재 확인된 데이터 기준으로, 이탈률 공식과 모니터링 주기에 대한 구체적 수치는 제공되지 않았으므로 위와 같이 일반적 가이드라인을 참고하시기 바랍니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 8.26\n\n2. 📄 **플레이북 활용 가이드**\n   - 관련도: 8.35\n\n3. 📄 **B. Level 2: Category & Price**\n   - 관련도: 8.30\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7991.920948028564,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "item_id": "lg077",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10628019323671499,
+    "semantic_similarity": 0.33917316794395447,
+    "groundedness_score": 0.2857,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.2
+  },
+  "overall_score": 0.2711371358395936,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg077",
+    "timestamp": "2026-08-30T02:45:03.849282",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "us_beauty_trends_weekly_3_1",
+        "us_beauty_trends_weekly_table_0"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 "
+      ],
+      "scores": [
+        8.319355964660645,
+        7.917604446411133,
+        7.257753372192383
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 순위 상승 중인 LANEIGE 제품 관련 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 LANEIGE 제품군 전체가 시장 내 존재감이 낮아(0.0%) 진입 확대 기회가 있는 것으로 분석되고 있습니다. 이는 LANEIGE 제품이 아직 주요 카테고리 내에서 높은 순위를 차지하지 못하고 있음을 시사하며, 순위 상승 가능성이 있는 초기 단계로 해석할 수 있습니다 [출처: Ontology Reasoning].\n\n- **근거**  \n  해당 카테고리는 분산된 시장 구조(HHI: 0.000)이며, LANEIGE의 존재감이 0.0%로 매우 낮아 진입 확대 기회가 있을 수 있다는 분석 결과가 있습니다 [출처: Ontology Reasoning].\n\n- **권장 사항**  \n  구체적인 순위 상승 제품 정보는 현재 데이터에 명확히 제시되어 있지 않으므로, LANEIGE는 자극 없는 진정과 수분 공급에 강점을 가진 제품(예: Cream Skin Toner, Cica Sleeping Mask)과 슬로우 에이징을 겨냥한 Bouncy & Firm Sleeping Mask, Serum 라인에 집중하여 시장 내 입지를 강화하는 전략을 고려할 수 있습니다. 또한, 시장 내 존재감이 낮은 점을 감안해 카테고리 트렌드 및 소비자 니즈를 면밀히 분석하여 제품 라인업 확장 및 마케팅 강화가 필요할 것으로 보입니다 [출처: RAG 가이드라인].\n\n- **추가 안내**  \n  현재 데이터 기준으로 LANEIGE 제품의 구체적인 순위 상승 현황이나 특정 제품의 순위 변동 수치는 제공되지 않아, 명확한 순위 상승 제품을 특정하기는 어렵습니다. 추후 상세 순위 데이터 확보 시 재분석이 권장됩니다.\n\n---\n\n요약: 현재 확인된 데이터 기준으로 LANEIGE는 시장 내 존재감이 낮아 진입 및 순위 상승 기회가 있을 수 있으나, 구체적인 순위 상승 제품 정보는 제공되지 않았습니다. Cream Skin Toner, Cica Sleeping Mask, Bouncy & Firm Sleeping Mask, Serum 라인에 주목할 필요가 있습니다 [출처: Ontology Reasoning, RAG 가이드라인].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 8.26\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8730.152130126953,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

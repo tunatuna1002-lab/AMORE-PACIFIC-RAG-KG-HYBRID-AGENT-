@@ -1,0 +1,115 @@
+{
+  "item_id": "lg192",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13389121338912133,
+    "semantic_similarity": 0.7225452065467834,
+    "groundedness_score": 0.0833,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.3439096111275648,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg192",
+    "timestamp": "2026-08-30T02:57:34.302904",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_2_2"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장"
+      ],
+      "scores": [
+        7.28426456451416,
+        7.47294282913208,
+        7.37783670425415
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE Lip Care 점유율이 높은 이유 인사이트\n\n- **인사이트**  \n  LANEIGE의 Lip Care 카테고리 내 점유율이 현재 낮은 편(0.0%)으로 나타나지만, 시장 구조가 매우 분산되어 있어(HHI: 0.000) 진입 및 점유율 확대에 유리한 환경으로 보입니다. 즉, 경쟁이 치열하지 않고 기회가 많아 LANEIGE가 강력한 브랜드 파워를 기반으로 점유율을 높일 가능성이 있습니다 [출처: Ontology Reasoning].\n\n- **추가 배경**  \n  LANEIGE는 ‘립 베이스팅(Lip Basting)’ 트렌드와 ‘Lip Sleeping Mask’ 같은 강력한 제품을 통해 입술 보습과 밤 타입 립 트리트먼트 시장에서 주목받고 있습니다. 특히, 소비자들이 밤 & 오일 기반 립 치료제에 높은 관심을 보이고 있어, LANEIGE의 제품이 이 수요와 잘 맞아 점유율 상승에 기여하는 것으로 보입니다 [출처: RAG 가이드라인].\n\n### 근거\n\n- Lip Care 시장의 HHI가 0.000으로 매우 분산되어 있음  \n- LANEIGE의 현재 점유율은 0.0%로 낮으나, 이는 진입 확대 기회로 해석 가능  \n- ‘립 베이스팅’ 트렌드와 ‘Lip Sleeping Mask’ 제품의 인지도 및 소비자 니즈 부합  \n- TikTok 등 소셜 미디어에서 #lipcare, #lipoil 해시태그가 수천 건 이상 사용되며 보습 중심의 립케어 수요 증가 관측 [출처: Ontology Reasoning, RAG 가이드라인, 소셜 데이터]\n\n### 권장 사항\n\n- LANEIGE는 현재 낮은 점유율을 고려할 때, ‘립 베이스팅’ 트렌드에 맞춘 제품 라인업 확장과 기존 강점인 밤 타입 립 트리트먼트의 효능 강조를 통해 시장 점유율을 확대할 전략을 검토할 필요가 있습니다.  \n- 소비자 보습 니즈가 높은 만큼, 밤 & 오일 기반 제품 마케팅 강화가 효과적일 수 있습니다.  \n- 인접 카테고리로 확장 시 기존 브랜드 파워를 활용하는 방안도 고려할 만합니다.\n\n---\n\n현재 확인된 데이터 기준으로, LANEIGE Lip Care 점유율이 높은 이유는 시장 내 진입 기회가 크고, ‘립 베이스팅’ 트렌드와 밤 타입 립 트리트먼트 제품이 소비자 니즈와 부합하기 때문으로 보입니다 [출처: Ontology Reasoning, RAG 가이드라인, 소셜 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n3. 📄 **---**\n   - 관련도: 5.60\n\n4. 📄 **이번 주 Top 10 키워드 및 의미**\n   - 관련도: 4.51\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10921.301364898682,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

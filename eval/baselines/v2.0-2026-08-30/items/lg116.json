@@ -1,0 +1,163 @@
+{
+  "item_id": "lg116",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.06896551724137931,
+    "semantic_similarity": 0.7786555290222168,
+    "groundedness_score": 0.1111111111111111,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.5555555555555556
+  },
+  "overall_score": 0.350619227497057,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg116",
+    "timestamp": "2026-08-30T02:49:26.590422",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "anua"
+      ],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_6_2",
+        "laneige_strategy_2026_5_1",
+        "laneige_influencer_map_2_11"
+      ],
+      "snippets": [
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "* **대표 크리에이터:**  \n  * Glow with Ava 13: '젤로 스킨(Jello Skin)' 트렌드의 창시자로서, 라네즈 제품을 활용해 탄력 있고 탱글탱글한 피부 질감을 보여줍니다. 그녀는 제품을 얼굴에 바르는 것뿐만 아니라, 예쁘게 정돈된 화장대를 보여주며 팔로워들의 소장 욕구를 자극합니다.  \n  * Ugly Duckling Skincar"
+      ],
+      "scores": [
+        6.6638593673706055,
+        6.136661529541016,
+        6.125378131866455
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care",
+        "anua"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### eos의 Lip Care 전략과 LANEIGE와의 관계 인사이트\n\n- **인사이트**  \n  Lip Care 시장은 매우 분산된 구조(HHI: 0.000)로, LANEIGE의 현재 시장 존재감은 0.0%로 매우 낮아 진입 확대 기회가 있을 수 있습니다. 이는 eos가 Lip Care 카테고리 내에서 성장 여지가 존재함을 시사합니다 [출처: Ontology Reasoning].\n\n- **관계 해석**  \n  LANEIGE는 Lip Care에서 독보적인 브랜드 파워를 가진 것으로 알려져 있으나, eos가 진입 확대를 모색할 수 있는 틈새가 존재하는 상황입니다. eos가 LANEIGE와 직접적으로 경쟁하는 위치라기보다는, 분산된 시장 내에서 차별화된 제품 라인업이나 기능성 강화로 입지를 넓힐 가능성이 있습니다.\n\n- **권장 전략**  \n  eos는 Lip Care 시장 내에서 LANEIGE가 강점으로 가진 '립 베이스팅' 트렌드나 펩타이드 트리트먼트와 같은 고기능성 요소를 참고하여, 자사 제품 라인업을 확장하거나 차별화된 기능을 개발하는 방향을 고려할 수 있습니다. 또한, 시장 내 분산 구조를 활용해 소비자 니즈에 맞춘 세분화 전략을 추진하는 것이 유리할 수 있습니다.\n\n- **불확실성**  \n  eos의 구체적인 제품 포지셔닝이나 현재 시장 점유율 데이터는 제공되지 않아, eos가 실제로 어떤 전략을 구사하고 있는지는 추가 확인이 필요합니다.\n\n---\n\n요약: Lip Care 시장은 분산되어 있어 eos가 LANEIGE 대비 낮은 존재감을 극복하고 진입 확대 기회를 모색할 수 있는 환경입니다. eos는 LANEIGE의 고기능성 트렌드를 참고해 차별화 전략을 추진하는 것이 권장됩니다 [출처: Ontology Reasoning, RAG].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n3. 📄 **---**\n   - 관련도: 7.70\n\n4. 📄 **분석 범위**\n   - 관련도: 6.15\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7784.01780128479,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

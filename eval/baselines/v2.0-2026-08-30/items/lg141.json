@@ -1,0 +1,156 @@
+{
+  "item_id": "lg141",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.15319148936170213,
+    "semantic_similarity": 0.5896130800247192,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.3756857445781112,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg141",
+    "timestamp": "2026-08-30T02:52:21.392615",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_1_1",
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_8_2"
+      ],
+      "snippets": [
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 ",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "비교**: Google Trends 등에서 제품 키워드 검색량 변화를 파악하고, 검색량 급증 시점과 매출을 비교한다【340261456527992†L274-L286】."
+      ],
+      "scores": [
+        8.455562591552734,
+        8.641743659973145,
+        8.447690963745117
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Skin Care 카테고리 신규 진입 브랜드의 성공 조건\n\n#### 인사이트\n- **제품 차별화 및 기능 강조**  \n  LANEIGE Cream Skin Toner & Moisturizer가 선구자적 위치를 점하고 있으나, 리뉴얼 제품에 대한 일부 부정적 반응(끈적임, 트러블 유발)이 존재합니다. 이로 인해 Dr. Ceuracle, Aestura, Tirtir 등 경쟁 브랜드가 약점을 공략할 가능성이 있습니다. 신규 브랜드는 제품의 '흡수력'과 '비코메도제닉(Non-comedogenic)' 속성을 명확히 내세우는 전략이 유리할 수 있습니다 [출처: rag, laneige_strategy_2026].\n\n- **소비자 커뮤니티 및 트렌드 활용**  \n  Glow Recipe with Ava, Ugly Duckling Skincare 등 대표 크리에이터들이 LANEIGE 제품을 활용해 피부 치유와 미학을 동시에 보여주는 점을 참고할 때, 신규 브랜드는 인플루언서와 협업하여 제품의 피부 개선 효과와 감성적 가치를 동시에 전달하는 마케팅이 효과적일 수 있습니다 [출처: rag, laneige_influencer_map].\n\n- **소비자 경험 및 커뮤니티 반응 모니터링**  \n  Reddit 등 커뮤니티에서 제품에 대한 세밀한 피드백이 활발히 이루어지고 있으므로, 신규 브랜드는 초기 소비자 경험을 적극 수집하고 빠르게 대응하는 체계를 갖추는 것이 경쟁력 확보에 도움이 될 수 있습니다 [출처: rag, laneige_strategy_2026].\n\n#### 권장 사항\n- 제품 개발 시 '흡수력'과 '비코메도제닉' 특성을 강조하여 기존 시장의 약점을 보완하는 방향으로 차별화할 것\n- 인플루언서 마케팅을 통해 피부 치유와 미학을 동시에 전달하는 메시지를 강화할 것\n- 온라인 커뮤니티에서 소비자 피드백을 적극 모니터링하고, 신속한 대응 체계를 구축할 것\n\n현재 확인된 데이터 기준으로, 신규 진입 브랜드는 위와 같은 전략적 요소를 고려할 때 Skin Care 카테고리 내에서 경쟁력을 갖출 가능성이 높아 보입니다 [출처: rag].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 6.14\n\n3. 📄 **---**\n   - 관련도: 6.03\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8917.670011520386,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

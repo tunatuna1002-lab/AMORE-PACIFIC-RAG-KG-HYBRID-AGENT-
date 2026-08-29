@@ -1,0 +1,156 @@
+{
+  "item_id": "lg188",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10588235294117648,
+    "semantic_similarity": 0.5163648724555969,
+    "groundedness_score": 0.25,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.5815022502857096,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg188",
+    "timestamp": "2026-08-30T02:57:09.850935",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "rank_volatility",
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_3_3",
+        "laneige_strategy_2026_4_1",
+        "laneige_strategy_2026_4_2"
+      ],
+      "snippets": [
+        "LANEIGE의 제품군은 전통적으로 '자극 없는 편안함'과 '수분 진정'에 초점을 맞춰왔기에, 이러한 자극 기반의 트렌드와는 대척점에 있다. 그러나 역설적으로 스피큘 제품의 인기는 LANEIGE에게 기회가 될 수 있다. 스피큘 사용 후 자극받은 피부를 진정시키고 장벽을 복구하기 위한 '애프터 케어' 제품으로 **Cream Skin Toner**나 **Cic",
+        "이 트렌드는 겨울철 건조함과 맞물려 폭발적인 반응을 얻고 있으며, **LANEIGE Lip Sleeping Mask**는 이 루틴의 2단계(베이스팅 단계)를 위한 최고의 제품으로 소비자들 사이에서 자연스럽게 바이럴되고 있다.14 특히 경쟁 제품인 일반 립밤이나 얇은 오일 제형은 이러한 '베이스팅' 효과를 내기에 부족하다는 인식이 지배적이다. 따라서 LANE",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는"
+      ],
+      "scores": [
+        7.454652786254883,
+        7.395411491394043,
+        7.359952926635742
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE 순위 변동성 관련 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 및 온톨로지 추론 결과에서는 LANEIGE의 순위 변동성이 가장 높은 특정 시기에 대한 직접적인 수치나 명확한 언급이 없습니다. 다만, 시장 구조가 매우 분산되어 있고(HHI: 0.000), LANEIGE의 존재감이 낮아(0.0%) 진입 확대 기회가 있다는 점에서, 순위 변동성이 상대적으로 클 가능성이 있습니다 [출처: Ontology Reasoning].\n\n- **근거**  \n  - HHI 0.000으로 분산된 시장 구조  \n  - LANEIGE 존재감 0.0%로 낮음  \n  - 진입 확대 기회가 존재함 [출처: Ontology Reasoning]\n\n- **권장 사항**  \n  - 현재 확인된 데이터 기준으로, LANEIGE의 순위 변동성이 가장 높은 시기를 정확히 파악하기 위해서는 추가적인 시계열 순위 데이터 분석이 필요합니다.  \n  - 시장 내 경쟁 상황과 소비자 반응 변화를 모니터링하며, 특히 신제품 출시나 시즌별 프로모션 시점에 집중하는 것이 유용할 수 있습니다.  \n  - 분산된 시장 구조를 활용해 인접 카테고리로의 확장 전략을 검토하는 것도 변동성 관리에 도움이 될 수 있습니다.\n\n요약하면, 현재 데이터 내에서는 LANEIGE 순위 변동성이 가장 높은 시기를 특정하기 어렵고, 추가 데이터 확보 및 분석이 필요함을 안내드립니다 [출처: Ontology Reasoning].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 7.45\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7929.832220077515,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

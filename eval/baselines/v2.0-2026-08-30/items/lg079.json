@@ -1,0 +1,113 @@
+{
+  "item_id": "lg079",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1686746987951807,
+    "semantic_similarity": 0.3309047818183899,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.5882954865885547,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg079",
+    "timestamp": "2026-08-30T02:45:15.942309",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_1_2",
+        "us_beauty_trends_weekly_1",
+        "laneige_strategy_2026_7_1"
+      ],
+      "snippets": [
+        "라네즈의 미국 시장 침투 전략은 철저히 \\*\\*'립 슬리핑 마스크(Lip Sleeping Mask)'\\*\\*를 입문 제품(Gateway Product)으로 활용하는 플라이휠 구조를 따릅니다.1 $24라는 비교적 접근 가능한 가격대와 즉각적인 시각적 만족감을 주는 이 제품은 소비자를 라네즈 생태계로 유입시키는 미끼 역할을 합니다. 이후 소비자는 '크림 스킨(",
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완"
+      ],
+      "scores": [
+        6.3640241622924805,
+        6.03748893737793,
+        5.885111331939697
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "현재 제공된 컨텍스트 내에서는 LANEIGE Water Bank Blue Hyaluronic 제품의 ASIN 정보가 명시되어 있지 않습니다. 따라서 해당 ASIN을 확인할 수 없습니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 7.39\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5970.426797866821,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

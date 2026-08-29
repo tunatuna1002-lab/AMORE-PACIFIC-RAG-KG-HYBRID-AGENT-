@@ -1,0 +1,154 @@
+{
+  "item_id": "lg049",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.04395604395604396,
+    "semantic_similarity": 0.5306047201156616,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.33
+  },
+  "overall_score": 0.4044104687664535,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg049",
+    "timestamp": "2026-08-30T02:42:13.956965",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_3_2",
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_3_1"
+      ],
+      "snippets": [
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "* **재고 소진(Stockout)의 여파:** 재고가 '0'이 되는 순간 BSR은 급락하기 시작합니다. 더 심각한 것은 재입고 후에도 이전의 랭킹으로 복구하는 데 최대 2\\~3주의 시간이 소요된다는 점입니다. 이는 '품절 기간' 동안 경쟁사들이 그 자리를 차지하여 알고리즘의 선호도가 이동했기 때문입니다.8  \n* **바이박스(Buy Box) 상실:** 바"
+      ],
+      "scores": [
+        6.828169345855713,
+        6.733295917510986,
+        6.560333251953125
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "현재 확인된 데이터 기준으로, Lip Care 카테고리의 HHI(Herfindahl-Hirschman Index) 현황에 대한 구체적인 수치나 분석 결과는 제공된 컨텍스트 내에 포함되어 있지 않습니다. 또한 온톨로지 추론 결과에서도 관련 정보가 확인되지 않습니다.\n\n따라서, Lip Care 카테고리의 HHI 현황에 대해서는 추가 데이터 확인이 필요합니다.\n\n[출처: 현재 데이터]  \n[출처: Ontology Reasoning]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 3.44\n\n3. 📄 **개요**\n   - 관련도: 3.40\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5098.793983459473,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

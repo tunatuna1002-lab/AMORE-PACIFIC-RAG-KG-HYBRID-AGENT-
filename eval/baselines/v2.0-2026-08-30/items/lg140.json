@@ -1,0 +1,161 @@
+{
+  "item_id": "lg140",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.11570247933884298,
+    "semantic_similarity": 0.6035867929458618,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.3333333333
+  },
+  "overall_score": 0.3000693678359567,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg140",
+    "timestamp": "2026-08-30T02:52:14.975452",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_5_1",
+        "laneige_influencer_map_2_11",
+        "laneige_strategy_2026_4_0"
+      ],
+      "snippets": [
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "* **대표 크리에이터:**  \n  * Glow with Ava 13: '젤로 스킨(Jello Skin)' 트렌드의 창시자로서, 라네즈 제품을 활용해 탄력 있고 탱글탱글한 피부 질감을 보여줍니다. 그녀는 제품을 얼굴에 바르는 것뿐만 아니라, 예쁘게 정돈된 화장대를 보여주며 팔로워들의 소장 욕구를 자극합니다.  \n  * Ugly Duckling Skincar",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 "
+      ],
+      "scores": [
+        6.1402363777160645,
+        6.03061580657959,
+        5.677123069763184
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Amazon Prime Day가 뷰티 카테고리 시장 구조에 미치는 영향\n\n#### 인사이트\n- Amazon Prime Day는 뷰티 카테고리 내에서 단기적으로 트래픽과 판매 전환을 증가시킬 가능성이 있습니다.  \n- 이로 인해 특정 브랜드나 제품의 순위 변동이 발생할 수 있으나, 현재 제공된 데이터 내에서는 Prime Day 직후의 구체적인 순위 변동이나 시장 집중도 변화에 대한 직접적인 수치는 확인되지 않습니다.  \n- Prime Day와 같은 대규모 프로모션 이벤트는 TikTok, Instagram, Reddit 등 소셜 미디어에서 언급량과 조회수가 급증하는 경향이 있으며, Amazon Attribution 링크를 통해 트래픽과 판매 전환 효과를 측정할 수 있습니다【1†rag】.  \n- 따라서 Prime Day가 뷰티 카테고리 내 브랜드별 순위 및 시장 점유율에 미치는 영향은 외부 트래픽 유입과 소셜 미디어 바이럴 정도에 따라 달라질 수 있습니다.\n\n#### 근거\n- Prime Day와 같은 이벤트 시점에 TikTok/Instagram/Reddit 등에서 관련 해시태그 및 언급량 급증 여부를 확인하고, Amazon Attribution을 통해 트래픽과 판매 전환을 측정하는 방법이 권장됩니다【1†rag】.  \n- TikTok에서 #AmazonFinds, #AmazonMustHaves 등의 해시태그를 통한 제품 바이럴이 아마존 판매에 직접적인 영향을 미친 사례가 보고되어, Prime Day 기간 중 소셜 미디어 활동이 매출과 순위에 영향을 줄 수 있음을 시사합니다【2†rag】【3†rag】.\n\n#### 권장 사항\n- Prime Day 전후로 뷰티 카테고리 내 주요 브랜드 및 제품의 소셜 미디어 언급량과 조회수를 모니터링할 것을 권장합니다.  \n- Amazon Attribution 및 TikTok Analytics 등 도구를 활용해 Prime Day 기간 동안 유입된 외부 트래픽과 판매 전환율을 분석하여, 프로모션 효과를 정량적으로 평가하는 것이 필요합니다.  \n- 단기 순위 변동이 관찰될 경우, 이벤트 효과인지 내부 알고리즘 변경이나 경쟁 상황 변화인지 추가 분석이 요구됩니다.  \n- 현재 데이터 내 Prime Day 직후 뷰티 카테고리 시장 구조 변화에 대한 구체적 수치가 없으므로, 추후 데이터 수집 및 분석을 통해 지속적으로 모니터링하는 것이 바람직합니다.\n\n---\n\n[출처: amazon_ranking_diagnosis (rag)]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **4. 가설 트리 (If‑Then)**\n   - 관련도: 6.29\n\n3. 📄 **---**\n   - 관련도: 6.13\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10987.934112548828,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

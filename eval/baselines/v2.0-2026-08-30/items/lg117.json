@@ -1,0 +1,161 @@
+{
+  "item_id": "lg117",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0746268656716418,
+    "semantic_similarity": 0.6303570866584778,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.8
+  },
+  "overall_score": 0.5784485557097108,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg117",
+    "timestamp": "2026-08-30T02:49:27.079188",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "anua"
+      ],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_6_2",
+        "laneige_strategy_2026_5_1",
+        "laneige_influencer_map_2_11"
+      ],
+      "snippets": [
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "* **대표 크리에이터:**  \n  * Glow with Ava 13: '젤로 스킨(Jello Skin)' 트렌드의 창시자로서, 라네즈 제품을 활용해 탄력 있고 탱글탱글한 피부 질감을 보여줍니다. 그녀는 제품을 얼굴에 바르는 것뿐만 아니라, 예쁘게 정돈된 화장대를 보여주며 팔로워들의 소장 욕구를 자극합니다.  \n  * Ugly Duckling Skincar"
+      ],
+      "scores": [
+        6.6638593673706055,
+        6.136661529541016,
+        6.125378131866455
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care",
+        "anua"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### ANUA 브랜드의 Skin Care 성장 전략 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 및 온톨로지 추론 결과 내에서는 ANUA 브랜드의 Skin Care 성장 전략에 관한 구체적 정보가 확인되지 않습니다. 따라서 ANUA의 성장 전략에 대해 명확한 분석이나 수치 인용이 어렵습니다.\n\n- **근거**  \n  관련 온톨로지 추론 결과 및 Knowledge Graph에 ANUA 브랜드 관련 내용이 없으며, 참고 가이드라인 및 현재 데이터에도 ANUA의 Skin Care 전략에 대한 언급이 없습니다 [출처: 현재 데이터, Ontology Reasoning].\n\n- **권장**  \n  ANUA 브랜드의 Skin Care 성장 전략을 파악하기 위해서는 추가적인 데이터 수집이나 브랜드 공식 발표, 시장 내 순위 및 소비자 반응 분석이 필요할 것으로 보입니다. 현재 확인된 데이터 기준으로는 구체적 전략 제시가 어렵다는 점 참고 바랍니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 6.66\n\n3. 📄 **---**\n   - 관련도: 6.14\n\n4. 📄 **---**\n   - 관련도: 6.13\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 4889.332056045532,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

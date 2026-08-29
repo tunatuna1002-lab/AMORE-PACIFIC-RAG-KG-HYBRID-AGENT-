@@ -1,0 +1,111 @@
+{
+  "item_id": "lg131",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10434782608695652,
+    "semantic_similarity": 0.8093562722206116,
+    "groundedness_score": 0.5833,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.4418970355143478,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg131",
+    "timestamp": "2026-08-30T02:51:04.356714",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "bsr"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_4_2"
+      ],
+      "snippets": [
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "- **리뷰와 별점의 영향**: BSR은 리뷰 수에 직접 영향을 받지 않지만【437377726246902†L408-L415】, 아마존의 검색 알고리즘은 높은 클릭률·전환율·긍정적 리뷰를 **고객 참여(CTR, CVR)** 지표로 간주하며, 이는 순위에 반영된다【340261456527992†L187-L197】. 최근 부정적 리뷰의 급증이나 별점 하락은 전환율"
+      ],
+      "scores": [
+        6.912650108337402,
+        6.8018646240234375,
+        6.503377914428711
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Amazon BSR 알고리즘이 브랜드 SoS에 미치는 영향 인사이트\n\n- **인사이트**  \n  Amazon BSR(베스트셀러 랭킹) 알고리즘은 브랜드 Share of Shelf(SoS)에 간접적으로 영향을 미칠 수 있습니다. BSR은 최근 및 누적 판매량을 기반으로 산출되며, 판매 속도에 더 큰 가중치를 둡니다. 따라서 BSR이 개선되면 해당 브랜드 제품의 노출과 판매 기회가 증가하여 SoS 상승으로 이어질 가능성이 있습니다. 다만, BSR 자체는 고객 리뷰 수나 페이지 조회수에 직접 영향을 받지 않으므로, SoS 변화는 BSR과 함께 작용하는 광고, 가격 경쟁력, 카테고리 선택 등 복합 요인의 결과일 수 있습니다.\n\n- **근거**  \n  - BSR은 최근 판매량에 더 큰 가중치를 두고 계산되며, 고객 리뷰나 페이지 조회수는 직접 반영하지 않습니다【437377726246902†L408-L415】.  \n  - 아마존 검색 알고리즘은 클릭률(CTR), 전환율(CVR), 긍정적 리뷰 등 고객 참여 지표를 반영하여 순위에 영향을 주므로, BSR 개선과 함께 브랜드 노출이 증가할 수 있습니다【340261456527992†L187-L197】.  \n  - 2025-2026년 아마존 랭킹은 판매량 외에도 의미론적 밀도, 지식 그래프 적합성, 외부 트래픽 가중치 등 다변수 함수 결과로 나타나므로, BSR과 SoS 간 관계는 단순하지 않을 수 있습니다【amazon_algorithm_guide】.\n\n- **권장 사항**  \n  1. BSR 개선을 위해 카테고리 적합성, 가격 경쟁력, 광고 활용을 전략적으로 병행할 것을 권장합니다.  \n  2. 브랜드 SoS를 높이기 위해서는 BSR뿐 아니라 고객 참여 지표(CTR, CVR)와 긍정적 리뷰 관리에도 주의를 기울여야 합니다.  \n  3. BSR과 SoS 간 상관관계는 단기 변동성에 영향을 받을 수 있으므로, 장기 추이를 모니터링하며 전략을 조정하는 것이 바람직합니다.\n\n현재 확인된 데이터 기준으로, Amazon BSR 알고리즘은 브랜드 SoS에 직접적 영향보다는 판매 성과 및 고객 참여 지표를 통한 간접적 영향이 주된 경로로 보입니다【출처: 현재 데이터】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **참고문헌**\n   - 관련도: 6.91\n\n2. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 6.80\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9567.588806152344,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

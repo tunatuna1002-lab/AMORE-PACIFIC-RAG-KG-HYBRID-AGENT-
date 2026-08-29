@@ -1,0 +1,158 @@
+{
+  "item_id": "lg058",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.102803738317757,
+    "semantic_similarity": 0.27677711844444275,
+    "groundedness_score": 0.625,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.125
+  },
+  "overall_score": 0.32499561044193126,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg058",
+    "timestamp": "2026-08-30T02:43:14.770589",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_2_2"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장"
+      ],
+      "scores": [
+        2.732252597808838,
+        2.428241014480591,
+        2.405580520629883
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 순위 변동성이 높은 카테고리와 낮은 카테고리의 차이 인사이트\n\n- **인사이트**  \n  순위 변동성이 높은 카테고리는 대체로 메인 카테고리(예: Kitchen & Dining)처럼 시장 전체의 계절성, 대형 이벤트(프라임 데이 등) 영향이 크고, 경쟁이 광범위하여 노이즈가 심한 경향이 있습니다. 반면, 순위 변동성이 낮은 카테고리는 세부 하위 카테고리(예: Garlic Presses)로, 경쟁 제품군이 좁고 직접적인 경쟁 관계를 반영하기 때문에 변동폭이 상대적으로 작을 수 있습니다.  \n  즉, 상위 카테고리는 외부 요인과 대규모 프로모션에 따른 경쟁사의 판매량 변화에 민감해 순위 변동성이 높고, 하위 카테고리는 특정 제품군 내 경쟁에 의해 변동성이 제한되는 구조로 보입니다.\n\n- **근거**  \n  - \"메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장의 계절성이나 대형 이벤트의 영향을 많이 받으므로 노이즈가 심합니다\"  \n  - \"세부 하위 카테고리(예: Garlic Presses)의 랭킹 변동은 직접적인 경쟁 관계를 반영합니다\"  \n  - \"내 제품의 판매량이 동일해도 경쟁사들이 대규모 프로모션을 하면 내 제품 랭킹이 급락하는 현상이 발생할 수 있습니다\" [출처: RAG 가이드 3]\n\n- **권장**  \n  - 순위 변동 원인 분석 시에는 반드시 동일 카테고리 내에서 하위 카테고리 랭킹 변동폭을 우선적으로 확인하여 노이즈를 걸러내는 전략이 필요합니다.  \n  - 마케터는 메인 카테고리에서의 급격한 순위 변동을 단기 노이즈로 인지하고, 하위 카테고리 내 안정적 순위 추이를 중점 모니터링하는 것이 바람직할 수 있습니다.  \n  - 또한, 대형 이벤트나 외부 트래픽 영향이 큰 카테고리에서는 외부 마케팅 채널과 연계한 전략 조정이 필요할 가능성이 있습니다.\n\n현재 확인된 데이터 기준으로, 순위 변동성 차이는 카테고리의 세분화 정도와 외부 영향 요인에 따라 달라지는 것으로 보입니다 [출처: RAG 가이드 3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 7.99\n\n2. 📄 **개요**\n   - 관련도: 7.97\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8572.635889053345,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

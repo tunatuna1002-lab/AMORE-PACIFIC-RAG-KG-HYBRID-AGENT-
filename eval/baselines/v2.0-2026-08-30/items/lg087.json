@@ -1,0 +1,158 @@
+{
+  "item_id": "lg087",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.3333333333333333,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0816326530612245,
+    "semantic_similarity": 0.5964064598083496,
+    "groundedness_score": 0.75,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5119679646027062,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg087",
+    "timestamp": "2026-08-30T02:46:00.813229",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "e.l.f."
+      ],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_1",
+        "amazon_ranking_diagnosis_9_2",
+        "strategic_indicators_3_0"
+      ],
+      "snippets": [
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석"
+      ],
+      "scores": [
+        3.4552507400512695,
+        3.3629560470581055,
+        3.1938185691833496
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder",
+        "e.l.f."
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### e.l.f. Cosmetics의 Face Powder 주요 제품 순위 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 e.l.f. Cosmetics의 Face Powder 카테고리 내 개별 제품별 구체적인 베스트셀러 순위 정보가 확인되지 않습니다. 또한 온톨로지 추론 결과에서도 관련 순위나 제품별 랭킹 데이터가 제공되지 않아, e.l.f. Cosmetics의 Face Powder 주요 제품 순위를 특정하기 어렵습니다.\n\n- **근거**  \n  제공된 컨텍스트 및 온톨로지 추론 결과에 e.l.f. Cosmetics의 Face Powder 제품별 순위 데이터가 포함되어 있지 않음 [출처: 현재 데이터]  \n  관련 온톨로지 추론 결과 없음 [출처: Ontology Reasoning]\n\n- **권장**  \n  e.l.f. Cosmetics의 Face Powder 주요 제품 순위를 확인하기 위해서는 추가적인 아마존 베스트셀러 순위 데이터 수집이나, 해당 카테고리 내 제품별 BSR 데이터 확보가 필요할 것으로 보입니다.  \n  단기적으로는 동일 카테고리 내에서 순위 변동 추이를 모니터링하며, 마케팅 및 재고 상황과 연계해 분석하는 전략을 권장합니다.\n\n현재 확인된 데이터 기준으로는 e.l.f. Cosmetics Face Powder 주요 제품 순위에 대한 구체적 답변이 어렵습니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **개요**\n   - 관련도: 3.46\n\n3. 📄 **C. Level 3: Product & Risk**\n   - 관련도: 3.19\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5910.154104232788,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

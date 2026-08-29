@@ -1,0 +1,158 @@
+{
+  "item_id": "lg132",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09090909090909091,
+    "semantic_similarity": 0.6598440408706665,
+    "groundedness_score": 0.25,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.0
+  },
+  "overall_score": 0.4655677818601782,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg132",
+    "timestamp": "2026-08-30T02:51:19.336768",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_5_1",
+        "laneige_strategy_2026_4_0",
+        "laneige_strategy_2026_5_2"
+      ],
+      "snippets": [
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "LANEIGE가 주력하고 있는 **Bouncy & Firm Sleeping Mask**와 **Serum**은 '슬로우 에이징(Slow-aging)'과 '프리주브네이션(Prejuvenation)' 트렌드를 겨냥하고 있다.9 20대부터 노화를 예방하려는 젊은 층을 타겟으로 하며, 틱톡에서 유행하는 '탱글탱글한 피부(Plump Skin)'를 시각적으로 구현해 주"
+      ],
+      "scores": [
+        6.074570655822754,
+        5.581492900848389,
+        5.246644020080566
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Skin Care 카테고리 프리미엄화 트렌드 인사이트\n\n- **인사이트**  \n  Skin Care 카테고리 내 프리미엄화는 '슬로우 에이징(Slow-aging)'과 '프리주브네이션(Prejuvenation)' 트렌드를 중심으로 전개되고 있습니다. 특히 LANEIGE의 Bouncy & Firm Sleeping Mask와 Serum 제품군이 이 흐름을 대표하며, 젊은 층을 대상으로 노화 예방과 탱글탱글한 피부 표현을 강조하는 마케팅 전략을 구사하고 있습니다.  \n  또한, 감각적 경험(Sensory Experience)을 중시하는 소비자 니즈에 부응하여, 샤베트 같은 텍스처와 작약 향, 핑크빛 패키지 등으로 제품 사용 자체의 즐거움을 제공하는 점이 프리미엄화의 중요한 요소로 작용하는 것으로 보입니다.  \n  반면, 가격 경쟁에서는 일부 PDRN 세럼 대비 불리할 수 있으나, 기능 중심 제품과 차별화된 감성적 가치를 통해 프리미엄 시장 내 입지를 다지고 있는 상황입니다.\n\n- **근거**  \n  - LANEIGE Bouncy & Firm Sleeping Mask와 Serum은 슬로우 에이징과 프리주브네이션 트렌드를 겨냥하며, 젊은 층을 타겟으로 함 [출처: rag]  \n  - 감각적 경험 측면에서 샤베트 텍스처, 작약 향, 핑크빛 패키지로 차별화 [출처: rag]  \n  - 가격 경쟁($45 vs $19)에서는 불리하지만 감성적 가치로 우위 점유 [출처: rag]\n\n- **권장**  \n  - 프리미엄화 전략을 지속하려면, 기능적 효능과 더불어 감성적 경험을 강화하는 제품 개발 및 마케팅에 집중할 필요가 있습니다.  \n  - 젊은 층의 노화 예방 관심을 반영한 '슬로우 에이징'과 '프리주브네이션' 메시지를 명확히 전달하는 것이 중요할 수 있습니다.  \n  - 가격 경쟁력과 감성 가치 간 균형을 맞추는 전략적 포지셔닝 검토가 권장됩니다.\n\n현재 확인된 데이터 기준으로, Skin Care 카테고리 프리미엄화는 기능과 감성 경험의 결합을 통해 이루어지고 있는 것으로 보입니다 [출처: rag].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 6.07\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 12669.756889343262,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

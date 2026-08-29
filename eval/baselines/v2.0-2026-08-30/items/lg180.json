@@ -1,0 +1,157 @@
+{
+  "item_id": "lg180",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09615384615384615,
+    "semantic_similarity": 0.4059053659439087,
+    "groundedness_score": 0.1667,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.1667
+  },
+  "overall_score": 0.39152466242213124,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg180",
+    "timestamp": "2026-08-30T02:56:27.114060",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_0",
+        "laneige_strategy_2026_7_0",
+        "negative_issue_response_6_0"
+      ],
+      "snippets": [
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "---\n\n**7\\. 결론 및 전략적 제언**\n\n2026년 1월, 미국 뷰티 시장은 '재생'과 '회복'이라는 거대한 테마 아래, 고기능성 성분과 감각적인 텍스처가 결합된 제품을 요구하고 있다. LANEIGE는 PDRN이나 스피큘과 같은 공격적인 바이오 성분 트렌드에는 다소 뒤처져 보일 수 있으나, '편안한 고효능(Comfortable Efficacy)'이라는",
+        "---\n\n**6\\. 위기 벡터 V: 플랫폼 불신과 가품 공포 \\- 공급망(Supply Chain)의 위기**\n\n### **6.1. 이슈의 발단: 아마존의 '복불복' 게임**\n\n코스알엑스(COSRX), 라운드랩, 아누아 등 인기 K-뷰티 제품들이 아마존에서 '가품(Fake)' 논란에 시달리고 있다. 아마존의 재고 혼합(Commingled Inventory) "
+      ],
+      "scores": [
+        4.221238136291504,
+        3.4708807468414307,
+        3.470156192779541
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE 출시 이후 Amazon 순위 성장 히스토리 인사이트\n\n- **인사이트**  \n  현재 LANEIGE의 Amazon 내 해당 카테고리 점유율은 0.0%로 매우 낮아, 시장 내 존재감이 아직 크지 않은 상태입니다. 이는 분산된 시장 구조(HHI: 0.000)와 맞물려, LANEIGE가 진입 초기 단계이거나 확장 여지가 큰 상황임을 시사합니다. 따라서 출시 이후 뚜렷한 순위 상승 히스토리가 확인되기 어려우며, 성장 가능성이 열려 있는 상태로 보입니다 [출처: Ontology Reasoning].\n\n- **근거**  \n  - HHI 0.000 (분산된 시장 구조)  \n  - LANEIGE 존재감 0.0% (현재 카테고리 내 점유율) [출처: Ontology Reasoning]\n\n- **권장 사항**  \n  - 카테고리 내 소비자 니즈와 트렌드를 면밀히 분석하여, LANEIGE의 강점인 ‘자극 없는 편안함’과 ‘수분 진정’ 콘셉트를 활용한 제품 라인업 확장 검토  \n  - 특히 ‘Cream Skin Toner’나 ‘Cica Sleeping Mask’ 같은 애프터 케어 제품으로 스피큘 트렌드 사용자 대상 포지셔닝 강화  \n  - ‘Bouncy & Firm Sleeping Mask’와 ‘Serum’ 라인업을 통한 슬로우 에이징 및 프리주브네이션 트렌드 공략도 고려할 만함 [출처: RAG 가이드라인]\n\n- **추가 안내**  \n  현재 확인된 데이터 기준으로, LANEIGE의 Amazon 내 구체적인 순위 성장 추이는 제공되지 않아, 향후 순위 변동 추이를 지속 모니터링하는 것이 필요합니다.\n\n---\n\n요약하면, LANEIGE는 Amazon 내 해당 카테고리에서 아직 초기 진입 단계로 보이며, 순위 성장 히스토리는 명확하지 않습니다. 다만, 시장 구조와 브랜드 강점을 고려할 때 성장 가능성은 열려 있는 상황으로 판단됩니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 7.76\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8130.2549839019775,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

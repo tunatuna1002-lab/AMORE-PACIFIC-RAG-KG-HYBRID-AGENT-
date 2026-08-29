@@ -1,0 +1,155 @@
+{
+  "item_id": "lg108",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13043478260869568,
+    "semantic_similarity": 0.23169979453086853,
+    "groundedness_score": 0.071,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.625
+  },
+  "overall_score": 0.4340654452758941,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg108",
+    "timestamp": "2026-08-30T02:48:32.227664",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_2",
+        "us_beauty_trends_weekly_1",
+        "laneige_strategy_2026_4_2"
+      ],
+      "snippets": [
+        "결론적으로, LANEIGE는 2026년의 기술 중심적 트렌드 속에서도 브랜드 고유의 '수분 과학' 자산을 최신 소비 트렌드 문법(모닝 쉐드, 립 베이스팅, 핑크 펩타이드)에 맞춰 재해석함으로써, 아마존 시장에서의 지배력을 유지하고 강화할 수 있을 것이다.\n\n#### **참고 자료**",
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는"
+      ],
+      "scores": [
+        6.9439191818237305,
+        6.628984451293945,
+        6.44538688659668
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 0,
+              "product_count": 0
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE 지속 성장을 위한 카테고리 확장 전략 인사이트\n\n- **인사이트**  \n  현재 LANEIGE가 진입을 고려 중인 카테고리는 시장 집중도가 매우 낮은 분산된 구조(HHI: 0.000)이며, LANEIGE의 현재 시장 점유율은 0.0%로 매우 낮아 진입 확대의 기회가 있을 수 있습니다. 이는 신규 카테고리 확장 시 경쟁 강도가 낮고, 브랜드 존재감을 키울 여지가 크다는 점을 시사합니다 [출처: Ontology Reasoning].\n\n- **근거**  \n  - 시장 집중도(HHI) 0.000: 분산된 시장 구조  \n  - LANEIGE 점유율 0.0%: 현재 존재감 미미  \n  - 신뢰도 70%로 비교적 높은 확률로 진입 기회 존재 [출처: Ontology Reasoning].\n\n- **권장 전략**  \n  1. **인접 카테고리 우선 검토**: 기존 LANEIGE의 강점인 ‘수분 과학’과 ‘자극 없는 편안함’에 부합하는 인접 카테고리에서 제품 라인업 확장 가능성을 탐색하는 것이 바람직합니다.  \n  2. **소비자 니즈 및 트렌드 분석 병행**: 카테고리별 최신 소비자 트렌드와 니즈를 면밀히 분석하여, LANEIGE의 브랜드 아이덴티티와 시너지를 낼 수 있는 제품을 개발하는 전략이 필요합니다.  \n  3. **기존 강점 활용**: 예를 들어, ‘애프터 케어’ 제품군(예: Cream Skin Toner, Cica Sleeping Mask)처럼 자극받은 피부 진정에 초점을 맞춘 제품 확장이 유효할 수 있습니다 [출처: RAG 가이드].\n\n- **추가 고려사항**  \n  - 확장 시 기존 브랜드 이미지와 부합하는 제품 개발이 중요하며, 단순한 확장보다는 기능성 및 소비자 체감 가치를 높이는 방향이 권장됩니다.  \n  - 단기적인 시장 반응 모니터링을 통해 전략 조정이 필요할 수 있습니다.\n\n현재 확인된 데이터 기준으로, LANEIGE는 분산된 시장 내에서 존재감이 낮은 카테고리를 중심으로 신중한 카테고리 확장 전략을 추진하는 것이 지속 성장에 긍정적 영향을 줄 가능성이 있습니다 [출처: Ontology Reasoning, RAG 가이드].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n2. 📄 **---**\n   - 관련도: 8.43\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8422.052145004272,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
