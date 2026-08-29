@@ -1027,7 +1027,7 @@ Do not include any explanation."""
                 ranked = self._reranker.rerank(query, all_results, top_k=top_k)
                 result = [
                     {
-                        "id": doc.metadata.get("chunk_id", ""),
+                        "id": doc.metadata.get("chunk_id") or doc.metadata.get("id", ""),
                         "content": doc.content,
                         "metadata": doc.metadata,
                         "score": doc.score,
@@ -1097,7 +1097,10 @@ Do not include any explanation."""
                         "brands_covered": chunk.get("brands_covered", []),
                     }
                 else:
-                    metadata = results["metadatas"][0][i]
+                    # Chroma 메타데이터 폴백 — chunk_id를 보존해야
+                    # 리랭킹 후 재조립(search)에서 id가 유실되지 않는다
+                    metadata = dict(results["metadatas"][0][i] or {})
+                    metadata.setdefault("chunk_id", chunk_id)
 
                 search_results.append(
                     {
