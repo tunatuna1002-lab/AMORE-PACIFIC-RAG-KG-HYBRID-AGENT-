@@ -513,6 +513,61 @@ class SQLiteStorage:
             limit=10000,
         )
 
+    async def get_brand_metrics(
+        self,
+        start_date: str,
+        end_date: str,
+        category_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """저장된 브랜드 메트릭 조회 (기간 내 전체 브랜드).
+
+        /api/historical이 매 요청 raw_data에서 재계산하지 않도록 하는 조회 경로.
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        sql = """
+        SELECT snapshot_date, category_id, brand, sos, brand_avg_rank,
+               product_count, cpi, avg_rating_gap
+        FROM brand_metrics
+        WHERE snapshot_date BETWEEN ? AND ?
+        """
+        params: list[Any] = [start_date, end_date]
+        if category_id:
+            sql += " AND category_id = ?"
+            params.append(category_id)
+        sql += " ORDER BY snapshot_date, sos DESC"
+
+        async with self.get_async_connection() as conn:
+            cursor = await conn.execute(sql, tuple(params))
+            return [dict(row) for row in await cursor.fetchall()]
+
+    async def get_market_metrics(
+        self,
+        start_date: str,
+        end_date: str,
+        category_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """저장된 시장 메트릭 조회 (기간 내)."""
+        if not self._initialized:
+            await self.initialize()
+
+        sql = """
+        SELECT snapshot_date, category_id, hhi, churn_rate,
+               category_avg_price, category_avg_rating
+        FROM market_metrics
+        WHERE snapshot_date BETWEEN ? AND ?
+        """
+        params: list[Any] = [start_date, end_date]
+        if category_id:
+            sql += " AND category_id = ?"
+            params.append(category_id)
+        sql += " ORDER BY snapshot_date"
+
+        async with self.get_async_connection() as conn:
+            cursor = await conn.execute(sql, tuple(params))
+            return [dict(row) for row in await cursor.fetchall()]
+
     async def save_brand_metrics(self, metrics: list[dict[str, Any]]) -> int:
         """브랜드 메트릭 저장"""
         if not self._initialized:

@@ -18,7 +18,11 @@ from src.api.dependencies import (
     limiter,
     load_dashboard_data,
 )
-from src.tools.calculators.metric_calculator import SOS_MIN_SAMPLE, calculate_sos_pct
+from src.tools.calculators.metric_calculator import (
+    SOS_MIN_SAMPLE,
+    UNKNOWN_BRAND_LABELS,
+    calculate_sos_pct,
+)
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -28,6 +32,33 @@ _RESOLVED_DATA_DIR = "/data" if Path("/data").exists() else "./data"
 
 router = APIRouter(tags=["data"])
 
+# 대시보드 배지 임계값 기본값 (config/thresholds.json이 단일 소스, 아래는 폴백)
+_DEFAULT_BADGE_THRESHOLDS = {
+    "sos_leader": 15,
+    "sos_strong": 8,
+    "rank_near_top": 3,
+    "rank_top10": 10,
+    "cpi_score_strong": 90,
+    "cpi_score_ok": 50,
+    "brand_count_high": 15,
+    "brand_count_mid": 5,
+}
+
+
+def load_badge_thresholds() -> dict[str, float]:
+    """config/thresholds.json의 dashboard_badges 블록을 읽는다.
+
+    대시보드 JS가 임계값을 매직넘버로 재구현하던 것을 config 하나로 모은다 (§6.1).
+    """
+    config_path = Path(__file__).parent.parent.parent.parent / "config" / "thresholds.json"
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            loaded = json.load(f).get("dashboard_badges", {})
+        return {**_DEFAULT_BADGE_THRESHOLDS, **loaded}
+    except Exception as e:
+        logger.warning(f"배지 임계값 설정 로드 실패, 기본값 사용: {e}")
+        return dict(_DEFAULT_BADGE_THRESHOLDS)
+
 
 @router.get("/api/data")
 @limiter.limit("30/minute")
@@ -36,6 +67,8 @@ async def get_data(request: Request):
     data = load_dashboard_data()
 
     if data:
+        # 배지 임계값은 항상 config에서 주입 (캐시 JSON에는 없다)
+        data["badge_thresholds"] = load_badge_thresholds()
         return data
 
     # Fallback: generate minimal dashboard data from SQLite
@@ -57,6 +90,7 @@ async def get_data(request: Request):
             "_is_empty": True,
             "_message": "데이터가 없습니다. 크롤링을 실행하여 데이터를 수집하세요.",
         },
+        "badge_thresholds": load_badge_thresholds(),
         "home": {"action_items": [], "status": {}, "summary": {}},
         "brand": {"kpis": {}, "competitors": []},
         "products": {},
@@ -152,6 +186,7 @@ async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
                 "_cache_age_hours": cache_age_hours,
                 "_is_stale": is_stale,
             },
+            "badge_thresholds": load_badge_thresholds(),
             "home": {
                 "insight_message": f"SQLite 데이터 기준 ({latest_date}). JSON 캐시가 없어 실시간 생성되었습니다.",
                 "status": {
@@ -361,8 +396,14 @@ async def get_historical_data(
 
         available_dates = sorted(daily_data.keys())
 
-        # brand_metrics 계산 (전체 기간 통합 - 모든 브랜드 포함)
-        brand_metrics = await _calculate_brand_metrics_for_period(records, daily_data, brand)
+        # brand_metrics: 저장된 테이블 우선, 없으면 raw에서 재계산 (§5.2)
+        # 매 요청 재계산이 /api/data 지연의 원인이었다. 과거 날짜는 백필 스크립트
+        # (scripts/backfill_metrics.py) 1회 실행으로 테이블을 채운다.
+        brand_metrics = await _load_brand_metrics_from_table(start_date, end_date, brand)
+        metrics_source = "brand_metrics_table"
+        if not brand_metrics:
+            brand_metrics = await _calculate_brand_metrics_for_period(records, daily_data, brand)
+            metrics_source = "recalculated"
 
         # rank_history 생성 (Product View 차트용)
         rank_history = {}
@@ -409,6 +450,7 @@ async def get_historical_data(
             "available_dates": available_dates,
             "available_date_range": available_date_range,
             "data_source": data_source,
+            "metrics_source": metrics_source,
             "brand_metrics": brand_metrics,
             "rank_history": rank_history,
             "data": {
@@ -426,6 +468,61 @@ async def get_historical_data(
 
 
 # ============= Helper Functions =============
+
+
+async def _load_brand_metrics_from_table(
+    start_date: str, end_date: str, target_brand: str
+) -> list[dict]:
+    """brand_metrics 테이블에서 기간 지표를 읽어 차트 페이로드 형태로 변환.
+
+    행이 없으면 빈 리스트를 돌려주고, 호출자가 raw 재계산으로 폴백한다.
+    """
+    try:
+        sqlite = get_sqlite_storage()
+        await sqlite.initialize()
+        rows = await sqlite.get_brand_metrics(start_date, end_date)
+    except Exception as e:
+        logger.warning(f"brand_metrics 테이블 조회 실패, 재계산으로 폴백: {e}")
+        return []
+
+    if not rows:
+        return []
+
+    # 브랜드별 기간 집계 (같은 브랜드가 여러 날짜/카테고리에 걸쳐 있음)
+    by_brand: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        name = row.get("brand")
+        if not name or name.strip().lower() in UNKNOWN_BRAND_LABELS:
+            continue
+        agg = by_brand.setdefault(name, {"sos": [], "avg_rank": [], "product_count": 0, "cpi": []})
+        if row.get("sos") is not None:
+            agg["sos"].append(row["sos"])
+        if row.get("brand_avg_rank") is not None:
+            agg["avg_rank"].append(row["brand_avg_rank"])
+        if row.get("cpi") is not None:
+            agg["cpi"].append(row["cpi"])
+        agg["product_count"] = max(agg["product_count"], row.get("product_count") or 0)
+
+    metrics = []
+    for name, agg in by_brand.items():
+        if not agg["avg_rank"]:
+            continue
+        sos = round(sum(agg["sos"]) / len(agg["sos"]), 2) if agg["sos"] else None
+        metrics.append(
+            {
+                "brand": name,
+                "sos": sos,
+                "avg_rank": round(sum(agg["avg_rank"]) / len(agg["avg_rank"]), 1),
+                "product_count": agg["product_count"],
+                "avg_price": None,  # 테이블에 가격 컬럼이 없다 (raw 재계산 경로에만 존재)
+                "bubble_size": max(5, min(25, agg["product_count"] * 2)),
+                "is_laneige": target_brand.upper() in name.upper(),
+                "insufficient_sample": sos is None,
+            }
+        )
+
+    metrics.sort(key=lambda x: x["sos"] or 0, reverse=True)
+    return metrics[:10]
 
 
 async def _calculate_brand_metrics_for_period(

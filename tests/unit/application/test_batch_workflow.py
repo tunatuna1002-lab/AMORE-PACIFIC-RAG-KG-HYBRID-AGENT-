@@ -502,8 +502,20 @@ class TestObserve:
             result={"brand_metrics": [1, 2], "product_metrics": [1], "alerts": ["a"]},
         )
         result = await workflow._observe(act)
-        assert result.next_step == WorkflowStep.INSIGHT
+        # CALCULATE 다음은 STORE_METRICS (지표 영속화 복원, D3)
+        assert result.next_step == WorkflowStep.STORE_METRICS
         mock_kg.load_from_metrics_data.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_observe_store_metrics(self, workflow):
+        """STORE_METRICS 다음은 INSIGHT"""
+        act = ActResult(
+            action="store_metrics",
+            success=True,
+            result={"brand_rows": 12, "market_rows": 5, "snapshot_date": "2026-08-31"},
+        )
+        result = await workflow._observe(act)
+        assert result.next_step == WorkflowStep.INSIGHT
 
     @pytest.mark.asyncio
     async def test_observe_hybrid_insight(self, workflow):

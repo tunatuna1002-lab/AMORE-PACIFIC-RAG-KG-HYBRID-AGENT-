@@ -477,37 +477,6 @@ class Container:
         )
 
     @classmethod
-    def get_crawl_workflow(cls, scraper=None, storage=None, metric_calculator=None):
-        """
-        CrawlWorkflow 생성 (매번 새 인스턴스)
-
-        Args:
-            scraper: ScraperProtocol 구현 (None이면 기본 CrawlerAgent)
-            storage: StorageProtocol 구현 (None이면 기본 StorageAgent)
-            metric_calculator: MetricCalculatorProtocol 구현
-
-        Returns:
-            CrawlWorkflow 인스턴스
-        """
-        if "crawl_workflow" in cls._overrides:
-            return cls._overrides["crawl_workflow"]
-
-        from src.application.workflows.crawl_workflow import CrawlWorkflow
-
-        if scraper is None:
-            scraper = cls.get_crawler_agent()
-        if storage is None:
-            storage = cls.get_storage_agent()
-        if metric_calculator is None:
-            metric_calculator = cls.get_metrics_agent()
-
-        return CrawlWorkflow(
-            scraper=scraper,
-            storage=storage,
-            metric_calculator=metric_calculator,
-        )
-
-    @classmethod
     def get_insight_workflow(cls, storage=None):
         """
         InsightWorkflow 생성 (매번 새 인스턴스)
