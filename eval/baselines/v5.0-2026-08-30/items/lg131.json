@@ -1,0 +1,123 @@
+{
+  "item_id": "lg131",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09282700421940927,
+    "semantic_similarity": 0.8354265689849854,
+    "groundedness_score": 0.5384615384615384,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.42857142857142855
+  },
+  "overall_score": 0.43274245528802924,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg131",
+    "timestamp": "2026-08-30T13:17:57.370531",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "bsr"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "bsr"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_4_2",
+        "amazon_algorithm_guide_4_2",
+        "amazon_ranking_diagnosis_table_0"
+      ],
+      "snippets": [
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "- **리뷰와 별점의 영향**: BSR은 리뷰 수에 직접 영향을 받지 않지만【437377726246902†L408-L415】, 아마존의 검색 알고리즘은 높은 클릭률·전환율·긍정적 리뷰를 **고객 참여(CTR, CVR)** 지표로 간주하며, 이는 순위에 반영된다【340261456527992†L187-L197】. 최근 부정적 리뷰의 급증이나 별점 하락은 전환율",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제",
+        "| 가설 요인 | 검증 데이터 소스 | 수집 방법 및 도구 |\n|---|---|---|\n| 가격·쿠폰·딜 | Keepa, CamelCamelCamel, Amazon Seller Central (Business Reports), Helium 10 Profits | Keepa에서 가격·딜 히스토리와 경쟁사 가격을 조회하고【544061839836651†L459-"
+      ],
+      "scores": [
+        6.912650108337402,
+        6.8018646240234375,
+        6.503377914428711,
+        6.076854705810547,
+        6.061652183532715
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Amazon BSR 알고리즘이 브랜드 SoS에 미치는 영향\n\n#### 인사이트\n- Amazon BSR(베스트셀러 랭킹)은 최근 및 누적 판매량을 기반으로 산출되며, 고객 리뷰 수나 페이지 조회수는 직접적인 영향 요소가 아닙니다. 따라서 BSR은 판매 속도와 역사적 판매 실적에 더 큰 비중을 둡니다【437377726246902†L408-L415】.\n- 브랜드 SoS(Share of Shelf, 시장 내 점유율)는 BSR과 밀접한 관계가 있을 수 있으나, BSR 알고리즘은 단순 판매량 외에도 의미론적 밀도, 지식 그래프 적합성, 외부 트래픽 가중치 등 복합적 요인을 반영하는 다변수 함수로 작동합니다【amazon_algorithm_guide】.\n- 즉, BSR이 개선되면 브랜드 제품의 노출과 판매 기회가 증가해 SoS 상승에 긍정적 영향을 줄 가능성이 있으나, SoS는 단순 BSR뿐 아니라 광고 효율, 메타데이터 적합성, 외부 트래픽 유입 등 다양한 요소에 의해 결정될 수 있습니다【amazon_algorithm_guide】【amazon_ranking_diagnosis】.\n- 또한, 리뷰와 별점은 BSR에 직접 영향을 미치지 않지만, 아마존 검색 알고리즘 내 고객 참여 지표(클릭률, 전환율)에 반영되어 간접적으로 판매량과 BSR에 영향을 줄 수 있습니다. 이는 브랜드 SoS에도 영향을 미칠 수 있는 경로입니다【amazon_ranking_diagnosis】.\n\n#### 근거\n- BSR은 최근 판매량에 더 큰 가중치를 두며, 고객 리뷰 수는 직접 반영하지 않음【437377726246902†L408-L415】.\n- 2025-2026년 아마존 랭킹 알고리즘은 판매량 외에도 의미론적 밀도, 지식 그래프 적합성, 외부 트래픽 가중치 등 복합적 요인 반영【amazon_algorithm_guide】.\n- 리뷰와 별점은 고객 참여 지표로 작용하여 전환율과 판매량에 간접 영향【amazon_ranking_diagnosis】.\n\n#### 권장\n- 브랜드 SoS 향상을 위해서는 단순히 BSR 개선에만 집중하기보다, 제품 메타데이터 최적화, 광고 효율 극대화, 외부 트래픽 유입 전략을 병행하는 것이 바람직할 수 있습니다.\n- 고객 리뷰 관리와 긍정적 고객 참여 유도도 전환율 개선을 통해 BSR과 SoS에 긍정적 영향을 줄 가능성이 있으므로, 리뷰 모니터링 및 피드백 캠페인 운영을 권장합니다.\n- BSR과 SoS 간 관계는 다변수적이며 단기 변동 가능성이 있으므로, 장기적 추이 관찰과 다각적 데이터 분석이 필요합니다.\n\n[출처: 현재 데이터, amazon_algorithm_guide, amazon_ranking_diagnosis]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **참고문헌**\n   - 관련도: 6.91\n\n2. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 6.80\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9623.00705909729,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,431 @@
+{
+  "item_id": "lg049",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0684931506849315,
+    "semantic_similarity": 0.6078218221664429,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5855350142232904,
+  "fail_reason_tags": [
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg049",
+    "timestamp": "2026-08-30T13:08:55.718818",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_2_1",
+        "amazon_ranking_diagnosis_4_0",
+        "home_insight_rules_4_0",
+        "strategic_indicators_2_1",
+        "indicator_combination_2_1"
+      ],
+      "snippets": [
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "1.2 Brand Health Status (브랜드 건강 상태 배지/카드)\n\n### 목표\n- 수치 대신 “상태”로 요약\n- 3개 카드(권장): 브랜드 노출, 시장 구조, 이상 신호\n\n### 상태 정의 (권장 라벨)\n- 브랜드 노출 상태(SoS 중심):\n  - Stable / Up / Down\n- 시장 구조(HHI 중심):\n  - Competitive / C",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat"
+      ],
+      "scores": [
+        3.5204811096191406,
+        3.26296067237854,
+        3.2241904735565186,
+        3.214468479156494,
+        3.120755434036255
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "nivea",
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care",
+        "nivea -hasSoS-> lip_care",
+        "nivea -rankedIn-> lip_care",
+        "nivea -hasProduct-> lip_care",
+        "lip_care -belongsToCategory-> lip_care",
+        "nivea -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 29,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 9,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 9,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 7,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP"
+                ]
+              },
+              {
+                "brand": "chapstick",
+                "product_count": 7,
+                "products": [
+                  "B000GG64O4",
+                  "B07GVVLSG3",
+                  "B07DP6X7Q8",
+                  "B07GVPQXRF",
+                  "B07X62WVM4",
+                  "B07GVVRXRC",
+                  "B0FGPYWRMK"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "brand_products",
+          "entity": "nivea",
+          "data": {
+            "product_count": 3,
+            "products": [
+              {
+                "asin": "B07YG8YVQW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 53,
+                "title": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butter, 4 x 0.17 OZ | Moisturizing Lip Balm w",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07Y91BMSK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.17 OZ | One Each: Cherry, Strawberry, Wat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B082JJ4D98",
+                "name": "",
+                "category": "lip_care",
+                "rank": 88,
+                "title": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4 x 0.17 OZ | Sunscreen Lip Balm with SPF",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "metric_edges",
+          "entity": "nivea",
+          "data": {
+            "edges": [
+              {
+                "subject": "nivea",
+                "predicate": "hasSoS",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "rankedIn",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "hasProduct",
+                "object": "lip_care"
+              },
+              {
+                "subject": "lip_care",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Lip Care 카테고리 HHI 현황\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 Lip Care 카테고리의 HHI(시장 집중도) 수치나 상태에 대한 구체적인 정보가 확인되지 않습니다. 따라서 Lip Care 시장이 Competitive(경쟁적)인지 Concentrated(집중적)인지 판단하기 어렵습니다.\n\n- **근거**  \n  제공된 컨텍스트 및 온톨로지 추론 결과에 Lip Care 카테고리 HHI 관련 수치나 상태 정보가 포함되어 있지 않습니다 [출처: 현재 데이터].\n\n- **권장**  \n  HHI 현황 파악을 위해서는 추가적인 시장 점유율 데이터나 브랜드별 판매 비중 정보가 필요합니다. 내부 데이터 또는 외부 분석 도구를 통해 Lip Care 카테고리 내 주요 브랜드 점유율을 확인하는 것을 권장합니다.  \n  또한, Brand Health Status 카드 내 시장 구조(HHI) 상태를 정기적으로 모니터링하여 시장 집중도 변화를 감지하는 전략이 유용할 수 있습니다 [출처: RAG 1.2 Brand Health Status].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 📄 **---**\n   - 관련도: 3.52\n\n3. 📄 **2. 내부 요인 분석**\n   - 관련도: 3.26\n\n4. 📄 **1.2 Brand Health Status (브랜드 건강 상태 배지/카드)**\n   - 관련도: 3.22\n\n5. 📄 **B. Level 2: Category & Price**\n   - 관련도: 3.21\n\n6. 📄 **A. Market & Brand Combination**\n   - 관련도: 3.12\n\n7. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8965.419054031372,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

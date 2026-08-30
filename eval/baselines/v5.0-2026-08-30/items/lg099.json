@@ -1,0 +1,262 @@
+{
+  "item_id": "lg099",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5,
+    "context_precision_at_k": 0.2,
+    "mrr": 0.25
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13761467889908258,
+    "semantic_similarity": 0.6317659616470337,
+    "groundedness_score": 0.6363636363636364,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.6
+  },
+  "overall_score": 0.46043365158854443,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg099",
+    "timestamp": "2026-08-30T13:13:56.221891",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_0",
+        "negative_issue_response_6_2",
+        "laneige_strategy_2026_1_1",
+        "laneige_strategy_2026_3_1",
+        "kbeauty_industry_6_1"
+      ],
+      "snippets": [
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 ",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "2. **하이엔드 브랜드 서사의 빈약**:\n  1. 소비자들이 기억하는 브랜드가 되려면 다양한 좋은 제품의 **서사(이야기)**가 더해져야 한다 \n  2. K-뷰티 제품은 **기초 중심**이며, 고부가 가치 제품에서는 아직 약세이다 \n  1. 향수나 화장수 분야에서는 세계 <mark>32위권</mark>에 그치는 수준이다 \n  2. 기초 제품 경쟁력은 확실"
+      ],
+      "scores": [
+        6.84794807434082,
+        6.51278829574585,
+        6.483732223510742,
+        6.325362682342529,
+        6.400204658508301
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### K-Beauty of Joseon 브랜드 중 Amazon US에서 가장 강한 브랜드 인사이트\n\n- **인사이트**  \n  2026년 1월 아마존 뷰티 카테고리 내 'Movers & Shakers' 분석 결과, K-Beauty of Joseon 브랜드는 크게 세 그룹으로 나뉘며, 이 중 **Medicube**가 '바이럴 K-뷰티(Viral K-Beauty of Joseon)' 그룹에 속해 틱톡 샵과 연동되어 급성장하는 브랜드로 평가되고 있습니다. 또한, **COSRX**는 '가성비 클리니컬(Value Clinicals)' 그룹에서 강한 입지를 보이고 있습니다. 반면, LANEIGE는 프리미엄 스테디셀러 그룹에 속해 있으나 신흥 K-뷰티 브랜드들의 도전에 직면해 있는 상황입니다[출처: rag 1].\n\n- **근거**  \n  - Medicube, Anua, Tirtir 등은 틱톡 연동으로 급성장하는 바이럴 K-뷰티 그룹에 포함되어 있음  \n  - COSRX는 저가 고효능 제품군에서 강세  \n  - LANEIGE는 기존 강력한 수분 자산 보유에도 신흥 브랜드 도전 직면  \n\n- **권장**  \n  Medicube가 Amazon US 내 K-Beauty of Joseon 브랜드 중 가장 강한 브랜드일 가능성이 높으므로, 마케터는 해당 브랜드의 바이럴 마케팅 전략과 틱톡 연동 효과를 면밀히 분석하여 벤치마킹할 필요가 있습니다. 또한 COSRX의 가성비 클리니컬 전략도 참고할 만합니다. 다만, LANEIGE와 같은 프리미엄 브랜드는 신흥 브랜드의 공격적 임상 성분 마케팅에 대응하는 전략 수립이 요구됩니다.\n\n- **불확실성**  \n  현재 제공된 데이터에는 구체적인 순위나 점유율 수치가 없어 Medicube가 절대 1위인지 여부는 명확하지 않습니다. 따라서 \"가장 강한 브랜드\"는 바이럴 성장세와 시장 내 영향력 측면에서의 가능성 표현임을 참고하시기 바랍니다.\n\n---\n\n요약: Amazon US K-Beauty of Joseon 시장에서 Medicube가 틱톡 연동 바이럴 성장으로 가장 강한 브랜드로 보이며, COSRX도 가성비 클리니컬 제품군에서 강세를 보이고 있습니다[출처: rag 1].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 6.85\n\n3. 📄 **---**\n   - 관련도: 6.51\n\n4. 📄 **4. K-뷰티의 위협 요인과 미래 초격차 전략**\n   - 관련도: 6.40\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7696.365833282471,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

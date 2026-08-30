@@ -1,0 +1,126 @@
+{
+  "item_id": "lg058",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08839779005524863,
+    "semantic_similarity": 0.27920016646385193,
+    "groundedness_score": 0.3333333333333333,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.358083816086719,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg058",
+    "timestamp": "2026-08-30T13:09:43.777277",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "rank_volatility",
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "rank_volatility",
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_8_0",
+        "metric_interpretation_2_1"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "---\n\n**8\\. 결론 및 실행 체크리스트**\n\n아마존 랭킹 급변의 원인을 역추적하는 것은 이제 단순한 숫자 놀음이 아니라, 기술적 진단, 데이터 분석, 그리고 알고리즘 심리학이 결합된 복합적인 과정입니다. 랭킹 급락은 주로 기술적 억제, 재고 관리 실패, 혹은 지식 그래프와의 불일치에서 비롯되며, 급등은 외부 트래픽의 레버리지 효과나 공격적인 예산 집행",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표"
+      ],
+      "scores": [
+        7.986348628997803,
+        7.970531463623047,
+        7.677925109863281,
+        7.651511192321777,
+        7.698834419250488
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 순위 변동성이 높은 카테고리와 낮은 카테고리의 차이\n\n- **인사이트**  \n  순위 변동성이 높은 카테고리는 대체로 메인 카테고리(예: Kitchen & Dining)처럼 시장 전체의 계절성, 대형 이벤트(프라임 데이 등) 영향이 크고, 경쟁이 광범위하여 노이즈가 심한 경향이 있습니다. 반면, 순위 변동성이 낮은 카테고리는 세부 하위 카테고리(예: Garlic Presses)로, 직접적인 경쟁 관계가 명확해 상대적으로 변동폭이 작고 원인 추적이 용이합니다.\n\n- **근거**  \n  아마존 랭킹 변동 분석 가이드에 따르면, 메인 카테고리는 전체 시장의 계절성이나 대형 이벤트 영향으로 노이즈가 심해 순위 변동성이 높고, 세부 하위 카테고리는 직접 경쟁 제품 간의 판매량 변동을 반영해 변동성이 낮은 편입니다【3†rag】. 또한, 판매량 변동 외에도 외부 트래픽, 리뷰 감성, 메타데이터 적합성 등 다변수 요인이 복합적으로 작용해 변동성을 증폭시킬 수 있습니다【1†rag】.\n\n- **권장**  \n  순위 변동 원인 분석 시에는 반드시 동일 카테고리 내, 특히 세부 하위 카테고리의 순위 변동폭을 우선적으로 확인하는 것이 바람직합니다. 메인 카테고리의 급격한 변동은 노이즈 가능성이 크므로 단기 판단을 자제하고, 하위 카테고리에서의 추이를 면밀히 관찰하는 전략이 필요합니다.\n\n[출처: amazon_algorithm_guide, amazon_ranking_diagnosis]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 7.99\n\n2. 📄 **개요**\n   - 관련도: 7.97\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 7.70\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7035.125970840454,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "item_id": "lg045",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09999999999999999,
+    "semantic_similarity": 0.7698569297790527,
+    "groundedness_score": 0.6667,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.4442901236801148,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg045",
+    "timestamp": "2026-08-30T13:08:29.416378",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "definition"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_13",
+        "home_insight_rules_1",
+        "amazon_ranking_diagnosis_4_0",
+        "indicator_combination_2_1",
+        "home_insight_rules_3_1"
+      ],
+      "snippets": [
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "0. 적용 범위 및 입력 데이터\n\n### 0.1 입력 데이터 (Home에서 접근 가능)\n- 계산된 지표 값(예: SoS, HHI, Brand Avg Rank, CPI, Avg Rating Gap, Churn Rate, Rank Shock, Rank Volatility, Streak Days, Rating Trend)\n- 선택된 컨텍스트(brand, mark",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat",
+        "### 템플릿(예시)\n- 이상 신호 우선:\n  - “오늘은 일부 상품에서 순위 급변 신호가 감지되어, 단기 모니터링이 필요할 수 있습니다.”\n- 가격·품질 불일치:\n  - “프리미엄 가격 포지션 대비 평점 경쟁력이 낮아, 가격-품질 인식 간 불일치 가능성을 점검해볼 수 있습니다.”\n- 시장 맥락:\n  - “시장 집중도가 높아 경쟁 구도가 고착화된 편으로, "
+      ],
+      "scores": [
+        6.0306715965271,
+        5.776637077331543,
+        4.606115341186523,
+        4.576803207397461,
+        4.322587013244629
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### HHI 0.15의 시장 구조 해석\n\n- **인사이트**  \n  HHI(Herfindahl-Hirschman Index) 값이 0.15는 일반적으로 시장 내 브랜드 집중도가 낮은 편임을 시사할 수 있습니다. 즉, 여러 브랜드가 비교적 고르게 시장 점유율을 나누고 있어 경쟁이 분산된 구조일 가능성이 있습니다.\n\n- **근거**  \n  참고 가이드라인의 예시에서 HHI 0.30은 \"Concentrated(집중된)\" 시장 구조로 제시되어 있으므로, 0.15는 이보다 낮은 수치로서 집중도가 낮은 시장 구조로 해석될 여지가 있습니다 [출처: RAG 가이드 4. 프로토타입 기본 더미 값 예시].\n\n- **권장**  \n  HHI 0.15는 상대적으로 분산된 경쟁 환경을 의미할 수 있으므로, 마케터는 다수 브랜드와의 경쟁에서 차별화 전략을 모색하는 것이 유리할 수 있습니다. 다만, 단기 변동이나 특정 카테고리 특성에 따라 해석이 달라질 수 있으므로 추가 데이터 확인 및 추이 관찰이 권장됩니다.\n\n- **불확실성**  \n  현재 확인된 데이터 기준으로 HHI 0.15가 정확히 어떤 시장 구조를 의미하는지에 대한 구체적 정의는 제공되지 않아, 위 해석은 참고용으로만 활용하시기 바랍니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **4. 프로토타입 기본 더미 값 예시(선택)**\n   - 관련도: 6.03\n\n2. 📄 **2. 내부 요인 분석**\n   - 관련도: 4.61\n\n3. 📄 **A. Market & Brand Combination**\n   - 관련도: 4.58\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7733.085870742798,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

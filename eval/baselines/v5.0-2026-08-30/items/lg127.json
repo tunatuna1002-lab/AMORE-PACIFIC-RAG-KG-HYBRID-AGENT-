@@ -1,0 +1,409 @@
+{
+  "item_id": "lg127",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5714285714285715,
+    "concept_map_f1": 0.6666666666666665,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10362694300518135,
+    "semantic_similarity": 0.6177645921707153,
+    "groundedness_score": 0.75,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5550284127690053,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg127",
+    "timestamp": "2026-08-30T13:17:36.640304",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care",
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "market_concentration",
+        "k_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_5_1",
+        "laneige_strategy_2026_4_0",
+        "laneige_strategy_2026_6_0",
+        "laneige_strategy_2026_7_1",
+        "laneige_strategy_2026_table_1",
+        "kbeauty_industry_2_1",
+        "kbeauty_industry_6_7"
+      ],
+      "snippets": [
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완",
+        "| 구분 | LANEIGE Cream Skin (Cerapeptide) | Rhode Glazing Milk | 소비자 인식 차이 및 시사점 |\n| :---- | :---- | :---- | :---- |\n| **제형** | 상대적으로 묽고 가벼움 (Watery) | 더 점도가 높고 에센스에 가까움 (Thicker) | LANEIGE는 레이어링(스킨 플러딩",
+        "k-뷰티가 어떻게 세계의 뷰티 수도가 되었는지 그 **초격차****의 비밀**을 심층 분석합니다. 단순한 유행을 넘어, 110년간의 분투와 **odm****(제조자 개발 생산) 시스템**이 만들어낸 혁신적인 산업 생태계를 통해 k-뷰티의 구조적 성장 동력을 파악할 수 있습니다. 특히, **초개인화 맞춤 화장품**과 미용 기기 결합 등 미래 기술을 선도하는 ",
+        "4. **K-뷰티**** ****초격차****의 결론**:\n  1. 한국 화장품 업계가 쌓아 올린 초격차는 선명하다 \n  2. 고집스럽게 지켜온 전통에서 새로운 가치를 창조해 냈고, 세상에 없던 제품을 내놓는 **파괴적 ****혁신**을 선보였다 \n  3. 식민지와 전쟁의 참혹함을 건너면서도 놓지 못했던 아름다움에 대한 갈망은 이제 미용 기기, 초개인화 화"
+      ],
+      "scores": [
+        5.711828708648682,
+        5.433514595031738,
+        4.777311325073242,
+        4.711071014404297,
+        4.681753158569336,
+        4.753567695617676,
+        4.666339874267578
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care",
+        "beauty"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 31,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 13,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 8,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              },
+              {
+                "brand": "la roche-posay",
+                "product_count": 5,
+                "products": [
+                  "B01N9SPQHQ",
+                  "B01N34XW93",
+                  "B01N7T7JKJ",
+                  "B0060OUV5Y",
+                  "B003QXZWYW"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### K-Beauty of Joseon 브랜드의 Skin Care 카테고리 집중도 변화 인사이트\n\n- **인사이트**  \n  K-Beauty of Joseon 브랜드 중 Medicube가 Skin Care 카테고리에서 상위권을 차지하고 있으며, Cerave와 함께 주요 경쟁자로 나타나고 있습니다. 다만, 해당 카테고리 내 Top 브랜드 중에 \"unknown\"이 포함되어 있어, 일부 브랜드 집중도 변화에 대한 명확한 파악이 제한될 수 있습니다.  \n  또한, Beauty of Joseon 카테고리 전체에서도 Medicube와 Cerave가 상위권에 포진해 있어, K-Beauty of Joseon 브랜드가 Skin Care 내에서 일정 수준 이상의 집중도를 유지하고 있는 것으로 보입니다.\n\n- **근거**  \n  Skin Care 카테고리 Top 브랜드는 unknown, Medicube, Cerave 순으로 나타나고 있으며, Beauty of Joseon 카테고리에서도 동일한 브랜드들이 상위권에 위치합니다 [출처: 현재 데이터].\n\n- **권장 사항**  \n  K-Beauty of Joseon 브랜드의 Skin Care 카테고리 집중도 변화를 보다 정확히 파악하기 위해서는, unknown으로 표기된 브랜드의 정체 및 순위 변동 추이를 추가로 확인할 필요가 있습니다.  \n  또한, Medicube와 Cerave 등 경쟁 브랜드와의 상대적 순위 변화 및 소비자 반응을 지속 모니터링하여, K-Beauty of Joseon 내에서의 시장 점유율 및 집중도 변화를 세밀하게 분석하는 전략이 요구됩니다.\n\n- **추가 참고**  \n  현재 제공된 데이터에는 구체적인 순위 변동 수치나 기간별 집중도 변화 지표가 포함되어 있지 않아, 장기적 추세 분석은 제한적임을 참고하시기 바랍니다.  \n\n요약하면, Medicube를 중심으로 K-Beauty of Joseon 브랜드가 Skin Care 카테고리에서 일정한 집중도를 유지하고 있으나, unknown 브랜드의 존재로 인해 전체적인 집중도 변화는 현재 확인된 데이터 기준으로 불확실한 부분이 있습니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 📄 **---**\n   - 관련도: 5.71\n\n3. 📄 **💡 K-뷰티의 초격차를 가능하게 한 구체적인 요소들은?**\n   - 관련도: 4.75\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8250.296831130981,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

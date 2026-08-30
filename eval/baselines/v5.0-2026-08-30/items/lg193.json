@@ -1,0 +1,143 @@
+{
+  "item_id": "lg193",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.33333333333333337,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08045977011494253,
+    "semantic_similarity": 0.4862537086009979,
+    "groundedness_score": 0.8333,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.3333333333
+  },
+  "overall_score": 0.5055567686369902,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg193",
+    "timestamp": "2026-08-30T13:24:20.672573",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "market_concentration"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_2_1"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하"
+      ],
+      "scores": [
+        7.28426456451416,
+        7.992265701293945,
+        7.47294282913208,
+        7.37783670425415,
+        7.16417932510376
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx"
+      ],
+      "kg_edges_found": [
+        "cosrx -ownedBy-> amorepacific"
+      ],
+      "ontology_facts": [
+        {
+          "type": "metric_edges",
+          "entity": "cosrx",
+          "data": {
+            "edges": [
+              {
+                "subject": "COSRX",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              }
+            ]
+          },
+          "_weighted_score": 0.3
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### COSRX 판매 호조 이유 및 카테고리 집중도 분석\n\n- **인사이트**  \n  현재 제공된 데이터 및 온톨로지 추론 결과 내에서는 COSRX의 구체적인 판매 순위, 카테고리 내 집중도, 또는 판매 호조 이유에 관한 직접적인 정보가 확인되지 않습니다. 따라서 COSRX가 잘 팔리는 이유와 카테고리 집중도에 대해 명확한 분석을 제공하기 어렵습니다.\n\n- **근거**  \n  제공된 컨텍스트 및 온톨로지 추론 결과에 COSRX 관련 순위, SoS(Share of Shelf) 수치, 또는 판매 동향에 관한 데이터가 포함되어 있지 않습니다 [출처: 현재 데이터].\n\n- **권장**  \n  COSRX의 판매 성과와 카테고리 집중도를 정확히 파악하기 위해서는 해당 브랜드의 아마존 내 베스트셀러 순위, SoS 지표, 그리고 카테고리별 랭킹 변동 데이터를 추가로 확보하는 것이 필요합니다. 또한, 외부 트래픽 유입, 리뷰 감성, 메타데이터 적합성 등 아마존 랭킹에 영향을 미치는 다변수 요소 분석도 병행할 것을 권장합니다.\n\n현재 확인된 데이터 기준으로 COSRX 관련 구체적 인사이트 제공은 제한적임을 양해 부탁드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (1개 관계)\n\n2. 📄 **---**\n   - 관련도: 7.28\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 7.99\n\n4. 📄 **개요**\n   - 관련도: 7.47\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5472.791910171509,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

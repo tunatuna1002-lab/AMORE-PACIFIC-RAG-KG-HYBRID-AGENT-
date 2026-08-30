@@ -1,0 +1,622 @@
+{
+  "item_id": "lg087",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5714285714285715,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09345794392523363,
+    "semantic_similarity": 0.6188457012176514,
+    "groundedness_score": 0.6667,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.625
+  },
+  "overall_score": 0.5067412804438121,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg087",
+    "timestamp": "2026-08-30T13:12:37.630085",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "e.l.f."
+      ],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_1",
+        "amazon_ranking_diagnosis_3_2",
+        "amazon_ranking_diagnosis_9_2",
+        "home_insight_rules_8",
+        "strategic_indicators_3_0"
+      ],
+      "snippets": [
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "1.6 Issue Preview (Top 이슈 미리보기)\n\n### 목표\n- Home에서 “최상위 3개”만 미리 노출하고 상세는 L3에서 확인\n\n### 구성(권장)\n- Rank Shock Top 3 (제품명 + 변화폭/날짜)\n- Streak Days Top 3 (제품명 + 연속 체류일)\n\n### 정렬 규칙\n- Rank Shock 리스트: 하락 폭 큰 순(또는",
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석"
+      ],
+      "scores": [
+        3.415497303009033,
+        2.848224401473999,
+        2.8326358795166016,
+        2.576251268386841,
+        2.4121923446655273
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "e.l.f.",
+        "face_powder"
+      ],
+      "kg_edges_found": [
+        "e_l_f -competesWith-> anua",
+        "e_l_f -competesWith-> loreal",
+        "e_l_f -competesWith-> nyx",
+        "e_l_f -competesWith-> eos",
+        "e_l_f -competesWith-> aquaphor",
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "e.l.f.",
+          "data": [
+            {
+              "brand": "anua",
+              "type": "competesWith",
+              "category": "beauty",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "l'oreal",
+              "type": "competesWith",
+              "category": "lip_makeup",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "nyx",
+              "type": "competesWith",
+              "category": "face_powder",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "eos",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "aquaphor",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "competitor_network",
+          "entity": "e.l.f.",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "anua"
+              ],
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 30,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 30,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 8,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 4,
+                "products": [
+                  "B00PFCSNWA",
+                  "B06XDZ93P5",
+                  "B06XDX6YGD",
+                  "B07HFSM8PS"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 4,
+                "products": [
+                  "B001P2LWJA",
+                  "B0030HAEG0",
+                  "B09JB9T6QB",
+                  "B00AY351OI"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "brand_products",
+          "entity": "e.l.f.",
+          "data": {
+            "product_count": 25,
+            "products": [
+              {
+                "asin": "B0CMYR1CNK",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 1,
+                "title": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Shaping & Sculpting Lips, Semi-Matte Finis",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07PBQZ3KF",
+                "name": "",
+                "category": "beauty",
+                "rank": 48,
+                "title": "e.l.f. Instant Lift Brow Pencil, Dual-Sided, Precise, Fine Tip, Shapes, Defines, Fills Brows, Contou",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0F3J6W5KW",
+                "name": "",
+                "category": "beauty",
+                "rank": 88,
+                "title": "e.l.f. Sheer For It Blush Tint, Cherry Cola | Multi-Use, Long-Lasting Lip & Cheek Makeup, Creates A ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0C7W6GW8P",
+                "name": "",
+                "category": "lip_care",
+                "rank": 3,
+                "title": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Balm For A Sheer Tint Of Color, Infused Wi",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DZP8PN3N",
+                "name": "",
+                "category": "lip_care",
+                "rank": 16,
+                "title": "e.l.f. Glow Reviver Melting Lip Balm, Hydrating Tinted Lip Balm For A Glossy Finish & Soft, Supple L",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B09JL5PCJ6",
+                "name": "",
+                "category": "lip_care",
+                "rank": 33,
+                "title": "e.l.f. Hydrating Core Lip Shine with Shea Butter & Vitamin E, Tinted Lip Balm for A Smooth, Glossy F",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0C7WQ3Z6H",
+                "name": "",
+                "category": "lip_care",
+                "rank": 58,
+                "title": "e.l.f. Lip Exfoliator, Moisturizing Scented Lip Scrub For Exfoliating & Smoothing Lips, Infused With",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0CPYMLVJJ",
+                "name": "",
+                "category": "lip_care",
+                "rank": 61,
+                "title": "e.l.f. Pout Clout Lip Plumping Pen, In the Clear | Nourishing Lip Balm For Sheer Color & Shine, Plum",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FPMHTKCN",
+                "name": "",
+                "category": "lip_care",
+                "rank": 82,
+                "title": "e.l.f. Glow Reviver Plumping Lip Oil, Piggy Bank | Tinted Lip Plumper For A High-Shine, Plump Finish",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0CL8W1HZQ",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 5,
+                "title": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted Lip Oil For A High-shine Finish, Infuse",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "e.l.f.",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "anua"
+              ],
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "fragmented_market_competition",
+          "insight_type": "market_position",
+          "insight": "시장이 분산되어 있고(HHI: 0.000) 27개의 경쟁 브랜드가 활동 중입니다. 시장 점유율 확대 기회가 있으나 경쟁도 치열합니다.",
+          "confidence": 0.85,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "has_competitors_5"
+            ],
+            "context_snapshot": {
+              "brand": "e.l.f.",
+              "is_target": false,
+              "category": "face_powder",
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 27,
+              "product_count": 25,
+              "category_brand_count": 30
+            }
+          },
+          "recommendation": "차별화 전략 강화 및 타겟 고객층 명확화. 경쟁사 대비 강점(가격/품질/브랜드) 부각 필요.",
+          "related_entities": [
+            "anua",
+            "l'oreal",
+            "nyx",
+            "eos",
+            "aquaphor"
+          ],
+          "metadata": {
+            "rule_description": "분산된 시장에서의 다수 경쟁자 존재는 성장 기회와 위협이 공존",
+            "priority": 7,
+            "tags": [
+              "market",
+              "competition",
+              "neutral"
+            ],
+            "hhi": null,
+            "competitor_count": 27,
+            "market_type": "fragmented"
+          }
+        }
+      ],
+      "applied_rules": [
+        "fragmented_market_competition"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### e.l.f. Cosmetics Face Powder 주요 제품 순위 인사이트\n\n- **인사이트**  \n  e.l.f. Cosmetics는 Face Powder 카테고리에서 주요 브랜드 중 하나로 확인되며, 해당 카테고리 내에서 경쟁이 매우 치열한 상황입니다. 시장은 27개 경쟁 브랜드가 활동 중이고, 시장 집중도는 매우 낮아 분산되어 있습니다(HHI: 0.000)【1】. 따라서 e.l.f.의 Face Powder 제품들은 다수의 경쟁 제품과 함께 상위권을 놓고 경쟁 중일 가능성이 있습니다.\n\n- **근거**  \n  - e.l.f.는 Face Powder 카테고리 내 Top 브랜드 중 하나로 분류됨  \n  - 경쟁사로는 anua, l'oreal, nyx 등이 있음  \n  - e.l.f.는 총 25개 제품을 보유하고 있음【1】  \n  - 시장 집중도(HHI)가 0.000으로 매우 낮아 다수 브랜드가 경쟁 중임【1】\n\n- **불확실성**  \n  현재 제공된 데이터 내에서는 e.l.f. Cosmetics의 개별 Face Powder 제품별 구체적인 아마존 베스트셀러 순위(예: 1위, 2위 등) 정보는 확인되지 않습니다. 따라서 주요 제품의 정확한 순위는 추가 데이터 확인이 필요합니다.\n\n- **권장 사항**  \n  - e.l.f.는 치열한 경쟁 환경에서 차별화된 가격, 품질, 브랜드 강점을 부각하는 전략이 필요할 것으로 보입니다.  \n  - 타겟 고객층을 명확히 하여 마케팅 집중도를 높이는 것이 순위 상승에 도움이 될 수 있습니다.  \n  - 경쟁사 동향과 시장 점유율 변화를 지속 모니터링하며 대응 전략을 수립하는 것이 권장됩니다.\n\n---\n\n요약하면, e.l.f. Cosmetics는 Face Powder 카테고리에서 주요 경쟁 브랜드 중 하나이나, 개별 제품별 구체적인 순위 정보는 현재 데이터에 없습니다. 시장 경쟁이 매우 치열하므로 차별화 전략이 중요할 것으로 판단됩니다【1】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 🧠 **온톨로지 규칙: fragmented_market_competition**\n   - 신뢰도: 85%\n   - 규칙: fragmented_market_competition\n\n3. 📄 **개요**\n   - 관련도: 3.42\n\n4. 📄 **1.6 Issue Preview (Top 이슈 미리보기)**\n   - 관련도: 2.58\n\n5. 📄 **C. Level 3: Product & Risk**\n   - 관련도: 2.41\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7344.877004623413,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
