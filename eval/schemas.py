@@ -32,7 +32,16 @@ class GoldEvidence(BaseModel):
         default=None, description="Expected answer text (for exact/F1 matching)"
     )
     doc_chunk_ids: list[str] = Field(
-        default_factory=list, description="Expected document chunk IDs for retrieval"
+        default_factory=list,
+        description="Expected document chunk IDs (doc_chunk_groups의 평면 합집합)",
+    )
+    doc_chunk_groups: list[list[str]] = Field(
+        default_factory=list,
+        description=(
+            "개념(근거 단위)별 청크 ID 집합. 한 개념의 근거는 문단 하나가 아니라 "
+            "그 개념이 서술된 절 전체이므로, 집합 중 하나라도 검색되면 그 개념을 "
+            "찾은 것으로 본다 (scripts/remap_golden_chunk_groups.py)."
+        ),
     )
     kg_entities: list[str] = Field(
         default_factory=list,
@@ -303,6 +312,12 @@ class L2Metrics(BaseModel):
         default=0.0, ge=0.0, le=1.0, description="Precision of top-k retrieval"
     )
     mrr: float = Field(default=0.0, ge=0.0, le=1.0, description="Mean Reciprocal Rank")
+    context_recall_at_k_concept: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="개념 단위 recall@k — 근거를 찾은 개념 비율 (게이트 기준)",
+    )
     context_recall_at_k_doc: float = Field(
         default=0.0,
         ge=0.0,

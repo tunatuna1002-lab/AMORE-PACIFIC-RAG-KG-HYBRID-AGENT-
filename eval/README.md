@@ -98,14 +98,22 @@ Human-readable summary including:
 
 ### L2: Document Retrieval
 
-- **Context Recall@k**: Proportion of gold chunks in top-k retrieved
+- **Context Recall@k (concept)**: 근거를 하나라도 찾은 **개념**의 비율 — 게이트 기준.
+  골드 `doc_chunk_groups`는 개념마다 그 개념이 서술된 절의 청크 집합을 담으며,
+  집합 중 하나라도 top-k에 들면 그 개념의 근거를 찾은 것으로 본다
+  (`scripts/remap_golden_chunk_groups.py`, 2026-08-30 사이클 6).
+- **Context Recall@k (chunk)**: 골드 청크 전체 중 top-k에 든 비율 (엄격한 커버리지 지표)
+- **Context Recall@k (doc)**: 출처 문서 단위 recall — 사이클 5에서 라벨이 깨져 있던
+  동안의 임시 대체 지표. 보고만 유지한다.
 - **Context Precision@k**: Proportion of top-k that are gold chunks
 - **MRR**: Mean Reciprocal Rank of first relevant document
 
 ### L3: Knowledge Graph
 
 - **Hits@k**: Binary indicator if any gold entity in top-k
-- **KG Edge F1**: F1 between retrieved and gold edges
+- **KG Edge Recall**: 골드 엣지 중 검색된 비율 — 게이트 기준 (사이클 4)
+- **KG Edge Precision**: 방출 엣지 중 골드에 있는 비율 (남용 감시용)
+- **KG Edge F1**: F1 between retrieved and gold edges (연속성 보고용)
 
 ### L4: Ontology Compliance
 
@@ -127,9 +135,9 @@ Items are marked as failed if any of these thresholds are violated:
 |--------|-----------|----------|
 | Entity Link F1 | < 0.50 | `L1_mapping_fail` |
 | Concept Map F1 | < 0.30 | `L1_concept_fail` |
-| Context Recall (requires_kg=false) | < 0.80 | `L2_doc_retrieval_fail` |
+| Context Recall — concept (requires_kg=false) | < 0.80 | `L2_doc_retrieval_fail` |
 | Hits@k (requires_kg=true) | < 0.80 | `L3_kg_fail` |
-| KG Edge F1 | < 0.50 | `L3_edge_fail` |
+| KG Edge Recall | < 0.50 | `L3_edge_fail` |
 | Constraint Violation Rate | > 0.05 | `L4_constraint_violation` |
 | Type Consistency Rate | < 0.90 | `L4_type_inconsistency` |
 | Answer F1 | < 0.50 | `L5_wrong_answer` |

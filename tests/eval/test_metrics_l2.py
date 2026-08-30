@@ -249,3 +249,79 @@ class TestDocumentLevelRecall:
 
         assert calculator._compute_doc_recall_at_k(trace, gold, 8) == 0.0
         assert calculator._compute_doc_recall_at_k(trace, gold, 9) == 1.0
+
+
+class TestConceptLevelRecall:
+    """개념 단위 recall (2026-08-30 사이클 6 신설).
+
+    골드 `doc_chunk_groups`는 개념마다 그 개념이 서술된 절의 청크 집합을 담는다.
+    한 개념의 근거는 문단 하나가 아니라 절 전체이므로, 집합 중 하나라도 검색되면
+    그 개념의 근거를 찾은 것으로 본다.
+    """
+
+    @pytest.fixture
+    def calculator(self):
+        return L2RetrievalMetrics(default_k=8)
+
+    def test_any_chunk_in_group_counts_as_hit(self, calculator):
+        trace = DocRetrievalTrace(chunk_ids=["strategic_indicators_1_1"], snippets=[], scores=[])
+        gold = GoldEvidence(
+            doc_chunk_ids=["strategic_indicators_1_0", "strategic_indicators_1_1"],
+            doc_chunk_groups=[["strategic_indicators_1_0", "strategic_indicators_1_1"]],
+        )
+
+        assert calculator.compute(trace, gold).context_recall_at_k_concept == 1.0
+
+    def test_partial_concept_coverage_is_penalised(self, calculator):
+        trace = DocRetrievalTrace(chunk_ids=["a_1_0"], snippets=[], scores=[])
+        gold = GoldEvidence(
+            doc_chunk_ids=["a_1_0", "b_1_0"],
+            doc_chunk_groups=[["a_1_0"], ["b_1_0"]],
+        )
+
+        assert calculator.compute(trace, gold).context_recall_at_k_concept == 0.5
+
+    def test_no_group_hit_is_zero(self, calculator):
+        trace = DocRetrievalTrace(chunk_ids=["other_1_0"], snippets=[], scores=[])
+        gold = GoldEvidence(doc_chunk_ids=["a_1_0"], doc_chunk_groups=[["a_1_0", "a_1_1"]])
+
+        assert calculator._compute_concept_recall_at_k(trace, gold, 8) == 0.0
+
+    def test_falls_back_to_chunk_recall_without_groups(self, calculator):
+        """구 골드(그룹 없음)는 평면 청크 recall로 폴백해 호환을 유지한다."""
+        trace = DocRetrievalTrace(chunk_ids=["a_1_0"], snippets=[], scores=[])
+        gold = GoldEvidence(doc_chunk_ids=["a_1_0", "b_1_0"])
+
+        assert calculator._compute_concept_recall_at_k(trace, gold, 8) == 0.5
+
+    def test_respects_k_cutoff(self, calculator):
+        trace = DocRetrievalTrace(
+            chunk_ids=[f"filler_{i}_0" for i in range(8)] + ["a_1_0"], snippets=[], scores=[]
+        )
+        gold = GoldEvidence(doc_chunk_ids=["a_1_0"], doc_chunk_groups=[["a_1_0"]])
+
+        assert calculator._compute_concept_recall_at_k(trace, gold, 8) == 0.0
+        assert calculator._compute_concept_recall_at_k(trace, gold, 9) == 1.0
+
+
+class TestGoldenSetChunkGroups:
+    """재설계된 골든셋 라벨의 무결성 (사이클 6)."""
+
+    def test_groups_flatten_to_doc_chunk_ids(self):
+        import json
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[2] / "eval/data/golden/laneige_golden_v2.jsonl"
+        checked = 0
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            gold = json.loads(line)["gold"]
+            groups = gold.get("doc_chunk_groups") or []
+            if not groups:
+                continue
+            flat = {cid for group in groups for cid in group}
+            assert flat == set(gold["doc_chunk_ids"])
+            assert all(len(group) >= 2 for group in groups), "개념 집합은 2청크 이상이어야 한다"
+            checked += 1
+        assert checked >= 130, f"그룹이 있는 문항이 너무 적다: {checked}"

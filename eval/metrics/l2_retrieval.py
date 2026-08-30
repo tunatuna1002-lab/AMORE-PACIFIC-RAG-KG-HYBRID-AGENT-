@@ -52,13 +52,36 @@ class L2RetrievalMetrics(MetricCalculator):
         precision = self._compute_precision_at_k(trace, gold, k)
         mrr = self._compute_mrr(trace, gold)
         doc_recall = self._compute_doc_recall_at_k(trace, gold, k)
+        concept_recall = self._compute_concept_recall_at_k(trace, gold, k)
 
         return L2Metrics(
             context_recall_at_k=recall,
             context_precision_at_k=precision,
             mrr=mrr,
+            context_recall_at_k_concept=concept_recall,
             context_recall_at_k_doc=doc_recall,
         )
+
+    def _compute_concept_recall_at_k(
+        self, trace: DocRetrievalTrace, gold: GoldEvidence, k: int
+    ) -> float:
+        """개념 단위 recall@k — 근거를 하나라도 찾은 개념의 비율.
+
+        골드 `doc_chunk_groups`는 개념(근거 단위)마다 그 개념이 서술된 절의
+        청크 집합을 담는다. 한 개념의 근거는 문단 하나가 아니라 절 전체이므로,
+        집합 중 하나라도 top-k에 들면 그 개념의 근거를 찾은 것으로 본다.
+        문항에 개념이 2개면 하나만 찾았을 때 0.5로 감점된다.
+
+        `doc_chunk_groups`가 없는(구) 골드에는 평면 청크 recall로 폴백해
+        기존 baseline·테스트와의 호환을 유지한다.
+        """
+        groups = gold.doc_chunk_groups
+        if not groups:
+            return self._compute_recall_at_k(trace, gold, k)
+
+        retrieved = set(trace.chunk_ids[:k])
+        hit = sum(1 for group in groups if retrieved & set(group))
+        return hit / len(groups)
 
     @staticmethod
     def _source_doc(chunk_id: str) -> str:

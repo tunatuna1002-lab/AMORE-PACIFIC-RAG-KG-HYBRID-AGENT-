@@ -177,6 +177,7 @@ class ReportGenerator:
             "l2_context_precision": sum(r.l2.context_precision_at_k for r in results) / n,
             "l2_mrr": sum(r.l2.mrr for r in results) / n,
             "l2_context_recall_doc": sum(r.l2.context_recall_at_k_doc for r in results) / n,
+            "l2_context_recall_concept": sum(r.l2.context_recall_at_k_concept for r in results) / n,
             # L3
             "l3_hits_at_k": sum(r.l3.hits_at_k for r in results) / n,
             "l3_kg_edge_f1": sum(r.l3.kg_edge_f1 for r in results) / n,
@@ -320,6 +321,10 @@ class ReportGenerator:
         lines.append(f"| L1 | Entity Link F1 | {by_layer.get('l1_entity_link_f1', 0):.3f} |")
         lines.append(f"| L1 | Concept Map F1 | {by_layer.get('l1_concept_map_f1', 0):.3f} |")
         lines.append(f"| L2 | Context Recall | {by_layer.get('l2_context_recall', 0):.3f} |")
+        lines.append(
+            f"| L2 | Context Recall (concept) | "
+            f"{by_layer.get('l2_context_recall_concept', 0):.3f} |"
+        )
         lines.append(
             f"| L2 | Context Recall (doc) | {by_layer.get('l2_context_recall_doc', 0):.3f} |"
         )
