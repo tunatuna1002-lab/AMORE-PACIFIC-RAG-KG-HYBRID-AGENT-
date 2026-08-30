@@ -223,3 +223,54 @@ class TestConvenienceFunctions:
 
         precision = kg_entity_precision(trace, gold)
         assert precision == 0.5
+
+
+class TestKGEdgeRecall:
+    """엣지 recall/precision 지표 (사이클 4 신설).
+
+    set-F1은 골드(1~3개)와 방출(최대 12개)의 규모 비대칭 때문에 판별력이 없어
+    게이트 기준을 recall로 옮겼다. recall만으로는 "전량 방출"이 이득이 되므로
+    precision을 함께 보고한다.
+    """
+
+    @pytest.fixture
+    def calculator(self):
+        return L3KGMetrics(default_k=10)
+
+    def test_recall_ignores_extra_edges(self, calculator):
+        trace = KGQueryTrace(
+            kg_entities_found=["laneige"],
+            kg_edges_found=[
+                "laneige -hasSoS-> lip_care",
+                "laneige -rankedIn-> lip_care",
+                "laneige -competesWith-> eos",
+            ],
+        )
+        gold = GoldEvidence(kg_edges=["laneige -hasSoS-> lip_care"])
+
+        metrics = calculator.compute(trace, gold)
+        assert metrics.kg_edge_recall == 1.0
+        assert metrics.kg_edge_precision == pytest.approx(1 / 3)
+        # 동일 상황에서 F1은 0.5 게이트를 통과하지 못한다 — 지표 교체의 근거
+        assert metrics.kg_edge_f1 == pytest.approx(0.5)
+
+    def test_recall_is_case_insensitive(self, calculator):
+        trace = KGQueryTrace(
+            kg_entities_found=[], kg_edges_found=["LANEIGE -ownedBy-> AMOREPACIFIC"]
+        )
+        gold = GoldEvidence(kg_edges=["laneige -ownedBy-> amorepacific"])
+
+        assert calculator._compute_kg_edge_recall(trace, gold) == 1.0
+
+    def test_recall_is_one_when_gold_has_no_edges(self, calculator):
+        trace = KGQueryTrace(kg_entities_found=[], kg_edges_found=["laneige -hasSoS-> lip_care"])
+        gold = GoldEvidence(kg_edges=[])
+
+        assert calculator._compute_kg_edge_recall(trace, gold) == 1.0
+
+    def test_recall_zero_when_nothing_found(self, calculator):
+        trace = KGQueryTrace(kg_entities_found=[], kg_edges_found=[])
+        gold = GoldEvidence(kg_edges=["laneige -hasSoS-> lip_care"])
+
+        assert calculator._compute_kg_edge_recall(trace, gold) == 0.0
+        assert calculator._compute_kg_edge_precision(trace, gold) == 1.0

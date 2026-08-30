@@ -21,6 +21,27 @@ from eval.metrics.base import (
 from eval.schemas import EntityLinkingTrace, GoldEvidence, L1Metrics, OntologyReasoningTrace
 
 
+def normalize_constraints(constraints: list) -> set[str]:
+    """골드 constraint를 비교 가능한 문자열 집합으로 정규화.
+
+    골든셋 스키마(`GoldEvidence.constraints`)는 `list[str | dict]`을 허용하는데
+    dict 형태(`{"field": "period", "operator": "=", "value": "last_3_months"}`)가
+    그대로 `set()`에 들어가 TypeError로 **문항 전체 채점이 크래시**하고 있었다
+    (v4.1 기준 160문항 중 7문항, time 도메인 15문항 중 6문항). dict는
+    `field:operator:value` 형태로 직렬화한다 — 2026-08-30 사이클 4 수정.
+    """
+    normalized: set[str] = set()
+    for c in constraints or []:
+        if isinstance(c, dict):
+            field = str(c.get("field", "")).strip().lower()
+            operator = str(c.get("operator", c.get("op", "="))).strip()
+            value = str(c.get("value", "")).strip().lower()
+            normalized.add(f"{field}:{operator}:{value}")
+        else:
+            normalized.add(str(c).strip().lower())
+    return normalized
+
+
 class L1QueryMetrics(MetricCalculator):
     """
     L1 metrics for query understanding.
@@ -75,7 +96,12 @@ class L1QueryMetrics(MetricCalculator):
         """
         Compute entity linking F1.
 
-        Combines brands, products, and indicators into a single entity set.
+        Combines brands, products, indicators, and categories into a single
+        entity set. 카테고리를 포함하는 이유: 골드 `kg_entities`가 브랜드·제품·
+        지표뿐 아니라 카테고리 ID(lip_care, face_powder 등)도 함께 열거한다
+        (160문항 중 93문항, 엔티티 언급 518건 중 104건). 추출기는 카테고리를
+        별도 필드로 내보내므로 이를 제외하면 해당 골드 항목은 구조적으로
+        매칭 불가였다 — 필드 매핑 결함 수정 (2026-08-30 사이클 4).
         Uses fuzzy matching with alias resolution if enabled.
         """
         # Collect all extracted entities
@@ -83,6 +109,7 @@ class L1QueryMetrics(MetricCalculator):
         extracted.update(trace.extracted_brands)
         extracted.update(trace.extracted_products)
         extracted.update(trace.extracted_indicators)
+        extracted.update(trace.extracted_categories)
 
         # Gold entities
         gold_entities = set(gold.kg_entities)
@@ -129,7 +156,7 @@ class L1QueryMetrics(MetricCalculator):
         Compares applied rules to gold constraints.
         """
         applied_rules = set(trace.applied_rules)
-        gold_constraints = set(gold.constraints)
+        gold_constraints = normalize_constraints(gold.constraints)
 
         return self.set_f1(applied_rules, gold_constraints)
 
@@ -190,5 +217,5 @@ def constraint_extraction_f1(trace: OntologyReasoningTrace, gold: GoldEvidence) 
         F1 score between applied rules and gold.constraints
     """
     extracted = set(trace.applied_rules)
-    gold_set = set(gold.constraints)
+    gold_set = normalize_constraints(gold.constraints)
     return MetricCalculator.set_f1(extracted, gold_set)

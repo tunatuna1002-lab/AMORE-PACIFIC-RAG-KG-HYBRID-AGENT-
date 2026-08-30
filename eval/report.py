@@ -179,6 +179,8 @@ class ReportGenerator:
             # L3
             "l3_hits_at_k": sum(r.l3.hits_at_k for r in results) / n,
             "l3_kg_edge_f1": sum(r.l3.kg_edge_f1 for r in results) / n,
+            "l3_kg_edge_recall": sum(r.l3.kg_edge_recall for r in results) / n,
+            "l3_kg_edge_precision": sum(r.l3.kg_edge_precision for r in results) / n,
             # L4
             "l4_constraint_violation_rate": sum(r.l4.constraint_violation_rate for r in results)
             / n,
@@ -320,6 +322,8 @@ class ReportGenerator:
         lines.append(f"| L2 | MRR | {by_layer.get('l2_mrr', 0):.3f} |")
         lines.append(f"| L3 | Hits@k | {by_layer.get('l3_hits_at_k', 0):.3f} |")
         lines.append(f"| L3 | KG Edge F1 | {by_layer.get('l3_kg_edge_f1', 0):.3f} |")
+        lines.append(f"| L3 | KG Edge Recall | {by_layer.get('l3_kg_edge_recall', 0):.3f} |")
+        lines.append(f"| L3 | KG Edge Precision | {by_layer.get('l3_kg_edge_precision', 0):.3f} |")
         lines.append(
             f"| L4 | Violation Rate | {by_layer.get('l4_constraint_violation_rate', 0):.3f} |"
         )

@@ -312,6 +312,12 @@ class L3Metrics(BaseModel):
         default=0.0, ge=0.0, le=1.0, description="Gold entities in top-k KG results"
     )
     kg_edge_f1: float = Field(default=0.0, ge=0.0, le=1.0, description="Set-F1 for KG edges")
+    kg_edge_recall: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Recall of gold KG edges (게이트 기준 지표)"
+    )
+    kg_edge_precision: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Precision of emitted KG edges (남용 감시용)"
+    )
 
 
 class L4Metrics(BaseModel):

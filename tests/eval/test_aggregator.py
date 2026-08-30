@@ -38,6 +38,7 @@ class TestMetricAggregator:
             "l3": L3Metrics(
                 hits_at_k=1.0,
                 kg_edge_f1=1.0,
+                kg_edge_recall=1.0,
             ),
             "l4": L4Metrics(
                 constraint_violation_rate=0.0,
@@ -68,6 +69,7 @@ class TestMetricAggregator:
             "l3": L3Metrics(
                 hits_at_k=0.3,
                 kg_edge_f1=0.3,
+                kg_edge_recall=0.3,
             ),
             "l4": L4Metrics(
                 constraint_violation_rate=0.5,
@@ -197,6 +199,7 @@ class TestMetricAggregator:
         l3 = L3Metrics(
             hits_at_k=0.5,  # Below threshold
             kg_edge_f1=1.0,
+            kg_edge_recall=1.0,
         )
         metadata = ItemMetadata(requires_kg=True)
         passed, fail_reasons = aggregator.check_gating(
@@ -333,7 +336,7 @@ class TestConvenienceFunctions:
         """Test compute_overall_score convenience function."""
         l1 = L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0)
         l2 = L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0)
-        l3 = L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0)
+        l3 = L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0)
         l4 = L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0)
         l5 = L5Metrics(
             answer_exact_match=1.0,
@@ -349,7 +352,7 @@ class TestConvenienceFunctions:
         """Test check_gating convenience function."""
         l1 = L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0)
         l2 = L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0)
-        l3 = L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0)
+        l3 = L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0)
         l4 = L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0)
         l5 = L5Metrics(
             answer_exact_match=1.0,
@@ -382,7 +385,7 @@ class TestSemanticSimilarityGate:
         return {
             "l1": L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0),
             "l2": L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0),
-            "l3": L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0),
+            "l3": L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0),
             "l4": L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0),
             "l5": L5Metrics(
                 answer_exact_match=0.0,

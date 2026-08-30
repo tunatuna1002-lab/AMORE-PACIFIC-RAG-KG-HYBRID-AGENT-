@@ -138,7 +138,9 @@ class TestL1QueryMetrics:
             constraint_violations=[],
         )
         gold = GoldEvidence(
-            kg_entities=["laneige"],
+            # 골드 kg_entities는 브랜드·제품·지표뿐 아니라 카테고리 ID도 열거하므로
+            # entity 집합에 추출 카테고리가 포함된다 (사이클 4 필드 매핑 수정)
+            kg_entities=["laneige", "lip_care"],
             concepts=["lip_care"],
             constraints=["market_dominance"],
         )
@@ -148,6 +150,38 @@ class TestL1QueryMetrics:
         assert metrics.entity_link_f1 == 1.0
         assert metrics.concept_map_f1 == 1.0
         assert metrics.constraint_extraction_f1 == 1.0
+
+    def test_entity_link_f1_counts_categories(self, calculator):
+        """골드 kg_entities의 카테고리 ID가 추출 카테고리와 매칭돼야 한다."""
+        entity_trace = EntityLinkingTrace(
+            extracted_brands=[],
+            extracted_categories=["face_powder"],
+            extracted_indicators=[],
+            extracted_products=[],
+        )
+        gold = GoldEvidence(kg_entities=["face_powder"])
+
+        assert calculator._compute_entity_link_f1(entity_trace, gold) == 1.0
+
+    def test_dict_constraints_do_not_crash(self, calculator):
+        """dict 형태 골드 constraint가 채점을 크래시시키지 않아야 한다.
+
+        회귀 방지: v4.1 실행에서 dict constraint 7문항이 set() TypeError로
+        문항 전체 채점을 실패시켜 응답조차 기록되지 않았다.
+        """
+        ontology_trace = OntologyReasoningTrace(applied_rules=["period:=:last_3_months"])
+        gold = GoldEvidence(
+            constraints=[{"field": "period", "operator": "=", "value": "last_3_months"}]
+        )
+
+        assert calculator._compute_constraint_extraction_f1(ontology_trace, gold) == 1.0
+
+    def test_dict_constraints_no_match(self, calculator):
+        """dict constraint가 정규화돼도 매칭되지 않으면 0.0."""
+        ontology_trace = OntologyReasoningTrace(applied_rules=["market_dominance"])
+        gold = GoldEvidence(constraints=[{"field": "rating", "operator": ">=", "value": 4.5}])
+
+        assert calculator._compute_constraint_extraction_f1(ontology_trace, gold) == 0.0
 
 
 class TestConvenienceFunctions:

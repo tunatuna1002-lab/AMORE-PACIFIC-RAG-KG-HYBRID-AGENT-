@@ -70,6 +70,7 @@ class RegressionThresholds:
     l2_mrr: float = 0.05
     l3_hits_at_k: float = 0.05
     l3_kg_edge_f1: float = 0.05
+    l3_kg_edge_recall: float = 0.05
     l4_constraint_violation: float = 0.02  # Increase tolerance (lower is better)
     l5_answer_f1: float = 0.05
     l5_groundedness: float = 0.05
@@ -484,12 +485,17 @@ class RegressionTester:
             ("l2_mrr", self.thresholds.l2_mrr),
             ("l3_hits_at_k", self.thresholds.l3_hits_at_k),
             ("l3_kg_edge_f1", self.thresholds.l3_kg_edge_f1),
+            ("l3_kg_edge_recall", self.thresholds.l3_kg_edge_recall),
             ("l5_answer_f1", self.thresholds.l5_answer_f1),
             ("l5_groundedness", self.thresholds.l5_groundedness),
         ]
 
         for metric_name, threshold in layer_metrics:
-            baseline_val = baseline.by_layer.get(metric_name, 0.0)
+            # 지표가 신설되어 베이스라인에 없으면 비교 자체를 생략한다
+            # (0.0을 기본값으로 두면 신설 지표가 항상 "개선"으로 잡혀 오독됨)
+            if metric_name not in baseline.by_layer:
+                continue
+            baseline_val = baseline.by_layer[metric_name]
             current_val = current.by_layer.get(metric_name, 0.0)
             comparisons.append((metric_name, baseline_val, current_val, threshold, False))
 

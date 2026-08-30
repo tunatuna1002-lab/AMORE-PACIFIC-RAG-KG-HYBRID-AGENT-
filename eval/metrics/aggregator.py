@@ -42,6 +42,10 @@ DEFAULT_THRESHOLDS = {
     # L2/L3 gating (conditional on requires_kg)
     "context_recall_min": 0.80,  # For requires_kg=False
     "hits_at_k_min": 0.80,  # For requires_kg=True
+    # L3 엣지 게이트는 recall 기준 (2026-08-30 사이클 4):
+    # set-F1은 골드(1~3개)와 방출(최대 12개)의 규모 비대칭 때문에 100% 회수해도
+    # ~0.18에 그쳐 판별력이 없었다. 상세 근거는 eval/metrics/l3_kg.py 참조.
+    "kg_edge_recall_min": 0.50,
     # L1 gating
     "entity_link_f1_min": 0.50,
     # 게이트 재보정 (2026-08-30, 오염 수정 후 v4.0 분포 기준):
@@ -56,7 +60,7 @@ FAIL_REASONS = {
     "L1_concept_fail": "Concept mapping F1 below threshold",
     "L2_doc_retrieval_fail": "Context recall below threshold",
     "L3_kg_fail": "KG hits@k below threshold",
-    "L3_edge_fail": "KG edge F1 below threshold",
+    "L3_edge_fail": "KG edge recall below threshold",
     "L4_constraint_violation": "Constraint violation rate above threshold",
     "L4_type_inconsistency": "Type consistency rate below threshold",
     "L5_grounding_fail": "Groundedness score below threshold",
@@ -203,7 +207,7 @@ class MetricAggregator:
             if l3.hits_at_k < self.thresholds.get("hits_at_k_min", 0.8):
                 fail_reasons.append("L3_kg_fail")
 
-            if l3.kg_edge_f1 < self.thresholds.get("kg_edge_f1_min", 0.5):
+            if l3.kg_edge_recall < self.thresholds.get("kg_edge_recall_min", 0.5):
                 fail_reasons.append("L3_edge_fail")
 
         # L4 checks
