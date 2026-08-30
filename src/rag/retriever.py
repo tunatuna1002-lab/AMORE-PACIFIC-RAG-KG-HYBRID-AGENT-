@@ -869,7 +869,11 @@ Do not include any explanation."""
                     {"role": "system", "content": "You are a search query expansion system."},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,
+                # 평가 재현성: 확장 질의가 매 실행 달라지면 검색 결과가 흔들려
+                # 작은 지표 변화를 노이즈와 구분할 수 없다. 실제로 코드·코퍼스가
+                # 동일한 두 실행에서 160문항 중 98문항의 검색 결과가 달랐다
+                # (2026-08-30 사이클 7 실측). 온도를 0으로 고정한다.
+                temperature=0.0,
                 max_tokens=200,
             )
 

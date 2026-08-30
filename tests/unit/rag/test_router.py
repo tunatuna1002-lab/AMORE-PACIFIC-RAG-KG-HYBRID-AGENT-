@@ -360,3 +360,34 @@ class TestGetFallbackResponse:
     def test_invalid_reason_defaults(self, router):
         msg = router.get_fallback_response("nonexistent_reason")
         assert "질문의 의도" in msg  # UNKNOWN fallback
+
+
+class TestIRVocabularyRouting:
+    """IR 분기 실적 어휘 라우팅 (2026-08-30 사이클 7).
+
+    코퍼스에 IR 분기보고서가 있고 검색도 되는데 라우터가 이 어휘를 몰라
+    검색 전에 UNKNOWN 폴백으로 거절하고 있었다 (IR 골든셋 12문항 중 9문항).
+    """
+
+    @pytest.fixture
+    def router(self):
+        return RAGRouter()
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "아모레퍼시픽 2025년 1분기 매출은 얼마인가요?",
+            "아모레퍼시픽 2025년 2분기 영업이익은 얼마인가요?",
+            "AMOREPACIFIC 3Q25 net income",
+            "AMOREPACIFIC 2Q25 revenue growth by region",
+            "2025년 2분기 아모레퍼시픽 매출총이익률은 어떻게 변했나요?",
+        ],
+    )
+    def test_ir_questions_are_not_rejected(self, router, query):
+        assert router.route(query)["query_type"] != QueryType.UNKNOWN
+
+    def test_genuinely_unknown_query_still_falls_back(self, router):
+        result = router.route("점심 메뉴 추천해줘")
+
+        assert result["query_type"] == QueryType.UNKNOWN
+        assert result["fallback_message"]
