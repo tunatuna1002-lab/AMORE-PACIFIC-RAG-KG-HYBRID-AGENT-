@@ -819,7 +819,7 @@ class UnifiedBrain:
             return {
                 "brand": "LANEIGE",
                 "sos": kpis.get("sos", 0),
-                "sos_change": kpis.get("sos_delta", "N/A"),
+                "sos_change": kpis.get("sos_delta") or "N/A",
                 "top10_products": kpis.get("top10_count", 0),
                 "avg_rank": kpis.get("avg_rank", 0),
                 "hhi": kpis.get("hhi", 0),

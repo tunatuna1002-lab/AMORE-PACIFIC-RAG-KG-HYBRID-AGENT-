@@ -572,6 +572,9 @@ class DashboardExporter:
         laneige_count = len(laneige_stats["products"])
         sos = (laneige_count / total_products * 100) if total_products > 0 else 0
 
+        # SoS 델타: 직전 스냅샷 대비 실계산 (이전 데이터 없으면 None)
+        sos_delta = self._calculate_sos_delta(raw_data, latest_date)
+
         # Top 10 내 개수
         top10_count = len([r for r in laneige_ranks if r <= 10])
 
@@ -581,7 +584,7 @@ class DashboardExporter:
         return {
             "kpis": {
                 "sos": round(sos, 1),
-                "sos_delta": "+2.1%p",  # TODO: 실제 계산
+                "sos_delta": sos_delta,
                 "top10_count": top10_count,
                 "avg_rank": round(avg_rank, 1),
                 "avg_price": round(laneige_avg_price, 2) if laneige_avg_price else None,
@@ -589,6 +592,40 @@ class DashboardExporter:
             },
             "competitors": self._generate_competitor_data(brand_stats),
         }
+
+    def _calculate_sos_delta(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 대비 SoS 변화량(%p) 계산.
+
+        양변 모두 _is_laneige 기준으로 세어 내부 일관성을 보장하며,
+        이전 날짜 데이터가 없으면 None을 반환한다 (하드코딩 금지).
+        """
+
+        def _sos_of(records: list[dict]) -> float | None:
+            total = len(records)
+            if total == 0:
+                return None
+            count = sum(1 for r in records if self._is_laneige(r))
+            return count / total * 100
+
+        prev_dates = sorted(
+            {
+                r.get("snapshot_date")
+                for r in raw_data
+                if r.get("snapshot_date") and r.get("snapshot_date") < latest_date
+            }
+        )
+        if not prev_dates:
+            return None
+
+        today_sos = _sos_of([r for r in raw_data if r.get("snapshot_date") == latest_date])
+        prev_sos = _sos_of([r for r in raw_data if r.get("snapshot_date") == prev_dates[-1]])
+        if today_sos is None or prev_sos is None:
+            return None
+
+        delta = round(today_sos - prev_sos, 1)
+        if delta == 0:
+            delta = 0.0  # -0.0 표기 방지
+        return f"{delta:+.1f}%p"
 
     def _calculate_hhi(self, brand_stats: dict) -> float:
         """HHI (Herfindahl-Hirschman Index) 계산"""

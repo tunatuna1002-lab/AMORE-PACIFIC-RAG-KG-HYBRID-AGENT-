@@ -4452,7 +4452,7 @@
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">Laneige 시장점유율 <i data-lucide="help-circle" class="help-icon"></i></div>
                                 <div class="kpi-value">44.0<span class="unit">%</span></div>
-                                <span class="kpi-delta up">▲ 2.1%p</span>
+                                <span class="kpi-delta" id="brand-sos-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">📊 시장점유율 (SoS: Share of Shelf)</div>
                                     <div class="tooltip-content">
@@ -5838,6 +5838,21 @@
                 let hhi = kpis.hhi ?? '중간 집중도';
 
                 if (kpiCards[0]) kpiCards[0].querySelector('.kpi-value').innerHTML = sosValue + '<span class="unit">%</span>';
+
+                // SoS 델타 배지: exporter 실계산 값만 표시 (없으면 — 유지)
+                const sosDeltaEl = document.getElementById('brand-sos-delta');
+                if (sosDeltaEl) {
+                    const rawDelta = kpis.sos_delta;
+                    const deltaNum = typeof rawDelta === 'string' ? parseFloat(rawDelta) : NaN;
+                    if (!isNaN(deltaNum)) {
+                        const arrow = deltaNum > 0 ? '▲ ' : (deltaNum < 0 ? '▼ ' : '');
+                        sosDeltaEl.textContent = arrow + Math.abs(deltaNum).toFixed(1) + '%p';
+                        sosDeltaEl.className = 'kpi-delta' + (deltaNum > 0 ? ' up' : (deltaNum < 0 ? ' down' : ''));
+                    } else {
+                        sosDeltaEl.textContent = '—';
+                        sosDeltaEl.className = 'kpi-delta';
+                    }
+                }
                 if (kpiCards[1]) kpiCards[1].querySelector('.kpi-value').innerHTML = (top10Count ?? 0) + '<span class="unit">개</span>';
                 if (kpiCards[2]) kpiCards[2].querySelector('.kpi-value').innerHTML = (avgRank ?? '-') + '<span class="unit">위</span>';
                 if (kpiCards[3]) kpiCards[3].querySelector('.kpi-value').textContent = hhi;

@@ -252,7 +252,7 @@ def build_data_context(data: dict, query_type: QueryType, entities: dict) -> str
         if brand_kpis:
             context_parts.append(f"""
 [LANEIGE 브랜드 KPI] (Ontology: BrandMetrics)
-- SoS (Share of Shelf): {brand_kpis.get("sos", 0)}% {brand_kpis.get("sos_delta", "")}
+- SoS (Share of Shelf): {brand_kpis.get("sos", 0)}% {brand_kpis.get("sos_delta") or ""}
 - Top 10 제품 수: {brand_kpis.get("top10_count", 0)}개
 - 평균 순위: {brand_kpis.get("avg_rank", 0)}위
 - HHI (시장 집중도): {brand_kpis.get("hhi", 0)}""")
