@@ -2474,3 +2474,81 @@ class TestUnifiedSelfRAGGate:
         await retriever.retrieve_unified("LANEIGE SoS 분석해줘")
 
         owl_strategy.retrieve.assert_called_once()
+
+
+class TestMetricEdgeSelection:
+    """metric_edges 선택·정렬 규칙 (2026-08-30 사이클 4).
+
+    12개 상한 안에서 어떤 엣지가 살아남는지가 L3 엣지 recall을 좌우한다.
+    """
+
+    @staticmethod
+    def _relation(subject, predicate, obj, **properties):
+        rel = MagicMock()
+        rel.subject = subject
+        rel.predicate = MagicMock()
+        rel.predicate.value = predicate
+        rel.object = obj
+        rel.properties = properties
+        return rel
+
+    def _edges(self, mock_kg, relations, entities):
+        def query(*args, **kwargs):
+            subject = kwargs.get("subject")
+            if kwargs.get("predicate") is not None:
+                return []
+            return [r for r in relations if r.subject == subject]
+
+        mock_kg.query.side_effect = query
+        mock_kg.get_entity_metadata.return_value = None
+        mock_kg.get_brand_products.return_value = []
+        mock_kg.get_competitors.return_value = []
+        mock_kg.get_neighbors.return_value = {"outgoing": [], "incoming": []}
+
+        retriever = HybridRetriever(
+            knowledge_graph=mock_kg,
+            reasoner=MagicMock(),
+            doc_retriever=MagicMock(),
+            auto_init_rules=False,
+        )
+        facts = retriever._query_knowledge_graph(entities)
+        edges = []
+        for fact in facts:
+            if fact["type"] == "metric_edges":
+                edges.extend(fact["data"]["edges"])
+        return edges
+
+    def test_uppercase_seed_triples_are_queried(self, mock_knowledge_graph):
+        """시드 온톨로지는 대문자 subject로 저장돼 있어 변형 조회가 필요하다."""
+        relations = [
+            self._relation("LANEIGE", "ownedByGroup", "AMOREPACIFIC"),
+            self._relation("laneige", "hasSoS", "lip_care"),
+        ]
+
+        edges = self._edges(mock_knowledge_graph, relations, {"brands": ["laneige"]})
+
+        assert {"subject": "LANEIGE", "predicate": "ownedBy", "object": "AMOREPACIFIC"} in edges
+
+    def test_identity_edges_outrank_competitor_edges(self, mock_knowledge_graph):
+        """competesWith가 12개 상한에서 ownedBy·rankedIn을 밀어내면 안 된다."""
+        relations = [self._relation("laneige", "competesWith", f"rival{i}") for i in range(12)]
+        relations.append(self._relation("LANEIGE", "ownedByGroup", "AMOREPACIFIC"))
+        relations.append(self._relation("laneige", "rankedIn", "lip_care"))
+
+        edges = self._edges(mock_knowledge_graph, relations, {"brands": ["laneige"]})
+
+        predicates = [e["predicate"] for e in edges]
+        assert "ownedBy" in predicates
+        assert "rankedIn" in predicates
+        assert predicates.count("competesWith") <= 3
+        assert len(edges) <= 12
+
+    def test_duplicate_edges_are_collapsed(self, mock_knowledge_graph):
+        relations = [
+            self._relation("laneige", "hasSoS", "lip_care"),
+            self._relation("LANEIGE", "hasSoS", "LIP_CARE"),
+        ]
+
+        edges = self._edges(mock_knowledge_graph, relations, {"brands": ["laneige"]})
+
+        assert len(edges) == 1

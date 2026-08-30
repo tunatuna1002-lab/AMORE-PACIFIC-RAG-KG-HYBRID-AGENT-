@@ -57,6 +57,27 @@ except ImportError:
     logger.warning("spaCy not installed. EntityLinker will use rule-based fallback.")
 
 
+def product_name_slugs(title: str, brand: str) -> list[str]:
+    """제품 타이틀 → 제품 라인명 슬러그 후보 (3단어·2단어 변형)
+
+    예: "LANEIGE Lip Sleeping Mask - Berry" → ["lip_sleeping_mask", "lip_sleeping"]
+        "LANEIGE Water Bank Blue Hyaluronic Cream" → ["water_bank_blue", "water_bank"]
+    """
+    t = title.strip()
+    if brand and t.lower().startswith(brand.lower()):
+        t = t[len(brand) :]
+    for sep in (":", "|", ",", " - ", "–", "("):
+        t = t.split(sep)[0]
+    words = re.findall(r"[A-Za-z0-9]+", t)
+    slugs: list[str] = []
+    for n in (3, 2):
+        if len(words) >= n:
+            slug = "_".join(w.lower() for w in words[:n])
+            if slug not in slugs:
+                slugs.append(slug)
+    return slugs
+
+
 @dataclass
 class LinkedEntity:
     """
@@ -554,9 +575,10 @@ class EntityLinker:
         # 브랜드 추출 (class-level + config 통합)
         merged_brands = self._get_merged_brands()
         for brand_key, normalized in merged_brands.items():
-            if brand_key in query_lower:
-                if normalized not in entities["brands"]:
-                    entities["brands"].append(normalized)
+            if not self._mentions(query_lower, brand_key):
+                continue
+            if normalized not in entities["brands"]:
+                entities["brands"].append(normalized)
 
         # 카테고리 추출
         merged_cats = self._get_merged_categories()
@@ -584,6 +606,10 @@ class EntityLinker:
         asins = re.findall(asin_pattern, query)
         if asins:
             entities["products"].extend(asins)
+
+        # 제품명 기반 브랜드 역링크 (지식 그래프 활용)
+        if knowledge_graph:
+            self._link_products_from_kg(query_lower, entities, knowledge_graph)
 
         # 순위 기반 제품 추출 (지식 그래프 활용)
         if knowledge_graph:
@@ -617,6 +643,65 @@ class EntityLinker:
                     entities["sentiment_clusters"].append(cluster)
 
         return entities
+
+    @staticmethod
+    def _mentions(query_lower: str, key: str) -> bool:
+        """키워드 포함 여부 — 라틴 문자 키는 단어 경계를 요구한다.
+
+        단순 부분 문자열 매칭은 "share of shelf"의 'shelf'에서 브랜드 'elf'를,
+        "eos"를 포함하는 임의 단어에서 브랜드 'eos'를 오탐한다. 한글은 교착어라
+        조사가 바로 붙으므로(예: "라네즈의") 경계 조건을 걸지 않는다.
+        """
+        if not key:
+            return False
+        if re.fullmatch(r"[a-z0-9.\-' ]+", key):
+            return re.search(rf"(?<![a-z0-9]){re.escape(key)}(?![a-z0-9])", query_lower) is not None
+        return key in query_lower
+
+    def _get_product_slug_index(self, knowledge_graph: Any) -> dict[str, tuple[str, str]]:
+        """KG의 hasProduct 타이틀 → {제품 슬러그: (브랜드, 카테고리)} 인덱스.
+
+        질의가 브랜드명 없이 제품명만 언급하는 경우("Lip Sleeping Mask 순위는?")
+        브랜드가 하나도 추출되지 않아 KG 조회가 통째로 비었다. KG가 이미 보유한
+        제품 타이틀로 제품명→브랜드를 역링크한다.
+        """
+        cached = getattr(self, "_product_slug_index", None)
+        if cached is not None:
+            return cached
+
+        index: dict[str, tuple[str, str]] = {}
+        try:
+            for rel in knowledge_graph.query():
+                predicate = (
+                    rel.predicate.value if hasattr(rel.predicate, "value") else str(rel.predicate)
+                )
+                if predicate != "hasProduct":
+                    continue
+                title = rel.properties.get("title", "")
+                brand = str(rel.subject)
+                if not title:
+                    continue
+                category = str(rel.properties.get("category", ""))
+                for slug in product_name_slugs(title, brand):
+                    index.setdefault(slug, (brand.lower(), category))
+        except Exception:
+            logger.debug("product slug index build failed", exc_info=True)
+
+        self._product_slug_index = index
+        return index
+
+    def _link_products_from_kg(
+        self, query_lower: str, entities: dict, knowledge_graph: Any
+    ) -> None:
+        """질의에 등장한 KG 제품명을 products/brands 엔티티로 추가."""
+        for slug, (brand, _category) in self._get_product_slug_index(knowledge_graph).items():
+            phrase = slug.replace("_", " ")
+            if len(phrase) < 6 or not self._mentions(query_lower, phrase):
+                continue
+            if slug not in entities["products"]:
+                entities["products"].append(slug)
+            if brand not in entities["brands"]:
+                entities["brands"].append(brand)
 
     def extract_concepts(self, query: str) -> list[str]:
         """

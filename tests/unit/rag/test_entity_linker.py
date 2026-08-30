@@ -342,3 +342,83 @@ class TestEntityLinkerStats:
         stats = linker.get_stats()
         stats["total_links"] = 9999
         assert linker.get_stats()["total_links"] != 9999
+
+
+# ===========================================================================
+# 브랜드 오탐 방지 + 제품명 역링크 (2026-08-30 사이클 4)
+# ===========================================================================
+
+
+class _StubRelation:
+    def __init__(self, subject, predicate, obj, properties):
+        self.subject = subject
+        self.predicate = predicate
+        self.object = obj
+        self.properties = properties
+
+
+class _StubKG:
+    """hasProduct 트리플만 돌려주는 최소 KG 스텁."""
+
+    def __init__(self, relations):
+        self._relations = relations
+
+    def query(self, *args, **kwargs):
+        return self._relations
+
+
+class TestBrandMatchingPrecision:
+    def test_shelf_does_not_match_elf_brand(self, linker):
+        """'share of shelf'의 shelf가 브랜드 e.l.f.로 오탐되지 않아야 한다."""
+        result = linker.extract_entities("SoS(Share of Shelf)란 무엇인가요?")
+        assert result["brands"] == []
+
+    def test_standalone_elf_still_matches(self, linker):
+        result = linker.extract_entities("elf 브랜드 순위는?")
+        assert "e.l.f." in result["brands"]
+
+    def test_korean_particle_does_not_block_match(self, linker):
+        """한글은 조사가 붙어도 매칭돼야 한다 (경계 조건 미적용)."""
+        result = linker.extract_entities("라네즈의 점유율은?")
+        assert any("laneige" in b.lower() for b in result["brands"])
+
+
+class TestProductNameBackLink:
+    def test_product_name_links_brand_and_product(self, linker):
+        """질의가 제품명만 언급해도 KG 타이틀로 브랜드를 역링크한다."""
+        kg = _StubKG(
+            [
+                _StubRelation(
+                    "laneige",
+                    "hasProduct",
+                    "B07XXPHQZK",
+                    {
+                        "title": "LANEIGE Lip Sleeping Mask: Korean Overnight Treatment",
+                        "rank": 8,
+                        "category": "lip_care",
+                    },
+                )
+            ]
+        )
+
+        result = linker.extract_entities("Lip Sleeping Mask 순위 변화는?", knowledge_graph=kg)
+
+        assert "laneige" in result["brands"]
+        assert "lip_sleeping_mask" in result["products"]
+
+    def test_unrelated_query_gets_no_product(self, linker):
+        kg = _StubKG(
+            [
+                _StubRelation(
+                    "laneige",
+                    "hasProduct",
+                    "B07XXPHQZK",
+                    {"title": "LANEIGE Lip Sleeping Mask", "rank": 8, "category": "lip_care"},
+                )
+            ]
+        )
+
+        result = linker.extract_entities("HHI가 무엇인가요?", knowledge_graph=kg)
+
+        assert result["products"] == []
+        assert result["brands"] == []

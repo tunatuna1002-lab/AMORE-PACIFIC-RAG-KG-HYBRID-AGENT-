@@ -103,37 +103,41 @@ from .retriever import DocumentRetriever
 logger = logging.getLogger(__name__)
 
 
-def _product_name_slugs(title: str, brand: str) -> list[str]:
-    """제품 타이틀 → 제품 라인명 슬러그 후보 (3단어·2단어 변형)
-
-    예: "LANEIGE Lip Sleeping Mask - Berry" → ["lip_sleeping_mask", "lip_sleeping"]
-        "LANEIGE Water Bank Blue Hyaluronic Cream" → ["water_bank_blue", "water_bank"]
-    """
-    import re
-
-    t = title.strip()
-    if brand and t.lower().startswith(brand.lower()):
-        t = t[len(brand) :]
-    for sep in (":", "|", ",", " - ", "–", "("):
-        t = t.split(sep)[0]
-    words = re.findall(r"[A-Za-z0-9]+", t)
-    slugs: list[str] = []
-    for n in (3, 2):
-        if len(words) >= n:
-            slug = "_".join(w.lower() for w in words[:n])
-            if slug not in slugs:
-                slugs.append(slug)
-    return slugs
-
-
 # ============================================================================
 # Query Intent Classification
 # Delegates to unified classifier (src/core/intent.py).
 # QueryIntent enum and helpers are kept for backward compatibility.
 # ============================================================================
-
 from src.core.intent import classify_intent as _unified_classify
 from src.core.intent import to_query_intent as _to_query_intent
+
+from .entity_linker import product_name_slugs as _product_name_slugs
+
+# 브랜드 정체성·지표 엣지의 정보량 우선순위 (12개 상한에서 살아남을 순서)
+_REST_EDGE_PRIORITY = {
+    "ownedBy": 0,
+    "hasSoS": 1,
+    "rankedIn": 2,
+    "hasHHI": 3,
+    "hasPosition": 4,
+}
+
+
+def _dedupe_edges(edges: list[dict]) -> list[dict]:
+    """같은 (subject, predicate, object) 엣지를 대소문자 무시로 1회만 남긴다."""
+    seen: set[tuple[str, str, str]] = set()
+    unique: list[dict] = []
+    for edge in edges:
+        key = (
+            str(edge["subject"]).lower(),
+            str(edge["predicate"]),
+            str(edge["object"]).lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(edge)
+    return unique
 
 
 class QueryIntent(Enum):
@@ -857,10 +861,16 @@ class HybridRetriever:
 
             # 메트릭/관계 엣지 (kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등)
             try:
-                # 시드 온톨로지는 'LANEIGE', kg_enricher는 'laneige'로 저장 — 둘 다 조회
-                edge_relations = list(self.kg.query(subject=brand))
-                if brand.lower() != brand:
-                    edge_relations += list(self.kg.query(subject=brand.lower()))
+                # 시드 온톨로지는 'LANEIGE'(대문자), kg_enricher는 'laneige'(소문자)로
+                # 저장한다. 추출기가 내는 브랜드는 소문자이므로 대문자 변형을 조회하지
+                # 않으면 시드 트리플(ownedByGroup 등)이 통째로 누락됐다.
+                subject_variants: list[str] = []
+                for variant in (brand, brand.lower(), brand.upper(), brand.title()):
+                    if variant not in subject_variants:
+                        subject_variants.append(variant)
+                edge_relations = []
+                for variant in subject_variants:
+                    edge_relations += list(self.kg.query(subject=variant))
                 priority_preds = {
                     "hasSoS",
                     "hasHHI",
@@ -871,6 +881,7 @@ class HybridRetriever:
                 }
                 query_categories = {c.lower() for c in entities.get("categories", [])}
                 query_brands = {b.lower() for b in entities.get("brands", [])}
+                query_products = {p.lower() for p in entities.get("products", [])}
                 relevant, competes, rest = [], [], []
                 top_products: list[tuple[int, str, str]] = []  # (rank, title, category)
                 for rel in edge_relations:
@@ -891,6 +902,17 @@ class HybridRetriever:
                         rank = rel.properties.get("rank")
                         if title and isinstance(rank, int) and rank <= 10:
                             top_products.append((rank, title, rel.properties.get("category", "")))
+                        elif title and any(
+                            slug in query_products for slug in _product_name_slugs(title, brand)
+                        ):
+                            # 질의가 직접 지목한 제품은 랭크와 무관하게 포함
+                            top_products.append(
+                                (
+                                    rank if isinstance(rank, int) else 999,
+                                    title,
+                                    rel.properties.get("category", ""),
+                                ),
+                            )
                         continue
                     if pred not in priority_preds:
                         continue  # siblingBrand 등 시드 온톨로지는 엣지 노출에서 제외
@@ -921,8 +943,15 @@ class HybridRetriever:
                                     "object": category,
                                 }
                             )
-                # 정밀도 보호: 관련 엣지 우선, 경쟁 엣지는 소수만, 총 12개 상한
-                metric_edges = (relevant + product_edges + competes[:3] + rest)[:12]
+                # 선택 순서: 질의와 직접 닿는 엣지 → 제품 엣지 → 브랜드 정체성·지표
+                # 엣지 → 경쟁 엣지. competesWith는 브랜드당 최대 8개로 가장 수가 많고
+                # 질의 특정성이 낮아, 이전 순서(경쟁 우선)에서는 12개 상한이
+                # ownedBy·rankedIn을 밀어냈다. rest 안에서도 정보량 순으로 정렬한다
+                # (소유관계 > 점유율 > 랭킹 > 집중도 > 가격 포지션).
+                # 상한 12개는 유지한다 — recall 게이트를 "엣지 전량 방출"로 우회하지
+                # 않기 위한 정밀도 가드 (kg_edge_precision으로 감시).
+                rest.sort(key=lambda e: _REST_EDGE_PRIORITY.get(e["predicate"], 9))
+                metric_edges = _dedupe_edges(relevant + product_edges + rest + competes[:3])[:12]
                 if metric_edges:
                     facts.append(
                         {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
