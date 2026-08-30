@@ -145,3 +145,15 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 ### 9.6 `applyProductDateRange()` 호출처 없음
 실제 차트 로더에 연결했으나 현재 이 함수를 부르는 UI 컨트롤이 없다
 (`productStartDate`가 hidden input). Product View 기간 선택 UI를 되살릴지 결정 필요.
+
+### 9.7 eval 프레임워크 결함 (Phase 4 검증 중 발견)
+`docs/experiments/refactor_phase4_2026-08-31.md` 참조.
+- **LLM 호출 타임아웃 없음** — `eval.cli run`이 135/172에서 53분 무기한 정지
+  (프로세스 생존, TCP 4개 보유, CPU 0%). 판정 결과가 실행 끝에만 기록돼
+  중단 시 부분 결과도 유실된다. 문항별 타임아웃 + 증분 저장 필요.
+- **리포트 `metadata.requires_kg` 직렬화 유실** — 데이터셋이 `false`인 문항이
+  리포트에는 `true`로 기록된다. `check_gating`이 이 값으로 L2/L3 검사를 갈라
+  적용하므로, 리포트만으로는 게이팅을 재현할 수 없다.
+- **기준선/현재 L1 `concept_map_f1` 임계값 불일치** — v8.1 기준선의 4문항
+  (lg059·lg080·lg156·lg179)이 현재 로직으로는 통과하지 않는다.
+  baseline 저장 시 임계값을 함께 고정할 것.
