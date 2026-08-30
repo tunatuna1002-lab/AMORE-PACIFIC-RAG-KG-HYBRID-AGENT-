@@ -839,7 +839,9 @@ class HybridRetriever:
                 if brand.lower() != brand:
                     edge_relations += list(self.kg.query(subject=brand.lower()))
                 priority_preds = {"hasSoS", "hasHHI", "rankedIn", "competesWith", "hasPosition"}
-                primary, secondary = [], []
+                query_categories = {c.lower() for c in entities.get("categories", [])}
+                query_brands = {b.lower() for b in entities.get("brands", [])}
+                relevant, competes, rest = [], [], []
                 for rel in edge_relations:
                     enum_pred = (
                         rel.predicate.value
@@ -850,9 +852,19 @@ class HybridRetriever:
                     # 골드/KG 표기는 camelCase — original_predicate는 hasSoS처럼
                     # 의미가 더 구체적인 camelCase일 때만 우선한다
                     pred = orig if orig and "_" not in orig and not orig.isupper() else enum_pred
+                    if pred not in priority_preds:
+                        continue  # siblingBrand 등 시드 온톨로지는 엣지 노출에서 제외
                     edge = {"subject": rel.subject, "predicate": pred, "object": rel.object}
-                    (primary if pred in priority_preds else secondary).append(edge)
-                metric_edges = (primary + secondary)[:20]
+                    obj_lower = str(rel.object).lower()
+                    # 쿼리에 등장한 카테고리/브랜드와 닿는 엣지를 우선
+                    if obj_lower in query_categories or obj_lower in query_brands:
+                        relevant.append(edge)
+                    elif pred == "competesWith":
+                        competes.append(edge)
+                    else:
+                        rest.append(edge)
+                # 정밀도 보호: 관련 엣지 우선, 경쟁 엣지는 소수만, 총 8개 상한
+                metric_edges = (relevant + competes[:3] + rest)[:8]
                 if metric_edges:
                     facts.append(
                         {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
