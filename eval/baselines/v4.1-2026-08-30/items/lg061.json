@@ -1,0 +1,122 @@
+{
+  "item_id": "lg061",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 1.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5,
+    "context_precision_at_k": 0.2,
+    "mrr": 0.3333333333333333
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08658008658008659,
+    "semantic_similarity": 0.7650637626647949,
+    "groundedness_score": 0.5454545454545454,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.8888888889
+  },
+  "overall_score": 0.6322388555239484,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg061",
+    "timestamp": "2026-08-30T11:25:19.718211",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "churn_rate",
+        "correlation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_1",
+        "strategic_indicators_1_0",
+        "metric_interpretation_2_0",
+        "amazon_algorithm_guide_2_2"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장"
+      ],
+      "scores": [
+        5.709769248962402,
+        5.467972278594971,
+        6.019989490509033,
+        6.0185017585754395,
+        5.30267333984375
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 이탈률과 SoS(Share of Shelf) 관계에 대한 인사이트\n\n#### 인사이트\n- SoS는 특정 브랜드가 Top N 랭킹 리스트 내에서 차지하는 제품 비중을 의미하며, 브랜드의 ‘물리적 노출 점유율’을 나타냅니다.\n- 이탈률이 높다는 것은 고객이 해당 브랜드 또는 제품을 떠나는 비율이 높다는 의미로 해석될 수 있는데, 이는 브랜드 내 제품 수 감소나 신규 진입 제품 수 감소로 이어질 가능성이 있습니다.\n- 따라서 이탈률이 높으면 SoS가 낮아질 가능성이 있으며, 이는 브랜드가 Top N 내에 차지하는 제품 비중이 줄어드는 결과로 연결될 수 있습니다.\n- 다만 SoS는 매출이나 판매량과 직접 연결되지는 않으므로, 이탈률이 높아도 SoS가 반드시 즉각적으로 하락하지 않을 수 있습니다. 예를 들어, 남아있는 제품이 다수 진입해 있거나 신규 제품으로 보완된다면 SoS 영향은 제한적일 수 있습니다.\n\n#### 근거\n- SoS는 \"Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\"으로 정의되며, 매출과 직접 연결되지 않는 지표임이 명시되어 있습니다【3】.\n- SoS가 높아도 평균 순위가 낮으면 ‘저가 물량 공세’ 가능성이 있다는 점에서, 단일 지표로 브랜드 성과를 단정하기 어렵습니다【3】.\n- 이탈률과 SoS 간 직접적인 수치 데이터는 제공되지 않았으나, 이탈률이 높으면 브랜드 내 제품 수가 줄어들 가능성이 있어 SoS에 부정적 영향을 미칠 수 있다는 점은 논리적으로 추론 가능합니다.\n\n#### 권장\n- 이탈률이 높을 경우 SoS 변화를 모니터링하여 브랜드 제품 노출 점유율 감소 여부를 확인하는 것이 필요합니다.\n- SoS 하락 시, 신규 제품 진입이나 기존 제품 유지 전략을 통해 브랜드의 Top N 내 제품 비중을 안정화하는 방안을 고려할 수 있습니다.\n- SoS는 단일 지표로 판단하기보다 평균 순위, 판매량 등 다른 지표와 함께 종합적으로 분석하는 것이 바람직합니다.\n\n---\n\n현재 확인된 데이터 기준으로, 이탈률이 높으면 SoS에 부정적 영향을 미칠 가능성이 있으나, SoS는 매출과 직접 연결되지 않고 단일 지표로 해석하기 어려워 추가 데이터와 함께 종합 분석이 필요합니다【3】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 5.71\n\n2. 📄 **개요**\n   - 관련도: 5.47\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 6.02\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 6.02\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10017.607927322388,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

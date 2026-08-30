@@ -1,0 +1,128 @@
+{
+  "item_id": "lg047",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.8571428571428571,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13765182186234817,
+    "semantic_similarity": 0.822446882724762,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.42857142857142855
+  },
+  "overall_score": 0.45521840722236373,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg047",
+    "timestamp": "2026-08-30T11:02:47.495999",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_1",
+        "negative_issue_response_3_4",
+        "negative_issue_response_7_2",
+        "negative_issue_response_1_0",
+        "laneige_influencer_map_5_1",
+        "laneige_strategy_2026_5_2",
+        "negative_issue_response_6_2"
+      ],
+      "snippets": [
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "* **대응 문구 (소셜 미디어/CS):**\"고객님의 피부 트러블 경험에 대해 깊은 유감을 표합니다. 스킨케어, 특히 클렌징 오일은 피부 타입에 따라 반응이 극명하게 갈릴 수 있는 제품입니다. '포어 컨트롤'이라는 제품명이 모든 분께 완벽한 해결책이 되지 못했음을 겸허히 받아들입니다. 현재 보고해주신 낭종성 여드름 사례들을 R\\&D 팀과 함께 심층 분석 중",
+        "향후 수개월간 '검증된 효능(Clinical Validation)'에 대한 니즈가 더욱 커질 것이다. 우지(Tallow)와 같은 비과학적 민간요법에 대한 반작용으로, 다시금 세라마이드, 스쿠알란 등 검증된 성분이 주목받을 것이다. 또한, 무분별한 틱톡 바이럴보다는 레딧과 같은 커뮤니티 기반의 '찐후기(Authentic Review)'가 구매 결정에 미치는 ",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "LANEIGE가 주력하고 있는 **Bouncy & Firm Sleeping Mask**와 **Serum**은 '슬로우 에이징(Slow-aging)'과 '프리주브네이션(Prejuvenation)' 트렌드를 겨냥하고 있다.9 20대부터 노화를 예방하려는 젊은 층을 타겟으로 하며, 틱톡에서 유행하는 '탱글탱글한 피부(Plump Skin)'를 시각적으로 구현해 주",
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *"
+      ],
+      "scores": [
+        3.4843053817749023,
+        3.293827533721924,
+        3.228005886077881,
+        3.216996908187866,
+        3.163811445236206,
+        3.130540609359741,
+        3.126042127609253
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### CPI와 SoS가 동시에 하락할 때 전략 제언\n\n- **인사이트**  \n  CPI(Competitive Price Index)와 SoS(Share of Shelf)가 동시에 하락하는 상황은 가격 경쟁력과 제품 가시성 모두 약화되고 있음을 시사할 수 있습니다. 이는 소비자 접근성과 브랜드 노출이 줄어드는 위험 신호로 해석될 수 있습니다.\n\n- **근거**  \n  제공된 가이드라인에 따르면, 경쟁사들이 특정 키워드(예: '핑크 펩타이드')를 선점하며 스폰서드 프로덕트 광고로 상단 노출을 강화하는 상황에서, SoS 하락은 브랜드의 노출 감소와 연관될 가능성이 있습니다. 또한, CPI 하락은 가격 경쟁력 약화 또는 가격 전략의 재검토 필요성을 시사할 수 있습니다 [출처: rag 1].\n\n- **권장 전략**  \n  1. **키워드 및 광고 강화**: 경쟁사 대비 검색 점유율을 높이기 위해, 핑크 펩타이드 등 부상하는 키워드에 대한 스폰서드 프로덕트 광고를 적극 활용하여 상단 노출을 방어하는 것이 필요할 수 있습니다.  \n  2. **제품력 및 투명성 강조**: 소비자 신뢰 회복을 위해 검증된 효능과 투명한 정보 제공에 집중하는 전략이 요구됩니다. 이는 소셜 미디어 및 커뮤니티 기반 찐후기(Authentic Review)를 활용하는 방향으로 전개할 수 있습니다 [출처: rag 1, rag 3].  \n  3. **고객 대응 및 신뢰 회복**: 제품 관련 부정적 이슈가 있을 경우, 고객 소통 강화 및 문제 해결을 위한 적극적인 CS 대응이 필요합니다. 예를 들어, 민감성 피부용 대체재 개발 및 환불 정책 안내 등이 포함될 수 있습니다 [출처: rag 2].  \n  4. **번들링 전략 검토**: 객단가 상승과 구매 유도를 위해 ‘모닝 쉐드 키트’와 같은 번들 상품 구성을 고려할 수 있습니다 [출처: rag 1].\n\n- **추가 고려사항**  \n  단기적인 CPI 및 SoS 하락은 시장 내 경쟁 심화나 계절적 요인 등 다양한 변수에 의한 노이즈일 수 있으므로, 추이를 지속 관찰하며 대응 전략을 유연하게 조정하는 것이 바람직합니다.\n\n---\n\n요약: CPI와 SoS가 동시에 하락하는 경우, 경쟁 키워드 광고 강화, 제품력 및 투명성 강조, 고객 신뢰 회복, 번들링 전략 도입 등을 통해 브랜드 노출과 가격 경쟁력을 동시에 개선하는 방향을 고려할 수 있습니다 [출처: rag 1, rag 2, rag 3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 3.48\n\n2. 📄 **---**\n   - 관련도: 3.29\n\n3. 📄 **---**\n   - 관련도: 3.16\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9150.832891464233,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

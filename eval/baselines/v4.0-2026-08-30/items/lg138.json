@@ -1,0 +1,265 @@
+{
+  "item_id": "lg138",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.5714285714285715,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07792207792207792,
+    "semantic_similarity": 0.7416368722915649,
+    "groundedness_score": 0.9,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.3636
+  },
+  "overall_score": 0.4953652579001802,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail"
+  ],
+  "trace": {
+    "item_id": "lg138",
+    "timestamp": "2026-08-30T11:12:42.798520",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty",
+        "trend_analysis",
+        "clean_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_2_8",
+        "laneige_influencer_map_5_1",
+        "laneige_strategy_2026_6_1",
+        "laneige_strategy_2026_1_1",
+        "kbeauty_industry_2_1",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_6_0"
+      ],
+      "snippets": [
+        "#### **2.2.2 K-뷰티 큐레이터 (K-Beauty Curators)**\n\n라네즈를 한국 뷰티 트렌드의 맥락에서 해석해주는 그룹입니다.\n\n* **대표 크리에이터:**  \n  * Soo Beauty / Euni Unni 7: 한국 현지의 올리브영 트렌드와 미국 시장의 차이를 설명하며 라네즈의 위상을 재확인시켜줍니다. 다만, 이들 그룹은 유료 광고(Sp",
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 ",
+        "k-뷰티가 어떻게 세계의 뷰티 수도가 되었는지 그 **초격차****의 비밀**을 심층 분석합니다. 단순한 유행을 넘어, 110년간의 분투와 **odm****(제조자 개발 생산) 시스템**이 만들어낸 혁신적인 산업 생태계를 통해 k-뷰티의 구조적 성장 동력을 파악할 수 있습니다. 특히, **초개인화 맞춤 화장품**과 미용 기기 결합 등 미래 기술을 선도하는 ",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "4. K-뷰티의 위협 요인과 미래 초격차 전략\n\n### 4.1. 고부가 가치 제품 약세와 하이엔드 브랜드의 필요성 \n![image]()\n1. **화장품 산업의 매력과 부가 가치**:\n  1. 화장품 산업의 매력은 막대한 **부가 가치**에 있다 \n  2. 로션이나 크림의 주원료인 글리세린은 콩 등에서 뽑아낸 식물성 유지에 첨가물을 섞어 완성되는, 제조가 어"
+      ],
+      "scores": [
+        7.654473781585693,
+        6.767435073852539,
+        6.734703063964844,
+        6.637976169586182,
+        6.900051593780518,
+        6.498324394226074,
+        6.492957592010498
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 클린뷰티 트렌드가 K-Beauty of Joseon 브랜드에 미치는 기회와 위협\n\n- **기회**\n  - K-Beauty of Joseon 브랜드가 클린뷰티 트렌드에 부합하는 성분과 과학적 커뮤니케이션을 강화할 경우, 기존 고객 이탈을 방지하고 신뢰도를 높일 수 있을 것으로 보입니다. 예를 들어, '크림 스킨' 리포뮬레이션 시 단순 마케팅 용어 대신 \"왜 이 성분이 더 좋은가\"에 대한 과학적 설명이 중요하다는 점이 강조되고 있습니다 [출처: RAG 가이드 2].\n  - 클린뷰티에 대한 소비자 관심 증가에 따라, K-Beauty of Joseon 브랜드가 '대체 불가능한 브랜드 경험'과 '커뮤니티 소속감'을 제공하는 전략을 통해 저가 경쟁 제품과 차별화할 수 있는 기회가 있습니다 [출처: RAG 가이드 2].\n  - 미국 Z세대와 밀레니얼 세대를 아우르는 라이프스타일 뷰티 아이콘으로 도약하는 데 클린뷰티 트렌드가 긍정적 역할을 할 가능성이 있습니다 [출처: RAG 가이드 2].\n\n- **위협**\n  - 클린뷰티 트렌드에 부합하지 않는 제품 리포뮬레이션은 기존 고객의 이탈 위험을 내포할 수 있으며, 단순한 마케팅 용어 사용 시 진정성에 대한 소비자 의심이 커질 수 있습니다 [출처: RAG 가이드 2].\n  - 경쟁사들이 클린뷰티 관련 키워드와 제품을 선점하는 상황에서, K-Beauty of Joseon 브랜드가 적절한 광고 및 커뮤니케이션 전략을 마련하지 못하면 시장 점유율 하락 가능성이 있습니다 [출처: RAG 가이드 3].\n  - 클린뷰티 트렌드가 확대됨에 따라, 가격 경쟁력만으로는 한계가 있으며, 브랜드 경험과 커뮤니티 구축에 실패할 경우 경쟁에서 불리할 수 있습니다 [출처: RAG 가이드 2].\n\n### 권장 사항\n- 과학적 근거에 기반한 성분 커뮤니케이션을 강화하여 소비자 신뢰를 확보할 것\n- 클린뷰티 트렌드에 맞는 브랜드 경험과 커뮤니티 소속감 제공 전략을 적극 추진할 것\n- 경쟁사 동향을 면밀히 모니터링하며, 관련 키워드 광고 및 프로모션을 강화할 것\n\n현재 확인된 데이터 기준으로, 클린뷰티 트렌드는 K-Beauty of Joseon 브랜드에 기회와 위협을 동시에 제공하는 중요한 외부 환경으로 평가됩니다 [출처: RAG 가이드 2, 3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 7.65\n\n3. 📄 **---**\n   - 관련도: 6.73\n\n4. 📄 **💡 K-뷰티의 초격차를 가능하게 한 구체적인 요소들은?**\n   - 관련도: 6.90\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9120.671033859253,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

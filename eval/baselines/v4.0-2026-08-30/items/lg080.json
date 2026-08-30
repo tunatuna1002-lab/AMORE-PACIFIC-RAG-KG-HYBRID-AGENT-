@@ -1,0 +1,130 @@
+{
+  "item_id": "lg080",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09302325581395347,
+    "semantic_similarity": 0.8050875663757324,
+    "groundedness_score": 0.636,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.57
+  },
+  "overall_score": 0.3990366406637384,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg080",
+    "timestamp": "2026-08-30T11:06:15.888939",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking",
+        "seasonality"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_1_2",
+        "us_beauty_trends_weekly_1",
+        "laneige_strategy_2026_7_1",
+        "laneige_strategy_2026_4_1",
+        "us_beauty_trends_weekly_3_1",
+        "laneige_strategy_2026_5_2",
+        "laneige_strategy_2026_4_2"
+      ],
+      "snippets": [
+        "라네즈의 미국 시장 침투 전략은 철저히 \\*\\*'립 슬리핑 마스크(Lip Sleeping Mask)'\\*\\*를 입문 제품(Gateway Product)으로 활용하는 플라이휠 구조를 따릅니다.1 $24라는 비교적 접근 가능한 가격대와 즉각적인 시각적 만족감을 주는 이 제품은 소비자를 라네즈 생태계로 유입시키는 미끼 역할을 합니다. 이후 소비자는 '크림 스킨(",
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완",
+        "이 트렌드는 겨울철 건조함과 맞물려 폭발적인 반응을 얻고 있으며, **LANEIGE Lip Sleeping Mask**는 이 루틴의 2단계(베이스팅 단계)를 위한 최고의 제품으로 소비자들 사이에서 자연스럽게 바이럴되고 있다.14 특히 경쟁 제품인 일반 립밤이나 얇은 오일 제형은 이러한 '베이스팅' 효과를 내기에 부족하다는 인식이 지배적이다. 따라서 LANE",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "LANEIGE가 주력하고 있는 **Bouncy & Firm Sleeping Mask**와 **Serum**은 '슬로우 에이징(Slow-aging)'과 '프리주브네이션(Prejuvenation)' 트렌드를 겨냥하고 있다.9 20대부터 노화를 예방하려는 젊은 층을 타겟으로 하며, 틱톡에서 유행하는 '탱글탱글한 피부(Plump Skin)'를 시각적으로 구현해 주",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는"
+      ],
+      "scores": [
+        6.3640241622924805,
+        6.03748893737793,
+        5.885111331939697,
+        5.780244827270508,
+        5.4295244216918945,
+        5.1488800048828125,
+        4.728376388549805
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Lip Sleeping Mask 계절별 순위 변화 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 및 온톨로지 추론 결과 내에서는 Lip Sleeping Mask의 계절별 순위 변화에 대한 구체적인 수치나 순위 변동 데이터가 포함되어 있지 않습니다. 따라서 계절별 순위 변화 추이를 명확히 파악하기 어려운 상황입니다.  \n  다만, Lip Sleeping Mask가 미국 시장에서 입문 제품으로서 강한 포지셔닝을 갖고 있으며, 특히 겨울철 보습 및 수면 중 케어 제품으로서 수요가 증가할 가능성이 있다는 점은 참고할 만합니다. 또한, 틱톡 등 SNS에서 '모닝 쉐드' 리추얼과 연계한 바이럴 마케팅이 활발하여 계절에 따른 소비자 관심도 변동이 있을 수 있습니다【1】【3】.\n\n- **근거**  \n  - 분석 범위는 2025-12-21부터 2026-01-20까지로, 겨울 시즌 데이터 중심이며 계절별 비교 데이터는 없음【2】  \n  - Lip Sleeping Mask는 입문 제품으로서 미국 시장에서 지속적인 관심을 받고 있음【1】  \n  - 틱톡 등 SNS에서의 바이럴 트렌드가 계절별 소비 패턴에 영향을 줄 가능성 있음【3】\n\n- **권장**  \n  - 계절별 순위 변화를 정확히 파악하기 위해서는 분기별 또는 월별 순위 데이터를 추가 수집할 필요가 있습니다.  \n  - 겨울철과 같이 보습 수요가 높은 시기에 집중된 마케팅과 재고 관리를 강화하는 전략이 유효할 수 있습니다.  \n  - SNS 트렌드(예: '모닝 쉐드' 리추얼)와 연계한 계절별 캠페인 기획을 통해 소비자 관심을 지속적으로 유도하는 방안을 고려할 수 있습니다.\n\n현재 확인된 데이터 기준으로는 Lip Sleeping Mask의 계절별 순위 변화에 대한 구체적 수치는 제공되지 않았음을 참고 바랍니다【출처: 현재 데이터】【출처: RAG 가이드】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝****\n   - 관련도: 6.36\n\n2. 📄 **분석 범위**\n   - 관련도: 6.04\n\n3. 📄 **---**\n   - 관련도: 5.89\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9729.551076889038,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

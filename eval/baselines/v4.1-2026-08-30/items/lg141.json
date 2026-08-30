@@ -1,0 +1,263 @@
+{
+  "item_id": "lg141",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12658227848101267,
+    "semantic_similarity": 0.7149326801300049,
+    "groundedness_score": 0.615,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.375
+  },
+  "overall_score": 0.4103363462749916,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg141",
+    "timestamp": "2026-08-30T11:34:31.863526",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "market_entry"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_5_1",
+        "laneige_influencer_map_2_11",
+        "laneige_strategy_2026_4_0",
+        "laneige_strategy_2026_7_1",
+        "laneige_strategy_2026_3_3"
+      ],
+      "snippets": [
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "* **대표 크리에이터:**  \n  * Glow with Ava 13: '젤로 스킨(Jello Skin)' 트렌드의 창시자로서, 라네즈 제품을 활용해 탄력 있고 탱글탱글한 피부 질감을 보여줍니다. 그녀는 제품을 얼굴에 바르는 것뿐만 아니라, 예쁘게 정돈된 화장대를 보여주며 팔로워들의 소장 욕구를 자극합니다.  \n  * Ugly Duckling Skincar",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완",
+        "LANEIGE의 제품군은 전통적으로 '자극 없는 편안함'과 '수분 진정'에 초점을 맞춰왔기에, 이러한 자극 기반의 트렌드와는 대척점에 있다. 그러나 역설적으로 스피큘 제품의 인기는 LANEIGE에게 기회가 될 수 있다. 스피큘 사용 후 자극받은 피부를 진정시키고 장벽을 복구하기 위한 '애프터 케어' 제품으로 **Cream Skin Toner**나 **Cic"
+      ],
+      "scores": [
+        6.1402363777160645,
+        6.03061580657959,
+        5.677123069763184,
+        5.149814605712891,
+        4.997923851013184
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 31,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 13,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 8,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              },
+              {
+                "brand": "la roche-posay",
+                "product_count": 5,
+                "products": [
+                  "B01N9SPQHQ",
+                  "B01N34XW93",
+                  "B01N7T7JKJ",
+                  "B0060OUV5Y",
+                  "B003QXZWYW"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Skin Care 카테고리 신규 진입 브랜드 성공 조건\n\n- **인사이트**  \n  1) 기존 강자인 medicube, cerave, unknown 브랜드와 경쟁하는 상황에서, 제품의 차별화가 중요할 수 있습니다.  \n  2) LANEIGE Cream Skin Toner & Moisturizer 사례에서 보듯, 소비자들은 제품의 흡수력과 비코메도제닉(Non-comedogenic) 속성을 민감하게 평가하는 경향이 있습니다. 따라서, 신규 브랜드도 이러한 피부 친화적 특성을 강조할 필요가 있어 보입니다.  \n  3) 커뮤니티(예: Reddit)에서 제품 사용 경험과 긍정적 평가가 확산되는 것이 브랜드 신뢰도 구축에 유리할 수 있습니다.  \n  4) 인플루언서 마케팅과 트렌드 선도(예: 젤로 스킨 트렌드 창시자 Glow Recipe with Ava 사례)도 신규 브랜드 인지도 상승에 기여할 가능성이 있습니다.\n\n- **근거**  \n  - LANEIGE 제품은 리뉴얼 후 흡수력과 비코메도제닉 속성에 대한 소비자 반응이 브랜드 경쟁력에 영향을 미침 [출처: rag 1]  \n  - 인플루언서 Glow Recipe with Ava가 젤로 스킨 트렌드를 주도하며 라네즈 제품을 활용해 긍정적 이미지를 확산 [출처: rag 2]  \n  - Skin Care 카테고리 내 상위 브랜드는 medicube, cerave, unknown으로 신규 진입 브랜드는 이들과 차별화 필요 [출처: Knowledge Graph]\n\n- **권장 사항**  \n  1) 제품 개발 시 피부 흡수력과 비코메도제닉 특성을 중점적으로 고려하여 소비자 신뢰 확보를 도모할 것  \n  2) 커뮤니티 기반 사용자 경험 공유를 활성화하여 긍정적 입소문을 유도할 것  \n  3) 관련 트렌드 및 인플루언서와 협업하여 브랜드 인지도를 빠르게 확장할 전략을 검토할 것  \n  4) 경쟁 브랜드의 약점(예: 리뉴얼 제품의 부정적 반응)을 모니터링하며 차별화 포인트를 지속 발굴할 것\n\n현재 확인된 데이터 기준으로, 신규 진입 브랜드의 성공은 제품 특성 차별화와 커뮤니티 및 인플루언서 마케팅 전략이 핵심 요소일 가능성이 높아 보입니다 [출처: rag 1, rag 2, Knowledge Graph].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 6.14\n\n3. 📄 **---**\n   - 관련도: 6.03\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6252.996921539307,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "item_id": "lg054",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07734806629834252,
+    "semantic_similarity": 0.7813036441802979,
+    "groundedness_score": 0.42857142857142855,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.7142857142857143
+  },
+  "overall_score": 0.4321357968002205,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg054",
+    "timestamp": "2026-08-30T11:03:39.591905",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "correlation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_2_1",
+        "laneige_strategy_2026_1_1",
+        "laneige_strategy_2026_6_1",
+        "negative_issue_response_3_1",
+        "negative_issue_response_1_1",
+        "laneige_influencer_map_5_1",
+        "kbeauty_industry_6_0"
+      ],
+      "snippets": [
+        "문제의 핵심은 미국 FDA의 자외선 차단제 필터 규제에 있다. 미국은 1990년대 이후 새로운 유기자차 필터(예: Tinosorb S, Uvinul A Plus 등)의 승인을 멈춘 상태다. 이에 따라 라운드랩은 미국 시장 진출을 위해 한국 오리지널 제품의 강점이었던 차세대 필터를 배제하고, 아보벤존(Avobenzone), 호모살레이트(Homosalate) ",
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 ",
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "소비자들의 반응은 단순한 불만을 넘어 공포와 분노에 가깝다. 레딧 사용자들은 \"이 제품이 내 피부를 완전히 망쳤다(absolutely wrecked me)\", \"인생 최악의 피부 상태\", \"낭종성 여드름으로 변할까 봐 두렵다\" 등의 격앙된 표현을 사용하고 있다.6 특히 주목할 점은 부작용의 발현 속도다. 일부 사용자들은 사용 단 3일 만에 피부가 뒤집어졌다",
+        "현재 미국 뷰티 시장의 소비자 정서는 '맹목적 바이럴 수용'에서 '검증과 회의주의'로 급격히 전환되고 있다. 지난 1년간 틱톡(TikTok)을 중심으로 폭발적인 성장을 이룬 브랜드들이 이제는 '인플루언서 피로감(Influencer Fatigue)'과 '효능 불일치'라는 역풍을 맞이하고 있다. 데이터 분석 결과, 위기는 크게 네 가지 핵심 벡터로 분류된다. ",
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "4. K-뷰티의 위협 요인과 미래 초격차 전략\n\n### 4.1. 고부가 가치 제품 약세와 하이엔드 브랜드의 필요성 \n![image]()\n1. **화장품 산업의 매력과 부가 가치**:\n  1. 화장품 산업의 매력은 막대한 **부가 가치**에 있다 \n  2. 로션이나 크림의 주원료인 글리세린은 콩 등에서 뽑아낸 식물성 유지에 첨가물을 섞어 완성되는, 제조가 어"
+      ],
+      "scores": [
+        6.243016242980957,
+        6.231271743774414,
+        6.112076759338379,
+        6.074419975280762,
+        6.0485639572143555,
+        6.034514427185059,
+        6.032554626464844
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### SoS 증가 시 매출 영향에 대한 인사이트\n\n- **인사이트**  \n  SoS(Share of Shelf, 점유율)가 증가하면 해당 브랜드나 제품이 상위 랭킹 내에서 차지하는 비중이 커지는 것을 의미합니다. 이는 소비자 노출과 선택 가능성이 높아져 매출에 긍정적 영향을 미칠 가능성이 있습니다. 다만, SoS 증가가 반드시 매출 증가로 직결된다는 단정은 어려우며, 제품 품질, 광고, 재고 상황 등 다른 요인과 복합적으로 작용할 수 있습니다.\n\n- **근거**  \n  제공된 컨텍스트 내에서는 SoS와 매출 간 직접적인 수치 연계 데이터는 없으나, SoS가 상위 랭킹 제품군 내 점유율을 나타내므로, SoS 증가가 브랜드 인지도 및 소비자 선택에 긍정적 영향을 줄 수 있다는 점이 암시되어 있습니다 [출처: 현재 데이터].\n\n- **권장**  \n  SoS 증가 추이를 지속 모니터링하며, 매출 및 순위 변동과 함께 분석하는 것이 필요합니다. 또한, SoS 증가가 매출에 미치는 영향을 보다 명확히 파악하기 위해서는 광고 집행, 제품 품질, 소비자 반응 등 다각적 데이터를 함께 고려하는 전략이 권장됩니다.\n\n현재 확인된 데이터 기준으로 SoS 증가가 매출에 미치는 구체적 수치나 직접적 인과관계는 제공되지 않았음을 참고 바랍니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 6.24\n\n2. 📄 ****1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화****\n   - 관련도: 6.23\n\n3. 📄 **---**\n   - 관련도: 6.03\n\n4. 📄 **4. K-뷰티의 위협 요인과 미래 초격차 전략**\n   - 관련도: 6.03\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6917.520999908447,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

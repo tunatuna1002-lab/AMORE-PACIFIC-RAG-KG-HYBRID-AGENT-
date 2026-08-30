@@ -1,0 +1,387 @@
+{
+  "item_id": "lg055",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.8571428571428571,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12154696132596686,
+    "semantic_similarity": 0.735305905342102,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5714
+  },
+  "overall_score": 0.5551141865715548,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg055",
+    "timestamp": "2026-08-30T11:24:30.642493",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care",
+        "lip_makeup"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "us_beauty_trends_weekly_3_1",
+        "us_beauty_trends_weekly_table_0",
+        "us_beauty_trends_weekly_1",
+        "laneige_strategy_2026_5_1"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 "
+      ],
+      "scores": [
+        5.616366386413574,
+        5.4602251052856445,
+        4.696160316467285,
+        3.464886426925659,
+        3.237065076828003
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care",
+        "lip_makeup"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care",
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> lip_makeup"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 29,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 9,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 9,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 7,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP"
+                ]
+              },
+              {
+                "brand": "chapstick",
+                "product_count": 7,
+                "products": [
+                  "B000GG64O4",
+                  "B07GVVLSG3",
+                  "B07DP6X7Q8",
+                  "B07GVPQXRF",
+                  "B07X62WVM4",
+                  "B07GVVRXRC",
+                  "B0FGPYWRMK"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_makeup",
+          "data": {
+            "brand_count": 23,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0B9YHX8DX",
+                  "B0GF21LCW2",
+                  "B0CN1D9C6Q",
+                  "B004BCT7G6",
+                  "B007OAFJ5U",
+                  "B06XTPX8B2",
+                  "B0GWPHKD43",
+                  "B00I6DV3UO",
+                  "B007O9Y8TE",
+                  "B0D35YXWZ4",
+                  "B09Z2K8726",
+                  "B0CCDG5NHJ",
+                  "B0DKJ5MSTB",
+                  "B0G43TQ9VG",
+                  "B0CWN3MD25",
+                  "B015RPE14S",
+                  "B0F13H2319",
+                  "B0F7XJ73MD",
+                  "B0FRLBNPY6",
+                  "B093L9K6J8",
+                  "B0HCJQ79R8",
+                  "B083QNQQP9",
+                  "B07CKFQXNZ",
+                  "B0DSJ9CBWB",
+                  "B0CHJ8R113"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 11,
+                "products": [
+                  "B07W59CNXQ",
+                  "B0046VESH0",
+                  "B085S9N6JP",
+                  "B07PGQDWMT",
+                  "B00N6YEI6O",
+                  "B09QH8148N",
+                  "B0DHF9X19V",
+                  "B0CZB39JH7",
+                  "B0FTT9WMD9",
+                  "B08H3TSP2X",
+                  "B0GSWMK4NY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 10,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B0CL8W1HZQ",
+                  "B0BSR85M24",
+                  "B0GVG87QVL",
+                  "B08S57F6JH",
+                  "B0G1H1NQY8",
+                  "B0B4F9PBQB",
+                  "B0DH62626H",
+                  "B0BSP3ZM2J",
+                  "B09XMWCY5L"
+                ]
+              },
+              {
+                "brand": "nyx",
+                "product_count": 10,
+                "products": [
+                  "B09SP2XHKT",
+                  "B079ZX2QBD",
+                  "B0DK7TXTGY",
+                  "B07GXGLQQ7",
+                  "B0BL8HY2QP",
+                  "B0FT51CZS6",
+                  "B09XGXXGD1",
+                  "B09ZKLYPVZ",
+                  "B005G9LPDQ",
+                  "B0DKKRZGNY"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 9,
+                "products": [
+                  "B07XTTHXND",
+                  "B01LTI19EM",
+                  "B001P2JZBC",
+                  "B00392C96Y",
+                  "B00VRAJT7M",
+                  "B0DHYCZX5S",
+                  "B002H988FQ",
+                  "B0BHKFXXL8",
+                  "B0CGCH8JGX"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_makeup",
+          "data": {
+            "name": "Lip Makeup",
+            "level": 2,
+            "path": [
+              "beauty",
+              "makeup",
+              "lip_makeup"
+            ],
+            "ancestors": [
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Lip Care와 Lip Makeup 카테고리 HHI 비교\n\n#### 인사이트\n- 현재 제공된 데이터 내에서는 Lip Care와 Lip Makeup 카테고리의 HHI(시장 집중도 지수) 수치가 명시되어 있지 않습니다.\n- 다만, 각 카테고리의 상위 브랜드 구성을 보면 Lip Care는 unknown, eos, hera가, Lip Makeup은 unknown, maybelline, e.l.f.가 Top 브랜드로 나타나고 있어 브랜드 집중도 차이가 있을 가능성이 있습니다.\n- Lip Care는 LANEIGE가 독보적인 지위를 차지하고 있다는 점에서 상대적으로 집중도가 높을 수 있으나, 구체적 HHI 수치는 확인이 필요합니다.\n\n#### 근거\n- Lip Care Top 브랜드: unknown, eos, hera\n- Lip Makeup Top 브랜드: unknown, maybelline, e.l.f.\n- LANEIGE가 Lip Care 카테고리에서 독보적인 위치를 차지하고 있음 [출처: 현재 데이터]\n\n#### 권장\n- Lip Care와 Lip Makeup 카테고리의 HHI 수치를 확보하여 직접 비교 분석을 진행할 것을 권장합니다.\n- 브랜드 집중도 및 시장 점유율 변화를 모니터링하며, 특히 LANEIGE의 Lip Care 내 집중도 영향력을 주기적으로 점검하는 것이 전략 수립에 도움이 될 수 있습니다.\n- 추가로, 각 카테고리 내 Top 브랜드별 SoS(Share of Shelf)와 이탈률 등 보조 지표를 함께 분석하면 시장 구조 이해에 유리할 것입니다.\n\n현재 확인된 데이터 기준으로는 구체적인 HHI 수치 비교가 불가능함을 양해 부탁드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 📄 **---**\n   - 관련도: 5.62\n\n3. 📄 **다음 주 테스트 액션 제안**\n   - 관련도: 5.46\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6751.723051071167,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

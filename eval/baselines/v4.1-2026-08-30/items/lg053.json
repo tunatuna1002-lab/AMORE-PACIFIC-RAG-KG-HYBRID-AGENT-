@@ -1,0 +1,121 @@
+{
+  "item_id": "lg053",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.5714285714285715,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 0.2,
+    "mrr": 0.3333333333333333
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.062015503875968984,
+    "semantic_similarity": 0.632352888584137,
+    "groundedness_score": 0.75,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.7130407743690286,
+  "fail_reason_tags": [
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg053",
+    "timestamp": "2026-08-30T11:24:20.902411",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "hhi",
+        "interpretation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_4_2",
+        "strategic_indicators_1_0",
+        "strategic_indicators_1_1",
+        "metric_interpretation_2_1"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "- **리뷰와 별점의 영향**: BSR은 리뷰 수에 직접 영향을 받지 않지만【437377726246902†L408-L415】, 아마존의 검색 알고리즘은 높은 클릭률·전환율·긍정적 리뷰를 **고객 참여(CTR, CVR)** 지표로 간주하며, 이는 순위에 반영된다【340261456527992†L187-L197】. 최근 부정적 리뷰의 급증이나 별점 하락은 전환율",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표"
+      ],
+      "scores": [
+        4.516955375671387,
+        4.342918395996094,
+        4.347969055175781,
+        4.324951171875,
+        4.157777786254883
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### SoS와 HHI를 함께 분석할 때 얻을 수 있는 인사이트\n\n#### 인사이트\n- SoS(Share of Shelf)는 Top N 랭킹 내에서 특정 브랜드가 차지하는 제품 비중으로, 브랜드의 ‘물리적 노출 점유율’을 나타냅니다. 반면, HHI(Herfindahl-Hirschman Index)는 브랜드 내 제품들의 순위 집중도를 측정하여, 브랜드 내 제품 간 순위 분포의 균일성 또는 집중도를 보여줍니다.\n- 두 지표를 함께 분석하면, 브랜드가 단순히 많은 제품을 노출시키는지(SoS)와 그 제품들이 상위권에 집중되어 있는지(HHI)를 동시에 파악할 수 있습니다.\n- 예를 들어, SoS가 높지만 HHI가 낮다면, 브랜드가 많은 제품을 노출시키고 있으나 순위가 고르게 분산되어 있어 ‘저가 물량 공세’ 또는 ‘평균 순위가 낮은’ 상태일 가능성이 있습니다.\n- 반대로 SoS가 낮지만 HHI가 높다면, 소수의 제품이 상위권에 집중되어 있어 ‘핵심 제품 중심의 강력한 포지셔닝’으로 해석될 수 있습니다.\n- 따라서 SoS와 HHI를 함께 보면 브랜드의 노출 전략과 제품별 순위 집중도를 종합적으로 이해할 수 있으며, 단일 지표로는 파악하기 어려운 브랜드 경쟁력의 질적 측면을 평가하는 데 도움이 됩니다.\n\n#### 근거\n- SoS는 브랜드의 물리적 노출 점유율을 의미하며, 매출과 직접 연결되지는 않습니다. SoS가 높아도 평균 순위가 낮으면 저가 물량 공세 가능성이 존재합니다【3】.\n- HHI는 브랜드 내 제품들의 순위 집중도를 나타내며, 높은 HHI는 소수 제품의 상위권 집중을 의미합니다【3】.\n\n#### 권장\n- 브랜드 분석 시 SoS와 HHI를 함께 모니터링하여, 단순한 제품 수 노출과 순위 집중도 간 균형을 점검할 것을 권장합니다.\n- SoS가 높으면서 HHI도 높은 경우, 브랜드의 핵심 제품들이 효과적으로 상위권을 점유하고 있을 가능성이 있으므로, 해당 제품에 대한 마케팅 강화가 유리할 수 있습니다.\n- 반대로 SoS는 높으나 HHI가 낮은 경우, 제품별 순위 분산을 줄이고 상위권 집중을 위한 제품 포트폴리오 조정이나 품질·리뷰 개선 전략을 고려할 필요가 있습니다.\n- 단기 순위 변동이나 외부 요인에 의한 노이즈 가능성도 있으므로, 추이를 지속 관찰하며 판단하는 것이 바람직합니다.\n\n[출처: RAG 가이드 A. Level 1: Market & Brand]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 4.52\n\n2. 📄 **2. 내부 요인 분석**\n   - 관련도: 4.34\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 4.35\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 4.16\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8745.272159576416,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

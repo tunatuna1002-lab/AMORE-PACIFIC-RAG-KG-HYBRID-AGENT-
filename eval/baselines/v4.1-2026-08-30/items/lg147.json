@@ -1,0 +1,262 @@
+{
+  "item_id": "lg147",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08097165991902834,
+    "semantic_similarity": 0.852056622505188,
+    "groundedness_score": 0.909,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.909
+  },
+  "overall_score": 0.4619258787515128,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail"
+  ],
+  "trace": {
+    "item_id": "lg147",
+    "timestamp": "2026-08-30T11:35:22.780456",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_6_2",
+        "negative_issue_response_1_0",
+        "laneige_influencer_map_5_1",
+        "us_beauty_trends_weekly_4",
+        "kbeauty_industry_2_1",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_5_0"
+      ],
+      "snippets": [
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "k-뷰티가 어떻게 세계의 뷰티 수도가 되었는지 그 **초격차****의 비밀**을 심층 분석합니다. 단순한 유행을 넘어, 110년간의 분투와 **odm****(제조자 개발 생산) 시스템**이 만들어낸 혁신적인 산업 생태계를 통해 k-뷰티의 구조적 성장 동력을 파악할 수 있습니다. 특히, **초개인화 맞춤 화장품**과 미용 기기 결합 등 미래 기술을 선도하는 ",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "3. K-뷰티의 유통 혁신과 글로벌 확장 전략\n\n### 3.1. 유통 채널의 변화와 편집숍의 역할 \n![image]()\n1. **유통 채널의 변화**:\n  1. 과거에는 화장품도 대기업 영업사원이 뛰는 **방문 판매**에 의존하거나 브랜드가 직접 매장을 운영했다 \n  2. 현재는 **온라인**과 **화장품 전문 편집숍** 시대이다"
+      ],
+      "scores": [
+        7.737545490264893,
+        7.55591344833374,
+        7.382749557495117,
+        7.36224365234375,
+        7.715361595153809,
+        7.436944484710693,
+        7.394796371459961
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Amazon 뷰티 시장 내 중소 브랜드 성장 가능성 인사이트\n\n- **인사이트**  \n  Amazon 뷰티 시장에서 중소 브랜드는 성장 가능성이 있으나, 플랫폼 내 가품 유통과 소비자 불신이라는 리스크가 존재하는 것으로 보입니다. 특히, 소비자들이 아마존 내 스킨케어 제품 구매에 대해 \"절대 사지 말라\"는 극단적 조언을 공유하는 상황은 중소 브랜드의 평판 관리와 신뢰 구축에 중요한 장애물이 될 수 있습니다. 따라서 중소 브랜드는 공식 판매처 명확화 및 과학적 커뮤니케이션 강화, 그리고 커뮤니티 소속감 형성 전략을 통해 차별화된 브랜드 경험을 제공하는 방향으로 대응할 필요가 있습니다.\n\n- **근거**  \n  - 소비자들이 아마존에서 스킨케어 제품 구매를 꺼리는 현상과 가품 유통 문제는 브랜드 평판에 부정적 영향을 미칠 수 있음 [rag, Document ID: negative_issue_response]  \n  - 중소 브랜드가 가격 경쟁력만으로는 한계가 있으며, '대체 불가능한 브랜드 경험'과 '커뮤니티 소속감'을 통한 차별화가 중요하다는 점 [rag, Document ID: laneige_influencer_map]  \n  - 주요 Top 브랜드로는 medicube, cerave 등이 있으나, 중소 브랜드에 대한 구체적 순위나 점유율 데이터는 제공되지 않아 성장 가능성에 대한 정량적 판단은 제한적임 [Knowledge Graph]\n\n- **권장 사항**  \n  1. 중소 브랜드는 아마존 내 공식 판매처를 명확히 하여 가품 리스크를 최소화하고 소비자 신뢰를 확보해야 할 것입니다.  \n  2. 제품 성분과 효능에 대한 과학적 커뮤니케이션을 강화하여 기존 고객 이탈을 방지하고 신규 고객 유입을 도모할 필요가 있습니다.  \n  3. 가격 경쟁보다는 브랜드 경험과 커뮤니티 소속감을 강조하는 마케팅 전략을 통해 충성 고객층을 확보하는 것이 바람직할 수 있습니다.  \n  4. 단기적 순위 변동이나 부정적 이슈에 민감하게 대응하며, 장기적 브랜드 신뢰 구축에 집중하는 전략이 요구됩니다.\n\n현재 확인된 데이터 기준으로, 중소 브랜드의 구체적 성장률이나 시장 점유율 수치는 제공되지 않아 추가 데이터 확보가 필요합니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 7.74\n\n3. 📄 **---**\n   - 관련도: 7.38\n\n4. 📄 **결론**\n   - 관련도: 7.36\n\n5. 📄 **💡 K-뷰티의 초격차를 가능하게 한 구체적인 요소들은?**\n   - 관련도: 7.72\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9498.602151870728,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

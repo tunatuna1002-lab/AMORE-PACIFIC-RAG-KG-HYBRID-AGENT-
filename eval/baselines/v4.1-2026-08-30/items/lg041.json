@@ -1,0 +1,559 @@
+{
+  "item_id": "lg041",
+  "question": "",
+  "passed": true,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 0.2,
+    "mrr": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.11063829787234043,
+    "semantic_similarity": 0.7631241679191589,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.7735275108101238,
+  "fail_reason_tags": [],
+  "trace": {
+    "item_id": "lg041",
+    "timestamp": "2026-08-30T11:23:10.578791",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "e.l.f."
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "definition"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_1_0",
+        "metric_interpretation_2_0",
+        "amazon_algorithm_guide_1_1",
+        "indicator_combination_2_0",
+        "home_insight_rules_13"
+      ],
+      "snippets": [
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat"
+      ],
+      "scores": [
+        7.158236026763916,
+        7.082207679748535,
+        3.6703617572784424,
+        4.0879740715026855,
+        3.7813527584075928
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "e.l.f."
+      ],
+      "kg_edges_found": [
+        "e_l_f -competesWith-> anua",
+        "e_l_f -competesWith-> loreal",
+        "e_l_f -competesWith-> nyx",
+        "e_l_f -competesWith-> eos",
+        "e_l_f -competesWith-> aquaphor",
+        "e_l_f -hasProduct-> cream_glide_lip",
+        "e_l_f -hasProduct-> cream_glide",
+        "cream_glide_lip -belongsToCategory-> lip_makeup",
+        "e_l_f -hasProduct-> squeeze_me_lip",
+        "e_l_f -hasProduct-> squeeze_me",
+        "squeeze_me_lip -belongsToCategory-> lip_care",
+        "e_l_f -hasSoS-> beauty",
+        "e_l_f -rankedIn-> beauty",
+        "e_l_f -hasPosition-> budget"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "e.l.f.",
+          "data": [
+            {
+              "brand": "anua",
+              "type": "competesWith",
+              "category": "beauty",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "l'oreal",
+              "type": "competesWith",
+              "category": "lip_makeup",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "nyx",
+              "type": "competesWith",
+              "category": "face_powder",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "eos",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "aquaphor",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "competitor_network",
+          "entity": "e.l.f.",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "anua"
+              ],
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "brand_products",
+          "entity": "e.l.f.",
+          "data": {
+            "product_count": 25,
+            "products": [
+              {
+                "asin": "B0CMYR1CNK",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 1,
+                "title": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Shaping & Sculpting Lips, Semi-Matte Finis",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07PBQZ3KF",
+                "name": "",
+                "category": "beauty",
+                "rank": 48,
+                "title": "e.l.f. Instant Lift Brow Pencil, Dual-Sided, Precise, Fine Tip, Shapes, Defines, Fills Brows, Contou",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0F3J6W5KW",
+                "name": "",
+                "category": "beauty",
+                "rank": 88,
+                "title": "e.l.f. Sheer For It Blush Tint, Cherry Cola | Multi-Use, Long-Lasting Lip & Cheek Makeup, Creates A ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0C7W6GW8P",
+                "name": "",
+                "category": "lip_care",
+                "rank": 3,
+                "title": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Balm For A Sheer Tint Of Color, Infused Wi",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DZP8PN3N",
+                "name": "",
+                "category": "lip_care",
+                "rank": 16,
+                "title": "e.l.f. Glow Reviver Melting Lip Balm, Hydrating Tinted Lip Balm For A Glossy Finish & Soft, Supple L",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B09JL5PCJ6",
+                "name": "",
+                "category": "lip_care",
+                "rank": 33,
+                "title": "e.l.f. Hydrating Core Lip Shine with Shea Butter & Vitamin E, Tinted Lip Balm for A Smooth, Glossy F",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0C7WQ3Z6H",
+                "name": "",
+                "category": "lip_care",
+                "rank": 58,
+                "title": "e.l.f. Lip Exfoliator, Moisturizing Scented Lip Scrub For Exfoliating & Smoothing Lips, Infused With",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0CPYMLVJJ",
+                "name": "",
+                "category": "lip_care",
+                "rank": 61,
+                "title": "e.l.f. Pout Clout Lip Plumping Pen, In the Clear | Nourishing Lip Balm For Sheer Color & Shine, Plum",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FPMHTKCN",
+                "name": "",
+                "category": "lip_care",
+                "rank": 82,
+                "title": "e.l.f. Glow Reviver Plumping Lip Oil, Piggy Bank | Tinted Lip Plumper For A High-Shine, Plump Finish",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0CL8W1HZQ",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 5,
+                "title": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted Lip Oil For A High-shine Finish, Infuse",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "metric_edges",
+          "entity": "e.l.f.",
+          "data": {
+            "edges": [
+              {
+                "subject": "e.l.f.",
+                "predicate": "hasProduct",
+                "object": "cream_glide_lip"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "hasProduct",
+                "object": "cream_glide"
+              },
+              {
+                "subject": "cream_glide_lip",
+                "predicate": "belongsToCategory",
+                "object": "lip_makeup"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "hasProduct",
+                "object": "squeeze_me_lip"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "hasProduct",
+                "object": "squeeze_me"
+              },
+              {
+                "subject": "squeeze_me_lip",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "competesWith",
+                "object": "anua"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "competesWith",
+                "object": "l'oreal"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "competesWith",
+                "object": "nyx"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "hasSoS",
+                "object": "beauty"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "rankedIn",
+                "object": "beauty"
+              },
+              {
+                "subject": "e.l.f.",
+                "predicate": "hasPosition",
+                "object": "budget"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "e.l.f.",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "anua"
+              ],
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "fragmented_market_competition",
+          "insight_type": "market_position",
+          "insight": "시장이 분산되어 있고(HHI: 0.000) 27개의 경쟁 브랜드가 활동 중입니다. 시장 점유율 확대 기회가 있으나 경쟁도 치열합니다.",
+          "confidence": 0.85,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "has_competitors_5"
+            ],
+            "context_snapshot": {
+              "brand": "e.l.f.",
+              "is_target": false,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 27,
+              "product_count": 25
+            }
+          },
+          "recommendation": "차별화 전략 강화 및 타겟 고객층 명확화. 경쟁사 대비 강점(가격/품질/브랜드) 부각 필요.",
+          "related_entities": [
+            "anua",
+            "l'oreal",
+            "nyx",
+            "eos",
+            "aquaphor"
+          ],
+          "metadata": {
+            "rule_description": "분산된 시장에서의 다수 경쟁자 존재는 성장 기회와 위협이 공존",
+            "priority": 7,
+            "tags": [
+              "market",
+              "competition",
+              "neutral"
+            ],
+            "hhi": null,
+            "competitor_count": 27,
+            "market_type": "fragmented"
+          }
+        }
+      ],
+      "applied_rules": [
+        "fragmented_market_competition"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### SoS(Share of Shelf) 정의 및 해석\n\n- **정의**: SoS는 Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중을 의미합니다. 즉, 전체 상위 제품 중 해당 브랜드가 몇 개나 진입했는지를 백분율로 나타낸 지표입니다.  \n- **산출식**: SoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100  \n- **의미**: 브랜드의 ‘물리적 노출 점유율’로 해석되며, 매출이나 판매량과는 직접적인 연관성이 없습니다.  \n- **주의사항**: SoS가 높아도 평균 순위가 낮으면 ‘저가 물량 공세’일 가능성이 있으므로 단일 지표로 브랜드 성과를 판단하는 것은 적절하지 않습니다.  \n\n### 인사이트 및 권장사항\n\n- SoS가 높다는 것은 해당 카테고리 내에서 브랜드 노출력이 크고, 제품 수 기준으로 ‘자리를 많이 차지’하고 있음을 의미할 수 있습니다. 반대로 낮으면 시장 내 존재감이 약하거나 특정 제품에 집중하는 전략일 가능성이 있습니다.  \n- 경쟁이 치열한 시장에서는 SoS 확대를 위해 차별화 전략과 타겟 고객층 명확화가 필요하며, 가격·품질·브랜드 강점 부각이 권장됩니다 [출처: RAG 가이드라인, Ontology Reasoning]  \n- 시장이 분산되어 있고 27개 경쟁 브랜드가 활동 중인 상황에서(HHI: 0.000), SoS는 브랜드의 물리적 노출 정도를 가늠하는 유용한 지표로 활용될 수 있습니다 [출처: Ontology Reasoning]  \n\n---\n\n요약하면, SoS는 특정 카테고리 내에서 브랜드가 얼마나 많은 제품으로 상위 랭킹에 진입했는지를 나타내는 지표로, 브랜드의 ‘진열 점유율’ 또는 ‘노출 점유율’로 이해할 수 있습니다. 다만, 매출이나 판매량과는 별개이며, 단독 지표로 브랜드 성과를 단정하기에는 한계가 있으므로 다른 지표와 함께 종합적으로 해석하는 것이 바람직합니다 [출처: RAG 가이드라인].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 🧠 **온톨로지 규칙: fragmented_market_competition**\n   - 신뢰도: 85%\n   - 규칙: fragmented_market_competition\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 7.16\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 7.08\n\n5. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 3.67\n\n6. 📄 **A. Market & Brand Combination**\n   - 관련도: 4.09\n\n7. 📄 **4. 프로토타입 기본 더미 값 예시(선택)**\n   - 관련도: 3.78\n\n8. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 24728.216886520386,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
