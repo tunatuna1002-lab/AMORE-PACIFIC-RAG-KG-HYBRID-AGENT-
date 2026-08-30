@@ -1,0 +1,124 @@
+{
+  "item_id": "lg206",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.11764705882352941,
+    "semantic_similarity": 0.6803204417228699,
+    "groundedness_score": 0.5555555555555556,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.6666666667
+  },
+  "overall_score": 0.4204837417188426,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg206",
+    "timestamp": "2026-08-30T19:28:26.943077",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q2_0_1",
+        "ir_2025_q1_0_1",
+        "ir_2025_q1_0_2",
+        "ir_2025_q1_0_23",
+        "ir_2025_q2_0_3"
+      ],
+      "snippets": [
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**Overseas Business Financial Summary**   \n**2Q 2025 Revenue*",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**1Q 2025 Revenue**\n\nAmorepacific revenue up 17.1% to 1.1 tri",
+        "Overseas Business 336.8 36.9 473.0 44.3 \\+40.5 Western Region 105.1 11.5 212.5 19.9 \\+102.1 Other Asia 83.5 9.2 127.8 12.0 \\+53.0 Greater China 148.2 16.3 132.8 12.4 \\-10.4   \n1\\) Total revenue includ",
+        "• OtherAsia(APAC, Japan)revenue increased53%\n\n\\- \\[APAC\\]Overall sales increased with roll out of Sulwhasoo’sglobal campaign(‘First Care Activating Serum’ ),  Laneige’snew launch of ‘Bouncy & Firm Ser",
+        "1\\) Total revenue includes earnings from COSRX, other subsidiaries (Cosvision, Wedreametc.), and intercompany transactions.    \n2  \n2\\) Excluding brand reclassification impact (IOPE, Holitualtransferr"
+      ],
+      "scores": [
+        0.7015125751495361,
+        0.6828083992004395,
+        0.6619567275047302,
+        0.6348089575767517,
+        0.6209272742271423
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 아모레퍼시픽 2025년 2분기 지역별 매출 성장률 분석\n\n### 인사이트\n- 2025년 2분기 아모레퍼시픽의 전체 매출은 전년 동기 대비 11.1% 증가하여 1조 원에 달했습니다.\n- 국내 매출은 8% 성장한 반면, 해외 매출은 14% 증가하며 해외 시장에서 상대적으로 더 강한 성장세를 보였습니다.\n- 구체적인 지역별 해외 매출 성장률 수치는 2분기 자료에 명확히 제시되어 있지 않으나, 1분기 데이터를 참고하면 서구권과 기타 아시아 지역에서 강한 성장세가 관찰되었습니다.\n\n### 근거\n- 전체 매출 11.1% 증가, 국내 8%, 해외 14% 증가 (2Q 2025) [출처: 2Q 2025 Earnings Release, 2025.8.1]\n- 1Q 2025 해외 매출 성장률: 서구권 +102.1%, 기타 아시아 +53.0%, 중화권 -10.4% [출처: 1Q 2025 Earnings Release, 2025.4.30]\n\n### 권장\n- 2분기 해외 매출 성장률 14%는 1분기 대비 다소 둔화된 것으로 보이나, 여전히 해외 시장이 국내보다 높은 성장률을 유지하고 있어 해외 시장 공략 전략을 지속하는 것이 유리할 수 있습니다.\n- 1분기 중화권 매출 감소(-10.4%)를 고려할 때, 2분기 중화권 실적 변화에 대한 추가 확인이 필요합니다.\n- 서구권과 기타 아시아 지역의 강한 성장세가 2분기에도 이어졌는지 확인하여 지역별 맞춤형 마케팅 및 제품 전략 수립에 참고할 것을 권장합니다.\n\n현재 2분기 지역별 상세 성장률은 공개된 자료에 포함되어 있지 않아, 1분기 데이터를 기반으로 한 추정임을 참고하시기 바랍니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****2Q 2025 Earnings Release ![][image1]**2025.8.1**\n   - 관련도: 0.70\n\n2. 📄 ****1Q 2025 Earnings Release ![][image1]**2025.4.30**\n   - 관련도: 0.68\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8077.351808547974,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

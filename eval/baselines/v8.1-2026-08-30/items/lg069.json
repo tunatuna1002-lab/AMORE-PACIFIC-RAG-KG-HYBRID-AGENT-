@@ -1,0 +1,124 @@
+{
+  "item_id": "lg069",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.163265306122449,
+    "semantic_similarity": 0.7945195436477661,
+    "groundedness_score": 0.5555555555555556,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.2
+  },
+  "overall_score": 0.4174228587015416,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg069",
+    "timestamp": "2026-08-30T19:12:32.169311",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "churn_rate",
+        "calculation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_2_0",
+        "metric_interpretation_0",
+        "home_insight_rules_3_1",
+        "metric_interpretation_3_1",
+        "home_insight_rules_1"
+      ],
+      "snippets": [
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "# Metric Interpretation Guide\n본 문서는 랭킹 기반 시장 분석 대시보드에서 산출된 지표 값을  \n**어떻게 해석해야 하는지**, 그리고 **어디까지 해석하면 안 되는지**를 안내하기 위한 가이드이다.\n\n모든 지표는 **의사결정 보조 신호(Signal)**이며,  \n단일 지표만으로 원인·성과·전략을 확정하지 않는다.\n\n---",
+        "### 템플릿(예시)\n- 이상 신호 우선:\n  - “오늘은 일부 상품에서 순위 급변 신호가 감지되어, 단기 모니터링이 필요할 수 있습니다.”\n- 가격·품질 불일치:\n  - “프리미엄 가격 포지션 대비 평점 경쟁력이 낮아, 가격-품질 인식 간 불일치 가능성을 점검해볼 수 있습니다.”\n- 시장 맥락:\n  - “시장 집중도가 높아 경쟁 구도가 고착화된 편으로, ",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati",
+        "0. 적용 범위 및 입력 데이터\n\n### 0.1 입력 데이터 (Home에서 접근 가능)\n- 계산된 지표 값(예: SoS, HHI, Brand Avg Rank, CPI, Avg Rating Gap, Churn Rate, Rank Shock, Rank Volatility, Streak Days, Rating Trend)\n- 선택된 컨텍스트(brand, mark"
+      ],
+      "scores": [
+        0.5209939479827881,
+        0.42609846591949463,
+        0.425741970539093,
+        0.4094510078430176,
+        0.3519667387008667
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 이탈률(Churn Rate) 계산 공식 및 모니터링 주기\n\n---\n\n#### 인사이트\n- 이탈률(Churn Rate)은 전일 대비 Top 100 랭킹 리스트 구성원의 변동을 측정하는 지표로, 순위 교체율을 의미합니다.\n- 구체적인 산출 공식은 제공된 데이터에 명확히 명시되어 있지 않으나, 일반적으로는 다음과 같이 해석할 수 있습니다:  \n  **이탈률 = (전일 Top 100 내에서 오늘 리스트에 없는 상품 수 / 전일 Top 100 상품 수) × 100**  \n  즉, 일정 기간 내에 랭킹에서 빠진 상품 비율을 나타냅니다.\n- 모니터링 주기는 일간 단위가 기본으로 보이며, 단기 변동성 감지 및 신속 대응을 위해 매일 점검하는 것이 권장됩니다.  \n  이는 \"오늘은 일부 상품에서 순위 급변 신호가 감지되어, 단기 모니터링이 필요할 수 있습니다\"라는 가이드에서 유추할 수 있습니다 [출처: RAG 가이드, Metric Interpretation Guide, Daily Insight Summary].\n\n---\n\n#### 권장 사항\n- **계산 공식**: 전일 대비 Top 100 랭킹 내 교체된 상품 비율을 산출하는 방식으로 적용할 수 있습니다.\n- **모니터링 주기**: 일간 단위로 모니터링하여 급격한 순위 변동이나 시장 변화 신호를 조기에 포착하는 것이 바람직합니다.\n- 단기 노이즈 가능성을 고려하여, 급격한 변동 발생 시 추가적인 추이 관찰과 복수 지표 분석을 병행할 것을 권장합니다.\n\n---\n\n※ 현재 확인된 데이터 기준으로, 이탈률 공식과 모니터링 주기에 대한 구체적 수치나 추가 세부 내용은 제공되지 않았습니다 [출처: RAG 가이드].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **B. Level 2: Category & Price**\n   - 관련도: 0.52\n\n2. 📄 **Metric Interpretation Guide**\n   - 관련도: 0.43\n\n3. 📄 **1.1 Daily Insight Summary (오늘의 한 줄 요약)**\n   - 관련도: 0.43\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8367.74492263794,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

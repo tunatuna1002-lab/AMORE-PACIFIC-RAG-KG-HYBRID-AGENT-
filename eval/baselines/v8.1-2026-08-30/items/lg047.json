@@ -1,0 +1,131 @@
+{
+  "item_id": "lg047",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.8571428571428571,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12274368231046932,
+    "semantic_similarity": 0.810921847820282,
+    "groundedness_score": 0.818,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.36363636363636365
+  },
+  "overall_score": 0.47111526567713563,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail"
+  ],
+  "trace": {
+    "item_id": "lg047",
+    "timestamp": "2026-08-30T19:09:30.812218",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_0",
+        "us_beauty_trends_weekly_3_2",
+        "negative_issue_response_6_0",
+        "laneige_strategy_2026_6_1",
+        "laneige_strategy_2026_3_1",
+        "laneige_strategy_2026_7_1",
+        "kbeauty_industry_6_2"
+      ],
+      "snippets": [
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "l mucin cream” 등을 테스트한다. CPC·전환율을 모니터링해 효율적인 키워드를 선별한다.\n5. **Reddit AMA/소셜 리스닝** – 스킨케어 서브레딧에서 **LANEIGE 개발자 AMA**를 개최하여 소비자의 성분 관련 질문에 답변하고 신뢰를 구축한다. 또한 Reddit 및 TikTok 댓글을 분석해 제품에 대한 불만(예: 끈적임, 향)에 ",
+        "---\n\n**6\\. 위기 벡터 V: 플랫폼 불신과 가품 공포 \\- 공급망(Supply Chain)의 위기**\n\n### **6.1. 이슈의 발단: 아마존의 '복불복' 게임**\n\n코스알엑스(COSRX), 라운드랩, 아누아 등 인기 K-뷰티 제품들이 아마존에서 '가품(Fake)' 논란에 시달리고 있다. 아마존의 재고 혼합(Commingled Inventory) ",
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완",
+        "### 4.2. 중국 집중 전략의 위험성과 추격자들의 위협 \n![image]()\n1. **대기업의 특정 지역 집중 전략 실패**:\n  1. 도전하는 대기업들의 모습은 특정 지역 집중 전략의 위험성을 보여준다 \n  2. 2010년까지 한국 화장품 수출의 <mark>90%</mark>를 차지했던 두 개 대기업의 비중이 이제 <mark>10% 아래</mark>로"
+      ],
+      "scores": [
+        0.37481021881103516,
+        0.3566960096359253,
+        0.33794379234313965,
+        0.33123230934143066,
+        0.3161705732345581,
+        0.3128795623779297,
+        0.3396620750427246
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### CPI와 SoS가 동시에 하락할 때 전략 제언\n\n- **인사이트**  \n  CPI(Competitive Price Index)와 SoS(Share of Shelf)가 동시에 하락하는 현상은 해당 브랜드의 가격 경쟁력과 제품 노출 기회가 모두 감소하고 있음을 시사할 수 있습니다. 이는 시장 내 경쟁 심화, 소비자 관심 저하, 또는 플랫폼 내 신뢰도 문제 등 복합적 요인에 기인할 가능성이 있습니다.\n\n- **근거**  \n  아마존 뷰티 카테고리에서 가품 논란과 플랫폼 불신이 소비자 구매 결정에 영향을 미치고 있으며, 이는 브랜드 신뢰도 하락과 직결될 수 있습니다. 예를 들어, COSRX, 라운드랩, 아누아 등 인기 K-뷰티 브랜드가 아마존 내 가품 문제로 인해 소비자 불안을 겪고 있다는 점이 확인됩니다 [출처: RAG 가이드 3.1].  \n  또한, SoS 하락은 제품 노출 감소를 의미하므로, CPC(클릭당 비용) 및 전환율 모니터링을 통한 효율적 키워드 선별과 같은 디지털 마케팅 최적화가 필요합니다 [출처: RAG 가이드 2].\n\n- **권장 전략**  \n  1. **가격 경쟁력 재검토**: CPI 하락이 가격 경쟁력 약화로 인한 것인지 확인 후, 가성비 클리니컬(Value Clinicals)처럼 $15 이하 저가 고효능 제품군 전략을 검토할 수 있습니다 [출처: RAG 가이드 1].  \n  2. **브랜드 신뢰도 강화**: Reddit AMA, TikTok 댓글 등 소셜 리스닝을 활용해 소비자 불만(예: 가품 우려, 제품 품질)에 신속 대응하고, 신뢰 구축 활동을 강화합니다 [출처: RAG 가이드 2].  \n  3. **마케팅 효율화**: CPC 및 전환율 데이터를 기반으로 효율적인 키워드를 선별하고, 바이럴 K-뷰티 사례처럼 틱톡 샵 등 신흥 채널과 연계한 프로모션을 시도할 수 있습니다 [출처: RAG 가이드 1, 2].  \n  4. **재고 및 공급망 관리 점검**: 아마존 재고 혼합 문제로 인한 가품 유통 가능성을 최소화하기 위해 공급망 관리 및 정품 인증 강화 방안을 모색하는 것이 바람직할 수 있습니다 [출처: RAG 가이드 3].\n\n- **추가 고려사항**  \n  CPI와 SoS 동시 하락은 단기 노이즈일 가능성도 있으므로, 추이를 지속 관찰하며 전략을 유연하게 조정하는 것이 필요합니다.\n\n---\n\n요약하면, CPI와 SoS가 동시에 하락할 때는 가격 경쟁력 재검토, 브랜드 신뢰도 강화, 마케팅 효율화, 공급망 관리 개선을 복합적으로 추진하는 전략이 고려될 수 있습니다. 다만, 현재 확인된 데이터 기준으로 구체적 원인 분석과 지속 모니터링이 병행되어야 할 것으로 보입니다 [출처: RAG 가이드 1, 2, 3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 0.37\n\n2. 📄 **다음 주 테스트 액션 제안**\n   - 관련도: 0.36\n\n3. 📄 **---**\n   - 관련도: 0.34\n\n4. 📄 **4. K-뷰티의 위협 요인과 미래 초격차 전략**\n   - 관련도: 0.34\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 11992.571830749512,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

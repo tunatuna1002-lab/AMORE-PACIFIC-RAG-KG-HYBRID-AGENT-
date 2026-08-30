@@ -1,0 +1,264 @@
+{
+  "item_id": "lg100",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.2,
+    "context_precision_at_k": 0.6,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0979591836734694,
+    "semantic_similarity": 0.6061007380485535,
+    "groundedness_score": 0.909,
+    "answer_relevance_score": 0.75,
+    "factuality_score": 0.5555555555555556
+  },
+  "overall_score": 0.4631198373994265,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg100",
+    "timestamp": "2026-08-30T19:15:35.141732",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "competitor_analysis",
+        "k_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_3_4",
+        "laneige_strategy_2026_3_1",
+        "laneige_strategy_2026_0",
+        "us_beauty_trends_weekly_1",
+        "laneige_strategy_2026_1_0"
+      ],
+      "snippets": [
+        "아마존 검색 데이터상에서 소비자들이 \"Pink Serum\" 혹은 \"Pink Peptide\"를 검색할 때, 두 브랜드의 제품이 동시에 노출되는 경향이 짙다. Medicube는 PDRN이라는 트렌디한 성분과 낮은 가격을 앞세우고 있고, LANEIGE는 작약(Peony) 복합체와 브랜드 헤리티지를 강조하고 있다. 이 경쟁에서 승리하기 위해서는 핑크색 제형이 주는",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "# **2026년 1월 미국 뷰티 트렌드 심층 분석 및 LANEIGE 아마존 판매 전략 보고서**",
+        "분석 범위\n\n* **브랜드/제품군**：LANEIGE (Lip Sleeping Mask, 토너, 모이스처라이저 등)\n* **기간**：지난 7~30일 (2025‑12‑21 – 2026‑01‑20)\n* **지역**：미국 (US)\n\n최근 7~30일 동안 미국에서 바이럴된 스킨케어 및 립케어 트렌드를 뉴스·SNS (특히 TikTok)·검색 데이터를 기반으로 조사하였",
+        "**1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화**\n\n2026년 1월, 미국 뷰티 시장은 단순한 '연말연시 회복(Post-Holiday Recovery)'을 넘어선 구조적인 소비 패턴의 변화를 겪고 있다. 과거의 뷰티 트렌드가 '클린 걸(Clean Girl)'로 대변되는 미니멀리즘과 자연스러움에 천착했다면, 현재의 시장은 \\*\\*'재생"
+      ],
+      "scores": [
+        0.47271275520324707,
+        0.47096705436706543,
+        0.4327789545059204,
+        0.43141770362854004,
+        0.4196099042892456
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### K-Beauty of Joseon vs 미국 로컬 브랜드 경쟁 구도 인사이트\n\n- **인사이트**  \n  K-Beauty of Joseon 브랜드, 특히 Medicube, VT Cosmetics, Genabelle 등은 PDRN 성분을 전면에 내세우며 미국 아마존 시장에서 공격적으로 점유율을 확대하고 있습니다. Medicube의 PDRN Pink Peptide Serum은 $19~$25의 공격적인 가격 정책으로 아마존 'Movers & Shakers' 리스트에 오르며, 미국 내 K-Beauty of Joseon 내 경쟁뿐 아니라 현지 브랜드와도 경쟁 구도를 형성하고 있는 것으로 보입니다. 반면, LANEIGE는 작약 복합체와 브랜드 헤리티지를 강조하며 약 $45 가격대의 프리미엄 전략을 구사하고 있습니다. 이로 인해 K-Beauty of Joseon 내에서도 가격과 성분을 축으로 한 세분화된 경쟁이 진행 중이며, 미국 로컬 브랜드와의 직접 비교 데이터는 제공되지 않았으나, K-Beauty가 틱톡 숏폼 콘텐츠 등 디지털 마케팅을 활용해 생기와 탄력 이미지를 극대화하는 전략을 구사하는 점이 특징적입니다.\n\n- **근거**  \n  - Medicube, VT Cosmetics, Genabelle 등 K-Beauty of Joseon 브랜드들이 PDRN을 내세우며 시장 점유율 확대 중  \n  - Medicube PDRN Pink Peptide Serum 가격 $19~$25, LANEIGE Bouncy & Firm Serum 약 $45  \n  - Medicube 제품이 아마존 'Movers & Shakers' 리스트에 등재됨 [출처: RAG 가이드라인 [1], [2], [3]]\n\n- **권장 사항**  \n  - K-Beauty of Joseon 브랜드는 가격대별 세분화 전략과 함께, 틱톡 등 숏폼 콘텐츠를 활용해 제품의 핵심 이미지(생기, 탄력)를 시각적으로 강화하는 마케팅이 필요할 수 있습니다.  \n  - 미국 로컬 브랜드와의 경쟁 구도에 대한 구체적 데이터가 부족하므로, 추가 시장 조사 및 소비자 반응 분석을 통해 경쟁 우위 요소를 발굴하는 것이 권장됩니다.  \n  - PDRN 등 트렌디 성분을 활용한 제품 개발과 가격 경쟁력 확보가 K-Beauty of Joseon 브랜드의 미국 시장 내 입지 강화에 도움이 될 가능성이 있습니다.\n\n현재 확인된 데이터 기준으로, K-Beauty of Joseon 브랜드들은 미국 로컬 브랜드와 직접적인 비교 수치 없이도 아마존 내에서 공격적인 점유율 확대와 차별화된 마케팅 전략을 구사하며 경쟁 구도를 형성하고 있는 것으로 보입니다 [출처: RAG 가이드라인].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 0.47\n\n3. 📄 **분석 범위**\n   - 관련도: 0.43\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10187.761068344116,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

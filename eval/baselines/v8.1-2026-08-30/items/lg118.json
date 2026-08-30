@@ -1,0 +1,124 @@
+{
+  "item_id": "lg118",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13043478260869565,
+    "semantic_similarity": 0.796329140663147,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.75
+  },
+  "overall_score": 0.5905754197611325,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg118",
+    "timestamp": "2026-08-30T19:18:23.014741",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_6_2",
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_algorithm_guide_8_3",
+        "amazon_ranking_diagnosis_9_2",
+        "amazon_algorithm_guide_8_10"
+      ],
+      "snippets": [
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "tering-the-Amazon-COSMO-Algorithm-with-AI-Content-Optimization/1976471090287931392)  \n4. Introduction: Why Surge Pricing and TikTok Matter for Amazon Sellers \\- Profasee, 1월 21, 2026에 액세스, [https://pr",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "-funnel-a-practical-guide-to-the-sqp-report.html)  \n25. Amazon Brand Analytics: A 2025 Guide to Smarter Selling with Data, 1월 21, 2026에 액세스, [https://www.sarasanalytics.com/blog/amazon-brand-analytics"
+      ],
+      "scores": [
+        0.4076780080795288,
+        0.39043378829956055,
+        0.3854224681854248,
+        0.3764307498931885,
+        0.3652549982070923
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 아모레퍼시픽 브랜드들의 Amazon 내 시너지 방안 인사이트\n\n- **인사이트**  \n  1) 아모레퍼시픽 브랜드들이 Amazon에서 시너지를 내기 위해서는 공식 스토어 운영과 동시에 가품 유통에 대한 소비자 불안을 해소하는 공동 대응 문구 및 정책이 필수적일 수 있습니다. 이는 브랜드 신뢰도 유지와 고객 이탈 방지에 기여할 가능성이 있습니다.  \n  2) 각 브랜드가 개별적으로 경쟁하는 것뿐 아니라, 아모레퍼시픽 그룹 차원에서 가격 경쟁력 확보, 광고 활용, 카테고리별 전략적 포지셔닝을 통합적으로 관리하는 것이 BSR(베스트셀러 랭킹) 개선에 도움이 될 수 있습니다.  \n  3) 특히, Amazon 내에서 공식 판매처임을 명확히 알리는 ‘Sold by’ 정보 강조와 인증된 리테일러 이용 권장 메시지를 통합적으로 활용하는 것이 소비자 신뢰 확보에 긍정적 영향을 줄 수 있습니다.\n\n- **근거**  \n  - 소비자들이 Amazon에서 스킨케어 제품 구매 시 가품 우려를 공유하며, 브랜드가 공식 스토어를 운영해도 플랫폼 리스크가 존재함을 지적하고 있습니다. 이에 대한 공동 대응 문구가 권장되고 있습니다 [출처: rag, Document ID: negative_issue_response].  \n  - Amazon BSR은 최근 및 누적 판매량에 기반하며, 카테고리 선택, 가격 경쟁력, 광고 활용이 순위 개선에 중요한 요소로 제시되고 있습니다 [출처: rag, Document ID: amazon_ranking_diagnosis].\n\n- **권장 사항**  \n  1) 아모레퍼시픽 브랜드들이 Amazon 내 공식 스토어에서 공동으로 가품 관련 소비자 안내 문구를 표준화하여 신뢰도를 높이고, 고객 이탈 위험을 줄이는 전략을 고려할 필요가 있습니다.  \n  2) 그룹 차원에서 카테고리별 판매 데이터와 BSR 변동을 모니터링하며, 가격 정책과 광고 집행을 통합 관리하여 시너지를 극대화하는 방안을 모색하는 것이 바람직합니다.  \n  3) ‘Sold by’ 공식 판매자 정보 강조 및 인증 리테일러 이용 권장 메시지를 아모레퍼시픽 브랜드 전반에 걸쳐 일관되게 적용하여 소비자 신뢰를 강화하는 것이 도움이 될 수 있습니다.\n\n현재 확인된 데이터 기준으로, 아모레퍼시픽 브랜드들의 Amazon 내 시너지 전략은 공식 스토어 신뢰 확보와 통합적 판매 전략에 집중하는 방향으로 검토할 수 있겠습니다 [출처: rag].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 0.41\n\n2. 📄 **참고문헌**\n   - 관련도: 0.39\n\n3. 📄 **---**\n   - 관련도: 0.39\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10500.766277313232,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

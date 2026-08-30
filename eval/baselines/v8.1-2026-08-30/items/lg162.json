@@ -1,0 +1,258 @@
+{
+  "item_id": "lg162",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10738255033557048,
+    "semantic_similarity": 0.5872748494148254,
+    "groundedness_score": 0.857,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.4
+  },
+  "overall_score": 0.6696491659775357,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg162",
+    "timestamp": "2026-08-30T19:23:45.885444",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_8",
+        "metric_interpretation_2_1",
+        "strategic_indicators_3_1",
+        "metric_interpretation_2_0",
+        "indicator_combination_3_0"
+      ],
+      "snippets": [
+        "1.6 Issue Preview (Top 이슈 미리보기)\n\n### 목표\n- Home에서 “최상위 3개”만 미리 노출하고 상세는 L3에서 확인\n\n### 구성(권장)\n- Rank Shock Top 3 (제품명 + 변화폭/날짜)\n- Streak Days Top 3 (제품명 + 연속 체류일)\n\n### 정렬 규칙\n- Rank Shock 리스트: 하락 폭 큰 순(또는",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "- **주의사항**\n- 원인 확정 불가\n- 단기 노이즈 가능성 존재\n\n---\n\n### 9. Streak Days\n\n- **정의**\n- Top N 랭킹 내 연속 체류 일수\n\n- **산출식**\nStreak Days = Count(Consecutive Days in Top N)\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석 포인트**\n- 제품의",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "B. Category & Price Combination\n### (가격 · 품질 인식)\n\n---\n\n### 5. CPI > 100 + Avg Rating Gap > 0\n\n#### 해석 시나리오\n- 고가 포지션이면서 품질 인식도 양호\n\n#### 시사점\n- 프리미엄 전략 정합성 높음\n\n#### 고려 가능한 액션 후보\n- 프리미엄 메시지 강화\n- 고가 라인 확장 "
+      ],
+      "scores": [
+        0.4200032353401184,
+        0.38160306215286255,
+        0.36624181270599365,
+        0.343952476978302,
+        0.34299689531326294
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 29,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 9,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 9,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 7,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP"
+                ]
+              },
+              {
+                "brand": "chapstick",
+                "product_count": 7,
+                "products": [
+                  "B000GG64O4",
+                  "B07GVVLSG3",
+                  "B07DP6X7Q8",
+                  "B07GVPQXRF",
+                  "B07X62WVM4",
+                  "B07GVVRXRC",
+                  "B0FGPYWRMK"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE 립케어 순위 현황\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 LANEIGE 립케어 제품의 구체적인 Amazon Lip Care 카테고리 내 순위 정보가 확인되지 않습니다.  \n  다만, Lip Care 카테고리 내 상위 브랜드로는 unknown, eos, hera가 언급되어 있어 LANEIGE가 상위 3개 브랜드에는 포함되지 않은 것으로 보입니다.  \n  따라서 LANEIGE 립케어 제품은 Lip Care 카테고리 내에서 상위권에 위치하지 않을 가능성이 있습니다.\n\n- **근거**  \n  Lip Care Top 브랜드: unknown, eos, hera (현재 데이터)  \n  LANEIGE 립케어 순위 관련 구체적 수치 및 순위 미제공 (현재 데이터)\n\n- **권장**  \n  LANEIGE 립케어 제품의 정확한 순위 파악을 위해서는 추가적인 순위 데이터 수집이 필요할 것으로 보입니다.  \n  또한, 경쟁 브랜드 대비 SoS(Share of Shelf) 및 Rank Volatility 지표를 함께 분석하면 브랜드 경쟁력 평가에 도움이 될 수 있습니다.\n\n[출처: 현재 데이터]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **1.6 Issue Preview (Top 이슈 미리보기)**\n   - 관련도: 0.42\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.38\n\n4. 📄 **C. Level 3: Product & Risk**\n   - 관련도: 0.37\n\n5. 📄 **B. Category & Price Combination**\n   - 관련도: 0.34\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5774.0318775177,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
