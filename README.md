@@ -194,7 +194,7 @@ python scripts/test_report_generator.py
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite, Google Sheets, Pandas |
 | **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (커버리지 72.76%는 2026-02 측정치, 목표 60% 달성) |
+| **테스트** | pytest, pytest-cov (커버리지 72.19%, 2026-08-30 실측, 목표 60% 달성) |
 
 ---
 
@@ -286,9 +286,9 @@ python scripts/test_report_generator.py
 
 | 항목 | 수치 |
 |------|------|
-| 총 테스트 수 | **5,200+개** (수집 기준 5,206개) |
+| 총 테스트 수 | **5,242개** (5,235 passed / 7 skipped) |
 | 통과율 | 100% (0 failed, 일부 외부 의존 테스트 skip) |
-| 커버리지 | **72.76%** (2026-02 측정, 목표 60% 달성) |
+| 커버리지 | **72.19%** (2026-08-30 `pytest --cov=src` 실측, 목표 60% 달성) |
 | 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
 
 ### 레이어별 커버리지
@@ -352,7 +352,7 @@ ENV_FILE=.env.test python -m pytest tests/
 | dashboard_api.py | 5,634줄 monolith | 195줄 진입점 + `src/api/routes/` 12개 모듈 | **모듈화 완료** |
 | 순환 의존성 | 23 cycles | 0 cycles | **완전 제거** |
 | 테스트 수 | 238개 | 5,200+개 | **+2,000%↑** |
-| 테스트 커버리지 | 10.11% | 72.76% | **+62.65%p** |
+| 테스트 커버리지 | 10.11% | 72.19% | **+62.08%p** |
 | DI Container | 11 get_ 메서드 | 22 get_ 메서드 | +11 컴포넌트 |
 
 ### 9.2 Phase별 주요 변경
