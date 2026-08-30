@@ -109,9 +109,9 @@ class TestResponsePipeline:
         assert len(suggestions) <= 3
 
     def test_extract_sources(self, pipeline, mock_context):
-        """출처 추출"""
+        """출처 추출 — SourceProvider 위임 후 라벨에 아이콘이 붙는다 (§4.5)"""
         sources = pipeline._extract_sources(mock_context)
-        assert "Lip Care Report" in sources
+        assert any("Lip Care Report" in s for s in sources)
 
     def test_infer_query_type(self, pipeline, mock_context):
         """질문 유형 추론"""
@@ -286,19 +286,35 @@ class TestGenerateConfidenceMerge:
     """신뢰도 병합 테스트"""
 
     @pytest.mark.asyncio
-    async def test_confidence_merge_with_decision(self, pipeline, mock_context):
-        """decision.confidence가 있으면 max(calculated, decision.confidence)"""
-        from src.core.models import Decision
-
-        decision = Decision(confidence=8.0)
-
+    async def _score(self, pipeline, mock_context, decision=None):
         with patch.object(pipeline, "_call_llm", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = "응답입니다."
-
             result = await pipeline.generate("질문", mock_context, decision=decision)
+        return result.confidence_score
 
-        # decision.confidence(8.0)가 calculated보다 크면 8.0
-        assert result.confidence_score >= 8.0
+    async def test_confidence_merge_with_decision(self, pipeline, mock_context):
+        """decision.confidence는 근거 점수를 감쇠만 시킨다 (§4.1, 과거 max()).
+
+        confidence < 0.8이면 환각 감지 페널티(×0.6)가 별도로 붙으므로,
+        감쇠만 분리해 보려면 두 값 모두 0.8 이상으로 비교한다.
+        """
+        from src.core.models import Decision
+
+        full = await self._score(pipeline, mock_context, Decision(confidence=1.0))
+        attenuated = await self._score(pipeline, mock_context, Decision(confidence=0.9))
+
+        assert attenuated == pytest.approx(full * 0.9)
+        assert attenuated < full
+
+    @pytest.mark.asyncio
+    async def test_confidence_cannot_exceed_grounded_score(self, pipeline, mock_context):
+        """LLM이 아무리 자신해도 근거 점수를 넘지 못한다 (범위 밖 값은 1.0으로 clamp)"""
+        from src.core.models import Decision
+
+        baseline = await self._score(pipeline, mock_context)
+        overconfident = await self._score(pipeline, mock_context, Decision(confidence=8.0))
+
+        assert overconfident == pytest.approx(baseline)
 
     @pytest.mark.asyncio
     async def test_confidence_without_decision(self, pipeline, mock_context):
@@ -683,7 +699,7 @@ class TestExtractSourcesExtended:
 
         sources = pipeline._extract_sources(context)
 
-        assert "Knowledge Graph" in sources
+        assert any("지식 그래프" in s or "Knowledge Graph" in s for s in sources)
 
     def test_extract_sources_with_kg_inferences(self, pipeline):
         """KG 추론 있으면 'Ontology Reasoning' 포함"""
@@ -709,9 +725,9 @@ class TestExtractSourcesExtended:
 
         sources = pipeline._extract_sources(context)
 
-        # 중복 제거되어 2개만
-        assert sources.count("Report A") == 1
-        assert "Report B" in sources
+        # 중복 제거되어 각 1회
+        assert sum(1 for s in sources if "Report A" in s) == 1
+        assert any("Report B" in s for s in sources)
 
     def test_extract_sources_max_five(self, pipeline):
         """최대 5개 출처"""

@@ -458,50 +458,53 @@ _※ 위 외부 신호는 전문 매체(Allure, Byrdie 등), Reddit, TikTok 등�
 ---
 
 ▎**1. 오늘의 핵심**
-• 라네즈 립 슬리핑 마스크 순위 상승 (**+3**단계 → 현재 **#4**) [1]
-• SoS **+2.1%p** 증가 (전일 대비)
+• 라네즈 {{PRODUCT_NAME}} 순위 {{RANK_DIRECTION}} (**{{RANK_DELTA}}**단계 → 현재 **#{{RANK}}**) [D{{n}}]
+• SoS **{{SOS_DELTA}}** {{SOS_DIRECTION}} (전일 대비) [D{{n}}]
 [가장 중요한 변화 1-2가지를 구체적 수치와 함께 작성]
 
 ▎**2. 원인 분석 (Why?)**
 
 **Layer 4: 거시경제/무역**
-• 관세청 수출입 데이터: 화장품 수출 전월비 **+12.3%** [1]
-• 원/달러 환율 안정세 유지
+• 관세청 수출입 데이터: 화장품 수출 전월비 **{{EXPORT_DELTA}}** [D{{n}}]
+• 원/달러 환율 {{FX_TREND}}
 
 **Layer 3: 산업/기업 동향**
-• 아모레퍼시픽 3Q 영업이익 **+41%** YoY [2]
-• Americas 매출 **+6.9%** 성장
+• 아모레퍼시픽 {{QUARTER}} 영업이익 **{{OP_PROFIT_DELTA}}** YoY [D{{n}}]
+• Americas 매출 **{{AMERICAS_DELTA}}** {{AMERICAS_DIRECTION}}
 
 **Layer 2: 소비자 트렌드**
-• Reddit r/AsianBeauty 라네즈 언급 **+34%** [3]
-• TikTok #LipSleepingMask 조회수 2.4M
+• Reddit r/AsianBeauty 라네즈 언급 **{{MENTION_DELTA}}** [D{{n}}]
+• TikTok {{HASHTAG}} 조회수 {{VIEW_COUNT}}
 
 **Layer 1: Amazon 성과**
-• Lip Care 카테고리 SoS: **8.2%** (전주 7.1%)
-• Top 10 진입 제품: **3개** (유지)
-• 코스알엑스 대비 가격 경쟁력 유지
+• {{CATEGORY}} 카테고리 SoS: **{{SOS}}** (전주 {{SOS_PREV}})
+• Top 10 진입 제품: **{{TOP10_COUNT}}개** ({{TOP10_DIRECTION}})
+• {{COMPETITOR}} 대비 가격 경쟁력 {{CPI_ASSESSMENT}}
 
 ▎**3. 주의 사항**
-• 코스알엑스 신제품 출시 예정 - 점유율 변동 모니터링 필요
-• [리스크 또는 모니터링 필요 사항]
+• [리스크 또는 모니터링 필요 사항 — 제공된 데이터에 근거한 것만]
 
 ▎**4. 전략 제언**
-1. [즉시 실행] 재고 확보 - 립 슬리핑 마스크 수요 증가 대비
-2. [모니터링] 코스알엑스 신제품 출시 동향 주시
-3. [검토 필요] 홀리데이 시즌 프로모션 전략 수립
+1. [즉시 실행] {{ACTION_IMMEDIATE}}
+2. [모니터링] {{ACTION_MONITOR}}
+3. [검토 필요] {{ACTION_REVIEW}}
 
 ▎**5. 참고자료**
 
 **5.1 데이터 출처 (Data Sources)**
-[D1] Amazon Best Sellers - Beauty & Personal Care, 2026-01-01 ~ 2026-01-28
-[D2] Amazon Best Sellers - Skin Care, 2026-01-01 ~ 2026-01-28
-[D3] Amazon Best Sellers - Lip Care, 2026-01-01 ~ 2026-01-28
-[D4] Amazon Best Sellers - Lip Makeup, 2026-01-01 ~ 2026-01-28
-[D5] Amazon Best Sellers - Face Powder, 2026-01-01 ~ 2026-01-28
+[D1] Amazon Best Sellers - {{CATEGORY_1}}, {{PERIOD_START}} ~ {{PERIOD_END}}
+[D2] Amazon Best Sellers - {{CATEGORY_2}}, {{PERIOD_START}} ~ {{PERIOD_END}}
+[제공된 카테고리 수만큼 나열]
 
 **5.2 참고 문헌 (References)**
 [제공된 참고자료 목록 - 링크 URL 전체 표시, 축약 금지]
 ```
+
+### 중요: 위 형식 예시의 이중 중괄호 규칙
+위 예시에서 `{{...}}`와 `[D{{n}}]`는 **자리표시자**다. 형식만 참고하고,
+값은 반드시 제공된 데이터에서 가져와 채운다.
+**자리표시자를 그대로 출력하거나, 예시처럼 보이는 임의의 수치를 지어내지 말 것.**
+해당 데이터가 없으면 그 항목 자체를 생략한다.
 
 ### 중요: 참고자료 작성 규칙
 1. **참고자료는 반드시 문서 맨 마지막에 위치** (전략 제언 이후)

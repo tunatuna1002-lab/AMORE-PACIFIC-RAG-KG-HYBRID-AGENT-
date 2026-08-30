@@ -23,6 +23,7 @@ from typing import Any
 
 from src.shared.constants import DEFAULT_MODEL
 
+from .confidence import ConfidenceAssessor
 from .hallucination_detector import HallucinationDetector
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 
@@ -77,6 +78,8 @@ class ResponsePipeline:
         self.temperature = temperature
         self._tracer = None  # Set externally via set_tracer()
         self._hallucination_detector = HallucinationDetector()
+        # 신뢰도 사다리는 ConfidenceAssessor 하나만 쓴다 (§4.2 이중화 제거)
+        self._confidence_assessor = ConfidenceAssessor()
 
     def _get_system_prompt(self) -> str:
         """시스템 프롬프트 — PromptRegistry 경유 (플래그 off이면 인라인 폴백).
@@ -192,10 +195,14 @@ class ResponsePipeline:
 
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
-            # 신뢰도 계산 - decision의 confidence를 고려
+            # 신뢰도 계산 — 근거 점수가 상한, LLM 자기보고는 감쇠만 한다.
+            # 과거에는 max()를 써서 근거 기반 점수가 "바닥 올리기"로만 작동했다.
+            # 두 값은 스케일도 달라(근거 0-10 vs LLM 0-1) 근거가 거의 없을 때만
+            # LLM 자신감이 이겼고, 그 결과 무근거 답변이 신뢰도를 얻었다.
             calculated_confidence = self._calculate_confidence_score(context)
-            if decision and hasattr(decision, "confidence") and decision.confidence:
-                final_confidence = max(calculated_confidence, decision.confidence)
+            decision_confidence = getattr(decision, "confidence", None) if decision else None
+            if decision_confidence:
+                final_confidence = calculated_confidence * min(float(decision_confidence), 1.0)
             else:
                 final_confidence = calculated_confidence
 
@@ -553,16 +560,59 @@ class ResponsePipeline:
         return suggestions[:3]
 
     def _extract_sources(self, context: Context) -> list[str]:
-        """출처 추출"""
-        sources = []
+        """출처 추출 — SourceProvider(정본)에 위임한다 (§4.5).
 
-        # RAG 문서 출처
-        for doc in context.rag_docs:
+        과거에는 여기서 bare 문자열 5개만 뽑아, 어느 응답 경로를 타느냐에 따라
+        인용 품질이 달랐다. 이제 두 경로가 같은 추출기를 쓴다.
+        Response.sources의 계약(list[str])은 유지하고 표시 문자열로 변환한다.
+        """
+        try:
+            return self._extract_sources_via_provider(context)
+        except Exception as e:
+            logger.warning(f"SourceProvider 출처 추출 실패, 폴백 사용: {e}")
+            return self._extract_sources_fallback(context)
+
+    def _extract_sources_via_provider(self, context: Context) -> list[str]:
+        """SourceProvider로 출처를 뽑아 표시 문자열로 변환."""
+        from src.infrastructure.container import Container
+        from src.rag.hybrid_retriever import HybridContext
+
+        provider = Container.get_source_provider()
+
+        # SourceProvider는 InferenceResult 객체를 기대한다. dict 형태 추론이 섞여 있으면
+        # 그것만 걸러내고 나머지는 리치 추출을 유지한다 (전체 폴백 방지).
+        inferences = [inf for inf in (context.kg_inferences or []) if hasattr(inf, "rule_name")]
+        dropped = len(context.kg_inferences or []) - len(inferences)
+
+        hybrid_context = HybridContext(
+            query=getattr(context, "query", "") or "",
+            entities=getattr(context, "entities", None) or {},
+            ontology_facts=list(context.kg_facts or []),
+            inferences=inferences,
+            rag_chunks=list(context.rag_docs or []),
+        )
+
+        labels = [self._source_label(src) for src in provider.extract_sources(hybrid_context)]
+        if dropped:
+            labels.append("Ontology Reasoning")
+        return labels[:5]
+
+    @staticmethod
+    def _source_label(source: dict[str, Any]) -> str:
+        """리치 출처 dict → 표시 문자열"""
+        description = source.get("description") or source.get("type") or "출처"
+        icon = source.get("icon", "")
+        return f"{icon} {description}".strip()
+
+    def _extract_sources_fallback(self, context: Context) -> list[str]:
+        """SourceProvider를 쓸 수 없을 때의 최소 출처 목록."""
+        sources: list[str] = []
+
+        for doc in context.rag_docs or []:
             title = doc.get("metadata", {}).get("title", "")
             if title and title not in sources:
                 sources.append(title)
 
-        # KG 출처
         if context.kg_facts:
             sources.append("Knowledge Graph")
 
@@ -589,17 +639,13 @@ class ResponsePipeline:
             return "general"
 
     def _assess_confidence(self, context: Context) -> ConfidenceLevel:
-        """신뢰도 레벨 평가"""
-        score = self._calculate_confidence_score(context)
+        """신뢰도 레벨 평가 — 사다리는 ConfidenceAssessor에 위임한다.
 
-        if score >= 5.0:
-            return ConfidenceLevel.HIGH
-        elif score >= 3.0:
-            return ConfidenceLevel.MEDIUM
-        elif score >= 1.5:
-            return ConfidenceLevel.LOW
-        else:
-            return ConfidenceLevel.UNKNOWN
+        과거에는 confidence.py의 5.0/3.0/1.5 사다리를 여기서 재구현해,
+        임계값이 갈라질 수 있었다 (§4.2).
+        """
+        score = self._calculate_confidence_score(context)
+        return self._confidence_assessor.assess({"max_score": score})
 
     def _calculate_confidence_score(self, context: Context) -> float:
         """신뢰도 점수 계산"""

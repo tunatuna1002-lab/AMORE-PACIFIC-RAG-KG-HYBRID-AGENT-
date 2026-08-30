@@ -293,42 +293,42 @@ class TestExtractBrandFromText:
 
 
 class TestSearchBrandWeb:
-    """Test _search_brand_web method"""
+    """Test _resolve_from_known_patterns method"""
 
     @pytest.mark.asyncio
-    async def test_search_brand_web_known_pattern(self, tmp_path):
+    async def test_resolve_from_known_patterns_known_pattern(self, tmp_path):
         """Test web search with known pattern"""
         resolver = BrandResolver(mapping_path=str(tmp_path / "test.json"))
-        brand = await resolver._search_brand_web("Summer Fridays Jet Lag Mask")
+        brand = await resolver._resolve_from_known_patterns("Summer Fridays Jet Lag Mask")
         assert brand == "Summer Fridays"
 
     @pytest.mark.asyncio
-    async def test_search_brand_web_case_insensitive(self, tmp_path):
+    async def test_resolve_from_known_patterns_case_insensitive(self, tmp_path):
         """Test case-insensitive pattern matching"""
         resolver = BrandResolver(mapping_path=str(tmp_path / "test.json"))
-        brand = await resolver._search_brand_web("DRUNK ELEPHANT Vitamin C Serum")
+        brand = await resolver._resolve_from_known_patterns("DRUNK ELEPHANT Vitamin C Serum")
         assert brand == "Drunk Elephant"
 
     @pytest.mark.asyncio
-    async def test_search_brand_web_unknown_pattern(self, tmp_path):
+    async def test_resolve_from_known_patterns_unknown_pattern(self, tmp_path):
         """Test web search with unknown brand"""
         resolver = BrandResolver(mapping_path=str(tmp_path / "test.json"))
-        brand = await resolver._search_brand_web("Unknown Brand Product Name")
+        brand = await resolver._resolve_from_known_patterns("Unknown Brand Product Name")
         assert brand is None
 
     @pytest.mark.asyncio
-    async def test_search_brand_web_multiple_patterns(self, tmp_path):
+    async def test_resolve_from_known_patterns_multiple_patterns(self, tmp_path):
         """Test matching first found pattern"""
         resolver = BrandResolver(mapping_path=str(tmp_path / "test.json"))
-        brand = await resolver._search_brand_web("The Ordinary Niacinamide")
+        brand = await resolver._resolve_from_known_patterns("The Ordinary Niacinamide")
         assert brand == "The Ordinary"
 
     @pytest.mark.asyncio
-    async def test_search_brand_web_handles_error(self, tmp_path):
+    async def test_resolve_from_known_patterns_handles_error(self, tmp_path):
         """Test error handling in web search"""
         resolver = BrandResolver(mapping_path=str(tmp_path / "test.json"))
         # Pass invalid input to trigger error path
-        brand = await resolver._search_brand_web("")
+        brand = await resolver._resolve_from_known_patterns("")
         assert brand is None
 
 
@@ -457,20 +457,20 @@ class TestVerifyUnknownBrands:
         assert len(result["results"]) == 2
 
     @pytest.mark.asyncio
-    async def test_verify_unknown_brands_with_websearch_fallback(self, tmp_path):
-        """Test fallback to web search"""
+    async def test_verify_unknown_brands_with_known_pattern_fallback(self, tmp_path):
+        """Test fallback to the known-brand pattern dictionary (웹검색 아님)"""
         resolver = BrandResolver(mapping_path=str(tmp_path / "test.json"))
 
         products = [{"asin": "A1", "brand": "Unknown", "product_name": "Summer Fridays Product"}]
 
         with patch.object(resolver, "_fetch_brand_from_amazon", AsyncMock(return_value=None)):
             with patch.object(
-                resolver, "_search_brand_web", AsyncMock(return_value="Summer Fridays")
+                resolver, "_resolve_from_known_patterns", AsyncMock(return_value="Summer Fridays")
             ):
                 result = await resolver.verify_unknown_brands(products, delay_seconds=0)
 
         assert result["verified_count"] == 1
-        assert result["results"][0]["source"] == "web_search"
+        assert result["results"][0]["source"] == "known_patterns"
 
     @pytest.mark.asyncio
     async def test_verify_unknown_brands_skips_mapped(self, tmp_path):
@@ -502,7 +502,9 @@ class TestVerifyUnknownBrands:
         ]
 
         with patch.object(resolver, "_fetch_brand_from_amazon", AsyncMock(return_value=None)):
-            with patch.object(resolver, "_search_brand_web", AsyncMock(return_value=None)):
+            with patch.object(
+                resolver, "_resolve_from_known_patterns", AsyncMock(return_value=None)
+            ):
                 result = await resolver.verify_unknown_brands(products, delay_seconds=0)
 
         assert result["verified_count"] == 0
@@ -516,7 +518,9 @@ class TestVerifyUnknownBrands:
         products = [{"asin": "A1", "brand": "Unknown", "product_name": "Rare Beauty Product"}]
 
         with patch.object(resolver, "_fetch_brand_from_amazon", AsyncMock()) as mock_amazon:
-            with patch.object(resolver, "_search_brand_web", AsyncMock(return_value="Rare Beauty")):
+            with patch.object(
+                resolver, "_resolve_from_known_patterns", AsyncMock(return_value="Rare Beauty")
+            ):
                 result = await resolver.verify_unknown_brands(
                     products, use_amazon=False, delay_seconds=0
                 )

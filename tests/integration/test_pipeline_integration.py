@@ -101,7 +101,9 @@ class TestDecisionToResponseFlow:
 
         assert isinstance(response, Response)
         assert response.text  # Not empty
-        assert response.confidence_score > 0
+        # §4.1: 근거(rag_docs/kg_facts)가 전혀 없으면 LLM이 0.85로 자신해도 신뢰도는 0.
+        # 과거 max()에서는 0.85로 올라갔다.
+        assert response.confidence_score == 0.0
 
     @pytest.mark.asyncio
     async def test_high_confidence_fast_path_detection(self):
