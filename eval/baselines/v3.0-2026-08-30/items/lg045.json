@@ -1,0 +1,130 @@
+{
+  "item_id": "lg045",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1038961038961039,
+    "semantic_similarity": 0.7775461673736572,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.75
+  },
+  "overall_score": 0.36566313774761183,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg045",
+    "timestamp": "2026-08-30T10:20:33.033692",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_1",
+        "laneige_strategy_2026_1_1",
+        "negative_issue_response_3_4",
+        "negative_issue_response_7_2",
+        "negative_issue_response_1_0",
+        "laneige_influencer_map_5_1",
+        "laneige_strategy_2026_5_2"
+      ],
+      "snippets": [
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 ",
+        "* **대응 문구 (소셜 미디어/CS):**\"고객님의 피부 트러블 경험에 대해 깊은 유감을 표합니다. 스킨케어, 특히 클렌징 오일은 피부 타입에 따라 반응이 극명하게 갈릴 수 있는 제품입니다. '포어 컨트롤'이라는 제품명이 모든 분께 완벽한 해결책이 되지 못했음을 겸허히 받아들입니다. 현재 보고해주신 낭종성 여드름 사례들을 R\\&D 팀과 함께 심층 분석 중",
+        "향후 수개월간 '검증된 효능(Clinical Validation)'에 대한 니즈가 더욱 커질 것이다. 우지(Tallow)와 같은 비과학적 민간요법에 대한 반작용으로, 다시금 세라마이드, 스쿠알란 등 검증된 성분이 주목받을 것이다. 또한, 무분별한 틱톡 바이럴보다는 레딧과 같은 커뮤니티 기반의 '찐후기(Authentic Review)'가 구매 결정에 미치는 ",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "LANEIGE가 주력하고 있는 **Bouncy & Firm Sleeping Mask**와 **Serum**은 '슬로우 에이징(Slow-aging)'과 '프리주브네이션(Prejuvenation)' 트렌드를 겨냥하고 있다.9 20대부터 노화를 예방하려는 젊은 층을 타겟으로 하며, 틱톡에서 유행하는 '탱글탱글한 피부(Plump Skin)'를 시각적으로 구현해 주"
+      ],
+      "scores": [
+        3.4843053817749023,
+        3.3601129055023193,
+        3.293827533721924,
+        3.228005886077881,
+        3.216996908187866,
+        3.163811445236206,
+        3.130540609359741
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### HHI 0.15의 시장 구조 해석\n\n- **인사이트**  \n  HHI(Herfindahl-Hirschman Index) 값이 0.15라는 수치는 일반적으로 시장 내 브랜드 집중도가 낮은 편임을 시사할 수 있습니다. 즉, 여러 브랜드가 비교적 고르게 시장 점유율을 나누고 있어 경쟁이 분산된 상태일 가능성이 있습니다.\n\n- **근거**  \n  참고 가이드라인의 프로토타입 기본 더미 값 예시에서 HHI 0.30은 \"Concentrated(집중된)\" 시장 구조로 분류되고 있으므로, 0.15는 이보다 낮은 수치로서 상대적으로 덜 집중된 시장 구조로 해석할 수 있습니다 [출처: RAG 가이드 4].\n\n- **권장**  \n  HHI 0.15 수준의 시장에서는 브랜드 간 경쟁이 치열할 수 있으므로, 차별화된 마케팅 전략이나 제품 포지셔닝이 중요할 수 있습니다. 다만, 단기 변동 가능성도 있으므로 지속적인 모니터링이 필요합니다.\n\n- **추가 안내**  \n  현재 확인된 데이터 기준으로 HHI 0.15에 대한 구체적 정의나 세분화된 해석은 제공되지 않아, 보다 정확한 판단을 위해서는 추가 데이터 확인이 권장됩니다.\n\n[출처: RAG 가이드 4]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **4. 프로토타입 기본 더미 값 예시(선택)**\n   - 관련도: 6.03\n\n2. 📄 **2. 내부 요인 분석**\n   - 관련도: 4.61\n\n3. 📄 **A. Market & Brand Combination**\n   - 관련도: 4.58\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7610.543012619019,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

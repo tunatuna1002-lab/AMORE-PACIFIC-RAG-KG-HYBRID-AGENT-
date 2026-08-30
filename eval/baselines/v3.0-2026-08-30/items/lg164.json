@@ -1,0 +1,119 @@
+{
+  "item_id": "lg164",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14444444444444446,
+    "semantic_similarity": 0.49016228318214417,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.2
+  },
+  "overall_score": 0.2894479388197263,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg164",
+    "timestamp": "2026-08-30T10:32:59.312418",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_3_0",
+        "amazon_ranking_diagnosis_3_2",
+        "home_insight_rules_3_1",
+        "home_insight_rules_3_0",
+        "home_insight_rules_10"
+      ],
+      "snippets": [
+        "1. 필수 확인 체크리스트\n\n순위 변동 원인을 파악하기 위해 아래 항목들을 **우선적으로 확인**한다. 해당 정보는 모두 날짜 구간 전후로 비교해야 한다.",
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁",
+        "### 템플릿(예시)\n- 이상 신호 우선:\n  - “오늘은 일부 상품에서 순위 급변 신호가 감지되어, 단기 모니터링이 필요할 수 있습니다.”\n- 가격·품질 불일치:\n  - “프리미엄 가격 포지션 대비 평점 경쟁력이 낮아, 가격-품질 인식 간 불일치 가능성을 점검해볼 수 있습니다.”\n- 시장 맥락:\n  - “시장 집중도가 높아 경쟁 구도가 고착화된 편으로, ",
+        "1.1 Daily Insight Summary (오늘의 한 줄 요약)\n\n### 목표\n- 1문장으로 “현재 상태”를 요약\n- **리스크가 있으면 리스크 우선**, 없으면 “안정” 중심\n\n### 문장 톤\n- 반드시 완곡 표현 사용:\n  - “~일 수 있습니다”, “~가능성이 있습니다”, “~신호로 해석될 수 있습니다”\n- 금지 표현:\n  - “원인은 ~입니다”",
+        "1.8 Chat Entry CTA (Home 전용 챗봇 진입)\n\n### 목표\n- Home 요약을 기반으로 “해석”만 요청하도록 유도\n\n### UI 문구\n- 버튼: “오늘 상황을 어떻게 해석하면 좋을까요?”\n- 안내: “지표 해석과 판단 보조만 제공합니다(결론·예측·원인 확정 없음).”\n\n### 챗봇에 전달할 컨텍스트(권장)\n- 현재 선택한 brand/mar"
+      ],
+      "scores": [
+        8.503833770751953,
+        8.177984237670898,
+        8.352374076843262,
+        8.191530227661133,
+        7.978745460510254
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE SoS 현황 및 인사이트\n\n- **인사이트**: 현재 LANEIGE의 SoS(Share of Shelf)는 0.0%로 나타나고 있어, 해당 카테고리 내에서 브랜드의 물리적 노출 점유율이 매우 낮은 상태입니다. 이는 시장 내에서 LANEIGE의 존재감이 아직 미미하며, 진입 확대 기회가 있을 수 있음을 시사합니다. [출처: Ontology Reasoning]\n\n- **근거**: 시장 집중도는 매우 낮은 분산 구조(HHI: 0.000)이며, 경쟁 브랜드가 8개 활동 중인 상황에서 LANEIGE의 SoS는 0.0%로 확인됩니다 [출처: Ontology Reasoning].\n\n- **권장 사항**: LANEIGE는 차별화된 제품 라인업과 타겟 고객층 명확화를 통해 시장 내 노출을 확대하는 전략이 필요할 수 있습니다. 또한, 기존 강점을 활용하여 인접 카테고리로의 확장도 고려해볼 만합니다.\n\n- **참고**: SoS는 브랜드의 물리적 진열 점유율을 의미하며, 매출이나 판매량과 직접 연결되지는 않으므로, SoS가 낮다고 해서 반드시 브랜드 성과가 저조하다고 단정하기는 어렵습니다 [출처: RAG 가이드]. \n\n현재 확인된 데이터 기준으로 LANEIGE의 SoS는 0.0%입니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 🧠 **온톨로지 규칙: fragmented_market_competition**\n   - 신뢰도: 85%\n   - 규칙: fragmented_market_competition\n\n3. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 3.80\n\n5. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 3.74\n\n6. 📄 **---**\n   - 관련도: 1.60\n\n7. 📄 **A. Market & Brand Combination**\n   - 관련도: 0.79\n\n8. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7182.674884796143,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

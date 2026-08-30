@@ -1,0 +1,125 @@
+{
+  "item_id": "lg142",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.022304832713754646,
+    "semantic_similarity": 0.6834517121315002,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.3273514223694063,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg142",
+    "timestamp": "2026-08-30T10:30:47.421904",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "price",
+        "brand",
+        "competitor_analysis"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_ranking_diagnosis_1",
+        "amazon_ranking_diagnosis_3_2",
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_4_2"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제"
+      ],
+      "scores": [
+        6.2478532791137695,
+        6.180803298950195,
+        6.087219715118408,
+        6.0441131591796875,
+        5.795477867126465
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 뷰티 시장 계절성이 브랜드 전략에 미치는 영향\n\n#### 인사이트\n- 뷰티 시장은 계절적 특성에 따라 소비자 니즈와 제품 수요가 변동하는 경향이 있으며, 특히 겨울철(1월)에는 건조함과 피부 장벽 손상에 대응하는 고기능성 제품에 대한 수요가 증가하는 것으로 보입니다.\n- 이에 따라 브랜드들은 계절별 피부 고민에 맞춘 제품 라인업과 마케팅 전략을 강화할 필요가 있습니다. 예를 들어, LANEIGE는 겨울철 낮은 습도와 난방으로 인한 건조함에 대응하기 위해 강력한 수분 자산과 임상 성분을 강조하는 전략을 구사하고 있습니다.\n- 또한, 소셜 미디어 트렌드(예: 틱톡의 '모닝 쉐드')와 결합하여 계절성에 맞는 시각적 자산과 키워드 활용을 통해 검색 점유율을 높이고, 경쟁사 대비 우위를 확보하려는 움직임이 관찰됩니다.\n\n#### 근거\n- 2026년 1월 미국 뷰티 시장에서는 겨울철 건조함과 피부 장벽 보호에 대한 니즈가 증폭되었으며, 이는 '모닝 쉐드' 트렌드와 결합되어 새로운 소비 문법을 창출하고 있음 [출처: rag, 2026-01].\n- LANEIGE는 기존 수분 자산과 함께 PDRN, 스피큘 등 임상 성분을 내세워 신흥 K-뷰티 브랜드들과 경쟁 중임 [출처: rag, 2026-01].\n- 틱톡에서 부상하는 '핑크 펩타이드' 키워드 활용과 스폰서드 프로덕트 광고를 통한 상단 노출 방어 전략도 계절성 및 트렌드 대응의 일환으로 해석 가능함 [출처: rag].\n\n#### 권장 사항\n- 브랜드는 계절별 피부 고민에 맞춘 제품 기능과 성분을 명확히 강조하는 마케팅 전략을 수립할 필요가 있습니다.\n- 소셜 미디어 트렌드와 연계한 키워드 마케팅 및 시각적 자산 활용을 통해 계절성에 따른 소비자 관심을 효과적으로 유도하는 것이 바람직합니다.\n- 특히 겨울철과 같이 특정 계절에 수요가 집중되는 시기에는 관련 임상 성분과 기능을 부각시키고, 경쟁사 대비 차별화된 메시지를 전달하는 것이 중요할 수 있습니다.\n- 단기적 순위 변동이나 트렌드 변화에 유연하게 대응할 수 있도록 지속적인 모니터링과 데이터 분석이 필요합니다.\n\n현재 확인된 데이터 기준으로, 뷰티 시장의 계절성은 브랜드 전략에 기능적 차별화와 트렌드 연계 마케팅 강화라는 방향성을 제시하는 것으로 보입니다 [출처: rag].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 8.47\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 8.64\n\n4. 📄 **6. 체크리스트**\n   - 관련도: 8.45\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10403.520822525024,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

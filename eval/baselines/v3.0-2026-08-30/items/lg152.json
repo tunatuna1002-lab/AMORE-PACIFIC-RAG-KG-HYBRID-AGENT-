@@ -1,0 +1,133 @@
+{
+  "item_id": "lg152",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1711229946524064,
+    "semantic_similarity": 0.7169809937477112,
+    "groundedness_score": 0.5555555555555556,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.4444444444444444
+  },
+  "overall_score": 0.36626269228934394,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg152",
+    "timestamp": "2026-08-30T10:31:52.027695",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "product"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_2_5",
+        "laneige_influencer_map_2_6",
+        "negative_issue_response_3_4",
+        "laneige_strategy_2026_6_1",
+        "us_beauty_trends_weekly_4",
+        "laneige_influencer_map_1_0",
+        "kbeauty_industry_3_1"
+      ],
+      "snippets": [
+        "이 이슈의 확산 경로는 전형적인 '기대-실망-공유'의 사이클을 따르고 있다. 소비자는 틱톡이나 인스타그램에서 한국 인플루언서들이 극찬하는 오리지널 제품을 보고, 접근성이 좋은 타겟(Target)이나 아마존에서 '공식 제품'을 구매한다. 그러나 사용 직후 텍스처와 냄새에서 이질감을 느끼고, 레딧의 r/AsianBeauty나 r/SkincareAddiction",
+        "* **대표 크리에이터:**  \n  * Lab Muffin (Michelle Wong) 7: 과학적 배경을 가진 그녀는 '블루 히알루론산'이 왜 일반 히알루론산보다 흡수가 빠른지, 분자 크기의 차이가 실제 피부 투과율에 어떤 영향을 미치는지 설명합니다. 브랜드의 마케팅 용어를 과학적 언어로 번역해줌으로써 고관여 소비자들의 의구심을 해소합니다.  \n  * J",
+        "* **대응 문구 (소셜 미디어/CS):**\"고객님의 피부 트러블 경험에 대해 깊은 유감을 표합니다. 스킨케어, 특히 클렌징 오일은 피부 타입에 따라 반응이 극명하게 갈릴 수 있는 제품입니다. '포어 컨트롤'이라는 제품명이 모든 분께 완벽한 해결책이 되지 못했음을 겸허히 받아들입니다. 현재 보고해주신 낭종성 여드름 사례들을 R\\&D 팀과 함께 심층 분석 중",
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "2. **K-뷰티****의 핵심: 개인 맞춤형 관리 및 일상화된 루틴** \n  1. 덴마크에서 온 K-팝 팬들은 한국 여성들의 피부 비결에 대한 궁금증으로 피부 관리 쇼를 방문한다 \n  2. 피부 관리 쇼에서는 피부 민감도를 측정하여 (1이 가장 강하고, 10이 가장 약함) 개인별 맞춤 처방을 제시한다 \n  3. 필요한 성분을 적정량씩 덜어 현장에서 제품을"
+      ],
+      "scores": [
+        6.223309516906738,
+        6.208618640899658,
+        6.207250595092773,
+        6.147115230560303,
+        6.146106243133545,
+        6.118239402770996,
+        6.1022138595581055
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### LANEIGE Lip Sleeping Mask와 같은 카테고리 경쟁사의 평균 가격 인사이트\n\n- **인사이트**: 제공된 데이터 내에서는 LANEIGE Lip Sleeping Mask와 동일 카테고리 내 경쟁사(예: blistex, chapstick, sun bum)의 구체적인 평균 가격 정보가 명시되어 있지 않습니다. 다만, 경쟁사 제품들이 펩타이드 트리트먼트 등 고기능성 이미지를 강조하는 경향이 있으며, 저가 브랜드도 $5 수준의 제품을 출시하는 상황임을 참고할 수 있습니다. 이는 경쟁사 제품 가격대가 저가부터 중저가 수준에 분포할 가능성을 시사합니다 [출처: RAG 가이드 3].\n\n- **근거**: \n  - 경쟁사로 blistex, chapstick, sun bum이 활동 중임 [Ontology Reasoning].\n  - 저가 브랜드가 $5짜리 펩타이드 글로스 제품을 출시 중임 [RAG 가이드 3].\n  - 시장이 분산되어 있고 경쟁 브랜드가 8개 존재함 [Ontology Reasoning 1].\n\n- **권장**: \n  - 현재 확인된 데이터 기준으로, 경쟁사 평균 가격을 정확히 파악하기 위해서는 추가적인 가격 데이터 수집이 필요합니다.\n  - LANEIGE는 가격 경쟁력뿐 아니라 제품의 기능성(예: 펩타이드, 항산화 성분)과 브랜드 파워를 강조하는 전략이 유효할 수 있습니다.\n  - 경쟁사 대비 가격 포지셔닝을 명확히 하면서, 제품 효능과 차별화 요소를 마케팅에 적극 반영하는 것이 권장됩니다.\n\n요약하면, 현재 제공된 데이터만으로는 LANEIGE Lip Sleeping Mask 카테고리 경쟁사의 평균 가격을 구체적으로 제시하기 어렵고, 저가 브랜드가 $5 수준의 제품을 출시하는 점을 참고할 수 있습니다 [출처: 현재 데이터, RAG 가이드 3, Ontology Reasoning 1].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 🧠 **온톨로지 규칙: fragmented_market_competition**\n   - 신뢰도: 85%\n   - 규칙: fragmented_market_competition\n\n3. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n4. 📄 **---**\n   - 관련도: 6.20\n\n5. 📄 **분석 범위**\n   - 관련도: 5.66\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 10842.199087142944,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
