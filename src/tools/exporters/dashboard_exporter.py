@@ -1396,12 +1396,45 @@ class DashboardExporter:
                 self._knowledge_graph.add_relation(rel)
                 stats["competition"] += 1
 
+        # 메트릭/경쟁 관계 엔리치먼트 (hasSoS·rankedIn·hasHHI·competesWith)
+        # — 최신 스냅샷만 사용 (2026-08-30 이전에는 어디서도 호출되지 않던 기능)
+        stats["enriched_triples"] = 0
+        try:
+            from collections import defaultdict
+
+            from src.ontology.kg_enricher import KGEnricher
+
+            latest_date = self._get_latest_date(raw_data)
+            by_category: dict[str, list[dict]] = defaultdict(list)
+            for row in raw_data:
+                if latest_date and row.get("snapshot_date") != latest_date:
+                    continue
+                category = row.get("category_id") or row.get("category")
+                if not category:
+                    continue
+                by_category[category].append(
+                    {
+                        "asin": row.get("asin", ""),
+                        "brand": row.get("brand", ""),
+                        "rank": row.get("rank"),
+                        "price": row.get("price"),
+                        "title": row.get("product_name", ""),
+                    }
+                )
+            enricher = KGEnricher(knowledge_graph=self._knowledge_graph)
+            for category, products in by_category.items():
+                result = enricher.enrich_and_store({"category": category, "products": products})
+                stats["enriched_triples"] += result.get("stored", 0)
+        except Exception as e:
+            print(f"KG enrichment skipped: {e}")
+
         kg_full_stats = self._knowledge_graph.get_stats()
         return {
             "total_triples": kg_full_stats.get("total_triples", 0),
             "brand_product": stats["brand_product"],
             "product_category": stats["product_category"],
             "competition": stats["competition"],
+            "enriched_triples": stats["enriched_triples"],
         }
 
     def _build_inference_context(self, dashboard_data: dict[str, Any]) -> dict[str, Any]:

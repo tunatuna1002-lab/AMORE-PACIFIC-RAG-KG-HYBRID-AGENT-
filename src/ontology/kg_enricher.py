@@ -391,11 +391,14 @@ class KGEnricher:
 
         predicate = predicate_map.get(triple.predicate, RelationType.HAS_PRODUCT)
 
+        # RelationType으로 축약되며 원래 의미(hasSoS 등)가 소실되지 않도록 보존
+        properties = {**triple.properties, "original_predicate": triple.predicate}
+
         return Relation(
             subject=triple.subject,
             predicate=predicate,
             object=triple.object,
-            properties=triple.properties,
+            properties=properties,
             confidence=triple.confidence,
             source="kg_enricher",
         )

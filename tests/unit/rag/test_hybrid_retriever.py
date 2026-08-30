@@ -1839,7 +1839,15 @@ class TestOWLStrategy:
 
 
 class TestRelevanceGradingRewrite:
-    """관련성 판정 및 쿼리 재작성 통합 테스트"""
+    """관련성 판정 및 쿼리 재작성 통합 테스트
+
+    2026-08-30 ablation 결과로 use_reranker 기본값이 false가 되어,
+    이 테스트들은 플래그를 명시적으로 켠 상태에서 grading 경로를 검증한다.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _enable_reranker(self, monkeypatch):
+        monkeypatch.setenv("FF_RETRIEVER_USE_RERANKER", "true")
 
     @pytest.mark.asyncio
     async def test_retrieve_with_relevance_rewrite_triggered(self):
