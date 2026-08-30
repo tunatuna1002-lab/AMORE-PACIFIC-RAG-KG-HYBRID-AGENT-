@@ -330,7 +330,7 @@ class AmazonProductScraper:
                     if key and value:
                         details[key] = value
         except Exception:
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("제품 스펙 테이블 파싱 실패", exc_info=True)
 
         # Feature Bullets (About this item)
         try:
@@ -343,7 +343,7 @@ class AmazonProductScraper:
             if features:
                 details["features"] = features[:5]  # 상위 5개
         except Exception:
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("제품 특징(bullet) 파싱 실패", exc_info=True)
 
         # A+ Content에서 주요 정보 추출
         try:
@@ -356,7 +356,7 @@ class AmazonProductScraper:
             if aplus_titles:
                 details["aplus_highlights"] = aplus_titles
         except Exception:
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("A+ 콘텐츠 제목 파싱 실패", exc_info=True)
 
         return details
 

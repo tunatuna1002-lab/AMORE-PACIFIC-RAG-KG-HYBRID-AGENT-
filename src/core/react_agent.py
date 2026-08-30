@@ -410,7 +410,7 @@ JSON으로 응답:
                     action_input=data.get("action_input"),
                 )
         except Exception:
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("ReAct 스텝 JSON 파싱 실패", exc_info=True)
 
         return ReActStep(thought=content)
 

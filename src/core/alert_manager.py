@@ -36,9 +36,40 @@ class AlertManager:
             await alert_manager.process_alert(alert)
     """
 
-    # 알림 조건 임계값
+    # 알림 조건 임계값 (config/thresholds.json이 단일 소스, 아래는 파일 없을 때 폴백)
     RANK_CHANGE_THRESHOLD = 10  # 순위 변동 알림 임계값
     SOS_CHANGE_THRESHOLD = 2.0  # SoS 변동 알림 임계값 (%p)
+
+    @staticmethod
+    def _load_thresholds() -> tuple[int, float]:
+        """config/thresholds.json에서 알림 임계값 로드.
+
+        과거에는 config의 sos_change_up(±1.0)과 코드 상수(2.0)가 서로 달랐고
+        config 쪽은 리더가 0건이었다 (§6.1). 이제 config가 단일 소스다.
+        """
+        try:
+            import json
+            from pathlib import Path
+
+            config_path = Path(__file__).parent.parent.parent / "config" / "thresholds.json"
+            if not config_path.exists():
+                return AlertManager.RANK_CHANGE_THRESHOLD, AlertManager.SOS_CHANGE_THRESHOLD
+
+            with open(config_path, encoding="utf-8") as f:
+                config = json.load(f)
+
+            rank = config.get("ranking", {}).get(
+                "significant_rise", AlertManager.RANK_CHANGE_THRESHOLD
+            )
+            sos = abs(
+                config.get("brand_health", {}).get(
+                    "sos_change_up", AlertManager.SOS_CHANGE_THRESHOLD
+                )
+            )
+            return int(rank), float(sos)
+        except Exception as e:
+            logger.warning(f"알림 임계값 설정 로드 실패, 코드 기본값 사용: {e}")
+            return AlertManager.RANK_CHANGE_THRESHOLD, AlertManager.SOS_CHANGE_THRESHOLD
 
     def __init__(
         self, state_manager: "StateManager | None" = None, alert_agent: "AlertAgent | None" = None
@@ -51,6 +82,9 @@ class AlertManager:
         self._state_manager = state_manager
         self._alert_agent = alert_agent
         self._initialized = False
+
+        # 인스턴스 임계값 (config 우선). 클래스 상수는 폴백으로 남는다.
+        self.rank_change_threshold, self.sos_change_threshold = self._load_thresholds()
 
         # 알림 히스토리
         self._alert_history: list[dict[str, Any]] = []
@@ -116,7 +150,7 @@ class AlertManager:
         product = data.get("product", {})
         change = data.get("change", 0)
 
-        if abs(change) >= self.RANK_CHANGE_THRESHOLD:
+        if abs(change) >= self.rank_change_threshold:
             alert_type = "rank_drop" if change > 0 else "rank_surge"
             direction = "급락" if change > 0 else "급등"
 
@@ -203,7 +237,7 @@ class AlertManager:
                     if "-" in rank_delta:
                         change = -change
 
-                    if abs(change) >= self.RANK_CHANGE_THRESHOLD:
+                    if abs(change) >= self.rank_change_threshold:
                         direction = "급락" if change > 0 else "급등"
                         alerts.append(
                             {
@@ -226,7 +260,7 @@ class AlertManager:
         if sos_delta:
             try:
                 sos_change = float(sos_delta.replace("+", "").replace("%", "").replace("p", ""))
-                if sos_change <= -self.SOS_CHANGE_THRESHOLD:
+                if sos_change <= -self.sos_change_threshold:
                     alerts.append(
                         {
                             "type": "sos_drop",

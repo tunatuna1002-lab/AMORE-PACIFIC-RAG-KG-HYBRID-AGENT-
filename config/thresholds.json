@@ -2,23 +2,18 @@
   "_version": "2.0.0",
   "_description": "AMORE RAG-KG Hybrid Agent Configuration (Audit Report Quick Wins)",
   "_updated": "2026-01-27",
-
   "system": {
     "knowledge_graph": {
       "max_triples": 50000,
-      "eviction_policy": "importance_based",
       "auto_save": true,
       "auto_load": true,
       "persist_path": "data/knowledge_graph.json",
       "save_batch_threshold": 100
     },
     "rag": {
-      "ttl_seconds": 300,
-      "max_chunks": 5,
-      "rerank_enabled": false
+      "ttl_seconds": 300
     },
     "crawler": {
-      "crawl_hour_utc": 13,
       "delay_base_seconds": 8,
       "delay_random_max": 4,
       "category_delay_seconds": 45,
@@ -30,9 +25,15 @@
       "temperature": 0.7
     }
   },
-
   "ranking": {
-    "top_n_tiers": [3, 5, 10, 20, 50, 100],
+    "top_n_tiers": [
+      3,
+      5,
+      10,
+      20,
+      50,
+      100
+    ],
     "significant_drop": 5,
     "significant_rise": 10
   },
@@ -41,22 +42,14 @@
     "monthly_highlight": 30
   },
   "monitoring": {
-    "new_product_watch_days": 60,
     "trend_analysis_window": 7
   },
-  "competition": {
-    "gap_alert": 3,
-    "laneige_market_share_warning": 0.1
-  },
+  "competition": {},
   "brand_health": {
-    "sos_change_up": 1.0,
-    "sos_change_down": -1.0,
-    "hhi_concentrated": 0.25
+    "sos_change_up": 2.0,
+    "sos_change_down": -2.0
   },
-  "price_quality": {
-    "cpi_premium": 100,
-    "rating_gap_warning": 0
-  },
+  "price_quality": {},
   "categories": {
     "beauty": {
       "url": "https://www.amazon.com/Best-Sellers-Beauty-Personal-Care/zgbs/beauty/ref=zg_bs_nav_beauty_0",
@@ -64,7 +57,9 @@
       "amazon_node_id": "beauty",
       "level": 0,
       "parent_id": null,
-      "path": ["beauty"],
+      "path": [
+        "beauty"
+      ],
       "display_name_ko": "전체 뷰티 랭킹"
     },
     "skin_care": {
@@ -73,7 +68,10 @@
       "amazon_node_id": "11060451",
       "level": 1,
       "parent_id": "beauty",
-      "path": ["beauty", "skin_care"],
+      "path": [
+        "beauty",
+        "skin_care"
+      ],
       "display_name_ko": "스킨케어"
     },
     "lip_care": {
@@ -82,7 +80,11 @@
       "amazon_node_id": "3761351",
       "level": 2,
       "parent_id": "skin_care",
-      "path": ["beauty", "skin_care", "lip_care"],
+      "path": [
+        "beauty",
+        "skin_care",
+        "lip_care"
+      ],
       "display_name_ko": "립케어"
     },
     "lip_makeup": {
@@ -91,7 +93,11 @@
       "amazon_node_id": "11059031",
       "level": 2,
       "parent_id": "makeup",
-      "path": ["beauty", "makeup", "lip_makeup"],
+      "path": [
+        "beauty",
+        "makeup",
+        "lip_makeup"
+      ],
       "display_name_ko": "립메이크업/색조"
     },
     "face_powder": {
@@ -100,9 +106,28 @@
       "amazon_node_id": "11058971",
       "level": 3,
       "parent_id": "face_makeup",
-      "path": ["beauty", "makeup", "face_makeup", "face_powder"],
+      "path": [
+        "beauty",
+        "makeup",
+        "face_makeup",
+        "face_powder"
+      ],
       "display_name_ko": "파우더"
     }
   },
-  "target_brands": ["LANEIGE", "Laneige", "laneige"]
+  "target_brands": [
+    "LANEIGE",
+    "Laneige",
+    "laneige"
+  ],
+  "dashboard_badges": {
+    "sos_leader": 15,
+    "sos_strong": 8,
+    "rank_near_top": 3,
+    "rank_top10": 10,
+    "cpi_score_strong": 90,
+    "cpi_score_ok": 50,
+    "brand_count_high": 15,
+    "brand_count_mid": 5
+  }
 }

@@ -1076,15 +1076,24 @@ class DashboardExporter:
             laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else 0
             cpi = (laneige_avg_price / avg_price * 100) if avg_price > 0 else 100
 
-            # 신규 경쟁자 수 (임시 계산 - 실제로는 시계열 비교 필요)
-            unique_brands = len({r.get("brand", "") for r in cat_data})
+            # 카테고리 내 고유 브랜드 수. "신규 경쟁자"가 아니다 —
+            # 신규 판정은 시계열 비교가 필요하며 아직 구현돼 있지 않다 (§6.5).
+            unique_brands = len(
+                {
+                    b
+                    for r in cat_data
+                    if (b := (r.get("brand") or "").strip())
+                    and b.lower() not in UNKNOWN_BRAND_LABELS
+                }
+            )
 
             category_kpis[cat_id] = {
                 "name": cat_name,
                 "sos": round(sos, 1),
                 "best_rank": best_rank,
                 "cpi": round(cpi, 0),
-                "new_competitors": unique_brands,
+                "brand_count": unique_brands,
+                "new_competitors": None,  # 시계열 비교 미구현
             }
 
         # CPI 추이 차트 (최근 7일)
@@ -1581,9 +1590,11 @@ class DashboardExporter:
             ),
             # 제품 지표
             "current_rank": best_rank,
-            "rank_change_7d": 0,  # 추후 계산 가능
-            "streak_days": 7,  # 추후 계산 가능
-            "rating_gap": 0.1,  # 추후 계산 가능
+            # 미계산 지표는 None으로 방출한다. 상수(streak_days=7 등)를 넣으면
+            # 온톨로지 규칙이 실데이터 없이 상시 트리거된다 (§6.5).
+            "rank_change_7d": None,
+            "streak_days": None,
+            "rating_gap": None,
         }
 
     def _get_inference_priority(self, inference) -> str:

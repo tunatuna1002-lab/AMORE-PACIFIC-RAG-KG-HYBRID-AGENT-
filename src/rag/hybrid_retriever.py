@@ -857,7 +857,7 @@ class HybridRetriever:
                         }
                     )
             except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+                logger.warning("브랜드 관계 네트워크 조회 실패", exc_info=True)
 
             # 메트릭/관계 엣지 (kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등)
             try:
@@ -1007,7 +1007,7 @@ class HybridRetriever:
                         }
                     )
             except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+                logger.warning("카테고리 계층 조회 실패", exc_info=True)
 
         # 감성 관련 사실 조회
         sentiment_clusters = entities.get("sentiment_clusters", [])
@@ -1027,7 +1027,7 @@ class HybridRetriever:
                             }
                         )
                 except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                    logger.warning("제품 감성 조회 실패", exc_info=True)
 
             # 브랜드가 지정된 경우 브랜드 감성 프로필 조회
             for brand in entities.get("brands", []):
@@ -1038,7 +1038,7 @@ class HybridRetriever:
                             {"type": "brand_sentiment", "entity": brand, "data": brand_sentiment}
                         )
                 except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                    logger.warning("브랜드 감성 프로필 조회 실패", exc_info=True)
 
             # 특정 감성 클러스터로 제품 검색
             for cluster in sentiment_clusters:
@@ -1065,7 +1065,7 @@ class HybridRetriever:
                                 )
                                 break
                     except Exception:
-                        logger.warning("Suppressed Exception", exc_info=True)
+                        logger.warning("감성 클러스터 제품 조회 실패", exc_info=True)
 
         return facts
 
@@ -1167,7 +1167,7 @@ class HybridRetriever:
                     context["sentiment_clusters"] = brand_sentiment.get("clusters", {})
                     context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
                 except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                    logger.warning("자사 브랜드 감성 프로필 조회 실패", exc_info=True)
 
             # 제품별 감성 데이터
             if context.get("asin"):
@@ -1180,7 +1180,7 @@ class HybridRetriever:
                             "sentiment_clusters", {}
                         )
                 except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                    logger.warning("제품 감성 요약 조회 실패", exc_info=True)
 
             # 경쟁사 감성 데이터 (비교용)
             if context.get("competitors"):
@@ -1196,7 +1196,7 @@ class HybridRetriever:
                                 competitor_clusters.get(cluster, 0) + count
                             )
                     except Exception:
-                        logger.warning("Suppressed Exception", exc_info=True)
+                        logger.warning("경쟁사 감성 프로필 조회 실패", exc_info=True)
                 context["competitor_sentiment_tags"] = list(set(competitor_tags))
                 context["competitor_sentiment_clusters"] = competitor_clusters
 
@@ -1316,10 +1316,13 @@ class HybridRetriever:
         import json
         from pathlib import Path
 
+        # 코드 기본값은 config/retrieval_weights.json과 일치해야 한다.
+        # rag_chunks가 3으로 남아 있어 설정 파일이 없는 배포 환경에서만
+        # 사이클 2 버그 값으로 조용히 회귀했다 (§6.3).
         defaults = {
             "weights": {"kg": 0.4, "rag": 0.4, "inference": 0.2},
             "freshness": {"weekly": 1.0, "quarterly": 0.9, "static": 0.8},
-            "max_context_items": {"ontology_facts": 5, "inferences": 5, "rag_chunks": 3},
+            "max_context_items": {"ontology_facts": 5, "inferences": 5, "rag_chunks": 8},
         }
 
         config_path = Path(__file__).parent.parent.parent / "config" / "retrieval_weights.json"
@@ -1327,10 +1330,14 @@ class HybridRetriever:
             try:
                 with open(config_path, encoding="utf-8") as f:
                     loaded = json.load(f)
-                    # Merge with defaults (loaded overrides)
-                    for key in defaults:
-                        if key in loaded:
-                            defaults[key] = loaded[key]
+                # 딥 머지: 설정 파일이 일부 키만 담고 있어도 나머지 기본값이 살아남는다.
+                # (기존 최상위 교체 방식은 부분 설정이 오면 키가 통째로 사라졌다.)
+                for key, default_value in defaults.items():
+                    loaded_value = loaded.get(key)
+                    if isinstance(default_value, dict) and isinstance(loaded_value, dict):
+                        defaults[key] = {**default_value, **loaded_value}
+                    elif loaded_value is not None:
+                        defaults[key] = loaded_value
                 logger.info(f"Retrieval weights loaded from {config_path}")
             except Exception as e:
                 logger.warning(f"Failed to load retrieval weights: {e}, using defaults")
@@ -1516,8 +1523,9 @@ class HybridRetriever:
             intent = _cl(context.query)
             config = get_intent_retrieval_config(intent)
             fusion_strategy_name = config.fusion_strategy
-        except Exception:
-            pass
+        except Exception as e:
+            # 무기록으로 weighted_sum 폴백하면 융합 전략이 바뀐 사실이 드러나지 않는다
+            logger.warning(f"인텐트 분류 실패, fusion_strategy=weighted_sum 폴백: {e}")
 
         strategy_map = {
             "weighted_sum": FusionStrategy.WEIGHTED_SUM,

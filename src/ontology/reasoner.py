@@ -658,8 +658,22 @@ def condition(name: str, description: str) -> Callable[[Callable], RuleCondition
 # =========================================================================
 
 
+def _present(ctx: dict, key: str) -> float | None:
+    """결측(키 없음 또는 None)이면 None을 돌려준다.
+
+    exporter가 미계산 필드를 None으로 방출하므로, 조건은 결측을 0으로 보지 말고
+    스킵해야 한다. 과거에는 streak_days=7 같은 상수가 규칙을 상시 트리거했다 (§6.5).
+    """
+    value = ctx.get(key)
+    return None if value is None else value
+
+
 class StandardConditions:
-    """자주 사용되는 표준 조건들"""
+    """자주 사용되는 표준 조건들
+
+    결측값 규칙: 지표가 없으면(None) 조건은 False다. 결측을 0으로 대체하면
+    "데이터 없음"이 "값이 0"으로 둔갑해 규칙이 잘못 발화한다.
+    """
 
     @staticmethod
     def sos_above(threshold: float) -> RuleCondition:
@@ -720,7 +734,7 @@ class StandardConditions:
         """평점 갭이 음수 (경쟁 열위)"""
         return RuleCondition(
             name="rating_gap_negative",
-            check=lambda ctx: ctx.get("rating_gap", 0) < 0,
+            check=lambda ctx: (v := _present(ctx, "rating_gap")) is not None and v < 0,
             description="평점 갭 < 0 (경쟁사 대비 열위)",
         )
 
@@ -729,7 +743,7 @@ class StandardConditions:
         """평점 갭이 양수 (경쟁 우위)"""
         return RuleCondition(
             name="rating_gap_positive",
-            check=lambda ctx: ctx.get("rating_gap", 0) > 0,
+            check=lambda ctx: (v := _present(ctx, "rating_gap")) is not None and v > 0,
             description="평점 갭 > 0 (경쟁사 대비 우위)",
         )
 
@@ -747,7 +761,7 @@ class StandardConditions:
         """Churn Rate가 높음"""
         return RuleCondition(
             name=f"churn_rate_high_{threshold}",
-            check=lambda ctx: ctx.get("churn_rate", 0) > threshold,
+            check=lambda ctx: (v := _present(ctx, "churn_rate")) is not None and v > threshold,
             description=f"Churn Rate > {threshold * 100:.0f}%",
         )
 
@@ -756,7 +770,7 @@ class StandardConditions:
         """연속 체류일이 N일 이상"""
         return RuleCondition(
             name=f"streak_above_{days}",
-            check=lambda ctx: ctx.get("streak_days", 0) >= days,
+            check=lambda ctx: (v := _present(ctx, "streak_days")) is not None and v >= days,
             description=f"Top N 연속 체류 >= {days}일",
         )
 
@@ -765,7 +779,7 @@ class StandardConditions:
         """순위 상승 추세"""
         return RuleCondition(
             name="rank_improving",
-            check=lambda ctx: (ctx.get("rank_change_7d") or 0) < 0,
+            check=lambda ctx: (v := _present(ctx, "rank_change_7d")) is not None and v < 0,
             description="7일간 순위 상승 (음수 = 상승)",
         )
 
@@ -774,7 +788,7 @@ class StandardConditions:
         """순위 하락 추세"""
         return RuleCondition(
             name="rank_declining",
-            check=lambda ctx: (ctx.get("rank_change_7d") or 0) > 0,
+            check=lambda ctx: (v := _present(ctx, "rank_change_7d")) is not None and v > 0,
             description="7일간 순위 하락 (양수 = 하락)",
         )
 

@@ -116,7 +116,7 @@ class DocumentRetriever:
                     config = json.load(f)
                     return config.get("system", {}).get("rag", {})
             except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+                logger.warning("RAG 설정(thresholds.json) 로드 실패, 기본값 사용", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 

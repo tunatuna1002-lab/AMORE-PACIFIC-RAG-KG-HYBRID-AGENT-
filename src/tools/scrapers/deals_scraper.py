@@ -501,7 +501,7 @@ class AmazonDealsScraper:
                 if 0.50 <= price <= 1000:
                     return price
         except (ValueError, TypeError):
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("딜 가격 파싱 실패", exc_info=True)
         return None
 
     def _parse_time_remaining(self, time_text: str) -> int | None:

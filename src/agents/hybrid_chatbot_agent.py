@@ -94,7 +94,7 @@ class HybridChatbotAgent(BaseHybridAgent):
                     config = json.load(f)
                     return config.get("system", {}).get("chatbot", {})
             except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+                logger.warning("챗봇 설정(thresholds.json) 로드 실패, 기본값 사용", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 

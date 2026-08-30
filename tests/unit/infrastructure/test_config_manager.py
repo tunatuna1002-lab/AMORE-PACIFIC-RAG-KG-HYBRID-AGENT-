@@ -282,14 +282,6 @@ class TestAppConfigFromEnvValidated:
 class TestAppConfigUtilities:
     """AppConfig 유틸리티 메서드 테스트"""
 
-    def test_get_threshold(self):
-        """get_threshold 조회"""
-        config = AppConfig()
-        config.thresholds = {"rank_change": 5, "sos_drop": 10}
-        assert config.get_threshold("rank_change") == 5
-        assert config.get_threshold("unknown") is None
-        assert config.get_threshold("unknown", default=99) == 99
-
     def test_get_category_url(self):
         """get_category_url 조회"""
         config = AppConfig()

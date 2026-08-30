@@ -4799,7 +4799,7 @@
                                 </div>
                             </div>
                             <div class="kpi-card has-tooltip">
-                                <div class="kpi-label">신규 경쟁자 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
+                                <div class="kpi-label">경쟁 브랜드 수 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
                                 <div class="kpi-value" id="cat-new">—</div>
                                 <span class="kpi-delta" id="cat-new-badge">—</span>
                                 <div class="kpi-tooltip">
@@ -5751,10 +5751,11 @@
             if (actionTbody) {
                 actionTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--text-secondary);">${message}</td></tr>`;
             }
-            // 날짜 표시 업데이트
-            const dateDisplay = document.getElementById('date-display');
-            if (dateDisplay) {
-                dateDisplay.textContent = new Date().toISOString().split('T')[0];
+            // 날짜 표시 업데이트 — 컨테이너가 아니라 값 span만 갱신한다.
+            // (컨테이너 textContent를 덮으면 #date-value가 사라져 신선도 표시가 죽는다)
+            const dateValueEl = document.getElementById('date-value');
+            if (dateValueEl) {
+                dateValueEl.textContent = new Date().toISOString().split('T')[0];
             }
             showToast(message, 'error');
         }
@@ -5764,11 +5765,11 @@
             if (!dashboardData) return;
 
             // Update date display - 데이터 날짜 또는 현재 날짜 표시
-            const dateDisplay = document.getElementById('date-display');
-            if (dateDisplay) {
+            // 값 span만 갱신해야 updateDataTime()의 크롤 상태 표시가 유지된다 (§6.7)
+            const dateValueEl = document.getElementById('date-value');
+            if (dateValueEl) {
                 const dataDate = dashboardData.metadata?.data_date;
-                const today = new Date().toISOString().split('T')[0];
-                dateDisplay.textContent = '📅 ' + (dataDate || today);
+                dateValueEl.textContent = dataDate || new Date().toISOString().split('T')[0];
             }
 
             // Update Home page insight
@@ -7816,16 +7817,17 @@
                 const cpiScore = convertCpiToScore(data.cpi);
                 document.getElementById('cat-cpi').innerHTML = cpiScore + '<span class="unit">점</span>';
             }
-            if (data.new_competitors !== undefined) {
-                document.getElementById('cat-new').innerHTML = data.new_competitors + '<span class="unit">개</span>';
-            }
+            // brand_count = 카테고리 내 고유 브랜드 수 (신규 경쟁자가 아님, §6.5)
+            const brandCount = data.brand_count ?? data.new_competitors;
+            document.getElementById('cat-new').innerHTML =
+                brandCount == null ? '—' : brandCount + '<span class="unit">개</span>';
 
             // 배지 업데이트 (CPI는 점수로 변환하여 전달)
             updateCategoryBadges({
                 sos: data.sos || 0,
                 rank: (data.best_rank || 0) + ' 위',
                 cpiScore: convertCpiToScore(data.cpi || 100),
-                new: data.new_competitors || 0
+                new: brandCount
             });
         }
 
@@ -7858,19 +7860,20 @@
                     rank: hasRank ? catKpi.best_rank + ' 위' : 'Top 100 외',
                     rankValue: hasRank ? catKpi.best_rank : null,  // 배지 계산용
                     cpiScore: convertCpiToScore(rawCpi),  // 100점 만점 점수
-                    new: catKpi.new_competitors ?? 0
+                    new: catKpi.brand_count ?? catKpi.new_competitors
                 };
                 console.log(`[Category KPI] ${catId} (캐시 사용):`, data);
             } else {
                 // 데이터 없음 - 기본값
                 console.warn(`[Category KPI] No data for ${catId}`);
-                data = { sos: 0, rank: 'Top 100 외', rankValue: null, cpiScore: 50, new: 0 };  // 50점 = 동일 가격 기준
+                data = { sos: 0, rank: 'Top 100 외', rankValue: null, cpiScore: 50, new: null };  // 50점 = 동일 가격 기준
             }
 
             document.getElementById('cat-sos').innerHTML = data.sos + '<span class="unit">%</span>';
             document.getElementById('cat-rank').textContent = data.rank;
             document.getElementById('cat-cpi').innerHTML = data.cpiScore + '<span class="unit">점</span>';
-            document.getElementById('cat-new').innerHTML = data.new + '<span class="unit">개</span>';
+            document.getElementById('cat-new').innerHTML =
+                data.new == null ? '—' : data.new + '<span class="unit">개</span>';
 
             // KPI 배지 업데이트
             updateCategoryBadges(data);
@@ -7881,8 +7884,22 @@
             });
         }
 
+        // 배지 임계값은 config/thresholds.json이 단일 소스 — /api/data 페이로드로 받는다.
+        // 아래 값은 서버 응답에 badge_thresholds가 없을 때만 쓰이는 폴백이다 (§6.1).
+        const BADGE_THRESHOLD_FALLBACK = {
+            sos_leader: 15, sos_strong: 8,
+            rank_near_top: 3, rank_top10: 10,
+            cpi_score_strong: 90, cpi_score_ok: 50,
+            brand_count_high: 15, brand_count_mid: 5
+        };
+
+        function badgeThresholds() {
+            return { ...BADGE_THRESHOLD_FALLBACK, ...(dashboardData?.badge_thresholds || {}) };
+        }
+
         // 카테고리 KPI 배지 동적 업데이트
         function updateCategoryBadges(data) {
+            const T = badgeThresholds();
             const sos = parseFloat(data.sos);
             const rank = data.rankValue;  // null이면 Top 100 외
             const cpiScore = parseFloat(data.cpiScore);  // 100점 만점 점수
@@ -7890,10 +7907,10 @@
 
             // SoS 배지
             const sosBadge = document.getElementById('cat-sos-badge');
-            if (sos >= 15) {
+            if (sos >= T.sos_leader) {
                 sosBadge.textContent = 'Category Leader';
                 sosBadge.className = 'kpi-delta up';
-            } else if (sos >= 8) {
+            } else if (sos >= T.sos_strong) {
                 sosBadge.textContent = 'Strong Presence';
                 sosBadge.className = 'kpi-delta up';
             } else {
@@ -7907,10 +7924,10 @@
                 // Top 100에 진입하지 못함
                 rankBadge.textContent = '진입 필요';
                 rankBadge.className = 'kpi-delta down';
-            } else if (rank <= 3) {
+            } else if (rank <= T.rank_near_top) {
                 rankBadge.textContent = '1위 근접';
                 rankBadge.className = 'kpi-delta up';
-            } else if (rank <= 10) {
+            } else if (rank <= T.rank_top10) {
                 rankBadge.textContent = 'Top 10';
                 rankBadge.className = 'kpi-delta up';
             } else {
@@ -7920,10 +7937,10 @@
 
             // CPI 배지 (100점 만점 기준: 높을수록 가격 경쟁력 좋음)
             const cpiBadge = document.getElementById('cat-cpi-badge');
-            if (cpiScore >= 90) {
+            if (cpiScore >= T.cpi_score_strong) {
                 cpiBadge.textContent = '가격 경쟁력 우위';
                 cpiBadge.className = 'kpi-delta up';
-            } else if (cpiScore >= 50) {
+            } else if (cpiScore >= T.cpi_score_ok) {
                 cpiBadge.textContent = '적정 가격';
                 cpiBadge.className = 'kpi-delta up';
             } else {
@@ -7931,12 +7948,15 @@
                 cpiBadge.className = 'kpi-delta down';
             }
 
-            // 신규 경쟁자 배지
+            // 경쟁 브랜드 수 배지 (값이 없으면 — 유지)
             const newBadge = document.getElementById('cat-new-badge');
-            if (newComp >= 15) {
+            if (isNaN(newComp)) {
+                newBadge.textContent = '—';
+                newBadge.className = 'kpi-delta';
+            } else if (newComp >= T.brand_count_high) {
                 newBadge.textContent = '경쟁 심화';
                 newBadge.className = 'kpi-delta down';
-            } else if (newComp >= 5) {
+            } else if (newComp >= T.brand_count_mid) {
                 newBadge.textContent = '보통';
                 newBadge.className = 'kpi-delta';
             } else {
@@ -13089,13 +13109,29 @@
         }
 
         // 데이터 업데이트 시간 표시
-        function updateDataTime() {
+        // /api/crawl/status의 data_date가 실제 수집 시점을 가리키므로 우선한다.
+        // metadata.generated_at은 JSON 캐시를 만든 시각이라 크롤이 실패해도 갱신된다 (§6.7).
+        async function updateDataTime() {
             const dateValue = document.getElementById('date-value');
             if (!dateValue) return;
 
+            try {
+                const res = await fetch(`${API_BASE}/api/crawl/status`, { headers: getApiHeaders() });
+                if (res.ok) {
+                    const status = await res.json();
+                    if (status.data_date) {
+                        const suffix = status.is_today_available === false ? ' (오늘 데이터 미수집)' : '';
+                        dateValue.textContent = status.data_date + suffix;
+                        dateValue.title = status.status_message || '';
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('[updateDataTime] 크롤 상태 조회 실패, 캐시 생성 시각으로 폴백:', e);
+            }
+
             if (dashboardData && dashboardData.metadata) {
-                const generatedAt = dashboardData.metadata.generated_at;
-                dateValue.textContent = formatDateTime(generatedAt);
+                dateValue.textContent = formatDateTime(dashboardData.metadata.generated_at);
             } else {
                 dateValue.textContent = '없음';
             }

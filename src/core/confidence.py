@@ -85,32 +85,6 @@ class ConfidenceAssessor:
 
         return self._score_to_level(score)
 
-    def _context_bonus(self, context: Any) -> float:
-        """
-        컨텍스트 기반 점수 보너스 계산
-
-        Args:
-            context: Context 객체
-
-        Returns:
-            보너스 점수
-        """
-        bonus = 0.0
-
-        # RAG 문서 있음
-        if hasattr(context, "rag_docs") and context.rag_docs:
-            bonus += min(len(context.rag_docs), 3) * 0.5
-
-        # KG 사실 있음
-        if hasattr(context, "kg_facts") and context.kg_facts:
-            bonus += min(len(context.kg_facts), 3) * 0.5
-
-        # KG 추론 있음
-        if hasattr(context, "kg_inferences") and context.kg_inferences:
-            bonus += min(len(context.kg_inferences), 2) * 0.75
-
-        return bonus
-
     def _score_to_level(self, score: float) -> ConfidenceLevel:
         """
         점수를 신뢰도 레벨로 변환
