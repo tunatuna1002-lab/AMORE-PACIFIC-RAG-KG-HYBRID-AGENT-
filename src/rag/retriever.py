@@ -63,6 +63,13 @@ VECTOR_SEARCH_AVAILABLE = None
 
 logger = logging.getLogger(__name__)
 
+_HANGUL_RE = re.compile(r"[가-힣]")
+
+
+def _has_hangul(text: str) -> bool:
+    """한글이 포함된 질의인지 — 교차언어 확장 방향 결정용."""
+    return bool(_HANGUL_RE.search(text or ""))
+
 
 class DocumentRetriever:
     """문서 검색 클래스 (TTL 캐싱 지원)"""
@@ -812,14 +819,26 @@ class DocumentRetriever:
             return [query]
 
         try:
+            # 코퍼스는 이중언어다 — 한국어 가이드/시장자료 271청크 + 영문 IR
+            # 분기보고서 1,971청크(전체의 88%). 동일 언어 패러프레이즈만 만들면
+            # 한국어 질의는 영문 IR 청크에 영영 닿지 못하고, 오히려 확장된
+            # 동일 언어 결과가 소수의 IR 청크를 top-k 밖으로 밀어낸다
+            # (실측: 확장 off일 때 한국어 IR 회수 0.138 → 확장 on일 때 0.000).
+            # 그래서 반대 언어 변형을 반드시 1개 포함시킨다.
+            other_language = "English" if _has_hangul(query) else "Korean"
             prompt = f"""You are a search query expansion assistant. Given a user query, generate 2-3 alternative phrasings or related queries that would help retrieve relevant documents.
 
 Original query: {query}
 
+The document corpus is bilingual: Korean market/metric guides and English
+AMOREPACIFIC quarterly IR reports.
+
 Generate alternative queries that:
 1. Use synonyms or related terms
 2. Rephrase the question differently
-3. Add relevant context
+3. MUST include exactly one variant translated into {other_language},
+   preserving proper nouns as they appear in that language
+   (아모레퍼시픽 → AMOREPACIFIC, 라네즈 → LANEIGE, 1분기 → 1Q)
 
 Return ONLY a JSON array of strings, like: ["query1", "query2", "query3"]
 Do not include any explanation."""
@@ -968,7 +987,7 @@ Do not include any explanation."""
         if use_query_expansion is None:
             use_query_expansion = self.use_query_expansion
         if use_reranking is None:
-            use_reranking = self.use_reranker
+            use_reranking = self.use_reranker and self._reranker_flag_enabled()
 
         # 캐시 키 생성 및 확인
         cache_key = self._get_cache_key(query, top_k, doc_filter, doc_type_filter)
@@ -986,8 +1005,11 @@ Do not include any explanation."""
             queries = await self.expand_query(query)
 
         # 각 쿼리에 대해 검색 수행
-        all_results = []
-        seen_ids = set()
+        # 확장 질의별 랭킹을 따로 모아 RRF로 융합한다. 이전에는 순차 append 후
+        # all_results[:top_k]로 잘라서, 첫 질의(원본)의 결과만으로 top_k가 채워져
+        # **확장 질의의 결과가 단 한 건도 반영되지 않았다** — LLM 호출 비용만
+        # 지불하고 효과는 0이었다 (2026-08-30 사이클 6 실측).
+        per_query_rankings: list[list[dict]] = []
 
         for q in queries:
             # 벡터 검색 (필수)
@@ -1021,11 +1043,9 @@ Do not include any explanation."""
             else:
                 merged_results = vector_results
 
-            # 중복 제거
-            for result in merged_results:
-                if result["id"] not in seen_ids:
-                    all_results.append(result)
-                    seen_ids.add(result["id"])
+            per_query_rankings.append(merged_results)
+
+        all_results = self._fuse_query_rankings(per_query_rankings)
 
         # Reranking (옵션)
         if use_reranking and all_results:
@@ -1209,6 +1229,45 @@ Do not include any explanation."""
                 )
         scored_results.sort(key=lambda x: x["score"], reverse=True)
         return scored_results[:top_k]
+
+    @staticmethod
+    def _reranker_flag_enabled() -> bool:
+        """CrossEncoder 리랭킹 사용 여부 — `retriever.use_reranker` 플래그를 따른다.
+
+        이 리랭커는 `cross-encoder/ms-marco-MiniLM-L-6-v2`(영어 전용)인데
+        코퍼스의 88%가 영문 IR, 질의는 한국어라 **교차언어 매칭을 체계적으로
+        강등**시킨다. 2026-08-30 사이클 6 실측(한국어 IR 질의 10개, top-8 중
+        IR 청크 비중): 벡터검색만 0.600 → BM25 융합 후 0.500 → CrossEncoder
+        적용 후 0.263 → 현행 전체 파이프라인 0.138. 골든셋 137문항의 골드 문서
+        recall@8도 CrossEncoder 적용 시 0.766 → 0.620으로 떨어진다.
+
+        사이클 1 ablation이 끈 것은 LLM 관련성 채점기(hybrid_retriever)였고
+        이 CrossEncoder는 그 결정의 사각지대에 있었다. 두 리랭커를 같은
+        플래그 아래로 통일한다.
+        """
+        try:
+            from src.infrastructure.feature_flags import FeatureFlags
+
+            return FeatureFlags.get_instance().use_reranker()
+        except Exception:
+            logger.debug("feature flag lookup failed, defaulting reranker off", exc_info=True)
+            return False
+
+    def _fuse_query_rankings(self, rankings: list[list[dict]], k: int = 60) -> list[dict]:
+        """확장 질의별 랭킹을 RRF로 융합. 단일 랭킹이면 그대로 반환."""
+        if not rankings:
+            return []
+        if len(rankings) == 1:
+            return rankings[0]
+
+        scores: dict[str, float] = {}
+        docs: dict[str, dict] = {}
+        for ranked in rankings:
+            for rank, result in enumerate(ranked):
+                rid = result.get("id", "")
+                scores[rid] = scores.get(rid, 0.0) + 1.0 / (k + rank + 1)
+                docs.setdefault(rid, result)
+        return [docs[rid] for rid in sorted(scores, key=lambda r: -scores[r])]
 
     def _rrf_merge(
         self, dense_results: list[dict], sparse_results: list[dict], k: int = 60

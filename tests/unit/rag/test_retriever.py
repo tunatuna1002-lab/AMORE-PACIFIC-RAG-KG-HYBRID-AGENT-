@@ -1271,3 +1271,93 @@ class TestIncrementalIndexing:
         await retriever._index_documents()
 
         collection.add.assert_not_called()
+
+
+class TestCrossLingualRetrieval:
+    """교차언어 검색 경로 (2026-08-30 사이클 6).
+
+    코퍼스는 한국어 가이드 271청크 + 영문 IR 1,971청크(88%)의 이중언어다.
+    """
+
+    def test_hangul_detection(self):
+        from src.rag.retriever import _has_hangul
+
+        assert _has_hangul("아모레퍼시픽 1분기 매출")
+        assert not _has_hangul("AMOREPACIFIC 1Q25 revenue")
+        assert not _has_hangul("")
+
+    @pytest.mark.asyncio
+    async def test_expansion_prompt_requests_opposite_language(self):
+        retriever = DocumentRetriever()
+        client = MagicMock()
+        client.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content='["a", "b"]'))]
+        )
+        retriever.openai_client = client
+
+        await retriever.expand_query("아모레퍼시픽 1분기 매출은?")
+        ko_prompt = client.chat.completions.create.call_args.kwargs["messages"][1]["content"]
+        assert "English" in ko_prompt
+
+        await retriever.expand_query("AMOREPACIFIC 1Q25 revenue")
+        en_prompt = client.chat.completions.create.call_args.kwargs["messages"][1]["content"]
+        assert "Korean" in en_prompt
+
+
+class TestQueryRankingFusion:
+    """확장 질의 랭킹 융합 (2026-08-30 사이클 6).
+
+    이전에는 순차 append 후 [:top_k]로 잘라 첫 질의 결과만 남았고,
+    확장 질의의 결과는 단 한 건도 반영되지 않았다.
+    """
+
+    def test_expanded_query_results_survive_fusion(self):
+        retriever = DocumentRetriever()
+        original = [{"id": f"ko_{i}_0"} for i in range(8)]
+        expanded = [{"id": f"ir_2025_q1_{i}_0"} for i in range(8)]
+
+        fused = retriever._fuse_query_rankings([original, expanded])[:8]
+        ids = [d["id"] for d in fused]
+
+        assert any(i.startswith("ir_") for i in ids), "확장 질의 결과가 top-k에 반영돼야 한다"
+        assert ids[0] == "ko_0_0", "동점 시 원본 질의 상위 결과가 앞선다"
+
+    def test_shared_documents_rank_higher(self):
+        retriever = DocumentRetriever()
+        a = [{"id": "x"}, {"id": "y"}, {"id": "z"}]
+        b = [{"id": "z"}, {"id": "w"}]
+
+        ids = [d["id"] for d in retriever._fuse_query_rankings([a, b])]
+
+        assert ids[0] == "z", "두 랭킹 모두에 등장한 문서가 최상위여야 한다"
+
+    def test_single_ranking_is_passthrough(self):
+        retriever = DocumentRetriever()
+        ranking = [{"id": "a"}, {"id": "b"}]
+
+        assert retriever._fuse_query_rankings([ranking]) == ranking
+        assert retriever._fuse_query_rankings([]) == []
+
+
+class TestRerankerFlagGate:
+    """CrossEncoder 리랭커는 retriever.use_reranker 플래그를 따른다 (사이클 6)."""
+
+    def test_flag_disabled_turns_reranker_off(self, monkeypatch):
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        monkeypatch.setenv("FF_RETRIEVER_USE_RERANKER", "false")
+        FeatureFlags.reset_instance()
+        try:
+            assert DocumentRetriever._reranker_flag_enabled() is False
+        finally:
+            FeatureFlags.reset_instance()
+
+    def test_flag_enabled_turns_reranker_on(self, monkeypatch):
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        monkeypatch.setenv("FF_RETRIEVER_USE_RERANKER", "true")
+        FeatureFlags.reset_instance()
+        try:
+            assert DocumentRetriever._reranker_flag_enabled() is True
+        finally:
+            FeatureFlags.reset_instance()
