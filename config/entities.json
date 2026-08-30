@@ -1,37 +1,206 @@
 {
   "version": "1.0.0",
-  "last_updated": "2026-01-27",
+  "last_updated": "2026-08-30",
   "description": "EntityExtractor configuration for HybridRetriever",
-
   "known_brands": [
-    {"name": "laneige", "aliases": ["라네즈", "LANEIGE", "Laneige"]},
-    {"name": "cosrx", "aliases": ["코스알엑스", "COSRX", "CosRx"]},
-    {"name": "tirtir", "aliases": ["티르티르", "TIRTIR"]},
-    {"name": "rare beauty", "aliases": ["레어뷰티", "Rare Beauty"]},
-    {"name": "innisfree", "aliases": ["이니스프리", "INNISFREE"]},
-    {"name": "etude", "aliases": ["에뛰드", "ETUDE", "에뛰드하우스"]},
-    {"name": "sulwhasoo", "aliases": ["설화수", "SULWHASOO"]},
-    {"name": "hera", "aliases": ["헤라", "HERA"]},
-    {"name": "beauty of joseon", "aliases": ["조선미녀", "BOJ"]},
-    {"name": "skin1004", "aliases": ["SKIN1004", "스킨1004"]},
-    {"name": "anua", "aliases": ["아누아", "ANUA"]},
-    {"name": "medicube", "aliases": ["메디큐브", "MEDICUBE"]},
-    {"name": "biodance", "aliases": ["바이오댄스", "BIODANCE"]},
-    {"name": "torriden", "aliases": ["토리든", "TORRIDEN"]},
-    {"name": "mixsoon", "aliases": ["믹순", "MIXSOON"]},
-    {"name": "numbuzin", "aliases": ["넘버진", "NUMBUZIN"]},
-    {"name": "cerave", "aliases": ["세라비", "CeraVe"]},
-    {"name": "the ordinary", "aliases": ["디오디너리", "The Ordinary"]},
-    {"name": "drunk elephant", "aliases": ["드렁크엘리펀트", "Drunk Elephant"]},
-    {"name": "la roche-posay", "aliases": ["라로슈포제", "La Roche-Posay", "LRP"]},
-    {"name": "glow recipe", "aliases": ["글로우레시피", "Glow Recipe"]},
-    {"name": "summer fridays", "aliases": ["썸머프라이데이즈", "Summer Fridays"]},
-    {"name": "rhode", "aliases": ["로드", "Rhode"]},
-    {"name": "e.l.f.", "aliases": ["엘프", "elf", "ELF"]},
-    {"name": "nyx", "aliases": ["닉스", "NYX"]},
-    {"name": "maybelline", "aliases": ["메이블린", "Maybelline"]}
+    {
+      "name": "laneige",
+      "aliases": [
+        "라네즈",
+        "LANEIGE",
+        "Laneige"
+      ]
+    },
+    {
+      "name": "cosrx",
+      "aliases": [
+        "코스알엑스",
+        "COSRX",
+        "CosRx"
+      ]
+    },
+    {
+      "name": "tirtir",
+      "aliases": [
+        "티르티르",
+        "TIRTIR"
+      ]
+    },
+    {
+      "name": "rare beauty",
+      "aliases": [
+        "레어뷰티",
+        "Rare Beauty"
+      ]
+    },
+    {
+      "name": "innisfree",
+      "aliases": [
+        "이니스프리",
+        "INNISFREE"
+      ]
+    },
+    {
+      "name": "etude",
+      "aliases": [
+        "에뛰드",
+        "ETUDE",
+        "에뛰드하우스"
+      ]
+    },
+    {
+      "name": "sulwhasoo",
+      "aliases": [
+        "설화수",
+        "SULWHASOO"
+      ]
+    },
+    {
+      "name": "hera",
+      "aliases": [
+        "헤라",
+        "HERA"
+      ]
+    },
+    {
+      "name": "beauty of joseon",
+      "aliases": [
+        "조선미녀",
+        "BOJ"
+      ]
+    },
+    {
+      "name": "skin1004",
+      "aliases": [
+        "SKIN1004",
+        "스킨1004"
+      ]
+    },
+    {
+      "name": "anua",
+      "aliases": [
+        "아누아",
+        "ANUA"
+      ]
+    },
+    {
+      "name": "medicube",
+      "aliases": [
+        "메디큐브",
+        "MEDICUBE"
+      ]
+    },
+    {
+      "name": "biodance",
+      "aliases": [
+        "바이오댄스",
+        "BIODANCE"
+      ]
+    },
+    {
+      "name": "torriden",
+      "aliases": [
+        "토리든",
+        "TORRIDEN"
+      ]
+    },
+    {
+      "name": "mixsoon",
+      "aliases": [
+        "믹순",
+        "MIXSOON"
+      ]
+    },
+    {
+      "name": "numbuzin",
+      "aliases": [
+        "넘버진",
+        "NUMBUZIN"
+      ]
+    },
+    {
+      "name": "cerave",
+      "aliases": [
+        "세라비",
+        "CeraVe"
+      ]
+    },
+    {
+      "name": "the ordinary",
+      "aliases": [
+        "디오디너리",
+        "The Ordinary"
+      ]
+    },
+    {
+      "name": "drunk elephant",
+      "aliases": [
+        "드렁크엘리펀트",
+        "Drunk Elephant"
+      ]
+    },
+    {
+      "name": "la roche-posay",
+      "aliases": [
+        "라로슈포제",
+        "La Roche-Posay",
+        "LRP"
+      ]
+    },
+    {
+      "name": "glow recipe",
+      "aliases": [
+        "글로우레시피",
+        "Glow Recipe"
+      ]
+    },
+    {
+      "name": "summer fridays",
+      "aliases": [
+        "썸머프라이데이즈",
+        "Summer Fridays"
+      ]
+    },
+    {
+      "name": "rhode",
+      "aliases": [
+        "로드",
+        "Rhode"
+      ]
+    },
+    {
+      "name": "e.l.f.",
+      "aliases": [
+        "엘프",
+        "elf",
+        "ELF"
+      ]
+    },
+    {
+      "name": "nyx",
+      "aliases": [
+        "닉스",
+        "NYX"
+      ]
+    },
+    {
+      "name": "maybelline",
+      "aliases": [
+        "메이블린",
+        "Maybelline"
+      ]
+    },
+    {
+      "name": "amorepacific",
+      "aliases": [
+        "아모레퍼시픽",
+        "AMOREPACIFIC",
+        "Amorepacific",
+        "AmorePacific",
+        "아모레"
+      ]
+    }
   ],
-
   "category_map": {
     "lip care": "lip_care",
     "립케어": "lip_care",
@@ -57,7 +226,6 @@
     "선크림": "skin_care",
     "자외선차단제": "skin_care"
   },
-
   "indicator_map": {
     "sos": "sos",
     "점유율": "sos",
@@ -87,7 +255,6 @@
     "ranking": "ranking",
     "순위": "ranking"
   },
-
   "time_range_map": {
     "오늘": "today",
     "today": "today",
@@ -109,7 +276,6 @@
     "last week": "7days",
     "지난주": "7days"
   },
-
   "sentiment_map": {
     "moisturizing": "Hydration",
     "hydrating": "Hydration",
@@ -144,7 +310,6 @@
     "customer": "sentiment_general",
     "customer feedback": "sentiment_general"
   },
-
   "trend_keywords": {
     "글래스스킨": "glass_skin",
     "glass skin": "glass_skin",

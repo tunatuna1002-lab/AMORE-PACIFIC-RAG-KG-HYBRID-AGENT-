@@ -83,7 +83,7 @@ class ItemMetadata(BaseModel):
 
     requires_kg: bool = Field(default=True, description="Whether this query requires KG lookup")
     domain: Literal[
-        "market", "brand", "product", "metric", "general", "multi_hop", "edge", "time"
+        "market", "brand", "product", "metric", "general", "multi_hop", "edge", "time", "ir"
     ] = Field(default="general", description="Domain category of the query")
     difficulty: Literal["easy", "medium", "hard"] = Field(
         default="medium", description="Difficulty level for stratified analysis"

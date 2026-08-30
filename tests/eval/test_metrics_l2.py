@@ -313,15 +313,62 @@ class TestGoldenSetChunkGroups:
 
         path = Path(__file__).resolve().parents[2] / "eval/data/golden/laneige_golden_v2.jsonl"
         checked = 0
+        section_derived = 0
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
-            gold = json.loads(line)["gold"]
+            item = json.loads(line)
+            gold = item["gold"]
             groups = gold.get("doc_chunk_groups") or []
             if not groups:
                 continue
             flat = {cid for group in groups for cid in group}
             assert flat == set(gold["doc_chunk_ids"])
-            assert all(len(group) >= 2 for group in groups), "개념 집합은 2청크 이상이어야 한다"
+            assert all(group for group in groups), "빈 개념 집합이 있으면 안 된다"
+            if item["metadata"]["domain"] != "ir":
+                # 절 단위로 매핑한 개념 골드가 다시 단일 청크로 퇴화하지 않았는지 확인.
+                # IR 문항은 근거가 특정 수치 표라 1청크 집합이 정상이다.
+                assert all(len(group) >= 2 for group in groups)
+                section_derived += 1
             checked += 1
-        assert checked >= 130, f"그룹이 있는 문항이 너무 적다: {checked}"
+        assert section_derived >= 130, f"절 단위 그룹 문항이 너무 적다: {section_derived}"
+        assert checked >= 142, f"그룹이 있는 문항이 너무 적다: {checked}"
+
+
+class TestIRGoldenItems:
+    """IR 도메인 문항의 무결성 (2026-08-30 사이클 7 신설).
+
+    코퍼스의 24%(IR 분기보고서 본문)를 다루는 문항이 0개였던 공백을 메운다.
+    """
+
+    @staticmethod
+    def _ir_items():
+        import json
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[2] / "eval/data/golden/laneige_golden_v2.jsonl"
+        return [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and json.loads(line)["metadata"]["domain"] == "ir"
+        ]
+
+    def test_twelve_ir_items_exist(self):
+        assert len(self._ir_items()) == 12
+
+    def test_ir_items_cite_ir_chunks_and_have_answers(self):
+        for item in self._ir_items():
+            gold = item["gold"]
+            assert gold["doc_chunk_ids"], item["id"]
+            assert all(cid.startswith("ir_") for cid in gold["doc_chunk_ids"]), item["id"]
+            assert gold["answer"] and len(gold["answer"]) > 30, item["id"]
+            assert item["metadata"]["requires_kg"] is False, item["id"]
+
+    def test_ir_items_mix_korean_and_english(self):
+        """교차언어 회수율을 골든셋 안에서 감시하기 위한 구성 조건."""
+        items = self._ir_items()
+        korean = [i for i in items if any("가" <= ch <= "힣" for ch in i["question"])]
+        english = [i for i in items if i not in korean]
+
+        assert len(korean) >= 6
+        assert len(english) >= 3

@@ -422,3 +422,34 @@ class TestProductNameBackLink:
 
         assert result["products"] == []
         assert result["brands"] == []
+
+
+class TestConceptMatchingPrecision:
+    """개념 매칭도 라틴 키워드에 단어 경계를 요구한다 (2026-08-30 사이클 7).
+
+    'rating'이 "ope|rating| profit"에 걸려 review_rating을 오탐하고 있었다 —
+    사이클 4에서 브랜드에만 적용했던 경계 규칙의 사각지대.
+    """
+
+    def test_operating_profit_does_not_match_rating_concept(self, linker):
+        assert "review_rating" not in linker.extract_concepts("AMOREPACIFIC 1Q25 operating profit")
+
+    def test_standalone_rating_still_matches(self, linker):
+        assert "review_rating" in linker.extract_concepts("LANEIGE rating trend")
+
+    def test_korean_concept_keywords_still_match(self, linker):
+        assert "sos" in linker.extract_concepts("SoS 점유율 알려줘")
+
+
+class TestParentCompanyEntity:
+    """모기업 엔티티 링킹 (사이클 7).
+
+    KG에 `LANEIGE -ownedByGroup-> AMOREPACIFIC`으로 존재하고 IR 문항의 주어인데
+    엔티티 사전에 없어 링킹되지 않았다.
+    """
+
+    def test_korean_parent_company_links(self, linker):
+        assert "amorepacific" in linker.extract_entities("아모레퍼시픽 1분기 매출은?")["brands"]
+
+    def test_english_parent_company_links(self, linker):
+        assert "amorepacific" in linker.extract_entities("AMOREPACIFIC 1Q25 revenue")["brands"]

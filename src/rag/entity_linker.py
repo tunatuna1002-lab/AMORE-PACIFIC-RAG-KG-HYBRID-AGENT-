@@ -583,14 +583,14 @@ class EntityLinker:
         # 카테고리 추출
         merged_cats = self._get_merged_categories()
         for cat_name, cat_id in merged_cats.items():
-            if cat_name in query_lower:
+            if self._mentions(query_lower, cat_name):
                 if cat_id not in entities["categories"]:
                     entities["categories"].append(cat_id)
 
         # 지표 추출
         merged_indicators = self._get_merged_indicators()
         for ind_name, ind_id in merged_indicators.items():
-            if ind_name in query_lower:
+            if self._mentions(query_lower, ind_name):
                 if ind_id not in entities["indicators"]:
                     entities["indicators"].append(ind_id)
 
@@ -725,7 +725,7 @@ class EntityLinker:
         # 1. 지표 개념 (indicators → concepts로 매핑)
         merged_indicators = self._get_merged_indicators()
         for ind_name, ind_id in merged_indicators.items():
-            if ind_name in query_lower and ind_id not in concepts:
+            if self._mentions(query_lower, ind_name) and ind_id not in concepts:
                 concepts.append(ind_id)
 
         # 2. concept_taxonomy.json 기반 매칭
@@ -739,29 +739,16 @@ class EntityLinker:
                 with open(taxonomy_path, encoding="utf-8") as f:
                     taxonomy = json.load(f)
 
-                # 메트릭 개념 매칭
-                for concept_id, keywords in taxonomy.get("metric_concepts", {}).items():
-                    if concept_id not in concepts:
-                        for kw in keywords:
-                            if kw in query_lower:
-                                concepts.append(concept_id)
-                                break
-
-                # 쿼리 유형 개념 매칭
-                for concept_id, keywords in taxonomy.get("query_type_concepts", {}).items():
-                    for kw in keywords:
-                        if kw in query_lower:
-                            if concept_id not in concepts:
-                                concepts.append(concept_id)
-                            break
-
-                # 분석 개념 매칭 (경쟁 분석, 시계열, 시장 구조 등)
-                for concept_id, keywords in taxonomy.get("analysis_concepts", {}).items():
-                    for kw in keywords:
-                        if kw in query_lower:
-                            if concept_id not in concepts:
-                                concepts.append(concept_id)
-                            break
+                # 메트릭·쿼리유형·분석 개념 매칭
+                # 라틴 문자 키워드는 단어 경계를 요구한다 — 'rating'이
+                # "ope|rating| profit"에 걸려 review_rating을 오탐하던 사례
+                # (2026-08-30 사이클 7 실측). 한글은 조사가 붙으므로 예외.
+                for section in ("metric_concepts", "query_type_concepts", "analysis_concepts"):
+                    for concept_id, keywords in taxonomy.get(section, {}).items():
+                        if concept_id in concepts:
+                            continue
+                        if any(self._mentions(query_lower, kw) for kw in keywords):
+                            concepts.append(concept_id)
 
             except Exception as e:
                 logger.warning(f"Failed to load concept taxonomy: {e}")
