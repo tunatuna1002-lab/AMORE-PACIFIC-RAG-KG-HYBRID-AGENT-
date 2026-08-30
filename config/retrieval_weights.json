@@ -12,6 +12,6 @@
   "max_context_items": {
     "ontology_facts": 5,
     "inferences": 5,
-    "rag_chunks": 3
+    "rag_chunks": 8
   }
 }

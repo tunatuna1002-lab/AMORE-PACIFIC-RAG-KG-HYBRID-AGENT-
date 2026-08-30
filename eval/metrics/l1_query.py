@@ -102,11 +102,12 @@ class L1QueryMetrics(MetricCalculator):
         (definition, data_query), so we union categories and indicators.
         Uses fuzzy matching with alias resolution if enabled.
         """
-        # 카테고리 + 지표 + 감성을 합쳐 개념 집합 구성 (ablation P0-b 개선)
+        # 카테고리 + 지표 + 감성 + 분석 개념을 합쳐 개념 집합 구성
         extracted_concepts = (
             set(trace.extracted_categories)
             | set(trace.extracted_indicators)
             | set(trace.extracted_sentiments)
+            | set(trace.extracted_concepts)
         )
         gold_concepts = set(gold.concepts)
 

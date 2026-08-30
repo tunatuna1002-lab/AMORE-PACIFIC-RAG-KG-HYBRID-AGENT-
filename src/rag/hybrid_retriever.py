@@ -246,10 +246,16 @@ class EntityExtractor:
                 "time_range": [...],
                 "products": [...],
                 "sentiments": [...],
-                "sentiment_clusters": [...]
+                "sentiment_clusters": [...],
+                "concepts": [...]
             }
         """
-        return self._linker.extract_entities(query, knowledge_graph=knowledge_graph)
+        entities = self._linker.extract_entities(query, knowledge_graph=knowledge_graph)
+        try:
+            entities["concepts"] = self._linker.extract_concepts(query)
+        except Exception:
+            entities["concepts"] = []
+        return entities
 
 
 class HybridRetriever:
@@ -825,6 +831,34 @@ class HybridRetriever:
                     )
             except Exception:
                 logger.warning("Suppressed Exception", exc_info=True)
+
+            # 메트릭/관계 엣지 (kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등)
+            try:
+                # 시드 온톨로지는 'LANEIGE', kg_enricher는 'laneige'로 저장 — 둘 다 조회
+                edge_relations = list(self.kg.query(subject=brand))
+                if brand.lower() != brand:
+                    edge_relations += list(self.kg.query(subject=brand.lower()))
+                priority_preds = {"hasSoS", "hasHHI", "rankedIn", "competesWith", "hasPosition"}
+                primary, secondary = [], []
+                for rel in edge_relations:
+                    enum_pred = (
+                        rel.predicate.value
+                        if hasattr(rel.predicate, "value")
+                        else str(rel.predicate)
+                    )
+                    orig = rel.properties.get("original_predicate")
+                    # 골드/KG 표기는 camelCase — original_predicate는 hasSoS처럼
+                    # 의미가 더 구체적인 camelCase일 때만 우선한다
+                    pred = orig if orig and "_" not in orig and not orig.isupper() else enum_pred
+                    edge = {"subject": rel.subject, "predicate": pred, "object": rel.object}
+                    (primary if pred in priority_preds else secondary).append(edge)
+                metric_edges = (primary + secondary)[:20]
+                if metric_edges:
+                    facts.append(
+                        {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
+                    )
+            except Exception:
+                logger.debug("metric edge query failed", exc_info=True)
 
             # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
             trend_relations = self.kg.query(subject=brand, predicate=RelationType.HAS_TREND)

@@ -143,6 +143,9 @@ class EntityLinkingTrace(BaseModel):
     extracted_sentiments: list[str] = Field(
         default_factory=list, description="Sentiment keywords extracted"
     )
+    extracted_concepts: list[str] = Field(
+        default_factory=list, description="Analytic concepts extracted (sos, time_series, ...)"
+    )
     time_range: list[str] = Field(default_factory=list, description="Time ranges extracted")
 
 

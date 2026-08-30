@@ -670,6 +670,14 @@ class EntityLinker:
                                 concepts.append(concept_id)
                             break
 
+                # 분석 개념 매칭 (경쟁 분석, 시계열, 시장 구조 등)
+                for concept_id, keywords in taxonomy.get("analysis_concepts", {}).items():
+                    for kw in keywords:
+                        if kw in query_lower:
+                            if concept_id not in concepts:
+                                concepts.append(concept_id)
+                            break
+
             except Exception as e:
                 logger.warning(f"Failed to load concept taxonomy: {e}")
 

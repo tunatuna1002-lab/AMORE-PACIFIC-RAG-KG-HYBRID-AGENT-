@@ -1,20 +1,312 @@
 {
   "metric_concepts": {
-    "sos": ["sos", "share of shelf", "점유율", "시장 점유", "shelf share"],
-    "hhi": ["hhi", "허핀달", "시장 집중도", "market concentration", "집중도"],
-    "cpi": ["cpi", "가격경쟁력", "가격 지수", "price competitiveness", "가격지수"],
-    "market_share": ["시장점유율", "market share", "ms", "점유비"],
-    "ranking": ["순위", "rank", "ranking", "등수", "위", "bsr"],
-    "price": ["가격", "price", "pricing", "프라이싱"]
+    "sos": [
+      "sos",
+      "share of shelf",
+      "점유율",
+      "시장 점유",
+      "shelf share"
+    ],
+    "hhi": [
+      "hhi",
+      "허핀달",
+      "시장 집중도",
+      "market concentration",
+      "집중도"
+    ],
+    "cpi": [
+      "cpi",
+      "가격경쟁력",
+      "가격 지수",
+      "price competitiveness",
+      "가격지수"
+    ],
+    "market_share": [
+      "시장점유율",
+      "market share",
+      "ms",
+      "점유비"
+    ],
+    "ranking": [
+      "순위",
+      "rank",
+      "ranking",
+      "등수",
+      "위",
+      "bsr"
+    ],
+    "price": [
+      "가격",
+      "price",
+      "pricing",
+      "프라이싱"
+    ]
   },
   "query_type_concepts": {
-    "definition": ["정의", "무엇", "뜻", "의미", "what is", "define", "설명해"],
-    "data_query": ["얼마", "몇", "현재", "지금", "데이터", "how much", "how many", "수치"],
-    "interpretation": ["해석", "분석", "의미하는", "시사점", "interpret", "analyze", "뜻하는"],
-    "comparison": ["비교", "대비", "차이", "vs", "compare", "versus", "보다"],
-    "trend": ["추이", "변화", "트렌드", "동향", "trend", "change", "변동"],
-    "strategy": ["전략", "대응", "방안", "추천", "strategy", "recommend", "어떻게"],
-    "product": ["제품", "product", "상품", "아이템", "asin"],
-    "brand": ["브랜드", "brand", "회사", "경쟁사", "competitor"]
+    "definition": [
+      "정의",
+      "무엇",
+      "뜻",
+      "의미",
+      "what is",
+      "define",
+      "설명해"
+    ],
+    "data_query": [
+      "얼마",
+      "몇",
+      "현재",
+      "지금",
+      "데이터",
+      "how much",
+      "how many",
+      "수치"
+    ],
+    "interpretation": [
+      "해석",
+      "분석",
+      "의미하는",
+      "시사점",
+      "interpret",
+      "analyze",
+      "뜻하는"
+    ],
+    "comparison": [
+      "비교",
+      "대비",
+      "차이",
+      "vs",
+      "compare",
+      "versus",
+      "보다"
+    ],
+    "trend": [
+      "추이",
+      "변화",
+      "트렌드",
+      "동향",
+      "trend",
+      "change",
+      "변동"
+    ],
+    "strategy": [
+      "전략",
+      "대응",
+      "방안",
+      "추천",
+      "strategy",
+      "recommend",
+      "어떻게"
+    ],
+    "product": [
+      "제품",
+      "product",
+      "상품",
+      "아이템",
+      "asin"
+    ],
+    "brand": [
+      "브랜드",
+      "brand",
+      "회사",
+      "경쟁사",
+      "competitor"
+    ]
+  },
+  "analysis_concepts": {
+    "market_concentration": [
+      "집중도",
+      "집중 시장",
+      "concentration",
+      "독과점",
+      "과점"
+    ],
+    "competitor_analysis": [
+      "경쟁사",
+      "경쟁 브랜드",
+      "competitor",
+      "경쟁 분석",
+      "경쟁 구도",
+      "경쟁이"
+    ],
+    "brand_comparison": [
+      "브랜드 비교",
+      "브랜드를 비교",
+      "두 브랜드",
+      "브랜드 간",
+      "어느 브랜드"
+    ],
+    "time_series": [
+      "추이",
+      "시계열",
+      "지난주",
+      "지난 주",
+      "지난달",
+      "일주일",
+      "7일",
+      "한 달",
+      "최근 몇",
+      "며칠",
+      "변화 추이",
+      "기간 동안",
+      "일별",
+      "날짜별"
+    ],
+    "product_ranking": [
+      "순위",
+      "랭킹",
+      "몇 위",
+      "top 10",
+      "top10",
+      "1위",
+      "상위"
+    ],
+    "k_beauty": [
+      "k-뷰티",
+      "k뷰티",
+      "케이뷰티",
+      "k-beauty",
+      "kbeauty",
+      "한국 화장품",
+      "한국 브랜드",
+      "국내 브랜드"
+    ],
+    "market_dynamics": [
+      "시장 변화",
+      "시장 역학",
+      "시장 구조 변화",
+      "역동",
+      "판도"
+    ],
+    "churn_rate": [
+      "churn",
+      "교체율",
+      "이탈률",
+      "물갈이"
+    ],
+    "calculation": [
+      "계산",
+      "산출",
+      "공식",
+      "formula",
+      "어떻게 구"
+    ],
+    "seasonality": [
+      "계절",
+      "시즌",
+      "분기별",
+      "월별",
+      "성수기",
+      "비수기"
+    ],
+    "bsr": [
+      "bsr",
+      "베스트셀러 순위",
+      "best seller",
+      "best sellers rank"
+    ],
+    "price_comparison": [
+      "가격 비교",
+      "가격 차이",
+      "더 비싸",
+      "더 저렴",
+      "가격이 높",
+      "가격이 낮"
+    ],
+    "price_positioning": [
+      "가격 포지션",
+      "프리미엄",
+      "가성비",
+      "고가",
+      "저가"
+    ],
+    "market_entry": [
+      "진입",
+      "신규 브랜드",
+      "새로 들어",
+      "새로 진입",
+      "첫 등장"
+    ],
+    "success_factors": [
+      "성공 요인",
+      "비결",
+      "성공했",
+      "잘 되는 이유",
+      "인기 이유"
+    ],
+    "rank_volatility": [
+      "변동성",
+      "volatility",
+      "순위 변동",
+      "출렁"
+    ],
+    "trend_analysis": [
+      "트렌드",
+      "동향",
+      "유행"
+    ],
+    "growth_strategy": [
+      "성장 전략",
+      "성장 방안",
+      "키우려면",
+      "확대 전략"
+    ],
+    "correlation": [
+      "상관",
+      "연관",
+      "관계가 있",
+      "영향을 미치",
+      "관련이 있"
+    ],
+    "market_trend": [
+      "시장 트렌드",
+      "시장 동향",
+      "시장 흐름"
+    ],
+    "competitive_landscape": [
+      "경쟁 환경",
+      "경쟁 지형",
+      "경쟁 현황"
+    ],
+    "category_comparison": [
+      "카테고리 비교",
+      "카테고리 간",
+      "카테고리별 차이"
+    ],
+    "market_share": [
+      "시장 점유",
+      "점유율 비교"
+    ],
+    "review_rating": [
+      "평점",
+      "별점",
+      "리뷰 점수",
+      "rating"
+    ],
+    "review_count": [
+      "리뷰 수",
+      "리뷰 개수",
+      "리뷰가 많"
+    ],
+    "prime_day": [
+      "프라임 데이",
+      "prime day",
+      "프라임데이"
+    ],
+    "clean_beauty": [
+      "클린 뷰티",
+      "clean beauty",
+      "클린뷰티",
+      "비건"
+    ],
+    "amazon_strategy": [
+      "아마존 전략",
+      "아마존에서"
+    ],
+    "kpi": [
+      "kpi",
+      "핵심 지표",
+      "핵심 성과"
+    ]
   }
 }

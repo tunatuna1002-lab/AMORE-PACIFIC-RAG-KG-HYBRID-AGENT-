@@ -12,9 +12,20 @@ Features:
 
 import asyncio
 import logging
+import re
 import time
 from datetime import datetime
 from typing import Any
+
+
+def _normalize_edge_node(name: str) -> str:
+    """엣지 노드명을 골드셋 표기(소문자 스네이크)로 정규화.
+
+    예: "LANEIGE" → "laneige", "Burt's Bees" → "burts_bees"
+    """
+    s = str(name).lower().replace("'", "")
+    return re.sub(r"[^a-z0-9]+", "_", s).strip("_")
+
 
 from eval.cost_tracker import CostTracker
 from eval.judge.interface import JudgeInterface
@@ -277,18 +288,21 @@ class EvalRunner:
             categories = ent.get("categories", []) or []
             indicators = ent.get("indicators", []) or []
             products = ent.get("products", []) or []
+            concepts = ent.get("concepts", []) or []
         else:
             entities = result.get("entities", {})
             brands = entities.get("brands", [])
             categories = entities.get("categories", [])
             indicators = entities.get("indicators", [])
             products = entities.get("products", [])
+            concepts = entities.get("concepts", [])
 
         return EntityLinkingTrace(
             extracted_brands=brands,
             extracted_categories=categories,
             extracted_indicators=indicators,
             extracted_products=products,
+            extracted_concepts=concepts,
         )
 
     def _extract_l2_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> DocRetrievalTrace:
@@ -336,9 +350,28 @@ class EvalRunner:
                     if fact_type == "category_hierarchy":
                         path = data.get("path", [])
                         for i in range(len(path) - 1):
-                            edge = f"{path[i]} -hasSubcategory-> {path[i+1]}"
+                            edge = f"{path[i]} -hasSubcategory-> {path[i + 1]}"
                             if edge not in kg_edges:
                                 kg_edges.append(edge)
+                    elif fact_type == "metric_edges":
+                        # kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등
+                        for e in data.get("edges", []):
+                            edge = (
+                                f"{_normalize_edge_node(e.get('subject', ''))} "
+                                f"-{e.get('predicate', '')}-> "
+                                f"{_normalize_edge_node(e.get('object', ''))}"
+                            )
+                            if edge not in kg_edges:
+                                kg_edges.append(edge)
+                    elif fact_type == "competitors":
+                        subj = _normalize_edge_node(entity)
+                        comp_list = data if isinstance(data, list) else data.get("competitors", [])
+                        for comp in comp_list:
+                            comp_name = comp.get("brand") if isinstance(comp, dict) else comp
+                            if comp_name:
+                                edge = f"{subj} -competesWith-> {_normalize_edge_node(comp_name)}"
+                                if edge not in kg_edges:
+                                    kg_edges.append(edge)
 
             # Also extract entities from hybrid_ctx.entities
             if hasattr(hybrid_ctx, "entities") and isinstance(hybrid_ctx.entities, dict):
