@@ -181,6 +181,33 @@ DATA_PATH = f"{RESOLVED_DATA_DIR}/dashboard_data.json"
 DOCS_PATH = "./"
 
 
+STALE_THRESHOLD_HOURS = 24
+
+
+def compute_freshness(snapshot_date: str | None) -> tuple[float | None, bool]:
+    """스냅샷 날짜 기준 데이터 신선도 계산.
+
+    load_dashboard_data()가 JSON 캐시 mtime으로 판정하는 것과 같은 규칙(24시간)을
+    스냅샷 날짜에도 적용한다.
+
+    Args:
+        snapshot_date: "YYYY-MM-DD" 형식 스냅샷 날짜
+
+    Returns:
+        (경과 시간(시간), stale 여부). 날짜를 못 읽으면 (None, True).
+    """
+    if not snapshot_date:
+        return None, True
+    try:
+        snapshot = datetime.strptime(snapshot_date[:10], "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None, True
+
+    age_hours = (datetime.now() - snapshot).total_seconds() / 3600
+    age_hours = max(age_hours, 0.0)
+    return round(age_hours, 1), age_hours > STALE_THRESHOLD_HOURS
+
+
 def load_dashboard_data() -> dict[str, Any]:
     """대시보드 데이터 로드 (staleness 경고 포함)"""
     import time
@@ -195,7 +222,7 @@ def load_dashboard_data() -> dict[str, Any]:
             return {}
 
         file_age_hours = (time.time() - data_path.stat().st_mtime) / 3600
-        if file_age_hours > 24:
+        if file_age_hours > STALE_THRESHOLD_HOURS:
             logging.warning(
                 f"Dashboard data is stale: {file_age_hours:.1f} hours old. "
                 f"Consider running a crawl or calling /api/data/refresh."
@@ -206,7 +233,7 @@ def load_dashboard_data() -> dict[str, Any]:
 
         data.setdefault("metadata", {})
         data["metadata"]["_cache_age_hours"] = round(file_age_hours, 1)
-        data["metadata"]["_is_stale"] = file_age_hours > 24
+        data["metadata"]["_is_stale"] = file_age_hours > STALE_THRESHOLD_HOURS
 
         return data
 

@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Any
 
 from src.shared.constants import KST
+from src.tools.calculators.metric_calculator import (
+    UNKNOWN_BRAND_LABELS,
+    calculate_hhi_from_counts,
+)
 
 # 한국 시간대 (UTC+9)
 from src.tools.storage.sheets_writer import SheetsWriter
@@ -628,17 +632,13 @@ class DashboardExporter:
         return f"{delta:+.1f}%p"
 
     def _calculate_hhi(self, brand_stats: dict) -> float:
-        """HHI (Herfindahl-Hirschman Index) 계산"""
-        total = sum(len(stats["products"]) for stats in brand_stats.values())
-        if total == 0:
-            return 0
-
-        hhi = (
-            sum((len(stats["products"]) / total * 100) ** 2 for stats in brand_stats.values())
-            / 10000
-        )
-
-        return hhi
+        """HHI (Herfindahl-Hirschman Index) 계산 — 정본 구현 위임 (0-1 스케일)"""
+        counts = {
+            brand: len(stats["products"])
+            for brand, stats in brand_stats.items()
+            if brand and brand.strip().lower() not in UNKNOWN_BRAND_LABELS
+        }
+        return calculate_hhi_from_counts(counts)
 
     def _generate_competitor_data(self, brand_stats: dict) -> list[dict]:
         """경쟁사 데이터 생성 (tracked competitors 포함)"""

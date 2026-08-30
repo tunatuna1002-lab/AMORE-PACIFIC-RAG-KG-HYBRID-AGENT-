@@ -63,11 +63,89 @@ config/thresholds.json 참조
 
 import json
 from collections import defaultdict
+from collections.abc import Iterable, Mapping
 from datetime import date
 
 import numpy as np
 
 from src.domain.entities import BrandMetrics, MarketMetrics, ProductMetrics
+
+# =============================================================================
+# HHI 정본 구현 (D1: 정본 스케일 0-1)
+# =============================================================================
+# 이 모듈의 세 함수가 코드베이스 유일의 HHI 구현이다.
+# 0-10000 포인트 스케일이 필요한 소비처(KG, 리포트)는 hhi_to_points()를 쓴다.
+# 자체 계산을 다시 만들지 말 것 — tests/unit/tools/test_hhi_canonical.py가 막는다.
+
+UNKNOWN_BRAND_LABELS = {"", "unknown", "n/a", "none"}
+
+# SoS 계산에 필요한 최소 표본 수. 부분 수집일(카테고리당 60개 등)에는
+# 실분모로 계산해도 값이 불안정하므로 아예 산출하지 않는다.
+SOS_MIN_SAMPLE = 50
+
+
+def calculate_sos_pct(count: int, total: int, min_sample: int = SOS_MIN_SAMPLE) -> float | None:
+    """실분모 기준 SoS(%). 표본이 min_sample 미만이면 None.
+
+    과거 API 구현은 `max(total, 100)`으로 분모에 바닥을 깔아, 부분 수집일에
+    SoS를 조용히 과소 계산했다. 분모는 항상 실제 수집 건수를 쓴다.
+
+    Args:
+        count: 대상 브랜드 제품 수
+        total: 전체 수집 제품 수 (실분모)
+        min_sample: SoS를 산출할 최소 표본 수
+
+    Returns:
+        0-100 백분율, 표본 미달이면 None
+    """
+    if total <= 0 or total < min_sample:
+        return None
+    return round(count / total * 100, 2)
+
+
+def count_brands(
+    records: Iterable[Mapping], *, brand_key: str = "brand", exclude_unknown: bool = True
+) -> dict[str, int]:
+    """레코드 목록에서 브랜드별 제품 수를 센다.
+
+    Args:
+        records: 브랜드 키를 가진 dict 목록
+        brand_key: 브랜드명이 담긴 키
+        exclude_unknown: Unknown/빈 브랜드를 제외할지 여부
+
+    Returns:
+        {브랜드명: 제품 수}
+    """
+    counts: dict[str, int] = defaultdict(int)
+    for record in records:
+        brand = (record.get(brand_key) or "").strip()
+        if exclude_unknown and brand.lower() in UNKNOWN_BRAND_LABELS:
+            continue
+        if not brand:
+            continue
+        counts[brand] += 1
+    return dict(counts)
+
+
+def calculate_hhi_from_counts(brand_counts: Mapping[str, int]) -> float:
+    """브랜드별 제품 수로부터 HHI를 계산한다 (정본, 0-1 스케일).
+
+    HHI = Σ(share_i)², share_i = count_i / Σcount
+    분모는 반드시 집계된 카운트의 합이다. 제외한 브랜드를 분모에만 남기면
+    점유율 합이 1 미만이 되어 HHI가 체계적으로 과소 계산된다.
+
+    Returns:
+        0.0 ≤ hhi ≤ 1.0
+    """
+    total = sum(brand_counts.values())
+    if total <= 0:
+        return 0.0
+    return round(sum((count / total) ** 2 for count in brand_counts.values()), 4)
+
+
+def hhi_to_points(hhi: float) -> int:
+    """0-1 스케일 HHI를 0-10000 포인트 스케일(미국 DOJ 관례)로 변환."""
+    return round(hhi * 10000)
 
 
 class MetricCalculator:
@@ -149,22 +227,9 @@ class MetricCalculator:
         if not top_records:
             return 0.0
 
-        # 브랜드별 카운트 (Unknown/빈 브랜드 제외)
-        brand_counts = defaultdict(int)
-        for r in top_records:
-            brand = r.get("brand", "")
-            # Unknown 및 빈 브랜드는 HHI 계산에서 제외
-            # (시장 집중도 측정 시 미확인 브랜드는 의미 없음)
-            if not brand or brand.lower() == "unknown":
-                continue
-            brand_counts[brand] += 1
-
-        total = len(top_records)
-
-        # HHI = Σ(SoS_i)^2, SoS는 비율(0-1)로 계산
-        hhi = sum((count / total) ** 2 for count in brand_counts.values())
-
-        return round(hhi, 4)
+        # Unknown/빈 브랜드는 분자·분모 양쪽에서 제외한다.
+        # 분모에만 남기면 점유율 합이 1 미만이 되어 HHI가 과소 계산된다.
+        return calculate_hhi_from_counts(count_brands(top_records))
 
     def calculate_brand_avg_rank(self, records: list[dict], brand: str) -> float | None:
         """

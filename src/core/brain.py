@@ -78,6 +78,11 @@ if TYPE_CHECKING:
 
 # AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
 from src.shared.constants import DEFAULT_MODEL
+from src.tools.calculators.metric_calculator import (
+    calculate_hhi_from_counts,
+    count_brands,
+    hhi_to_points,
+)
 
 from ..core.state_manager import StateManager
 
@@ -1517,16 +1522,8 @@ class UnifiedBrain:
             laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
             sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
 
-            # HHI 계산
-            brand_counts = {}
-            for p in top100:
-                brand = p.get("brand", "Unknown")
-                brand_counts[brand] = brand_counts.get(brand, 0) + 1
-            hhi = (
-                sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
-                if top100
-                else 0
-            )
+            # HHI 계산 (정본 0-1 → 이메일 표시는 0-10000 포인트)
+            hhi = hhi_to_points(calculate_hhi_from_counts(count_brands(top100)))
 
             # 인사이트 생성 (HybridInsightAgent 사용)
             insight_content = "<p>현재 생성된 인사이트가 없습니다.</p>"

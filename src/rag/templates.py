@@ -183,6 +183,9 @@ class ResponseTemplates:
         # 3. 시장 맥락
         hhi = metrics.get("hhi", 0)
         if hhi:
+            # 정본 스케일은 0-1(D1). 0-10000 포인트 값이 흘러들어와도
+            # "항상 고집중 시장"으로 오분기하지 않도록 정규화한다.
+            hhi = hhi / 10000 if hhi > 1 else hhi
             if hhi >= 0.25:
                 return "시장 집중도가 높아 경쟁 구도가 고착화된 편으로, 단기 변동성보다는 구조적 흐름을 함께 고려할 필요가 있습니다."
             elif hhi < 0.15:

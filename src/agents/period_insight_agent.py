@@ -965,9 +965,10 @@ Top 5 제품 순위 변동:
             section_title="전략 제언",
             content=content,
             key_points=["단기 액션", "중기 전략", "KPI"],
+            # target_sos 제거: 임의 배수(×1.1)가 비즈니스 목표로 출력됐고 소비처는 0건이었다.
+            # 실제 목표치가 생기면 config에서 주입한다.
             data_highlights={
                 "current_sos": metrics.get("end_sos", 0),
-                "target_sos": metrics.get("end_sos", 0) * 1.1,  # +10% 목표 예시
             },
         )
 

@@ -10,6 +10,12 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.tools.calculators.metric_calculator import (
+    calculate_hhi_from_counts,
+    count_brands,
+    hhi_to_points,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -297,19 +303,11 @@ class PeriodAnalyzer:
 
         for date_str, products in daily_data.items():
             # 브랜드별 점유율 계산 (Unknown/빈 브랜드 제외)
-            brand_counts = defaultdict(int)
-            for p in products:
-                brand = p.get("brand", "")
-                # Unknown 및 빈 브랜드는 HHI 계산에서 제외
-                if not brand or brand.lower() == "unknown":
-                    continue
-                brand_counts[brand] += 1
-
-            total = sum(brand_counts.values())
-            if total > 0:
-                # HHI = Σ(share^2) * 10000
-                hhi = sum((count / total * 100) ** 2 for count in brand_counts.values())
-                daily_hhi.append({"date": date_str, "hhi": round(hhi, 2)})
+            # 정본 계산 (0-1) 후 표시용 0-10000 포인트로 변환
+            brand_counts = count_brands(products)
+            if brand_counts:
+                hhi = hhi_to_points(calculate_hhi_from_counts(brand_counts))
+                daily_hhi.append({"date": date_str, "hhi": hhi})
 
         hhi_values = [d["hhi"] for d in daily_hhi]
         avg_hhi = statistics.mean(hhi_values) if hhi_values else 0
@@ -501,14 +499,9 @@ class PeriodAnalyzer:
             total = len(products)
             sos = (laneige_count / total * 100) if total > 0 else 0
 
-            # HHI 계산
-            brand_counts = defaultdict(int)
-            for p in products:
-                brand = p.get("brand", "Unknown")
-                if brand:
-                    brand_counts[brand] += 1
-
-            hhi = sum((c / total * 100) ** 2 for c in brand_counts.values()) if total > 0 else 0
+            # HHI 계산 (정본 0-1 → 표시용 0-10000 포인트)
+            brand_counts = count_brands(products)
+            hhi = hhi_to_points(calculate_hhi_from_counts(brand_counts))
 
             trends.append(
                 {
@@ -516,7 +509,7 @@ class PeriodAnalyzer:
                     "laneige_sos": round(sos, 2),
                     "laneige_count": laneige_count,
                     "total_products": total,
-                    "hhi": round(hhi, 2),
+                    "hhi": hhi,
                     "brand_count": len(brand_counts),
                 }
             )

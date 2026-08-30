@@ -2,7 +2,10 @@
 MetricCalculator 단위 테스트
 """
 
-from src.tools.calculators.metric_calculator import MetricCalculator
+from src.tools.calculators.metric_calculator import (
+    MetricCalculator,
+    count_brands,
+)
 
 
 class TestMetricCalculator:
@@ -206,7 +209,7 @@ class TestMetricCalculatorHHI:
         assert result == 0.01
 
     def test_hhi_excludes_unknown_brands(self):
-        """Unknown 브랜드 제외"""
+        """Unknown 브랜드는 분자·분모 양쪽에서 제외 (§1.2 분모 버그 회귀 방지)"""
         calc = MetricCalculator(config={})
         records = [
             {"brand": "LANEIGE", "rank": 1},
@@ -215,10 +218,35 @@ class TestMetricCalculatorHHI:
             {"brand": "COSRX", "rank": 4},
         ]
         result = calc.calculate_hhi(records, top_n=4)
-        # Only LANEIGE and COSRX counted. total=4 (all records)
-        # LANEIGE share: 1/4=0.25, COSRX: 1/4=0.25
-        # HHI = 0.25^2 + 0.25^2 = 0.125
-        assert result == 0.125
+        # LANEIGE와 COSRX만 집계 → total=2 (제외 브랜드를 분모에 남기지 않는다)
+        # HHI = 0.5^2 + 0.5^2 = 0.5
+        assert result == 0.5
+
+    def test_hhi_unknown_heavy_data_not_understated(self):
+        """Unknown 50% 데이터에서 HHI가 과소 계산되지 않는다 (§1.2)"""
+        calc = MetricCalculator(config={})
+        records = (
+            [{"brand": "LANEIGE", "rank": i} for i in range(1, 6)]
+            + [{"brand": "COSRX", "rank": i} for i in range(6, 11)]
+            + [{"brand": "Unknown", "rank": i} for i in range(11, 21)]
+        )
+        result = calc.calculate_hhi(records, top_n=20)
+        # 식별된 10개 중 각 5개 → 0.5^2 + 0.5^2 = 0.5
+        # 버그 시절 분모 20을 쓰면 0.125로 4배 과소 계산됐다.
+        assert result == 0.5
+
+    def test_hhi_shares_sum_to_one(self):
+        """집계 브랜드 점유율 합은 항상 1 (분모 정합성)"""
+        records = [
+            {"brand": "A", "rank": 1},
+            {"brand": "B", "rank": 2},
+            {"brand": "unknown", "rank": 3},
+            {"brand": None, "rank": 4},
+        ]
+        counts = count_brands(records)
+        total = sum(counts.values())
+        assert total == 2
+        assert abs(sum(c / total for c in counts.values()) - 1.0) < 1e-9
 
     def test_hhi_respects_top_n(self):
         """top_n 기준으로 필터링"""

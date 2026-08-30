@@ -16,6 +16,11 @@ import logging
 from typing import Any
 
 from src.domain.entities.relations import Relation, RelationType
+from src.tools.calculators.metric_calculator import (
+    UNKNOWN_BRAND_LABELS,
+    calculate_hhi_from_counts,
+    hhi_to_points,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -329,8 +334,9 @@ class KGEnricher:
             )
 
         # HHI 관계: "category -hasHHI-> value"
-        shares = [(c / total) for c in brand_counts.values()]
-        hhi = round(sum(s * s for s in shares) * 10000)  # HHI 0-10000
+        # 정본은 0-1 스케일, KG 저장 표기는 0-10000 포인트
+        hhi_counts = {b: c for b, c in brand_counts.items() if b not in UNKNOWN_BRAND_LABELS}
+        hhi = hhi_to_points(calculate_hhi_from_counts(hhi_counts))
         triples.append(
             Triple(
                 subject=category,

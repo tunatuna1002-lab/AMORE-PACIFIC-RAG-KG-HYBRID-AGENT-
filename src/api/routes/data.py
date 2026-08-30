@@ -12,7 +12,13 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.api.dependencies import get_sheets_writer, limiter, load_dashboard_data
+from src.api.dependencies import (
+    compute_freshness,
+    get_sheets_writer,
+    limiter,
+    load_dashboard_data,
+)
+from src.tools.calculators.metric_calculator import SOS_MIN_SAMPLE, calculate_sos_pct
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -118,11 +124,16 @@ async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
             competitors.append(
                 {
                     "brand": b_name,
-                    "sos": round(b_data["count"] / max(total, 100) * 100, 2),
+                    "sos": calculate_sos_pct(b_data["count"], total),
                     "avg_rank": avg_r,
                     "product_count": b_data["count"],
+                    "insufficient_sample": total < SOS_MIN_SAMPLE,
                 }
             )
+
+        # 신선도는 latest_date 기준 실계산 (하드코딩 0/False 금지 — 며칠 전 데이터가
+        # "신선함"으로 표시되던 회귀)
+        cache_age_hours, is_stale = compute_freshness(latest_date)
 
         laneige_ranks = []
         for key in ["LANEIGE", "Laneige", "laneige"]:
@@ -137,8 +148,9 @@ async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
                 "total_products": total,
                 "laneige_products": len(laneige_products),
                 "_source": "sqlite_fallback",
-                "_cache_age_hours": 0,
-                "_is_stale": False,
+                "insufficient_sample": total < SOS_MIN_SAMPLE,
+                "_cache_age_hours": cache_age_hours,
+                "_is_stale": is_stale,
             },
             "home": {
                 "insight_message": f"SQLite 데이터 기준 ({latest_date}). JSON 캐시가 없어 실시간 생성되었습니다.",
@@ -153,7 +165,7 @@ async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
             },
             "brand": {
                 "kpis": {
-                    "sos": round(len(laneige_products) / max(total, 100) * 100, 2),
+                    "sos": calculate_sos_pct(len(laneige_products), total),
                     "top10_count": sum(
                         1
                         for r in laneige_products
@@ -470,7 +482,7 @@ async def _calculate_brand_metrics_for_period(
         if not data["ranks"]:
             continue
 
-        sos = round(data["product_count"] / max(total_products, 100) * 100, 2)
+        sos = calculate_sos_pct(data["product_count"], total_products)
         avg_rank = round(sum(data["ranks"]) / len(data["ranks"]), 1)
 
         prices = data.get("prices", [])
@@ -488,10 +500,11 @@ async def _calculate_brand_metrics_for_period(
                 "avg_price": avg_price,
                 "bubble_size": bubble_size,
                 "is_laneige": is_laneige,
+                "insufficient_sample": sos is None,
             }
         )
 
-    brand_metrics.sort(key=lambda x: x["sos"], reverse=True)
+    brand_metrics.sort(key=lambda x: x["sos"] or 0, reverse=True)
     top_10 = brand_metrics[:10]
 
     # LANEIGE가 top_10에 없으면 추가
@@ -509,7 +522,7 @@ async def _calculate_brand_metrics_for_period(
                 break
 
         if laneige_data and laneige_data["ranks"]:
-            sos = round(laneige_data["product_count"] / max(total_products, 100) * 100, 2)
+            sos = calculate_sos_pct(laneige_data["product_count"], total_products)
             avg_rank = round(sum(laneige_data["ranks"]) / len(laneige_data["ranks"]), 1)
             l_prices = laneige_data.get("prices", [])
             l_avg_price = round(sum(l_prices) / len(l_prices), 2) if l_prices else None
@@ -523,9 +536,10 @@ async def _calculate_brand_metrics_for_period(
                     "avg_price": l_avg_price,
                     "bubble_size": bubble_size,
                     "is_laneige": True,
+                    "insufficient_sample": sos is None,
                 }
             )
-            top_10.sort(key=lambda x: x["sos"], reverse=True)
+            top_10.sort(key=lambda x: x["sos"] or 0, reverse=True)
 
     # Summer Fridays 특별 처리 (tracked competitor)
     TRACKED_COMPETITORS = ["Summer Fridays"]
@@ -534,7 +548,7 @@ async def _calculate_brand_metrics_for_period(
         if not tracked_in_top and tracked_brand in brand_data:
             tracked_data = brand_data[tracked_brand]
             if tracked_data["ranks"]:
-                sos = round(tracked_data["product_count"] / max(total_products, 100) * 100, 2)
+                sos = calculate_sos_pct(tracked_data["product_count"], total_products)
                 avg_rank = round(sum(tracked_data["ranks"]) / len(tracked_data["ranks"]), 1)
                 t_prices = tracked_data.get("prices", [])
                 t_avg_price = round(sum(t_prices) / len(t_prices), 2) if t_prices else None
@@ -549,6 +563,7 @@ async def _calculate_brand_metrics_for_period(
                         "bubble_size": bubble_size,
                         "is_laneige": False,
                         "is_tracked": True,
+                        "insufficient_sample": sos is None,
                     }
                 )
         elif not tracked_in_top:
@@ -565,7 +580,7 @@ async def _calculate_brand_metrics_for_period(
                 }
             )
 
-    top_10.sort(key=lambda x: (not x.get("is_tracked", False), x["sos"]), reverse=True)
+    top_10.sort(key=lambda x: (not x.get("is_tracked", False), x["sos"] or 0), reverse=True)
     return top_10
 
 
@@ -668,7 +683,7 @@ async def _get_historical_from_local(
                             for cat in crawl_data.get("categories", {}).values()
                         )
 
-                        sos = round(len(brand_products) / max(total_products, 100) * 100, 2)
+                        sos = calculate_sos_pct(len(brand_products), total_products)
                         avg_rank = round(
                             sum(p.get("rank", 0) for p in brand_products) / len(brand_products), 1
                         )
@@ -677,6 +692,7 @@ async def _get_historical_from_local(
                             {
                                 "date": crawl_date,
                                 "sos": sos,
+                                "insufficient_sample": sos is None,
                                 "product_count": len(brand_products),
                                 "top10_count": sum(
                                     1 for p in brand_products if p.get("rank", 100) <= 10

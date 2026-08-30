@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from src.api.dependencies import get_market_intelligence, limiter, verify_api_key
+from src.tools.calculators.metric_calculator import calculate_sos_pct
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -172,6 +173,46 @@ async def collect_market_intelligence(request: Request, layers: list[int] | None
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+async def _fetch_amazon_layer1(brand: str = "LANEIGE") -> dict[str, Any] | None:
+    """Layer 1(Amazon) 실측치 조회. 데이터가 없거나 표본 미달이면 None.
+
+    None을 반환하면 MarketIntelligenceEngine이 Layer 1 섹션을 생략한다.
+    """
+    try:
+        sqlite = get_sqlite_storage()  # 동기 싱글톤 팩토리 (await 금지)
+        await sqlite.initialize()
+        records = await sqlite.get_latest_data()
+    except Exception:
+        logger.warning("Layer 1 Amazon 데이터 조회 실패", exc_info=True)
+        return None
+
+    if not records:
+        return None
+
+    brand_lower = brand.lower()
+    brand_records = [r for r in records if brand_lower in (r.get("brand") or "").lower()]
+    if not brand_records:
+        return None
+
+    result: dict[str, Any] = {}
+
+    sos = calculate_sos_pct(len(brand_records), len(records))
+    if sos is not None:
+        result["sos"] = sos
+
+    ranks = [int(r["rank"]) for r in brand_records if r.get("rank")]
+    if ranks:
+        result["laneige_rank"] = min(ranks)
+
+    result["snapshot_date"] = records[0].get("snapshot_date")
+    result["total_products"] = len(records)
+
+    # sos/rank 둘 다 못 구했으면 Layer 1 근거로 쓸 수 없다
+    if "sos" not in result and "laneige_rank" not in result:
+        return None
+    return result
+
+
 @router.get("/api/market-intelligence/insight")
 @limiter.limit("10/minute")
 async def get_market_intelligence_insight(request: Request, include_amazon: bool = False):
@@ -192,14 +233,12 @@ async def get_market_intelligence_insight(request: Request, include_amazon: bool
             await engine.collect_all_layers()
 
         # Amazon 데이터 가져오기 (선택)
+        # 값이 없으면 반드시 None으로 넘긴다 — 엔진이 "Layer 1 데이터 없음"을 표기한다.
+        # 과거에는 하드코딩 상수를 주입해 LLM 인사이트의 근거로
+        # 실측이 아닌 값이 그대로 나갔다.
         amazon_data = None
         if include_amazon:
-            try:
-                await get_sqlite_storage()
-                # 최신 LANEIGE 데이터 조회
-                amazon_data = {"sos": 5.2, "laneige_rank": 15}  # placeholder
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+            amazon_data = await _fetch_amazon_layer1()
 
         insight = engine.generate_layered_insight(amazon_data=amazon_data)
 

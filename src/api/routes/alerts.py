@@ -28,6 +28,11 @@ from src.api.models import (
     UpdateAlertSettingsRequest,
 )
 from src.core.state_manager import EmailSubscription, StateManager, get_state_manager
+from src.tools.calculators.metric_calculator import (
+    calculate_hhi_from_counts,
+    count_brands,
+    hhi_to_points,
+)
 from src.tools.notifications.alert_service import get_alert_service
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -972,16 +977,8 @@ async def send_insight_report_email(request: Request):
         laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
         sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
 
-        # HHI 계산
-        brand_counts = {}
-        for p in top100:
-            brand = p.get("brand", "Unknown")
-            brand_counts[brand] = brand_counts.get(brand, 0) + 1
-        hhi = (
-            sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
-            if top100
-            else 0
-        )
+        # HHI 계산 (정본 0-1 → 이메일 표시는 0-10000 포인트)
+        hhi = hhi_to_points(calculate_hhi_from_counts(count_brands(top100)))
 
         # 인사이트 가져오기 (캐시된 것 또는 새로 생성)
         insight_content = dashboard_data.get("latest_insight", "")
