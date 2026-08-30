@@ -26,20 +26,6 @@
       "market share",
       "ms",
       "점유비"
-    ],
-    "ranking": [
-      "순위",
-      "rank",
-      "ranking",
-      "등수",
-      "위",
-      "bsr"
-    ],
-    "price": [
-      "가격",
-      "price",
-      "pricing",
-      "프라이싱"
     ]
   },
   "query_type_concepts": {
@@ -71,24 +57,6 @@
       "analyze",
       "뜻하는"
     ],
-    "comparison": [
-      "비교",
-      "대비",
-      "차이",
-      "vs",
-      "compare",
-      "versus",
-      "보다"
-    ],
-    "trend": [
-      "추이",
-      "변화",
-      "트렌드",
-      "동향",
-      "trend",
-      "change",
-      "변동"
-    ],
     "strategy": [
       "전략",
       "대응",
@@ -97,20 +65,6 @@
       "strategy",
       "recommend",
       "어떻게"
-    ],
-    "product": [
-      "제품",
-      "product",
-      "상품",
-      "아이템",
-      "asin"
-    ],
-    "brand": [
-      "브랜드",
-      "brand",
-      "회사",
-      "경쟁사",
-      "competitor"
     ]
   },
   "analysis_concepts": {

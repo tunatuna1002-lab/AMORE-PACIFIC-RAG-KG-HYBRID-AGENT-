@@ -95,6 +95,9 @@ CATEGORY_ALIASES: dict[str, str] = {
     # Beauty
     "beauty": "beauty",
     "뷰티": "beauty",
+    # 추출 indicator/개념 표기 → 골드 개념 표기 정합화
+    "ranking": "product_ranking",
+    "rank": "product_ranking",
 }
 
 # Metric indicator aliases

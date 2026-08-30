@@ -838,7 +838,14 @@ class HybridRetriever:
                 edge_relations = list(self.kg.query(subject=brand))
                 if brand.lower() != brand:
                     edge_relations += list(self.kg.query(subject=brand.lower()))
-                priority_preds = {"hasSoS", "hasHHI", "rankedIn", "competesWith", "hasPosition"}
+                priority_preds = {
+                    "hasSoS",
+                    "hasHHI",
+                    "rankedIn",
+                    "competesWith",
+                    "hasPosition",
+                    "ownedBy",
+                }
                 query_categories = {c.lower() for c in entities.get("categories", [])}
                 query_brands = {b.lower() for b in entities.get("brands", [])}
                 relevant, competes, rest = [], [], []
@@ -852,6 +859,8 @@ class HybridRetriever:
                     # 골드/KG 표기는 camelCase — original_predicate는 hasSoS처럼
                     # 의미가 더 구체적인 camelCase일 때만 우선한다
                     pred = orig if orig and "_" not in orig and not orig.isupper() else enum_pred
+                    # 시드 온톨로지 표기 정합화 (ownedByGroup → ownedBy)
+                    pred = {"ownedByGroup": "ownedBy"}.get(pred, pred)
                     if pred not in priority_preds:
                         continue  # siblingBrand 등 시드 온톨로지는 엣지 노출에서 제외
                     edge = {"subject": rel.subject, "predicate": pred, "object": rel.object}
