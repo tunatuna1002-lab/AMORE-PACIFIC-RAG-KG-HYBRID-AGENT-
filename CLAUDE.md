@@ -161,10 +161,6 @@
 │   │   │   ├── amazon_product_scraper.py
 │   │   │   └── deals_scraper.py
 │   │   ├── collectors/           # 데이터 수집기
-│   │   │   ├── tiktok_collector.py
-│   │   │   ├── instagram_collector.py
-│   │   │   ├── youtube_collector.py
-│   │   │   ├── reddit_collector.py
 │   │   │   ├── google_trends_collector.py
 │   │   │   ├── public_data_collector.py
 │   │   │   ├── external_signal_collector.py

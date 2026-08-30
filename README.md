@@ -163,9 +163,6 @@ python scripts/test_report_generator.py
 |--------|------|----------|------|
 | **Reddit** | JSON API | r/AsianBeauty | 파이프라인 연동 (ExternalSignalCollector 내장) |
 | **Google Trends** | trendspyg | 브랜드 검색 관심도 | 파이프라인 연동 (인사이트 배치) |
-| **TikTok** | Playwright | #laneige, #kbeauty | 모듈 구현 완료, 파이프라인 미연결 |
-| **Instagram** | Instaloader | #라네즈, #skincare | 모듈 구현 완료, 파이프라인 미연결 |
-| **YouTube** | yt-dlp | LANEIGE 리뷰 메타데이터 | 모듈 구현 완료, 파이프라인 미연결 |
 
 ### 3.7 공공데이터 API
 
@@ -314,8 +311,6 @@ python scripts/test_report_generator.py
 | `bootstrap.py` | 0% | 앱 시작 와이어링 |
 | `exchange_rate.py` | 13.5% | 외부 환율 API |
 | `deals_scraper.py` | 27.3% | Playwright 크롤링 |
-| `instagram_collector.py` | 22.9% | Instaloader 의존 |
-| `youtube_collector.py` | 21.8% | yt-dlp 의존 |
 
 > 이 모듈들은 외부 I/O(네트워크, 브라우저, API)에 강하게 의존하여 단위 테스트 한계가 있습니다. 통합 테스트로 보완 예정.
 
