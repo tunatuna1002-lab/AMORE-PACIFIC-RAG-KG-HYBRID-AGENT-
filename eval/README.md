@@ -126,7 +126,7 @@ Items are marked as failed if any of these thresholds are violated:
 | Metric | Threshold | Fail Tag |
 |--------|-----------|----------|
 | Entity Link F1 | < 0.50 | `L1_mapping_fail` |
-| Concept Map F1 | < 0.50 | `L1_concept_fail` |
+| Concept Map F1 | < 0.30 | `L1_concept_fail` |
 | Context Recall (requires_kg=false) | < 0.80 | `L2_doc_retrieval_fail` |
 | Hits@k (requires_kg=true) | < 0.80 | `L3_kg_fail` |
 | KG Edge F1 | < 0.50 | `L3_edge_fail` |

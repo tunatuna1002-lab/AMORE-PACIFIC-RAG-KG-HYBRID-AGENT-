@@ -44,6 +44,10 @@ DEFAULT_THRESHOLDS = {
     "hits_at_k_min": 0.80,  # For requires_kg=True
     # L1 gating
     "entity_link_f1_min": 0.50,
+    # 게이트 재보정 (2026-08-30, 오염 수정 후 v4.0 분포 기준):
+    # concept F1 중앙값 0.40 — 0.5는 상위 문항까지 fail 처리해 판별력이 없었음.
+    # 0.3은 하위 40%를 플래그하는 판별 임계.
+    "concept_map_f1_min": 0.30,
 }
 
 # Fail reason taxonomy

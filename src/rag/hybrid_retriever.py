@@ -103,6 +103,29 @@ from .retriever import DocumentRetriever
 logger = logging.getLogger(__name__)
 
 
+def _product_name_slugs(title: str, brand: str) -> list[str]:
+    """제품 타이틀 → 제품 라인명 슬러그 후보 (3단어·2단어 변형)
+
+    예: "LANEIGE Lip Sleeping Mask - Berry" → ["lip_sleeping_mask", "lip_sleeping"]
+        "LANEIGE Water Bank Blue Hyaluronic Cream" → ["water_bank_blue", "water_bank"]
+    """
+    import re
+
+    t = title.strip()
+    if brand and t.lower().startswith(brand.lower()):
+        t = t[len(brand) :]
+    for sep in (":", "|", ",", " - ", "–", "("):
+        t = t.split(sep)[0]
+    words = re.findall(r"[A-Za-z0-9]+", t)
+    slugs: list[str] = []
+    for n in (3, 2):
+        if len(words) >= n:
+            slug = "_".join(w.lower() for w in words[:n])
+            if slug not in slugs:
+                slugs.append(slug)
+    return slugs
+
+
 # ============================================================================
 # Query Intent Classification
 # Delegates to unified classifier (src/core/intent.py).
@@ -849,6 +872,7 @@ class HybridRetriever:
                 query_categories = {c.lower() for c in entities.get("categories", [])}
                 query_brands = {b.lower() for b in entities.get("brands", [])}
                 relevant, competes, rest = [], [], []
+                top_products: list[tuple[int, str, str]] = []  # (rank, title, category)
                 for rel in edge_relations:
                     enum_pred = (
                         rel.predicate.value
@@ -861,6 +885,13 @@ class HybridRetriever:
                     pred = orig if orig and "_" not in orig and not orig.isupper() else enum_pred
                     # 시드 온톨로지 표기 정합화 (ownedByGroup → ownedBy)
                     pred = {"ownedByGroup": "ownedBy"}.get(pred, pred)
+                    if pred == "hasProduct":
+                        # 상위 랭크 제품은 제품명 슬러그 엣지로 방출 (ASIN은 조회 불가 표기)
+                        title = rel.properties.get("title", "")
+                        rank = rel.properties.get("rank")
+                        if title and isinstance(rank, int) and rank <= 10:
+                            top_products.append((rank, title, rel.properties.get("category", "")))
+                        continue
                     if pred not in priority_preds:
                         continue  # siblingBrand 등 시드 온톨로지는 엣지 노출에서 제외
                     edge = {"subject": rel.subject, "predicate": pred, "object": rel.object}
@@ -872,8 +903,26 @@ class HybridRetriever:
                         competes.append(edge)
                     else:
                         rest.append(edge)
-                # 정밀도 보호: 관련 엣지 우선, 경쟁 엣지는 소수만, 총 8개 상한
-                metric_edges = (relevant + competes[:3] + rest)[:8]
+
+                # 상위 랭크 제품(브랜드당 2개) → 제품명 슬러그 hasProduct/belongsToCategory 엣지
+                product_edges = []
+                for _rank, title, category in sorted(set(top_products))[:2]:
+                    for slug in _product_name_slugs(title, brand):
+                        product_edges.append(
+                            {"subject": brand, "predicate": "hasProduct", "object": slug}
+                        )
+                    if category:
+                        main_slugs = _product_name_slugs(title, brand)
+                        if main_slugs:
+                            product_edges.append(
+                                {
+                                    "subject": main_slugs[0],
+                                    "predicate": "belongsToCategory",
+                                    "object": category,
+                                }
+                            )
+                # 정밀도 보호: 관련 엣지 우선, 경쟁 엣지는 소수만, 총 12개 상한
+                metric_edges = (relevant + product_edges + competes[:3] + rest)[:12]
                 if metric_edges:
                     facts.append(
                         {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
