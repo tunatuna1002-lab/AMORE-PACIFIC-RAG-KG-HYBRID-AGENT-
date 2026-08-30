@@ -4464,8 +4464,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">Top10 제품수 <i data-lucide="help-circle" class="help-icon"></i></div>
-                                <div class="kpi-value">4<span class="unit">개</span></div>
-                                <span class="kpi-delta up">+1 증가</span>
+                                <div class="kpi-value">—</div>
+                                <span class="kpi-delta" id="brand-top10-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">🏆 Top10 제품수</div>
                                     <div class="tooltip-content">
@@ -4477,8 +4477,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">평균순위 <i data-lucide="help-circle" class="help-icon"></i></div>
-                                <div class="kpi-value">53.6<span class="unit">위</span></div>
-                                <span class="kpi-delta up">▼ 2.3위 개선</span>
+                                <div class="kpi-value">—</div>
+                                <span class="kpi-delta" id="brand-rank-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">📈 평균순위 (Avg Rank)</div>
                                     <div class="tooltip-content">
@@ -4490,8 +4490,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">시장집중도 (HHI) <i data-lucide="help-circle" class="help-icon"></i></div>
-                                <div class="kpi-value">0.35</div>
-                                <span class="kpi-delta">중간 집중도</span>
+                                <div class="kpi-value">—</div>
+                                <span class="kpi-delta" id="brand-hhi-band">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">📉 시장집중도 (HHI: Herfindahl Index)</div>
                                     <div class="tooltip-content">
@@ -4752,17 +4752,17 @@
                             </div>
                         </div>
                         <div class="category-tabs">
-                            <div class="category-tab active" onclick="selectCategory('beauty', this)" title="Amazon Best Sellers in Beauty & Personal Care (전체 뷰티 랭킹, Level 0)" data-level="0" data-parent="">Beauty & Personal Care</div>
-                            <div class="category-tab" onclick="selectCategory('skin', this)" title="Beauty > Skin Care (Node ID: 11060451, Level 1)" data-level="1" data-parent="beauty">Skin Care</div>
-                            <div class="category-tab" onclick="selectCategory('lip', this)" title="Beauty > Skin Care > Lip Care (Node ID: 3761351, Level 2)" data-level="2" data-parent="skin_care">Lip Care</div>
-                            <div class="category-tab" onclick="selectCategory('lip_makeup', this)" title="Beauty > Makeup > Lips (Node ID: 11059031, Level 2)" data-level="2" data-parent="makeup">Lip Makeup</div>
-                            <div class="category-tab" onclick="selectCategory('face_powder', this)" title="Beauty > Makeup > Face > Powder (Node ID: 11058971, Level 3)" data-level="3" data-parent="face_makeup">Face Powder</div>
+                            <div class="category-tab active" data-category="beauty" onclick="selectCategory('beauty', this)" title="Amazon Best Sellers in Beauty & Personal Care (전체 뷰티 랭킹, Level 0)" data-level="0" data-parent="">Beauty & Personal Care</div>
+                            <div class="category-tab" data-category="skin" onclick="selectCategory('skin', this)" title="Beauty > Skin Care (Node ID: 11060451, Level 1)" data-level="1" data-parent="beauty">Skin Care</div>
+                            <div class="category-tab" data-category="lip" onclick="selectCategory('lip', this)" title="Beauty > Skin Care > Lip Care (Node ID: 3761351, Level 2)" data-level="2" data-parent="skin_care">Lip Care</div>
+                            <div class="category-tab" data-category="lip_makeup" onclick="selectCategory('lip_makeup', this)" title="Beauty > Makeup > Lips (Node ID: 11059031, Level 2)" data-level="2" data-parent="makeup">Lip Makeup</div>
+                            <div class="category-tab" data-category="face_powder" onclick="selectCategory('face_powder', this)" title="Beauty > Makeup > Face > Powder (Node ID: 11058971, Level 3)" data-level="3" data-parent="face_makeup">Face Powder</div>
                         </div>
                         <div class="kpi-grid">
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">카테고리 점유율 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="cat-sos">18.5<span class="unit">%</span></div>
-                                <span class="kpi-delta up" id="cat-sos-badge">Category Leader</span>
+                                <div class="kpi-value" id="cat-sos">—</div>
+                                <span class="kpi-delta" id="cat-sos-badge">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">📊 카테고리 점유율 (SoS)</div>
                                     <div class="tooltip-content">
@@ -4774,8 +4774,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">Laneige Rank <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="cat-rank">#2</div>
-                                <span class="kpi-delta up" id="cat-rank-badge">1위 근접</span>
+                                <div class="kpi-value" id="cat-rank">—</div>
+                                <span class="kpi-delta" id="cat-rank-badge">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">🏆 Laneige Rank</div>
                                     <div class="tooltip-content">
@@ -4787,8 +4787,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">가격경쟁력 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="cat-cpi">44<span class="unit">점</span></div>
-                                <span class="kpi-delta down" id="cat-cpi-badge">가격 경쟁력 하락</span>
+                                <div class="kpi-value" id="cat-cpi">—</div>
+                                <span class="kpi-delta" id="cat-cpi-badge">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">💰 가격경쟁력 점수</div>
                                     <div class="tooltip-content">
@@ -4800,8 +4800,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">신규 경쟁자 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="cat-new">18<span class="unit">개</span></div>
-                                <span class="kpi-delta down" id="cat-new-badge">경쟁 심화</span>
+                                <div class="kpi-value" id="cat-new">—</div>
+                                <span class="kpi-delta" id="cat-new-badge">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">🆕 신규 경쟁자</div>
                                     <div class="tooltip-content">
@@ -4893,9 +4893,7 @@
                                 <span class="selector-label">제품</span>
                                 <div class="selector-wrapper">
                                     <select class="selector-dropdown" id="productSelect" onchange="updateProductView()">
-                                        <option value="lip-mask-berry">Lip Sleeping Mask (Berry)</option>
-                                        <option value="lip-mask-original">Lip Sleeping Mask (Original)</option>
-                                        <option value="lip-glowy">Lip Glowy Balm</option>
+                                        <option value="">제품 로딩 중…</option>
                                     </select>
                                     <div class="selector-tooltip">
                                         <div class="selector-tooltip-header">📦 제품 선택</div>
@@ -4922,8 +4920,8 @@
                         <div class="kpi-grid">
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">현재순위 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="prod-rank">#2</div>
-                                <span class="kpi-delta up" id="prod-rank-delta">▲ 1위 상승</span>
+                                <div class="kpi-value" id="prod-rank">—</div>
+                                <span class="kpi-delta" id="prod-rank-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">🏆 현재순위</div>
                                     <div class="tooltip-content">
@@ -4935,8 +4933,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">순위변동성 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="prod-vol">12<span class="unit">pt</span></div>
-                                <span class="kpi-delta" id="prod-vol-delta">안정적</span>
+                                <div class="kpi-value" id="prod-vol">—</div>
+                                <span class="kpi-delta" id="prod-vol-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">📊 순위변동성 (Volatility)</div>
                                     <div class="tooltip-content">
@@ -4948,8 +4946,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">고객평점 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="prod-rating">4.5<span class="unit">★</span></div>
-                                <span class="kpi-delta up" id="prod-rating-delta">상위 10%</span>
+                                <div class="kpi-value" id="prod-rating">—</div>
+                                <span class="kpi-delta" id="prod-rating-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">⭐ 고객평점</div>
                                     <div class="tooltip-content">
@@ -4961,8 +4959,8 @@
                             </div>
                             <div class="kpi-card has-tooltip">
                                 <div class="kpi-label">순위고착도 <i data-lucide="help-circle" class="help-icon" style="width: 12px; height: 12px;"></i></div>
-                                <div class="kpi-value" id="prod-stick">92<span class="unit">pt</span></div>
-                                <span class="kpi-delta up" id="prod-stick-delta">고착화 높음</span>
+                                <div class="kpi-value" id="prod-stick">—</div>
+                                <span class="kpi-delta" id="prod-stick-delta">—</span>
                                 <div class="kpi-tooltip">
                                     <div class="tooltip-header">📌 순위고착도 (Stickiness)</div>
                                     <div class="tooltip-content">
@@ -5834,10 +5832,25 @@
                     avgRank = (ranks.reduce((a, b) => a + b, 0) / ranks.length).toFixed(1);
                 }
 
-                // HHI: 기본값 설정
-                let hhi = kpis.hhi ?? '중간 집중도';
+                // HHI: 값이 없으면 '-' (과거에는 문자열 '중간 집중도'가 숫자 칸에 들어갔다)
+                const hhi = kpis.hhi ?? '-';
 
                 if (kpiCards[0]) kpiCards[0].querySelector('.kpi-value').innerHTML = sosValue + '<span class="unit">%</span>';
+
+                // 델타 배지 공통 렌더러: 값이 없거나 파싱 불가면 — 를 유지한다 (하드코딩 금지)
+                function setDeltaBadge(elId, rawValue, classFor, formatter) {
+                    const el = document.getElementById(elId);
+                    if (!el) return;
+                    const n = typeof rawValue === 'string' ? parseFloat(rawValue) : NaN;
+                    if (isNaN(n)) {
+                        el.textContent = '—';
+                        el.className = 'kpi-delta';
+                        return;
+                    }
+                    el.textContent = formatter ? formatter(n) : rawValue;
+                    const cls = classFor(n);
+                    el.className = 'kpi-delta' + (cls ? ' ' + cls : '');
+                }
 
                 // SoS 델타 배지: exporter 실계산 값만 표시 (없으면 — 유지)
                 const sosDeltaEl = document.getElementById('brand-sos-delta');
@@ -5856,6 +5869,17 @@
                 if (kpiCards[1]) kpiCards[1].querySelector('.kpi-value').innerHTML = (top10Count ?? 0) + '<span class="unit">개</span>';
                 if (kpiCards[2]) kpiCards[2].querySelector('.kpi-value').innerHTML = (avgRank ?? '-') + '<span class="unit">위</span>';
                 if (kpiCards[3]) kpiCards[3].querySelector('.kpi-value').textContent = hhi;
+
+                // Top10 델타 배지: exporter 실계산 값만 표시 (brand-sos-delta와 동일 패턴)
+                setDeltaBadge('brand-top10-delta', kpis.top10_delta, (n) => (n > 0 ? 'up' : n < 0 ? 'down' : ''));
+
+                // 평균순위 델타 배지: 순위는 낮을수록 좋으므로 음수가 개선(up)
+                setDeltaBadge('brand-rank-delta', kpis.avg_rank_delta, (n) => (n < 0 ? 'up' : n > 0 ? 'down' : ''),
+                    (n) => (n < 0 ? '▼ ' : n > 0 ? '▲ ' : '') + Math.abs(n).toFixed(1) + '위 ' + (n < 0 ? '개선' : n > 0 ? '하락' : '유지'));
+
+                // HHI 밴드 라벨: exporter가 실 HHI로 산출한 값
+                const hhiBandEl = document.getElementById('brand-hhi-band');
+                if (hhiBandEl) hhiBandEl.textContent = kpis.hhi_band ?? '—';
             }
 
             // Update Competitor Table
@@ -5883,8 +5907,10 @@
                         volDelta: product.volatility_status,
                         rating: String(product.rating),
                         ratingDelta: product.rating_delta,
-                        stick: '85',
-                        stickDelta: '높음'
+                        // 순위고착도(streak)는 아직 산출 파이프라인이 없다.
+                        // 상수 85pt/"높음"을 실측처럼 노출하지 않는다.
+                        stick: '-',
+                        stickDelta: '-'
                     };
 
                     // Add to category (매핑: thresholds.json 카테고리 키)
@@ -6137,68 +6163,8 @@
                 return;
             }
 
-            // 글로벌 날짜 범위 업데이트 (모든 차트 자동 업데이트)
+            // 글로벌 날짜 범위 업데이트 (모든 차트가 dateRangeChanged 이벤트로 자동 갱신)
             globalDateRange.set(startDate, endDate);
-            return;
-
-            // 아래 코드는 이제 globalDateRange.set() 호출 시 dateRangeChanged 이벤트로 처리됨
-            showToast('데이터 로딩 중...', 'info');
-
-            try {
-                // Fetch historical data for the selected range
-                const url = `${API_BASE}/api/historical?start_date=${startDate}&end_date=${endDate}`;
-                console.log('[DateRange] Fetching:', url);
-
-                const response = await fetch(url);
-                console.log('[DateRange] Response status:', response.status);
-
-                if (!response.ok) {
-                    throw new Error(`Historical data fetch failed: ${response.status}`);
-                }
-
-                const histData = await response.json();
-                console.log('[DateRange] Response data:', {
-                    success: histData.success,
-                    available_dates: histData.available_dates?.length,
-                    brand_metrics: histData.brand_metrics?.length,
-                    available_date_range: histData.available_date_range,
-                    data_source: histData.data_source
-                });
-
-                // Find missing dates in the range
-                const missingDates = findMissingDates(startDate, endDate, histData.available_dates || []);
-                console.log('[DateRange] Missing dates:', missingDates.length);
-
-                // Update chart date range state
-                if (typeof chartDateRanges !== 'undefined' && chartDateRanges.brandMatrix) {
-                    chartDateRanges.brandMatrix.startDate = startDate;
-                    chartDateRanges.brandMatrix.endDate = endDate;
-                    chartDateRanges.brandMatrix.availableDates = histData.available_dates || [];
-                    chartDateRanges.brandMatrix.availableDateRange = histData.available_date_range || {};
-                }
-
-                // Update tooltip with period info
-                updateChartPeriodTooltip('brandMatrix', startDate, endDate, missingDates);
-
-                // Show data gap warning if there are missing dates (with available range hint)
-                showDataGapWarning('brandMatrix', missingDates, histData.available_date_range);
-
-                // Update the chart with new data
-                if (histData.brand_metrics && histData.brand_metrics.length > 0) {
-                    updateBrandMatrixChart(histData.brand_metrics);
-                    const sourceInfo = histData.data_source ? ` (${histData.data_source})` : '';
-                    showToast(`${startDate} ~ ${endDate} 기간 데이터 적용됨 (${histData.brand_metrics.length}개 브랜드)${sourceInfo}`, 'success');
-                } else {
-                    const rangeHint = histData.available_date_range?.min && histData.available_date_range?.max
-                        ? ` (사용 가능: ${histData.available_date_range.min} ~ ${histData.available_date_range.max})`
-                        : '';
-                    showToast(`해당 기간에 브랜드 데이터가 없습니다.${rangeHint}`, 'warning');
-                }
-
-            } catch (error) {
-                console.error('[DateRange] Error:', error);
-                showToast('데이터를 불러오는데 실패했습니다: ' + error.message, 'error');
-            }
         }
 
         // Find missing dates in a range
@@ -7195,9 +7161,26 @@
                     await updateCompetitorTableWithRange(startDate, endDate);
                 }, 200);
             }
+            // Category View 진입 시 KPI 바인딩 (분기가 없어 HTML 시드 값이 실데이터처럼 노출되던 문제)
+            if (pageId === 'category') {
+                setTimeout(() => {
+                    const activeTab = document.querySelector('.category-tab.active')
+                        || document.querySelector('.category-tab');
+                    if (activeTab) {
+                        const cat = activeTab.dataset.category || 'beauty';
+                        selectCategory(cat, activeTab).catch(err => {
+                            console.error('[switchPage] selectCategory failed:', err);
+                        });
+                    }
+                }, 200);
+            }
             // Product View 진입 시 글로벌 날짜 범위로 설정 후 차트 데이터 로드
             if (pageId === 'product') {
                 setTimeout(() => {
+                    // 제품 목록 바인딩 (기존에는 category onchange에서만 호출돼
+                    // 첫 진입 시 HTML 데모 option과 시드 KPI가 그대로 보였다)
+                    try { updateProductList(); } catch (err) { console.error('[switchPage] updateProductList failed:', err); }
+
                     const { startDate, endDate } = globalDateRange.get();
 
                     // Product View의 모든 날짜 선택기를 글로벌 날짜 범위로 설정
@@ -7965,8 +7948,17 @@
         function updateProductList() {
             const cat = document.getElementById('productCategory').value;
             const select = document.getElementById('productSelect');
+            const items = categoryProducts[cat] || [];
             select.innerHTML = '';
-            categoryProducts[cat].forEach(p => { const opt = document.createElement('option'); opt.value = p[0]; opt.textContent = p[1]; select.appendChild(opt); });
+            if (items.length === 0) {
+                // 데모 option을 남기지 않는다 — 데이터가 없으면 없다고 표시한다
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = '해당 카테고리에 LANEIGE 제품 없음';
+                select.appendChild(opt);
+            } else {
+                items.forEach(p => { const opt = document.createElement('option'); opt.value = p[0]; opt.textContent = p[1]; select.appendChild(opt); });
+            }
             updateProductView();
         }
 
@@ -7974,13 +7966,17 @@
             const prod = document.getElementById('productSelect').value;
             // API 데이터 없으면 N/A 표시 (하드코딩 fallback 제거)
             const d = productData[prod] || { rank: 'N/A', rankDelta: '-', vol: '-', volDelta: '-', rating: '-', ratingDelta: '-', stick: '-', stickDelta: '-' };
+            // 값이 없으면 단위를 붙이지 않는다 ("-pt" 같은 표기 방지)
+            const withUnit = (v, unit) => (v === '-' || v === 'N/A' || v === undefined || v === null)
+                ? '—'
+                : v + `<span class="unit">${unit}</span>`;
             document.getElementById('prod-rank').textContent = d.rank;
             document.getElementById('prod-rank-delta').textContent = d.rankDelta;
-            document.getElementById('prod-vol').innerHTML = d.vol + '<span class="unit">pt</span>';
+            document.getElementById('prod-vol').innerHTML = withUnit(d.vol, 'pt');
             document.getElementById('prod-vol-delta').textContent = d.volDelta;
-            document.getElementById('prod-rating').innerHTML = d.rating + '<span class="unit">★</span>';
+            document.getElementById('prod-rating').innerHTML = withUnit(d.rating, '★');
             document.getElementById('prod-rating-delta').textContent = d.ratingDelta;
-            document.getElementById('prod-stick').innerHTML = d.stick + '<span class="unit">pt</span>';
+            document.getElementById('prod-stick').innerHTML = withUnit(d.stick, 'pt');
             document.getElementById('prod-stick-delta').textContent = d.stickDelta;
 
             // 프로모션 관련 데이터 업데이트
@@ -7988,7 +7984,10 @@
         }
 
         // Product View 날짜 범위 적용
-        function applyProductDateRange() {
+        // 과거에는 토스트만 띄우고 실제 필터링이 없었다 (거짓 성공 UI).
+        // 이제 하위 차트의 날짜 입력을 동기화하고 실제 로더를 호출한 뒤,
+        // 성공했을 때만 성공 토스트를 띄운다.
+        async function applyProductDateRange() {
             const startDate = document.getElementById('productStartDate').value;
             const endDate = document.getElementById('productEndDate').value;
 
@@ -8010,12 +8009,31 @@
                 if (badge) badge.textContent = periodText;
             });
 
-            // 차트 데이터 필터링 및 업데이트 (실제 데이터가 있을 경우)
-            console.log(`Product View 기간 설정: ${startDate} ~ ${endDate}`);
-            showToast(`기간이 적용되었습니다: ${periodText}`, 'success');
+            // 하위 차트의 날짜 입력을 선택 범위로 동기화
+            const chartDatePairs = [
+                ['rankTrendStartDate', 'rankTrendEndDate'],
+                ['matrixStartDate', 'matrixEndDate'],
+                ['discountStartDate', 'discountEndDate'],
+                ['growthTypeStartDate', 'growthTypeEndDate'],
+                ['competitorPromoStartDate', 'competitorPromoEndDate']
+            ];
+            chartDatePairs.forEach(([startId, endId]) => {
+                const startInput = document.getElementById(startId);
+                const endInput = document.getElementById(endId);
+                if (startInput && endInput) {
+                    startInput.value = startDate;
+                    endInput.value = endDate;
+                }
+            });
 
-            // TODO: 실제 데이터 필터링 로직
-            // filterProductDataByDateRange(startDate, endDate);
+            console.log(`Product View 기간 설정: ${startDate} ~ ${endDate}`);
+            try {
+                await loadInitialProductChartData();
+                showToast(`기간이 적용되었습니다: ${periodText}`, 'success');
+            } catch (error) {
+                console.error('[applyProductDateRange] 차트 갱신 실패:', error);
+                showToast('기간 적용에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
+            }
         }
 
         // === 날짜 유효성 검사 및 누락 날짜 표시 헬퍼 함수 ===
@@ -8451,14 +8469,29 @@
             const ctx = document.getElementById('discountTrendChart');
             if (!ctx) return;
 
-            // 기존 차트 제거
+            // 페이로드 키가 discounts / data 두 가지로 들어온다 (initDiscountTrendChart와 동일 규칙)
+            const series = discountData?.discounts || discountData?.data;
+            if (!Array.isArray(series) || series.length === 0) {
+                console.warn('[discountTrend] 할인율 시계열이 없어 차트를 건너뜁니다');
+                return;
+            }
+
+            // 기존 차트 제거 — initDiscountTrendChart()가 charts.discountTrend에,
+            // 이 함수가 window.discountChart에 각각 인스턴스를 잡고 있어 둘 다 해제해야
+            // "Canvas is already in use" 오류가 나지 않는다.
             if (window.discountChart) {
                 window.discountChart.destroy();
+                window.discountChart = null;
+            }
+            if (charts.discountTrend) {
+                charts.discountTrend.destroy();
+                delete charts.discountTrend;  // null을 남기면 initChartsForPage의 일괄 destroy가 깨진다
             }
 
             // 현재 할인율 배지 업데이트
-            const latestDiscount = discountData.data[discountData.data.length - 1] || 0;
-            document.getElementById('discount-badge').textContent = `현재 할인율: ${latestDiscount}%`;
+            const latestDiscount = series[series.length - 1] || 0;
+            const discountBadgeEl = document.getElementById('discount-badge');
+            if (discountBadgeEl) discountBadgeEl.textContent = `현재 할인율: ${latestDiscount}%`;
 
             window.discountChart = new Chart(ctx.getContext('2d'), {
                 type: 'line',
@@ -8466,7 +8499,7 @@
                     labels: discountData.labels,
                     datasets: [{
                         label: '평균 할인율',
-                        data: discountData.data,
+                        data: series,
                         borderColor: '#ef4444',
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
                         fill: true,
@@ -8496,14 +8529,19 @@
             });
 
             // 인사이트 업데이트
-            const trend = latestDiscount > discountData.data[0] ? '상승' : latestDiscount < discountData.data[0] ? '하락' : '유지';
-            document.getElementById('discount-insight').textContent = `추세: ${trend}`;
+            const trend = latestDiscount > series[0] ? '상승' : latestDiscount < series[0] ? '하락' : '유지';
+            const insightEl = document.getElementById('discount-insight');
+            if (insightEl) insightEl.textContent = `추세: ${trend}`;
         }
 
-        // API 서버 주소 (배포 환경에서는 현재 호스트 사용, 로컬에서는 localhost:8001)
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        // 서버 주소 상수 (단일 출처)
+        // file:// 로 직접 열었을 때만 개발 서버로 폴백한다. 그 외에는 항상 현재 오리진을 쓴다.
+        //  - 127.0.0.1로 열었을 때 localhost:8001을 강제하면 CSP `connect-src 'self'`에 전부 차단됐다.
+        //  - 포트를 하드코딩하면 PORT 환경변수로 띄운 서버에 붙지 못한다.
+        const SERVER_URL = window.location.protocol === 'file:'
             ? 'http://localhost:8001'
             : window.location.origin;
+        const API_BASE = SERVER_URL;
 
         // API 인증 키 (환경에 따라 설정)
         const API_KEY = window.DASHBOARD_API_KEY || '';
@@ -8539,29 +8577,31 @@
         let exchangeRatesLastUpdated = null;
         let isUsingFallbackRate = true;  // Fallback 환율 사용 여부
 
-        // 환율 가져오기 (API 호출)
+        // 환율 가져오기 (백엔드 프록시 경유)
+        // 외부 도메인(frankfurter.app)을 직접 부르면 CSP `connect-src 'self'`에 차단되어
+        // 항상 폴백 환율이 쓰였다. 서버가 조회·캐시한 값을 같은 오리진에서 받는다.
         async function fetchExchangeRates() {
             try {
-                // frankfurter.app API 사용 (무료, ECB 기준)
-                const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW,JPY');
+                const response = await fetch(`${API_BASE}/api/fx/rates`, { headers: getApiHeaders() });
                 if (response.ok) {
                     const data = await response.json();
+                    const rates = data.rates || {};
                     exchangeRates = {
                         USD: 1.0,
-                        KRW: data.rates.KRW || 1350,
-                        JPY: data.rates.JPY || 150
+                        KRW: rates.KRW || CURRENCY_CONFIG.KRW.rate,
+                        JPY: rates.JPY || CURRENCY_CONFIG.JPY.rate
                     };
                     exchangeRatesLastUpdated = new Date();
-                    isUsingFallbackRate = false;
-                    console.log('💱 환율 업데이트 (실시간):', exchangeRates);
+                    isUsingFallbackRate = Boolean(data.is_fallback);
+                    console.log(`💱 환율 업데이트 (${isUsingFallbackRate ? '폴백' : '실시간'}):`, exchangeRates);
                     updateExchangeRateDisplay();
-                    return true;
+                    return !isUsingFallbackRate;
                 }
             } catch (e) {
-                console.warn('환율 API 호출 실패, Fallback 환율 사용:', e);
-                isUsingFallbackRate = true;
-                updateExchangeRateDisplay();
+                console.warn('환율 조회 실패, Fallback 환율 사용:', e);
             }
+            isUsingFallbackRate = true;
+            updateExchangeRateDisplay();
             return false;
         }
 
@@ -8753,7 +8793,7 @@
                 statusEl.style.opacity = '1';
                 statusEl.style.cursor = 'pointer';
                 statusEl.innerHTML = '🔗 서버 대시보드로 이동하기 (클릭)';
-                statusEl.onclick = () => { window.location.href = 'http://localhost:8001/dashboard'; };
+                statusEl.onclick = () => { window.location.href = `${SERVER_URL}/dashboard`; };
                 return;
             }
 
@@ -8773,7 +8813,7 @@
                 statusEl.style.opacity = '1';
                 statusEl.style.cursor = 'pointer';
                 statusEl.innerHTML = '❌ 서버 연결 실패 - 클릭하여 서버 대시보드로 이동';
-                statusEl.onclick = () => { window.location.href = 'http://localhost:8001/dashboard'; };
+                statusEl.onclick = () => { window.location.href = `${SERVER_URL}/dashboard`; };
             }
         }
 
@@ -10777,7 +10817,7 @@
         // ============== END SoS 차트 관련 함수들 ==============
 
         function initChartsForPage(pageId) {
-            Object.values(charts).forEach(c => c.destroy()); charts = {};
+            Object.values(charts).forEach(c => { try { c?.destroy(); } catch (e) { console.warn('[initChartsForPage] destroy 실패:', e); } }); charts = {};
             // SoS Bar Chart는 별도 인스턴스로 관리됨
             if (sosChartInstance) {
                 sosChartInstance.destroy();
@@ -11378,8 +11418,14 @@
             if (!ctx) return;
 
             // 기존 차트가 있으면 제거
+            // 같은 canvas를 updateDiscountTrendChart()가 window.discountChart로 잡고 있을 수 있다
             if (charts.discountTrend) {
                 charts.discountTrend.destroy();
+                delete charts.discountTrend;
+            }
+            if (window.discountChart) {
+                window.discountChart.destroy();
+                window.discountChart = null;
             }
 
             // 기본 데이터 (JSON에서 로드하거나 fallback)
@@ -13055,8 +13101,20 @@
             }
         }
 
+        // 초기화 단계 하나가 실패해도 뒤따르는 단계가 끊기지 않게 감싼다.
+        // (과거: 존재하지 않는 loadAlertSettings() 호출로 ReferenceError가 나면서
+        //  날짜 피커 초기화·초기 차트 로드·아이콘 렌더가 전부 미실행됐다.)
+        async function initStep(name, fn) {
+            try {
+                return await fn();
+            } catch (e) {
+                console.error(`[init] ${name} 실패:`, e);
+                return undefined;
+            }
+        }
+
         window.onload = async function() {
-            startClock(); // 실시간 시계 시작
+            await initStep('startClock', () => startClock());
 
             // Safety: ensure globalDateRange has defaults even if data load fails
             if (typeof globalDateRange !== 'undefined' && globalDateRange && (!globalDateRange.startDate || !globalDateRange.endDate)) {
@@ -13072,17 +13130,16 @@
                 }
             }, 10000);
 
-            const dataLoaded = await loadDashboardData();
+            const dataLoaded = await initStep('loadDashboardData', () => loadDashboardData());
             clearTimeout(loadingSafety);
             if (!dataLoaded && typeof globalDateRange !== 'undefined') {
                 globalDateRange.setDefaultRange();
                 console.warn('[window.onload] Data load failed, using default date range');
             }
 
-            updateDataTime(); // 데이터 시간 업데이트
-            switchPage('home');
-            loadAlertSettings(); // 알림 설정 로드
-            initDateRangeSelectors(); // 날짜 범위 선택 초기화
+            await initStep('updateDataTime', () => updateDataTime());
+            await initStep('switchPage(home)', () => switchPage('home'));
+            await initStep('initDateRangeSelectors', () => initDateRangeSelectors());
 
             // Ensure globalDateRange is initialized
             if (typeof globalDateRange !== 'undefined' && globalDateRange && (!globalDateRange.startDate || !globalDateRange.endDate)) {
@@ -13090,10 +13147,10 @@
             }
 
             // 글로벌 날짜 범위로 초기 차트 데이터 로드
-            await loadInitialChartDataWithGlobalRange();
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+            await initStep('loadInitialChartDataWithGlobalRange', () => loadInitialChartDataWithGlobalRange());
+            await initStep('lucide.createIcons', () => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
         };
 
         // 글로벌 날짜 범위로 초기 차트 데이터 로드

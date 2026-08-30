@@ -576,8 +576,10 @@ class DashboardExporter:
         laneige_count = len(laneige_stats["products"])
         sos = (laneige_count / total_products * 100) if total_products > 0 else 0
 
-        # SoS 델타: 직전 스냅샷 대비 실계산 (이전 데이터 없으면 None)
+        # 델타 3종: 직전 스냅샷 대비 실계산 (이전 데이터 없으면 None)
         sos_delta = self._calculate_sos_delta(raw_data, latest_date)
+        top10_delta = self._calculate_top10_delta(raw_data, latest_date)
+        avg_rank_delta = self._calculate_avg_rank_delta(raw_data, latest_date)
 
         # Top 10 내 개수
         top10_count = len([r for r in laneige_ranks if r <= 10])
@@ -590,9 +592,12 @@ class DashboardExporter:
                 "sos": round(sos, 1),
                 "sos_delta": sos_delta,
                 "top10_count": top10_count,
+                "top10_delta": top10_delta,
                 "avg_rank": round(avg_rank, 1),
+                "avg_rank_delta": avg_rank_delta,
                 "avg_price": round(laneige_avg_price, 2) if laneige_avg_price else None,
-                "hhi": round(hhi, 2),
+                "hhi": round(hhi, 4),
+                "hhi_band": self._hhi_band(hhi),
             },
             "competitors": self._generate_competitor_data(brand_stats),
         }
@@ -630,6 +635,71 @@ class DashboardExporter:
         if delta == 0:
             delta = 0.0  # -0.0 표기 방지
         return f"{delta:+.1f}%p"
+
+    def _prev_snapshot_date(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 날짜. 없으면 None."""
+        prev_dates = sorted(
+            {
+                r.get("snapshot_date")
+                for r in raw_data
+                if r.get("snapshot_date") and r.get("snapshot_date") < latest_date
+            }
+        )
+        return prev_dates[-1] if prev_dates else None
+
+    def _calculate_top10_delta(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 대비 Top10 LANEIGE 제품 수 변화. 이전 데이터 없으면 None."""
+        prev_date = self._prev_snapshot_date(raw_data, latest_date)
+        if not prev_date:
+            return None
+
+        def _top10_of(date: str) -> int:
+            return sum(
+                1
+                for r in raw_data
+                if r.get("snapshot_date") == date
+                and self._is_laneige(r)
+                and self._safe_int(r.get("rank", 999)) <= 10
+            )
+
+        delta = _top10_of(latest_date) - _top10_of(prev_date)
+        return f"{delta:+d}개"
+
+    def _calculate_avg_rank_delta(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 대비 LANEIGE 평균 순위 변화. 이전 데이터 없으면 None.
+
+        순위는 낮을수록 좋으므로 음수 델타가 '개선'이다.
+        """
+        prev_date = self._prev_snapshot_date(raw_data, latest_date)
+        if not prev_date:
+            return None
+
+        def _avg_rank_of(date: str) -> float | None:
+            ranks = [
+                self._safe_int(r.get("rank", 0))
+                for r in raw_data
+                if r.get("snapshot_date") == date and self._is_laneige(r) and r.get("rank")
+            ]
+            return sum(ranks) / len(ranks) if ranks else None
+
+        today = _avg_rank_of(latest_date)
+        prev = _avg_rank_of(prev_date)
+        if today is None or prev is None:
+            return None
+
+        delta = round(today - prev, 1)
+        if delta == 0:
+            return "0.0위"
+        return f"{delta:+.1f}위"
+
+    @staticmethod
+    def _hhi_band(hhi: float) -> str:
+        """0-1 스케일 HHI의 집중도 밴드 라벨 (metric_calculator 해석 가이드 기준)."""
+        if hhi >= 0.25:
+            return "고집중 시장"
+        if hhi >= 0.15:
+            return "중간 집중도"
+        return "분산 시장"
 
     def _calculate_hhi(self, brand_stats: dict) -> float:
         """HHI (Herfindahl-Hirschman Index) 계산 — 정본 구현 위임 (0-1 스케일)"""

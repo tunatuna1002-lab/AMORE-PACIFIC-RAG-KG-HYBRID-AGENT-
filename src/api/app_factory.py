@@ -97,6 +97,7 @@ def _register_routers(app: FastAPI) -> None:
     from src.api.routes.data import router as data_router
     from src.api.routes.deals import router as deals_router
     from src.api.routes.export import router as export_router
+    from src.api.routes.fx import router as fx_router
     from src.api.routes.health import router as health_router
     from src.api.routes.market_intelligence import router as mi_router
     from src.api.routes.signals import router as signals_router
@@ -115,6 +116,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(mi_router)
     app.include_router(signals_router)
     app.include_router(export_router)
+    app.include_router(fx_router)
 
     # Telegram Admin Bot Router (optional)
     try:
