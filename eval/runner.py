@@ -248,7 +248,11 @@ class EvalRunner:
 
         # Extract hybrid context if available
         hybrid_ctx = None
-        if hasattr(self.agent, "get_last_hybrid_context"):
+        # 결과에 동봉된 요청별 컨텍스트를 우선 사용 — 공유 상태
+        # (_last_hybrid_context)는 동시 실행 시 다른 문항의 컨텍스트로
+        # 덮어써지는 경쟁 상태가 있어 트레이스를 오염시킨다
+        hybrid_ctx = result.get("hybrid_context")
+        if hybrid_ctx is None and hasattr(self.agent, "get_last_hybrid_context"):
             hybrid_ctx = self.agent.get_last_hybrid_context()
 
         # L1: Entity linking trace

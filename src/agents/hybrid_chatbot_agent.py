@@ -435,6 +435,10 @@ class HybridChatbotAgent(BaseHybridAgent):
                     "kg_facts_count": len(hybrid_context.ontology_facts),
                     "response_time_ms": duration * 1000,
                 },
+                # 요청별 컨텍스트를 결과에 동봉 — 동시 실행 시
+                # _last_hybrid_context(공유 상태)가 경쟁 상태로 덮어써져
+                # 호출자가 다른 요청의 컨텍스트를 읽는 문제 방지 (eval 트레이스 등)
+                "hybrid_context": hybrid_context,
             }
 
             # 검증 결과 추가
