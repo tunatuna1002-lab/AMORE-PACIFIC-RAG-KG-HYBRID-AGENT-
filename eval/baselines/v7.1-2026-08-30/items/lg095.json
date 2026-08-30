@@ -1,0 +1,255 @@
+{
+  "item_id": "lg095",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.2857142857142857,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.5
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14942528735632182,
+    "semantic_similarity": 0.5981639623641968,
+    "groundedness_score": 0.857,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.0
+  },
+  "overall_score": 0.5069368419986562,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg095",
+    "timestamp": "2026-08-30T16:45:16.546837",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q1_0_23",
+        "laneige_strategy_2026_table_0",
+        "laneige_influencer_map_1_1",
+        "us_beauty_trends_weekly_table_0",
+        "laneige_influencer_map_table_4"
+      ],
+      "snippets": [
+        "• OtherAsia(APAC, Japan)revenue increased53%\n\n\\- \\[APAC\\]Overall sales increased with roll out of Sulwhasoo’sglobal campaign(‘First Care Activating Serum’ ),  Laneige’snew launch of ‘Bouncy & Firm Ser",
+        "| 트렌드 요인 | 소비자 행동 변화 | LANEIGE 제품 연관성 | 아마존 판매 영향 |\n| :---- | :---- | :---- | :---- |\n| **비주얼 임팩트** | 아침에 벗겨내거나 닦아냈을 때 즉각적인 광채(Glow)를 확인하고 싶어 함 | **Water Sleeping Mask**, **Lip Sleeping Mask**의 두꺼운 도포",
+        "이러한 기술적 우위를 바탕으로 라네즈는 미국 시장에서 이중적인 브랜드 정체성을 구축했습니다. 한편으로는 임상 실험과 특허 성분(2,000배 작은 초저분자 히알루론산 등)을 강조하는 \\*\\*'임상적 권위(Clinical Authority)'\\*\\*를 내세우며, 다른 한편으로는 립 슬리핑 마스크의 다양한 향(Berry, Gummy Bear, Hot Cocoa)",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "| 순번 | 리스크 토픽 | 맥락 및 출처 | 대응 전략 |\n| :---- | :---- | :---- | :---- |\n| **1** | **Cruelty-Free 논란** | 중국 수출을 위해 동물 실험을 허용한다는 사실이 레딧 등에서 지속적으로 지적됨.15 | 서구권 마케팅에서 'Cruelty-Free' 단어 사용을 지양하고 'Dermatologist"
+      ],
+      "scores": [
+        0.583061695098877,
+        0.44091808795928955,
+        0.4022810459136963,
+        0.39819568395614624,
+        0.3889542818069458
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 30,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 30,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 8,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 4,
+                "products": [
+                  "B00PFCSNWA",
+                  "B06XDZ93P5",
+                  "B06XDX6YGD",
+                  "B07HFSM8PS"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 4,
+                "products": [
+                  "B001P2LWJA",
+                  "B0030HAEG0",
+                  "B09JB9T6QB",
+                  "B00AY351OI"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Face Powder 카테고리 Top 5 제품 현황\n\n- **인사이트**  \n  현재 제공된 데이터에 따르면 Face Powder 카테고리 내 상위 브랜드는 unknown, Covergirl, e.l.f.로 확인됩니다. 다만, 개별 제품별 Top 5 순위 정보는 명확히 제공되지 않았습니다. 따라서 Face Powder 카테고리 Top 5 제품 리스트는 현재 데이터 기준으로 확인이 어렵습니다.\n\n- **근거**  \n  Knowledge Graph 내 Face Powder Top 브랜드로 unknown, Covergirl, e.l.f.만 명시되어 있으며, 개별 제품 순위 데이터는 부재 [출처: 현재 데이터].\n\n- **권장**  \n  Face Powder 카테고리 내 구체적인 Top 5 제품 정보를 확보하기 위해서는 추가적인 순위 데이터 수집이 필요할 것으로 보입니다. 브랜드별 대표 제품이나 베스트셀러 제품 리스트를 별도로 확인하는 방안을 권장합니다.  \n\n현재 확인된 데이터 기준으로는 Face Powder 카테고리 Top 5 제품 명단 제공이 불가함을 양해 부탁드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1Q 2025 Earnings Release ![][image1]**2025.4.30**\n   - 관련도: 0.58\n\n3. 📄 **2.2 아마존 채널 내 '나이트 리페어' 카테고리의 파급 효과**\n   - 관련도: 0.44\n\n4. 📄 ****1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝****\n   - 관련도: 0.40\n\n5. 📄 **이번 주 Top 10 키워드 및 의미**\n   - 관련도: 0.40\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5407.212018966675,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,552 @@
+{
+  "item_id": "lg148",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5,
+    "context_precision_at_k": 0.2,
+    "mrr": 0.5,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.1,
+    "kg_edge_recall": 0.3333333333333333,
+    "kg_edge_precision": 0.058823529411764705
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08187134502923975,
+    "semantic_similarity": 0.3872094750404358,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0
+  },
+  "overall_score": 0.5242172738062708,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg148",
+    "timestamp": "2026-08-30T16:51:34.074921",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_2_0",
+        "strategic_indicators_1_0",
+        "metric_interpretation_3_0",
+        "metric_interpretation_2_1",
+        "home_insight_rules_6"
+      ],
+      "snippets": [
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "1.4 Market Pulse Snapshot (시장 분위기 요약)\n\n### 목표\n- “성과 변화가 시장 때문인지” 맥락 제공\n\n### 입력 지표(권장)\n- HHI (시장 집중도)\n- Churn Rate (시장 역동성)\n\n### 출력 규칙(문장 1개 + 배지 1~2개)\n- HHI가 높고 Churn Rate가 낮으면:\n  - “시장 구조가 고착화된 편이며 단"
+      ],
+      "scores": [
+        0.5369911789894104,
+        0.5169041752815247,
+        0.44244349002838135,
+        0.43405187129974365,
+        0.422024130821228
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [
+        "laneige -competesWith-> blistex",
+        "laneige -competesWith-> chapstick",
+        "laneige -competesWith-> sun_bum",
+        "laneige -competesWith-> carmex",
+        "laneige -competesWith-> hera",
+        "laneige -hasProduct-> lip_sleeping_mask",
+        "laneige -hasProduct-> lip_sleeping",
+        "lip_sleeping_mask -belongsToCategory-> lip_care",
+        "laneige -hasProduct-> lip_glowy_balm",
+        "laneige -hasProduct-> lip_glowy",
+        "lip_glowy_balm -belongsToCategory-> lip_care",
+        "laneige -ownedBy-> amorepacific",
+        "laneige -hasSoS-> lip_care",
+        "laneige -hasSoS-> lip_makeup",
+        "laneige -hasSoS-> face_powder",
+        "laneige -rankedIn-> lip_care",
+        "laneige -rankedIn-> lip_makeup"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "laneige",
+          "data": [
+            {
+              "brand": "blistex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "chapstick",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "brand_products",
+          "entity": "laneige",
+          "data": {
+            "product_count": 5,
+            "products": [
+              {
+                "asin": "B07XXPHQZK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 8,
+                "title": "LANEIGE Lip Sleeping Mask: Korean Overnight Treatment For Dry Lips | Hydrating & Nourishing Overnigh",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07DY2QRF6",
+                "name": "",
+                "category": "lip_care",
+                "rank": 10,
+                "title": "LANEIGE Lip Glowy Balm: Sheer Tinted Lip Moisturizer with Shea Butter, for Hydrating Shine & Soft Li",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DT2JNXP2",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 41,
+                "title": "LANEIGE Glaze Craze Tinted Lip Serum: Hydrating Lip Serum for Glossy, Nourished Lips with Plumping P",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0G7NRYFJS",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 63,
+                "title": "LANEIGE JuicePop Box Lip Tint | Long-Lasting Hydrating Lightweight Tint | Buildable Juicy Color & No",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DHWFT182",
+                "name": "",
+                "category": "face_powder",
+                "rank": 12,
+                "title": "LANEIGE Neo Blurring Powder: Korean Oil-Control Compact with Pore Blurring, Smoothing Finish & Trave",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "metric_edges",
+          "entity": "laneige",
+          "data": {
+            "edges": [
+              {
+                "subject": "laneige",
+                "predicate": "hasProduct",
+                "object": "lip_sleeping_mask"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasProduct",
+                "object": "lip_sleeping"
+              },
+              {
+                "subject": "lip_sleeping_mask",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasProduct",
+                "object": "lip_glowy_balm"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasProduct",
+                "object": "lip_glowy"
+              },
+              {
+                "subject": "lip_glowy_balm",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "LANEIGE",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasSoS",
+                "object": "lip_care"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasSoS",
+                "object": "lip_makeup"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasSoS",
+                "object": "face_powder"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "rankedIn",
+                "object": "lip_care"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "rankedIn",
+                "object": "lip_makeup"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [
+        {
+          "rule_name": "fragmented_market_competition",
+          "insight_type": "market_position",
+          "insight": "시장이 분산되어 있고(HHI: 0.000) 8개의 경쟁 브랜드가 활동 중입니다. 시장 점유율 확대 기회가 있으나 경쟁도 치열합니다.",
+          "confidence": 0.85,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "has_competitors_5"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 8,
+              "product_count": 5
+            }
+          },
+          "recommendation": "차별화 전략 강화 및 타겟 고객층 명확화. 경쟁사 대비 강점(가격/품질/브랜드) 부각 필요.",
+          "related_entities": [
+            "blistex",
+            "chapstick",
+            "sun bum",
+            "carmex",
+            "hera"
+          ],
+          "metadata": {
+            "rule_description": "분산된 시장에서의 다수 경쟁자 존재는 성장 기회와 위협이 공존",
+            "priority": 7,
+            "tags": [
+              "market",
+              "competition",
+              "neutral"
+            ],
+            "hhi": null,
+            "competitor_count": 8,
+            "market_type": "fragmented"
+          }
+        },
+        {
+          "rule_name": "category_entry_opportunity",
+          "insight_type": "entry_opportunity",
+          "insight": "해당 카테고리는 분산된 시장 구조(HHI: 0.000)로 현재 laneige의 존재감이 낮아(0.0%) 진입 확대 기회가 있을 수 있습니다.",
+          "confidence": 0.7,
+          "evidence": {
+            "satisfied_conditions": [
+              "hhi_below_0.15",
+              "low_target_presence",
+              "is_target"
+            ],
+            "context_snapshot": {
+              "brand": "laneige",
+              "is_target": true,
+              "has_rank_shock": false,
+              "alert_count": 0,
+              "competitor_count": 8,
+              "product_count": 5
+            }
+          },
+          "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+          "related_entities": [
+            ""
+          ],
+          "metadata": {
+            "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+            "priority": 6,
+            "tags": [
+              "opportunity",
+              "expansion",
+              "positive"
+            ],
+            "category": null,
+            "hhi": null,
+            "current_sos": null
+          }
+        }
+      ],
+      "applied_rules": [
+        "category_entry_opportunity",
+        "fragmented_market_competition"
+      ],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## LANEIGE 제품이 속한 카테고리의 HHI 분석\n\n### 인사이트\n- LANEIGE가 속한 카테고리는 시장이 매우 분산된 구조로, HHI가 0.000으로 나타났습니다. 이는 해당 카테고리에 8개의 경쟁 브랜드가 활동 중이며, 시장 점유율이 특정 브랜드에 집중되지 않고 분산되어 있음을 의미합니다.\n- LANEIGE의 시장 내 존재감은 현재 낮은 편(0.0%)으로, 진입 확대 기회가 있을 수 있으나 경쟁이 치열한 상황으로 보입니다.\n\n### 근거\n- HHI: 0.000, 경쟁 브랜드 수: 8개, LANEIGE 존재감 0.0% [출처: Ontology Reasoning]\n\n### 권장 사항\n- 분산된 시장 구조를 고려할 때, LANEIGE는 차별화 전략을 강화하고 타겟 고객층을 명확히 하는 것이 필요할 수 있습니다.\n- 제품 라인업 확장 및 카테고리 트렌드, 소비자 니즈 분석을 통해 시장 내 존재감을 높이는 방안을 검토하는 것이 바람직해 보입니다.\n\n현재 확인된 데이터 기준으로, LANEIGE가 속한 카테고리의 HHI는 0.000으로 매우 분산된 시장임을 참고하시기 바랍니다. [출처: Ontology Reasoning]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 🧠 **온톨로지 규칙: fragmented_market_competition**\n   - 신뢰도: 85%\n   - 규칙: fragmented_market_competition\n\n3. 🧠 **온톨로지 규칙: category_entry_opportunity**\n   - 신뢰도: 70%\n   - 규칙: category_entry_opportunity\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.54\n\n5. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.52\n\n6. 📄 **1.4 Market Pulse Snapshot (시장 분위기 요약)**\n   - 관련도: 0.42\n\n7. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7603.533029556274,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

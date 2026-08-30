@@ -1,0 +1,129 @@
+{
+  "item_id": "lg057",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.03125,
+    "semantic_similarity": 0.16163423657417297,
+    "groundedness_score": 0.14285714285714285,
+    "answer_relevance_score": 0.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.25355005748215176,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg057",
+    "timestamp": "2026-08-30T16:41:27.282968",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_7",
+        "metric_interpretation_3_0",
+        "metric_interpretation_3_1",
+        "strategic_indicators_1_1",
+        "indicator_combination_3_0"
+      ],
+      "snippets": [
+        "1.5 Price vs Quality Signal (가격·품질 리스크 요약)\n\n### 목표\n- CPI와 Avg Rating Gap의 조합을 “리스크” 관점으로 1줄 요약\n- **문제 없으면 ‘정상’으로 처리**(과대 경고 금지)\n\n### 기본 규칙(조합)\n- CPI > 100 & Avg Rating Gap < 0:\n  - “프리미엄 가격 대비 평점 열위 신",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "B. Category & Price Combination\n### (가격 · 품질 인식)\n\n---\n\n### 5. CPI > 100 + Avg Rating Gap > 0\n\n#### 해석 시나리오\n- 고가 포지션이면서 품질 인식도 양호\n\n#### 시사점\n- 프리미엄 전략 정합성 높음\n\n#### 고려 가능한 액션 후보\n- 프리미엄 메시지 강화\n- 고가 라인 확장 "
+      ],
+      "scores": [
+        0.5029066205024719,
+        0.48922598361968994,
+        0.484494686126709,
+        0.4730132818222046,
+        0.471008837223053
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "질문의 의도를 정확히 파악하지 못했습니다. 다음 중 어떤 정보가 필요하신가요?\n\n1. 지표 정의 (예: 'SoS가 뭐야?')\n2. 지표 해석 (예: 'HHI가 높으면 어떤 의미야?')\n3. 지표 조합 해석 (예: 'CPI 높고 평점 낮으면?')\n4. 순위/데이터 조회 (예: '라네즈 현재 순위?')\n5. 분석 요청 (예: '라네즈 3개월 성과 분석해줘')",
+      "citations": [],
+      "confidence": null,
+      "query_type": "unknown",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 1.6901493072509766,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

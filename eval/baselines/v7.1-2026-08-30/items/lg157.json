@@ -1,0 +1,271 @@
+{
+  "item_id": "lg157",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666665,
+    "concept_map_f1": 0.28571428571428575,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.058823529411764705,
+    "context_precision_at_k": 0.14285714285714285,
+    "mrr": 0.16666666666666666,
+    "context_recall_at_k_concept": 0.3333333333333333,
+    "context_recall_at_k_doc": 0.5
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12244897959183673,
+    "semantic_similarity": 0.850078821182251,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.6026166710706016,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg157",
+    "timestamp": "2026-08-30T16:52:26.362241",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "tirtir"
+      ],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [
+        "B00PFCSNWA"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_1_1",
+        "negative_issue_response_1_0",
+        "negative_issue_response_4_0",
+        "laneige_strategy_2026_6_0",
+        "us_beauty_trends_weekly_table_0",
+        "laneige_strategy_2026_5_1",
+        "negative_issue_response_7_10"
+      ],
+      "snippets": [
+        "현재 미국 뷰티 시장의 소비자 정서는 '맹목적 바이럴 수용'에서 '검증과 회의주의'로 급격히 전환되고 있다. 지난 1년간 틱톡(TikTok)을 중심으로 폭발적인 성장을 이룬 브랜드들이 이제는 '인플루언서 피로감(Influencer Fatigue)'과 '효능 불일치'라는 역풍을 맞이하고 있다. 데이터 분석 결과, 위기는 크게 네 가지 핵심 벡터로 분류된다. ",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "---\n\n**4\\. 위기 벡터 III: 색채의 배신 \\- 티르티르(Tirtir) 마스크 핏 레드 쿠션**\n\n### **4.1. 이슈의 발단: 포용성의 이면**\n\n티르티르의 레드 쿠션은 다양한 쉐이드(색상)를 출시하며 '포용적 뷰티(Inclusive Beauty)'의 아이콘으로 부상했다. 그러나 실제 사용자들 사이에서는 시간이 지날수록 색상이 어둡고 붉게 변",
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "/r/AsianBeauty/comments/1o4bcf8/sigh_tirtir_oxidization_strikes_again/)  \n13. Tirtir Red Cushion Foundation : r/AsianBeauty \\- Reddit, 1월 20, 2026에 액세스, [https://www.reddit.com/r/AsianBeauty/comments/"
+      ],
+      "scores": [
+        0.3827475905418396,
+        0.3662523627281189,
+        0.35958099365234375,
+        0.35702043771743774,
+        0.3501015901565552,
+        0.3492954969406128,
+        0.34885168075561523
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder",
+        "tirtir",
+        "B00PFCSNWA"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 30,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 30,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 8,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 4,
+                "products": [
+                  "B00PFCSNWA",
+                  "B06XDZ93P5",
+                  "B06XDX6YGD",
+                  "B07HFSM8PS"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 4,
+                "products": [
+                  "B001P2LWJA",
+                  "B0030HAEG0",
+                  "B09JB9T6QB",
+                  "B00AY351OI"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## TIRTIR Face Powder 1위 달성 이유 및 Face Powder 카테고리 HHI 변화\n\n### 인사이트\n- TIRTIR의 Face Powder가 해당 카테고리에서 1위를 기록한 점은 제품의 시장 내 인지도 및 소비자 선호도가 상대적으로 높음을 시사합니다.\n- 다만, TIRTIR 브랜드는 쿠션 제품에서 산화(다크닝) 현상과 색상 불일치 이슈가 보고되고 있어, Face Powder 1위 달성은 쿠션 이슈와는 별개로 제품력이나 마케팅 전략에서 긍정적 반응이 있었을 가능성이 있습니다.\n- Face Powder 카테고리 내 주요 브랜드로는 unknown, Covergirl, e.l.f.가 언급되었으나, TIRTIR가 1위를 차지한 점은 경쟁 구도에 변화가 있었을 수 있음을 시사합니다.\n- 현재 제공된 데이터 내에서는 Face Powder 카테고리의 HHI(시장 집중도) 변화에 관한 구체적 수치나 추이가 명시되어 있지 않아, HHI 변화 여부는 확인이 필요합니다.\n\n### 근거\n- TIRTIR Face Powder 1위 (Face Powder 카테고리, Level 3) [출처: 현재 데이터]\n- TIRTIR 쿠션 제품 산화 이슈 및 소비자 불만 보고 [출처: rag, Document ID: negative_issue_response]\n- Face Powder 카테고리 내 주요 브랜드: unknown, Covergirl, e.l.f. [출처: 현재 데이터]\n- HHI 변화 관련 데이터 미제공 [출처: 현재 데이터]\n\n### 권장\n- TIRTIR Face Powder 1위 달성 배경에 대해 추가 소비자 리뷰, 판매 데이터, 마케팅 활동 분석이 필요합니다.\n- Face Powder 카테고리 내 HHI 변화는 별도 시장 점유율 데이터 확보 후 분석을 권장합니다.\n- 쿠션 제품의 산화 이슈가 브랜드 이미지에 미치는 영향과 Face Powder 제품의 차별화 요소를 함께 모니터링할 필요가 있습니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1\\. 서론: 시장 맥락 및 위기 지형도****\n   - 관련도: 0.38\n\n3. 📄 **---**\n   - 관련도: 0.36\n\n4. 📄 **이번 주 Top 10 키워드 및 의미**\n   - 관련도: 0.35\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7063.802003860474,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

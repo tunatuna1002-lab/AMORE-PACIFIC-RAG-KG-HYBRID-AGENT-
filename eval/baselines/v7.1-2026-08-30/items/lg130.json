@@ -1,0 +1,434 @@
+{
+  "item_id": "lg130",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.3333333333333333,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.3333333333333333
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12500000000000003,
+    "semantic_similarity": 0.5898284316062927,
+    "groundedness_score": 0.4615,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5474806699556775,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg130",
+    "timestamp": "2026-08-30T16:49:30.586562",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "market_entry"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "laneige_influencer_map_1_0",
+        "ir_2025_q2_0_19",
+        "ir_2025_q3_0_18",
+        "indicator_combination_2_0"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "• Americas revenue grew 10% driven by new brand launch and strong performance of key products \\- \\[Laneige\\] Achieved robust sales growth in both lip and skincare category through solid sales of ‘Glaz",
+        "\\-Launched new editions of the Lip Sleeping Mask (‘Baskin Robbins,’ ‘Strawberry Shortcake’), reinforcing its lip category leadership  • Expanded digital reach by launching micro-drama (‘Beauty and the",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하"
+      ],
+      "scores": [
+        0.4978454113006592,
+        0.45567309856414795,
+        0.519806444644928,
+        0.4635290503501892,
+        0.43405020236968994
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "nivea",
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care",
+        "nivea -hasSoS-> lip_care",
+        "nivea -rankedIn-> lip_care",
+        "nivea -hasProduct-> lip_care",
+        "lip_care -belongsToCategory-> lip_care",
+        "nivea -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.3
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 29,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 9,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 9,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 7,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP"
+                ]
+              },
+              {
+                "brand": "chapstick",
+                "product_count": 7,
+                "products": [
+                  "B000GG64O4",
+                  "B07GVVLSG3",
+                  "B07DP6X7Q8",
+                  "B07GVPQXRF",
+                  "B07X62WVM4",
+                  "B07GVVRXRC",
+                  "B0FGPYWRMK"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "brand_products",
+          "entity": "nivea",
+          "data": {
+            "product_count": 3,
+            "products": [
+              {
+                "asin": "B07YG8YVQW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 53,
+                "title": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butter, 4 x 0.17 OZ | Moisturizing Lip Balm w",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07Y91BMSK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.17 OZ | One Each: Cherry, Strawberry, Wat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B082JJ4D98",
+                "name": "",
+                "category": "lip_care",
+                "rank": 88,
+                "title": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4 x 0.17 OZ | Sunscreen Lip Balm with SPF",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        },
+        {
+          "type": "metric_edges",
+          "entity": "nivea",
+          "data": {
+            "edges": [
+              {
+                "subject": "nivea",
+                "predicate": "hasSoS",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "rankedIn",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "hasProduct",
+                "object": "lip_care"
+              },
+              {
+                "subject": "lip_care",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.3
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Lip Care 카테고리 신규 진입 브랜드가 기존 브랜드에 미치는 영향\n\n### 인사이트\n- Lip Care 카테고리는 LANEIGE가 독보적인 기술력과 브랜드 파워를 기반으로 강력한 시장 지위를 확보하고 있습니다. 특히 '립 베이스팅(Lip Basting)' 트렌드와 펩타이드 립 트리트먼트가 주요 성장 동력으로 작용 중입니다.\n- 신규 진입 브랜드가 등장할 경우, LANEIGE와 같은 기존 강자들이 보유한 독자적 기술과 차별화된 제품 라인업이 경쟁 우위를 유지하는 데 중요한 역할을 할 가능성이 있습니다.\n- 신규 브랜드 진입은 카테고리 내 경쟁 심화로 이어질 수 있으나, LANEIGE는 ‘Glaze Craze Lip Serum’, ‘Bubble Tea Collection’ 등 신제품 출시와 기존 제품의 견고한 수요로 시장 점유율 방어에 유리한 위치에 있을 수 있습니다.\n- 다만, 신규 브랜드가 혁신적 제품이나 트렌드에 부합하는 마케팅 전략을 구사할 경우, 기존 브랜드의 시장 점유율에 일정 부분 영향을 미칠 가능성도 배제할 수 없습니다.\n\n### 근거\n- LANEIGE는 ‘립 베이스팅’ 트렌드와 펩타이드 립 트리트먼트라는 두 가지 큰 흐름 속에서 독보적인 지위를 차지하고 있음 [출처: rag, 1]\n- 2025년 2분기 미국 시장에서 LANEIGE의 Lip Care 제품군이 신제품 출시와 기존 제품의 견고한 수요로 매출 성장 견인 [출처: rag, 3]\n- Lip Care 카테고리 내 주요 브랜드로 unknown, eos, hera 등이 존재하며, Nivea는 3개 제품을 보유 [출처: Knowledge Graph]\n\n### 권장 사항\n- 신규 진입 브랜드는 차별화된 기술력 또는 트렌드 연계 제품 개발에 집중할 필요가 있습니다.\n- 기존 강자인 LANEIGE는 지속적인 신제품 출시와 기술 혁신으로 경쟁 우위를 유지하는 전략이 유효할 것으로 보입니다.\n- 신규 브랜드 진입에 따른 시장 반응과 소비자 선호 변화를 면밀히 모니터링하여 빠른 대응 전략을 마련하는 것이 바람직합니다.\n- 단기적으로는 신규 브랜드 진입이 기존 브랜드 순위에 미치는 영향이 제한적일 수 있으나, 중장기적으로는 경쟁 구도 변화 가능성을 염두에 두어야 합니다.\n\n---\n\n현재 확인된 데이터 기준으로, Lip Care 카테고리 내 신규 브랜드 진입은 기존 강자의 기술력과 제품력에 도전하는 형태로 나타날 수 있으나, LANEIGE와 같은 독보적 브랜드의 시장 지위는 당분간 견고할 것으로 보입니다 [출처: rag, 1, 3; Knowledge Graph].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 📄 **---**\n   - 관련도: 0.50\n\n3. 📄 ****1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝****\n   - 관련도: 0.46\n\n4. 📄 ****2Q 2025 Earnings Release ![][image1]**2025.8.1**\n   - 관련도: 0.52\n\n5. 📄 ****3Q 2025 Earnings Release ![][image1]**2025.11.6**\n   - 관련도: 0.46\n\n6. 📄 **A. Market & Brand Combination**\n   - 관련도: 0.43\n\n7. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9723.670721054077,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

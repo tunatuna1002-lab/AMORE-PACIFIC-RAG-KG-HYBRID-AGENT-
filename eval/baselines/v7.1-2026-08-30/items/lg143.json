@@ -1,0 +1,124 @@
+{
+  "item_id": "lg143",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.11650485436893203,
+    "semantic_similarity": 0.7790437340736389,
+    "groundedness_score": 0.5833,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.4719297062931648,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg143",
+    "timestamp": "2026-08-30T16:50:56.064434",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "competitor_analysis"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_5_3",
+        "amazon_ranking_diagnosis_4_0",
+        "amazon_algorithm_guide_6_2",
+        "amazon_algorithm_guide_4_2",
+        "amazon_algorithm_guide_2_1"
+      ],
+      "snippets": [
+        "### **5.2 시나리오 B: 경쟁사 제품의 랭킹이 급등했을 때 (Ranking Improved)**\n\n1. **IF \\[가격\\] \\< \\[평소 가격\\] (상당한 인하)**  \n   * **THEN:** 쿠폰(초록색 배지) 적용 여부, 취소선 가격(Strike-through Pricing) 여부를 확인하라.  \n   * **가설:** 가격 탄력성을 이용한",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "* **Keepa / Helium 10:**  \n  * *활용법:* BSR 그래프와 가격 변동 그래프를 중첩하여 분석합니다. 경쟁사가 가격을 내린 시점과 내 랭킹이 떨어진 시점이 일치하는지 확인합니다. 'Market Tracker' 기능을 통해 시장 전체의 파이 변화와 내 점유율 변화를 비교합니다.17  \n* **SimilarWeb / Ahrefs:**  ",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하"
+      ],
+      "scores": [
+        0.4086482524871826,
+        0.4085105061531067,
+        0.40115976333618164,
+        0.38445937633514404,
+        0.3844207525253296
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 경쟁사 가격 인하가 시장 HHI에 미치는 영향\n\n### 인사이트\n- 경쟁사가 가격을 상당히 인하할 경우, 해당 제품의 판매량 증가로 인해 랭킹이 급등할 가능성이 있습니다. 이로 인해 시장 내 점유율이 재분배되면서 HHI(시장 집중도 지수)에 변동이 발생할 수 있습니다.\n- 가격 인하는 구매 전환율을 높여 판매량 증가를 유도할 수 있으며, 이는 경쟁사 점유율 상승과 타사 점유율 하락으로 이어져 HHI가 상승하거나 하락할 수 있습니다.  \n- 특히, 가격 인하가 쿠폰 적용이나 취소선 가격 표시와 함께 이루어졌다면 프로모션 효과가 커져 시장 점유율 변화가 더 뚜렷할 수 있습니다.\n\n### 근거\n- 아마존은 판매량 기반으로 BSR을 산정하며, 가격 인하 및 쿠폰·라이트닝 딜 진행 시 구매 전환율과 판매량이 증가할 수 있다고 명시되어 있습니다【rag 2.1】.\n- 가격 인하 시점과 랭킹 급등이 일치하는지 Keepa/CamelCamelCamel 등의 가격 및 BSR 그래프 중첩 분석을 통해 검증할 수 있습니다【rag 3】.\n- 시장 점유율 변화는 'Market Tracker' 기능을 통해 파이 변화와 점유율 변화를 비교 분석할 수 있습니다【rag 3】.\n\n### 권장\n- 경쟁사 가격 인하가 감지되면, 해당 시점의 랭킹 변동과 시장 점유율 변화를 면밀히 모니터링할 것을 권장합니다.\n- 가격 인하가 쿠폰, 취소선 가격 등 프로모션과 결합되었는지 확인하여 프로모션 효과를 평가해야 합니다.\n- HHI 변동 분석 시, 동일 카테고리 내에서 점유율 변화를 비교하여 시장 집중도 변화를 정확히 파악하는 것이 중요합니다.\n- 단기적인 가격 인하에 따른 랭킹 변동은 노이즈일 수 있으므로, 중장기 추이를 관찰하는 것이 바람직합니다.\n\n현재 확인된 데이터 기준으로, 경쟁사 가격 인하는 시장 내 점유율 재분배를 촉진하여 HHI에 변화를 줄 수 있으나, 구체적 수치나 방향성은 추가 데이터 분석이 필요합니다【rag 1, 2, 3】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 0.41\n\n2. 📄 **2. 내부 요인 분석**\n   - 관련도: 0.41\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7788.677215576172,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

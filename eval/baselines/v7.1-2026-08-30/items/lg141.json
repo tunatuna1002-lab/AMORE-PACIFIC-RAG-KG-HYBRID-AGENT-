@@ -1,0 +1,265 @@
+{
+  "item_id": "lg141",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.06666666666666667,
+    "context_precision_at_k": 0.2,
+    "mrr": 0.25,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1411764705882353,
+    "semantic_similarity": 0.8074420094490051,
+    "groundedness_score": 0.8888888888888888,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.5706256632033516,
+  "fail_reason_tags": [
+    "L1_mapping_fail"
+  ],
+  "trace": {
+    "item_id": "lg141",
+    "timestamp": "2026-08-30T16:50:40.313417",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "market_entry"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_1_0",
+        "us_beauty_trends_weekly_4",
+        "ir_2025_q1_0_23",
+        "laneige_strategy_2026_3_2",
+        "ir_2025_q1_0_17"
+      ],
+      "snippets": [
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "• OtherAsia(APAC, Japan)revenue increased53%\n\n\\- \\[APAC\\]Overall sales increased with roll out of Sulwhasoo’sglobal campaign(‘First Care Activating Serum’ ),  Laneige’snew launch of ‘Bouncy & Firm Ser",
+        "이러한 현상은 소비자들이 '라네즈'라는 브랜드의 신뢰도와 'PDRN'이라는 새로운 고효능 성분 사이에서 저울질하고 있음을 시사한다. 일부 소비자들은 연어 정소 추출물이라는 기원에 거부감을 느끼기도 하지만, 대다수의 '스킨텔렉추얼(Skintellectual)' 소비자들은 그 효능에 매료되어 기꺼이 구매를 결정하고 있다.10 LANEIGE는 이에 대응하여 자사",
+        "nhanced derma  moisturizing effect and introducing new facial cleansing products ('Gentle Deep Facial Cleanser') • Enhanced brand awareness and attractiveness through collaborations with brand ambassa"
+      ],
+      "scores": [
+        0.5088646411895752,
+        0.5026558041572571,
+        0.6029102802276611,
+        0.47057223320007324,
+        0.5040366053581238
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 31,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 13,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 8,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              },
+              {
+                "brand": "la roche-posay",
+                "product_count": 5,
+                "products": [
+                  "B01N9SPQHQ",
+                  "B01N34XW93",
+                  "B01N7T7JKJ",
+                  "B0060OUV5Y",
+                  "B003QXZWYW"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Skin Care 카테고리 신규 진입 브랜드의 성공 조건\n\n### 인사이트\n- 신규 진입 브랜드는 **과학적 효능과 부드러운 사용감의 균형**을 갖춘 제품을 선보이는 것이 중요할 수 있습니다.\n- 특히, **재생 성분(펩타이드, 나이아신아마이드, PDRN, 스네일 뮤신)**과 **장벽 보습 성분(세라마이드, 히알루론산)**을 포함한 제품이 시장에서 주목받고 있습니다.\n- 또한, K-뷰티 특유의 **립케어 및 글래스 스킨 루틴** 요소를 적절히 반영하는 것도 경쟁력 확보에 도움이 될 가능성이 있습니다.\n- 상위 브랜드인 medicube, cerave와 경쟁하기 위해서는 독자적인 기술력이나 차별화된 성분 조합을 통한 브랜드 포지셔닝이 필요할 수 있습니다.\n\n### 근거\n- 미국 스킨케어 시장은 최근 한 달간 과학적 효능과 부드러운 사용감의 균형을 추구하는 방향으로 이동 중이며, 재생 및 보습 성분이 주목받고 있음 [결론, rag].\n- LANEIGE는 이미 이러한 트렌드에 부합하는 브랜드 포트폴리오를 보유하고 있어, 신규 브랜드도 이와 유사한 방향성을 고려할 필요가 있음 [결론, rag].\n- Skin Care 카테고리 내 상위 브랜드로 medicube, cerave가 존재함 [Knowledge Graph].\n\n### 권장 사항\n- 신규 진입 브랜드는 제품 개발 시 과학적 근거가 뒷받침되는 재생 및 보습 성분을 적극 활용할 것을 권장합니다.\n- 사용감의 부드러움과 효능 간 균형을 맞추는 데 집중하여 소비자 만족도를 높이는 전략이 필요할 수 있습니다.\n- K-뷰티 특유의 트렌드 요소(립케어, 글래스 스킨 루틴)를 적절히 반영하여 차별화 포인트를 마련하는 것도 고려해볼 만합니다.\n- 시장 내 상위 브랜드와의 직접 경쟁보다는 특정 니치 성분이나 기술을 통한 차별화 전략이 성공 가능성을 높일 수 있을 것으로 보입니다.\n\n현재 확인된 데이터 기준으로, 신규 진입 브랜드의 성공 조건은 위와 같이 요약할 수 있습니다 [출처: rag, Knowledge Graph].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝****\n   - 관련도: 0.51\n\n3. 📄 **결론**\n   - 관련도: 0.50\n\n4. 📄 ****1Q 2025 Earnings Release ![][image1]**2025.4.30**\n   - 관련도: 0.60\n\n5. 📄 **---**\n   - 관련도: 0.47\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7817.5208568573,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "item_id": "lg146",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.09090909090909091,
+    "context_precision_at_k": 0.14285714285714285,
+    "mrr": 0.5,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.02631578947368421,
+    "semantic_similarity": 0.23891648650169373,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 0.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.27424969271657196,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg146",
+    "timestamp": "2026-08-30T16:51:16.189198",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_table_0",
+        "laneige_strategy_2026_table_0",
+        "laneige_strategy_2026_table_1",
+        "laneige_strategy_2026_5_0",
+        "negative_issue_response_0",
+        "kbeauty_industry_6_4",
+        "negative_issue_response_1_0"
+      ],
+      "snippets": [
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "| 트렌드 요인 | 소비자 행동 변화 | LANEIGE 제품 연관성 | 아마존 판매 영향 |\n| :---- | :---- | :---- | :---- |\n| **비주얼 임팩트** | 아침에 벗겨내거나 닦아냈을 때 즉각적인 광채(Glow)를 확인하고 싶어 함 | **Water Sleeping Mask**, **Lip Sleeping Mask**의 두꺼운 도포",
+        "| 구분 | LANEIGE Cream Skin (Cerapeptide) | Rhode Glazing Milk | 소비자 인식 차이 및 시사점 |\n| :---- | :---- | :---- | :---- |\n| **제형** | 상대적으로 묽고 가벼움 (Watery) | 더 점도가 높고 에센스에 가까움 (Thicker) | LANEIGE는 레이어링(스킨 플러딩",
+        "---\n\n**5\\. 카테고리별 상세 분석: 페이셜 스킨케어 (토너 & 모이스처라이저)**\n\n### **5.1 '밀키 토너(Milky Toner)'의 전성시대와 경쟁 심화**\n\n겨울철 보습을 위한 핵심 아이템으로 '밀키 토너'가 급부상했다. 이는 물처럼 흐르는 닥토(닦아내는 토너) 대신, 우유처럼 뽀얗고 점성이 있는 토너를 사용하여 피부 장벽을 보호하고 즉각",
+        "# **2026년 1월 미국 시장 내 K-뷰티 및 바이럴 스킨케어 브랜드에 대한 부정 이슈 심층 분석 및 조기 경보 리포트**",
+        "### 4.3. 미래 초격차 전략: 미용 기기, 초개인화, 원료 혁신 \n![image]()\n1. **미용 기기****와의 결합을 통한 ****초격차**:\n  1. K-뷰티가 보여주는 초격차는 시장을 새로 만들어내는 **창조적 ****혁신**에 있다 \n  2. 화장품 효과를 극대화하기 위해 **미용 기기**를 활용하며, 피부과나 병원 접근이 쉽지 않은 해외에",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본"
+      ],
+      "scores": [
+        0.5026302933692932,
+        0.47780144214630127,
+        0.4636213779449463,
+        0.4396289587020874,
+        0.3999103307723999,
+        0.42349493503570557,
+        0.35792386531829834
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 31,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 13,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 8,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              },
+              {
+                "brand": "la roche-posay",
+                "product_count": 5,
+                "products": [
+                  "B01N9SPQHQ",
+                  "B01N34XW93",
+                  "B01N7T7JKJ",
+                  "B0060OUV5Y",
+                  "B003QXZWYW"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "질문의 의도를 정확히 파악하지 못했습니다. 다음 중 어떤 정보가 필요하신가요?\n\n1. 지표 정의 (예: 'SoS가 뭐야?')\n2. 지표 해석 (예: 'HHI가 높으면 어떤 의미야?')\n3. 지표 조합 해석 (예: 'CPI 높고 평점 낮으면?')\n4. 순위/데이터 조회 (예: '라네즈 현재 순위?')\n5. 분석 요청 (예: '라네즈 3개월 성과 분석해줘')",
+      "citations": [],
+      "confidence": null,
+      "query_type": "unknown",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 0.6263256072998047,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,265 @@
+{
+  "item_id": "lg142",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.05555555555555555,
+    "context_precision_at_k": 0.2,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 0.5
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.056224899598393566,
+    "semantic_similarity": 0.4963850677013397,
+    "groundedness_score": 0.2,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.3835126748347538,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg142",
+    "timestamp": "2026-08-30T16:50:51.830769",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "strategy",
+        "seasonality"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_1_0",
+        "indicator_combination_2_0",
+        "strategic_indicators_1_1",
+        "home_insight_rules_4_0",
+        "indicator_combination_2_1"
+      ],
+      "snippets": [
+        "**1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화**\n\n2026년 1월, 미국 뷰티 시장은 단순한 '연말연시 회복(Post-Holiday Recovery)'을 넘어선 구조적인 소비 패턴의 변화를 겪고 있다. 과거의 뷰티 트렌드가 '클린 걸(Clean Girl)'로 대변되는 미니멀리즘과 자연스러움에 천착했다면, 현재의 시장은 \\*\\*'재생",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "1.2 Brand Health Status (브랜드 건강 상태 배지/카드)\n\n### 목표\n- 수치 대신 “상태”로 요약\n- 3개 카드(권장): 브랜드 노출, 시장 구조, 이상 신호\n\n### 상태 정의 (권장 라벨)\n- 브랜드 노출 상태(SoS 중심):\n  - Stable / Up / Down\n- 시장 구조(HHI 중심):\n  - Competitive / C",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat"
+      ],
+      "scores": [
+        0.43399906158447266,
+        0.4700627326965332,
+        0.466888427734375,
+        0.43285858631134033,
+        0.42664939165115356
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 뷰티 시장 계절성이 브랜드 전략에 미치는 영향\n\n### 인사이트\n- 뷰티 시장은 계절성에 따라 소비 패턴과 제품 수요가 변동할 가능성이 있으며, 이에 따라 브랜드는 SKU 구조 조정과 핵심 제품 집중 전략을 검토할 필요가 있습니다.\n- 계절적 수요 변화는 브랜드의 제품 포트폴리오 효율성에 영향을 미쳐, SKU 수 대비 상위권 고정력 부족 현상(SoS 상승 + Brand Avg Rank 하락)이나 소수 히트 상품 중심 구조(SoS 하락 + Brand Avg Rank 상승)로 나타날 수 있습니다.\n- 따라서 계절별 소비 트렌드에 맞춘 제품 라인업 조정과 마케팅 집중이 브랜드 경쟁력 유지에 중요할 수 있습니다.\n\n### 근거\n- 브랜드가 많은 제품을 보유하나 상위권 고정력이 부족한 경우(SoS ↑ + Brand Avg Rank ↓)는 포트폴리오가 분산되어 있을 가능성이 있으며, 이는 계절성에 따른 수요 변화에 대응하는 과정에서 나타날 수 있습니다.\n- 반대로 소수 제품으로 상위권을 유지하는 경우(SoS ↓ + Brand Avg Rank ↑)는 히트 상품 중심의 집중 전략이 효과적임을 시사합니다.\n- 이러한 해석은 2026년 1월 미국 뷰티 시장의 구조적 변화와 소비자 트렌드 전환 맥락에서 고려할 때, 계절성에 따른 전략적 SKU 조정과 집중이 필요함을 시사합니다 [출처: RAG 가이드라인, 2026-08-30].\n\n### 권장 사항\n- 브랜드는 계절별 소비 패턴을 면밀히 분석하여 SKU 구조를 점검하고, 비수기에는 핵심 제품에 집중하는 전략을 검토할 필요가 있습니다.\n- 신제품 출시 및 프로모션 시점도 계절성에 맞춰 조정하여 시장 내 상위권 고정력을 강화하는 방향으로 전략을 수립하는 것이 바람직합니다.\n- 단기적인 순위 변동은 계절성 외 다른 요인일 수 있으므로, 장기적 추이 분석과 함께 다각적 대응이 요구됩니다.\n\n현재 확인된 데이터 기준으로, 뷰티 시장 계절성은 브랜드의 제품 포트폴리오 효율성과 상위권 유지 전략에 중요한 영향을 미칠 수 있음을 참고하시기 바랍니다 [출처: RAG 가이드라인, 2026-08-30].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화****\n   - 관련도: 0.43\n\n3. 📄 **A. Market & Brand Combination**\n   - 관련도: 0.47\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.47\n\n5. 📄 **1.2 Brand Health Status (브랜드 건강 상태 배지/카드)**\n   - 관련도: 0.43\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8608.61611366272,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

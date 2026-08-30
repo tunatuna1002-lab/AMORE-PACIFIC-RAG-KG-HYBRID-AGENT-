@@ -1,0 +1,133 @@
+{
+  "item_id": "lg047",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.8571428571428571,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.16,
+    "semantic_similarity": 0.6255461573600769,
+    "groundedness_score": 0.6428571428571429,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.6666666667
+  },
+  "overall_score": 0.46929439226064507,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg047",
+    "timestamp": "2026-08-30T16:40:23.912565",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_0",
+        "us_beauty_trends_weekly_3_2",
+        "negative_issue_response_6_0",
+        "laneige_strategy_2026_6_1",
+        "negative_issue_response_1_0",
+        "laneige_strategy_2026_7_1",
+        "kbeauty_industry_6_2"
+      ],
+      "snippets": [
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "l mucin cream” 등을 테스트한다. CPC·전환율을 모니터링해 효율적인 키워드를 선별한다.\n5. **Reddit AMA/소셜 리스닝** – 스킨케어 서브레딧에서 **LANEIGE 개발자 AMA**를 개최하여 소비자의 성분 관련 질문에 답변하고 신뢰를 구축한다. 또한 Reddit 및 TikTok 댓글을 분석해 제품에 대한 불만(예: 끈적임, 향)에 ",
+        "---\n\n**6\\. 위기 벡터 V: 플랫폼 불신과 가품 공포 \\- 공급망(Supply Chain)의 위기**\n\n### **6.1. 이슈의 발단: 아마존의 '복불복' 게임**\n\n코스알엑스(COSRX), 라운드랩, 아누아 등 인기 K-뷰티 제품들이 아마존에서 '가품(Fake)' 논란에 시달리고 있다. 아마존의 재고 혼합(Commingled Inventory) ",
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완",
+        "### 4.2. 중국 집중 전략의 위험성과 추격자들의 위협 \n![image]()\n1. **대기업의 특정 지역 집중 전략 실패**:\n  1. 도전하는 대기업들의 모습은 특정 지역 집중 전략의 위험성을 보여준다 \n  2. 2010년까지 한국 화장품 수출의 <mark>90%</mark>를 차지했던 두 개 대기업의 비중이 이제 <mark>10% 아래</mark>로"
+      ],
+      "scores": [
+        0.37481021881103516,
+        0.3566960096359253,
+        0.33794379234313965,
+        0.33123230934143066,
+        0.32076817750930786,
+        0.3128795623779297,
+        0.3396620750427246
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 인사이트\n- CPI(Competitive Price Index)와 SoS(Share of Shelf)가 동시에 하락하는 경우, 가격 경쟁력과 제품 가시성 모두 약화되고 있음을 시사할 수 있습니다.  \n- 이는 브랜드의 시장 내 입지가 약화될 가능성이 있으며, 소비자 접근성과 구매 전환에 부정적 영향을 미칠 수 있습니다.  \n- 특히 아마존 뷰티 카테고리에서 가품 논란과 플랫폼 불신이 존재하는 상황에서, 가격과 진열 비중 하락은 소비자 신뢰 저하와도 연관될 수 있습니다 [출처: 현재 데이터, rag 3].\n\n### 근거\n- CPI 하락은 경쟁사 대비 가격 경쟁력이 떨어지고 있음을 의미할 수 있습니다.  \n- SoS 하락은 Top N 랭킹 내 제품 수 비중 감소로, 소비자 노출 빈도가 줄어드는 현상입니다.  \n- 아마존 내 가품 문제와 소비자 불신이 존재하는 상황에서, 가격과 진열 비중 하락은 브랜드 신뢰도 저하와 연결될 가능성이 있습니다 [출처: rag 3].\n\n### 권장 전략\n1. **가격 정책 재검토**  \n   - CPI 하락을 방지하기 위해 경쟁력 있는 가격 설정과 프로모션 전략을 테스트할 필요가 있습니다.  \n   - CPC 및 전환율 모니터링을 통해 효율적인 키워드와 가격대를 선별하는 방안을 고려할 수 있습니다 [출처: rag 2].\n\n2. **제품 가시성 강화**  \n   - SoS 하락을 만회하기 위해 Top N 랭킹 내 제품 수를 늘릴 수 있는 신제품 출시 또는 기존 제품 라인업 강화가 필요할 수 있습니다.  \n   - 아마존 내 진열 및 검색 노출 최적화를 위한 광고 및 콘텐츠 개선도 병행 권장됩니다.\n\n3. **소비자 신뢰 회복 노력**  \n   - 가품 논란과 플랫폼 불신 문제에 대응하기 위해, Reddit AMA 등 소셜 리스닝 채널을 활용해 소비자와 직접 소통하며 신뢰 구축을 시도할 수 있습니다.  \n   - 제품 성분, 품질 관련 소비자 문의에 적극 대응하는 전략이 도움이 될 수 있습니다 [출처: rag 2, rag 3].\n\n4. **단기 변동성 모니터링**  \n   - CPI와 SoS 하락이 단기 노이즈인지 추이를 지속 관찰하며, 급격한 변동 시 원인 분석과 대응책 마련이 필요합니다.\n\n---\n\n현재 확인된 데이터 기준으로, CPI와 SoS가 동시에 하락하는 상황에서는 가격 경쟁력과 제품 가시성 강화를 중심으로 한 다각적 대응 전략이 요구될 수 있습니다 [출처: 현재 데이터, rag 2, rag 3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 0.37\n\n2. 📄 **다음 주 테스트 액션 제안**\n   - 관련도: 0.36\n\n3. 📄 **---**\n   - 관련도: 0.34\n\n4. 📄 **4. K-뷰티의 위협 요인과 미래 초격차 전략**\n   - 관련도: 0.34\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9146.751880645752,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
