@@ -937,3 +937,58 @@ class TestRSSFeedsConfig:
         """K-Beauty 키워드가 정의되어 있어야 함"""
         assert len(KBEAUTY_KEYWORDS) > 0
         assert "laneige" in KBEAUTY_KEYWORDS
+
+
+class TestRSSFeedBodyFetch:
+    """브라우저 UA 기반 RSS 본문 fetch (2026-08-30 사이클 4).
+
+    feedparser의 자체 fetch는 기본 UA로 403/HTML 오류 페이지를 받아
+    "not well-formed"로 실패하는 매체가 있었다.
+    """
+
+    @pytest.mark.asyncio
+    async def test_returns_none_without_session(self, tmp_path):
+        collector = ExternalSignalCollector(data_dir=str(tmp_path / "signals"))
+
+        assert await collector._fetch_feed_body("https://example.com/rss") is None
+
+    @pytest.mark.asyncio
+    async def test_returns_body_on_200(self, tmp_path):
+        collector = ExternalSignalCollector(data_dir=str(tmp_path / "signals"))
+        response = MagicMock()
+        response.status = 200
+        response.text = AsyncMock(return_value="<rss></rss>")
+        session = MagicMock()
+        session.get.return_value.__aenter__ = AsyncMock(return_value=response)
+        session.get.return_value.__aexit__ = AsyncMock(return_value=False)
+        collector._session = session
+
+        body = await collector._fetch_feed_body("https://example.com/rss")
+
+        assert body == "<rss></rss>"
+        assert "User-Agent" in session.get.call_args.kwargs["headers"]
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_error_status(self, tmp_path):
+        collector = ExternalSignalCollector(data_dir=str(tmp_path / "signals"))
+        response = MagicMock()
+        response.status = 403
+        session = MagicMock()
+        session.get.return_value.__aenter__ = AsyncMock(return_value=response)
+        session.get.return_value.__aexit__ = AsyncMock(return_value=False)
+        collector._session = session
+
+        assert await collector._fetch_feed_body("https://example.com/rss") is None
+
+
+class TestRSSFeedRegistry:
+    def test_dead_feeds_are_removed(self):
+        """실측에서 410/403으로 확인된 소스는 등록돼 있으면 안 된다."""
+        for dead in (
+            SignalSource.COSMETICS_DESIGN_ASIA,
+            SignalSource.COSMETICS_DESIGN_EUROPE,
+            SignalSource.BYRDIE,
+            SignalSource.HAPPI,
+            SignalSource.BEAUTY_PACKAGING,
+        ):
+            assert dead not in RSS_FEEDS

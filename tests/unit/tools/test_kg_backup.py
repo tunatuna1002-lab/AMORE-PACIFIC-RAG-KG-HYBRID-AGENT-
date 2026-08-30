@@ -513,3 +513,19 @@ class TestEdgeCases:
         with open(service.kg_path, encoding="utf-8") as f:
             data = json.load(f)
         assert data["triples"] == [{"s": "modified"}]
+
+
+class TestProjectRootResolution:
+    """기본 경로가 리포 루트 기준이어야 한다 (2026-08-30 사이클 4 수정).
+
+    이전에는 `Path(__file__).parent.parent.parent`가 모듈 이동 후 `src/`를 가리켜
+    `src/data/knowledge_graph.json`을 찾았고, CLI 백업이 항상 실패했다.
+    """
+
+    def test_default_kg_path_points_at_repo_data_dir(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("RAILWAY_ENVIRONMENT", raising=False)
+        service = KGBackupService(backup_dir=str(tmp_path))
+
+        assert service.kg_path.name == "knowledge_graph.json"
+        assert service.kg_path.parent.name == "data"
+        assert (service.kg_path.parent.parent / "pyproject.toml").exists()

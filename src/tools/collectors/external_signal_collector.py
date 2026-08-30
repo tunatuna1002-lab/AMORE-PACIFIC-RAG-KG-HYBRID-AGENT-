@@ -186,22 +186,22 @@ class ExternalSignal:
 # RSS 피드 설정 (무료)
 # =============================================================================
 
+# 2026-08-30 전 피드 실측(HTTP 상태 + 파싱 엔트리 수) 후 정리.
+# 살아있는 피드만 남기고, 응답은 오지만 파싱 결과가 0건이던 URL은 실측으로
+# 확인한 대체 URL로 교체했다.
 RSS_FEEDS = {
     # Tier 3: 전문 매체 RSS (무료로 사용 가능)
     SignalSource.ALLURE: "https://www.allure.com/feed/rss",
-    SignalSource.BYRDIE: "https://www.byrdie.com/feed",
     SignalSource.REFINERY29: "https://www.refinery29.com/en-us/beauty/rss.xml",
-    # 뷰티 산업 전문 매체 (추가) - 인사이트 시스템 고도화
-    SignalSource.COSMETICS_DESIGN_ASIA: "https://www.cosmeticsdesign-asia.com/Info/RSS/",
-    SignalSource.COSMETICS_DESIGN_EUROPE: "https://www.cosmeticsdesign-europe.com/Info/RSS/",
     SignalSource.KEDGLOBAL: "https://www.kedglobal.com/rss/all.xml",
-    SignalSource.KOREA_HERALD: "https://www.koreaherald.com/rss/028040600.xml",  # Business & Economy
-    # Phase 1.2: 추가 뷰티 산업 매체 (2026-01)
-    SignalSource.COSMETICS_BUSINESS: "https://www.cosmeticsbusiness.com/rss/news.xml",
-    SignalSource.PREMIUM_BEAUTY_NEWS: "https://www.premiumbeautynews.com/en/?format=feed&type=rss",
-    SignalSource.HAPPI: "https://www.happi.com/rss/",
-    SignalSource.BEAUTY_PACKAGING: "https://www.beautypackaging.com/rss/news.xml",
     SignalSource.GLOBAL_COSMETICS_NEWS: "https://www.globalcosmeticsnews.com/feed/",
+    # 2026-08-30 URL 갱신 (구 URL은 200이지만 엔트리 0건)
+    SignalSource.KOREA_HERALD: "https://www.koreaherald.com/rss/newsAll",
+    SignalSource.COSMETICS_BUSINESS: "https://www.cosmeticsbusiness.com/rss",
+    SignalSource.PREMIUM_BEAUTY_NEWS: "https://www.premiumbeautynews.com/spip.php?page=backend",
+    # 2026-08-30 실측으로 제외한 소스 (엔트리 0건이 상시):
+    # - COSMETICS_DESIGN_ASIA / COSMETICS_DESIGN_EUROPE: HTTP 410 Gone (피드 폐지)
+    # - BYRDIE / HAPPI / BEAUTY_PACKAGING: HTTP 403 (봇 차단, UA 교체로도 미해결)
     # 일부 매체는 RSS를 제공하지 않거나 제한적
     # WWD, People, Vogue는 RSS가 없거나 유료 구독 필요
     # COSINKOREA, COSMORNING - 한국 매체는 RSS 없음, 스크래핑 필요
@@ -397,6 +397,30 @@ class ExternalSignalCollector:
     # Tier 3: 전문 매체 (RSS - 무료)
     # =========================================================================
 
+    async def _fetch_feed_body(self, feed_url: str) -> str | None:
+        """브라우저 UA로 RSS 본문을 받아온다. 실패하면 None (feedparser 직접 fetch 폴백)."""
+        if not self._session:
+            return None
+        try:
+            async with self._session.get(
+                feed_url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+                    ),
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                },
+                allow_redirects=True,
+            ) as response:
+                if response.status != 200:
+                    logger.warning(f"RSS fetch returned HTTP {response.status}: {feed_url}")
+                    return None
+                return await response.text()
+        except Exception as exc:
+            logger.warning(f"RSS fetch failed ({feed_url}): {exc}")
+            return None
+
     async def fetch_rss_articles(
         self, source: SignalSource, keywords: list[str] | None = None, max_articles: int = 10
     ) -> list[ExternalSignal]:
@@ -424,8 +448,11 @@ class ExternalSignalCollector:
         keywords_lower = [k.lower() for k in keywords]
 
         try:
-            # RSS 파싱
-            feed = feedparser.parse(feed_url)
+            # RSS 파싱 — feedparser 자체 fetch는 기본 UA를 쓰다 403/HTML 에러 페이지를
+            # 받아 "not well-formed"로 실패하는 매체가 있다. 세션이 있으면 브라우저
+            # UA로 본문을 먼저 받아 문자열을 파싱한다.
+            feed_body = await self._fetch_feed_body(feed_url)
+            feed = feedparser.parse(feed_body if feed_body is not None else feed_url)
 
             if feed.bozo:
                 logger.warning(f"RSS parse error for {source}: {feed.bozo_exception}")

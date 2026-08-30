@@ -890,3 +890,38 @@ class TestInferQueryTypeInterpretation:
         query_type = pipeline._infer_query_type("SoS 해석해줘", mock_context)
 
         assert query_type == "interpretation"
+
+
+class TestSystemPromptSource:
+    """v4 경로 시스템 프롬프트의 PromptRegistry 통합 (2026-08-30 사이클 4).
+
+    이전에는 이 파이프라인만 프롬프트를 하드코딩해, registry에 적용한 근거 인용
+    규칙이 대시보드 기본 경로에 반영되지 않았다.
+    """
+
+    def test_uses_registry_when_flag_enabled(self, monkeypatch):
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        monkeypatch.setenv("FF_PROMPTS_USE_CENTRALIZED_PROMPTS", "true")
+        FeatureFlags.reset_instance()
+        try:
+            pipeline = ResponsePipeline()
+            prompt = pipeline._get_system_prompt()
+        finally:
+            FeatureFlags.reset_instance()
+
+        assert prompt != ResponsePipeline.SYSTEM_PROMPT
+        assert len(prompt) > len(ResponsePipeline.SYSTEM_PROMPT)
+
+    def test_falls_back_to_inline_prompt_when_flag_disabled(self, monkeypatch):
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        monkeypatch.setenv("FF_PROMPTS_USE_CENTRALIZED_PROMPTS", "false")
+        FeatureFlags.reset_instance()
+        try:
+            pipeline = ResponsePipeline()
+            prompt = pipeline._get_system_prompt()
+        finally:
+            FeatureFlags.reset_instance()
+
+        assert prompt == ResponsePipeline.SYSTEM_PROMPT

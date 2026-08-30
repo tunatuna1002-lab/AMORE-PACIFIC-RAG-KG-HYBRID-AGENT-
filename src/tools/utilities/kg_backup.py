@@ -72,8 +72,8 @@ class KGBackupService:
             retention_days: 백업 보관 일수 (기본 7일)
             kg_path: KG 원본 파일 경로 (None이면 환경에 따라 자동 선택)
         """
-        # 프로젝트 루트 경로
-        self._project_root = Path(__file__).parent.parent.parent
+        # 프로젝트 루트 경로 (src/tools/utilities/kg_backup.py → 4단계 상위)
+        self._project_root = Path(__file__).resolve().parents[3]
 
         # Railway 환경 감지
         self._is_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT"))

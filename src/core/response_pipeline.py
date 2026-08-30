@@ -78,6 +78,27 @@ class ResponsePipeline:
         self._tracer = None  # Set externally via set_tracer()
         self._hallucination_detector = HallucinationDetector()
 
+    def _get_system_prompt(self) -> str:
+        """시스템 프롬프트 — PromptRegistry 경유 (플래그 off이면 인라인 폴백).
+
+        대시보드 기본 경로(v4)가 이 파이프라인을 쓰는데 프롬프트만 별도로
+        하드코딩돼 있어, 근거 인용 규칙(v1b) 등 registry 개선이 v4에 반영되지
+        않았다. context_builder와 동일하게 `prompts.use_centralized_prompts`
+        플래그를 따른다.
+        """
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        if not FeatureFlags.get_instance().use_centralized_prompts():
+            return self.SYSTEM_PROMPT
+
+        try:
+            from prompts.registry import PromptRegistry
+
+            return PromptRegistry.get_instance().get_system_prompt("chatbot")
+        except Exception:
+            logger.warning("PromptRegistry load failed, using inline prompt", exc_info=True)
+            return self.SYSTEM_PROMPT
+
     # =========================================================================
     # 클라이언트 설정
     # =========================================================================
@@ -252,7 +273,7 @@ class ResponsePipeline:
         Returns:
             메시지 리스트
         """
-        messages = [{"role": "system", "content": self.SYSTEM_PROMPT}]
+        messages = [{"role": "system", "content": self._get_system_prompt()}]
 
         # 컨텍스트 메시지
         context_content = self._format_context(context)
