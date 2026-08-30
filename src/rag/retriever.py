@@ -71,6 +71,26 @@ def _has_hangul(text: str) -> bool:
     return bool(_HANGUL_RE.search(text or ""))
 
 
+# PDF→마크다운 변환 산출물에 남는 이미지 data URI 링크 정의
+#   `[image1]: <data:image/png;base64,iVBORw0KGgo...>`
+_DATA_URI_DEF_RE = re.compile(r"^\[[^\]]+\]:\s*<?data:[^>\n]+>?\s*$", re.MULTILINE)
+# 위 형태에 들어맞지 않는 잔여 base64 덩어리 (200자 이상 연속)
+_LONG_BASE64_RE = re.compile(r"[A-Za-z0-9+/]{200,}={0,2}")
+
+
+def strip_embedded_binaries(content: str) -> str:
+    """문서에 인라인된 base64 이미지 데이터를 제거한다.
+
+    IR 분기보고서 3종은 PDF→마크다운 변환물이라 본문 끝에 이미지가 data URI로
+    통째로 박혀 있고, 그 분량이 파일의 97%에 달한다. 이를 그대로 청킹하면
+    2,242청크 중 **1,877청크(84%)가 base64 덩어리**가 되어 임베딩 비용을 쓰고
+    LLM 컨텍스트에 잡음으로 들어간다 (2026-08-30 사이클 6 실측).
+    실제 IR 본문은 파일당 약 1.5만 자다.
+    """
+    cleaned = _DATA_URI_DEF_RE.sub("", content)
+    return _LONG_BASE64_RE.sub("", cleaned)
+
+
 class DocumentRetriever:
     """문서 검색 클래스 (TTL 캐싱 지원)"""
 
@@ -535,7 +555,7 @@ class DocumentRetriever:
             for file_path in possible_paths:
                 if file_path.exists():
                     with open(file_path, encoding="utf-8") as f:
-                        content = f.read()
+                        content = strip_embedded_binaries(f.read())
                         self.documents[doc_id] = content
 
                         # 청크 분할

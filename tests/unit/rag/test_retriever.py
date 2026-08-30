@@ -1361,3 +1361,41 @@ class TestRerankerFlagGate:
             assert DocumentRetriever._reranker_flag_enabled() is True
         finally:
             FeatureFlags.reset_instance()
+
+
+class TestEmbeddedBinaryStripping:
+    """PDF→마크다운 변환물의 인라인 base64 이미지 제거 (2026-08-30 사이클 6).
+
+    IR 분기보고서 3종은 파일의 97%가 data URI였고, 그대로 청킹하면 2,242청크 중
+    1,877청크(84%)가 base64 덩어리가 되어 임베딩 비용과 컨텍스트 잡음이 됐다.
+    """
+
+    def test_removes_data_uri_link_definitions(self):
+        from src.rag.retriever import strip_embedded_binaries
+
+        text = (
+            "매출 4,670.9\n\n[image1]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUg>\n\n영업이익"
+        )
+
+        cleaned = strip_embedded_binaries(text)
+
+        assert "base64" not in cleaned
+        assert "매출 4,670.9" in cleaned
+        assert "영업이익" in cleaned
+
+    def test_removes_long_bare_base64_blobs(self):
+        from src.rag.retriever import strip_embedded_binaries
+
+        text = "본문 " + "A1b2C3d4" * 40 + " 끝"
+
+        cleaned = strip_embedded_binaries(text)
+
+        assert "A1b2C3d4A1b2" not in cleaned
+        assert "본문" in cleaned and "끝" in cleaned
+
+    def test_keeps_normal_prose_and_short_tokens(self):
+        from src.rag.retriever import strip_embedded_binaries
+
+        text = "LANEIGE Lip Sleeping Mask ASIN B07XXPHQZK 순위 8위"
+
+        assert strip_embedded_binaries(text) == text
