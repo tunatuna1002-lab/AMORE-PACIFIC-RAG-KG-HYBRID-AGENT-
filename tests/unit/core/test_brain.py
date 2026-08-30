@@ -757,7 +757,10 @@ class TestExecuteScheduledTask:
 
         assert result["status"] == "completed"
         mock_workflow.run_daily_workflow.assert_called_once()
-        brain.emit_event.assert_called()
+        # crawl_complete는 BatchWorkflow 완료 지점에서 발화한다 (D4).
+        # 스케줄러 경로에서 중복 발화하지 않는지 확인.
+        emitted = [call.args[0] for call in brain.emit_event.call_args_list if call.args]
+        assert "crawl_complete" not in emitted
 
     @pytest.mark.asyncio
     async def test_scheduled_task_failure(self):

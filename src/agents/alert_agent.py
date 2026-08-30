@@ -340,45 +340,9 @@ class AlertAgent:
                 recipients=recipients,
             )
 
-    # =========================================================================
-    # 이벤트 핸들러
-    # =========================================================================
-
-    async def on_crawl_complete(self, data: dict[str, Any]) -> None:
-        """크롤링 완료 이벤트 처리"""
-        self.create_alert(
-            alert_type="crawl_complete",
-            title="크롤링 완료",
-            message=f"{data.get('total_products', 0)}개 제품 수집 완료",
-            data=data,
-            priority=AlertPriority.LOW,
-        )
-
-        await self.send_pending_alerts()
-
-    async def on_crawl_failed(self, data: dict[str, Any]) -> None:
-        """크롤링 실패 이벤트 처리"""
-        self.create_alert(
-            alert_type="error",
-            title="크롤링 실패",
-            message=data.get("error", "알 수 없는 오류"),
-            data={"location": "crawler"},
-            priority=AlertPriority.CRITICAL,
-        )
-
-        await self.send_pending_alerts()
-
-    async def on_error(self, data: dict[str, Any]) -> None:
-        """에러 이벤트 처리"""
-        self.create_alert(
-            alert_type="error",
-            title="시스템 에러",
-            message=data.get("error", "알 수 없는 오류"),
-            data=data,
-            priority=AlertPriority.CRITICAL,
-        )
-
-        await self.send_pending_alerts()
+    # 이벤트 핸들러(on_crawl_complete / on_crawl_failed / on_error)는 제거됐다.
+    # 프로덕션 호출처가 0건이었고, 실제 알림 경로는 AlertManager.check_conditions()
+    # → process_alert()로 단일화됐다 (계획서 D2).
 
     # =========================================================================
     # 일일 요약

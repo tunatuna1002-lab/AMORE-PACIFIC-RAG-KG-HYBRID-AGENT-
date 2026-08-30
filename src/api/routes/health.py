@@ -67,6 +67,25 @@ async def health_check(request: Request):
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
+@router.get("/api/health/integrity")
+@limiter.limit("10/minute")
+async def integrity_check(request: Request):
+    """데이터 정합성 검사 (Sheets ↔ SQLite 드리프트).
+
+    DataIntegrityChecker.run_full_check()는 구현돼 있었으나 __main__ 외 호출처가
+    0건이라 드리프트 감지·CRITICAL 판정·권고가 전부 사장돼 있었다.
+    """
+    from src.tools.utilities.data_integrity_checker import check_data_integrity
+
+    try:
+        result = await check_data_integrity()
+    except Exception as e:
+        logger.error(f"Data integrity check failed: {e}", exc_info=True)
+        raise HTTPException(status_code=503, detail=f"정합성 검사 실패: {e}") from e
+
+    return result
+
+
 @router.get("/api/health/deep")
 @limiter.limit("60/minute")
 async def deep_health_check(request: Request):

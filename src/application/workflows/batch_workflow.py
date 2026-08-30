@@ -576,10 +576,15 @@ class BatchWorkflow:
                 except Exception as e:
                     self.logger.warning(f"KG auto-backup failed (non-critical): {e}")
 
+            # 신선도 기록 + crawl_complete 발화 (D4: 스케줄러가 아니라 워크플로우
+            # 완료 지점에서 발화해야 수동/자동 어느 경로로 크롤해도 도달한다)
+            await self._notify_workflow_complete(results)
+
         except Exception as e:
             self.logger.error(f"Workflow failed: {e}", exc_info=True)
             results["status"] = "failed"
             results["error"] = str(e)
+            await self._notify_workflow_failed(str(e))
 
         finally:
             # 세션 종료
@@ -941,6 +946,47 @@ class BatchWorkflow:
         return ObserveResult(
             observations=observations, state_updates=state_updates, next_step=next_step
         )
+
+    async def _notify_workflow_complete(self, results: dict[str, Any]) -> None:
+        """워크플로우 완료 후처리: 데이터 신선도 기록 + crawl_complete 이벤트 발화.
+
+        알림·상태 기록이 실패해도 워크플로우 결과를 덮어쓰지 않도록 예외를 삼킨다.
+        """
+        summary = results.get("summary", {})
+        products = summary.get("products_crawled", 0)
+
+        try:
+            from src.core.brain import get_brain
+
+            brain = await get_brain()
+
+            # data_freshness를 "fresh"로 기록 (호출처가 없어 상시 "unknown"이던 문제)
+            brain.state.mark_crawled(products_count=products)
+
+            await brain.emit_event(
+                "crawl_complete",
+                {
+                    "result": {"success": results.get("status") == "completed"},
+                    "total_products": products,
+                    "laneige_count": summary.get("laneige_tracked", 0),
+                    "categories": summary.get("categories", []),
+                },
+            )
+        except Exception as e:
+            self.logger.warning(f"crawl_complete 후처리 실패 (non-critical): {e}")
+
+    async def _notify_workflow_failed(self, error: str) -> None:
+        """워크플로우 실패 시 CRITICAL 알림 발화 + 데이터 stale 표시."""
+        try:
+            from src.core.brain import get_brain
+
+            brain = await get_brain()
+            brain.state.mark_data_stale()
+            await brain.emit_event(
+                "crawl_failed", {"error": error, "details": "일일 배치 워크플로우 실패"}
+            )
+        except Exception as e:
+            self.logger.error(f"crawl_failed 알림 발화 실패: {e}")
 
     def _generate_summary(self) -> dict[str, Any]:
         """최종 요약 생성"""

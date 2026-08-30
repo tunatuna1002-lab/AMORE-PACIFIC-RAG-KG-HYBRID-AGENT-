@@ -102,6 +102,9 @@ class AlertManager:
         elif event_name == "crawl_complete":
             alerts.extend(self._check_crawl_complete(data))
 
+        elif event_name == "crawl_failed":
+            alerts.extend(self._check_crawl_failed(data))
+
         elif event_name == "metrics_calculated":
             alerts.extend(self._check_metrics_calculated(data))
 
@@ -149,6 +152,28 @@ class AlertManager:
             )
 
         return alerts
+
+    def _check_crawl_failed(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """크롤링 실패 알림 (CRITICAL).
+
+        크롤 예외 경로에서 직접 발화된다. 과거에는 AlertAgent.on_crawl_failed가
+        구현되어 있었으나 호출처가 0건이라 알림이 전혀 도달하지 않았다.
+        """
+        error = data.get("error") or data.get("result", {}).get("error") or "Unknown error"
+        category = data.get("category")
+        location = f" ({category})" if category else ""
+
+        return [
+            {
+                "type": "crawl_failed",
+                "severity": "critical",
+                "message": f"크롤링 실패{location}: {error}",
+                "details": data.get("details", ""),
+                "category": category,
+                "error": str(error),
+                "timestamp": datetime.now().isoformat(),
+            }
+        ]
 
     def _check_metrics_calculated(self, data: dict[str, Any]) -> list[dict[str, Any]]:
         """지표 계산 완료 후 알림 체크"""
@@ -254,6 +279,7 @@ class AlertManager:
                 "error": AlertPriority.CRITICAL,
                 "crawl_complete": AlertPriority.LOW,
                 "crawl_failed": AlertPriority.CRITICAL,
+                "data_integrity": AlertPriority.CRITICAL,
             }
             priority = priority_map.get(alert.get("type"), AlertPriority.NORMAL)
 

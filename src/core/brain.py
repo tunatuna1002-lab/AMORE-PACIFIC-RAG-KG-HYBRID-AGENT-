@@ -446,7 +446,7 @@ class UnifiedBrain:
                 logger.error(f"Event handler error: {e}")
 
         # 알림 조건 체크 (AlertManager에 위임)
-        if event_name in ["crawl_complete", "metrics_calculated", "rank_changed"]:
+        if event_name in ["crawl_complete", "crawl_failed", "metrics_calculated", "rank_changed"]:
             alerts = await self.alert_manager.check_conditions(event_name, data)
             for alert in alerts:
                 await self._process_alert(alert)
@@ -1227,8 +1227,8 @@ class UnifiedBrain:
 
                 result = await self._workflow_agent.run_daily_workflow()
 
-                # 크롤링 완료 이벤트
-                await self.emit_event("crawl_complete", {"result": result})
+                # crawl_complete 발화는 BatchWorkflow 완료 지점에서 한다 (D4).
+                # 여기서 또 쏘면 스케줄러 경로에서만 이벤트가 두 번 나간다.
 
                 # Market Intelligence 데이터 수집
                 mi_result = await self.collect_market_intelligence()
@@ -1245,6 +1245,9 @@ class UnifiedBrain:
                 needs_crawl = self.state.is_crawl_needed()
                 return {"task": task_name, "status": "completed", "needs_crawl": needs_crawl}
 
+            elif action == "check_integrity":
+                return await self._run_integrity_check(task_name)
+
             else:
                 return {
                     "task": task_name,
@@ -1255,6 +1258,40 @@ class UnifiedBrain:
         except Exception as e:
             logger.error(f"Scheduled task failed: {e}")
             return {"task": task_name, "status": "failed", "error": str(e)}
+
+    async def _run_integrity_check(self, task_name: str) -> dict[str, Any]:
+        """데이터 정합성 검사 실행. CRITICAL이면 알림까지 발화한다 (§3.3).
+
+        run_full_check()는 구현돼 있었으나 __main__ 외 호출처가 0건이었다.
+        """
+        from src.tools.utilities.data_integrity_checker import check_data_integrity
+
+        result = await check_data_integrity()
+        severity = result.get("severity", "OK")
+        logger.info(f"Data integrity check: severity={severity}")
+
+        if severity == "CRITICAL":
+            recommendations = result.get("recommendations", [])
+            await self._process_alert(
+                {
+                    "type": "data_integrity",
+                    "severity": "critical",
+                    "message": (
+                        f"데이터 정합성 CRITICAL: "
+                        f"누락 {len(result.get('missing_dates', []))}일, "
+                        f"gap {result.get('sync_status', {}).get('gap', 0)}건"
+                    ),
+                    "details": "\n".join(recommendations),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+
+        return {
+            "task": task_name,
+            "status": "completed",
+            "severity": severity,
+            "result": result,
+        }
 
     async def _process_task_queue(self) -> None:
         """작업 큐 처리"""
@@ -1664,6 +1701,16 @@ class UnifiedBrain:
             except Exception as e:
                 logger.error(f"Scheduled task error: {action} - {e}")
                 self._stats["errors"] += 1
+
+                # 크롤 관련 스케줄 태스크 실패는 CRITICAL 알림 대상
+                if action in ("crawl_workflow", "check_data"):
+                    try:
+                        await self.emit_event(
+                            "crawl_failed",
+                            {"error": str(e), "details": f"스케줄 태스크 '{action}' 실패"},
+                        )
+                    except Exception as notify_error:
+                        logger.error(f"crawl_failed 알림 발화 실패: {notify_error}")
 
         await self.scheduler.start(_handle_scheduled_task)
         self.mode = BrainMode.AUTONOMOUS

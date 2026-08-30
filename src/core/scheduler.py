@@ -143,6 +143,15 @@ class AutonomousScheduler:
                 "interval_hours": 1,
                 "enabled": True,
             },
+            {
+                "id": "data_integrity_check",
+                "name": "데이터 정합성 검사",
+                "action": "check_integrity",
+                "schedule_type": "daily",
+                "hour": 23,  # KST 23:00 = 일일 크롤링(22:00) 완료 후
+                "minute": 0,
+                "enabled": True,
+            },
         ]
 
     def get_kst_now(self) -> datetime:

@@ -186,9 +186,6 @@ class MockAlertAgent:
         self.send_pending_alerts = AsyncMock(
             return_value={"sent_count": 0, "failed_count": 0, "recipients": []}
         )
-        self.on_crawl_complete = AsyncMock()
-        self.on_crawl_failed = AsyncMock()
-        self.on_error = AsyncMock()
         self.send_daily_summary = AsyncMock(return_value={"sent": True})
         self.get_alerts = MagicMock(return_value=[])
         self.get_pending_count = MagicMock(return_value=0)
