@@ -67,6 +67,7 @@ class RegressionThresholds:
     l1_entity_link_f1: float = 0.05
     l1_concept_map_f1: float = 0.05
     l2_context_recall: float = 0.05
+    l2_context_recall_doc: float = 0.05
     l2_mrr: float = 0.05
     l3_hits_at_k: float = 0.05
     l3_kg_edge_f1: float = 0.05
@@ -482,6 +483,7 @@ class RegressionTester:
             ("l1_entity_link_f1", self.thresholds.l1_entity_link_f1),
             ("l1_concept_map_f1", self.thresholds.l1_concept_map_f1),
             ("l2_context_recall", self.thresholds.l2_context_recall),
+            ("l2_context_recall_doc", self.thresholds.l2_context_recall_doc),
             ("l2_mrr", self.thresholds.l2_mrr),
             ("l3_hits_at_k", self.thresholds.l3_hits_at_k),
             ("l3_kg_edge_f1", self.thresholds.l3_kg_edge_f1),

@@ -40,7 +40,11 @@ DEFAULT_THRESHOLDS = {
     "constraint_violation_max": 0.05,
     "type_consistency_min": 0.90,
     # L2/L3 gating (conditional on requires_kg)
-    "context_recall_min": 0.80,  # For requires_kg=False
+    "context_recall_min": 0.80,  # For requires_kg=False (청크 단위, 참고 보고용)
+    # L2 게이트는 출처 문서 단위 recall 기준 (2026-08-30 사이클 5):
+    # 골드 doc_chunk_ids는 문서 수준 가상 ID를 대표 청크 1개로 치환한 것이라
+    # 청크 단위 판정은 라벨 입도를 측정한다. 근거는 eval/metrics/l2_retrieval.py.
+    "context_recall_doc_min": 0.80,
     "hits_at_k_min": 0.80,  # For requires_kg=True
     # L3 엣지 게이트는 recall 기준 (2026-08-30 사이클 4):
     # set-F1은 골드(1~3개)와 방출(최대 12개)의 규모 비대칭 때문에 100% 회수해도
@@ -58,7 +62,7 @@ DEFAULT_THRESHOLDS = {
 FAIL_REASONS = {
     "L1_mapping_fail": "Entity linking F1 below threshold",
     "L1_concept_fail": "Concept mapping F1 below threshold",
-    "L2_doc_retrieval_fail": "Context recall below threshold",
+    "L2_doc_retrieval_fail": "Document-level context recall below threshold",
     "L3_kg_fail": "KG hits@k below threshold",
     "L3_edge_fail": "KG edge recall below threshold",
     "L4_constraint_violation": "Constraint violation rate above threshold",
@@ -199,7 +203,7 @@ class MetricAggregator:
 
         # L2 checks (for non-KG queries)
         if not requires_kg:
-            if l2.context_recall_at_k < self.thresholds.get("context_recall_min", 0.8):
+            if l2.context_recall_at_k_doc < self.thresholds.get("context_recall_doc_min", 0.8):
                 fail_reasons.append("L2_doc_retrieval_fail")
 
         # L3 checks (for KG queries)

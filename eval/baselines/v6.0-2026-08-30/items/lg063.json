@@ -1,0 +1,130 @@
+{
+  "item_id": "lg063",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 1.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10362694300518134,
+    "semantic_similarity": 0.7484896183013916,
+    "groundedness_score": 0.909,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.4723338238509249,
+  "fail_reason_tags": [
+    "L3_kg_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg063",
+    "timestamp": "2026-08-30T14:07:40.931106",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "correlation",
+        "review_count"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_3_2",
+        "negative_issue_response_7_2",
+        "amazon_algorithm_guide_1_1",
+        "amazon_algorithm_guide_6_1",
+        "amazon_algorithm_guide_4_2",
+        "amazon_ranking_diagnosis_4_2",
+        "amazon_ranking_diagnosis_1"
+      ],
+      "snippets": [
+        "*리뷰/평점**: 리뷰 수와 속도의 변화, 별점 변동 여부. 리뷰 자체는 BSR을 직접 결정하지 않지만【437377726246902†L408-L415】, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용한다【340261456527992†L187-L197】. 리뷰 수집 시 캠페인 여부(이메일 요청 등)도 고려한다.\n- **경쟁 상황**: 경쟁",
+        "향후 수개월간 '검증된 효능(Clinical Validation)'에 대한 니즈가 더욱 커질 것이다. 우지(Tallow)와 같은 비과학적 민간요법에 대한 반작용으로, 다시금 세라마이드, 스쿠알란 등 검증된 성분이 주목받을 것이다. 또한, 무분별한 틱톡 바이럴보다는 레딧과 같은 커뮤니티 기반의 '찐후기(Authentic Review)'가 구매 결정에 미치는 ",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제",
+        "- **리뷰와 별점의 영향**: BSR은 리뷰 수에 직접 영향을 받지 않지만【437377726246902†L408-L415】, 아마존의 검색 알고리즘은 높은 클릭률·전환율·긍정적 리뷰를 **고객 참여(CTR, CVR)** 지표로 간주하며, 이는 순위에 반영된다【340261456527992†L187-L197】. 최근 부정적 리뷰의 급증이나 별점 하락은 전환율",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*"
+      ],
+      "scores": [
+        5.733718395233154,
+        5.119510650634766,
+        5.65731143951416,
+        5.63622522354126,
+        5.41811466217041,
+        5.232868194580078,
+        5.163577079772949
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### SoS(Share of Shelf)와 리뷰 수의 상관관계에 대한 인사이트\n\n- **인사이트**  \n  SoS는 제품의 가시성 및 판매 점유율을 나타내는 지표이며, 리뷰 수는 소비자 신뢰와 구매 전환에 영향을 미치는 중요한 요소입니다. 리뷰 수 자체가 직접적으로 SoS를 결정하지는 않으나, 긍정적 리뷰와 높은 전환율은 검색 알고리즘에서 중요한 신호로 작용하여 SoS에 간접적으로 영향을 미칠 가능성이 있습니다【rag 1】. 즉, 리뷰 수가 많고 긍정적일수록 제품의 검색 노출과 가시성이 높아져 SoS가 상승할 수 있는 환경이 조성될 수 있습니다.\n\n- **근거**  \n  - 리뷰 수는 BSR(베스트셀러 랭킹)을 직접 결정하지 않으나, 긍정적 리뷰가 검색 알고리즘에 긍정적 신호로 작용한다는 점【rag 1】  \n  - 외부 트래픽과 리뷰 내 긍정적 감성 등이 복합적으로 SoS 및 랭킹에 영향을 미칠 수 있다는 점【rag 3】  \n\n- **권장 사항**  \n  - 리뷰 수를 단순히 늘리는 것보다, 진정성 있는 긍정적 리뷰 확보에 집중하는 전략이 SoS 개선에 더 효과적일 수 있습니다.  \n  - 리뷰 관리와 함께 제품 메타데이터, 외부 트래픽 유입 경로도 함께 최적화하여 SoS 상승을 도모하는 것이 바람직합니다.  \n  - 캠페인이나 이메일 요청 등으로 리뷰 수를 늘릴 때는 리뷰의 진정성과 품질을 유지하는 것이 중요합니다【rag 1】.  \n\n현재 확인된 데이터 기준으로, SoS와 리뷰 수는 직접적 상관관계보다는 리뷰의 질과 긍정적 감성이 SoS에 영향을 미치는 복합적 요인으로 작용하는 것으로 보입니다.  \n\n[출처: rag 1, rag 3]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **1. 필수 확인 체크리스트**\n   - 관련도: 5.73\n\n2. 📄 **---**\n   - 관련도: 5.12\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 5.66\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9985.91685295105,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -303,6 +303,12 @@ class L2Metrics(BaseModel):
         default=0.0, ge=0.0, le=1.0, description="Precision of top-k retrieval"
     )
     mrr: float = Field(default=0.0, ge=0.0, le=1.0, description="Mean Reciprocal Rank")
+    context_recall_at_k_doc: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="출처 문서 단위 recall@k (골드 라벨의 실제 입도, 게이트 기준)",
+    )
 
 
 class L3Metrics(BaseModel):

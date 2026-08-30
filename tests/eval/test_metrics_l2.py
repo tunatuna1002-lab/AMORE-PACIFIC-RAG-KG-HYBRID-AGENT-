@@ -205,3 +205,47 @@ class TestConvenienceFunctions:
 
         mrr_score = mrr(trace, gold)
         assert mrr_score == 0.5
+
+
+class TestDocumentLevelRecall:
+    """출처 문서 단위 recall (2026-08-30 사이클 5 신설).
+
+    골드 doc_chunk_ids는 문서 수준 가상 ID를 대표 청크 1개로 치환한 결과라
+    청크 단위 판정이 라벨 입도를 측정하는 문제가 있었다.
+    """
+
+    @pytest.fixture
+    def calculator(self):
+        return L2RetrievalMetrics(default_k=8)
+
+    def test_same_document_different_chunk_counts_as_hit(self, calculator):
+        trace = DocRetrievalTrace(chunk_ids=["laneige_strategy_2026_5_0"], snippets=[], scores=[])
+        gold = GoldEvidence(doc_chunk_ids=["laneige_strategy_2026_3_1"])
+
+        metrics = calculator.compute(trace, gold)
+        assert metrics.context_recall_at_k_doc == 1.0
+        # 청크 단위는 여전히 0 — 두 지표를 함께 보고하는 이유
+        assert metrics.context_recall_at_k == 0.0
+
+    def test_different_document_is_a_miss(self, calculator):
+        trace = DocRetrievalTrace(chunk_ids=["strategic_indicators_1_0"], snippets=[], scores=[])
+        gold = GoldEvidence(doc_chunk_ids=["laneige_strategy_2026_3_1"])
+
+        assert calculator._compute_doc_recall_at_k(trace, gold, 8) == 0.0
+
+    def test_empty_gold_is_one(self, calculator):
+        trace = DocRetrievalTrace(chunk_ids=["strategic_indicators_1_0"], snippets=[], scores=[])
+        gold = GoldEvidence(doc_chunk_ids=[])
+
+        assert calculator._compute_doc_recall_at_k(trace, gold, 8) == 1.0
+
+    def test_respects_k_cutoff(self, calculator):
+        trace = DocRetrievalTrace(
+            chunk_ids=[f"other_doc_{i}_0" for i in range(8)] + ["laneige_strategy_2026_1_0"],
+            snippets=[],
+            scores=[],
+        )
+        gold = GoldEvidence(doc_chunk_ids=["laneige_strategy_2026_3_1"])
+
+        assert calculator._compute_doc_recall_at_k(trace, gold, 8) == 0.0
+        assert calculator._compute_doc_recall_at_k(trace, gold, 9) == 1.0

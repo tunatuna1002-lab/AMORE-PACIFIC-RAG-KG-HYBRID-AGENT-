@@ -1,0 +1,121 @@
+{
+  "item_id": "lg052",
+  "question": "",
+  "passed": true,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1137440758293839,
+    "semantic_similarity": 0.693157434463501,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.5023989137041375,
+  "fail_reason_tags": [],
+  "trace": {
+    "item_id": "lg052",
+    "timestamp": "2026-08-30T14:06:18.331534",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "churn_rate",
+        "definition",
+        "interpretation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_13",
+        "indicator_combination_2_1",
+        "home_insight_rules_6",
+        "strategic_indicators_2_0",
+        "metric_interpretation_3_0"
+      ],
+      "snippets": [
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat",
+        "1.4 Market Pulse Snapshot (시장 분위기 요약)\n\n### 목표\n- “성과 변화가 시장 때문인지” 맥락 제공\n\n### 입력 지표(권장)\n- HHI (시장 집중도)\n- Churn Rate (시장 역동성)\n\n### 출력 규칙(문장 1개 + 배지 1~2개)\n- HHI가 높고 Churn Rate가 낮으면:\n  - “시장 구조가 고착화된 편이며 단",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating "
+      ],
+      "scores": [
+        7.389034271240234,
+        7.228424549102783,
+        6.920816898345947,
+        6.71265983581543,
+        6.029982089996338
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 이탈률(Churn Rate)의 브랜드 분석 의미\n\n- **인사이트**  \n  이탈률(Churn Rate)은 브랜드 순위 변동의 빈도와 시장 내 브랜드 교체 정도를 나타내는 지표로, 브랜드가 시장에서 얼마나 자주 순위 변동을 겪는지 혹은 소비자 이탈이 발생하는지를 간접적으로 보여줍니다.  \n  예를 들어, 이탈률이 높으면 경쟁이 치열하고 트렌드 변화가 빠른 시장일 가능성이 있으며, 반대로 이탈률이 낮으면 시장이 고착화되어 안정적인 구조일 수 있습니다.\n\n- **근거**  \n  - HHI(시장 집중도)와 이탈률 조합에 따른 해석에서,  \n    - HHI가 높고 이탈률이 낮으면 \"소수 브랜드 중심의 고착 시장\"으로 순위 변동이 적고 안정적 구조로 보입니다.  \n    - HHI가 낮고 이탈률이 높으면 \"경쟁 브랜드 다수, 트렌드 변화가 빠른 시장\"으로 단기 기회가 존재할 수 있습니다 [출처: RAG 가이드, A. Market & Brand Combination].  \n  - 시장 분위기 요약에서도 이탈률은 시장 변동성의 핵심 지표로 활용됩니다 [출처: RAG 가이드, 1.4 Market Pulse Snapshot].\n\n- **권장**  \n  - 브랜드 분석 시 이탈률을 통해 시장 내 경쟁 강도와 변동성 정도를 파악하고,  \n  - 이탈률이 높을 경우 단기 마케팅이나 신제품 테스트 등 빠른 실행 전략을 고려할 수 있으며,  \n  - 이탈률이 낮을 경우 기존 주력 제품 유지 및 차별화 전략에 집중하는 것이 바람직할 수 있습니다.  \n  - 다만, 이탈률 단독으로 판단하기보다는 HHI 등 다른 지표와 함께 종합적으로 해석하는 것이 권장됩니다.\n\n현재 확인된 데이터 기준으로, 이탈률은 브랜드 순위 안정성 및 시장 역동성 파악에 중요한 역할을 하며, 브랜드 전략 수립 시 변동성 관리와 기회 포착에 참고할 수 있는 핵심 지표로 보입니다 [출처: RAG 가이드].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **4. 프로토타입 기본 더미 값 예시(선택)**\n   - 관련도: 7.39\n\n2. 📄 **A. Market & Brand Combination**\n   - 관련도: 7.23\n\n3. 📄 **B. Level 2: Category & Price**\n   - 관련도: 6.71\n\n4. 📄 **B. Level 2: Category & Price**\n   - 관련도: 6.03\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7116.858720779419,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

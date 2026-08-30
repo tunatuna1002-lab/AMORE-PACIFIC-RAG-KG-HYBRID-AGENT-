@@ -1,0 +1,258 @@
+{
+  "item_id": "lg139",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.3333333333333333,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09333333333333334,
+    "semantic_similarity": 0.6945234537124634,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.25
+  },
+  "overall_score": 0.5530737775007883,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg139",
+    "timestamp": "2026-08-30T14:16:26.354135",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "market_share"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_1_1",
+        "amazon_algorithm_guide_4_2",
+        "amazon_algorithm_guide_3_1",
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_6_1"
+      ],
+      "snippets": [
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제",
+        "* **재고 소진(Stockout)의 여파:** 재고가 '0'이 되는 순간 BSR은 급락하기 시작합니다. 더 심각한 것은 재입고 후에도 이전의 랭킹으로 복구하는 데 최대 2\\~3주의 시간이 소요된다는 점입니다. 이는 '품절 기간' 동안 경쟁사들이 그 자리를 차지하여 알고리즘의 선호도가 이동했기 때문입니다.8  \n* **바이박스(Buy Box) 상실:** 바",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타"
+      ],
+      "scores": [
+        4.03477144241333,
+        3.87040376663208,
+        3.8455371856689453,
+        3.7262940406799316,
+        3.6228199005126953
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 30,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 30,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 8,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 4,
+                "products": [
+                  "B00PFCSNWA",
+                  "B06XDZ93P5",
+                  "B06XDX6YGD",
+                  "B07HFSM8PS"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 4,
+                "products": [
+                  "B001P2LWJA",
+                  "B0030HAEG0",
+                  "B09JB9T6QB",
+                  "B00AY351OI"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Face Powder 카테고리 내 쿠션 파운데이션 시장 점유율 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 Face Powder 카테고리에서 쿠션 파운데이션의 시장 점유율에 관한 구체적인 수치나 점유율 정보가 확인되지 않습니다. 또한, 관련 온톨로지 추론 결과도 제공되지 않아 쿠션 파운데이션이 Face Powder 카테고리 내에서 차지하는 비중을 명확히 파악하기 어렵습니다.\n\n- **근거**  \n  Knowledge Graph에 Face Powder Top 브랜드로 unknown, covergirl, e.l.f.만 명시되어 있으며, 쿠션 파운데이션 관련 별도 점유율 데이터는 없습니다 [출처: 현재 데이터].  \n  온톨로지 추론 결과에서도 관련 내용이 부재합니다 [출처: Ontology Reasoning].\n\n- **권장**  \n  쿠션 파운데이션의 시장 점유율 파악을 위해서는 추가적인 판매 데이터, 제품별 점유율, 혹은 카테고리 내 세부 제품군별 분류 정보가 필요할 것으로 보입니다.  \n  향후 데이터 수집 시 Face Powder 내 쿠션 파운데이션 관련 키워드 및 브랜드별 점유율 지표를 확보하는 것을 권장합니다.\n\n현재 확인된 데이터 기준으로는 Face Powder 카테고리 내 쿠션 파운데이션의 시장 점유율을 제공하기 어렵습니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 4.03\n\n3. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 7328.945875167847,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

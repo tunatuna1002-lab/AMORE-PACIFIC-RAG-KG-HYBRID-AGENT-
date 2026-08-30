@@ -745,9 +745,11 @@ class DocumentRetriever:
             name="amore_docs", metadata={"hnsw:space": "cosine"}
         )
 
-        # 문서 인덱싱 (컬렉션이 비어있을 때만)
-        if self.collection.count() == 0:
-            await self._index_documents()
+        # 문서 인덱싱 — 컬렉션에 없는 청크만 증분 색인한다.
+        # 기존 조건(`count() == 0`)은 최초 1회만 색인했기 때문에, 나중에
+        # DOCUMENTS에 추가된 문서(IR 분기보고서 3종 = 1,971청크)가 영원히
+        # 색인되지 않고 검색에서 침묵으로 누락됐다 (2026-08-30 사이클 4 발견).
+        await self._index_documents()
 
         print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
 
@@ -850,15 +852,23 @@ Do not include any explanation."""
             return [query]
 
     async def _index_documents(self) -> None:
-        """문서 벡터 인덱싱"""
+        """문서 벡터 인덱싱 (컬렉션에 없는 청크만 증분 색인)"""
         if not self.collection or not self.openai_client:
             return
+
+        try:
+            already_indexed = set(self.collection.get(include=[])["ids"])
+        except Exception:
+            logger.warning("Failed to read indexed chunk ids", exc_info=True)
+            already_indexed = set()
 
         ids = []
         documents = []
         metadatas = []
 
         for chunk in self.chunks:
+            if chunk["id"] in already_indexed:
+                continue
             ids.append(chunk["id"])
             documents.append(chunk["content"])
             metadatas.append(

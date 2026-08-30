@@ -1,0 +1,260 @@
+{
+  "item_id": "lg197",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0796812749003984,
+    "semantic_similarity": 0.6526950597763062,
+    "groundedness_score": 0.75,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5454545454545454
+  },
+  "overall_score": 0.4325047792118125,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L2_doc_retrieval_fail"
+  ],
+  "trace": {
+    "item_id": "lg197",
+    "timestamp": "2026-08-30T14:22:47.789567",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_1_1",
+        "laneige_influencer_map_5_1",
+        "kbeauty_industry_2_1",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_6_0"
+      ],
+      "snippets": [
+        "현재 미국 뷰티 시장의 소비자 정서는 '맹목적 바이럴 수용'에서 '검증과 회의주의'로 급격히 전환되고 있다. 지난 1년간 틱톡(TikTok)을 중심으로 폭발적인 성장을 이룬 브랜드들이 이제는 '인플루언서 피로감(Influencer Fatigue)'과 '효능 불일치'라는 역풍을 맞이하고 있다. 데이터 분석 결과, 위기는 크게 네 가지 핵심 벡터로 분류된다. ",
+        "특히, '크림 스킨'과 같은 베스트셀러의 리포뮬레이션 과정에서 발생한 기존 고객의 이탈을 막기 위해서는, 단순한 마케팅 용어보다는 \\*\\*'왜 이 성분이 더 좋은가'\\*\\*에 대한 과학적 커뮤니케이션(Scientific Communication)을 강화해야 합니다. 아울러 '저렴이(Dupe)' 제품과의 경쟁에서는 가격이 아닌 \\*\\*'대체 불가능한 브랜드 ",
+        "k-뷰티가 어떻게 세계의 뷰티 수도가 되었는지 그 **초격차****의 비밀**을 심층 분석합니다. 단순한 유행을 넘어, 110년간의 분투와 **odm****(제조자 개발 생산) 시스템**이 만들어낸 혁신적인 산업 생태계를 통해 k-뷰티의 구조적 성장 동력을 파악할 수 있습니다. 특히, **초개인화 맞춤 화장품**과 미용 기기 결합 등 미래 기술을 선도하는 ",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "4. K-뷰티의 위협 요인과 미래 초격차 전략\n\n### 4.1. 고부가 가치 제품 약세와 하이엔드 브랜드의 필요성 \n![image]()\n1. **화장품 산업의 매력과 부가 가치**:\n  1. 화장품 산업의 매력은 막대한 **부가 가치**에 있다 \n  2. 로션이나 크림의 주원료인 글리세린은 콩 등에서 뽑아낸 식물성 유지에 첨가물을 섞어 완성되는, 제조가 어"
+      ],
+      "scores": [
+        8.007393836975098,
+        7.770202159881592,
+        7.992712497711182,
+        7.8658833503723145,
+        7.718075752258301
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 뷰티 시장에서 한국 브랜드와 미국 브랜드의 미래 전망\n\n- **인사이트**  \n  1) 미국 뷰티 시장은 최근 1년간 인플루언서 마케팅에 대한 소비자 회의주의가 확산되면서, 단순 바이럴 중심에서 과학적 근거와 제품력에 기반한 커뮤니케이션이 중요해지고 있습니다. 이에 따라 미국 내에서는 제품력 저하 논란, 마케팅과 실제 효능 간 괴리, 제품 품질 이슈 등이 브랜드 신뢰도에 영향을 미치는 위기 요인으로 작용하고 있습니다 [1].  \n  2) 반면, 한국(K-뷰티) 브랜드는 110년간의 ODM 시스템과 혁신적 산업 생태계를 바탕으로 초개인화 맞춤 화장품과 미용 기기 결합 등 미래 기술을 선도하며, 하이엔드 브랜드 서사 구축을 통해 지속 가능한 성장을 모색하고 있습니다 [3].  \n  3) 특히, 라네즈와 같은 K-뷰티 브랜드는 미국 Z세대와 밀레니얼 세대를 아우르는 라이프스타일 뷰티 아이콘으로 자리매김하며, 단순한 가격 경쟁을 넘어 ‘대체 불가능한 브랜드 경험’과 ‘커뮤니티 소속감’ 제공 전략으로 미국 시장 내 입지를 강화하고 있습니다 [2].  \n\n- **근거**  \n  - 미국 시장 내 소비자 정서 변화 및 위기 요인: ‘인플루언서 피로감’, ‘효능 불일치’ 등 [1]  \n  - K-뷰티의 구조적 성장 동력: ODM 시스템, 초개인화 맞춤 화장품, 하이엔드 브랜드 서사 [3]  \n  - 라네즈의 미국 내 라이프스타일 뷰티 아이콘 도약과 커뮤니티 전략 [2]  \n\n- **권장**  \n  - 한국 브랜드는 기술 혁신과 과학적 커뮤니케이션을 강화하여 미국 소비자의 신뢰를 지속 확보하는 전략이 유리할 수 있습니다.  \n  - 미국 브랜드는 소비자 회의주의에 대응해 제품력과 투명성을 강조하는 방향으로 브랜드 경험을 재정립할 필요가 있습니다.  \n  - 양국 브랜드 모두 단기적 바이럴 효과에 의존하기보다, 장기적 브랜드 충성도와 커뮤니티 구축에 집중하는 것이 미래 경쟁력 확보에 도움이 될 것으로 보입니다.  \n\n현재 확인된 데이터 기준으로, 한국 브랜드는 기술과 경험 중심의 차별화 전략으로 미국 시장 내 성장 가능성이 높아 보이며, 미국 브랜드는 소비자 신뢰 회복과 과학적 소통 강화가 관건일 수 있습니다 [1][2][3].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1\\. 서론: 시장 맥락 및 위기 지형도****\n   - 관련도: 8.01\n\n3. 📄 **---**\n   - 관련도: 7.77\n\n4. 📄 **💡 K-뷰티의 초격차를 가능하게 한 구체적인 요소들은?**\n   - 관련도: 7.99\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8298.373222351074,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

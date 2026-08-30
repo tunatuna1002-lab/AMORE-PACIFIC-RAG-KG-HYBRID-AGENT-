@@ -1,0 +1,402 @@
+{
+  "item_id": "lg086",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13836477987421383,
+    "semantic_similarity": 0.7010328769683838,
+    "groundedness_score": 0.8333333333333334,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.2
+  },
+  "overall_score": 0.5382124557825004,
+  "fail_reason_tags": [
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg086",
+    "timestamp": "2026-08-30T14:10:01.775679",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "rare beauty"
+      ],
+      "extracted_categories": [
+        "lip_makeup",
+        "beauty"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_1_0",
+        "strategic_indicators_3_0",
+        "metric_interpretation_4_0",
+        "indicator_combination_4_0"
+      ],
+      "snippets": [
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "**1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화**\n\n전자상거래의 중력 중심인 아마존 마켓플레이스에서 베스트 셀러 랭킹(Best Sellers Rank, 이하 BSR)은 단순한 숫자가 아닌, 제품의 생존 가능성을 나타내는 바이탈 사인(Vital Sign)과 같습니다. 그러나 2025년과 2026년을 기점으로 아마존의 검색 및 ",
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석",
+        "C. Level 3: Product & Risk\n### (개별 상품 해석)\n\n---\n\n### 7. Rank Volatility\n\n#### 해석 가이드\n- **높음**\n  - 광고, 이벤트, 단기 이슈 영향 가능성\n- **낮음**\n  - 순위가 안정적이거나 정체 상태\n\n#### 함께 봐야 할 지표\n- Rank Shock\n- Streak Days\n\n#### 주",
+        "C. Product & Risk Combination\n### (개별 상품 신호)\n\n---\n\n### 8. Rank Shock 발생 + Rating Trend 하락\n\n#### 해석 시나리오\n- 단기 이슈 발생 가능성\n- 고객 인식 악화 신호\n\n#### 시사점\n- 긴급 모니터링 필요\n\n#### 고려 가능한 액션 후보\n- 재고·가격·상세페이지 점검\n- 추가 데이터"
+      ],
+      "scores": [
+        4.02490234375,
+        3.862415075302124,
+        3.6671533584594727,
+        3.6510391235351562,
+        3.635286331176758
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_makeup",
+        "beauty",
+        "rare beauty"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> lip_makeup"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "lip_makeup",
+          "data": {
+            "brand_count": 23,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0B9YHX8DX",
+                  "B0GF21LCW2",
+                  "B0CN1D9C6Q",
+                  "B004BCT7G6",
+                  "B007OAFJ5U",
+                  "B06XTPX8B2",
+                  "B0GWPHKD43",
+                  "B00I6DV3UO",
+                  "B007O9Y8TE",
+                  "B0D35YXWZ4",
+                  "B09Z2K8726",
+                  "B0CCDG5NHJ",
+                  "B0DKJ5MSTB",
+                  "B0G43TQ9VG",
+                  "B0CWN3MD25",
+                  "B015RPE14S",
+                  "B0F13H2319",
+                  "B0F7XJ73MD",
+                  "B0FRLBNPY6",
+                  "B093L9K6J8",
+                  "B0HCJQ79R8",
+                  "B083QNQQP9",
+                  "B07CKFQXNZ",
+                  "B0DSJ9CBWB",
+                  "B0CHJ8R113"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 11,
+                "products": [
+                  "B07W59CNXQ",
+                  "B0046VESH0",
+                  "B085S9N6JP",
+                  "B07PGQDWMT",
+                  "B00N6YEI6O",
+                  "B09QH8148N",
+                  "B0DHF9X19V",
+                  "B0CZB39JH7",
+                  "B0FTT9WMD9",
+                  "B08H3TSP2X",
+                  "B0GSWMK4NY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 10,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B0CL8W1HZQ",
+                  "B0BSR85M24",
+                  "B0GVG87QVL",
+                  "B08S57F6JH",
+                  "B0G1H1NQY8",
+                  "B0B4F9PBQB",
+                  "B0DH62626H",
+                  "B0BSP3ZM2J",
+                  "B09XMWCY5L"
+                ]
+              },
+              {
+                "brand": "nyx",
+                "product_count": 10,
+                "products": [
+                  "B09SP2XHKT",
+                  "B079ZX2QBD",
+                  "B0DK7TXTGY",
+                  "B07GXGLQQ7",
+                  "B0BL8HY2QP",
+                  "B0FT51CZS6",
+                  "B09XGXXGD1",
+                  "B09ZKLYPVZ",
+                  "B005G9LPDQ",
+                  "B0DKKRZGNY"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 9,
+                "products": [
+                  "B07XTTHXND",
+                  "B01LTI19EM",
+                  "B001P2JZBC",
+                  "B00392C96Y",
+                  "B00VRAJT7M",
+                  "B0DHYCZX5S",
+                  "B002H988FQ",
+                  "B0BHKFXXL8",
+                  "B0CGCH8JGX"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_makeup",
+          "data": {
+            "name": "Lip Makeup",
+            "level": 2,
+            "path": [
+              "beauty",
+              "makeup",
+              "lip_makeup"
+            ],
+            "ancestors": [
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 35,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 8,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 4,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B00AINMFAC",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 4,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Rare Beauty의 Lip Makeup 카테고리 주요 제품 순위 인사이트\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 Rare Beauty of Joseon 브랜드가 Lip Makeup 카테고리에서 주요 제품 순위에 포함되어 있다는 구체적인 순위 정보가 확인되지 않습니다.  \n  Lip Makeup 카테고리의 상위 브랜드로는 unknown, maybelline, e.l.f.가 언급되어 있으나 Rare Beauty는 포함되어 있지 않습니다.  \n  따라서 Rare Beauty의 Lip Makeup 제품이 해당 카테고리 내에서 상위권에 랭크되어 있지 않거나, 데이터가 부족하여 확인이 어려운 것으로 보입니다.\n\n- **근거**  \n  - Lip Makeup Top 브랜드: unknown, maybelline, e.l.f. (Rare Beauty of Joseon 미포함) [출처: 현재 데이터]  \n  - Rare Beauty of Joseon 관련 Lip Makeup 순위 데이터 부재 [출처: 현재 데이터]\n\n- **권장**  \n  - Rare Beauty의 Lip Makeup 제품 순위 확인을 위해 추가적인 데이터 수집 또는 별도 리포트 검토가 필요할 수 있습니다.  \n  - 현재 데이터 기준으로는 Rare Beauty가 Lip Makeup 카테고리 내 주요 순위권에 있지 않은 것으로 판단하는 것이 적절합니다.\n\n---\n\n요약: Rare Beauty의 Lip Makeup 카테고리 주요 제품 순위는 현재 데이터 기준으로 확인되지 않습니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (4개 관계)\n\n2. 📄 **개요**\n   - 관련도: 4.02\n\n3. 📄 ****1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화****\n   - 관련도: 3.86\n\n4. 📄 **C. Level 3: Product & Risk**\n   - 관련도: 3.67\n\n5. 📄 **C. Level 3: Product & Risk**\n   - 관련도: 3.65\n\n6. 📄 **C. Product & Risk Combination**\n   - 관련도: 3.64\n\n7. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 5776.285886764526,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

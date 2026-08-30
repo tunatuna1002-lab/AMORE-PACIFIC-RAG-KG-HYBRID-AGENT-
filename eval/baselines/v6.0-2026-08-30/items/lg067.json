@@ -1,0 +1,490 @@
+{
+  "item_id": "lg067",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.04624277456647399,
+    "semantic_similarity": 0.7358745336532593,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5972794466286648,
+  "fail_reason_tags": [
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg067",
+    "timestamp": "2026-08-30T14:08:00.259714",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "anua"
+      ],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "market_entry"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_2_2",
+        "amazon_algorithm_guide_1_1",
+        "amazon_algorithm_guide_2_1",
+        "amazon_ranking_diagnosis_1",
+        "amazon_ranking_diagnosis_4_0"
+      ],
+      "snippets": [
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 "
+      ],
+      "scores": [
+        3.7760725021362305,
+        3.7740278244018555,
+        3.5492427349090576,
+        3.476276397705078,
+        3.2501659393310547
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "anua",
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "anua -competesWith-> loreal",
+        "anua -competesWith-> nyx",
+        "anua -competesWith-> aquaphor",
+        "anua -competesWith-> cetaphil",
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "anua",
+          "data": [
+            {
+              "brand": "l'oreal",
+              "type": "competesWith",
+              "category": "beauty",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "nyx",
+              "type": "competesWith",
+              "category": "beauty",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "aquaphor",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "cetaphil",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "competitor_network",
+          "entity": "anua",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "cetaphil"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 31,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 13,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 8,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              },
+              {
+                "brand": "la roche-posay",
+                "product_count": 5,
+                "products": [
+                  "B01N9SPQHQ",
+                  "B01N34XW93",
+                  "B01N7T7JKJ",
+                  "B0060OUV5Y",
+                  "B003QXZWYW"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "brand_products",
+          "entity": "anua",
+          "data": {
+            "product_count": 5,
+            "products": [
+              {
+                "asin": "B0DWFLY18Y",
+                "name": "",
+                "category": "skin_care",
+                "rank": 38,
+                "title": "Anua PDRN Hyaluronic Acid 100 Moisturizing Cream, 2.02 fl oz | Lightweight, Non-Greasy Hydrating Fac",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DG1DQ2S7",
+                "name": "",
+                "category": "skin_care",
+                "rank": 51,
+                "title": "Anua Azelaic Acid 10 Hyaluron Redness Soothing Serum, 1.01 fl oz | Facial Serum for Blemish-Prone & ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FVT77ZLL",
+                "name": "",
+                "category": "skin_care",
+                "rank": 67,
+                "title": "Anua PDRN Collagen Glow Facial Serum Spray, 3.38 fl oz | Hydrating Face Mist, Hyaluronic Acid, dewy ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0BVV8BNYJ",
+                "name": "",
+                "category": "skin_care",
+                "rank": 80,
+                "title": "Anua Heartleaf Quercetinol Pore Deep Cleansing Foam, 5.07 fl.oz | Face wash for Pore Refining Cleans",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FWCF61VF",
+                "name": "",
+                "category": "lip_care",
+                "rank": 62,
+                "title": "Anua PDRN Lip Serum, 0.33 fl.oz | Long-lasting Hydration for Dry Skin, Non-Sticky Moisturizing Lip C",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "anua",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "cetaphil"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Anua의 Skin Care 시장 진입이 HHI에 미친 영향 분석\n\n- **인사이트**  \n  현재 제공된 데이터 기준으로 Anua는 Skin Care 카테고리에 5개 제품을 보유하며, 경쟁사로는 L'Oreal, NYX, Aquaphor가 존재합니다. Skin Care Top 브랜드는 Medicube, Cerave 등이 포함되어 있으나 Anua의 시장 점유율이나 순위 데이터는 별도로 제공되지 않았습니다. 따라서 Anua의 진입이 시장 집중도(HHI)에 미친 구체적 영향은 직접적으로 확인하기 어렵습니다.\n\n- **근거**  \n  - Anua 제품 수: 5개  \n  - 경쟁사: L'Oreal, NYX, Aquaphor  \n  - Skin Care Top 브랜드: Medicube, Cerave, Unknown (상위권 브랜드 명확하지 않음)  \n  - HHI 산출에 필요한 점유율 데이터 미제공 [출처: 현재 데이터]\n\n- **권장**  \n  - Anua의 시장 점유율 변화 및 경쟁사 점유율 변동 데이터를 추가 확보하여 HHI 변화를 정량적으로 분석할 필요가 있습니다.  \n  - Skin Care 하위 카테고리별(예: Face, Body) Anua 제품의 순위 변동 추이를 모니터링하여 시장 내 경쟁 강도 변화를 간접적으로 파악하는 것도 도움이 될 수 있습니다.  \n  - 단기적 순위 변동은 외부 트래픽, 프로모션 등 다양한 요인에 의해 발생할 수 있으므로, 장기적 데이터 축적 후 분석하는 것이 바람직합니다 [출처: RAG 가이드라인 1, 3].\n\n결론적으로, 현재 확인된 데이터 기준으로 Anua의 Skin Care 시장 진입이 HHI에 미친 영향은 명확히 파악되지 않으며, 추가 데이터 확보 후 재분석이 필요합니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 📄 **---**\n   - 관련도: 3.78\n\n3. 📄 **개요**\n   - 관련도: 3.48\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6620.5339431762695,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

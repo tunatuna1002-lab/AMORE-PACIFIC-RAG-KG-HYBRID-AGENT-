@@ -1210,3 +1210,64 @@ class TestBM25SearchInternal:
         r = self._make_retriever_with_chunks()
         results = await r._bm25_search("!@#$%^")
         assert results == []
+
+
+class TestIncrementalIndexing:
+    """증분 색인 (2026-08-30 사이클 5 수정).
+
+    기존에는 `collection.count() == 0`일 때만 색인해서, 나중에 DOCUMENTS에
+    추가된 문서(IR 분기보고서 3종 = 1,971청크)가 영원히 색인되지 않고
+    검색에서 침묵으로 누락됐다.
+    """
+
+    @pytest.mark.asyncio
+    async def test_only_missing_chunks_are_indexed(self):
+        retriever = DocumentRetriever()
+        retriever.chunks = [
+            {
+                "id": "doc_1_0",
+                "content": "already indexed",
+                "doc_id": "doc",
+                "title": "t",
+                "description": "d",
+            },
+            {
+                "id": "ir_2025_q1_1_0",
+                "content": "newly added",
+                "doc_id": "ir_2025_q1",
+                "title": "t",
+                "description": "d",
+            },
+        ]
+        collection = MagicMock()
+        collection.get.return_value = {"ids": ["doc_1_0"]}
+        retriever.collection = collection
+        retriever.openai_client = MagicMock()
+        retriever._embed_texts = AsyncMock(return_value=[[0.1, 0.2]])
+
+        await retriever._index_documents()
+
+        assert collection.add.call_count == 1
+        assert collection.add.call_args.kwargs["ids"] == ["ir_2025_q1_1_0"]
+
+    @pytest.mark.asyncio
+    async def test_nothing_to_index_is_a_noop(self):
+        retriever = DocumentRetriever()
+        retriever.chunks = [
+            {
+                "id": "doc_1_0",
+                "content": "already indexed",
+                "doc_id": "doc",
+                "title": "t",
+                "description": "d",
+            }
+        ]
+        collection = MagicMock()
+        collection.get.return_value = {"ids": ["doc_1_0"]}
+        retriever.collection = collection
+        retriever.openai_client = MagicMock()
+        retriever._embed_texts = AsyncMock(return_value=[])
+
+        await retriever._index_documents()
+
+        collection.add.assert_not_called()

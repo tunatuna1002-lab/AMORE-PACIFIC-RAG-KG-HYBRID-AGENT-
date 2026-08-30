@@ -51,12 +51,42 @@ class L2RetrievalMetrics(MetricCalculator):
         recall = self._compute_recall_at_k(trace, gold, k)
         precision = self._compute_precision_at_k(trace, gold, k)
         mrr = self._compute_mrr(trace, gold)
+        doc_recall = self._compute_doc_recall_at_k(trace, gold, k)
 
         return L2Metrics(
             context_recall_at_k=recall,
             context_precision_at_k=precision,
             mrr=mrr,
+            context_recall_at_k_doc=doc_recall,
         )
+
+    @staticmethod
+    def _source_doc(chunk_id: str) -> str:
+        """청크 ID(`{doc_id}_{section}_{part}`) → 출처 문서 ID."""
+        parts = str(chunk_id).rsplit("_", 2)
+        return parts[0] if len(parts) == 3 else str(chunk_id)
+
+    def _compute_doc_recall_at_k(
+        self, trace: DocRetrievalTrace, gold: GoldEvidence, k: int
+    ) -> float:
+        """출처 문서 단위 recall@k.
+
+        골드 `doc_chunk_ids`는 원래 **문서 수준** 가상 ID(market_trend_01,
+        competitor_analysis_01 등)였고, 2026-08-30 재매핑에서 각 개념을 대표
+        청크 1개로 1:1 치환했다(`scripts/remap_golden_chunk_ids.py`). 그 결과
+        160문항이 서로 다른 청크 7개만 가리키고, 그중 119건이 단 2개 청크
+        (`laneige_strategy_2026`의 291자·379자 문단)에 몰려 있다. 즉 청크 단위
+        recall은 "38개 청크를 가진 문서에서 하필 그 문단이 top-k에 들었는가"를
+        묻는 셈이라 검색 품질보다 라벨 입도를 측정한다.
+        실제로 v5.0에서 청크 단위 0.102 vs 문서 단위 0.555로 벌어졌다.
+        라벨이 실제로 가진 입도(문서)에 맞춘 지표를 함께 보고하고 게이트는
+        이쪽을 쓴다. 청크 단위 지표는 연속성을 위해 계속 보고한다.
+        """
+        gold_docs = {self._source_doc(c) for c in gold.doc_chunk_ids}
+        if not gold_docs:
+            return 1.0
+        retrieved_docs = {self._source_doc(c) for c in trace.chunk_ids[:k]}
+        return len(gold_docs & retrieved_docs) / len(gold_docs)
 
     def _compute_recall_at_k(self, trace: DocRetrievalTrace, gold: GoldEvidence, k: int) -> float:
         """

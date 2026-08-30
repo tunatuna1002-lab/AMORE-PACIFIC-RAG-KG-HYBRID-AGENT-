@@ -1,0 +1,121 @@
+{
+  "item_id": "lg118",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13157894736842105,
+    "semantic_similarity": 0.7826910018920898,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.45111762876977923,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg118",
+    "timestamp": "2026-08-30T14:14:06.149271",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_1",
+        "negative_issue_response_6_2",
+        "us_beauty_trends_weekly_4",
+        "negative_issue_response_1_1",
+        "negative_issue_response_7_1"
+      ],
+      "snippets": [
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "현재 미국 뷰티 시장의 소비자 정서는 '맹목적 바이럴 수용'에서 '검증과 회의주의'로 급격히 전환되고 있다. 지난 1년간 틱톡(TikTok)을 중심으로 폭발적인 성장을 이룬 브랜드들이 이제는 '인플루언서 피로감(Influencer Fatigue)'과 '효능 불일치'라는 역풍을 맞이하고 있다. 데이터 분석 결과, 위기는 크게 네 가지 핵심 벡터로 분류된다. ",
+        "1. **라운드랩**은 '규제 준수'라는 방어 논리를 넘어, 미국 소비자를 위한 텍스처 개선(2.0 버전)을 서둘러야 하며, 오리지널과 미국 버전의 차이를 솔직하게 커뮤니케이션해야 한다.  \n2. **아누아**는 '모공 마케팅'의 수위를 조절하고, 트러블 발생 시 책임 있는 환불/케어 정책을 통해 '먹튀 브랜드'라는 오명을 씻어내야 한다.  \n3. **티르"
+      ],
+      "scores": [
+        8.027715682983398,
+        7.906262397766113,
+        7.876059055328369,
+        7.870492935180664,
+        7.832751274108887
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 아모레퍼시픽 브랜드들의 Amazon 내 시너지 방안\n\n- **인사이트**  \n  1. LANEIGE는 '핑크 펩타이드'라는 신흥 고효율 키워드를 활용해 Bouncy & Firm 라인의 핑크색 비주얼 자산을 강화함으로써 검색 점유율(Share of Voice)을 높일 수 있습니다. 이는 아모레퍼시픽 내 다른 브랜드와 연계하여 키워드 마케팅 및 광고 집행 시 시너지를 낼 가능성이 있습니다.  \n  2. 번들링 전략(예: '모닝 쉐드 키트')을 통해 객단가 상승과 함께 여러 브랜드 제품을 묶어 판매하는 방식으로 브랜드 간 교차 판매 효과를 기대할 수 있습니다.  \n  3. 아모레퍼시픽 브랜드 전반에 걸쳐 가품 문제에 대한 공동 대응 문구를 활용해 소비자 신뢰를 보호하고, 공식 판매처 안내를 통합적으로 진행하는 것도 브랜드 이미지 보호 및 시너지에 기여할 수 있습니다.  \n  4. K-뷰티 요소와 재생·보습 성분 중심의 제품 포트폴리오를 아모레퍼시픽 브랜드들이 공유하며, 이를 아마존 내 마케팅 메시지에 통합하면 소비자 인지도 및 구매 전환율 제고에 도움이 될 수 있습니다.\n\n- **근거**  \n  - '핑크 펩타이드' 키워드 활용 및 광고 방어 필요성 [출처: rag laneige_strategy_2026]  \n  - 번들링 전략으로 객단가 상승 가능성 [출처: rag laneige_strategy_2026]  \n  - 가품 유통 문제에 대한 공동 대응 문구 권고 [출처: rag negative_issue_response]  \n  - K-뷰티 및 재생 성분 트렌드와 LANEIGE 포트폴리오 적합성 [출처: rag us_beauty_trends_weekly]\n\n- **권장 사항**  \n  1. 아모레퍼시픽 내 브랜드들이 '핑크 펩타이드' 등 신흥 키워드 중심으로 공동 마케팅 캠페인을 기획하여 검색 점유율을 극대화할 것  \n  2. 브랜드 간 번들링 상품 개발 및 프로모션을 통해 크로스셀링 효과를 노릴 것  \n  3. 공식 판매처 안내 및 가품 피해 예방 메시지를 통합하여 소비자 신뢰를 강화할 것  \n  4. K-뷰티 및 재생·보습 성분을 강조하는 통합 브랜드 스토리텔링으로 아마존 내 브랜드 인지도를 높일 것  \n\n현재 확인된 데이터 기준으로, 위 전략들이 아모레퍼시픽 브랜드 간 시너지 창출에 유효할 가능성이 높아 보입니다 [출처: rag laneige_strategy_2026, rag negative_issue_response, rag us_beauty_trends_weekly].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 8.03\n\n2. 📄 **---**\n   - 관련도: 7.91\n\n3. 📄 **결론**\n   - 관련도: 7.88\n\n4. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 9629.50611114502,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "item_id": "lg045",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.089171974522293,
+    "semantic_similarity": 0.7681998014450073,
+    "groundedness_score": 0.6667,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0
+  },
+  "overall_score": 0.407166459837057,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg045",
+    "timestamp": "2026-08-30T14:05:43.883251",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "definition"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "home_insight_rules_13",
+        "home_insight_rules_1",
+        "amazon_ranking_diagnosis_4_0",
+        "amazon_algorithm_guide_2_1",
+        "indicator_combination_2_1"
+      ],
+      "snippets": [
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "0. 적용 범위 및 입력 데이터\n\n### 0.1 입력 데이터 (Home에서 접근 가능)\n- 계산된 지표 값(예: SoS, HHI, Brand Avg Rank, CPI, Avg Rating Gap, Churn Rate, Rank Shock, Rank Volatility, Streak Days, Rating Trend)\n- 선택된 컨텍스트(brand, mark",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat"
+      ],
+      "scores": [
+        6.0306715965271,
+        5.776637077331543,
+        4.606115341186523,
+        4.561882972717285,
+        4.576803207397461
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### HHI 0.15의 시장 구조 해석\n\n- **인사이트**  \n  HHI(Herfindahl-Hirschman Index) 값이 0.15라는 것은 시장 내 브랜드 집중도가 비교적 낮은 편임을 시사할 수 있습니다. 일반적으로 HHI가 0.30 이상이면 집중 시장(Concentrated Market)으로 분류되는 반면, 0.15 수준은 상대적으로 분산된 시장 구조일 가능성이 있습니다.\n\n- **근거**  \n  참고 가이드라인의 프로토타입 기본 더미 값 예시에서 HHI 0.30은 Concentrated(집중) 상태로 제시되어 있으므로, 0.15는 이보다 낮아 집중도가 낮은 상태로 해석할 수 있습니다 [출처: RAG 가이드 4].\n\n- **권장**  \n  HHI 0.15는 경쟁이 비교적 분산되어 있는 시장일 수 있으므로, 브랜드 간 점유율 확보를 위한 차별화 전략이나 신규 진입 기회가 존재할 가능성을 염두에 두는 것이 바람직합니다. 다만, 단기 변동이나 카테고리 특성에 따라 해석이 달라질 수 있으므로 추가 데이터와 추이 분석이 필요합니다.\n\n---\n\n요약: HHI 0.15는 상대적으로 분산된 시장 구조를 의미할 가능성이 있으며, 집중도가 높은 시장(0.30 이상)과는 구분됩니다 [출처: RAG 가이드 4].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **4. 프로토타입 기본 더미 값 예시(선택)**\n   - 관련도: 6.03\n\n2. 📄 **2. 내부 요인 분석**\n   - 관련도: 4.61\n\n3. 📄 **---**\n   - 관련도: 4.56\n\n4. 📄 **A. Market & Brand Combination**\n   - 관련도: 4.58\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 8052.906036376953,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

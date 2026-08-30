@@ -1,0 +1,433 @@
+{
+  "item_id": "lg182",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 0.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5,
+    "context_precision_at_k": 0.2,
+    "mrr": 0.25,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10227272727272728,
+    "semantic_similarity": 0.8440797328948975,
+    "groundedness_score": 0.625,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5
+  },
+  "overall_score": 0.5840050547484196,
+  "fail_reason_tags": [
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg182",
+    "timestamp": "2026-08-30T14:21:16.601657",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_4_0",
+        "us_beauty_trends_weekly_3_1",
+        "us_beauty_trends_weekly_table_0",
+        "laneige_strategy_2026_1_0",
+        "strategic_indicators_2_1"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "**1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화**\n\n2026년 1월, 미국 뷰티 시장은 단순한 '연말연시 회복(Post-Holiday Recovery)'을 넘어선 구조적인 소비 패턴의 변화를 겪고 있다. 과거의 뷰티 트렌드가 '클린 걸(Clean Girl)'로 대변되는 미니멀리즘과 자연스러움에 천착했다면, 현재의 시장은 \\*\\*'재생",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating "
+      ],
+      "scores": [
+        6.954592704772949,
+        6.353199005126953,
+        5.87420654296875,
+        5.223777770996094,
+        4.8333539962768555
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "nivea",
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care",
+        "nivea -hasSoS-> lip_care",
+        "nivea -rankedIn-> lip_care",
+        "nivea -hasProduct-> lip_care",
+        "lip_care -belongsToCategory-> lip_care",
+        "nivea -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 29,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 25,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 9,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 9,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 7,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP"
+                ]
+              },
+              {
+                "brand": "chapstick",
+                "product_count": 7,
+                "products": [
+                  "B000GG64O4",
+                  "B07GVVLSG3",
+                  "B07DP6X7Q8",
+                  "B07GVPQXRF",
+                  "B07X62WVM4",
+                  "B07GVVRXRC",
+                  "B0FGPYWRMK"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "brand_products",
+          "entity": "nivea",
+          "data": {
+            "product_count": 3,
+            "products": [
+              {
+                "asin": "B07YG8YVQW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 53,
+                "title": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butter, 4 x 0.17 OZ | Moisturizing Lip Balm w",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07Y91BMSK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.17 OZ | One Each: Cherry, Strawberry, Wat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B082JJ4D98",
+                "name": "",
+                "category": "lip_care",
+                "rank": 88,
+                "title": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4 x 0.17 OZ | Sunscreen Lip Balm with SPF",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.3
+        },
+        {
+          "type": "metric_edges",
+          "entity": "nivea",
+          "data": {
+            "edges": [
+              {
+                "subject": "nivea",
+                "predicate": "hasSoS",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "rankedIn",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "hasProduct",
+                "object": "lip_care"
+              },
+              {
+                "subject": "lip_care",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "nivea",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.3
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 2년 전 대비 Lip Care 카테고리 HHI 변화 분석\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 Lip Care 카테고리의 2년 전 대비 HHI(시장 집중도) 수치가 명확히 제시되어 있지 않습니다. 따라서 2년 전과 현재의 HHI 변화를 구체적으로 비교하기는 어려운 상황입니다. 다만, LANEIGE가 해당 카테고리에서 독보적인 지위를 차지하고 있고, '립 베이스팅' 트렌드와 펩타이드 립 트리트먼트가 시장 내 주요 흐름으로 작용하고 있다는 점에서 시장 집중도는 일정 부분 증가했을 가능성이 있습니다 [출처: rag].\n\n- **근거**  \n  - LANEIGE가 Lip Care 카테고리에서 독보적 위치를 차지하고 있음  \n  - '립 베이스팅' 트렌드가 시장 내 강력한 영향력을 행사 중  \n  - 구체적 HHI 수치나 2년 전 대비 변화 데이터는 제공되지 않음 [출처: rag]\n\n- **권장**  \n  - 2년 전과 현재의 HHI 수치를 직접 비교할 수 있는 추가 데이터 수집 필요  \n  - 시장 집중도 변화를 정량적으로 파악하기 위해 분기별 또는 연도별 HHI 지표 확보 권장  \n  - 현재 트렌드와 브랜드 영향력을 고려해 마케팅 및 제품 전략을 세밀히 조정할 필요 있음  \n\n현재 확인된 데이터 기준으로 2년 전 대비 Lip Care 카테고리 HHI 변화는 구체적으로 확인되지 않습니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 📄 **---**\n   - 관련도: 6.95\n\n3. 📄 **다음 주 테스트 액션 제안**\n   - 관련도: 6.35\n\n4. 📄 **B. Level 2: Category & Price**\n   - 관련도: 4.83\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6790.844917297363,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}

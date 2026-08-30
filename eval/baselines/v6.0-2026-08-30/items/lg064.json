@@ -1,0 +1,125 @@
+{
+  "item_id": "lg064",
+  "question": "",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.5714285714285715,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.17751479289940827,
+    "semantic_similarity": 0.7483508586883545,
+    "groundedness_score": 0.2857,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0
+  },
+  "overall_score": 0.4702551943571844,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg064",
+    "timestamp": "2026-08-30T14:07:39.747626",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "definition",
+        "data_query",
+        "calculation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_2_0",
+        "amazon_ranking_diagnosis_4_0",
+        "amazon_algorithm_guide_2_1",
+        "metric_interpretation_5",
+        "home_insight_rules_1"
+      ],
+      "snippets": [
+        "---\n\n**2\\. 아마존 BSR의 해부학: 변동성의 메커니즘 이해**\n\nBSR의 급등락 원인을 역추적하기 위해서는 먼저 이 숫자가 어떻게 산출되고 갱신되는지에 대한 근본적인 메커니즘을 이해해야 합니다. 아마존의 BSR 공식은 기밀사항이지만, 수년간의 데이터 분석과 셀러들의 경험적 증거를 통해 몇 가지 결정적인 변수들이 밝혀졌습니다.\n\n### **2.1 시",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하",
+        "해석 범위에 대한 명시\n\n- 본 지표들은 **현상(signal)**을 설명하기 위한 도구이다.\n- 원인 분석, 성과 평가, 전략 확정은  \n  반드시 추가 데이터와 내부 판단을 통해 이루어져야 한다.\n- 지표 조합 기반 판단은  \n  `Indicator_Combination_Playbook.md`를 참고한다.",
+        "0. 적용 범위 및 입력 데이터\n\n### 0.1 입력 데이터 (Home에서 접근 가능)\n- 계산된 지표 값(예: SoS, HHI, Brand Avg Rank, CPI, Avg Rating Gap, Churn Rate, Rank Shock, Rank Volatility, Streak Days, Rating Trend)\n- 선택된 컨텍스트(brand, mark"
+      ],
+      "scores": [
+        6.997267723083496,
+        6.967432975769043,
+        6.953300476074219,
+        7.281020164489746,
+        6.967001438140869
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### HHI 계산에 필요한 데이터\n\n- **인사이트**  \n  HHI(Herfindahl-Hirschman Index)는 시장 집중도를 측정하는 지표로, 각 브랜드 또는 사업자의 시장 점유율(share of market)을 제곱하여 모두 합산하는 방식으로 산출됩니다. 따라서 HHI 계산에 필요한 핵심 데이터는 각 브랜드별 또는 사업자별 시장 점유율 데이터입니다.\n\n- **근거**  \n  제공된 컨텍스트에는 HHI 산출 공식이나 구체적 계산법은 명시되어 있지 않으나, 일반적으로 알려진 HHI 산출 방식과 시장 점유율 데이터가 필요하다는 점을 고려할 때, \"시장 점유율\" 데이터가 필수임을 유추할 수 있습니다.  \n  (참고: 현재 제공된 데이터 내에 HHI 산출 관련 구체적 수치나 공식은 없음) [출처: 현재 데이터]\n\n- **권장**  \n  HHI 계산을 위해서는 다음과 같은 데이터 확보가 필요할 수 있습니다.  \n  - 각 브랜드별 매출 점유율 또는 판매량 점유율  \n  - 동일 카테고리 내 브랜드별 시장 점유율 비율  \n  - 점유율 데이터는 가능한 동일 기간, 동일 카테고리 기준으로 수집할 것  \n\n  추가로, HHI 산출 시 점유율 단위(%)를 일관되게 적용하고, 점유율 합이 100%에 근접하는지 확인하는 것이 중요합니다.  \n\n- **참고**  \n  현재 확인된 데이터 기준으로, HHI 산출에 필요한 구체적 점유율 데이터가 제공되지 않아, 점유율 데이터 확보가 우선되어야 할 것으로 보입니다. [출처: 현재 데이터]\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 7.00\n\n2. 📄 **2. 내부 요인 분석**\n   - 관련도: 6.97\n\n3. 📄 **해석 범위에 대한 명시**\n   - 관련도: 7.28\n\n4. 📄 **0. 적용 범위 및 입력 데이터**\n   - 관련도: 6.97\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 0,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0
+    },
+    "latency_ms": 6743.691921234131,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "general",
+    "difficulty": "medium"
+  }
+}
