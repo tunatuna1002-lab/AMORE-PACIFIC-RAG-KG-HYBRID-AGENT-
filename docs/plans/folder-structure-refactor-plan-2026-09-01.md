@@ -81,6 +81,17 @@
 
 > 판정: 현재 스위트는 "구현을 옮기면 깨지고, 동작이 틀려도 통과"하는 방향으로 기울어 있다. 리팩토링 전에 공개 진입점 기준 특성화 테스트(characterization test)를 먼저 깔아야 한다.
 
+### 3.1 실제 실행 결과 (2026-09-02, 가상환경, `tests/unit tests/eval tests/adversarial -m "not slow"`)
+
+| 결과 | 수치 |
+|------|------|
+| 통과 / 실패 / 스킵 | 5,141 / 9 / 7 (274초) |
+| 실패 원인 A (8건) | `tests/unit/api/test_route_migration.py` — `route.path` 속성으로 라우터 등록을 검사하는데, 설치된 FastAPI 0.141은 include된 라우터를 `_IncludedRouter`(path 없음)로 지연 등록. TestClient로 확인하면 `/api/health` 200, OpenAPI 경로 71개로 **앱은 정상**. 즉 구현 결합 테스트가 프레임워크 버전에 깨진 사례 |
+| 실패 원인 B (1건) | `tests/eval/test_semantic.py` — 문장 임베딩 모델 다운로드 403(네트워크). 오프라인 스킵 조건 부재 |
+| 파생 발견 D21 | `requirements.txt`가 `fastapi>=0.104.0`처럼 하한만 고정 → 환경마다 다른 버전 설치. 락파일(`pip-compile` 또는 `uv lock`) 도입을 Phase 0에 추가 |
+
+> 해석: 5,141개가 통과하지만 §2의 결함 D1~D20은 하나도 잡지 못했다. 통과 수가 안전망의 크기를 뜻하지 않는다는 실증이다.
+
 ---
 
 ## 4. 기능별 계획
@@ -193,7 +204,7 @@ v1에서 제안한 항목은 유효하나 **F1~F7 뒤로** 미룬다. 유령 경
 
 | Phase | 내용 | 프로덕션 동작 변화 | 산출물 |
 |-------|------|-------------------|--------|
-| **0. 안전망** | `.env.test` 생성 + conftest가 실제 `.env` 로드 중단, autouse fixture로 싱글턴(`Container`, `get_brain`, `FeatureFlags`, 모듈 dict) 리셋, `KnowledgeGraph` 테스트 기본 `auto_load=False`, 특성화 테스트 14종(§3·F1~F6의 RED 1단계), 골든셋 record/replay + `EvalRunner(StubJudge)` 회귀 게이트, tests 루트 잔재 정리, 빈 패키지·문서·루트 정리 | 없음 | 테스트만 추가. 이후 모든 Phase의 GREEN 기준 |
+| **0. 안전망** | 의존성 락파일(D21), `.env.test` 생성 + conftest가 실제 `.env` 로드 중단, autouse fixture로 싱글턴(`Container`, `get_brain`, `FeatureFlags`, 모듈 dict) 리셋, `KnowledgeGraph` 테스트 기본 `auto_load=False`, 특성화 테스트 14종(§3·F1~F6의 RED 1단계), 골든셋 record/replay + `EvalRunner(StubJudge)` 회귀 게이트, tests 루트 잔재 정리, 빈 패키지·문서·루트 정리 | 없음 | 테스트만 추가. 이후 모든 Phase의 GREEN 기준 |
 | **1. 결함 수정** | D1~D20 각각 RED→최소 수정, 1결함 1커밋. 단위 규약(D2)은 생산자·소비자를 한 커밋에 | 있음(의도된 수정) | 각 커밋에 실패→통과 테스트 |
 | **2. 단일 경로** | F1 파이프라인 1개, F2 QueryGraph 1개, F4 규칙 엔진 1개, F6 데이터 로더 1개, F7 상태·메모리·설정 각 1개. 유령 모듈 삭제 | 있음(스케줄 배치가 지표·인사이트·알림까지 실행) | 삭제 목록 커밋, import 그래프 SCC 0 |
 | **3. 구조 정리** | F8 전부(shim, `__init__` 지연, 동명 클래스, 문서 드리프트) | 없음 | v1 검증 항목 |
