@@ -153,7 +153,7 @@
   2. RED(결함): D2, D11, D17(`churn_rate None` 예외 없음), D18(하드코딩 컨텍스트 제거).
   3. REFACTOR: 단위 규약 적용(생산자 `calculate_sos`는 분수 반환, 소비자 표시부 ×100), 임계값을 `thresholds.json` 단일 출처로.
   4. GREEN: `thresholds.json`을 tmp로 바꿔 넣으면 발화가 바뀌는 테스트.
-- **삭제**: `core/rules_engine.py` + `config/rules.json`, `unified_reasoner.py`, `ontology_knowledge_graph.py`, `kg_iri.py`(사용 계획 없으면), `owl_reasoner.py`(유일 산출인 3단계 SoS 분류를 market_rules로 흡수; 사용자 결정 §6). 생산자 없는 IR·인과 규칙 10개는 생산자를 만들거나 제거.
+- **삭제**: `core/rules_engine.py` + `config/rules.json`, `unified_reasoner.py`, `ontology_knowledge_graph.py`, `kg_iri.py`(사용 계획 없으면), `owl_reasoner.py`는 **유지·실효화**(§F9). `unified_reasoner.py`·`ontology_knowledge_graph.py`는 F9의 OntologyBuilder로 대체. 생산자 없는 IR·인과 규칙 10개는 생산자를 만들거나 제거.
 
 ### F5. 알림
 
@@ -184,6 +184,34 @@
 - **TDD 절차**: RED "크롤 완료 후 `data_freshness`가 fresh" (현재 실패=D9) → REFACTOR 상태 통합 → RED "세션 A의 두 번째 질의 프롬프트에 첫 질의가 포함" → 메모리 통합.
 - **삭제**: `core/state.py`(StateManager로 흡수), `memory/conversation_memory.py`·`session_crypto.py`(미사용) 또는 연결, `dependencies.py:70-121`.
 
+### F9. 온톨로지 실효화 트랙 (Q2 "유지" 결정에 따른 조건)
+
+**진단**: 현재 온톨로지는 결정에 참여하지 않는다. T-Box는 클래스 4개·제한 클래스 3개, A-Box는 초기화 때 JSON KG에서 복사, 소비되는 추론은 `market_position` 하나, 그마저 검색 전략 생성 실패(D4)로 미도달. 입력 SoS는 퍼센트라 제한 클래스가 오분류(D2). "유지"가 의미를 가지려면 아래 세 역할 중 최소 두 개를 실제 출력에 연결해야 한다.
+
+| 역할 | 정의 | 이 시스템에서의 구체 형태 | 소비 지점 |
+|------|------|--------------------------|-----------|
+| R1 어휘·스키마(T-Box) | 모든 생산자가 쓰고 모든 소비자가 읽는 단일 개념 체계 | Brand/Product/Category/Group/Snapshot 클래스, domain·range·functional·disjoint 공리, `shareOfShelf ∈ [0,1]` 데이터 범위 | `kg_updater`·`kg_enricher`·`dashboard_exporter`의 3벌 쓰기를 `OntologyBuilder` 1개로 통합. 스키마 위반 = 적재 시 실패(삼키지 않음) |
+| R2 추론(A-Box 확장) | 명시 저장되지 않은 사실의 도출 | 카테고리 계층 전이(`Lip Care ⊂ Skin Care ⊂ Beauty`), 소유 사슬(`ownedByGroup` → `siblingBrand`), 대칭 경쟁, 제한 클래스 분류(Dominant/Strong/Niche, 분수 기준), `Top10Product`, `NewEntrant`(first_seen 7일 이내) | 배치에서 1회 실행 후 **물질화**(materialize): 추론 트리플을 provenance(공리/규칙 id)와 함께 JSON KG에 기록. 챗 경로는 Java 없이 물질화 결과만 읽음 |
+| R3 검색 접지(RAG grounding) | 질의 용어 → 온톨로지 개체(IRI) 연결과 그 개체 기반 필터·확장 | `concept_taxonomy.json`(이미 존재) + 브랜드·카테고리 개체 링킹, 카테고리 서브트리로 질의 확장("스킨케어 점유율" → Lip Care 포함), 답변의 사실마다 개체 IRI 출처 표기 | `EntityLinker.get_ontology_filters`(현재 미도달) → 검색 필터, `ContextBuilder`의 사실 렌더링, eval L3/L4의 `kg_entities`/`kg_edges` 채점 |
+
+**불변조건**
+1. 단일 스케일: SoS·HHI는 분수(0~1), FunctionalProperty. 범위 위반은 consistency 오류로 배치 실패.
+2. 개체당 IRI 1개: 브랜드 정규화(대소문자·별칭)는 Builder에서만 수행. `hybrid_retriever.py:864`의 4변형 조회 제거.
+3. T-Box는 코드(버전 관리), A-Box는 매일 SQLite에서 재생성. 손편집 A-Box 없음.
+4. 규칙(`rules/*`)의 입력은 온톨로지 속성에서만 온다. 생산자 없는 속성(D17: `churn_rate_7d`, `ir_*`, `discount_periods`)은 규칙과 함께 제거하거나 생산자를 Builder에 추가.
+5. 모든 추론 사실은 provenance를 가진다(어느 공리·규칙이 만들었는지). 설명성(explainability)과 eval L4가 이를 읽는다.
+6. 추론은 오프라인(배치), 소비는 온라인(챗). 챗 경로에 owlready2 import가 남으면 안 된다.
+
+**절차 (Phase 2에 편입)**
+1. RED: 역량 질문(competency question) 테스트 12개를 픽스처 스냅샷으로 작성. 예: "LANEIGE의 모기업은?" → AMOREPACIFIC / "Lip Care의 상위 카테고리는?" → Skin Care, Beauty / "Lip Care에서 SoS ≥ 0.30인 브랜드는?" → 픽스처 값 / "LANEIGE와 같은 그룹의 브랜드는?" → 픽스처 값 / "SoS 1.5(퍼센트 오입력)를 넣으면?" → consistency 오류.
+2. T-Box 확정 (`ontology/tbox.py`): 위 공리 + 제한 클래스는 분수 기준으로 재정의.
+3. `ontology/builder.py`: `OntologyBuilder.from_snapshot(rows, metrics)` → A-Box(OWL) + JSON KG 직렬화 동시 생산. 기존 쓰기 3벌 삭제.
+4. `ontology/materializer.py`: 추론 실행 → 추론 트리플을 provenance와 함께 KG JSON에 병합. 배치 F1의 kg 단계가 호출.
+5. 소비 연결: (a) D4 수정 후 `OWLRetrievalStrategy`가 물질화 사실을 읽도록, (b) `build_inference_context`가 온톨로지 개체에서 규칙 입력을 구성, (c) `EntityLinker` 필터를 검색에 실제 적용.
+6. GREEN: 역량 질문 12개 통과 + 골든셋 L3(KG 엔티티·엣지 recall) 회귀 없음 + 챗 경로 `sys.modules`에 `owlready2` 부재.
+
+**하지 않을 것**: 소비자 없는 공리 추가, SPARQL 완전 구현, IRI 마이그레이션(Q5). 학술 체크리스트 충족이 아니라 "이 추론이 없으면 이 답이 안 나온다"가 판단 기준.
+
 ### F8. 구조 정리 (v1 항목, 우선순위 재조정)
 
 v1에서 제안한 항목은 유효하나 **F1~F7 뒤로** 미룬다. 유령 경로를 지우면 정리 대상 자체가 줄기 때문이다.
@@ -206,7 +234,7 @@ v1에서 제안한 항목은 유효하나 **F1~F7 뒤로** 미룬다. 유령 경
 |-------|------|-------------------|--------|
 | **0. 안전망** | 의존성 락파일(D21), `.env.test` 생성 + conftest가 실제 `.env` 로드 중단, autouse fixture로 싱글턴(`Container`, `get_brain`, `FeatureFlags`, 모듈 dict) 리셋, `KnowledgeGraph` 테스트 기본 `auto_load=False`, 특성화 테스트 14종(§3·F1~F6의 RED 1단계), 골든셋 record/replay + `EvalRunner(StubJudge)` 회귀 게이트, tests 루트 잔재 정리, 빈 패키지·문서·루트 정리 | 없음 | 테스트만 추가. 이후 모든 Phase의 GREEN 기준 |
 | **1. 결함 수정** | D1~D20 각각 RED→최소 수정, 1결함 1커밋. 단위 규약(D2)은 생산자·소비자를 한 커밋에 | 있음(의도된 수정) | 각 커밋에 실패→통과 테스트 |
-| **2. 단일 경로** | F1 파이프라인 1개, F2 QueryGraph 1개, F4 규칙 엔진 1개, F6 데이터 로더 1개, F7 상태·메모리·설정 각 1개. 유령 모듈 삭제 | 있음(스케줄 배치가 지표·인사이트·알림까지 실행) | 삭제 목록 커밋, import 그래프 SCC 0 |
+| **2. 단일 경로** | F1 파이프라인 1개, F2 QueryGraph 1개, F4 규칙 엔진 1개, F6 데이터 로더 1개, F7 상태·메모리·설정 각 1개, **F9 온톨로지 Builder·Materializer**. 유령 모듈 삭제 | 있음(스케줄 배치가 지표·인사이트·알림까지 실행) | 삭제 목록 커밋, import 그래프 SCC 0 |
 | **3. 구조 정리** | F8 전부(shim, `__init__` 지연, 동명 클래스, 문서 드리프트) | 없음 | v1 검증 항목 |
 | **4. 분할** | F3 rag 분할, F6 서비스 추출, brain 파사드화 | 없음 | 특성화 테스트 전부 통과 |
 | **5. 계약 강화** | Protocol↔구현 정렬(D16), `thresholds.json` 실효, 커버리지 게이트 55%→60%, Protocol 준수 테스트(`isinstance(impl, Proto)` runtime_checkable) | 없음 | CI 게이트 |
@@ -223,8 +251,8 @@ v1에서 제안한 항목은 유효하나 **F1~F7 뒤로** 미룬다. 유령 경
 
 | # | 질문 | 권고 |
 |---|------|------|
-| Q1 | 스케줄 배치가 매일 지표·인사이트·알림·KG 갱신까지 실행해야 하는가 (현재는 안 함) | 예. 문서·README가 그렇게 약속하고 있고, 안 하면 알림·인사이트 기능 전체가 수동 전용이 됨. LLM 비용은 인사이트 1회/일 |
-| Q2 | OWL 추론기(owlready2·Pellet/Java)를 유지할지 | 제거. 실제 산출이 3단계 SoS 분류뿐이고 규칙으로 대체 가능. 포트폴리오 서사상 필요하면 "실험 모듈"로 격리하고 프로덕션 경로에서 분리 |
+| Q1 | 스케줄 배치가 매일 지표·인사이트·알림·KG 갱신까지 실행해야 하는가 (현재는 안 함) | **결정: 예** (2026-09-02). F1 목표대로 스케줄 경로가 전체 파이프라인 실행 |
+| Q2 | OWL 추론기(owlready2·Pellet/Java)를 유지할지 | **결정: 유지** (2026-09-02). 단 "유지"는 현재 상태 보존이 아니라 §F9의 조건을 충족해 실효화하는 것을 뜻함 |
 | Q3 | ReAct 에이전트를 연결할지 제거할지 | 연결(import 경로 1줄 수정) + feature flag 기본 off. 골든셋으로 효과 측정 후 on |
 | Q4 | UI 미사용 엔드포인트 35개 중 삭제 범위 | `/api/v3/*`, `/api/chat/memory/*`, 동기 `/api/export/docx`는 삭제. `/api/v4/brain/*`, `/api/crawl/*`, `/api/sync/*`는 운영용이므로 유지 |
 | Q5 | `kg_iri` 마이그레이션을 진행할지 폐기할지 | 폐기. 실제 문제는 IRI가 아니라 브랜드 대소문자 불일치이며 그것부터 고침 |
