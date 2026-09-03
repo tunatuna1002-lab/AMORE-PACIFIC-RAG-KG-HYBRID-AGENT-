@@ -1,132 +1,139 @@
 """
-Characterization test fixtures
-==============================
-Pin current behavior via public entry points only (FastAPI app, public module
-functions). Nothing under src/ is modified by these tests.
+Shared fakes/fixtures for characterization tests.
+
+Rules followed here:
+- Collaborators are injected through constructors (fakes/stubs), never by
+  patching module paths.
+- No network, no ChromaDB on disk: the document retriever is a hand-written
+  fake exposing exactly the methods HybridRetriever calls.
+- KnowledgeGraph always gets an explicit tmp persist_path + auto_load=False.
 """
 
-import os
-import sys
-import tempfile
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
 
 import pytest
 
-# --- Process-level environment (must happen BEFORE src.api.dependencies is imported) ---
-# `src.api.dependencies.API_KEY` is read once at import time. The characterization
-# suite pins the *no-API_KEY* (development) behaviour of verify_api_key, so make sure
-# a shell-exported API_KEY cannot leak in. .env.test (loaded by the root conftest) does
-# not define API_KEY either.
-os.environ.pop("API_KEY", None)
-os.environ["AUTO_START_SCHEDULER"] = "false"
-os.environ.setdefault(
-    "KG_PERSIST_PATH",
-    os.path.join(tempfile.gettempdir(), "amore_test_kg", "knowledge_graph.json"),
-)
-os.environ.pop("RAILWAY_ENVIRONMENT", None)
+from src.domain.entities.relations import Relation, RelationType
+from src.ontology.business_rules import register_all_rules
+from src.ontology.knowledge_graph import KnowledgeGraph
+from src.ontology.reasoner import OntologyReasoner
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# Two canned RAG chunks (with ids) returned by the fake dense search.
+CANNED_CHUNKS: list[dict[str, Any]] = [
+    {
+        "id": "c1",
+        "content": "SoS(Share of Shelf)는 점유율 지표입니다.",
+        "score": 0.9,
+        "metadata": {"title": "SoS 정의", "doc_type": "metric_guide"},
+    },
+    {
+        "id": "c2",
+        "content": "HHI는 시장 집중도입니다.",
+        "score": 0.7,
+        "metadata": {"title": "HHI", "doc_type": "playbook"},
+    },
+]
+
+# Minimal dashboard metrics in the shape HybridRetriever._build_inference_context reads.
+CURRENT_METRICS: dict[str, Any] = {
+    "brand_metrics": [
+        {
+            "brand_name": "LANEIGE",
+            "is_laneige": True,
+            "share_of_shelf": 0.12,
+            "avg_rank": 8.5,
+            "product_count": 3,
+            "category_id": "lip_care",
+        }
+    ],
+    "market_metrics": [{"category_id": "lip_care", "hhi": 0.15, "cpi": 110.0}],
+    "alerts": [],
+}
 
 
-@pytest.fixture(scope="session")
-def app():
-    """The real FastAPI app from the main entry point (routers, middleware, handlers)."""
-    from src.api.dashboard_api import app as _app
+class FakeDocRetriever:
+    """Stand-in for src.rag.retriever.DocumentRetriever.
 
-    return _app
+    HybridRetriever calls: ``initialize()``, ``search(query, top_k=,
+    doc_type_filter=)`` and — only if the attributes exist — ``search_bm25``
+    and ``reciprocal_rank_fusion``. Those two are attached per-instance so a
+    single class can model both the dense-only and the hybrid-RRF retriever.
+    """
+
+    def __init__(
+        self,
+        chunks: list[dict[str, Any]] | None = None,
+        bm25_results: list[dict[str, Any]] | None = None,
+        with_rrf: bool = False,
+    ) -> None:
+        self.chunks = list(chunks if chunks is not None else CANNED_CHUNKS)
+        self.calls: list[tuple[str, int, list[str] | None]] = []
+        self.initialized = False
+        if bm25_results is not None:
+            self.search_bm25 = lambda query, top_k=10: [dict(r) for r in bm25_results]
+        if with_rrf:
+            # Naive concatenation "fusion" - keeps every item as-is (ids included/omitted).
+            self.reciprocal_rank_fusion = lambda *lists, k=60, top_k=10: [
+                d for lst in lists for d in lst
+            ][:top_k]
+
+    async def initialize(self) -> bool:
+        self.initialized = True
+        return True
+
+    async def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        doc_filter: str | None = None,
+        doc_type_filter: list[str] | None = None,
+        **_: Any,
+    ) -> list[dict[str, Any]]:
+        self.calls.append((query, top_k, doc_type_filter))
+        return [dict(c) for c in self.chunks]
+
+
+def seed_kg(kg: KnowledgeGraph) -> KnowledgeGraph:
+    """Seed the four triples every retriever/chatbot test relies on."""
+    kg.add_relation(Relation("LANEIGE", RelationType.OWNED_BY_GROUP, "AMOREPACIFIC"))
+    kg.add_relation(
+        Relation(
+            "LANEIGE",
+            RelationType.HAS_PRODUCT,
+            "B0LANE1",
+            properties={
+                "title": "LANEIGE Lip Sleeping Mask",
+                "product_name": "LANEIGE Lip Sleeping Mask",
+                "rank": 1,
+                "category": "lip_care",
+            },
+        )
+    )
+    kg.add_relation(Relation("B0LANE1", RelationType.BELONGS_TO_CATEGORY, "lip_care"))
+    kg.add_relation(Relation("COSRX", RelationType.COMPETES_WITH, "LANEIGE"))
+    return kg
 
 
 @pytest.fixture
-def client(app):
-    """
-    TestClient WITHOUT the context manager on purpose: entering `with TestClient(app)`
-    would run the lifespan, which schedules a background Playwright crawl when no
-    "today" data exists. Routes lazily initialise everything they need, so startup is
-    not required to exercise them.
-
-    base_url must be http://localhost — TrustedHostMiddleware rejects "testserver".
-    """
-    from fastapi.testclient import TestClient
-
-    return TestClient(app, base_url="http://localhost")
+def kg(tmp_path: Path) -> KnowledgeGraph:
+    graph = KnowledgeGraph(
+        persist_path=str(tmp_path / "kg.json"), auto_load=False, auto_save=False
+    )
+    return seed_kg(graph)
 
 
 @pytest.fixture
-def lenient_client(app):
-    """Same as `client`, but unhandled exceptions surface as the app's 500 JSON body."""
-    from fastapi.testclient import TestClient
-
-    return TestClient(app, base_url="http://localhost", raise_server_exceptions=False)
-
-
-@pytest.fixture
-def isolated_cwd(tmp_path, monkeypatch):
-    """
-    Run the request from an empty working directory.
-
-    The data layer resolves everything relative to CWD ("./data/dashboard_data.json",
-    "./data/amore_data.db", "./data/external_signals", StateManager "./data", ...), so
-    chdir-ing to a temp dir both isolates the test and keeps destructive routes
-    (e.g. DELETE /api/signals/clear) away from the repository's data/ directory.
-    """
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
+def reasoner(kg: KnowledgeGraph) -> OntologyReasoner:
+    r = OntologyReasoner(kg)
+    register_all_rules(r)
+    return r
 
 
 @pytest.fixture
-def auth_bypass(app):
-    """
-    Public FastAPI test hook: override the verify_api_key dependency so the chat
-    routes can be exercised while the process has no API_KEY configured (which
-    would otherwise short-circuit with 503, pinned separately).
-    """
-    from src.api.dependencies import verify_api_key
-
-    app.dependency_overrides[verify_api_key] = lambda: "characterization-key"
-    yield
-    app.dependency_overrides.pop(verify_api_key, None)
-
-
-class _CannedMessage:
-    content = "캔 응답: LANEIGE 립 슬리핑 마스크는 Lip Care 1위입니다."
-
-
-class _CannedChoice:
-    message = _CannedMessage()
-    finish_reason = "stop"
-
-
-class _CannedUsage:
-    prompt_tokens = 10
-    completion_tokens = 5
-    total_tokens = 15
-
-
-class CannedCompletion:
-    """Minimal object shaped like a litellm ModelResponse (see src/shared/llm_client.py)."""
-
-    choices = [_CannedChoice()]
-    usage = _CannedUsage()
-
-
-@pytest.fixture
-def patched_llm(monkeypatch):
-    """
-    No-network LLM: replace litellm.acompletion with a canned coroutine.
-
-    Callers do `from litellm import acompletion` at import time, so the name is
-    already bound inside their modules; rebind every loaded module attribute that
-    still points at the original function. This is generic (no module is named)
-    and is the only way to make the public patch of litellm.acompletion effective.
-    """
-    import litellm
-
-    original = litellm.acompletion
-    calls: list[dict] = []
-
-    async def fake_acompletion(*args, **kwargs):
-        calls.append(kwargs)
-        return CannedCompletion()
-
-    monkeypatch.setattr(litellm, "acompletion", fake_acompletion)
-    for module in list(sys.modules.values()):
-        if getattr(module, "acompletion", None) is original:
-            monkeypatch.setattr(module, "acompletion", fake_acompletion, raising=False)
-    return calls
+def fake_doc_retriever() -> FakeDocRetriever:
+    return FakeDocRetriever()
