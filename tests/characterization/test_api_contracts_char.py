@@ -11,6 +11,10 @@ import json
 
 import pytest
 
+# Fixtures (env setup + app/client/auth/LLM fakes) live in _api_fixtures.py and are
+# registered as a pytest plugin for this module, independent of the shared conftest.
+pytest_plugins = ["tests.characterization._api_fixtures"]
+
 # ---------------------------------------------------------------------------
 # Fixtures: dashboard JSON shaped like src/tools/exporters/dashboard_exporter.py
 # ---------------------------------------------------------------------------
