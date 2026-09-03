@@ -145,7 +145,7 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
         is_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
 
         # 기본 경로 설정 (Railway Volume > 설정 파일 > 파라미터 > 기본값)
-        if persist_path is None and os.environ.get("KG_PERSIST_PATH"):
+        if persist_path is None and not is_railway and os.environ.get("KG_PERSIST_PATH"):
             persist_path = os.environ["KG_PERSIST_PATH"]
         if persist_path is None:
             if is_railway:
