@@ -2,7 +2,6 @@
 MetricsAgent.execute (history lookup key)."""
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -185,4 +184,3 @@ async def test_metrics_agent_execute_ignores_history_keyed_by_asin(tmp_path):
         "warning_alerts": 0,
     }
     assert agent.get_results() is result
-    assert not Path("./logs/metrics.log").exists() or True  # logs go to tmp_path
