@@ -56,9 +56,11 @@ RULE_SENTIMENT_VALUE_ADVANTAGE = InferenceRule(
         ),
         RuleCondition(
             name="competitor_lacks_value",
-            check=lambda ctx: not any(
-                tag.lower() in ["value for money", "good value", "affordable"]
-                for tag in ctx.get("competitor_sentiment_tags", [])
+            check=lambda ctx: (
+                not any(
+                    tag.lower() in ["value for money", "good value", "affordable"]
+                    for tag in ctx.get("competitor_sentiment_tags", [])
+                )
             ),
             description="경쟁사에 가성비 감성 없음",
         ),
@@ -85,8 +87,10 @@ RULE_SENTIMENT_WEAKNESS_PACKAGING = InferenceRule(
     conditions=[
         RuleCondition(
             name="no_packaging_positive",
-            check=lambda ctx: not any(
-                cluster == "Packaging" for cluster in ctx.get("sentiment_clusters", {}).keys()
+            check=lambda ctx: (
+                not any(
+                    cluster == "Packaging" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                )
             ),
             description="패키징 긍정 감성 없음",
         ),
@@ -186,8 +190,10 @@ RULE_SENTIMENT_GAP_SENSORY = InferenceRule(
     conditions=[
         RuleCondition(
             name="no_sensory_sentiment",
-            check=lambda ctx: not any(
-                cluster == "Sensory" for cluster in ctx.get("sentiment_clusters", {}).keys()
+            check=lambda ctx: (
+                not any(
+                    cluster == "Sensory" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                )
             ),
             description="Sensory 감성 없음",
         ),

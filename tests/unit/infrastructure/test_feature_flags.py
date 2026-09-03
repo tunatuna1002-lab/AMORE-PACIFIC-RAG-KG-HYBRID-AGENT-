@@ -92,9 +92,9 @@ class TestFeatureFlagsENVOverride:
         for truthy in ("true", "True", "TRUE", "1", "yes", "on"):
             monkeypatch.setenv("FF_CACHE_USE_SQLITE_EMBEDDING_CACHE", truthy)
             flags = FeatureFlags(config_path=flags_config)
-            assert (
-                flags.get_flag("cache", "use_sqlite_embedding_cache") is True
-            ), f"Failed for {truthy}"
+            assert flags.get_flag("cache", "use_sqlite_embedding_cache") is True, (
+                f"Failed for {truthy}"
+            )
 
     def test_env_accepts_various_falsy(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
@@ -102,9 +102,9 @@ class TestFeatureFlagsENVOverride:
         for falsy in ("false", "False", "FALSE", "0", "no", "off", ""):
             monkeypatch.setenv("FF_CACHE_USE_SQLITE_EMBEDDING_CACHE", falsy)
             flags = FeatureFlags(config_path=flags_config)
-            assert (
-                flags.get_flag("cache", "use_sqlite_embedding_cache") is False
-            ), f"Failed for {falsy}"
+            assert flags.get_flag("cache", "use_sqlite_embedding_cache") is False, (
+                f"Failed for {falsy}"
+            )
 
     def test_env_overrides_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("FF_NEW_SECTION_NEW_KEY", "true")

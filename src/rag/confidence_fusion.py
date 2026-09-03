@@ -9,13 +9,13 @@ Fusion Strategy:
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import numpy as np
 
 
-class ScoreNormalizationMethod(str, Enum):
+class ScoreNormalizationMethod(StrEnum):
     """점수 정규화 방법"""
 
     MIN_MAX = "min_max"  # Min-Max 정규화
@@ -24,7 +24,7 @@ class ScoreNormalizationMethod(str, Enum):
     NONE = "none"  # 정규화 없음
 
 
-class FusionStrategy(str, Enum):
+class FusionStrategy(StrEnum):
     """융합 전략"""
 
     WEIGHTED_SUM = "weighted_sum"  # 가중합

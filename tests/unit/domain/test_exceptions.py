@@ -349,9 +349,9 @@ class TestExceptionHierarchy:
         ]
 
         for exc_class in exceptions:
-            assert issubclass(
-                exc_class, AmoreAgentError
-            ), f"{exc_class.__name__} should inherit from AmoreAgentError"
+            assert issubclass(exc_class, AmoreAgentError), (
+                f"{exc_class.__name__} should inherit from AmoreAgentError"
+            )
 
     def test_catch_all_with_base_exception(self):
         """AmoreAgentError로 모든 서브 예외를 잡을 수 있어야 함"""

@@ -103,9 +103,9 @@ class TestDecisionMakerReturnsDecision:
 
             result = await dm.decide("test", context, system_state)
 
-            assert isinstance(
-                result, Decision
-            ), f"Fallback should return Decision, got {type(result)}"
+            assert isinstance(result, Decision), (
+                f"Fallback should return Decision, got {type(result)}"
+            )
             assert result.tool == "direct_answer"
             assert result.confidence < 0.5  # Low confidence for fallback
 

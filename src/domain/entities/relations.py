@@ -8,11 +8,11 @@ Triple 구조: (Subject, Predicate, Object)
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class RelationType(str, Enum):
+class RelationType(StrEnum):
     """
     온톨로지 관계 유형
 
@@ -155,7 +155,7 @@ class RelationType(str, Enum):
     BRAND_SENTIMENT = "brandSentiment"
 
 
-class InsightType(str, Enum):
+class InsightType(StrEnum):
     """추론된 인사이트 유형"""
 
     # 시장 포지션 관련
@@ -205,7 +205,7 @@ class InsightType(str, Enum):
     MARKET_STRUCTURE = "market_structure"
 
 
-class MarketPosition(str, Enum):
+class MarketPosition(StrEnum):
     """시장 포지션 유형"""
 
     # 지배적 포지션

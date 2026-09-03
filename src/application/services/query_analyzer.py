@@ -8,11 +8,11 @@ This service has NO dependencies on infrastructure - pure business logic.
 """
 
 import re
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class ComplexityLevel(str, Enum):
+class ComplexityLevel(StrEnum):
     """Query complexity levels"""
 
     SIMPLE = "simple"  # Direct lookup (rank, metric)
@@ -20,7 +20,7 @@ class ComplexityLevel(str, Enum):
     COMPLEX = "complex"  # Analysis, multi-step reasoning
 
 
-class QueryIntent(str, Enum):
+class QueryIntent(StrEnum):
     """Query intent types"""
 
     RANK_QUERY = "rank_query"  # 순위 조회

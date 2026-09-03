@@ -196,9 +196,9 @@ def test_business_rules(results: TestResult):
         from ontology.reasoner import OntologyReasoner
 
         # 규칙 수 확인
-        assert (
-            len(ALL_BUSINESS_RULES) >= 10
-        ), f"최소 10개 규칙 필요, 현재 {len(ALL_BUSINESS_RULES)}개"
+        assert len(ALL_BUSINESS_RULES) >= 10, (
+            f"최소 10개 규칙 필요, 현재 {len(ALL_BUSINESS_RULES)}개"
+        )
         results.record_pass(f"비즈니스 규칙 {len(ALL_BUSINESS_RULES)}개 정의됨")
 
         # 규칙 등록 테스트

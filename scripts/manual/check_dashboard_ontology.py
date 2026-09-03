@@ -185,7 +185,7 @@ def generate_ontology_insights(dashboard_data: dict) -> dict:
 
     # 우선순위로 정렬
     formatted_inferences.sort(
-        key=lambda x: (0 if x["priority"] == "high" else 1 if x["priority"] == "medium" else 2)
+        key=lambda x: 0 if x["priority"] == "high" else 1 if x["priority"] == "medium" else 2
     )
 
     # 요약 생성

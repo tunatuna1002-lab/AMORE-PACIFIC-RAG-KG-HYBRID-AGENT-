@@ -7,12 +7,12 @@ Note: ProductMetrics는 market.py에 정의됨 (중복 방지)
 """
 
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class BadgeType(str, Enum):
+class BadgeType(StrEnum):
     """Amazon 뱃지 유형"""
 
     BEST_SELLER = "Best Seller"

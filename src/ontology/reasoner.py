@@ -783,8 +783,9 @@ class StandardConditions:
         """타겟 브랜드 (LANEIGE)"""
         return RuleCondition(
             name="is_target_brand",
-            check=lambda ctx: ctx.get("is_target", False)
-            or str(ctx.get("brand", "")).lower() == "laneige",
+            check=lambda ctx: (
+                ctx.get("is_target", False) or str(ctx.get("brand", "")).lower() == "laneige"
+            ),
             description="타겟 브랜드 (LANEIGE)",
         )
 

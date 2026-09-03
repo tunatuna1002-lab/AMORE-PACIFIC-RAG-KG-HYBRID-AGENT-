@@ -37,7 +37,7 @@ Usage:
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -70,7 +70,7 @@ from src.tools.exporters.dashboard_exporter import DashboardExporter
 # =========================================================================
 
 
-class WorkflowStatus(str, Enum):
+class WorkflowStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"

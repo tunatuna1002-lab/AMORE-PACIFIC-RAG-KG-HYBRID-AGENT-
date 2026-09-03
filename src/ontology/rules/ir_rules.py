@@ -119,10 +119,10 @@ RULE_IR_GROWTH_SLOWDOWN = InferenceRule(
         RuleCondition(
             name="ir_growth_slowdown",
             check=lambda ctx: (
-                ctx.get("ir_current_qtr_growth", 0) < ctx.get("ir_prev_qtr_growth", 0) * 0.5
-            )
-            if ctx.get("ir_prev_qtr_growth", 0) > 0
-            else False,
+                (ctx.get("ir_current_qtr_growth", 0) < ctx.get("ir_prev_qtr_growth", 0) * 0.5)
+                if ctx.get("ir_prev_qtr_growth", 0) > 0
+                else False
+            ),
             description="IR 성장률 50%+ 감소",
         ),
     ],

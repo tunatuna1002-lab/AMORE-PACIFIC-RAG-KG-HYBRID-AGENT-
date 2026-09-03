@@ -59,6 +59,7 @@ neighbors = kg.get_neighbors("LANEIGE", direction="outgoing")
 
 import json
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -140,11 +141,12 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
         config = self._load_config()
 
         # Railway 환경 감지
-        import os
 
         is_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
 
         # 기본 경로 설정 (Railway Volume > 설정 파일 > 파라미터 > 기본값)
+        if persist_path is None and os.environ.get("KG_PERSIST_PATH"):
+            persist_path = os.environ["KG_PERSIST_PATH"]
         if persist_path is None:
             if is_railway:
                 persist_path = self.RAILWAY_PERSIST_PATH

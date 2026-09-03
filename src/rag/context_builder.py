@@ -10,7 +10,7 @@ LLM 프롬프트용 컨텍스트 조립기
 """
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from src.domain.entities.relations import InferenceResult
@@ -26,7 +26,7 @@ class SourceReference:
     detail: str
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     """출력 포맷"""
 
     MARKDOWN = "markdown"
@@ -34,7 +34,7 @@ class OutputFormat(str, Enum):
     STRUCTURED = "structured"
 
 
-class ContextPriority(str, Enum):
+class ContextPriority(StrEnum):
     """컨텍스트 우선순위"""
 
     CRITICAL = "critical"  # 반드시 포함

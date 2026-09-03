@@ -10,11 +10,11 @@ RAG Router
 - 데이터 조회 질의 → Google Sheets 데이터
 """
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class QueryType(str, Enum):
+class QueryType(StrEnum):
     """질의 유형"""
 
     DEFINITION = "definition"  # 지표 정의

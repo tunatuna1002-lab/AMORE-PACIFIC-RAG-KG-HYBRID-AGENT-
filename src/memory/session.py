@@ -6,11 +6,11 @@ Session Manager
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class SessionStatus(str, Enum):
+class SessionStatus(StrEnum):
     """세션 상태"""
 
     CREATED = "created"
@@ -20,7 +20,7 @@ class SessionStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class AgentStatus(str, Enum):
+class AgentStatus(StrEnum):
     """에이전트 상태"""
 
     PENDING = "pending"

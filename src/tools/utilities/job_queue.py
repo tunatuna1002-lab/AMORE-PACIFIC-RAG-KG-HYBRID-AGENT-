@@ -29,7 +29,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from src.shared.constants import KST
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 # 한국 시간대 (UTC+9)
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """작업 상태"""
 
     PENDING = "pending"  # 대기 중
@@ -48,7 +48,7 @@ class JobStatus(str, Enum):
     CANCELLED = "cancelled"  # 취소됨
 
 
-class JobType(str, Enum):
+class JobType(StrEnum):
     """작업 유형"""
 
     EXPORT_DOCX = "export_docx"

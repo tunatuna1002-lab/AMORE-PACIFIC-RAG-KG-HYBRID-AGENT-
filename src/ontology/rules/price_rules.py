@@ -356,14 +356,16 @@ RULE_DISCOUNT_DEPENDENT = InferenceRule(
         RuleCondition(
             name="high_overlap_ratio",
             check=lambda ctx: (
-                count_period_overlap(
-                    ctx.get("discount_periods", []), ctx.get("rank_improvements", [])
+                (
+                    count_period_overlap(
+                        ctx.get("discount_periods", []), ctx.get("rank_improvements", [])
+                    )
+                    / len(ctx.get("rank_improvements", [1]))
+                    >= 0.8
                 )
-                / len(ctx.get("rank_improvements", [1]))
-                >= 0.8
-            )
-            if ctx.get("rank_improvements")
-            else False,
+                if ctx.get("rank_improvements")
+                else False
+            ),
             description="할인-순위상승 일치율 >= 80%",
         ),
     ],
@@ -478,8 +480,9 @@ RULE_HIGH_DISCOUNT_DEPENDENCY_SCORE = InferenceRule(
         ),
         RuleCondition(
             name="high_dependency",
-            check=lambda ctx: calculate_discount_dependency_score(ctx.get("product_history", []))
-            >= 61,
+            check=lambda ctx: (
+                calculate_discount_dependency_score(ctx.get("product_history", [])) >= 61
+            ),
             description="할인 의존도 점수 >= 61",
         ),
     ],
@@ -518,13 +521,15 @@ RULE_PREMIUM_DEFENSE_SUCCESS = InferenceRule(
         RuleCondition(
             name="premium_price",
             check=lambda ctx: (
-                (ctx.get("price", 0) - ctx.get("category_avg_price", 0))
-                / ctx.get("category_avg_price", 1)
-                * 100
-                > 20
-            )
-            if ctx.get("category_avg_price")
-            else False,
+                (
+                    (ctx.get("price", 0) - ctx.get("category_avg_price", 0))
+                    / ctx.get("category_avg_price", 1)
+                    * 100
+                    > 20
+                )
+                if ctx.get("category_avg_price")
+                else False
+            ),
             description="평균 대비 20% 이상 높은 가격",
         ),
         RuleCondition(

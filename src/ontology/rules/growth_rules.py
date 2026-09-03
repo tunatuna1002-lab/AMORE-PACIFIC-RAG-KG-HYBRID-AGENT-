@@ -192,8 +192,9 @@ RULE_TOP3_ACHIEVEMENT = InferenceRule(
         StandardConditions.in_top_n(3),  # Top 3 이내
         RuleCondition(
             name="is_target_brand",
-            check=lambda ctx: ctx.get("is_target", False)
-            or str(ctx.get("brand", "")).upper() == "LANEIGE",
+            check=lambda ctx: (
+                ctx.get("is_target", False) or str(ctx.get("brand", "")).upper() == "LANEIGE"
+            ),
             description="타겟 브랜드",
         ),
     ],

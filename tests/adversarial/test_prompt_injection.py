@@ -244,9 +244,9 @@ class TestOutputGuard:
         for response in test_cases:
             is_safe, sanitized = PromptGuard.check_output(response)
             # Should contain [REDACTED] or be modified
-            assert (
-                "[REDACTED]" in sanitized or sanitized != response
-            ), f"Sensitive keyword not redacted: {response}"
+            assert "[REDACTED]" in sanitized or sanitized != response, (
+                f"Sensitive keyword not redacted: {response}"
+            )
 
 
 class TestEdgeCases:

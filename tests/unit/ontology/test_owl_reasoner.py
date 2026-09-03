@@ -587,9 +587,9 @@ class TestOWLDisjointClasses:
             if set(d.entities) == expected:
                 found = True
                 break
-        assert (
-            found
-        ), f"Expected AllDisjoint with {expected}, got {[set(d.entities) for d in disjoints]}"
+        assert found, (
+            f"Expected AllDisjoint with {expected}, got {[set(d.entities) for d in disjoints]}"
+        )
 
     def test_disjoint_has_three_entities(self, owl_reasoner):
         """AllDisjoint 공리에 정확히 3개 클래스 포함"""

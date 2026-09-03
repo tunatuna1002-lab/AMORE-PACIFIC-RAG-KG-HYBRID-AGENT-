@@ -18,6 +18,9 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = [pytest.mark.slow, pytest.mark.integration]
+
+
 # 프로젝트 루트 추가
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -69,9 +72,9 @@ def test_query_intent_classification(results: TestResult):
         ]
         for query in diagnosis_queries:
             intent = classify_intent(query)
-            assert (
-                intent == QueryIntent.DIAGNOSIS
-            ), f"Expected DIAGNOSIS for '{query}', got {intent}"
+            assert intent == QueryIntent.DIAGNOSIS, (
+                f"Expected DIAGNOSIS for '{query}', got {intent}"
+            )
         results.record_pass("DIAGNOSIS 의도 분류")
 
         # TREND 테스트
@@ -157,19 +160,19 @@ def test_document_metadata(results: TestResult):
             "knowledge_base": doc_types.count("knowledge_base"),
             "response_guide": doc_types.count("response_guide"),
         }
-        assert (
-            type_counts["metric_guide"] == 4
-        ), f"Expected 4 metric_guide, got {type_counts['metric_guide']}"
+        assert type_counts["metric_guide"] == 4, (
+            f"Expected 4 metric_guide, got {type_counts['metric_guide']}"
+        )
         assert type_counts["playbook"] == 2, f"Expected 2 playbook, got {type_counts['playbook']}"
-        assert (
-            type_counts["intelligence"] == 2
-        ), f"Expected 2 intelligence, got {type_counts['intelligence']}"
-        assert (
-            type_counts["knowledge_base"] == 1
-        ), f"Expected 1 knowledge_base, got {type_counts['knowledge_base']}"
-        assert (
-            type_counts["response_guide"] == 2
-        ), f"Expected 2 response_guide, got {type_counts['response_guide']}"
+        assert type_counts["intelligence"] == 2, (
+            f"Expected 2 intelligence, got {type_counts['intelligence']}"
+        )
+        assert type_counts["knowledge_base"] == 1, (
+            f"Expected 1 knowledge_base, got {type_counts['knowledge_base']}"
+        )
+        assert type_counts["response_guide"] == 2, (
+            f"Expected 2 response_guide, got {type_counts['response_guide']}"
+        )
         results.record_pass(
             f"문서 유형별 개수: metric_guide={type_counts['metric_guide']}, playbook={type_counts['playbook']}, intelligence={type_counts['intelligence']}, knowledge_base={type_counts['knowledge_base']}, response_guide={type_counts['response_guide']}"
         )

@@ -29,6 +29,8 @@ from src.ontology.reasoner import OntologyReasoner
 from src.rag.context_builder import ContextBuilder
 from src.rag.hybrid_retriever import HybridContext
 
+pytestmark = [pytest.mark.slow, pytest.mark.integration]
+
 
 def load_dashboard_data() -> dict:
     """대시보드 데이터 로드"""

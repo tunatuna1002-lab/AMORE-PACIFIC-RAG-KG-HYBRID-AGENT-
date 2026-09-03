@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -8,22 +9,55 @@ from dotenv import load_dotenv
 
 
 def pytest_configure(config):
-    """테스트 시작 전 환경 설정 로드"""
+    """테스트 환경 격리: 실제 .env는 로드하지 않고 .env.test만 로드한다."""
     project_root = Path(__file__).parent.parent
-
-    main_env_path = project_root / ".env"
-    if main_env_path.exists():
-        load_dotenv(main_env_path, override=False)
-        print(f"\n[conftest] Loaded base environment from: {main_env_path}")
-
     env_file = os.environ.get("ENV_FILE", ".env.test")
     env_path = project_root / env_file
-
     if env_path.exists():
         load_dotenv(env_path, override=True)
-        print(f"[conftest] Applied test overrides from: {env_path}")
-    else:
-        print(f"[conftest] No {env_file} found, using base environment only")
+    # 실 데이터 파일 의존 차단: KG 영속 경로를 임시 디렉토리로
+    os.environ.setdefault(
+        "KG_PERSIST_PATH",
+        os.path.join(tempfile.gettempdir(), "amore_test_kg", "knowledge_graph.json"),
+    )
+    os.environ.pop("RAILWAY_ENVIRONMENT", None)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_singletons():
+    """모듈 전역 싱글턴을 테스트마다 초기화한다 (테스트 간 상태 누수 방지)."""
+    yield
+    try:
+        from src.infrastructure.container import Container
+
+        Container.reset()
+    except Exception:
+        pass
+    try:
+        from src.core.brain import reset_brain
+
+        reset_brain()
+    except Exception:
+        pass
+    try:
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        FeatureFlags.reset_instance()
+    except Exception:
+        pass
+    try:
+        from src.core.state_manager import reset_state_manager
+
+        reset_state_manager()
+    except Exception:
+        pass
+    try:
+        from src.api import dependencies as _deps
+
+        _deps.conversation_memory.clear()
+        _deps.session_last_activity.clear()
+    except Exception:
+        pass
 
 
 @pytest.fixture

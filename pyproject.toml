@@ -11,9 +11,10 @@ license = {text = "MIT"}
 authors = [
     {name = "AMORE Pacific", email = "tech@amorepacific.com"}
 ]
-dependencies = [
-    "aiosqlite>=0.19.0",
-]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -61,22 +62,6 @@ fail_under = 0
 [tool.coverage.html]
 directory = "coverage_html"
 
-# Black formatter (optional)
-[tool.black]
-line-length = 100
-target-version = ['py311']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-    | \.venv
-    | venv
-    | __pycache__
-    | \.mypy_cache
-    | coverage_html
-)/
-'''
-
 # Ruff linter (optional, fast Python linter)
 [tool.ruff]
 line-length = 100
@@ -101,6 +86,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["F841", "E712"]  # Unused variables and == True/False ok in tests
 "scripts/**/*.py" = ["F841"]  # Unused variables ok in scripts
+"scripts/manual/**/*.py" = ["F841", "E712"]  # 수동 실행 테스트 스크립트
 
 [tool.ruff.format]
 exclude = [

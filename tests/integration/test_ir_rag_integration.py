@@ -18,6 +18,9 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = [pytest.mark.slow, pytest.mark.integration]
+
+
 # 프로젝트 루트 추가
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -92,9 +95,9 @@ def test_ir_document_metadata(results: TestResult):
 
         # parent_company 확인
         for doc_id, doc_info in ir_docs.items():
-            assert (
-                doc_info["parent_company"] == "amorepacific"
-            ), f"Expected 'amorepacific' for {doc_id}"
+            assert doc_info["parent_company"] == "amorepacific", (
+                f"Expected 'amorepacific' for {doc_id}"
+            )
         results.record_pass("parent_company = 'amorepacific' 확인")
 
         # 키워드 확인 (Americas, COSRX, LANEIGE 등)
@@ -258,12 +261,12 @@ def test_brand_ownership_config(results: TestResult):
         results.record_pass("COSRX가 amorepacific_brands에 존재")
 
         # COSRX 상세 정보 확인
-        assert (
-            cosrx_entry.get("acquired") == "2024"
-        ), f"COSRX acquired date should be '2024', got {cosrx_entry.get('acquired')}"
-        assert (
-            cosrx_entry.get("country") == "Korea"
-        ), f"COSRX country should be 'Korea', got {cosrx_entry.get('country')}"
+        assert cosrx_entry.get("acquired") == "2024", (
+            f"COSRX acquired date should be '2024', got {cosrx_entry.get('acquired')}"
+        )
+        assert cosrx_entry.get("country") == "Korea", (
+            f"COSRX country should be 'Korea', got {cosrx_entry.get('country')}"
+        )
         results.record_pass("COSRX: 2024년 인수, 한국 브랜드 확인")
 
         # brand_ownership 상세 정보 확인
@@ -271,12 +274,12 @@ def test_brand_ownership_config(results: TestResult):
         cosrx_ownership = ownership.get("COSRX", {})
 
         assert cosrx_ownership.get("owner") == "AMOREPACIFIC", "COSRX owner should be AMOREPACIFIC"
-        assert (
-            cosrx_ownership.get("country_of_origin") == "Korea"
-        ), "COSRX country_of_origin should be Korea"
-        assert "NOT Chinese" in cosrx_ownership.get(
-            "note", ""
-        ), "COSRX note should mention 'NOT Chinese'"
+        assert cosrx_ownership.get("country_of_origin") == "Korea", (
+            "COSRX country_of_origin should be Korea"
+        )
+        assert "NOT Chinese" in cosrx_ownership.get("note", ""), (
+            "COSRX note should mention 'NOT Chinese'"
+        )
         results.record_pass("COSRX 소유권 상세: 아모레퍼시픽 소속, 한국 브랜드 (NOT Chinese)")
 
         # COSRX가 competitor_brands에 없는지 확인
@@ -312,15 +315,15 @@ def test_knowledge_graph_brand_ownership(results: TestResult):
         cosrx_ownership = kg.get_brand_ownership("COSRX")
 
         assert cosrx_ownership is not None, "COSRX ownership not found"
-        assert (
-            cosrx_ownership.get("parent_group") == "AMOREPACIFIC"
-        ), f"COSRX parent should be AMOREPACIFIC, got {cosrx_ownership.get('parent_group')}"
+        assert cosrx_ownership.get("parent_group") == "AMOREPACIFIC", (
+            f"COSRX parent should be AMOREPACIFIC, got {cosrx_ownership.get('parent_group')}"
+        )
         results.record_pass("COSRX 소유권: AMOREPACIFIC 확인")
 
         # COSRX 한국 브랜드 확인
-        assert (
-            cosrx_ownership.get("country_of_origin") == "Korea"
-        ), f"COSRX should be Korean, got {cosrx_ownership.get('country_of_origin')}"
+        assert cosrx_ownership.get("country_of_origin") == "Korea", (
+            f"COSRX should be Korean, got {cosrx_ownership.get('country_of_origin')}"
+        )
         results.record_pass("COSRX 원산지: Korea 확인 (중국 아님)")
 
         # is_amorepacific_brand 확인
@@ -336,9 +339,9 @@ def test_knowledge_graph_brand_ownership(results: TestResult):
 
         # 세그먼트 필터 테스트
         luxury_brands = kg.get_amorepacific_brands(segment_filter="Luxury")
-        assert any(
-            b["brand"] == "Sulwhasoo" for b in luxury_brands
-        ), "Sulwhasoo should be in Luxury segment"
+        assert any(b["brand"] == "Sulwhasoo" for b in luxury_brands), (
+            "Sulwhasoo should be in Luxury segment"
+        )
         results.record_pass("세그먼트 필터링 동작 확인")
 
     except Exception as e:

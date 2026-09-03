@@ -1273,9 +1273,7 @@ class ExternalSignalCollector:
 
         # 신뢰도/관련성 기반 정렬
         unique_signals.sort(
-            key=lambda s: (
-                s.metadata.get("reliability_score", 0.5) * 0.6 + s.relevance_score * 0.4
-            ),
+            key=lambda s: s.metadata.get("reliability_score", 0.5) * 0.6 + s.relevance_score * 0.4,
             reverse=True,
         )
 

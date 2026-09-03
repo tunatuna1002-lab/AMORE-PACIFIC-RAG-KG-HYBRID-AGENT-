@@ -26,7 +26,10 @@ def _get_app_paths() -> list[str]:
     """dashboard_api.py의 app에 등록된 모든 경로를 추출."""
     from src.api.dashboard_api import app
 
-    return [route.path for route in app.routes if hasattr(route, "path")]
+    paths = [route.path for route in app.routes if hasattr(route, "path")]
+    # FastAPI >= 0.140: include_router가 지연 등록(_IncludedRouter)되므로 OpenAPI 스키마로 보강
+    paths.extend(app.openapi().get("paths", {}).keys())
+    return sorted(set(paths))
 
 
 # ---------------------------------------------------------------------------
@@ -201,9 +204,9 @@ class TestDashboardApiSlimmed:
             or line.strip().startswith("@app.put(")
             or line.strip().startswith("@app.delete(")
         ]
-        assert (
-            len(inline_endpoints) == 0
-        ), f"Found {len(inline_endpoints)} inline endpoints: {inline_endpoints[:3]}"
+        assert len(inline_endpoints) == 0, (
+            f"Found {len(inline_endpoints)} inline endpoints: {inline_endpoints[:3]}"
+        )
 
     def test_all_routers_included(self):
         """모든 라우트 모듈이 app_factory.py에 include되어 있는지."""
@@ -220,9 +223,9 @@ class TestDashboardApiSlimmed:
             "export",
         ]
         for router_name in expected_routers:
-            assert (
-                router_name in content
-            ), f"Router '{router_name}' not found in app_factory.py includes"
+            assert router_name in content, (
+                f"Router '{router_name}' not found in app_factory.py includes"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -245,5 +248,5 @@ class TestAppBootstrap:
         """app에 최소 20개 라우트가 등록되어 있는지."""
         from src.api.dashboard_api import app
 
-        route_paths = [r.path for r in app.routes if hasattr(r, "path")]
+        route_paths = _get_app_paths()
         assert len(route_paths) >= 20, f"Only {len(route_paths)} routes found"

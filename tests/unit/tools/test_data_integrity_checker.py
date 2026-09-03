@@ -363,7 +363,7 @@ class TestRunFullCheck:
         self, initialized_checker, mock_sheets, mock_sqlite
     ):
         mock_sheets.get_rank_history.return_value = [
-            {"snapshot_date": f"2026-01-{20+i}"} for i in range(5)
+            {"snapshot_date": f"2026-01-{20 + i}"} for i in range(5)
         ]
         mock_sqlite.get_stats.return_value = {"raw_data_count": 5, "date_range": {}}
         mock_sqlite.get_raw_data.return_value = [
@@ -411,7 +411,7 @@ class TestGenerateRecommendations:
         assert any("2" in r and "누락" in r for r in recs)
 
     def test_missing_dates_truncation(self, checker):
-        dates = [f"2026-01-{10+i}" for i in range(10)]
+        dates = [f"2026-01-{10 + i}" for i in range(10)]
         recs = checker._generate_recommendations({"gap": 0, "is_synced": True}, dates)
         assert any("..." in r for r in recs)
 
