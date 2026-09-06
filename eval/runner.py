@@ -27,6 +27,8 @@ def _normalize_edge_node(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", s).strip("_")
 
 
+from contextvars import ContextVar
+
 from eval.cost_tracker import CostTracker
 from eval.judge.interface import JudgeInterface
 from eval.judge.stub import StubJudge
@@ -50,6 +52,21 @@ from eval.schemas import (
 from eval.validators.ontology_validator import OntologyValidator
 
 logger = logging.getLogger(__name__)
+
+
+# 채점 중인 문항의 비용 버킷. 문항마다 별도 asyncio 태스크에서 실행되므로
+# ContextVar가 동시 실행에서도 문항별로 정확히 분리된다. judge는 러너와 문항을
+# 모르는 채로 호출되므로, judge의 토큰 사용량을 이 버킷으로 흘려보낸다.
+_CURRENT_ITEM_COST: ContextVar["CostTracker | None"] = ContextVar(
+    "eval_current_item_cost", default=None
+)
+
+
+def _record_judge_usage(prompt_tokens: int, completion_tokens: int) -> None:
+    """judge가 API 응답의 usage를 보고할 때 현재 문항 버킷에 적립."""
+    tracker = _CURRENT_ITEM_COST.get()
+    if tracker is not None:
+        tracker.track_judge_tokens(prompt_tokens, completion_tokens)
 
 
 class EvalRunner:
@@ -94,8 +111,30 @@ class EvalRunner:
         )
         self.aggregator = MetricAggregator()
 
-        # Initialize cost tracker
-        self.cost_tracker = CostTracker()
+        # 비용 추적: 문항별 버킷(트레이스에 저장)과 실행 전체 버킷(요약용)을 분리한다.
+        # 예전에는 실행 전체 누계를 문항 트레이스에 그대로 넣어, 값이 0이 아니었다면
+        # 리포트 합계가 문항 수만큼 중복 집계됐을 구조였다.
+        self._answer_model = getattr(agent, "model", None) or "gpt-4.1-mini"
+        self._judge_model = self.config.judge_model or "gpt-4.1-mini"
+        self.cost_tracker = CostTracker(llm_model=self._answer_model, judge_model=self._judge_model)
+
+        # judge가 API 응답의 usage를 보고하도록 연결 (추정치를 쓰지 않는다)
+        if hasattr(self.judge, "on_usage"):
+            self.judge.on_usage = _record_judge_usage
+
+    def _new_item_cost_tracker(self) -> CostTracker:
+        return CostTracker(llm_model=self._answer_model, judge_model=self._judge_model)
+
+    @staticmethod
+    def _extract_usage(result: dict[str, Any]) -> tuple[int, int]:
+        """에이전트 응답에서 API가 보고한 usage를 꺼낸다 (없으면 0).
+
+        추정하지 않는다 — usage가 없으면 0으로 남겨 리포트에서 미계측임이 드러나게 한다.
+        """
+        usage = result.get("llm_usage") or {}
+        if not isinstance(usage, dict):
+            return 0, 0
+        return int(usage.get("prompt_tokens", 0) or 0), int(usage.get("completion_tokens", 0) or 0)
 
     async def run_item(self, item: EvalItem) -> ItemResult:
         """
@@ -108,43 +147,61 @@ class EvalRunner:
             ItemResult with metrics and trace
         """
         start_time = time.time()
-        error: str | None = None
+        item_cost = self._new_item_cost_tracker()
+        token = _CURRENT_ITEM_COST.set(item_cost)
 
         try:
-            # Call the agent
-            result = await self._invoke_agent(item.question)
+            # 에이전트 호출 — 문항당 상한을 둔다. 상한이 없어 실행이 무기한
+            # 정지한 사고가 있었다 (2026-08-31, 135/172에서 정지).
+            timeout = self.config.item_timeout_seconds
+            try:
+                result = await asyncio.wait_for(self._invoke_agent(item.question), timeout=timeout)
+            except TimeoutError:
+                return self._infrastructure_failure(
+                    item, start_time, f"agent_timeout: {timeout:.0f}s 내 응답 없음", item_cost
+                )
+            except Exception as e:
+                return self._infrastructure_failure(
+                    item, start_time, f"agent_error: {type(e).__name__}: {e}", item_cost
+                )
 
-            # Capture traces
-            trace = await self._capture_trace(item.id, result, start_time)
+            prompt_tokens, completion_tokens = self._extract_usage(result)
+            if prompt_tokens or completion_tokens:
+                item_cost.track_l5_tokens(prompt_tokens, completion_tokens)
 
-            # Track item completion
-            self.cost_tracker.track_item_completed()
+            try:
+                trace = await self._capture_trace(item.id, result, start_time, item_cost)
 
-            # Compute metrics
-            l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
-            l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
-            l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
-            l4 = self.l4_metrics.compute(trace.l4_ontology, trace.l3_kg_query, item.gold)
+                l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
+                l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
+                l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
+                l4 = self.l4_metrics.compute(trace.l4_ontology, trace.l3_kg_query, item.gold)
 
-            # L5 metrics (with optional judge)
-            context = self._build_context_string(trace)
-            l5 = await self.l5_metrics.compute(
-                trace.l5_answer,
-                item.gold,
-                item.question,
-                context,
-                use_judge=self.config.use_judge,
-            )
+                # L5 metrics (with optional judge)
+                context = self._build_context_string(trace)
+                l5 = await self.l5_metrics.compute(
+                    trace.l5_answer,
+                    item.gold,
+                    item.question,
+                    context,
+                    use_judge=self.config.use_judge,
+                )
 
-        except Exception as e:
-            logger.error(f"Error evaluating item {item.id}: {e}")
-            error = str(e)
+                # judge 호출은 트레이스 캡처 이후에 일어나므로 비용을 다시 굳힌다
+                trace.cost = item_cost.to_cost_trace()
+            except Exception as e:
+                # 채점 단계 실패(judge API 오류 등)도 모델 실패가 아니다.
+                # 0점으로 기록하면 인프라 실패가 품질 지표를 끌어내린다.
+                logger.error(f"Error scoring item {item.id}: {e}")
+                return self._infrastructure_failure(
+                    item, start_time, f"scoring_error: {type(e).__name__}: {e}", item_cost
+                )
+        finally:
+            _CURRENT_ITEM_COST.reset(token)
 
-            # Create empty trace on error
-            trace = self._create_empty_trace(item.id, start_time, error)
-
-            # Create zeroed metrics on error
-            l1, l2, l3, l4, l5 = self._create_zeroed_metrics()
+        # 채점에 성공한 문항만 실행 전체 카운터에 넣는다
+        self.cost_tracker.track_item_completed()
+        self._merge_cost(item_cost)
 
         # Aggregate results
         return self.aggregator.aggregate(
@@ -154,6 +211,51 @@ class EvalRunner:
             l3=l3,
             l4=l4,
             l5=l5,
+            trace=trace,
+            metadata=item.metadata,
+            question=item.question,
+        )
+
+    def _merge_cost(self, item_cost: CostTracker) -> None:
+        """문항 버킷을 실행 전체 버킷에 합산 (요약 출력용)."""
+        for layer in ("l1", "l2", "l3", "l4", "l5", "judge"):
+            src = getattr(item_cost, layer)
+            dst = getattr(self.cost_tracker, layer)
+            dst.prompt_tokens += src.prompt_tokens
+            dst.completion_tokens += src.completion_tokens
+            dst.embedding_tokens += src.embedding_tokens
+            dst.calls += src.calls
+
+    def _infrastructure_failure(
+        self,
+        item: EvalItem,
+        start_time: float,
+        reason: str,
+        item_cost: CostTracker | None = None,
+    ) -> ItemResult:
+        """답변을 얻지 못한 문항을 0점 채점 대신 인프라 실패로 표시한다.
+
+        `trace.error`가 채워진 문항은 리포트 집계(평균 지표·pass_rate·실패 사유)에서
+        제외되고 `AggregateMetrics.errored`로만 센다. 인프라 실패와 모델 실패를
+        같은 열에 섞으면 지표가 실행 환경을 측정하게 된다.
+        """
+        logger.error(f"Item {item.id} excluded from scoring — {reason}")
+        trace = self._create_empty_trace(item.id, start_time, reason)
+        if item_cost is not None:
+            trace.cost = item_cost.to_cost_trace()
+            self._merge_cost(item_cost)
+        l1, l2, l3, l4, l5 = self._create_zeroed_metrics()
+        return ItemResult(
+            item_id=item.id,
+            question=item.question,
+            passed=False,
+            l1=l1,
+            l2=l2,
+            l3=l3,
+            l4=l4,
+            l5=l5,
+            overall_score=0.0,
+            fail_reason_tags=[],
             trace=trace,
             metadata=item.metadata,
         )
@@ -196,12 +298,10 @@ class EvalRunner:
         processed_results = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"Error in item {items[i].id}: {result}")
-                # Create failed result
-                trace = self._create_empty_trace(items[i].id, time.time(), str(result))
-                l1, l2, l3, l4, l5 = self._create_zeroed_metrics()
-                result = self.aggregator.aggregate(
-                    items[i].id, l1, l2, l3, l4, l5, trace, items[i].metadata
+                result = self._infrastructure_failure(
+                    items[i],
+                    time.time(),
+                    f"runner_error: {type(result).__name__}: {result}",
                 )
             processed_results.append(result)
 
@@ -232,6 +332,7 @@ class EvalRunner:
         item_id: str,
         result: dict[str, Any],
         start_time: float,
+        item_cost: CostTracker | None = None,
     ) -> EvalTrace:
         """
         Capture evaluation trace from agent result.
@@ -278,7 +379,7 @@ class EvalRunner:
             l3_kg_query=l3_trace,
             l4_ontology=l4_trace,
             l5_answer=l5_trace,
-            cost=self.cost_tracker.to_cost_trace(),
+            cost=(item_cost or self._new_item_cost_tracker()).to_cost_trace(),
             latency_ms=latency_ms,
             error=None,
         )

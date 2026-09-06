@@ -34,6 +34,8 @@ class TestMetricAggregator:
                 context_recall_at_k=1.0,
                 context_precision_at_k=1.0,
                 mrr=1.0,
+                # 종합 점수·게이트가 모두 개념 단위 recall을 쓴다 (2026-09-06)
+                context_recall_at_k_concept=1.0,
             ),
             "l3": L3Metrics(
                 hits_at_k=1.0,
@@ -65,6 +67,7 @@ class TestMetricAggregator:
                 context_recall_at_k=0.3,
                 context_precision_at_k=0.3,
                 mrr=0.3,
+                context_recall_at_k_concept=0.3,
             ),
             "l3": L3Metrics(
                 hits_at_k=0.3,
@@ -335,7 +338,12 @@ class TestConvenienceFunctions:
     def test_compute_overall_score_function(self):
         """Test compute_overall_score convenience function."""
         l1 = L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0)
-        l2 = L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0)
+        l2 = L2Metrics(
+            context_recall_at_k=1.0,
+            context_precision_at_k=1.0,
+            mrr=1.0,
+            context_recall_at_k_concept=1.0,
+        )
         l3 = L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0)
         l4 = L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0)
         l5 = L5Metrics(
@@ -351,7 +359,12 @@ class TestConvenienceFunctions:
     def test_check_gating_function(self):
         """Test check_gating convenience function."""
         l1 = L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0)
-        l2 = L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0)
+        l2 = L2Metrics(
+            context_recall_at_k=1.0,
+            context_precision_at_k=1.0,
+            mrr=1.0,
+            context_recall_at_k_concept=1.0,
+        )
         l3 = L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0)
         l4 = L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0)
         l5 = L5Metrics(
@@ -384,7 +397,12 @@ class TestSemanticSimilarityGate:
     def _metrics(self, answer_f1: float, semantic: float | None):
         return {
             "l1": L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0),
-            "l2": L2Metrics(context_recall_at_k=1.0, context_precision_at_k=1.0, mrr=1.0),
+            "l2": L2Metrics(
+                context_recall_at_k=1.0,
+                context_precision_at_k=1.0,
+                mrr=1.0,
+                context_recall_at_k_concept=1.0,
+            ),
             "l3": L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0),
             "l4": L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0),
             "l5": L5Metrics(

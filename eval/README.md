@@ -127,6 +127,41 @@ Human-readable summary including:
 - **Groundedness Score**: LLM judge score for context grounding (optional)
 - **Answer Relevance Score**: LLM judge score for question relevance (optional)
 
+## Overall Score
+
+가중 합: L5 45% / L2·L3 35% / L1 10% / L4 10% (`eval/metrics/aggregator.py`).
+
+L2·L3 성분은 **게이트와 같은 지표**를 쓴다 (2026-09-06 변경).
+
+| | 이전 공식 (~v8.1) | 현재 공식 |
+|---|---|---|
+| L2 | `context_recall_at_k` (청크 단위) | `context_recall_at_k_concept` (개념 단위) |
+| L3 | `kg_edge_f1` | `kg_edge_recall` |
+
+이전에는 공식과 게이트가 다른 지표를 봐서 게이트를 개선해도 종합 점수가 움직이지
+않았다. **v8.1 이전 baseline과 종합 점수를 직접 비교하지 말 것** — 정의가 다르다.
+재집계 값과 연속성 표: `docs/eval/overall-score-formula-2026-09-06.md`
+(`python3 scripts/reaggregate_baseline_scores.py`로 재현).
+
+## 인프라 실패는 채점하지 않는다
+
+문항당 에이전트 호출 상한은 `EvalConfig.item_timeout_seconds`(기본 120초), judge
+호출 상한은 `LLMJudge(timeout=...)`(기본 60초)다. 타임아웃·API 오류로 답변을 얻지
+못한 문항은 **0점으로 채점하지 않고** `trace.error`에 사유를 남긴 뒤 집계에서
+분리한다.
+
+- `aggregates.total`은 실제로 채점된 문항 수다 (분리된 문항 제외).
+- 분리된 문항은 `aggregates.errored`와 `error_item_ids`로만 보고된다.
+- 평균 지표·pass_rate·실패 사유 집계 어디에도 들어가지 않는다.
+- 비용은 예외다 — 토큰을 실제로 썼으므로 실패 문항도 합산한다.
+
+## 비용 기록
+
+`report.json`의 `total_tokens`·`total_cost_usd`는 **API 응답의 usage 필드**에서
+온다(추정치 아님). 현재 집계 범위는 **답변 생성 호출(L5)과 judge 호출**이다.
+질의 재구성·질의 확장 호출은 아직 배선되지 않아 실제 지출은 기록값보다 조금 크다.
+usage가 없는 응답은 추정으로 채우지 않고 0으로 남긴다 — 미계측임이 드러나야 한다.
+
 ## Gating Thresholds
 
 Items are marked as failed if any of these thresholds are violated:
@@ -180,10 +215,11 @@ Create a custom configuration:
 from eval.schemas import EvalConfig
 
 config = EvalConfig(
-    top_k=8,              # Top-k for retrieval metrics
-    use_judge=False,      # Enable LLM judge
-    judge_model=None,     # Model for judge
-    save_traces=True,     # Save individual traces
+    top_k=8,                    # Top-k for retrieval metrics
+    item_timeout_seconds=120.0, # 문항당 에이전트 호출 상한(초)
+    use_judge=False,            # Enable LLM judge
+    judge_model=None,           # Model for judge
+    save_traces=True,           # Save individual traces
 )
 ```
 

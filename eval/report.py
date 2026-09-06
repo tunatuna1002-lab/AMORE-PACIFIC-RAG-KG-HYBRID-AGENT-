@@ -89,12 +89,21 @@ class ReportGenerator:
         Returns:
             AggregateMetrics
         """
-        total = len(results)
+        # 인프라 실패(타임아웃·API 오류)는 채점에서 분리한다. 답변을 얻지 못한
+        # 문항을 0점으로 평균에 넣으면 지표가 모델 품질이 아니라 실행 환경을
+        # 측정하게 된다. 비용은 실제로 쓴 만큼이므로 실패 문항도 합산한다.
+        errored_results = [r for r in results if r.trace is not None and r.trace.error]
+        error_item_ids = [r.item_id for r in errored_results]
+        scored = [r for r in results if not (r.trace is not None and r.trace.error)]
+
+        total = len(scored)
         if total == 0:
             return AggregateMetrics(
                 total=0,
                 passed=0,
                 failed=0,
+                errored=len(errored_results),
+                error_item_ids=error_item_ids,
                 pass_rate=0.0,
                 avg_overall_score=0.0,
                 avg_latency_ms=0.0,
@@ -104,6 +113,7 @@ class ReportGenerator:
                 top_fail_reasons={},
             )
 
+        results = scored
         passed = sum(1 for r in results if r.passed)
         failed = total - passed
 
@@ -131,7 +141,8 @@ class ReportGenerator:
         total_cost_usd = 0.0
         cost_by_layer: dict[str, float] = defaultdict(float)
 
-        for r in results:
+        # 비용만은 실패 문항 포함 — 토큰은 실제로 소비됐다
+        for r in results + errored_results:
             if r.trace and r.trace.cost:
                 c = r.trace.cost
                 total_tokens += c.total_tokens
@@ -143,10 +154,13 @@ class ReportGenerator:
                 cost_by_layer["l5"] += c.l5_cost_usd
                 cost_by_layer["judge"] += c.judge_cost_usd
 
+        cost_items = total + len(errored_results)
         return AggregateMetrics(
             total=total,
             passed=passed,
             failed=failed,
+            errored=len(errored_results),
+            error_item_ids=error_item_ids,
             pass_rate=passed / total,
             avg_overall_score=avg_score,
             avg_latency_ms=avg_latency,
@@ -156,8 +170,8 @@ class ReportGenerator:
             top_fail_reasons=top_fail_reasons,
             total_tokens=total_tokens,
             total_cost_usd=total_cost_usd,
-            avg_tokens_per_item=total_tokens / total if total else 0.0,
-            avg_cost_per_item_usd=total_cost_usd / total if total else 0.0,
+            avg_tokens_per_item=total_tokens / cost_items if cost_items else 0.0,
+            avg_cost_per_item_usd=total_cost_usd / cost_items if cost_items else 0.0,
             cost_by_layer=dict(cost_by_layer),
         )
 
@@ -287,7 +301,12 @@ class ReportGenerator:
         lines.append("# Evaluation Summary")
         lines.append("")
         lines.append(f"**Generated**: {report.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
-        lines.append(f"**Total Items**: {report.aggregates.total}")
+        lines.append(f"**Scored Items**: {report.aggregates.total}")
+        if report.aggregates.errored:
+            lines.append(
+                f"**Excluded (infra failure)**: {report.aggregates.errored} "
+                f"— {', '.join(report.aggregates.error_item_ids[:10])}"
+            )
         lines.append(f"**Pass Rate**: {report.aggregates.pass_rate:.1%}")
         lines.append(f"**Avg Score**: {report.aggregates.avg_overall_score:.3f}")
         lines.append("")
@@ -306,6 +325,8 @@ class ReportGenerator:
         lines.append("|--------|-------|")
         lines.append(f"| Passed | {report.aggregates.passed} |")
         lines.append(f"| Failed | {report.aggregates.failed} |")
+        if report.aggregates.errored:
+            lines.append(f"| Excluded (infra) | {report.aggregates.errored} |")
         lines.append(f"| Pass Rate | {report.aggregates.pass_rate:.1%} |")
         lines.append(f"| Avg Score | {report.aggregates.avg_overall_score:.3f} |")
         lines.append(f"| Avg Latency | {report.aggregates.avg_latency_ms:.0f}ms |")
@@ -497,7 +518,7 @@ class ReportGenerator:
             )
 
         # L2 recommendations
-        if by_layer.get("l2_context_recall", 1.0) < 0.8:
+        if by_layer.get("l2_context_recall_concept", 1.0) < 0.8:
             recs.append(
                 "- **Improve document retrieval**: Consider expanding query terms, "
                 "using hybrid search, or re-indexing with better chunking"

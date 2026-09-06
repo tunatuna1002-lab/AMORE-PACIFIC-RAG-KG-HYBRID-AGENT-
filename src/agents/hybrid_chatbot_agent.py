@@ -326,11 +326,17 @@ class HybridChatbotAgent(BaseHybridAgent):
             if self.tracer:
                 self.tracer.start_span("llm_response")
 
+            # 답변 LLM 호출의 토큰 사용량을 호출자에게 돌려주기 위한 수집기
+            # (평가 하네스가 report.json의 비용 집계에 쓴다 — 추정치가 아니라
+            #  API 응답의 usage 필드를 그대로 싣는다)
+            llm_usage: dict[str, int] = {}
+
             response = await self._generate_response(
                 user_message=user_message,
                 query_type=query_type,
                 context=context,
                 inferences=hybrid_context.inferences,
+                usage_sink=llm_usage,
             )
 
             if self.tracer:
@@ -439,6 +445,8 @@ class HybridChatbotAgent(BaseHybridAgent):
                 # _last_hybrid_context(공유 상태)가 경쟁 상태로 덮어써져
                 # 호출자가 다른 요청의 컨텍스트를 읽는 문제 방지 (eval 트레이스 등)
                 "hybrid_context": hybrid_context,
+                # 답변 생성 호출의 실제 토큰 사용량 (usage 필드가 없으면 빈 dict)
+                "llm_usage": llm_usage,
             }
 
             # 검증 결과 추가
@@ -476,8 +484,14 @@ class HybridChatbotAgent(BaseHybridAgent):
         query_type: QueryType,
         context: str,
         inferences: list[InferenceResult],
+        usage_sink: dict[str, int] | None = None,
     ) -> str:
-        """LLM 응답 생성"""
+        """LLM 응답 생성
+
+        Args:
+            usage_sink: 넘기면 API 응답의 usage(prompt/completion/total tokens)를
+                이 dict에 채운다. 호출자(평가 하네스)가 비용을 실측하는 경로.
+        """
         # 시스템 프롬프트 (카테고리 계층 인식 추가)
         system_prompt = self.context_builder.build_system_prompt(include_guardrails=True)
 
@@ -580,6 +594,14 @@ class HybridChatbotAgent(BaseHybridAgent):
                 answer = "죄송합니다. 응답을 생성하지 못했습니다."
 
             # 토큰 사용량 기록
+            if usage_sink is not None and getattr(response, "usage", None):
+                usage_sink["prompt_tokens"] = int(response.usage.prompt_tokens or 0)
+                usage_sink["completion_tokens"] = int(response.usage.completion_tokens or 0)
+                usage_sink["total_tokens"] = int(
+                    getattr(response.usage, "total_tokens", 0)
+                    or usage_sink["prompt_tokens"] + usage_sink["completion_tokens"]
+                )
+
             if self.metrics and hasattr(response, "usage"):
                 self.metrics.record_llm_call(
                     model=self.model,

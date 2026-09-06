@@ -404,9 +404,13 @@ class ItemResult(BaseModel):
 class AggregateMetrics(BaseModel):
     """Aggregate metrics across all evaluated items."""
 
-    total: int = Field(default=0, description="Total items evaluated")
+    total: int = Field(default=0, description="Items actually scored (인프라 실패 제외)")
     passed: int = Field(default=0, description="Items that passed all gates")
     failed: int = Field(default=0, description="Items that failed")
+    # 인프라 실패(타임아웃·API 오류)는 모델 실패와 같은 열에 섞지 않는다.
+    # 이 문항들은 total/passed/failed·평균 지표 어디에도 들어가지 않는다.
+    errored: int = Field(default=0, description="답변을 얻지 못해 채점에서 분리된 문항 수")
+    error_item_ids: list[str] = Field(default_factory=list, description="채점에서 분리된 문항 ID")
     pass_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     avg_overall_score: float = Field(default=0.0, ge=0.0, le=1.0)
     avg_latency_ms: float = Field(default=0.0, ge=0.0)
@@ -445,6 +449,13 @@ class EvalConfig(BaseModel):
     """Configuration for evaluation run."""
 
     top_k: int = Field(default=8, description="Top-k for retrieval metrics")
+    item_timeout_seconds: float = Field(
+        default=120.0,
+        description=(
+            "문항당 에이전트 호출 상한(초). 초과하면 그 문항은 0점이 아니라 "
+            "인프라 실패로 분리된다 (trace.error, AggregateMetrics.errored)."
+        ),
+    )
     use_judge: bool = Field(default=False, description="Whether to use LLM judge")
     judge_model: str | None = Field(default="gpt-4.1-mini", description="Judge model name")
     save_traces: bool = Field(default=False, description="Save individual traces to files")

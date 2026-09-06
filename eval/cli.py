@@ -714,11 +714,17 @@ def _print_summary(report) -> None:
     print("\n" + "=" * 60)
     print("EVALUATION SUMMARY")
     print("=" * 60)
-    print(f"Total Items:  {agg.total}")
+    print(f"Scored Items: {agg.total}")
     print(f"Passed:       {agg.passed} ({agg.pass_rate:.1%})")
     print(f"Failed:       {agg.failed}")
+    if agg.errored:
+        print(f"Excluded:     {agg.errored} (인프라 실패 — 채점 제외)")
+        for item_id in agg.error_item_ids[:10]:
+            print(f"  - {item_id}")
     print(f"Avg Score:    {agg.avg_overall_score:.3f}")
     print(f"Avg Latency:  {agg.avg_latency_ms:.0f}ms")
+    if agg.total_tokens:
+        print(f"Tokens:       {agg.total_tokens:,} (${agg.total_cost_usd:.4f})")
     print()
 
     if agg.top_fail_reasons:

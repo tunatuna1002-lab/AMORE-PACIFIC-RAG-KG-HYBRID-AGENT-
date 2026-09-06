@@ -14,9 +14,11 @@ Usage:
 Cost tracking is built-in - call judge.get_usage() for token counts.
 """
 
+import asyncio
 import json
 import logging
 import os
+from collections.abc import Callable
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -145,6 +147,8 @@ class LLMJudge:
         temperature: float = 0.0,
         max_retries: int = 3,
         api_key: str | None = None,
+        timeout: float = 60.0,
+        on_usage: Callable[[int, int], None] | None = None,
     ):
         """
         Initialize LLM Judge.
@@ -154,6 +158,10 @@ class LLMJudge:
             temperature: Sampling temperature (0.0 for deterministic)
             max_retries: Number of retries for API failures
             api_key: Optional API key (defaults to OPENAI_API_KEY env var)
+            timeout: 호출 1건의 상한(초). 상한이 없어 평가 실행이 무기한 정지한
+                사고가 있었다 (2026-08-31).
+            on_usage: 호출마다 (prompt_tokens, completion_tokens)를 받는 콜백.
+                러너가 문항별 비용 버킷에 적립하는 데 쓴다.
         """
         if not LITELLM_AVAILABLE:
             raise RuntimeError(
@@ -163,6 +171,8 @@ class LLMJudge:
         self.model = model
         self.temperature = temperature
         self.max_retries = max_retries
+        self.timeout = timeout
+        self.on_usage = on_usage
 
         # Set API key if provided
         if api_key:
@@ -250,34 +260,52 @@ class LLMJudge:
             Model response text
 
         Raises:
-            RuntimeError: If all retries fail
+            RuntimeError: If all retries fail (타임아웃 포함)
         """
         last_error = None
 
         for attempt in range(self.max_retries):
             try:
-                response = await acompletion(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self.temperature,
-                    response_format={"type": "json_object"},
+                # timeout은 litellm에도 넘기고 wait_for로 한 번 더 감싼다.
+                # 클라이언트가 재시도·스트리밍으로 상한을 넘기는 경우가 있어
+                # 호출자 쪽에서도 확실히 끊는다.
+                response = await asyncio.wait_for(
+                    acompletion(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=self.temperature,
+                        response_format={"type": "json_object"},
+                        timeout=self.timeout,
+                    ),
+                    timeout=self.timeout,
                 )
 
-                # Track usage
-                usage = response.get("usage", {})
-                self._usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
-                self._usage["completion_tokens"] += usage.get("completion_tokens", 0)
-                self._usage["total_tokens"] += usage.get("total_tokens", 0)
+                # Track usage — API 응답의 usage 필드만 쓴다 (추정치 아님)
+                usage = response.get("usage", {}) or {}
+                prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+                completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+                self._usage["prompt_tokens"] += prompt_tokens
+                self._usage["completion_tokens"] += completion_tokens
+                self._usage["total_tokens"] += int(usage.get("total_tokens", 0) or 0)
                 self._usage["calls"] += 1
+                if self.on_usage is not None:
+                    self.on_usage(prompt_tokens, completion_tokens)
 
                 return response.choices[0].message.content
+
+            except TimeoutError as e:
+                last_error = e
+                logger.warning(
+                    f"Judge call timed out after {self.timeout:.0f}s "
+                    f"(attempt {attempt + 1}/{self.max_retries})"
+                )
+                if attempt < self.max_retries - 1:
+                    await asyncio.sleep(2**attempt)
 
             except Exception as e:
                 last_error = e
                 logger.warning(f"LLM call failed (attempt {attempt + 1}/{self.max_retries}): {e}")
                 if attempt < self.max_retries - 1:
-                    import asyncio
-
                     await asyncio.sleep(2**attempt)  # Exponential backoff
 
         raise RuntimeError(f"LLM call failed after {self.max_retries} attempts: {last_error}")
