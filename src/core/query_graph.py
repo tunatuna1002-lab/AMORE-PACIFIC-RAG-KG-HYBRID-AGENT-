@@ -82,9 +82,12 @@ class QueryGraph:
             logger.warning(f"PromptGuard blocked input: {block_reason}")
             state.is_blocked = True
             state.block_reason = block_reason
+            # 차단 응답은 근거 없는 fallback: 낮은 신뢰도 + is_fallback 플래그
+            # (is_fallback=True 이므로 brain.process_query가 캐시에 저장하지 않음)
             state.response = Response(
                 text=PromptGuard.get_rejection_message(block_reason),
-                confidence_score=1.0,
+                confidence_score=0.0,
+                is_fallback=True,
                 sources=[],
             )
             return state

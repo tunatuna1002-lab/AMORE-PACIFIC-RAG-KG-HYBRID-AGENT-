@@ -99,6 +99,20 @@ class Decision:
         """도구 실행이 필요한지 확인"""
         return self.tool is not None and self.tool != "direct_answer"
 
+    @property
+    def is_high_confidence_shortcut(self) -> bool:
+        """
+        HIGH confidence fast-path 판단인지 여부
+
+        brain.py / query_graph.py는 컨텍스트 신뢰도가 HIGH일 때 LLM 판단을 건너뛰고
+        ``reason="HIGH confidence (...) - direct context answer"``, ``confidence=0.9``인
+        Decision을 직접 생성한다. 이 confidence는 LLM 판단 결과가 아니므로
+        환각 검사 게이트를 우회하는 근거로 사용하면 안 된다.
+        """
+        return (self.tool is None or self.tool == "direct_answer") and (
+            self.reason or ""
+        ).startswith("HIGH confidence")
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "tool": self.tool,

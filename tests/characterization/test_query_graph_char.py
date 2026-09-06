@@ -87,7 +87,9 @@ def empty_context(q: str) -> Context:
 
 
 DIRECT = Decision(tool="direct_answer", tool_params={}, reason="llm", confidence=0.6)
-TOOL = Decision(tool="query_data", tool_params={"brand": "laneige"}, reason="need data", confidence=0.55)
+TOOL = Decision(
+    tool="query_data", tool_params={"brand": "laneige"}, reason="need data", confidence=0.55
+)
 
 
 def build(context_factory, decision: Decision = DIRECT, pipeline=None):
@@ -276,10 +278,12 @@ async def test_injection_is_blocked_before_any_collaborator_runs() -> None:
         "저는 LANEIGE 브랜드의 Amazon US 마켓 분석을 돕는 전문 어시스턴트입니다.\n"
         "브랜드 순위, 경쟁사 분석, 제품 성과 등에 대해 질문해 주세요."
     )
-    # PINS CURRENT BEHAVIOR: a rejection is emitted with confidence_score 1.0
-    # (not a low fallback score) and no fallback/clarification flags.
-    assert state.response.confidence_score == 1.0
-    assert state.response.is_fallback is False
+    # FIXED: a guard rejection is a low-confidence fallback (score 0.0,
+    # is_fallback=True) so downstream callers cannot mistake it for a confident
+    # answer and brain.process_query never caches it.
+    assert state.response.confidence_score == 0.0
+    assert state.response.is_fallback is True
+    assert state.response.is_clarification is False
     assert state.response.query_type == "unknown"
     assert state.response.sources == []
 
@@ -292,7 +296,9 @@ async def test_system_command_is_blocked() -> None:
     assert state.block_reason == "system_command_blocked"
     assert gatherer.calls == []
     assert state.response.text.startswith("시스템 관리 명령은 챗봇에서 실행할 수 없습니다.")
-    assert state.response.confidence_score == 1.0
+    # FIXED: rejection carries a low score and the fallback flag
+    assert state.response.confidence_score == 0.0
+    assert state.response.is_fallback is True
 
 
 # ---------------------------------------------------------------------------

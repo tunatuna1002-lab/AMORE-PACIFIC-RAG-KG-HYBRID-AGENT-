@@ -287,18 +287,25 @@ class TestGenerateConfidenceMerge:
 
     @pytest.mark.asyncio
     async def test_confidence_merge_with_decision(self, pipeline, mock_context):
-        """decision.confidence가 있으면 max(calculated, decision.confidence)"""
+        """decision.confidence가 있으면 max(calculated/10, decision.confidence) (0.0-1.0 스케일)"""
         from src.core.models import Decision
 
-        decision = Decision(confidence=8.0)
+        # D10 fix: decision.confidence는 0-1 스케일이며 최종 confidence_score도 0-1로 정규화된다.
+        decision = Decision(confidence=0.8)
 
         with patch.object(pipeline, "_call_llm", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = "응답입니다."
 
-            result = await pipeline.generate("질문", mock_context, decision=decision)
+            with patch.object(
+                pipeline._hallucination_detector, "check", new_callable=AsyncMock
+            ) as mock_check:
+                mock_check.return_value = MagicMock(is_grounded=True, score=0.9)
+                result = await pipeline.generate("질문", mock_context, decision=decision)
 
-        # decision.confidence(8.0)가 calculated보다 크면 8.0
-        assert result.confidence_score >= 8.0
+        # mock_context raw score = 1 rag + fresh + kg_initialized = 2.5 -> 0.25;
+        # decision.confidence(0.8)가 더 크므로 0.8
+        assert result.confidence_score == pytest.approx(0.8)
+        assert 0.0 <= result.confidence_score <= 1.0
 
     @pytest.mark.asyncio
     async def test_confidence_without_decision(self, pipeline, mock_context):

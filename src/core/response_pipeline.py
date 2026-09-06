@@ -57,6 +57,9 @@ class ResponsePipeline:
 
 언어: 한국어로 응답"""
 
+    # 환각 검사 게이트 (0.0-1.0 스케일). 정규화된 신뢰도가 이 값 미만이면 근거 검증 수행.
+    HALLUCINATION_CHECK_THRESHOLD: float = 0.8
+
     def __init__(
         self,
         openai_client: Any | None = None,
@@ -167,10 +170,30 @@ class ResponsePipeline:
             # 응답 후처리
             processed_text = self._post_process(response_text, context)
 
-            # 환각 감지 (low confidence 응답만)
+            # 신뢰도 계산 (0-10 raw → 0.0-1.0 정규화). API 노출용 confidence는 단일 스케일.
+            calculated_confidence = self._calculate_confidence_score(context)
+            norm_calculated = self._normalize_unit(calculated_confidence / 10.0)
+
+            decision_confidence: float | None = None
+            is_shortcut = False
+            if decision and hasattr(decision, "confidence") and decision.confidence:
+                decision_confidence = self._normalize_unit(float(decision.confidence))
+                is_shortcut = bool(getattr(decision, "is_high_confidence_shortcut", False))
+
+            # 환각 감지 게이트: 정규화된 컨텍스트 점수 또는 (LLM 판단인 경우) 판단 신뢰도가
+            # 임계값 미만이면 검사. HIGH fast-path의 0.9는 LLM 판단이 아니므로
+            # 그것만으로 검사를 건너뛰지 않는다.
             hallucination_penalty = 1.0
             grounding_warning = False
-            if decision and hasattr(decision, "confidence") and decision.confidence < 0.8:
+            needs_check = decision is not None and (
+                norm_calculated < self.HALLUCINATION_CHECK_THRESHOLD
+                or (
+                    not is_shortcut
+                    and decision_confidence is not None
+                    and decision_confidence < self.HALLUCINATION_CHECK_THRESHOLD
+                )
+            )
+            if needs_check:
                 try:
                     context_text = context.summary or ""
                     groundedness = await self._hallucination_detector.check(
@@ -192,18 +215,17 @@ class ResponsePipeline:
 
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
-            # 신뢰도 계산 - decision의 confidence를 고려
-            calculated_confidence = self._calculate_confidence_score(context)
-            if decision and hasattr(decision, "confidence") and decision.confidence:
-                final_confidence = max(calculated_confidence, decision.confidence)
+            # 최종 신뢰도 - 동일 스케일(0.0-1.0)에서 max 병합
+            if decision_confidence is not None:
+                final_confidence = max(norm_calculated, decision_confidence)
             else:
-                final_confidence = calculated_confidence
+                final_confidence = norm_calculated
 
             return Response(
                 text=processed_text,
                 query_type=self._infer_query_type(query, context),
                 confidence_level=self._assess_confidence(context),
-                confidence_score=final_confidence * hallucination_penalty,
+                confidence_score=self._normalize_unit(final_confidence * hallucination_penalty),
                 grounding_warning=grounding_warning,
                 sources=sources,
                 entities=context.entities,
@@ -587,6 +609,11 @@ class ResponsePipeline:
             return "action"
         else:
             return "general"
+
+    @staticmethod
+    def _normalize_unit(value: float) -> float:
+        """값을 0.0-1.0 범위로 클램프"""
+        return max(0.0, min(1.0, value))
 
     def _assess_confidence(self, context: Context) -> ConfidenceLevel:
         """신뢰도 레벨 평가"""
