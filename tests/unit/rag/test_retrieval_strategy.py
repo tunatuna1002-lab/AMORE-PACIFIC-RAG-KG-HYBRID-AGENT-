@@ -746,3 +746,40 @@ class TestGetIntentRetrievalConfig:
         for intent in UnifiedIntent:
             config = get_intent_retrieval_config(intent)
             assert config.top_k > 0
+
+
+class TestContextBudgetAlignment:
+    """인텐트별 검색 top_k는 선언된 컨텍스트 예산과 일치해야 한다 (사이클 8).
+
+    사이클 2에서 컨텍스트 상한을 3→8로 올렸는데 인텐트별 top_k는 5로 남아
+    검색이 예산보다 적게 공급했고, 상한 8은 한 번도 걸리지 않았다.
+    같은 드리프트가 다시 생기면 이 테스트가 잡는다.
+    """
+
+    @staticmethod
+    def _declared_budget() -> int:
+        import json
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[3] / "config" / "retrieval_weights.json"
+        return json.loads(path.read_text(encoding="utf-8"))["max_context_items"]["rag_chunks"]
+
+    def test_every_intent_supplies_the_declared_budget(self):
+        from src.rag.retrieval_strategy import _INTENT_STRATEGY_MAP
+
+        budget = self._declared_budget()
+        offenders = {
+            intent.name: cfg.top_k
+            for intent, cfg in _INTENT_STRATEGY_MAP.items()
+            if cfg.top_k != budget
+        }
+
+        assert not offenders, f"컨텍스트 예산({budget})과 어긋난 인텐트: {offenders}"
+
+    def test_intents_still_differentiate_by_weights(self):
+        """차등은 weights로 표현한다 — top_k를 줄여서 표현하지 않는다."""
+        from src.rag.retrieval_strategy import _INTENT_STRATEGY_MAP
+
+        kg_weights = {cfg.weights["kg"] for cfg in _INTENT_STRATEGY_MAP.values()}
+
+        assert len(kg_weights) > 1
