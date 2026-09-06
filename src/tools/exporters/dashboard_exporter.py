@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from src.shared.constants import KST
+from src.shared.units import percent_to_fraction
 
 # 한국 시간대 (UTC+9)
 from src.tools.storage.sheets_writer import SheetsWriter
@@ -1379,7 +1380,7 @@ class DashboardExporter:
                 brand_name,
                 {
                     "type": "brand",
-                    "sos": comp.get("sos", 0) / 100,
+                    "sos": percent_to_fraction(comp.get("sos") or 0.0),
                     "avg_rank": comp.get("avg_rank"),
                     "product_count": comp.get("product_count"),
                     "is_target": is_laneige,
@@ -1391,7 +1392,7 @@ class DashboardExporter:
                     subject="LANEIGE",
                     predicate=RelationType.COMPETES_WITH,
                     object=brand_name,
-                    properties={"competitor_sos": comp.get("sos", 0) / 100},
+                    properties={"competitor_sos": percent_to_fraction(comp.get("sos") or 0.0)},
                 )
                 self._knowledge_graph.add_relation(rel)
                 stats["competition"] += 1
@@ -1446,24 +1447,29 @@ class DashboardExporter:
 
         # 최고 순위 제품 찾기
         best_rank = 999
-        for _asin, product in products.items():
+        best_asin: str | None = None
+        for asin, product in products.items():
             rank = product.get("rank", 999)
-            if rank < best_rank:
+            if rank is not None and rank < best_rank:
                 best_rank = rank
+                best_asin = asin
 
         # 첫 번째 카테고리 기준
         first_cat = next(iter(categories.values()), {}) if categories else {}
 
-        return {
+        # 대시보드 KPI 의 sos 는 PERCENT, 규칙 컨텍스트는 FRACTION (src.shared.units 가 유일한 변환점)
+        context: dict[str, Any] = {
             # 브랜드 지표
             "brand": "LANEIGE",
             "is_target": True,
-            "sos": brand_kpis.get("sos", 0) / 100,
+            "sos": percent_to_fraction(brand_kpis.get("sos") or 0.0),
             "avg_rank": brand_kpis.get("avg_rank", 0),
             "product_count": len(products),
             # 시장 지표
             "hhi": brand_kpis.get("hhi", 0),
-            "top1_sos": competitors[0].get("sos", 0) / 100 if competitors else 0,
+            "top1_sos": (
+                percent_to_fraction(competitors[0].get("sos") or 0.0) if competitors else 0.0
+            ),
             # 카테고리 지표
             "category": next(iter(categories.keys()), "unknown"),
             "cpi": first_cat.get("cpi", 100),
@@ -1474,10 +1480,26 @@ class DashboardExporter:
             ),
             # 제품 지표
             "current_rank": best_rank,
-            "rank_change_7d": 0,  # 추후 계산 가능
-            "streak_days": 7,  # 추후 계산 가능
-            "rating_gap": 0.1,  # 추후 계산 가능
         }
+
+        # rank_change_7d 는 실제 계산된 액션 아이템에서만 가져온다. streak_days / rating_gap 은
+        # 계산 근거가 없으므로 넣지 않는다 (임의 기본값은 규칙을 오발동시킨다).
+        rank_change_7d = self._lookup_rank_change_7d(dashboard_data, best_asin)
+        if rank_change_7d is not None:
+            context["rank_change_7d"] = rank_change_7d
+
+        return context
+
+    @staticmethod
+    def _lookup_rank_change_7d(dashboard_data: dict[str, Any], asin: str | None) -> int | None:
+        """홈 섹션 액션 아이템에서 해당 ASIN 의 7일 순위 변동을 조회 (없으면 None)."""
+        if asin is None:
+            return None
+        action_items = (dashboard_data.get("home") or {}).get("action_items") or []
+        for item in action_items:
+            if item.get("asin") == asin and item.get("rank_change_7d") is not None:
+                return item["rank_change_7d"]
+        return None
 
     def _get_inference_priority(self, inference) -> str:
         """추론 우선순위 결정"""

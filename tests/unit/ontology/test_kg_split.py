@@ -295,7 +295,7 @@ class TestKGUpdaterMixin:
             "brand_metrics": [
                 {
                     "brand_name": "LANEIGE",
-                    "share_of_shelf": 0.12,
+                    "share_of_shelf": 12.0,  # percent (MetricCalculator contract)
                     "avg_rank": 10,
                     "product_count": 5,
                 },
@@ -308,7 +308,7 @@ class TestKGUpdaterMixin:
         added = kg.load_from_metrics_data(metrics_data)
         meta = kg.get_entity_metadata("LANEIGE")
         assert meta["type"] == "brand"
-        assert meta["sos"] == 0.12
+        assert meta["sos"] == pytest.approx(0.12)  # KG metadata is a fraction (bug D2b)
 
     def test_load_from_sentiment_data(self, populated_kg):
         """감성 데이터 로딩"""

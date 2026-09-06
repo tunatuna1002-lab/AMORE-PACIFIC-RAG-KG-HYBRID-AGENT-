@@ -110,6 +110,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 from src.core.intent import classify_intent as _unified_classify
 from src.core.intent import to_query_intent as _to_query_intent
+from src.shared.units import percent_to_fraction
 
 from .entity_linker import product_name_slugs as _product_name_slugs
 
@@ -536,11 +537,13 @@ class HybridRetriever:
                     top_k=intent_top_k - len(rag_results),
                     doc_type_filter=None,  # 전체 문서에서 검색
                 )
-                # 중복 제거하며 추가
-                existing_ids = {r["id"] for r in rag_results}
+                # 중복 제거하며 추가 (BM25 결과처럼 "id" 가 없는 항목도 안전하게 처리)
+                existing_keys = {self._chunk_key(r) for r in rag_results}
                 for result in additional_results:
-                    if result["id"] not in existing_ids:
+                    key = self._chunk_key(result)
+                    if key not in existing_keys:
                         rag_results.append(result)
+                        existing_keys.add(key)
 
             context.rag_chunks = rag_results
 
@@ -600,21 +603,25 @@ class HybridRetriever:
             # 6. 통합 컨텍스트 생성
             context.combined_context = self._combine_contexts(context, include_explanations)
 
-            # 메타데이터
-            context.metadata = {
-                "retrieval_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
-                "ontology_facts_count": len(ontology_facts),
-                "inferences_count": len(inferences),
-                "rag_chunks_count": len(rag_results),
-                "query_expanded": expanded_query != query,
-                "query_intent": query_intent.value,
-                "doc_type_filter": doc_type_filter,
-                "intent_strategy": intent_config.description,
-                "intent_weights": intent_config.weights,
-                "search_method": search_method,
-                "selfrag_confidence": selfrag_confidence,
-                "bm25_available": self._bm25_actually_available(),
-            }
+            # 메타데이터 (_weighted_merge 가 넣은 "weighted_scores"/"fusion" 은 보존)
+            if not isinstance(context.metadata, dict):
+                context.metadata = {}
+            context.metadata.update(
+                {
+                    "retrieval_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
+                    "ontology_facts_count": len(ontology_facts),
+                    "inferences_count": len(inferences),
+                    "rag_chunks_count": len(rag_results),
+                    "query_expanded": expanded_query != query,
+                    "query_intent": query_intent.value,
+                    "doc_type_filter": doc_type_filter,
+                    "intent_strategy": intent_config.description,
+                    "intent_weights": intent_config.weights,
+                    "search_method": search_method,
+                    "selfrag_confidence": selfrag_confidence,
+                    "bm25_available": self._bm25_actually_available(),
+                }
+            )
 
         except Exception as e:
             logger.error(f"Hybrid retrieval failed: {e}")
@@ -1069,6 +1076,35 @@ class HybridRetriever:
 
         return facts
 
+    @staticmethod
+    def _chunk_key(chunk: Any) -> tuple[str, Any]:
+        """중복 제거용 청크 키: "id" 가 있으면 id, 없으면 content 로 대체."""
+        if not isinstance(chunk, dict):
+            return ("obj", id(chunk))
+        chunk_id = chunk.get("id")
+        if chunk_id is not None:
+            return ("id", chunk_id)
+        return ("content", chunk.get("content"))
+
+    @staticmethod
+    def _normalize_sentiment_clusters(clusters: Any) -> dict[str, Any]:
+        """감성 클러스터를 규칙이 읽는 dict 형태로 정규화.
+
+        - dict (``{"Hydration": 2}`` 또는 ``{"Hydration": [...]}``) 는 그대로
+        - list/tuple/set (``["Hydration", "Sensory"]``) 는 ``{cluster: count}`` 로
+        - None/빈 값은 ``{}``
+        """
+        if not clusters:
+            return {}
+        if isinstance(clusters, dict):
+            return dict(clusters)
+        if isinstance(clusters, (list, tuple, set)):
+            counts: dict[str, int] = {}
+            for cluster in clusters:
+                counts[cluster] = counts.get(cluster, 0) + 1
+            return counts
+        return {}
+
     def _build_inference_context(
         self, entities: dict[str, list[str]], current_metrics: dict[str, Any]
     ) -> dict[str, Any]:
@@ -1097,11 +1133,13 @@ class HybridRetriever:
 
         # 브랜드별 SoS
         sos_by_category = summary.get("laneige_sos_by_category", {})
+        # summary.laneige_sos_by_category / brand_metrics.share_of_shelf 는 PERCENT,
+        # 추론 컨텍스트(규칙)는 FRACTION -> 여기서만 변환한다 (src.shared.units)
         if entities.get("categories") and entities["categories"][0] in sos_by_category:
-            context["sos"] = sos_by_category[entities["categories"][0]]
+            context["sos"] = percent_to_fraction(sos_by_category[entities["categories"][0]])
         elif sos_by_category:
             # 첫 번째 카테고리의 SoS
-            context["sos"] = list(sos_by_category.values())[0] if sos_by_category else 0
+            context["sos"] = percent_to_fraction(list(sos_by_category.values())[0])
 
         # 브랜드 메트릭에서 추가 정보
         brand_metrics = current_metrics.get("brand_metrics", [])
@@ -1110,7 +1148,11 @@ class HybridRetriever:
                 bm.get("is_laneige")
                 or bm.get("brand_name", "").lower() == context.get("brand", "").lower()
             ):
-                context["sos"] = bm.get("share_of_shelf", context.get("sos", 0))
+                context["sos"] = (
+                    percent_to_fraction(bm["share_of_shelf"])
+                    if "share_of_shelf" in bm
+                    else context.get("sos", 0)
+                )
                 context["avg_rank"] = bm.get("avg_rank")
                 context["product_count"] = bm.get("product_count", 0)
                 break
@@ -1164,7 +1206,9 @@ class HybridRetriever:
                 try:
                     brand_sentiment = self.kg.get_brand_sentiment_profile(context["brand"])
                     context["sentiment_tags"] = brand_sentiment.get("all_tags", [])
-                    context["sentiment_clusters"] = brand_sentiment.get("clusters", {})
+                    context["sentiment_clusters"] = self._normalize_sentiment_clusters(
+                        brand_sentiment.get("clusters", {})
+                    )
                     context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
                 except Exception:
                     logger.warning("Suppressed Exception", exc_info=True)
@@ -1176,8 +1220,8 @@ class HybridRetriever:
                     context["ai_summary"] = product_sentiment.get("ai_summary")
                     if not context.get("sentiment_tags"):
                         context["sentiment_tags"] = product_sentiment.get("sentiment_tags", [])
-                        context["sentiment_clusters"] = product_sentiment.get(
-                            "sentiment_clusters", {}
+                        context["sentiment_clusters"] = self._normalize_sentiment_clusters(
+                            product_sentiment.get("sentiment_clusters", {})
                         )
                 except Exception:
                     logger.warning("Suppressed Exception", exc_info=True)

@@ -111,13 +111,20 @@ class RuleCondition:
     name: str
     check: Callable[[dict[str, Any]], bool]
     description: str
+    _warned: bool = field(default=False, repr=False, compare=False)
 
     def evaluate(self, context: dict[str, Any]) -> bool:
-        """조건 평가"""
+        """조건 평가
+
+        조건 함수는 None-safe 하게 작성되어야 하며, 예외는 데이터 품질 문제이므로
+        조용히 삼키지 않고 WARNING 으로 기록한다 (동일 조건은 한 번만 기록).
+        """
         try:
-            return self.check(context)
+            return bool(self.check(context))
         except Exception as e:
-            logger.warning(f"Condition {self.name} evaluation failed: {e}")
+            if not self._warned:
+                self._warned = True
+                logger.warning(f"Condition {self.name} evaluation failed: {e}")
             return False
 
 
@@ -658,6 +665,33 @@ def condition(name: str, description: str) -> Callable[[Callable], RuleCondition
 # =========================================================================
 
 
+def _num(ctx: dict[str, Any], key: str, default: float) -> float:
+    """숫자 컨텍스트 값을 None-safe 하게 조회 (None 은 default 로 취급)"""
+    value = ctx.get(key)
+    return default if value is None else value
+
+
+ctx_num = _num  # 규칙 모듈용 공개 별칭
+
+
+def cluster_size(value: Any) -> int:
+    """감성 클러스터 값의 크기.
+
+    KG 브랜드 프로필은 ``{"Hydration": 2}`` (개수), 제품 감성은
+    ``{"Hydration": ["Moisturizing", ...]}`` (태그 리스트) 형태를 쓴다. 두 형태 모두 지원.
+    """
+    if value is None:
+        return 0
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return int(value)
+    try:
+        return len(value)
+    except TypeError:
+        return 0
+
+
 class StandardConditions:
     """자주 사용되는 표준 조건들"""
 
@@ -666,7 +700,7 @@ class StandardConditions:
         """SoS가 임계값 이상"""
         return RuleCondition(
             name=f"sos_above_{threshold}",
-            check=lambda ctx: ctx.get("sos", 0) >= threshold,
+            check=lambda ctx: _num(ctx, "sos", 0) >= threshold,
             description=f"SoS >= {threshold * 100:.0f}%",
         )
 
@@ -675,7 +709,7 @@ class StandardConditions:
         """SoS가 임계값 이하"""
         return RuleCondition(
             name=f"sos_below_{threshold}",
-            check=lambda ctx: ctx.get("sos", 0) < threshold,
+            check=lambda ctx: _num(ctx, "sos", 0) < threshold,
             description=f"SoS < {threshold * 100:.0f}%",
         )
 
@@ -684,7 +718,7 @@ class StandardConditions:
         """HHI가 임계값 이상 (집중 시장)"""
         return RuleCondition(
             name=f"hhi_above_{threshold}",
-            check=lambda ctx: ctx.get("hhi", 0) >= threshold,
+            check=lambda ctx: _num(ctx, "hhi", 0) >= threshold,
             description=f"HHI >= {threshold} (집중 시장)",
         )
 
@@ -693,7 +727,7 @@ class StandardConditions:
         """HHI가 임계값 이하 (분산 시장)"""
         return RuleCondition(
             name=f"hhi_below_{threshold}",
-            check=lambda ctx: ctx.get("hhi", 0) < threshold,
+            check=lambda ctx: _num(ctx, "hhi", 0) < threshold,
             description=f"HHI < {threshold} (분산 시장)",
         )
 
@@ -702,7 +736,7 @@ class StandardConditions:
         """CPI가 임계값 이상 (프리미엄)"""
         return RuleCondition(
             name=f"cpi_above_{threshold}",
-            check=lambda ctx: ctx.get("cpi", 100) > threshold,
+            check=lambda ctx: _num(ctx, "cpi", 100) > threshold,
             description=f"CPI > {threshold} (프리미엄 포지션)",
         )
 
@@ -711,7 +745,7 @@ class StandardConditions:
         """CPI가 임계값 이하 (가성비)"""
         return RuleCondition(
             name=f"cpi_below_{threshold}",
-            check=lambda ctx: ctx.get("cpi", 100) < threshold,
+            check=lambda ctx: _num(ctx, "cpi", 100) < threshold,
             description=f"CPI < {threshold} (가성비 포지션)",
         )
 
@@ -720,7 +754,7 @@ class StandardConditions:
         """평점 갭이 음수 (경쟁 열위)"""
         return RuleCondition(
             name="rating_gap_negative",
-            check=lambda ctx: ctx.get("rating_gap", 0) < 0,
+            check=lambda ctx: _num(ctx, "rating_gap", 0) < 0,
             description="평점 갭 < 0 (경쟁사 대비 열위)",
         )
 
@@ -729,7 +763,7 @@ class StandardConditions:
         """평점 갭이 양수 (경쟁 우위)"""
         return RuleCondition(
             name="rating_gap_positive",
-            check=lambda ctx: ctx.get("rating_gap", 0) > 0,
+            check=lambda ctx: _num(ctx, "rating_gap", 0) > 0,
             description="평점 갭 > 0 (경쟁사 대비 우위)",
         )
 
@@ -738,7 +772,7 @@ class StandardConditions:
         """순위 급변 발생"""
         return RuleCondition(
             name="has_rank_shock",
-            check=lambda ctx: ctx.get("has_rank_shock", False),
+            check=lambda ctx: bool(ctx.get("has_rank_shock", False)),
             description="순위 급변 발생",
         )
 
@@ -747,7 +781,7 @@ class StandardConditions:
         """Churn Rate가 높음"""
         return RuleCondition(
             name=f"churn_rate_high_{threshold}",
-            check=lambda ctx: ctx.get("churn_rate", 0) > threshold,
+            check=lambda ctx: _num(ctx, "churn_rate", 0) > threshold,
             description=f"Churn Rate > {threshold * 100:.0f}%",
         )
 
@@ -756,7 +790,7 @@ class StandardConditions:
         """연속 체류일이 N일 이상"""
         return RuleCondition(
             name=f"streak_above_{days}",
-            check=lambda ctx: ctx.get("streak_days", 0) >= days,
+            check=lambda ctx: _num(ctx, "streak_days", 0) >= days,
             description=f"Top N 연속 체류 >= {days}일",
         )
 
@@ -794,7 +828,7 @@ class StandardConditions:
         """경쟁사가 N개 이상"""
         return RuleCondition(
             name=f"has_competitors_{min_count}",
-            check=lambda ctx: ctx.get("competitor_count", 0) >= min_count,
+            check=lambda ctx: _num(ctx, "competitor_count", 0) >= min_count,
             description=f"경쟁사 >= {min_count}개",
         )
 

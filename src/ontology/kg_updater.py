@@ -16,6 +16,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from src.shared.units import percent_to_fraction
+
 from .relations import (
     Relation,
     RelationType,
@@ -141,7 +143,8 @@ class KGUpdaterMixin:
                     brand,
                     {
                         "type": "brand",
-                        "sos": brand_metric.get("share_of_shelf"),
+                        # share_of_shelf 는 PERCENT, KG 메타데이터 sos 는 FRACTION (brain/exporter 와 동일)
+                        "sos": percent_to_fraction(brand_metric.get("share_of_shelf")),
                         "avg_rank": brand_metric.get("avg_rank"),
                         "product_count": brand_metric.get("product_count"),
                         "is_target": brand_metric.get("is_laneige", False),

@@ -7,6 +7,7 @@ import pytest
 
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.rules import ALL_BUSINESS_RULES, register_all_rules
+from src.shared.units import percent_to_fraction
 
 
 @pytest.fixture
@@ -51,13 +52,13 @@ def test_category_entry_opportunity(reasoner):
     assert fired(reasoner, ctx) == frozenset({"category_entry_opportunity"})
 
 
-def test_percent_scale_sos_still_triggers_dominance(reasoner):
-    # PINS CURRENT BEHAVIOR (bug D2 unit mismatch): rules assume a 0-1 SoS ratio, but
-    # MetricCalculator.calculate_sos emits percent. A 2% share passed as 2.0 is read as
-    # "200%" and fires market_dominance_fragmented. Expected to change when fixed.
-    assert fired(reasoner, {"brand": "LANEIGE", "sos": 2.0, "hhi": 0.10}) == frozenset(
-        {"market_dominance_fragmented"}
-    )
+def test_reasoner_contract_is_fraction_sos(reasoner):
+    # FIXED (bug D2): the reasoner's contract is a 0-1 SoS fraction. MetricCalculator still
+    # emits percent; callers (hybrid_retriever / kg_updater / dashboard_exporter) convert at
+    # the boundary through src.shared.units, so a 2% share reaches the rules as 0.02 and is
+    # an entry opportunity, never "200%" dominance.
+    ctx = {"brand": "LANEIGE", "is_target": True, "sos": percent_to_fraction(2.0), "hhi": 0.10}
+    assert fired(reasoner, ctx) == frozenset({"category_entry_opportunity"})
 
 
 # --- price rules ---------------------------------------------------------------
@@ -94,9 +95,9 @@ def test_rank_rules(reasoner, ctx, expected):
 
 
 def test_rank_shock_with_none_churn_does_not_raise(reasoner):
-    # churn_rate=None makes the churn_rate_high condition raise a TypeError internally;
-    # RuleCondition.evaluate swallows it (logs a warning) and treats it as False, so
-    # market_disruption does NOT fire and no exception escapes.
+    # FIXED (bug D17): StandardConditions are None-safe (None reads as the default, 0), so
+    # churn_rate=None is simply "not high" - market_disruption does not fire and no
+    # warning-swallowed exception is involved.
     assert fired(reasoner, {"has_rank_shock": True, "churn_rate": None}) == frozenset()
 
 
@@ -108,11 +109,13 @@ def test_sentiment_clusters_list_form_fires_hydration(reasoner):
     assert fired(reasoner, ctx) == frozenset({"sentiment_strength_hydration"})
 
 
-def test_sentiment_clusters_int_form_fires_nothing(reasoner):
-    # PINS CURRENT BEHAVIOR (bug D17): the hydration_tags_count condition calls len() on the
-    # cluster value, so an int count ({"Hydration": 2}) raises TypeError inside the condition,
-    # which is swallowed -> rule silently does not fire. Expected to change when fixed.
-    assert fired(reasoner, {"sentiment_clusters": {"Hydration": 2}}) == frozenset()
+def test_sentiment_clusters_int_form_fires_hydration(reasoner):
+    # FIXED (bug D17): cluster_size() accepts the KG brand-profile count form as well as the
+    # product tag-list form, so {"Hydration": 2} fires exactly like the list form.
+    assert fired(reasoner, {"sentiment_clusters": {"Hydration": 2}}) == frozenset(
+        {"sentiment_strength_hydration"}
+    )
+    assert fired(reasoner, {"sentiment_clusters": {"Hydration": 1}}) == frozenset()
 
 
 def test_inference_result_shape(reasoner):

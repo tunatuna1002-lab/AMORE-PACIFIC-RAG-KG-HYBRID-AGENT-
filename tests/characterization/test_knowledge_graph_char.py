@@ -54,10 +54,12 @@ def test_load_from_crawl_data_is_idempotent(tmp_path, crawl_data):
 def test_save_then_reload_roundtrip(tmp_path, crawl_data):
     kg = make_kg(tmp_path)
     kg.load_from_crawl_data(crawl_data)
-    # save() without force is a no-op when auto_save=False (nothing marked dirty)
+    # FIXED (bug D26): mutations mark the graph dirty even with auto_save=False, so an
+    # explicit save() writes; a second save() on a clean graph is the no-op.
+    assert kg.save() is True
+    assert (tmp_path / "kg.json").exists()
     assert kg.save() is False
     assert kg.save(force=True) is True
-    assert (tmp_path / "kg.json").exists()
 
     kg2 = make_kg(tmp_path, auto_load=True)
     assert len(kg2.triples) == len(kg.triples)
@@ -89,9 +91,10 @@ def test_get_stats_keys(tmp_path, crawl_data):
 
 
 def test_brand_casing_is_not_canonicalized(tmp_path, crawl_data):
-    # PINS CURRENT BEHAVIOR (canonical-IRI issue): the KG stores the brand string verbatim
-    # ("LANEIGE"), and query()/get_brand_products() match subjects case-sensitively, so a
-    # lowercase lookup returns nothing. Expected to change if brand IRIs are canonicalized.
+    # The KG still stores the brand string verbatim ("LANEIGE") and the raw triple query()
+    # stays case-sensitive. FIXED (brand casing): the two brand helpers
+    # get_brand_products()/get_competitors() resolve the subject case-insensitively
+    # (exact match first), so a lowercase lookup finds the same products.
     kg = make_kg(tmp_path)
     kg.load_from_crawl_data(crawl_data)
 
@@ -109,7 +112,9 @@ def test_brand_casing_is_not_canonicalized(tmp_path, crawl_data):
     ]
 
     assert len(kg.get_brand_products("LANEIGE")) == 3
-    assert kg.get_brand_products("laneige") == []
+    assert len(kg.get_brand_products("laneige")) == 3
+    assert len(kg.get_brand_products("Laneige")) == 3
+    assert kg.get_brand_products("nope") == []
 
 
 def test_load_from_metrics_data_sets_metadata_and_alert_edges(tmp_path):
@@ -140,9 +145,11 @@ def test_load_from_metrics_data_sets_metadata_and_alert_edges(tmp_path):
         }
     )
     assert added == 1
+    # FIXED (bug D2b): share_of_shelf is percent; KG metadata "sos" is stored as a fraction
+    # (the same key brain.py / dashboard_exporter.py write).
     assert kg.get_entity_metadata("LANEIGE") == {
         "type": "brand",
-        "sos": 3.0,
+        "sos": pytest.approx(0.03),
         "avg_rank": 8.67,
         "product_count": 3,
         "is_target": True,

@@ -3,8 +3,29 @@ Sentiment Analysis Based Rules
 감성 분석 기반 규칙
 """
 
-from ..reasoner import InferenceRule, RuleCondition
+from ..reasoner import InferenceRule, RuleCondition, cluster_size
 from ..relations import InsightType
+
+
+def _cluster_value(ctx: dict, cluster: str):
+    """감성 클러스터 값 (태그 리스트 또는 개수)."""
+    clusters = ctx.get("sentiment_clusters") or {}
+    return clusters.get(cluster) if isinstance(clusters, dict) else None
+
+
+def _cluster_tags(ctx: dict, cluster: str) -> list:
+    """태그 리스트 형태일 때만 태그를 반환 (개수 형태면 빈 리스트)."""
+    value = _cluster_value(ctx, cluster)
+    return list(value) if isinstance(value, (list, tuple, set)) else []
+
+
+def _cluster_label(ctx: dict, cluster: str) -> str:
+    """인사이트 문장용 라벨: 태그가 있으면 태그 나열, 없으면 언급 건수."""
+    tags = _cluster_tags(ctx, cluster)
+    if tags:
+        return ", ".join(str(t) for t in tags)
+    return f"{cluster_size(_cluster_value(ctx, cluster))}건 언급"
+
 
 RULE_SENTIMENT_STRENGTH_HYDRATION = InferenceRule(
     name="sentiment_strength_hydration",
@@ -13,18 +34,18 @@ RULE_SENTIMENT_STRENGTH_HYDRATION = InferenceRule(
         RuleCondition(
             name="has_hydration_sentiment",
             check=lambda ctx: any(
-                cluster == "Hydration" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                cluster == "Hydration" for cluster in (ctx.get("sentiment_clusters") or {}).keys()
             ),
             description="Hydration 클러스터 감성 보유",
         ),
         RuleCondition(
             name="hydration_tags_count",
-            check=lambda ctx: len(ctx.get("sentiment_clusters", {}).get("Hydration", [])) >= 2,
+            check=lambda ctx: cluster_size(_cluster_value(ctx, "Hydration")) >= 2,
             description="Hydration 감성 태그 2개 이상",
         ),
     ],
     conclusion=lambda ctx: {
-        "insight": f"고객들이 보습력({', '.join(ctx.get('sentiment_clusters', {}).get('Hydration', []))})을 "
+        "insight": f"고객들이 보습력({_cluster_label(ctx, 'Hydration')})을 "
         f"주요 강점으로 인식하고 있습니다.",
         "strength": "hydration",
         "recommendation": "보습력을 핵심 마케팅 메시지로 강조하세요. "
@@ -32,7 +53,7 @@ RULE_SENTIMENT_STRENGTH_HYDRATION = InferenceRule(
         "related_entities": [ctx.get("asin", ""), ctx.get("brand", "")],
         "metadata": {
             "sentiment_cluster": "Hydration",
-            "tags": ctx.get("sentiment_clusters", {}).get("Hydration", []),
+            "tags": _cluster_tags(ctx, "Hydration"),
         },
     },
     insight_type=InsightType.SENTIMENT_STRENGTH,
@@ -89,7 +110,8 @@ RULE_SENTIMENT_WEAKNESS_PACKAGING = InferenceRule(
             name="no_packaging_positive",
             check=lambda ctx: (
                 not any(
-                    cluster == "Packaging" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                    cluster == "Packaging"
+                    for cluster in (ctx.get("sentiment_clusters") or {}).keys()
                 )
             ),
             description="패키징 긍정 감성 없음",
@@ -98,7 +120,7 @@ RULE_SENTIMENT_WEAKNESS_PACKAGING = InferenceRule(
             name="competitor_has_packaging",
             check=lambda ctx: any(
                 cluster == "Packaging"
-                for cluster in ctx.get("competitor_sentiment_clusters", {}).keys()
+                for cluster in (ctx.get("competitor_sentiment_clusters") or {}).keys()
             ),
             description="경쟁사에 패키징 긍정 감성 있음",
         ),
@@ -126,20 +148,20 @@ RULE_SENTIMENT_USABILITY_STRENGTH = InferenceRule(
         RuleCondition(
             name="has_usability_sentiment",
             check=lambda ctx: any(
-                cluster == "Usability" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                cluster == "Usability" for cluster in (ctx.get("sentiment_clusters") or {}).keys()
             ),
             description="Usability 클러스터 감성 보유",
         ),
     ],
     conclusion=lambda ctx: {
-        "insight": f"고객들이 사용 편의성({', '.join(ctx.get('sentiment_clusters', {}).get('Usability', []))})을 "
+        "insight": f"고객들이 사용 편의성({_cluster_label(ctx, 'Usability')})을 "
         f"긍정적으로 평가하고 있습니다.",
         "strength": "usability",
         "recommendation": "'간편한 사용법', '휴대성' 등을 마케팅 포인트로 활용하세요.",
         "related_entities": [ctx.get("asin", ""), ctx.get("brand", "")],
         "metadata": {
             "sentiment_cluster": "Usability",
-            "tags": ctx.get("sentiment_clusters", {}).get("Usability", []),
+            "tags": _cluster_tags(ctx, "Usability"),
         },
     },
     insight_type=InsightType.SENTIMENT_STRENGTH,
@@ -156,25 +178,26 @@ RULE_SENTIMENT_EFFECTIVENESS = InferenceRule(
         RuleCondition(
             name="has_effectiveness_sentiment",
             check=lambda ctx: any(
-                cluster == "Effectiveness" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                cluster == "Effectiveness"
+                for cluster in (ctx.get("sentiment_clusters") or {}).keys()
             ),
             description="Effectiveness 클러스터 감성 보유",
         ),
         RuleCondition(
             name="effectiveness_tags_count",
-            check=lambda ctx: len(ctx.get("sentiment_clusters", {}).get("Effectiveness", [])) >= 1,
+            check=lambda ctx: cluster_size(_cluster_value(ctx, "Effectiveness")) >= 1,
             description="효과성 감성 태그 1개 이상",
         ),
     ],
     conclusion=lambda ctx: {
-        "insight": f"고객들이 제품 효과({', '.join(ctx.get('sentiment_clusters', {}).get('Effectiveness', []))})를 "
+        "insight": f"고객들이 제품 효과({_cluster_label(ctx, 'Effectiveness')})를 "
         f"높게 평가하고 있습니다. 실제 효과가 구매 결정에 중요한 요소입니다.",
         "strength": "effectiveness",
         "recommendation": "Before/After 콘텐츠, 고객 리뷰 기반 효과 증명 마케팅을 강화하세요.",
         "related_entities": [ctx.get("asin", ""), ctx.get("brand", "")],
         "metadata": {
             "sentiment_cluster": "Effectiveness",
-            "tags": ctx.get("sentiment_clusters", {}).get("Effectiveness", []),
+            "tags": _cluster_tags(ctx, "Effectiveness"),
         },
     },
     insight_type=InsightType.SENTIMENT_STRENGTH,
@@ -192,7 +215,7 @@ RULE_SENTIMENT_GAP_SENSORY = InferenceRule(
             name="no_sensory_sentiment",
             check=lambda ctx: (
                 not any(
-                    cluster == "Sensory" for cluster in ctx.get("sentiment_clusters", {}).keys()
+                    cluster == "Sensory" for cluster in (ctx.get("sentiment_clusters") or {}).keys()
                 )
             ),
             description="Sensory 감성 없음",
@@ -201,7 +224,7 @@ RULE_SENTIMENT_GAP_SENSORY = InferenceRule(
             name="competitor_has_sensory",
             check=lambda ctx: any(
                 cluster == "Sensory"
-                for cluster in ctx.get("competitor_sentiment_clusters", {}).keys()
+                for cluster in (ctx.get("competitor_sentiment_clusters") or {}).keys()
             ),
             description="경쟁사에 Sensory 감성 있음",
         ),

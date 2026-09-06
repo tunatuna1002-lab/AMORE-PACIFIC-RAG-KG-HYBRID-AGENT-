@@ -3,7 +3,7 @@ Market Position and Competition Rules
 시장 포지션 및 경쟁 관련 규칙
 """
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
 from ..relations import InsightType, MarketPosition
 
 # =========================================================================
@@ -70,7 +70,7 @@ RULE_CHALLENGER_POSITION = InferenceRule(
         StandardConditions.hhi_above(0.25),  # 집중 시장
         RuleCondition(
             name="mid_sos",
-            check=lambda ctx: 0.05 <= ctx.get("sos", 0) < 0.15,
+            check=lambda ctx: 0.05 <= ctx_num(ctx, "sos", 0) < 0.15,
             description="SoS 5~15% (중간 수준)",
         ),
     ],
@@ -132,7 +132,7 @@ RULE_STRONG_AVG_RANK = InferenceRule(
     conditions=[
         RuleCondition(
             name="low_avg_rank",
-            check=lambda ctx: ctx.get("avg_rank", 100) < 20,
+            check=lambda ctx: ctx_num(ctx, "avg_rank", 100) < 20,
             description="평균 순위 < 20",
         ),
         RuleCondition(
@@ -166,7 +166,7 @@ RULE_COMPETITIVE_PRESSURE = InferenceRule(
     conditions=[
         RuleCondition(
             name="sos_declining",
-            check=lambda ctx: ctx.get("sos_change", 0) < -0.02,  # SoS 2%p 이상 하락
+            check=lambda ctx: ctx_num(ctx, "sos_change", 0) < -0.02,  # SoS 2%p 이상 하락
             description="SoS 2%p 이상 하락",
         ),
         StandardConditions.has_competitors(3),  # 경쟁사 3개 이상

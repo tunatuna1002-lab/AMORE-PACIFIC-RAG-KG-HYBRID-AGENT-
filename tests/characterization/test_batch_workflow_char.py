@@ -262,16 +262,14 @@ async def test_run_daily_workflow_kg_and_filesystem_effects(
     # load_from_metrics_data stores brand metadata keyed by the original-case brand name
     assert kg.get_entity_metadata("LANEIGE") == {
         "type": "brand",
-        "sos": 0.5,
+        "sos": 0.005,  # D2: share_of_shelf(percent 0.5) → KG metadata는 분수
         "avg_rank": 1.0,
         "product_count": 1,
         "is_target": True,
         "category": "lip_care",
     }
-    # PINS CURRENT BEHAVIOR: with auto_save=False the graph is never marked dirty,
-    # so the workflow's explicit knowledge_graph.save() is a silent no-op
-    # (it logs "Knowledge Graph saved" but writes nothing).
-    assert not (tmp_path / "kg.json").exists()
+    # D26: 명시적 save()는 auto_save 여부와 무관하게 파일을 쓴다
+    assert (tmp_path / "kg.json").exists()
 
     # Raw crawl result is dumped relative to CWD
     crawl_json = tmp_path / "data" / "latest_crawl_result.json"

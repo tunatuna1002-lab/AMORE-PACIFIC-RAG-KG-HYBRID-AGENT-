@@ -294,11 +294,14 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
             self.predicate_index[relation.predicate].remove(relation)
 
     def _maybe_auto_save(self) -> None:
-        """배치 자동 저장 (변경이 충분히 쌓이면)"""
+        """변경 표시 + 배치 자동 저장 (변경이 충분히 쌓이면)
+
+        auto_save 여부와 무관하게 항상 dirty 로 표시해야 명시적 ``save()`` 가 실제로 기록한다.
+        """
+        self._dirty = True
         if not self.auto_save:
             return
 
-        self._dirty = True
         self._save_batch_count += 1
 
         if self._save_batch_count >= self._save_batch_threshold:
@@ -392,6 +395,7 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
             self.predicate_index[relation.predicate].remove(relation)
 
         self._update_stats()
+        self._maybe_auto_save()
         return True
 
     def clear(self) -> None:
@@ -402,6 +406,33 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
         self.predicate_index.clear()
         self.entity_metadata.clear()
         self._update_stats()
+        self._dirty = True
+
+    # =========================================================================
+    # 브랜드 조회 (대소문자 무시)
+    # =========================================================================
+
+    def _resolve_subject(self, subject: str) -> str:
+        """subject 문자열을 저장된 표기로 해석: 정확 일치 우선, 그 다음 대소문자 무시 일치."""
+        if not subject:
+            return subject
+        if subject in self.subject_index and self.subject_index[subject]:
+            return subject
+        lowered = subject.lower()
+        for key in list(self.subject_index.keys()):
+            if key.lower() == lowered and self.subject_index[key]:
+                return key
+        return subject
+
+    def get_brand_products(self, brand: str, category: str | None = None) -> list[dict[str, Any]]:
+        """브랜드 제품 조회 (브랜드명 대소문자 무시). ``query()`` 자체는 대소문자를 구분한다."""
+        return super().get_brand_products(self._resolve_subject(brand), category)
+
+    def get_competitors(
+        self, brand: str, category: str | None = None, competition_type: str = "all"
+    ) -> list[dict[str, Any]]:
+        """경쟁사 조회 (브랜드명 대소문자 무시)."""
+        return super().get_competitors(self._resolve_subject(brand), category, competition_type)
 
     # =========================================================================
     # 영속화

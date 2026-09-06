@@ -382,7 +382,8 @@ class TestLoadFromMetricsData:
         kg.load_from_metrics_data(metrics_data)
         meta = kg.get_entity_metadata("LANEIGE")
         assert meta["type"] == "brand"
-        assert meta["sos"] == 15.0
+        # share_of_shelf 15.0 (percent) is stored as the fraction 0.15 (bug D2b)
+        assert meta["sos"] == pytest.approx(0.15)
         assert meta["avg_rank"] == 3.2
         assert meta["is_target"] is True
 

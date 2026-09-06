@@ -22,9 +22,7 @@ EXPANDED_QUERY = (
 
 @pytest.fixture
 def retriever(kg, reasoner, fake_doc_retriever) -> HybridRetriever:
-    return HybridRetriever(
-        knowledge_graph=kg, reasoner=reasoner, doc_retriever=fake_doc_retriever
-    )
+    return HybridRetriever(knowledge_graph=kg, reasoner=reasoner, doc_retriever=fake_doc_retriever)
 
 
 def test_constructor_does_not_reregister_rules(kg, reasoner, fake_doc_retriever) -> None:
@@ -121,16 +119,19 @@ async def test_retrieve_laneige_lip_care_sos(
     assert [(f["type"], f["entity"]) for f in ctx.ontology_facts] == [
         ("category_brands", "lip_care"),
         ("category_hierarchy", "lip_care"),
+        ("brand_products", "laneige"),
         ("metric_edges", "laneige"),
     ]
-    # PINS CURRENT BEHAVIOR: brand lookups (get_brand_products / get_competitors)
-    # use the lower-cased extracted brand "laneige" while the KG stores "LANEIGE",
-    # so no brand_products / competitors facts are produced although the KG holds
-    # LANEIGE hasProduct B0LANE1 and COSRX competesWith LANEIGE. Only the
-    # metric_edges path tries case variants.
-    assert not any(f["type"] in {"brand_products", "competitors", "brand_info"} for f in ctx.ontology_facts)
+    # FIXED (brand casing): KnowledgeGraph.get_brand_products / get_competitors resolve the
+    # lower-cased extracted brand "laneige" to the stored "LANEIGE" (exact match first, then
+    # case-insensitive), so the seeded LANEIGE hasProduct B0LANE1 now surfaces as a fact.
+    # COSRX competesWith LANEIGE has COSRX as subject, so there is still no competitors fact.
+    assert not any(f["type"] in {"competitors", "brand_info"} for f in ctx.ontology_facts)
 
-    cat_brands, hierarchy, edges = ctx.ontology_facts
+    cat_brands, hierarchy, brand_products, edges = ctx.ontology_facts
+    assert brand_products["data"]["product_count"] == 1
+    assert [p["asin"] for p in brand_products["data"]["products"]] == ["B0LANE1"]
+    assert brand_products["_weighted_score"] == pytest.approx(0.24)
     assert cat_brands["data"] == {
         "brand_count": 1,
         "top_brands": [{"brand": "LANEIGE", "product_count": 1, "products": ["B0LANE1"]}],
@@ -144,7 +145,11 @@ async def test_retrieve_laneige_lip_care_sos(
         "edges": [
             {"subject": "laneige", "predicate": "hasProduct", "object": "lip_sleeping_mask"},
             {"subject": "laneige", "predicate": "hasProduct", "object": "lip_sleeping"},
-            {"subject": "lip_sleeping_mask", "predicate": "belongsToCategory", "object": "lip_care"},
+            {
+                "subject": "lip_sleeping_mask",
+                "predicate": "belongsToCategory",
+                "object": "lip_care",
+            },
             # seed triple ownedByGroup is re-labelled ownedBy, keeps original-case subject
             {"subject": "LANEIGE", "predicate": "ownedBy", "object": "AMOREPACIFIC"},
         ]
@@ -169,6 +174,8 @@ async def test_retrieve_laneige_lip_care_sos(
 
     # Metadata
     assert set(ctx.metadata) == {
+        "fusion",
+        "weighted_scores",
         "retrieval_time_ms",
         "ontology_facts_count",
         "inferences_count",
@@ -182,10 +189,13 @@ async def test_retrieve_laneige_lip_care_sos(
         "selfrag_confidence",
         "bm25_available",
     }
-    # PINS CURRENT BEHAVIOR: _weighted_merge stores "weighted_scores" and "fusion"
-    # in metadata, but retrieve() then reassigns context.metadata wholesale, so
-    # the fusion confidence never reaches the caller.
-    assert "fusion" not in ctx.metadata and "weighted_scores" not in ctx.metadata
+    # FIXED (bug D25): retrieve() merges its own keys into the metadata that
+    # _weighted_merge already filled, so "fusion"/"weighted_scores" reach the caller.
+    assert "confidence" in ctx.metadata["fusion"]
+    assert set(ctx.metadata["weighted_scores"]) == {"ontology_facts", "rag_chunks", "inferences"}
+    assert ctx.metadata["weighted_scores"]["ontology_facts"] == pytest.approx(
+        [0.32, 0.32, 0.24, 0.24]
+    )
     assert ctx.metadata["query_intent"] == "metric"
     assert ctx.metadata["doc_type_filter"] == ["metric_guide", "playbook"]
     assert ctx.metadata["intent_strategy"] == "balanced/metric"
@@ -194,7 +204,7 @@ async def test_retrieve_laneige_lip_care_sos(
     assert ctx.metadata["bm25_available"] is False  # fake has no search_bm25
     assert ctx.metadata["selfrag_confidence"] == 1.0
     assert ctx.metadata["query_expanded"] is True
-    assert ctx.metadata["ontology_facts_count"] == 3
+    assert ctx.metadata["ontology_facts_count"] == 4
     assert ctx.metadata["inferences_count"] == 1
     assert ctx.metadata["rag_chunks_count"] == 2
 
@@ -207,6 +217,7 @@ async def test_retrieve_laneige_lip_care_sos(
     assert "- **lip_care** Top 브랜드: LANEIGE" in ctx.combined_context
     assert "- **Lip Care** 계층: beauty > skin_care > lip_care (Level 2)" in ctx.combined_context
     assert "  - 상위 카테고리: Skin Care, Beauty & Personal Care" in ctx.combined_context
+    assert "- **laneige** 제품 수: 1개" in ctx.combined_context
     assert "## 참고 가이드라인 (RAG)" in ctx.combined_context
     assert "### SoS 정의\nSoS(Share of Shelf)는 점유율 지표입니다." in ctx.combined_context
 
@@ -225,13 +236,11 @@ async def test_retrieve_without_metrics_produces_entry_opportunity(
 
 
 # ---------------------------------------------------------------------------
-# Bug D14: id-less BM25 items + fewer than 3 filtered results
+# Bug D14 (fixed): id-less BM25 items + fewer than 3 filtered results
 # ---------------------------------------------------------------------------
 
 
-async def test_retrieve_idless_bm25_items_with_short_filtered_results_bug_d14(
-    kg, reasoner
-) -> None:
+async def test_retrieve_idless_bm25_items_with_short_filtered_results_bug_d14(kg, reasoner) -> None:
     fake = FakeDocRetriever(
         chunks=CANNED_CHUNKS[:1],  # a single dense hit (< 3 triggers the top-up search)
         bm25_results=[{"content": "bm25 only chunk", "score": 0.5}],  # no "id"
@@ -241,27 +250,25 @@ async def test_retrieve_idless_bm25_items_with_short_filtered_results_bug_d14(
 
     ctx = await hr.retrieve("LANEIGE SoS 지표 알려줘", current_metrics=CURRENT_METRICS)
 
-    # PINS CURRENT BEHAVIOR (bug D14): the top-up dedupe does `r["id"]` on every
-    # fused result; the id-less BM25 item raises KeyError('id') which the outer
-    # except swallows -> metadata is *only* {"error": "'id'"}, rag_chunks stay empty
-    # and combined_context is never built.
-    assert ctx.metadata == {"error": "'id'"}
-    assert ctx.rag_chunks == []
-    assert ctx.combined_context == ""
-    # Work done before the crash is still visible on the context object.
+    # FIXED (bug D14): the top-up dedupe keys on `.get("id")` and falls back to the
+    # chunk content, so an id-less BM25 item neither raises nor gets duplicated by the
+    # unfiltered top-up search. The full context is built.
+    assert "error" not in ctx.metadata
+    assert ctx.metadata["search_method"] == "hybrid_rrf"
+    assert [c.get("id") for c in ctx.rag_chunks] == ["c1", None]
+    assert ctx.metadata["rag_chunks_count"] == 2
+    assert "bm25 only chunk" in ctx.combined_context
     assert ctx.entities["brands"] == ["laneige"] and ctx.entities["indicators"] == ["sos"]
-    assert [f["type"] for f in ctx.ontology_facts] == ["metric_edges"]
+    assert [f["type"] for f in ctx.ontology_facts] == ["brand_products", "metric_edges"]
     assert [i.rule_name for i in ctx.inferences] == ["strong_avg_rank"]
-    # Both searches were issued (filtered, then unfiltered top-up) before the KeyError.
+    # Both searches were issued (filtered, then the unfiltered top-up).
     assert [(top_k, flt) for _q, top_k, flt in fake.calls] == [
         (5, ["metric_guide", "playbook"]),
         (3, None),
     ]
 
 
-async def test_retrieve_idless_bm25_items_with_enough_results_survive(
-    kg, reasoner
-) -> None:
+async def test_retrieve_idless_bm25_items_with_enough_results_survive(kg, reasoner) -> None:
     # Same fake but 2 dense hits: 2 + 1 fused == 3 -> the dedupe branch is skipped
     # and the id-less chunk flows through to the caller untouched.
     fake = FakeDocRetriever(
@@ -320,6 +327,12 @@ async def test_retrieve_unified_greeting_skip(retriever: HybridRetriever) -> Non
 async def test_get_stats_after_retrieve(retriever: HybridRetriever) -> None:
     await retriever.retrieve("LANEIGE Lip Care SoS는?", current_metrics=CURRENT_METRICS)
     stats: dict[str, Any] = retriever.get_stats()
-    assert set(stats) == {"knowledge_graph", "reasoner", "rules_count", "rag_metrics", "initialized"}
+    assert set(stats) == {
+        "knowledge_graph",
+        "reasoner",
+        "rules_count",
+        "rag_metrics",
+        "initialized",
+    }
     assert stats["rules_count"] == 37
     assert stats["initialized"] is True

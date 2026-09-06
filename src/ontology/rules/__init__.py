@@ -3,7 +3,7 @@ Business Rules - Modular Organization
 Rules are categorized by domain for better maintainability.
 """
 
-from ..reasoner import InferenceRule
+from ..reasoner import InferenceRule, cluster_size, ctx_num
 from .alert_rules import ALERT_RULES
 from .growth_rules import GROWTH_RULES
 from .ir_rules import IR_CROSS_ANALYSIS_RULES
@@ -73,6 +73,8 @@ def get_ir_rules() -> list[InferenceRule]:
 
 __all__ = [
     "ALL_BUSINESS_RULES",
+    "cluster_size",
+    "ctx_num",
     "MARKET_RULES",
     "GROWTH_RULES",
     "PRICE_RULES",

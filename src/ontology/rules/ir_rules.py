@@ -3,7 +3,7 @@ IR Cross-Analysis Rules
 IR 크로스 분석 규칙 (2026-01-26 추가)
 """
 
-from ..reasoner import InferenceRule, RuleCondition
+from ..reasoner import InferenceRule, RuleCondition, ctx_num
 from ..relations import InsightType
 
 RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
@@ -17,7 +17,7 @@ RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
         ),
         RuleCondition(
             name="amazon_rank_surge",
-            check=lambda ctx: ctx.get("rank_change_during_event", 0) < -10,
+            check=lambda ctx: ctx_num(ctx, "rank_change_during_event", 0) < -10,
             description="이벤트 기간 순위 10+ 상승",
         ),
     ],
@@ -48,12 +48,12 @@ RULE_IR_AMERICAS_CORRELATION = InferenceRule(
     conditions=[
         RuleCondition(
             name="ir_americas_growth",
-            check=lambda ctx: ctx.get("ir_americas_yoy", 0) > 0,
+            check=lambda ctx: ctx_num(ctx, "ir_americas_yoy", 0) > 0,
             description="IR Americas 매출 YoY 증가",
         ),
         RuleCondition(
             name="sos_increase",
-            check=lambda ctx: ctx.get("sos_change", 0) > 0,
+            check=lambda ctx: ctx_num(ctx, "sos_change", 0) > 0,
             description="SoS 상승",
         ),
         RuleCondition(
@@ -89,7 +89,7 @@ RULE_IR_GROWTH_MOMENTUM = InferenceRule(
     conditions=[
         RuleCondition(
             name="ir_consecutive_growth",
-            check=lambda ctx: ctx.get("ir_consecutive_growth_quarters", 0) >= 2,
+            check=lambda ctx: ctx_num(ctx, "ir_consecutive_growth_quarters", 0) >= 2,
             description="IR 2분기 이상 연속 성장",
         ),
     ],
@@ -119,8 +119,11 @@ RULE_IR_GROWTH_SLOWDOWN = InferenceRule(
         RuleCondition(
             name="ir_growth_slowdown",
             check=lambda ctx: (
-                (ctx.get("ir_current_qtr_growth", 0) < ctx.get("ir_prev_qtr_growth", 0) * 0.5)
-                if ctx.get("ir_prev_qtr_growth", 0) > 0
+                (
+                    ctx_num(ctx, "ir_current_qtr_growth", 0)
+                    < ctx_num(ctx, "ir_prev_qtr_growth", 0) * 0.5
+                )
+                if ctx_num(ctx, "ir_prev_qtr_growth", 0) > 0
                 else False
             ),
             description="IR 성장률 50%+ 감소",
@@ -138,11 +141,11 @@ RULE_IR_GROWTH_SLOWDOWN = InferenceRule(
             "prev_growth": ctx.get("ir_prev_qtr_growth"),
             "current_growth": ctx.get("ir_current_qtr_growth"),
             "decline_ratio": (
-                ctx.get("ir_prev_qtr_growth", 1) - ctx.get("ir_current_qtr_growth", 0)
+                ctx_num(ctx, "ir_prev_qtr_growth", 1) - ctx_num(ctx, "ir_current_qtr_growth", 0)
             )
-            / ctx.get("ir_prev_qtr_growth", 1)
+            / ctx_num(ctx, "ir_prev_qtr_growth", 1)
             * 100
-            if ctx.get("ir_prev_qtr_growth", 0) > 0
+            if ctx_num(ctx, "ir_prev_qtr_growth", 0) > 0
             else 0,
         },
     },
@@ -164,7 +167,7 @@ RULE_IR_BRAND_CAMPAIGN_EFFECT = InferenceRule(
         ),
         RuleCondition(
             name="product_rank_improved",
-            check=lambda ctx: ctx.get("rank_change_7d", 0) < 0,
+            check=lambda ctx: ctx_num(ctx, "rank_change_7d", 0) < 0,
             description="해당 제품 순위 상승",
         ),
     ],

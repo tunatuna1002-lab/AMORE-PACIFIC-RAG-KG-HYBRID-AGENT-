@@ -246,6 +246,7 @@ class OWLRetrievalStrategy:
         unified_reasoner: Any | None = None,
         use_reranking: bool = True,
         use_query_expansion: bool = True,
+        docs_path: str | None = None,
     ):
         from .confidence_fusion import ConfidenceFusion
         from .entity_linker import EntityLinker
@@ -257,11 +258,17 @@ class OWLRetrievalStrategy:
         self.ontology_kg = ontology_kg
         self.unified_reasoner = unified_reasoner
 
-        self.doc_retriever = doc_retriever or DocumentRetriever(
-            use_semantic_chunking=True,
-            use_reranker=use_reranking,
-            use_query_expansion=use_query_expansion,
-        )
+        if doc_retriever is not None:
+            self.doc_retriever = doc_retriever
+        else:
+            retriever_kwargs: dict[str, Any] = {
+                "use_semantic_chunking": True,
+                "use_reranker": use_reranking,
+                "use_query_expansion": use_query_expansion,
+            }
+            if docs_path is not None:
+                retriever_kwargs["docs_path"] = docs_path
+            self.doc_retriever = DocumentRetriever(**retriever_kwargs)
 
         self.entity_linker = EntityLinker(knowledge_graph=self.kg)
         self.confidence_fusion = ConfidenceFusion()

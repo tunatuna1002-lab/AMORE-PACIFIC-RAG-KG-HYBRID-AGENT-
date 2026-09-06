@@ -3,7 +3,7 @@ Risk and Alert Rules
 위험 및 경고 관련 규칙
 """
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
 from ..relations import InsightType
 
 # =========================================================================
@@ -72,7 +72,7 @@ RULE_RANK_DECLINE = InferenceRule(
         StandardConditions.rank_declining(),
         RuleCondition(
             name="high_volatility",
-            check=lambda ctx: ctx.get("rank_volatility", 0) > 5,
+            check=lambda ctx: ctx_num(ctx, "rank_volatility", 0) > 5,
             description="순위 변동성 > 5",
         ),
     ],

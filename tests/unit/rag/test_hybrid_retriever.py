@@ -492,10 +492,12 @@ class TestHybridRetriever:
 
         entities = {"brands": ["laneige"], "categories": ["lip_care"], "indicators": ["sos"]}
 
+        # summary / brand_metrics SoS values are PERCENT (MetricCalculator contract);
+        # the inference context receives the FRACTION (bug D2a).
         current_metrics = {
-            "summary": {"laneige_sos_by_category": {"lip_care": 0.08}},
+            "summary": {"laneige_sos_by_category": {"lip_care": 8.0}},
             "brand_metrics": [
-                {"is_laneige": True, "share_of_shelf": 0.08, "avg_rank": 15.5, "product_count": 3}
+                {"is_laneige": True, "share_of_shelf": 8.0, "avg_rank": 15.5, "product_count": 3}
             ],
         }
 
@@ -504,7 +506,7 @@ class TestHybridRetriever:
         assert context["brand"] == "laneige"
         assert context["is_target"] is True
         assert context["category"] == "lip_care"
-        assert context["sos"] == 0.08
+        assert context["sos"] == pytest.approx(0.08)
         assert context["competitor_count"] == 1
 
     def test_retriever_get_stats(self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever):
@@ -1991,13 +1993,13 @@ class TestBuildInferenceContextEdgeCases:
 
         entities = {"brands": ["laneige"], "categories": ["face_powder"]}
         current_metrics = {
-            "summary": {"laneige_sos_by_category": {"lip_care": 0.08, "face_powder": 0.05}}
+            "summary": {"laneige_sos_by_category": {"lip_care": 8.0, "face_powder": 5.0}}
         }
 
         context = retriever._build_inference_context(entities, current_metrics)
 
-        # face_powder 카테고리의 SoS가 할당되어야 함
-        assert context.get("sos") == 0.05
+        # face_powder 카테고리의 SoS(percent 5.0)가 fraction 으로 할당되어야 함
+        assert context.get("sos") == pytest.approx(0.05)
 
     def test_build_context_brand_metrics_matching(self):
         """브랜드 메트릭 매칭 테스트"""
@@ -2016,15 +2018,15 @@ class TestBuildInferenceContextEdgeCases:
         current_metrics = {
             "summary": {"laneige_sos_by_category": {}},
             "brand_metrics": [
-                {"brand_name": "LANEIGE", "share_of_shelf": 0.08, "avg_rank": 15},
-                {"brand_name": "COSRX", "share_of_shelf": 0.05, "avg_rank": 22},
+                {"brand_name": "LANEIGE", "share_of_shelf": 8.0, "avg_rank": 15},
+                {"brand_name": "COSRX", "share_of_shelf": 5.0, "avg_rank": 22},
             ],
         }
 
         context = retriever._build_inference_context(entities, current_metrics)
 
-        # cosrx 브랜드 메트릭이 매칭되어야 함
-        assert context.get("sos") == 0.05
+        # cosrx 브랜드 메트릭이 매칭되어야 함 (percent 5.0 -> fraction 0.05)
+        assert context.get("sos") == pytest.approx(0.05)
         assert context.get("avg_rank") == 22
 
     def test_build_context_sentiment_exception_handling(self):

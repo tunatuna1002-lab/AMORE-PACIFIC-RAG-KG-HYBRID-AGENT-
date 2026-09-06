@@ -1315,7 +1315,7 @@ Do not include any explanation."""
         """
         BM25 sparse retrieval (synchronous public API).
 
-        Returns list of dicts with keys: content, score, metadata, source.
+        Returns list of dicts with keys: id, content, score, metadata, source.
         Scores are normalized to 0-1 range.
         """
         if not BM25_AVAILABLE:
@@ -1341,6 +1341,7 @@ Do not include any explanation."""
                 continue
             scored.append(
                 {
+                    "id": chunk_id,
                     "content": chunk.get("content", ""),
                     "score": float(score / max_score),
                     "metadata": {k: v for k, v in chunk.items() if k not in ("content",)},

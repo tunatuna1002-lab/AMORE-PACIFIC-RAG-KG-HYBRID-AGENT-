@@ -5,7 +5,7 @@ Price, Discount, and Causality Rules
 
 from typing import Any
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
 from ..relations import InsightType
 
 # =========================================================================
@@ -316,7 +316,7 @@ RULE_PREMIUM_POSITION = InferenceRule(
         StandardConditions.cpi_above(150),  # CPI > 150 (프리미엄)
         RuleCondition(
             name="good_rating",
-            check=lambda ctx: ctx.get("rating_gap", 0) >= 0,
+            check=lambda ctx: ctx_num(ctx, "rating_gap", 0) >= 0,
             description="평점 동등 이상",
         ),
     ],
@@ -409,7 +409,7 @@ RULE_VIRAL_EFFECT = InferenceRule(
         ),
         RuleCondition(
             name="rank_improved",
-            check=lambda ctx: ctx.get("rank_change_7d", 0) < 0,
+            check=lambda ctx: ctx_num(ctx, "rank_change_7d", 0) < 0,
             description="순위 상승 (음수)",
         ),
     ],
@@ -445,7 +445,7 @@ RULE_BESTSELLER_BADGE_EFFECT = InferenceRule(
         ),
         RuleCondition(
             name="rank_stable",
-            check=lambda ctx: abs(ctx.get("rank_change_7d", 0)) <= 3,
+            check=lambda ctx: abs(ctx_num(ctx, "rank_change_7d", 0)) <= 3,
             description="순위 변동 ±3 이내 (안정)",
         ),
     ],
@@ -522,8 +522,8 @@ RULE_PREMIUM_DEFENSE_SUCCESS = InferenceRule(
             name="premium_price",
             check=lambda ctx: (
                 (
-                    (ctx.get("price", 0) - ctx.get("category_avg_price", 0))
-                    / ctx.get("category_avg_price", 1)
+                    (ctx_num(ctx, "price", 0) - ctx_num(ctx, "category_avg_price", 0))
+                    / ctx_num(ctx, "category_avg_price", 1)
                     * 100
                     > 20
                 )
@@ -534,12 +534,12 @@ RULE_PREMIUM_DEFENSE_SUCCESS = InferenceRule(
         ),
         RuleCondition(
             name="good_rank",
-            check=lambda ctx: ctx.get("rank", 100) <= 10,
+            check=lambda ctx: ctx_num(ctx, "rank", 100) <= 10,
             description="Top 10 순위",
         ),
     ],
     conclusion=lambda ctx: {
-        "insight": calculate_premium_defense_index(ctx, ctx.get("category_avg_price", 0))[
+        "insight": calculate_premium_defense_index(ctx, ctx_num(ctx, "category_avg_price", 0))[
             "insight"
         ],
         "position": "premium_defender",
@@ -547,7 +547,7 @@ RULE_PREMIUM_DEFENSE_SUCCESS = InferenceRule(
         "tag": "프리미엄 방어",
         "tag_color": "gold",
         "related_entities": [ctx.get("asin", ""), ctx.get("brand", "")],
-        "metadata": calculate_premium_defense_index(ctx, ctx.get("category_avg_price", 0)),
+        "metadata": calculate_premium_defense_index(ctx, ctx_num(ctx, "category_avg_price", 0)),
     },
     insight_type=InsightType.PRICE_POSITION,
     priority=8,

@@ -71,6 +71,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from src.shared.units import percent_to_fraction
+
 logger = logging.getLogger(__name__)
 
 # owlready2 선택적 import
@@ -355,7 +357,16 @@ class OWLReasoner:
 
         Returns:
             성공 여부
+
+        Raises:
+            ValueError: sos 가 0-1 범위를 벗어난 경우 (percent 값이 유입된 단위 오류)
         """
+        if sos is not None and not (0.0 <= sos <= 1.0):
+            raise ValueError(
+                f"add_brand({name!r}): sos must be a fraction in [0, 1], got {sos!r}. "
+                "Convert percent values with src.shared.units.percent_to_fraction()."
+            )
+
         if not OWLREADY2_AVAILABLE:
             logger.warning("owlready2 not available, skipping add_brand")
             return False
@@ -901,9 +912,10 @@ class OWLReasoner:
             for brand_metric in metrics_data.get("brand_metrics", []):
                 brand = brand_metric.get("brand_name")
                 if brand:
+                    # brand_metrics.share_of_shelf 는 PERCENT -> OWL 은 FRACTION
                     self.add_brand(
                         name=brand,
-                        sos=brand_metric.get("share_of_shelf", 0.0),
+                        sos=percent_to_fraction(brand_metric.get("share_of_shelf", 0.0)),
                         avg_rank=brand_metric.get("avg_rank"),
                         product_count=brand_metric.get("product_count", 0),
                     )

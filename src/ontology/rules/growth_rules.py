@@ -3,7 +3,7 @@ Growth, Opportunity, and Stability Rules
 성장, 기회 및 안정성 관련 규칙
 """
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
 from ..relations import InsightType, MarketPosition
 
 # =========================================================================
@@ -46,7 +46,7 @@ RULE_TREND_ALIGNMENT = InferenceRule(
     conditions=[
         RuleCondition(
             name="has_trend_keywords",
-            check=lambda ctx: len(ctx.get("trend_keywords", [])) >= 2,
+            check=lambda ctx: len(ctx.get("trend_keywords") or []) >= 2,
             description="트렌드 키워드 2개 이상",
         ),
         StandardConditions.is_target_brand(),
@@ -78,7 +78,7 @@ RULE_TOP10_STABILITY = InferenceRule(
         StandardConditions.streak_days_above(14),  # 2주 이상 연속
         RuleCondition(
             name="low_volatility",
-            check=lambda ctx: ctx.get("rank_volatility", 10) < 3,
+            check=lambda ctx: ctx_num(ctx, "rank_volatility", 10) < 3,
             description="순위 변동성 < 3 (안정적)",
         ),
     ],
@@ -113,7 +113,7 @@ RULE_CATEGORY_OPPORTUNITY = InferenceRule(
         StandardConditions.hhi_below(0.15),  # 분산 시장
         RuleCondition(
             name="low_target_presence",
-            check=lambda ctx: ctx.get("sos", 0) < 0.03,  # SoS < 3%
+            check=lambda ctx: ctx_num(ctx, "sos", 0) < 0.03,  # SoS < 3%
             description="타겟 브랜드 점유율 < 3%",
         ),
         RuleCondition(
@@ -153,12 +153,12 @@ RULE_RATING_MOMENTUM = InferenceRule(
     conditions=[
         RuleCondition(
             name="rating_trend_positive",
-            check=lambda ctx: ctx.get("rating_trend", 0) > 0.05,
+            check=lambda ctx: ctx_num(ctx, "rating_trend", 0) > 0.05,
             description="평점 추세 양수 (상승)",
         ),
         RuleCondition(
             name="has_reviews",
-            check=lambda ctx: ctx.get("review_count", 0) > 100,
+            check=lambda ctx: ctx_num(ctx, "review_count", 0) > 100,
             description="리뷰 100개 이상 (신뢰성)",
         ),
     ],
@@ -223,7 +223,7 @@ RULE_STRONG_RATING = InferenceRule(
     conditions=[
         RuleCondition(
             name="rating_advantage",
-            check=lambda ctx: ctx.get("rating_gap", 0) > 0.05,
+            check=lambda ctx: ctx_num(ctx, "rating_gap", 0) > 0.05,
             description="평점 갭 > 0.05 (경쟁 우위)",
         ),
         RuleCondition(
