@@ -307,6 +307,8 @@ class AlertAgent:
             results["processed"] += 1
             self._pending_alerts.remove(alert)
 
+        # 호환성: 일부 호출자는 "sent_count"를 읽는다 (AlertWorkflow 등)
+        results["sent_count"] = results["sent"]
         return results
 
     async def _send_alert_email(self, alert: Alert, recipients: list[str]) -> SendResult:

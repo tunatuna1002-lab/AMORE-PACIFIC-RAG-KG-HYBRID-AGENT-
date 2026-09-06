@@ -38,7 +38,8 @@ class CrawlStatus(Enum):
 
     IDLE = "idle"  # 대기 중
     RUNNING = "running"  # 크롤링 진행 중
-    COMPLETED = "completed"  # 완료
+    COMPLETED = "completed"  # 완료 (모든 카테고리 수집 + 저장 성공)
+    PARTIAL = "partial"  # 부분 완료 (일부 카테고리 실패 또는 저장 오류) -> 재크롤링 대상
     FAILED = "failed"  # 실패
 
 
@@ -55,6 +56,8 @@ class CrawlState:
     categories_total: int = 0
     products_collected: int = 0
     error: str | None = None
+    # 부분 실패/저장 오류 목록 (PARTIAL/FAILED 시 비어있지 않음)
+    errors: list[str] = field(default_factory=list)
 
     # 알림 플래그 (세션별로 관리)
     notified_sessions: set = field(default_factory=set)
@@ -70,6 +73,7 @@ class CrawlState:
             "categories_total": self.categories_total,
             "products_collected": self.products_collected,
             "error": self.error,
+            "errors": list(self.errors),
         }
 
 
@@ -101,6 +105,7 @@ class CrawlManager:
                         categories_total=data.get("categories_total", 0),
                         products_collected=data.get("products_collected", 0),
                         error=data.get("error"),
+                        errors=[str(e) for e in (data.get("errors") or [])],
                     )
         except Exception as e:
             logger.warning(f"Failed to load crawl state: {e}")
@@ -213,14 +218,32 @@ class CrawlManager:
 
         return True
 
+    def _is_partial_today(self, kst_today: str) -> bool:
+        """오늘(KST) 크롤링이 PARTIAL 상태로 끝났는지 확인 (D12)
+
+        PARTIAL은 일부 카테고리 실패 또는 저장 오류를 뜻한다. 대시보드 JSON이 오늘
+        날짜로 내보내졌더라도 데이터가 불완전하므로 "완료"로 취급하지 않고 재크롤링한다.
+        """
+        return self.state.status == CrawlStatus.PARTIAL and self.state.date == kst_today
+
     def needs_crawl(self) -> bool:
-        """크롤링이 필요한지 확인 (한국시간 기준)"""
+        """크롤링이 필요한지 확인 (한국시간 기준)
+
+        - RUNNING: 불필요 (진행 중)
+        - 오늘 PARTIAL: 필요 (부분 데이터는 완료로 간주하지 않음, D12)
+        - 오늘 데이터 존재 / 오늘 COMPLETED: 불필요
+        """
         kst_today = self.get_kst_today()
 
         # 이미 진행 중이면 필요 없음
         if self.is_crawling():
             logger.info("Crawl not needed: already running")
             return False
+
+        # 오늘 부분 완료(PARTIAL)면 데이터 파일과 무관하게 재크롤링 필요
+        if self._is_partial_today(kst_today):
+            logger.info(f"Crawl needed: today's crawl was partial ({self.state.errors})")
+            return True
 
         # 오늘(KST) 데이터가 있으면 필요 없음
         if self.is_today_data_available():
@@ -291,6 +314,37 @@ class CrawlManager:
         self._crawl_task = asyncio.create_task(self._run_crawl())
         return True
 
+    async def wait_for_completion(self, timeout: float | None = None) -> bool:
+        """
+        start_crawl()로 시작된 백그라운드 크롤링의 실제 종료를 대기 (D13)
+
+        start_crawl()은 태스크만 생성하고 즉시 반환하므로, 스케줄러처럼 "크롤링이
+        끝난 뒤" 완료 마킹을 해야 하는 호출자는 이 메서드를 await 한다.
+        타임아웃 시에도 크롤링 태스크는 취소되지 않고 계속 실행된다.
+
+        Args:
+            timeout: 최대 대기 시간(초). None이면 무제한.
+
+        Returns:
+            True: 크롤링이 COMPLETED 상태로 종료됨
+            False: 진행 중인 태스크 없음 / 타임아웃 / FAILED 또는 PARTIAL로 종료
+        """
+        task = self._crawl_task
+        if task is None:
+            return False
+
+        try:
+            # shield: 타임아웃으로 인해 내부 크롤링 태스크가 취소되지 않도록 보호
+            await asyncio.wait_for(asyncio.shield(task), timeout)
+        except TimeoutError:
+            logger.warning(f"wait_for_completion timed out after {timeout}s (crawl still running)")
+            return False
+        except Exception as e:
+            logger.error(f"Crawl task raised: {e}")
+            return False
+
+        return self.state.status == CrawlStatus.COMPLETED
+
     async def _run_crawl(self):
         """실제 크롤링 실행"""
         from src.infrastructure.container import Container
@@ -320,6 +374,16 @@ class CrawlManager:
 
             if result.get("status") == "failed":
                 raise Exception("All categories failed")
+
+            # D12: 크롤러가 일부 카테고리만 성공한 경우("partial") 오류를 기록하고
+            # 최종 상태를 COMPLETED가 아닌 PARTIAL로 마킹한다 (재크롤링 대상).
+            crawl_partial = result.get("status") == "partial"
+            crawl_errors = [str(e) for e in (result.get("errors") or [])]
+            if crawl_partial and not crawl_errors:
+                crawl_errors = ["crawler reported partial result"]
+            if crawl_errors:
+                logger.warning(f"Crawl partial: {crawl_errors}")
+                self.state.errors.extend(crawl_errors)
 
             self.state.products_collected = result.get("total_products", 0)
             self.state.categories_done = len(result.get("categories", {}))
@@ -376,8 +440,11 @@ class CrawlManager:
             self.state.progress = 60
             self._save_state()
 
-            if storage_result.get("errors"):
-                logger.warning(f"Storage warnings: {storage_result['errors']}")
+            storage_errors = [str(e) for e in (storage_result.get("errors") or [])]
+            if storage_errors:
+                logger.warning(f"Storage warnings: {storage_errors}")
+                # D12: 저장 오류는 데이터 유실 가능성이 있으므로 COMPLETED로 취급하지 않음
+                self.state.errors.extend(storage_errors)
             else:
                 logger.info(
                     f"Saved {storage_result.get('raw_records', 0)} records to Google Sheets"
@@ -397,12 +464,18 @@ class CrawlManager:
                 # 크롤링+저장은 성공 → export 실패는 치명적이지 않으므로 계속 진행
 
             self.state.progress = 100
-            self.state.status = CrawlStatus.COMPLETED
+            if crawl_partial or self.state.errors:
+                # D12: 일부 카테고리 실패/저장 오류 -> PARTIAL (needs_crawl()이 재시도)
+                self.state.status = CrawlStatus.PARTIAL
+                logger.warning(
+                    f"Crawl finished PARTIAL for {kst_today}: {len(self.state.errors)} error(s)"
+                )
+            else:
+                self.state.status = CrawlStatus.COMPLETED
+                logger.info(f"Dashboard data exported for {kst_today}")
             self.state.completed_at = datetime.now(KST).isoformat()
             self.state.notified_sessions = set()  # 알림 초기화
             self._save_state()
-
-            logger.info(f"Dashboard data exported for {kst_today}")
 
             # Brain 캐시 무효화
             try:
@@ -442,6 +515,12 @@ class CrawlManager:
 
         elif self.state.status == CrawlStatus.COMPLETED:
             return f"오늘 데이터 수집 완료 ({self.state.products_collected}개 제품)"
+
+        elif self.state.status == CrawlStatus.PARTIAL:
+            return (
+                f"오늘 데이터 일부 수집 ({self.state.products_collected}개 제품, "
+                f"오류 {len(self.state.errors)}건)"
+            )
 
         elif self.state.status == CrawlStatus.FAILED:
             return f"데이터 수집 실패: {self.state.error}"

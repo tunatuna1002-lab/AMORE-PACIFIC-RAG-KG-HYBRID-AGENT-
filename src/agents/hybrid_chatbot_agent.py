@@ -79,6 +79,19 @@ class HybridChatbotAgent(BaseHybridAgent):
         "medicube": "MEDICUBE",
     }
 
+    # 브랜드 정규화 시 절대 치환하지 않는 구문 (카테고리명 등).
+    # 예: "Beauty & Personal Care"의 "Beauty"가 "Beauty of Joseon"으로 바뀌면 안 됨.
+    PROTECTED_PHRASES: tuple[str, ...] = (
+        "Beauty & Personal Care",
+        "Beauty and Personal Care",
+        "Personal Care",
+        "Skin Care",
+        "Lip Care",
+        "Lip Makeup",
+        "Face Makeup",
+        "Face Powder",
+    )
+
     @classmethod
     def _load_config(cls) -> dict:
         """설정 파일에서 chatbot 관련 설정 로드"""
@@ -629,20 +642,47 @@ class HybridChatbotAgent(BaseHybridAgent):
         return brand
 
     def _normalize_response_brands(self, response: str) -> str:
-        """응답 내 브랜드명 정규화"""
+        """응답 내 브랜드명 정규화
+
+        잘린 브랜드명(예: "Beauty")을 전체 브랜드명("Beauty of Joseon")으로 치환한다.
+        단, 전체 브랜드명("Rare Beauty", "First Aid Beauty" ...)이나 보호 구문
+        ("Beauty & Personal Care" 등 카테고리명) 내부의 토큰은 절대 치환하지 않는다 (D24).
+        구현: 보호 구문을 플레이스홀더로 마스킹 -> 단어 경계 치환 -> 복원.
+        """
         import re
 
-        # 특수 케이스: 아포스트로피가 포함된 브랜드명
+        original_lower = response.lower()
+
+        # 1) 보호 구문 마스킹 (긴 구문 우선)
+        protected: set[str] = set(self.BRAND_NORMALIZATION.values()) | set(self.PROTECTED_PHRASES)
+        placeholders: dict[str, str] = {}
+
+        def _mask(match: re.Match) -> str:
+            key = f"\x00{len(placeholders)}\x00"
+            placeholders[key] = match.group(0)
+            return key
+
+        # 주의: 한글은 파이썬 re에서 \w에 포함되므로 "Care에서"처럼 한글이 바로 붙으면
+        # \b가 매칭되지 않는다. 영숫자 기준 경계(lookaround)로 마스킹한다.
+        for phrase in sorted(protected, key=len, reverse=True):
+            response = re.sub(
+                rf"(?<![A-Za-z0-9]){re.escape(phrase)}(?![A-Za-z0-9])",
+                _mask,
+                response,
+                flags=re.IGNORECASE,
+            )
+
+        # 2) 특수 케이스: 아포스트로피가 포함된 브랜드명
         special_brands = {
             "Burt's": ("Burt's Bees", r"(?i)\bBurt's(?!\s*Bees)"),
             "Paula's": ("Paula's Choice", r"(?i)\bPaula's(?!\s*Choice)"),
         }
 
         for _truncated, (full, pattern) in special_brands.items():
-            if full.lower() not in response.lower():
+            if full.lower() not in original_lower:
                 response = re.sub(pattern, full, response)
 
-        # 일반 브랜드명 정규화
+        # 3) 일반 브랜드명 정규화
         for truncated, full in self.BRAND_NORMALIZATION.items():
             # 아포스트로피 브랜드는 위에서 처리했으므로 스킵
             if "'" in truncated:
@@ -651,8 +691,12 @@ class HybridChatbotAgent(BaseHybridAgent):
             # 단어 경계를 사용하여 정확히 매칭 (대소문자 무시)
             pattern = rf"\b{re.escape(truncated)}\b"
             # 이미 전체 브랜드명이 포함된 경우는 제외
-            if full.lower() not in response.lower():
+            if full.lower() not in original_lower:
                 response = re.sub(pattern, full, response, flags=re.IGNORECASE)
+
+        # 4) 보호 구문 복원
+        for key, phrase in placeholders.items():
+            response = response.replace(key, phrase)
 
         return response
 

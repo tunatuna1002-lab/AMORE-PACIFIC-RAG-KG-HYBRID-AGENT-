@@ -111,7 +111,8 @@ class MetricsAgent:
                 laneige_products = [p for p in products if self._is_laneige(p)]
 
                 for product in laneige_products:
-                    asin = product.get("product_asin")
+                    # 크롤 레코드는 "asin", 일부 소스는 "product_asin"을 사용
+                    asin = product.get("product_asin") or product.get("asin")
                     history = historical.get(asin, [])
 
                     product_metric = self._calculate_product_metrics(product, history, cat_key)
@@ -279,13 +280,12 @@ class MetricsAgent:
     def _check_alerts(self, product_metric: dict, product: dict, history: list[dict]) -> list[dict]:
         """알림 조건 체크"""
         alerts = []
-        thresholds = self.config.get("thresholds", {})
 
         current_rank = product_metric.get("current_rank", 0)
         rank_change_1d = product_metric.get("rank_change_1d")
 
         # 순위 급락 알림
-        significant_drop = thresholds.get("significant_rank_drop", 5)
+        significant_drop = self._significant_drop_threshold()
         if rank_change_1d and rank_change_1d >= significant_drop:
             alerts.append(
                 {
@@ -343,6 +343,18 @@ class MetricsAgent:
                 )
 
         return alerts
+
+    def _significant_drop_threshold(self) -> int:
+        """순위 급락 임계값 조회
+
+        config/thresholds.json의 실제 키는 ``ranking.significant_drop``이다.
+        과거 코드가 참조하던 ``thresholds.significant_rank_drop``은 fallback으로만 사용한다.
+        """
+        ranking = self.config.get("ranking", {})
+        if "significant_drop" in ranking:
+            return int(ranking["significant_drop"])
+        legacy = self.config.get("thresholds", {})
+        return int(legacy.get("significant_rank_drop", 5))
 
     def _calc_avg_rating_gap(self, products: list[dict]) -> float | None:
         """평균 평점 갭 계산"""

@@ -104,7 +104,8 @@ class AlertWorkflow:
 
         try:
             send_result = await self.alert_agent.send_pending_alerts()
-            result.alerts_sent = send_result.get("sent_count", 0)
+            # AlertAgent는 "sent"를 반환한다; "sent_count"는 구형 구현과의 호환용 fallback
+            result.alerts_sent = int(send_result.get("sent", send_result.get("sent_count", 0)) or 0)
             result.success = True
 
         except Exception as e:

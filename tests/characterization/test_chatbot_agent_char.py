@@ -55,7 +55,9 @@ class EchoLLM:
     async def __call__(self, model: str, messages: list[dict], **kwargs: Any):
         self.calls.append({"model": model, "messages": messages, **kwargs})
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="ECHO:" + messages[-1]["content"]))],
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content="ECHO:" + messages[-1]["content"]))
+            ],
             usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
         )
 
@@ -179,7 +181,9 @@ async def test_chat_response_shape_and_prompt(
     assert "**lip_care** Top 브랜드: LANEIGE" in user_prompt
     assert "## 이전 대화\n이전 대화 없음" in user_prompt
     assert "- [entry_opportunity] lip_care는 분산된 시장 구조(HHI: 0.000)" in user_prompt
-    assert call["messages"][0]["content"].startswith("당신은 Amazon 베스트셀러 순위 분석 전문가입니다.")
+    assert call["messages"][0]["content"].startswith(
+        "당신은 Amazon 베스트셀러 순위 분석 전문가입니다."
+    )
 
     # External signals were asked for with the extracted entities
     assert signals.calls == [(QUERY, result["entities"])]
@@ -194,11 +198,10 @@ async def test_chat_response_text_and_brand_normalization(agent: HybridChatbotAg
     assert "**📚 출처 및 참고자료:**" in text
     assert "3. 📄 **SoS 정의**\n   - 관련도: 0.90" in text
     assert "5. 🤖 **AI 분석: gpt-4.1-mini**" in text
-    # PINS CURRENT BEHAVIOR: _normalize_response_brands maps the bare word
-    # "Beauty" -> "Beauty of Joseon", corrupting the category name
-    # "Beauty & Personal Care" everywhere in the answer.
-    assert "Beauty of Joseon & Personal Care > Skin Care > Lip Care" in text
-    assert "Beauty & Personal Care" not in text
+    # FIXED (D24): _normalize_response_brands no longer rewrites the category name
+    # "Beauty & Personal Care" (the bare token "Beauty" is protected inside it).
+    assert "Beauty & Personal Care > Skin Care > Lip Care" in text
+    assert "Beauty of Joseon & Personal Care" not in text
 
     # Conversation memory got both turns
     history = agent.get_conversation_history()
@@ -223,7 +226,11 @@ async def test_chat_inference_without_data_context(agent: HybridChatbotAgent) ->
         "is_target",
     ]
     assert inf["metadata"]["hhi"] is None and inf["metadata"]["current_sos"] is None
-    assert result["suggestions"] == ["트렌드 상세 분석", "점유율 개선 전략은?", "laneige 제품별 성과 분석"]
+    assert result["suggestions"] == [
+        "트렌드 상세 분석",
+        "점유율 개선 전략은?",
+        "laneige 제품별 성과 분석",
+    ]
 
     verification = result["verification"]
     assert verification["grade"] == "red"
@@ -249,7 +256,11 @@ async def test_chat_unknown_intent_returns_router_fallback(
         "is_fallback": True,
         "inferences": [],
         "sources": [],
-        "suggestions": ["SoS(점유율)에 대해 알려주세요", "오늘의 주요 인사이트는?", "LANEIGE 현재 순위는?"],
+        "suggestions": [
+            "SoS(점유율)에 대해 알려주세요",
+            "오늘의 주요 인사이트는?",
+            "LANEIGE 현재 순위는?",
+        ],
     }
     assert llm.calls == []
     assert agent.get_conversation_history() == []  # fallback turns are not remembered

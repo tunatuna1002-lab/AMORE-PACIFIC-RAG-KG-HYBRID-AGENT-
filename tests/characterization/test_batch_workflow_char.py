@@ -167,7 +167,14 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
     ]
 
     # Step order and per-step payloads
-    assert list(result["steps"]) == ["crawl", "store", "update_kg", "calculate", "insight", "export"]
+    assert list(result["steps"]) == [
+        "crawl",
+        "store",
+        "update_kg",
+        "calculate",
+        "insight",
+        "export",
+    ]
     assert all(step["status"] == "completed" for step in result["steps"].values())
     assert result["steps"]["crawl"]["result"] is CRAWL_RESULT
     assert result["steps"]["store"]["result"] == STORE_RESULT
@@ -234,7 +241,10 @@ async def test_run_daily_workflow_agent_call_shapes(workflow: BatchWorkflow) -> 
         )
     ]
     assert workflow._hybrid_chatbot.data_contexts == [METRICS_RESULT]
-    assert workflow._dashboard_exporter.calls == ["initialize", ("export", "./data/dashboard_data.json")]
+    assert workflow._dashboard_exporter.calls == [
+        "initialize",
+        ("export", "./data/dashboard_data.json"),
+    ]
 
 
 async def test_run_daily_workflow_kg_and_filesystem_effects(
@@ -308,10 +318,11 @@ async def test_failed_crawl_stops_after_crawl_but_reports_completed(
 
     result = await workflow.run_daily_workflow(categories=["lip_care"])
 
-    # PINS CURRENT BEHAVIOR: a crawl whose payload says status="failed" makes the
-    # STORE think-step return should_continue=False; the loop breaks and the
-    # workflow still finishes with status "completed" (only the crawl step ran).
-    assert result["status"] == "completed"
+    # FIXED (D27): a crawl whose payload says status="failed" makes the STORE
+    # think-step return should_continue=False; the loop breaks and the workflow now
+    # reports status "failed" (crawl is a critical step) with an explanatory error.
+    assert result["status"] == "failed"
+    assert result["error"].startswith("critical step(s) failed: crawl:")
     assert list(result["steps"]) == ["crawl"]
     assert result["steps"]["crawl"]["status"] == "completed"
     assert workflow._storage.calls == []
@@ -331,10 +342,19 @@ async def test_agent_exception_marks_step_failed_and_continues(workflow: BatchWo
     workflow._storage = Boom()
     result = await workflow.run_daily_workflow(categories=["lip_care"])
 
-    # PINS CURRENT BEHAVIOR: a failing store step is recorded but the observe
-    # phase still advances (store -> update_kg) so the run completes.
-    assert result["status"] == "completed"
+    # FIXED (D27): a failing store step is recorded and the observe phase still
+    # advances (store -> update_kg), but store is a critical step so the final
+    # status is "failed" (a failing insight/alert step would give "partial").
+    assert result["status"] == "failed"
+    assert result["error"] == "critical step(s) failed: store: sheets down"
     assert result["steps"]["store"] == {"status": "failed", "error": "sheets down"}
-    assert list(result["steps"]) == ["crawl", "store", "update_kg", "calculate", "insight", "export"]
+    assert list(result["steps"]) == [
+        "crawl",
+        "store",
+        "update_kg",
+        "calculate",
+        "insight",
+        "export",
+    ]
     assert workflow.get_status()["workflow"]["has_errors"] is True
     assert workflow.get_status()["workflow"]["error_count"] == 1

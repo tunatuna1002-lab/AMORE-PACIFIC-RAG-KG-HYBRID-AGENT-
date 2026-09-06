@@ -553,8 +553,11 @@ class BatchWorkflow:
 
                 self.logger.workflow_step(step_name, "complete")
 
-            # 완료
-            results["status"] = "completed"
+            # 완료 상태 판정 (D27): 크리티컬 스텝 실패 -> failed, 비크리티컬 실패 -> partial
+            final_status, status_error = self._resolve_final_status(results["steps"])
+            results["status"] = final_status
+            if status_error:
+                results["error"] = status_error
             results["completed_at"] = datetime.now().isoformat()
 
             # 최종 결과
@@ -595,6 +598,49 @@ class BatchWorkflow:
             self.logger.info(f"Workflow completed - Status: {results['status']}")
 
         return results
+
+    # 실패 시 워크플로우 전체를 실패로 간주하는 스텝 (데이터 수집/저장)
+    CRITICAL_STEPS: tuple[str, ...] = (WorkflowStep.CRAWL.value, WorkflowStep.STORE.value)
+
+    def _resolve_final_status(self, steps: dict[str, dict[str, Any]]) -> tuple[str, str | None]:
+        """최종 워크플로우 상태 판정 (D27)
+
+        - "failed": 크롤 결과 payload가 status="failed"이거나, 크리티컬 스텝(crawl, store)이 실패
+        - "partial": 비크리티컬 스텝(update_kg, calculate, insight, export)만 실패
+        - "completed": 실패 없음
+
+        Returns:
+            (status, error_message | None)
+        """
+        failed_steps = [name for name, step in steps.items() if step.get("status") == "failed"]
+
+        crawl_result = self._state.get("crawl_result") or {}
+        crawl_payload_failed = crawl_result.get("status") == "failed"
+
+        critical_failures: list[str] = []
+        if crawl_payload_failed:
+            critical_failures.append(
+                f"{WorkflowStep.CRAWL.value}: "
+                + str(crawl_result.get("error") or "crawler returned status=failed")
+            )
+        for name in failed_steps:
+            if name in self.CRITICAL_STEPS and not (
+                crawl_payload_failed and name == WorkflowStep.CRAWL.value
+            ):
+                critical_failures.append(f"{name}: {steps[name].get('error') or 'failed'}")
+
+        if critical_failures:
+            return "failed", "critical step(s) failed: " + "; ".join(critical_failures)
+
+        non_critical = [
+            f"{name}: {steps[name].get('error') or 'failed'}"
+            for name in failed_steps
+            if name not in self.CRITICAL_STEPS
+        ]
+        if non_critical:
+            return "partial", "non-critical step(s) failed: " + "; ".join(non_critical)
+
+        return "completed", None
 
     async def _think(self) -> ThinkResult:
         """

@@ -370,16 +370,8 @@ class UnifiedBrain:
         # AlertManager 초기화
         await self.alert_manager.initialize()
 
-        # ReActAgent 초기화 (있으면)
-        try:
-            from ..agents.react_agent import get_react_agent
-
-            self._react_agent = get_react_agent()
-            self._react_agent.set_tool_executor(self._tool_executor)
-            logger.info("ReActAgent initialized")
-        except Exception as e:
-            logger.debug(f"ReActAgent not available: {e}")
-            self._react_agent = None
+        # ReActAgent 초기화 (ENABLE_REACT_AGENT 플래그로 활성화)
+        self._init_react_agent()
 
         # crawl_complete 이벤트 시 KG 동기화
         async def _on_crawl_complete(event_data: dict[str, Any]) -> None:
@@ -413,6 +405,37 @@ class UnifiedBrain:
 
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
+
+    def _init_react_agent(self) -> None:
+        """
+        ReActAgent 초기화 (opt-in)
+
+        ``ENABLE_REACT_AGENT`` 환경변수가 truthy("true"/"1"/"yes"/"on")일 때만
+        ``src.core.react_agent.get_react_agent``를 통해 에이전트를 구성하고
+        Brain의 tool executor를 연결합니다. 비활성 시 아무것도 임포트하지 않습니다.
+        활성 상태에서 초기화가 실패하면 WARNING으로 기록합니다.
+        """
+        enabled = os.environ.get("ENABLE_REACT_AGENT", "false").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        if not enabled:
+            logger.debug("ReActAgent disabled (ENABLE_REACT_AGENT not set)")
+            self._react_agent = None
+            return
+
+        try:
+            from . import react_agent as _react_module
+
+            agent = _react_module.get_react_agent()
+            agent.set_tool_executor(self._tool_executor)
+            self._react_agent = agent
+            logger.info("ReActAgent initialized")
+        except Exception as e:
+            logger.warning(f"ReActAgent initialization failed (ENABLE_REACT_AGENT=true): {e}")
+            self._react_agent = None
 
     # =========================================================================
     # 이벤트 시스템
@@ -532,8 +555,8 @@ class UnifiedBrain:
             # 처리 시간
             response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
 
-            # 캐시 저장
-            if not skip_cache and not response.is_fallback:
+            # 캐시 저장 (PromptGuard 차단 응답과 fallback은 캐시하지 않음)
+            if not skip_cache and not response.is_fallback and not state.is_blocked:
                 self.cache.set(query, response, "query")
 
             return response
@@ -1485,19 +1508,31 @@ class UnifiedBrain:
                 logger.error(f"Morning Brief send failed: {result.message}")
 
             # 5. 인사이트 리포트 이메일도 발송
-            await self._send_insight_report_email(products, recipients, sender)
+            await self._send_insight_report_email(
+                products, recipients, sender, metrics_data=latest_data.get("metrics")
+            )
 
         except Exception as e:
             logger.error(f"Morning Brief generation failed: {e}")
             self._stats["errors"] += 1
 
     async def _send_insight_report_email(
-        self, products: list, recipients: list[str], sender
+        self,
+        products: list,
+        recipients: list[str],
+        sender,
+        metrics_data: dict[str, Any] | None = None,
     ) -> None:
         """
         인사이트 리포트 이메일 발송 (자동)
 
         Morning Brief와 함께 발송되는 상세 인사이트 리포트입니다.
+
+        Args:
+            products: 최신 크롤링 제품 목록
+            recipients: 수신자 목록
+            sender: EmailSender (send_insight_report 제공)
+            metrics_data: MetricsAgent 결과 (있으면 인사이트 생성에 전달)
         """
         from datetime import datetime
 
@@ -1534,11 +1569,31 @@ class UnifiedBrain:
                 from src.agents.hybrid_insight_agent import HybridInsightAgent
 
                 insight_agent = HybridInsightAgent()
-                insight_result = await insight_agent.generate_insight(
-                    {"products": products[:50], "category": "All Categories"}
+                # HybridInsightAgent.execute(metrics_data, crawl_data, crawl_summary)
+                # crawl_data는 categories -> rank_records 구조를 기대한다.
+                sample_products = products[:50]
+                now_iso = datetime.now().isoformat()
+                crawl_summary = {
+                    "total_products": len(sample_products),
+                    "categories": ["All Categories"],
+                }
+                crawl_payload = {
+                    "collected_at": now_iso,
+                    "categories": {"all_categories": {"rank_records": sample_products}},
+                    "summary": crawl_summary,
+                }
+                metrics_payload: dict[str, Any] = dict(metrics_data or {})
+                metrics_payload.setdefault(
+                    "metadata",
+                    {"data_date": datetime.now().strftime("%Y-%m-%d"), "generated_at": now_iso},
                 )
-                if insight_result and insight_result.get("insight"):
-                    raw_insight = insight_result["insight"]
+                insight_result = await insight_agent.execute(
+                    metrics_data=metrics_payload,
+                    crawl_data=crawl_payload,
+                    crawl_summary=crawl_summary,
+                )
+                raw_insight = (insight_result or {}).get("daily_insight") or ""
+                if raw_insight.strip():
                     insight_content = raw_insight.replace("\n\n", "</p><p>").replace("\n", "<br>")
                     insight_content = f"<p>{insight_content}</p>"
             except Exception as e:
@@ -1619,6 +1674,9 @@ class UnifiedBrain:
     # 스케줄러 관리
     # =========================================================================
 
+    # 스케줄된 크롤링 완료 대기 상한 (CrawlManager stale-lock 기준 2시간과 동일)
+    CRAWL_WAIT_TIMEOUT_SEC: float = 2 * 60 * 60
+
     async def start_scheduler(self) -> None:
         """자율 스케줄러 시작"""
         if self.scheduler.running:
@@ -1643,6 +1701,19 @@ class UnifiedBrain:
                         brain = await get_brain()
                         asyncio.create_task(brain.collect_market_intelligence())
                         logger.info("Market Intelligence collection queued")
+
+                        # D13: start_crawl()은 백그라운드 태스크만 생성한다.
+                        # 스케줄러가 완료 마킹을 크롤링 종료 이후에 하도록 실제 완료를 대기.
+                        finished = await crawl_manager.wait_for_completion(
+                            timeout=self.CRAWL_WAIT_TIMEOUT_SEC
+                        )
+                        if finished:
+                            logger.info("Scheduled crawl finished")
+                        else:
+                            logger.warning(
+                                "Scheduled crawl did not complete cleanly: "
+                                f"{crawl_manager.get_status_message()}"
+                            )
                     else:
                         logger.info("Crawl already in progress, skipping")
 
