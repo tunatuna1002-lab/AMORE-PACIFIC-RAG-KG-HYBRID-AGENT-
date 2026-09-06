@@ -12,22 +12,30 @@ Alert API Routes
 """
 
 import logging
-import os
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 
-import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from src.api.dependencies import get_base_url, limiter, load_dashboard_data, verify_api_key
+from src.api.dashboard_shape import products_as_list
+from src.api.dependencies import (
+    EMAIL_VERIFICATION_EXPIRES_MINUTES,
+    create_email_verification_token,
+    get_app_state_manager,
+    get_base_url,
+    limiter,
+    load_dashboard_data,
+    verify_api_key,
+    verify_jwt_email_token,
+)
 from src.api.models import (
     AlertSendRequest,
     AlertSettingsRequest,
     SubscribeRequest,
     UpdateAlertSettingsRequest,
 )
-from src.core.state_manager import EmailSubscription, StateManager, get_state_manager
+from src.core.state_manager import EmailSubscription, get_state_manager
 from src.tools.notifications.alert_service import get_alert_service
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -35,85 +43,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["alerts"])
 
-# JWT 설정
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-JWT_ALGORITHM = "HS256"
-EMAIL_VERIFICATION_EXPIRES_MINUTES = 30  # 30분 만료
-
-
-# =============================================================================
-# Helper Functions
-# =============================================================================
-
-_state_manager_singleton: StateManager | None = None
-
-
-def get_app_state_manager() -> StateManager:
-    """
-    앱 전역 StateManager 싱글톤 반환
-
-    Note: dashboard_api.py의 get_app_state_manager()와 동일한 패턴
-    """
-    global _state_manager_singleton
-    if _state_manager_singleton is None:
-        _state_manager_singleton = get_state_manager()
-    return _state_manager_singleton
-
-
-def create_email_verification_token(
-    email: str, expires_minutes: int = EMAIL_VERIFICATION_EXPIRES_MINUTES
-) -> str:
-    """
-    이메일 인증용 JWT 토큰 생성
-
-    Args:
-        email: 인증할 이메일 주소
-        expires_minutes: 토큰 만료 시간 (분)
-
-    Returns:
-        JWT 토큰 문자열
-
-    Raises:
-        ValueError: JWT_SECRET_KEY 미설정 시
-    """
-    if not JWT_SECRET_KEY:
-        raise ValueError("JWT_SECRET_KEY 환경변수가 설정되지 않았습니다.")
-
-    payload = {
-        "email": email,
-        "purpose": "email_verification",
-        "exp": datetime.now(UTC) + timedelta(minutes=expires_minutes),
-        "iat": datetime.now(UTC),
-    }
-    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-
-def verify_jwt_email_token(token: str) -> dict:
-    """
-    JWT 이메일 인증 토큰 검증
-
-    Args:
-        token: JWT 토큰
-
-    Returns:
-        {"valid": True, "email": "..."} 또는 {"valid": False, "error": "..."}
-    """
-    if not JWT_SECRET_KEY:
-        return {"valid": False, "error": "JWT_SECRET_KEY 환경변수가 설정되지 않았습니다."}
-
-    try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-
-        # purpose 검증
-        if payload.get("purpose") != "email_verification":
-            return {"valid": False, "error": "유효하지 않은 토큰입니다."}
-
-        return {"valid": True, "email": payload["email"]}
-
-    except jwt.ExpiredSignatureError:
-        return {"valid": False, "error": "인증 토큰이 만료되었습니다. 다시 인증해주세요."}
-    except jwt.InvalidTokenError:
-        return {"valid": False, "error": "유효하지 않은 인증 토큰입니다."}
+# JWT helpers (create_email_verification_token / verify_jwt_email_token) and the
+# app-level StateManager singleton are shared from src.api.dependencies.
 
 
 # =============================================================================
@@ -132,7 +63,7 @@ async def get_alert_service_status():
         return {"success": False, "error": str(e)}
 
 
-@router.post("/alerts/send")
+@router.post("/alerts/send", dependencies=[Depends(verify_api_key)])
 async def send_pending_alerts(request: AlertSendRequest | None = None):
     """
     미발송 알림 발송
@@ -183,7 +114,7 @@ async def send_pending_alerts(request: AlertSendRequest | None = None):
         return {"success": False, "error": str(e), "sent_count": 0}
 
 
-@router.post("/alerts/test")
+@router.post("/alerts/test", dependencies=[Depends(verify_api_key)])
 async def send_test_alert():
     """테스트 알림 발송"""
     try:
@@ -440,7 +371,7 @@ async def get_alert_settings_v4(email: str | None = None):
     }
 
 
-@router.put("/v4/alert-settings")
+@router.put("/v4/alert-settings", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
 async def update_alert_settings_v4(request: Request, body: UpdateAlertSettingsRequest):
     """
@@ -482,7 +413,7 @@ async def update_alert_settings_v4(request: Request, body: UpdateAlertSettingsRe
         raise HTTPException(status_code=500, detail="설정 업데이트 실패")
 
 
-@router.delete("/v4/alert-settings")
+@router.delete("/v4/alert-settings", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
 async def delete_alert_settings_v4(request: Request, email: str):
     """
@@ -958,8 +889,8 @@ async def send_insight_report_email(request: Request):
         if not dashboard_data:
             raise HTTPException(status_code=404, detail="대시보드 데이터가 없습니다.")
 
-        # KPI 계산
-        products = dashboard_data.get("products", [])
+        # KPI 계산 (dashboard_data.json은 products를 ASIN 키 dict로 저장 → 리스트로 정규화)
+        products = products_as_list(dashboard_data)
         laneige_products = [p for p in products if p.get("brand") == "LANEIGE"]
         avg_rank = (
             sum(p.get("rank", 100) for p in laneige_products) / len(laneige_products)

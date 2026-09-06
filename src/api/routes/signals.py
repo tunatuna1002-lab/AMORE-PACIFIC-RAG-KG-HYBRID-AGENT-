@@ -5,10 +5,10 @@ External Signal Routes - 외부 트렌드 신호 수집 API
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from src.api.dependencies import limiter
+from src.api.dependencies import limiter, verify_api_key
 from src.tools.collectors.external_signal_collector import (
     ExternalSignalCollector,
 )
@@ -109,7 +109,7 @@ async def get_signal_report(request: Request, days: int = 7):
     return {"days": days, "report_section": report}
 
 
-@router.post("/fetch/rss")
+@router.post("/fetch/rss", dependencies=[Depends(verify_api_key)])
 @limiter.limit("10/minute")
 async def fetch_rss_signals(
     request: Request, keywords: list[str] | None = None, max_articles: int = 10
@@ -133,7 +133,7 @@ async def fetch_rss_signals(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/fetch/reddit")
+@router.post("/fetch/reddit", dependencies=[Depends(verify_api_key)])
 @limiter.limit("10/minute")
 async def fetch_reddit_signals(
     request: Request,
@@ -162,7 +162,7 @@ async def fetch_reddit_signals(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/manual")
+@router.post("/manual", dependencies=[Depends(verify_api_key)])
 @limiter.limit("10/minute")
 async def add_manual_signal(request: Request, input: ManualSignalInput):
     """
@@ -192,7 +192,7 @@ async def add_manual_signal(request: Request, input: ManualSignalInput):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/trend-radar")
+@router.post("/trend-radar", dependencies=[Depends(verify_api_key)])
 @limiter.limit("10/minute")
 async def add_trend_radar(request: Request, items: list[TrendRadarItem]):
     """
@@ -215,7 +215,7 @@ async def add_trend_radar(request: Request, items: list[TrendRadarItem]):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.delete("/clear")
+@router.delete("/clear", dependencies=[Depends(verify_api_key)])
 @limiter.limit("10/minute")
 async def clear_signals(request: Request):
     """모든 신호 삭제 (개발용)"""

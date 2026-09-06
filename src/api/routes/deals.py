@@ -4,6 +4,7 @@ Deals Routes - Amazon Deals monitoring endpoints
 dashboard_api.py의 deals 엔드포인트를 추출한 모듈입니다.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -176,6 +177,34 @@ async def scrape_deals(request: Request, body: DealsRequest):
         )
 
 
+def _fetch_recent_alerts(storage, limit: int) -> list[dict]:
+    """(sync) 최근 deals_alerts 조회 - asyncio.to_thread로 호출"""
+    with storage.get_connection() as conn:
+        cursor = conn.execute(
+            """
+            SELECT * FROM deals_alerts
+            ORDER BY alert_datetime DESC
+            LIMIT ?
+        """,
+            (limit,),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def _fetch_deals_since(storage, cutoff_date: str) -> list[dict]:
+    """(sync) cutoff_date 이후 deals 조회 - asyncio.to_thread로 호출"""
+    with storage.get_connection() as conn:
+        cursor = conn.execute(
+            """
+            SELECT * FROM deals
+            WHERE DATE(snapshot_datetime) >= ?
+            ORDER BY snapshot_datetime DESC
+        """,
+            (cutoff_date,),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+
 @router.get("/alerts")
 @limiter.limit("10/minute")
 async def get_deals_alerts(request: Request, limit: int = 50, unsent_only: bool = False):
@@ -197,17 +226,8 @@ async def get_deals_alerts(request: Request, limit: int = 50, unsent_only: bool 
         if unsent_only:
             alerts = await storage.get_unsent_alerts(limit=limit)
         else:
-            # 모든 알림 조회 (최근 7일)
-            with storage.get_connection() as conn:
-                cursor = conn.execute(
-                    """
-                    SELECT * FROM deals_alerts
-                    ORDER BY alert_datetime DESC
-                    LIMIT ?
-                """,
-                    (limit,),
-                )
-                alerts = [dict(row) for row in cursor.fetchall()]
+            # 모든 알림 조회 (최근 7일) - 동기 sqlite3는 워커 스레드에서 실행
+            alerts = await asyncio.to_thread(_fetch_recent_alerts, storage, limit)
 
         return {"success": True, "alerts": alerts, "count": len(alerts)}
 
@@ -238,18 +258,9 @@ async def export_deals_report(request: Request, days: int = 7, format: str = "ex
             # JSON 형식 반환
             summary = await storage.get_deals_summary(days=days)
 
-            # 전체 딜 데이터
-            with storage.get_connection() as conn:
-                cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-                cursor = conn.execute(
-                    """
-                    SELECT * FROM deals
-                    WHERE DATE(snapshot_datetime) >= ?
-                    ORDER BY snapshot_datetime DESC
-                """,
-                    (cutoff_date,),
-                )
-                all_deals = [dict(row) for row in cursor.fetchall()]
+            # 전체 딜 데이터 - 동기 sqlite3는 워커 스레드에서 실행
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            all_deals = await asyncio.to_thread(_fetch_deals_since, storage, cutoff_date)
 
             return {
                 "success": True,

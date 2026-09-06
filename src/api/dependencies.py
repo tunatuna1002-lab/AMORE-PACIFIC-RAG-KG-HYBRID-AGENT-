@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 # ============= API Key 인증 =============
 
+# Startup guard only: production/staging must boot with a key configured.
+# verify_api_key() itself reads API_KEY from the environment at call time so a
+# re-configured process (or a test that sets the variable) needs no restart.
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:
     _env = os.getenv("RAILWAY_ENVIRONMENT", os.getenv("ENV", "development"))
@@ -38,11 +41,17 @@ if not API_KEY:
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
+def get_configured_api_key() -> str | None:
+    """현재 프로세스에 설정된 API_KEY (호출 시점의 환경변수)"""
+    return os.environ.get("API_KEY") or None
+
+
 async def verify_api_key(api_key: str = Security(api_key_header)):
     """API Key 검증 (민감한 엔드포인트용)"""
     import hmac
 
-    if API_KEY is None:
+    configured = get_configured_api_key()
+    if configured is None:
         raise HTTPException(
             status_code=503,
             detail="Server not configured for authenticated access",
@@ -52,7 +61,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
             status_code=401,
             detail="API Key가 필요합니다. 헤더에 X-API-Key를 추가하세요.",
         )
-    if not hmac.compare_digest(api_key.encode(), API_KEY.encode()):
+    if not hmac.compare_digest(api_key.encode(), configured.encode()):
         raise HTTPException(
             status_code=403,
             detail="유효하지 않은 API Key입니다.",

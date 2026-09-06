@@ -642,48 +642,50 @@ class TestJWTHelpers:
 
 
 class TestVerifyApiKey:
-    """verify_api_key 테스트"""
+    """verify_api_key 테스트 (API_KEY는 호출 시점의 환경변수에서 읽는다)"""
 
     @pytest.mark.asyncio
-    async def test_verify_valid_key(self):
+    async def test_verify_valid_key(self, monkeypatch):
         """유효한 API Key"""
-
         import src.api.dependencies as deps
 
-        original_key = deps.API_KEY
-        deps.API_KEY = "test-api-key-12345"
-
-        try:
-            result = await deps.verify_api_key("test-api-key-12345")
-            assert result == "test-api-key-12345"
-        finally:
-            deps.API_KEY = original_key
+        monkeypatch.setenv("API_KEY", "test-api-key-12345")
+        result = await deps.verify_api_key("test-api-key-12345")
+        assert result == "test-api-key-12345"
 
     @pytest.mark.asyncio
-    async def test_verify_missing_key(self):
+    async def test_verify_missing_key(self, monkeypatch):
         """API Key 없는 경우"""
         from fastapi import HTTPException
 
         import src.api.dependencies as deps
 
+        monkeypatch.setenv("API_KEY", "test-api-key-12345")
         with pytest.raises(HTTPException) as exc_info:
             await deps.verify_api_key(None)
 
         assert exc_info.value.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_verify_invalid_key(self):
+    async def test_verify_invalid_key(self, monkeypatch):
         """잘못된 API Key"""
         from fastapi import HTTPException
 
         import src.api.dependencies as deps
 
-        original_key = deps.API_KEY
-        deps.API_KEY = "correct-key"  # pragma: allowlist secret
+        monkeypatch.setenv("API_KEY", "correct-key")  # pragma: allowlist secret
+        with pytest.raises(HTTPException) as exc_info:
+            await deps.verify_api_key("wrong-key")
+        assert exc_info.value.status_code == 403
 
-        try:
-            with pytest.raises(HTTPException) as exc_info:
-                await deps.verify_api_key("wrong-key")
-            assert exc_info.value.status_code == 403
-        finally:
-            deps.API_KEY = original_key
+    @pytest.mark.asyncio
+    async def test_verify_unconfigured_server_returns_503(self, monkeypatch):
+        """서버에 API_KEY가 없으면 어떤 키도 통과하지 못한다 (503)"""
+        from fastapi import HTTPException
+
+        import src.api.dependencies as deps
+
+        monkeypatch.delenv("API_KEY", raising=False)
+        with pytest.raises(HTTPException) as exc_info:
+            await deps.verify_api_key("anything")
+        assert exc_info.value.status_code == 503

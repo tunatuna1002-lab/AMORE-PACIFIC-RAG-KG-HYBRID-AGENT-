@@ -4,6 +4,7 @@ Analytics Routes (KPI / SoS)
 카테고리별 KPI, SoS(Share of Shelf), 브랜드 비교 엔드포인트
 """
 
+import asyncio
 import json
 import logging
 from collections import defaultdict
@@ -13,6 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 
 from src.api.dependencies import limiter
+from src.shared.constants import KST
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,25 @@ router = APIRouter(tags=["Analytics"])
 
 
 # ============= Helper =============
+
+
+def _today_kst() -> datetime:
+    """크롤러가 snapshot_date를 KST 기준으로 기록하므로 기본 날짜 범위도 KST '오늘'을 사용"""
+    return datetime.now(KST)
+
+
+def _fetch_all(sqlite, query: str, params: tuple) -> list:
+    """(sync) 단일 SELECT - asyncio.to_thread로 호출해 이벤트 루프를 막지 않는다"""
+    with sqlite.get_connection() as conn:
+        return conn.execute(query, params).fetchall()
+
+
+def _fetch_pair(sqlite, first: tuple[str, tuple], second: tuple[str, tuple]) -> tuple[list, list]:
+    """(sync) 같은 연결로 두 SELECT 실행 - asyncio.to_thread로 호출"""
+    with sqlite.get_connection() as conn:
+        first_rows = conn.execute(*first).fetchall()
+        second_rows = conn.execute(*second).fetchall()
+    return first_rows, second_rows
 
 
 def _load_crawl_data_for_sos():
@@ -59,9 +80,9 @@ async def get_category_kpi(
     try:
         # 날짜 범위 설정
         if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
+            end_date = _today_kst().strftime("%Y-%m-%d")
         if not start_date:
-            start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+            start_date = (_today_kst() - timedelta(days=7)).strftime("%Y-%m-%d")
 
         rows = []
 
@@ -77,9 +98,9 @@ async def get_category_kpi(
                 AND category_id = ?
                 ORDER BY snapshot_date DESC, rank ASC
             """
-            with sqlite.get_connection() as conn:
-                cursor = conn.execute(query, (start_date, end_date, category_id))
-                rows = cursor.fetchall()
+            rows = await asyncio.to_thread(
+                _fetch_all, sqlite, query, (start_date, end_date, category_id)
+            )
         except Exception as db_err:
             logging.warning(f"SQLite query failed for category KPI: {db_err}")
 
@@ -185,7 +206,7 @@ async def get_sos_by_category(
 
         # 날짜 범위 설정
         if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
+            end_date = _today_kst().strftime("%Y-%m-%d")
         if not start_date:
             start_date = end_date
 
@@ -202,9 +223,7 @@ async def get_sos_by_category(
                 GROUP BY snapshot_date, category_id, brand
                 ORDER BY snapshot_date DESC, category_id, product_count DESC
             """
-            with sqlite.get_connection() as conn:
-                cursor = conn.execute(query, (start_date, end_date))
-                rows = cursor.fetchall()
+            rows = await asyncio.to_thread(_fetch_all, sqlite, query, (start_date, end_date))
         except Exception as db_err:
             logging.warning(f"SQLite query failed, using JSON fallback: {db_err}")
 
@@ -404,8 +423,8 @@ async def get_available_brands(
         브랜드 목록 (제품 수 기준 정렬)
     """
     try:
-        end_date = datetime.now().strftime("%Y-%m-%d")
-        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        end_date = _today_kst().strftime("%Y-%m-%d")
+        start_date = (_today_kst() - timedelta(days=7)).strftime("%Y-%m-%d")
 
         rows = []
         # SQLite 먼저 시도
@@ -439,9 +458,7 @@ async def get_available_brands(
                 """
                 params = (start_date, end_date, min_count)
 
-            with sqlite.get_connection() as conn:
-                cursor = conn.execute(query, params)
-                rows = cursor.fetchall()
+            rows = await asyncio.to_thread(_fetch_all, sqlite, query, params)
         except Exception as db_err:
             logging.warning(f"SQLite query failed for brands: {db_err}")
 
@@ -530,8 +547,8 @@ async def get_sos_trend(
         if start_date and end_date:
             pass  # 그대로 사용
         else:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            end_date = _today_kst().strftime("%Y-%m-%d")
+            start_date = (_today_kst() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # 일별 전체 제품 수
         if category_id:
@@ -575,16 +592,11 @@ async def get_sos_trend(
             """
             brand_params = (start_date, end_date, f"%{brand.lower()}%")
 
-        with sqlite.get_connection() as conn:
-            # 전체 카운트
-            cursor = conn.execute(total_query, total_params)
-            total_rows = cursor.fetchall()
-            total_by_date = {row[0]: row[1] for row in total_rows}
-
-            # 브랜드 카운트
-            cursor = conn.execute(brand_query, brand_params)
-            brand_rows = cursor.fetchall()
-            brand_by_date = {row[0]: row[1] for row in brand_rows}
+        total_rows, brand_rows = await asyncio.to_thread(
+            _fetch_pair, sqlite, (total_query, total_params), (brand_query, brand_params)
+        )
+        total_by_date = {row[0]: row[1] for row in total_rows}
+        brand_by_date = {row[0]: row[1] for row in brand_rows}
 
         # SoS 계산
         trend_data = []
@@ -647,8 +659,8 @@ async def get_competitors_avg_sos_trend(
         if start_date and end_date:
             pass
         else:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            end_date = _today_kst().strftime("%Y-%m-%d")
+            start_date = (_today_kst() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # 일별 전체 제품 수 쿼리
         if category_id:
@@ -696,15 +708,13 @@ async def get_competitors_avg_sos_trend(
             """
             brand_daily_params = (start_date, end_date, f"%{exclude_brand.lower()}%")
 
-        with sqlite.get_connection() as conn:
-            # 전체 카운트
-            cursor = conn.execute(total_query, total_params)
-            total_rows = cursor.fetchall()
-            total_by_date = {row[0]: row[1] for row in total_rows}
-
-            # 일별/브랜드별 카운트
-            cursor = conn.execute(brand_daily_query, brand_daily_params)
-            brand_rows = cursor.fetchall()
+        total_rows, brand_rows = await asyncio.to_thread(
+            _fetch_pair,
+            sqlite,
+            (total_query, total_params),
+            (brand_daily_query, brand_daily_params),
+        )
+        total_by_date = {row[0]: row[1] for row in total_rows}
 
         # 일별로 Top N 브랜드의 평균 SoS 계산
         daily_brands: dict[str, list[tuple[str, int]]] = defaultdict(list)

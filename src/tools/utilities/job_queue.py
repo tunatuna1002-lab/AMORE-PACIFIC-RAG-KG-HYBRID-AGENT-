@@ -31,6 +31,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 from src.shared.constants import KST
 
@@ -120,6 +121,28 @@ class JobQueue:
         finally:
             conn.close()
 
+    # --- 동기 sqlite3 프리미티브 (항상 _run_db/asyncio.to_thread 경유로 호출) ---
+
+    def _execute(self, query: str, params: tuple = ()) -> None:
+        with self._get_connection() as conn:
+            conn.execute(query, params)
+
+    def _fetch_one(self, query: str, params: tuple = ()) -> sqlite3.Row | None:
+        with self._get_connection() as conn:
+            return conn.execute(query, params).fetchone()
+
+    def _fetch_all(self, query: str, params: tuple = ()) -> list[sqlite3.Row]:
+        with self._get_connection() as conn:
+            return conn.execute(query, params).fetchall()
+
+    async def _run_db(self, fn: Callable, *args: Any) -> Any:
+        """동기 sqlite3 작업을 워커 스레드에서 실행 (이벤트 루프 비차단)"""
+        return await asyncio.to_thread(fn, *args)
+
+    def _init_schema(self) -> None:
+        with self._get_connection() as conn:
+            conn.executescript(self.SCHEMA)
+
     async def initialize(self) -> None:
         """데이터베이스 초기화"""
         if self._initialized:
@@ -128,8 +151,7 @@ class JobQueue:
         # 디렉토리 생성
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
-        with self._get_connection() as conn:
-            conn.executescript(self.SCHEMA)
+        await self._run_db(self._init_schema)
 
         self._initialized = True
         logger.info(f"JobQueue initialized: {self.db_path}")
@@ -164,21 +186,21 @@ class JobQueue:
         retention = retention_hours or self.FILE_RETENTION_HOURS
         expires_at = now + timedelta(hours=retention)
 
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                INSERT INTO job_queue (id, job_type, status, params, created_at, expires_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    job_id,
-                    job_type,
-                    JobStatus.PENDING.value,
-                    json.dumps(params or {}),
-                    now.isoformat(),
-                    expires_at.isoformat(),
-                ),
-            )
+        await self._run_db(
+            self._execute,
+            """
+            INSERT INTO job_queue (id, job_type, status, params, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                job_id,
+                job_type,
+                JobStatus.PENDING.value,
+                json.dumps(params or {}),
+                now.isoformat(),
+                expires_at.isoformat(),
+            ),
+        )
 
         logger.info(f"Created job: {job_id} (type={job_type})")
         return job_id
@@ -201,8 +223,7 @@ class JobQueue:
         """
         await self.initialize()
 
-        with self._get_connection() as conn:
-            row = conn.execute("SELECT * FROM job_queue WHERE id = ?", (job_id,)).fetchone()
+        row = await self._run_db(self._fetch_one, "SELECT * FROM job_queue WHERE id = ?", (job_id,))
 
         if not row:
             return None
@@ -223,67 +244,67 @@ class JobQueue:
             progress: 진행률 (0-100)
             message: 진행 상태 메시지
         """
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                UPDATE job_queue
-                SET progress = ?, progress_message = ?
-                WHERE id = ?
-                """,
-                (progress, message, job_id),
-            )
+        await self._run_db(
+            self._execute,
+            """
+            UPDATE job_queue
+            SET progress = ?, progress_message = ?
+            WHERE id = ?
+            """,
+            (progress, message, job_id),
+        )
 
     async def _mark_running(self, job_id: str) -> None:
         """작업 시작 표시"""
         now = datetime.now(KST)
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                UPDATE job_queue
-                SET status = ?, started_at = ?, progress = 0
-                WHERE id = ?
-                """,
-                (JobStatus.RUNNING.value, now.isoformat(), job_id),
-            )
+        await self._run_db(
+            self._execute,
+            """
+            UPDATE job_queue
+            SET status = ?, started_at = ?, progress = 0
+            WHERE id = ?
+            """,
+            (JobStatus.RUNNING.value, now.isoformat(), job_id),
+        )
 
     async def _mark_completed(self, job_id: str, result_file: str) -> None:
         """작업 완료 표시"""
         now = datetime.now(KST)
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                UPDATE job_queue
-                SET status = ?, completed_at = ?, result_file = ?, progress = 100
-                WHERE id = ?
-                """,
-                (JobStatus.COMPLETED.value, now.isoformat(), result_file, job_id),
-            )
+        await self._run_db(
+            self._execute,
+            """
+            UPDATE job_queue
+            SET status = ?, completed_at = ?, result_file = ?, progress = 100
+            WHERE id = ?
+            """,
+            (JobStatus.COMPLETED.value, now.isoformat(), result_file, job_id),
+        )
 
     async def _mark_failed(self, job_id: str, error_message: str) -> None:
         """작업 실패 표시"""
         now = datetime.now(KST)
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                UPDATE job_queue
-                SET status = ?, completed_at = ?, error_message = ?
-                WHERE id = ?
-                """,
-                (JobStatus.FAILED.value, now.isoformat(), error_message, job_id),
-            )
+        await self._run_db(
+            self._execute,
+            """
+            UPDATE job_queue
+            SET status = ?, completed_at = ?, error_message = ?
+            WHERE id = ?
+            """,
+            (JobStatus.FAILED.value, now.isoformat(), error_message, job_id),
+        )
 
     async def get_pending_jobs(self, limit: int = 10) -> list[dict]:
         """대기 중인 작업 목록"""
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                """
-                SELECT * FROM job_queue
-                WHERE status = ?
-                ORDER BY created_at ASC
-                LIMIT ?
-                """,
-                (JobStatus.PENDING.value, limit),
-            ).fetchall()
+        rows = await self._run_db(
+            self._fetch_all,
+            """
+            SELECT * FROM job_queue
+            WHERE status = ?
+            ORDER BY created_at ASC
+            LIMIT ?
+            """,
+            (JobStatus.PENDING.value, limit),
+        )
 
         return [dict(row) for row in rows]
 
@@ -369,6 +390,10 @@ class JobQueue:
 
     async def _cleanup_expired_jobs(self) -> None:
         """만료된 작업 및 파일 정리"""
+        await self._run_db(self._cleanup_expired_jobs_sync)
+
+    def _cleanup_expired_jobs_sync(self) -> None:
+        """(sync) 만료된 작업 및 파일 정리 - 워커 스레드에서 실행"""
         now = datetime.now(KST)
 
         with self._get_connection() as conn:
@@ -418,26 +443,27 @@ class JobQueue:
         """
         await self.initialize()
 
-        with self._get_connection() as conn:
-            if status:
-                rows = conn.execute(
-                    """
-                    SELECT * FROM job_queue
-                    WHERE status = ?
-                    ORDER BY created_at DESC
-                    LIMIT ?
-                    """,
-                    (status, limit),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT * FROM job_queue
-                    ORDER BY created_at DESC
-                    LIMIT ?
-                    """,
-                    (limit,),
-                ).fetchall()
+        if status:
+            rows = await self._run_db(
+                self._fetch_all,
+                """
+                SELECT * FROM job_queue
+                WHERE status = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (status, limit),
+            )
+        else:
+            rows = await self._run_db(
+                self._fetch_all,
+                """
+                SELECT * FROM job_queue
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
 
         return [dict(row) for row in rows]
 

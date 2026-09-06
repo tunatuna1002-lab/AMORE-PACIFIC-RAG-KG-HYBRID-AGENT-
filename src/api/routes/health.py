@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 
 from src.api.dependencies import limiter
 from src.core.brain import get_initialized_brain
@@ -22,6 +22,25 @@ router = APIRouter(tags=["Health"])
 
 # Dashboard read-only token (서버 API_KEY 노출 방지)
 DASHBOARD_READ_TOKEN = os.getenv("DASHBOARD_READ_TOKEN", "")
+
+DASHBOARD_HTML_PATH = Path("./dashboard/amore_unified_dashboard_v4.html")
+
+# 대시보드 HTML은 프로세스 수명 동안 변하지 않으므로 모듈 레벨에서 1회만 읽어 캐시한다.
+_DASHBOARD_HTML_CACHE: dict[str, str] = {}
+
+
+def _read_html_file(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def _load_dashboard_html(path: Path) -> str:
+    """대시보드 HTML을 읽어 모듈 레벨 캐시에 보관 (경로별 1회 읽기)"""
+    key = str(path.resolve())
+    html = _DASHBOARD_HTML_CACHE.get(key)
+    if html is None:
+        html = _read_html_file(path)
+        _DASHBOARD_HTML_CACHE[key] = html
+    return html
 
 
 @router.get("/")
@@ -44,20 +63,20 @@ async def serve_dashboard(request: Request):
     서버의 API_KEY를 HTML에 자동으로 주입하여
     프론트엔드에서 별도 설정 없이 인증된 API 호출 가능
     """
-    dashboard_path = Path("./dashboard/amore_unified_dashboard_v4.html")
+    dashboard_path = DASHBOARD_HTML_PATH
     if not dashboard_path.exists():
         raise HTTPException(status_code=404, detail="Dashboard not found")
 
+    html_content = _load_dashboard_html(dashboard_path)
+
     # 대시보드 전용 읽기 토큰만 주입 (서버 API_KEY는 절대 노출하지 않음)
     if DASHBOARD_READ_TOKEN:
-        html_content = dashboard_path.read_text(encoding="utf-8")
         api_key_script = (
             f'<script>window.DASHBOARD_API_KEY = "{DASHBOARD_READ_TOKEN}";</script>\n</head>'
         )
         html_content = html_content.replace("</head>", api_key_script)
-        return HTMLResponse(content=html_content, media_type="text/html")
 
-    return FileResponse(dashboard_path, media_type="text/html")
+    return HTMLResponse(content=html_content, media_type="text/html")
 
 
 @router.get("/api/health")

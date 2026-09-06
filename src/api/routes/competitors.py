@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 
+from src.api.dashboard_shape import category_top_products
 from src.api.dependencies import limiter, load_dashboard_data
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -108,10 +109,10 @@ async def get_competitor_data(request: Request, brand: str | None = None):
         # 3. LANEIGE 제품 데이터 로드 (최신 크롤링 데이터에서)
         data = load_dashboard_data()
         if data:
-            # 카테고리별 LANEIGE 제품 추출
-            for cat_id, cat_data in data.get("category", {}).items():
-                for product in cat_data.get("top_products", []):
-                    if "laneige" in product.get("brand", "").lower():
+            # 카테고리별 LANEIGE 제품 추출 (exporter 형식: products{asin} → 카테고리별 그룹)
+            for cat_id, top_products in category_top_products(data).items():
+                for product in top_products:
+                    if "laneige" in str(product.get("brand", "")).lower():
                         product_type = _detect_product_type(product.get("product_name", ""))
                         if product_type not in result["laneige_products"]:
                             result["laneige_products"][product_type] = []

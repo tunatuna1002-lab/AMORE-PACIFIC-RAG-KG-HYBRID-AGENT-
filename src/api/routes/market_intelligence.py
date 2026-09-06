@@ -6,39 +6,16 @@ Market Intelligence Routes
 
 import logging
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
 
 from src.api.dependencies import get_market_intelligence, limiter, verify_api_key
+from src.api.models import MarketIntelligenceStatusResponse
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Market Intelligence"])
-
-
-# ============= Pydantic Models =============
-
-
-class MarketIntelligenceStatusResponse(BaseModel):
-    """Market Intelligence 상태 응답"""
-
-    initialized: bool
-    layers_collected: list[int]
-    last_collection: str | None = None
-    stats: dict[str, Any]
-
-
-class LayerDataResponse(BaseModel):
-    """레이어 데이터 응답"""
-
-    layer: int
-    layer_name: str
-    collected_at: str
-    data: dict[str, Any]
-    sources: list[dict[str, Any]]
 
 
 # ============= Endpoints =============

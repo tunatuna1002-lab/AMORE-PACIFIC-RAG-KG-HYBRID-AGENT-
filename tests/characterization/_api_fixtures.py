@@ -9,6 +9,7 @@ is imported for the first time. Nothing under src/ is modified.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -16,10 +17,12 @@ import tempfile
 import pytest
 
 # --- Process-level environment (must happen BEFORE src.api.dependencies is imported) ---
-# `src.api.dependencies.API_KEY` is read once at import time. The characterization
-# suite pins the *no-API_KEY* (development) behaviour of verify_api_key, so make sure
-# a shell-exported API_KEY cannot leak in. .env.test (loaded by the root conftest) does
-# not define API_KEY either.
+# `src.api.dependencies.verify_api_key` reads API_KEY from the environment at call time
+# (the module-level constant is only a production startup guard). The characterization
+# suite pins the *no-API_KEY* (development) behaviour of verify_api_key, so make sure a
+# shell-exported API_KEY cannot leak in. .env.test (loaded by the root conftest) does not
+# define API_KEY either. Tests that need a configured key use the `configured_api_key` /
+# `auth_headers` fixtures below (monkeypatch.setenv).
 os.environ.pop("API_KEY", None)
 os.environ["AUTO_START_SCHEDULER"] = "false"
 os.environ.setdefault(
@@ -77,6 +80,140 @@ def isolated_cwd(tmp_path, monkeypatch):
     """
     monkeypatch.chdir(tmp_path)
     return tmp_path
+
+
+# ---------------------------------------------------------------------------
+# Dashboard JSON shaped like src/tools/exporters/dashboard_exporter.py
+# ---------------------------------------------------------------------------
+
+DASHBOARD_TOP_LEVEL_KEYS = [
+    "metadata",
+    "data_source",
+    "home",
+    "brand",
+    "categories",
+    "products",
+    "charts",
+]
+
+
+def exporter_shaped_dashboard() -> dict:
+    """
+    Minimal dict mirroring DashboardExporter.export_dashboard_data() output:
+    metadata / data_source / home / brand.kpis / brand.competitors /
+    categories{id} / products{asin} (LANEIGE-only, no `brand` key) / charts.
+    """
+    return {
+        "metadata": {
+            "generated_at": "2026-09-01T22:30:00+09:00",
+            "data_date": "2026-09-01",
+            "total_products": 2,
+            "laneige_products": 1,
+            "ontology_enabled": False,
+        },
+        "data_source": {
+            "platform": "Amazon US Best Sellers",
+            "collected_at": "2026-09-01T22:30:00+09:00",
+            "snapshot_date": "2026-09-01",
+            "disclaimer": "snapshot",
+            "url": "https://www.amazon.com/gp/bestsellers/beauty",
+        },
+        "home": {
+            "insight_message": "LANEIGE Lip Sleeping Mask #1 in Lip Care",
+            "status": {
+                "exposure": "Strong",
+                "exposure_type": "success",
+                "position": "Top 1",
+                "warning_count": 0,
+            },
+            "action_items": [
+                {
+                    "asin": "B07GFJWPDQ",
+                    "product_name": "LANEIGE Lip Sleeping Mask",
+                    "brand_variant": "LANEIGE",
+                    "rank": 1,
+                    "rank_change": 0,
+                    "signal": "순위 #1",
+                    "signal_detail": "",
+                    "action_tag": "Monitor",
+                    "priority": "P1",
+                }
+            ],
+        },
+        "brand": {
+            "kpis": {
+                "sos": 12.5,
+                "sos_delta": "+2.1%p",
+                "top10_count": 1,
+                "avg_rank": 1.0,
+                "avg_price": 24.0,
+                "hhi": 812.5,
+            },
+            "competitors": [
+                {"brand": "LANEIGE", "sos": 50.0, "avg_rank": 1.0, "product_count": 1},
+                {"brand": "Burt's Bees", "sos": 50.0, "avg_rank": 2.0, "product_count": 1},
+            ],
+        },
+        "categories": {
+            "lip_care": {
+                "name": "Lip Care",
+                "sos": 50.0,
+                "best_rank": 1,
+                "cpi": 150.0,
+                "new_competitors": 2,
+                "product_count": 2,
+                "laneige_count": 1,
+            }
+        },
+        "products": {
+            "B07GFJWPDQ": {
+                "asin": "B07GFJWPDQ",
+                "name": "LANEIGE Lip Sleeping Mask",
+                "rank": 1,
+                "rank_delta": "유지",
+                "rating": 4.6,
+                "volatility_status": "안정적",
+                "price": 24.0,
+                "category": "lip_care",
+            }
+        },
+        "charts": {},
+    }
+
+
+@pytest.fixture
+def dashboard_file(isolated_cwd):
+    """Write a valid exporter-shaped ./data/dashboard_data.json in the isolated CWD."""
+    data_dir = isolated_cwd / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    path = data_dir / "dashboard_data.json"
+    path.write_text(json.dumps(exporter_shaped_dashboard(), ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+TEST_API_KEY = "characterization-api-key"  # pragma: allowlist secret
+
+
+@pytest.fixture
+def configured_api_key(monkeypatch):
+    """Configure API_KEY in the process environment (read by verify_api_key at call time)."""
+    monkeypatch.setenv("API_KEY", TEST_API_KEY)
+    return TEST_API_KEY
+
+
+@pytest.fixture
+def auth_headers(configured_api_key):
+    return {"X-API-Key": configured_api_key}
+
+
+@pytest.fixture
+def reset_rate_limits():
+    """slowapi keeps per-IP counters in process memory; clear them so tests never 429."""
+    from src.api.dependencies import limiter
+
+    limiter.reset()
+    yield
+    limiter.reset()
 
 
 @pytest.fixture

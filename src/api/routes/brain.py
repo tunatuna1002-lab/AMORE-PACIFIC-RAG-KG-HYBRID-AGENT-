@@ -108,7 +108,7 @@ async def run_autonomous_cycle(request: Request):
         return {"success": False, "error": str(e)}
 
 
-@router.post("/check-alerts")
+@router.post("/check-alerts", dependencies=[Depends(verify_api_key)])
 @limiter.limit("20/minute")
 async def check_brain_alerts(request: Request):
     """

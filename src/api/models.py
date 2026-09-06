@@ -62,6 +62,7 @@ class ExportRequest(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     include_strategy: bool = True
+    include_external_signals: bool = True  # External Signal 포함 여부
 
 
 class AnalystReportRequest(BaseModel):
@@ -71,6 +72,17 @@ class AnalystReportRequest(BaseModel):
     end_date: str  # Required: YYYY-MM-DD
     include_charts: bool = True
     include_external_signals: bool = True
+
+
+class AsyncExportRequest(BaseModel):
+    """비동기 내보내기 요청"""
+
+    job_type: str  # "export_docx", "export_analyst_report", "export_excel"
+    start_date: str | None = None
+    end_date: str | None = None
+    include_charts: bool = True
+    include_external_signals: bool = True
+    include_metrics: bool = True
 
 
 # ============= Alert Models =============

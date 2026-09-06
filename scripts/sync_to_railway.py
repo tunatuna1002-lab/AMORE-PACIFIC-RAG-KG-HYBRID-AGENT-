@@ -80,6 +80,7 @@ async def upload_to_railway(base_url: str, records: list[dict], api_key: str = "
         response = await client.post(
             f"{base_url}/api/sync/upload",
             json={"records": records, "api_key": api_key},
+            headers={"X-API-Key": api_key} if api_key else {},
         )
         response.raise_for_status()
         return response.json()

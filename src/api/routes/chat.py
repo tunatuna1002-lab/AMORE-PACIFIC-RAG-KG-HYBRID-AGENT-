@@ -135,7 +135,7 @@ async def chat(request: Request, body: ChatRequest):
         )
 
 
-@router.delete("/api/chat/memory/{session_id}")
+@router.delete("/api/chat/memory/{session_id}", dependencies=[Depends(verify_api_key)])
 async def clear_memory(session_id: str):
     """세션 대화 기록 초기화"""
     if session_id in conversation_memory:
@@ -244,35 +244,32 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
     except DataValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    try:
-        brain = await get_initialized_brain()
-        data = load_dashboard_data()
-        current_metrics = data if data else None
+    async def generate():
+        # Everything that can fail (brain init, data load, streaming) happens inside the
+        # generator so the client always receives text/event-stream frames — an `error`
+        # frame instead of a 500 JSON body when the brain is unavailable.
+        try:
+            brain = await get_initialized_brain()
+            data = load_dashboard_data()
+            current_metrics = data if data else None
+            async for chunk in brain.process_query_stream(
+                query=message,
+                session_id=session_id,
+                current_metrics=current_metrics,
+            ):
+                event_data = json.dumps(chunk, ensure_ascii=False)
+                yield f"data: {event_data}\n\n"
+        except Exception as e:
+            logger.error(f"v4 SSE stream error: {e}")
+            error_data = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)
+            yield f"data: {error_data}\n\n"
 
-        async def generate():
-            try:
-                async for chunk in brain.process_query_stream(
-                    query=message,
-                    session_id=session_id,
-                    current_metrics=current_metrics,
-                ):
-                    event_data = json.dumps(chunk, ensure_ascii=False)
-                    yield f"data: {event_data}\n\n"
-            except Exception as e:
-                logger.error(f"v4 SSE stream error: {e}")
-                error_data = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)
-                yield f"data: {error_data}\n\n"
-
-        return StreamingResponse(
-            generate(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            },
-        )
-
-    except Exception as e:
-        logger.error(f"v4 stream error: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

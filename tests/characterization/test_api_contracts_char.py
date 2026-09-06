@@ -9,105 +9,13 @@ contract changes.
 
 import json
 
-import pytest
-
 # Fixtures (env setup + app/client/auth/LLM fakes) live in _api_fixtures.py and are
 # registered as a pytest plugin for this module, independent of the shared conftest.
 pytest_plugins = ["tests.characterization._api_fixtures"]
 
-# ---------------------------------------------------------------------------
-# Fixtures: dashboard JSON shaped like src/tools/exporters/dashboard_exporter.py
-# ---------------------------------------------------------------------------
-
-DASHBOARD_TOP_LEVEL_KEYS = ["metadata", "data_source", "home", "brand", "categories", "products", "charts"]
-
-
-def _minimal_dashboard_json() -> dict:
-    """Shape mirrors DashboardExporter.export_dashboard_data output (products keyed by ASIN)."""
-    return {
-        "metadata": {
-            "generated_at": "2026-09-01T22:30:00+09:00",
-            "data_date": "2026-09-01",
-            "total_products": 2,
-            "laneige_products": 1,
-            "ontology_enabled": False,
-        },
-        "data_source": {
-            "platform": "Amazon US Best Sellers",
-            "collected_at": "2026-09-01T22:30:00+09:00",
-            "snapshot_date": "2026-09-01",
-            "disclaimer": "snapshot",
-            "url": "https://www.amazon.com/gp/bestsellers/beauty",
-        },
-        "home": {
-            "insight_message": "LANEIGE Lip Sleeping Mask #1 in Lip Care",
-            "status": {
-                "exposure": "Strong",
-                "exposure_type": "success",
-                "position": "Top 1",
-                "warning_count": 0,
-            },
-            "action_items": [
-                {
-                    "asin": "B07GFJWPDQ",
-                    "product_name": "LANEIGE Lip Sleeping Mask",
-                    "brand_variant": "LANEIGE",
-                    "rank": 1,
-                    "rank_change": 0,
-                    "signal": "순위 #1",
-                    "signal_detail": "",
-                    "action_tag": "Monitor",
-                    "priority": "P1",
-                }
-            ],
-        },
-        "brand": {
-            "kpis": {
-                "sos": 12.5,
-                "sos_delta": "+2.1%p",
-                "top10_count": 1,
-                "avg_rank": 1.0,
-                "avg_price": 24.0,
-                "hhi": 812.5,
-            },
-            "competitors": [
-                {"brand": "LANEIGE", "sos": 50.0, "avg_rank": 1.0, "product_count": 1},
-                {"brand": "Burt's Bees", "sos": 50.0, "avg_rank": 2.0, "product_count": 1},
-            ],
-        },
-        "categories": {
-            "lip_care": {
-                "name": "Lip Care",
-                "sos": 50.0,
-                "best_rank": 1,
-                "cpi": 150.0,
-                "new_competitors": 2,
-            }
-        },
-        "products": {
-            "B07GFJWPDQ": {
-                "name": "LANEIGE Lip Sleeping Mask",
-                "rank": 1,
-                "rank_delta": "0",
-                "rating": 4.6,
-                "volatility_status": "안정적",
-                "price": 24.0,
-                "category": "lip_care",
-            }
-        },
-        "charts": {},
-    }
-
-
-@pytest.fixture
-def dashboard_file(isolated_cwd):
-    """Write a valid ./data/dashboard_data.json in the isolated CWD (DATA_PATH is relative)."""
-    data_dir = isolated_cwd / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    path = data_dir / "dashboard_data.json"
-    path.write_text(json.dumps(_minimal_dashboard_json(), ensure_ascii=False), encoding="utf-8")
-    return path
-
+# Dashboard JSON fixture (exporter-shaped) is shared with the unit tests via
+# tests/characterization/_api_fixtures.py: `dashboard_file`, `exporter_shaped_dashboard()`.
+from tests.characterization._api_fixtures import DASHBOARD_TOP_LEVEL_KEYS  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Health / OpenAPI
@@ -215,11 +123,14 @@ def test_get_data_with_corrupted_file_falls_back_to_skeleton(client, isolated_cw
 
 
 # ---------------------------------------------------------------------------
-# Auth matrix — WITHOUT an X-API-Key header, process has no API_KEY configured
+# Auth matrix
 # ---------------------------------------------------------------------------
-# verify_api_key (src/api/dependencies.py) dev-mode behaviour: when API_KEY is None
-# it raises 503 "Server not configured for authenticated access" for every caller,
-# key or not. Routes NOT wired to verify_api_key are fully open (bug D8).
+# verify_api_key (src/api/dependencies.py) reads API_KEY from the environment at call
+# time. Dev-mode behaviour (no API_KEY configured, the default for this suite): it raises
+# 503 "Server not configured for authenticated access" for every caller, key or not.
+# With API_KEY configured (`configured_api_key` / `auth_headers` fixtures): missing header
+# -> 401, wrong header -> 403. Every mutating route is wired to it (D8 fixed); the
+# subscribe / send-verification / verify-email / confirm-email flow stays public.
 
 
 def test_auth_verify_api_key_routes_return_503_when_server_has_no_api_key(client, isolated_cwd):
@@ -237,75 +148,140 @@ def test_auth_verify_api_key_routes_return_503_when_server_has_no_api_key(client
     assert r.status_code == 503
 
 
-def test_auth_post_data_refresh_is_unauthenticated(client, isolated_cwd):
-    # PINS CURRENT BEHAVIOR (bug D8): no auth on a mutating route.
-    r = client.post("/api/data/refresh")
+def test_auth_post_data_refresh_requires_api_key(client, isolated_cwd, auth_headers):
+    # D8 fixed: header required; the handler still reports "No data found" on an empty DB.
+    assert client.post("/api/data/refresh").status_code == 401
+    r = client.post("/api/data/refresh", headers=auth_headers)
     assert r.status_code == 200
     assert r.json() == {"success": False, "error": "No data found"}
 
 
-def test_auth_put_alert_settings_is_unauthenticated(client, isolated_cwd):
-    # PINS CURRENT BEHAVIOR (bug D8): validation runs, no auth check -> 422 for missing field.
+def test_auth_post_data_refresh_is_503_in_dev_mode(client, isolated_cwd):
+    assert client.post("/api/data/refresh").status_code == 503
+
+
+def test_auth_put_alert_settings_requires_api_key(client, isolated_cwd, auth_headers):
+    # D8 fixed: the auth dependency runs before body validation.
     r = client.put("/api/v4/alert-settings", json={"email": "a@b.c"})
+    assert r.status_code == 401
+
+    # Authenticated: validation runs -> 422 for the missing field.
+    r = client.put("/api/v4/alert-settings", json={"email": "a@b.c"}, headers=auth_headers)
     assert r.status_code == 422
     assert r.json()["detail"][0]["loc"] == ["body", "alert_types"]
 
     # With a complete body the handler executes and reports unknown subscriber.
-    r = client.put("/api/v4/alert-settings", json={"email": "a@b.c", "alert_types": ["rank_drop"]})
+    r = client.put(
+        "/api/v4/alert-settings",
+        json={"email": "a@b.c", "alert_types": ["rank_drop"]},
+        headers=auth_headers,
+    )
     assert r.status_code == 404
     assert r.json() == {"detail": "등록되지 않은 이메일입니다."}
 
 
-def test_auth_delete_alert_settings_is_unauthenticated(client, isolated_cwd):
-    # PINS CURRENT BEHAVIOR (bug D8): anyone can attempt to unsubscribe any email.
-    r = client.delete("/api/v4/alert-settings", params={"email": "a@b.c"})
+def test_auth_delete_alert_settings_requires_api_key(client, isolated_cwd, auth_headers):
+    # D8 fixed: unsubscribing an arbitrary email needs the API key.
+    assert client.delete("/api/v4/alert-settings", params={"email": "a@b.c"}).status_code == 401
+    r = client.delete("/api/v4/alert-settings", params={"email": "a@b.c"}, headers=auth_headers)
     assert r.status_code == 404
     assert r.json() == {"detail": "등록되지 않은 이메일입니다."}
 
 
-def test_auth_delete_signals_clear_is_unauthenticated_and_destructive(client, isolated_cwd):
-    # PINS CURRENT BEHAVIOR (bug D8): DELETE /api/signals/clear wipes persisted signals with no auth.
-    r = client.delete("/api/signals/clear")
+def test_auth_delete_signals_clear_requires_api_key(client, isolated_cwd, auth_headers):
+    # D8 fixed: the destructive route no longer touches disk without a valid key.
+    written = isolated_cwd / "data" / "external_signals" / "signals.json"
+    assert client.delete("/api/signals/clear").status_code == 401
+    assert not written.exists()
+
+    r = client.delete("/api/signals/clear", headers=auth_headers)
     assert r.status_code == 200
     assert r.json() == {"status": "success", "message": "All signals cleared"}
-    written = isolated_cwd / "data" / "external_signals" / "signals.json"
     assert written.exists()
     assert json.loads(written.read_text(encoding="utf-8"))["signals"] == []
 
 
-def test_auth_post_sync_upload_is_unauthenticated(client, isolated_cwd):
-    # PINS CURRENT BEHAVIOR (bug D8): sync only checks the body "api_key" when API_KEY env is set.
-    # No body at all -> JSON decode error is swallowed into a 500.
-    r = client.post("/api/sync/upload")
+def test_auth_post_sync_upload_requires_api_key(
+    client, isolated_cwd, auth_headers, reset_rate_limits
+):
+    # D8 fixed: header auth via verify_api_key (the route is limited to 2/minute, so at
+    # most two authenticated calls per test).
+    assert client.post("/api/sync/upload", json={"records": []}).status_code == 401
+
+    # No body at all -> JSON decode error is swallowed into a 500 (unchanged).
+    r = client.post("/api/sync/upload", headers=auth_headers)
     assert r.status_code == 500
     assert r.json()["detail"].startswith("Expecting value")
 
-    r = client.post("/api/sync/upload", json={"records": []})
+    r = client.post("/api/sync/upload", json={"records": []}, headers=auth_headers)
     assert r.status_code == 400
     assert r.json() == {"detail": "No records provided"}
 
 
-def test_auth_post_export_docx_is_unauthenticated_and_500s(lenient_client, dashboard_file):
-    # PINS CURRENT BEHAVIOR (bug D8 + bug: slowapi decorator): the handler names its
-    # pydantic body `request` and the starlette Request `http_request`, so slowapi's
-    # limiter rejects the call before the handler body runs. The global exception
-    # handler turns it into a 500 JSON envelope.
-    r = lenient_client.post("/api/export/docx", json={})
-    assert r.status_code == 500
-    body = r.json()
-    assert body["error"] == "Internal server error"
-    assert "parameter `request` must be an instance of starlette.requests.Request" in body["detail"]
+def test_auth_post_sync_upload_body_key_must_match_when_present(
+    client, isolated_cwd, auth_headers, reset_rate_limits
+):
+    # The legacy body "api_key" (scripts/sync_to_railway.py) is compared with
+    # hmac.compare_digest when present and never skipped when API_KEY is unset.
+    r = client.post(
+        "/api/sync/upload", json={"records": [{}], "api_key": "wrong"}, headers=auth_headers
+    )
+    assert r.status_code == 401
+    assert r.json() == {"detail": "Invalid API key"}
 
 
-def test_auth_post_brain_check_alerts_is_unauthenticated(client, isolated_cwd):
-    # PINS CURRENT BEHAVIOR (bug D8): no auth. Offline (no OPENAI_API_KEY) the brain's
-    # initialize() raises inside the handler and the error is returned as a 200 payload.
-    r = client.post("/api/v4/brain/check-alerts")
+def test_auth_post_sync_upload_is_503_in_dev_mode(client, isolated_cwd):
+    assert client.post("/api/sync/upload", json={"records": []}).status_code == 503
+    assert client.post("/api/sync/upload").status_code == 503
+
+
+def test_auth_post_export_docx_requires_api_key_and_returns_docx(
+    lenient_client, dashboard_file, auth_headers, reset_rate_limits
+):
+    # D8 fixed: auth required. D22 fixed: the handler names the starlette Request
+    # `request` and its pydantic body `payload`, so slowapi accepts the call and the
+    # route streams a .docx (the exporter-shaped JSON is adapted via src/api/dashboard_shape).
+    assert lenient_client.post("/api/export/docx", json={}).status_code == 401
+
+    r = lenient_client.post(
+        "/api/export/docx", json={"include_external_signals": False}, headers=auth_headers
+    )
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert r.headers["content-disposition"].startswith("attachment; filename=AMORE_Insight_Report_")
+    assert r.content[:2] == b"PK"  # OOXML zip container
+
+
+def test_auth_post_export_docx_is_503_in_dev_mode(lenient_client, dashboard_file):
+    assert lenient_client.post("/api/export/docx", json={}).status_code == 503
+
+
+def test_auth_post_brain_check_alerts_requires_api_key(client, isolated_cwd, auth_headers):
+    # D8 fixed: auth required. Offline (no OPENAI_API_KEY) the brain's initialize()
+    # raises inside the handler and the error is still returned as a 200 payload.
+    assert client.post("/api/v4/brain/check-alerts").status_code == 401
+    r = client.post("/api/v4/brain/check-alerts", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
     assert body["alerts"] == []
     assert "error" in body
     assert body["error"].startswith("Vector search is required but not available")
+
+
+def test_auth_public_subscription_flow_needs_no_api_key(client, isolated_cwd, configured_api_key):
+    # Subscribe / verification routes stay public even when API_KEY is configured.
+    assert client.post("/api/v4/subscribe", json={"email": "a@b.c"}).status_code not in (401, 403)
+    assert client.post(
+        "/api/alerts/send-verification", json={"email": "a@b.c"}
+    ).status_code not in (401, 403)
+    assert client.post(
+        "/api/alerts/verify-email", json={"token": "x", "email": "a@b.c"}
+    ).status_code not in (401, 403)
+    assert client.get(
+        "/api/alerts/confirm-email", params={"token": "x", "email": "a@b.c"}
+    ).status_code not in (401, 403)
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +302,9 @@ BRAIN_CHAT_RESPONSE_KEYS = {
 }
 
 
-def test_chat_v4_offline_returns_error_fallback_payload(client, isolated_cwd, auth_bypass, patched_llm):
+def test_chat_v4_offline_returns_error_fallback_payload(
+    client, isolated_cwd, auth_bypass, patched_llm
+):
     """
     PINS CURRENT BEHAVIOR: with no OPENAI_API_KEY, UnifiedBrain.initialize() fails
     (DocumentRetriever refuses to start without vector search) and chat_v4 answers
@@ -366,16 +344,25 @@ def test_chat_v4_stream_is_post_only(client):
     assert r.status_code == 405
 
 
-def test_chat_v4_stream_offline_returns_500_json_before_sse(client, isolated_cwd, auth_bypass, patched_llm):
+def test_chat_v4_stream_offline_emits_sse_error_frame(
+    client, isolated_cwd, auth_bypass, patched_llm
+):
     """
-    PINS CURRENT BEHAVIOR: the SSE contract (text/event-stream, `data:` frames) is only
-    reachable once the brain initialises. Offline the route raises HTTPException(500)
-    with a JSON body — no event-stream headers are ever sent.
+    D23 fixed: the SSE contract (text/event-stream, `data:` frames) holds even when the
+    brain cannot initialise. Offline the route answers 200 with a single `error` frame
+    instead of a 500 JSON body.
     """
     r = client.post("/api/v4/chat/stream", json={"message": "안녕"})
-    assert r.status_code == 500
-    assert r.headers["content-type"].startswith("application/json")
-    assert r.json()["detail"].startswith("Vector search is required but not available")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/event-stream")
+    frames = [
+        json.loads(line[len("data: ") :])
+        for line in r.text.splitlines()
+        if line.startswith("data: ")
+    ]
+    assert len(frames) == 1
+    assert frames[0]["type"] == "error"
+    assert frames[0]["content"].startswith("Vector search is required but not available")
     assert patched_llm == []
 
 
@@ -385,8 +372,13 @@ def test_chat_v4_stream_rejects_blank_message(client, isolated_cwd, auth_bypass)
     assert r.json() == {"detail": "Message is required"}
 
 
-def test_chat_memory_delete_is_unauthenticated(client):
-    # PINS CURRENT BEHAVIOR (bug D8): any caller can wipe any session's memory.
-    r = client.delete("/api/chat/memory/some-session")
+def test_chat_memory_delete_requires_api_key(client, auth_headers):
+    # D8 fixed: wiping a session's memory needs the API key.
+    assert client.delete("/api/chat/memory/some-session").status_code == 401
+    r = client.delete("/api/chat/memory/some-session", headers=auth_headers)
     assert r.status_code == 200
     assert r.json() == {"status": "ok", "message": "Session some-session memory cleared"}
+
+
+def test_chat_memory_delete_is_503_in_dev_mode(client):
+    assert client.delete("/api/chat/memory/some-session").status_code == 503

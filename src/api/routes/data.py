@@ -10,9 +10,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.dependencies import get_sheets_writer, limiter, load_dashboard_data
+from src.api.dependencies import get_sheets_writer, limiter, load_dashboard_data, verify_api_key
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -189,7 +189,7 @@ async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
         return None
 
 
-@router.post("/api/data/refresh")
+@router.post("/api/data/refresh", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
 async def refresh_data(request: Request):
     """dashboard_data.json 재생성 (SQLite 기반)"""

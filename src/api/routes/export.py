@@ -15,11 +15,18 @@ from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
 
-from src.api.dependencies import limiter, load_dashboard_data
+from src.api.dashboard_shape import (
+    ai_insights_from,
+    brand_metrics_from,
+    category_metrics_from,
+    products_as_list,
+    summary_from,
+)
+from src.api.dependencies import limiter, load_dashboard_data, verify_api_key
+from src.api.models import AnalystReportRequest, AsyncExportRequest, ExportRequest
 from src.tools.calculators.period_analyzer import PeriodAnalyzer
 from src.tools.collectors.external_signal_collector import ExternalSignalCollector
 from src.tools.exporters.chart_generator import ChartGenerator
@@ -53,24 +60,6 @@ STRUCTURAL_TREND_KEYWORDS = [
     "forecast",
     "analysis",
 ]
-
-
-class ExportRequest(BaseModel):
-    """내보내기 요청"""
-
-    start_date: str | None = None
-    end_date: str | None = None
-    include_strategy: bool = True
-    include_external_signals: bool = True  # External Signal 포함 여부
-
-
-class AnalystReportRequest(BaseModel):
-    """애널리스트 리포트 요청"""
-
-    start_date: str  # Required: YYYY-MM-DD
-    end_date: str  # Required: YYYY-MM-DD
-    include_charts: bool = True
-    include_external_signals: bool = True
 
 
 # 참고자료가 본문에 포함된 경우 필터링할 패턴
@@ -356,9 +345,9 @@ async def _get_external_signals(
             logger.warning("Suppressed Exception", exc_info=True)
 
 
-@router.post("/docx")
+@router.post("/docx", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
-async def export_docx(http_request: Request, request: ExportRequest):
+async def export_docx(request: Request, payload: ExportRequest):
     """
     인사이트 리포트 DOCX 생성 및 다운로드
     """
@@ -410,7 +399,7 @@ async def export_docx(http_request: Request, request: ExportRequest):
 
     # ===== 1. 요약 통계 =====
     doc.add_heading("1. 요약 통계", 1)
-    summary = data.get("summary", {})
+    summary = summary_from(data)
 
     table = doc.add_table(rows=5, cols=2)
     table.style = "Light Grid Accent 1"
@@ -433,7 +422,7 @@ async def export_docx(http_request: Request, request: ExportRequest):
     # ===== 2. 브랜드별 성과 =====
     doc.add_heading("2. 브랜드별 성과", 1)
 
-    brand_data = data.get("brand_metrics", [])
+    brand_data = brand_metrics_from(data)
     if brand_data:
         # 상위 10개 브랜드
         top_brands = sorted(brand_data, key=lambda x: x.get("product_count", 0), reverse=True)[:10]
@@ -463,7 +452,7 @@ async def export_docx(http_request: Request, request: ExportRequest):
     # ===== 3. 카테고리별 분석 =====
     doc.add_heading("3. 카테고리별 분석", 1)
 
-    category_data = data.get("category_metrics", [])
+    category_data = category_metrics_from(data)
     if category_data:
         for category in category_data:
             cat_name = category.get("category", "Unknown")
@@ -489,8 +478,8 @@ async def export_docx(http_request: Request, request: ExportRequest):
     # ===== 4. 주요 제품 =====
     doc.add_heading("4. 주요 제품 (LANEIGE Top 10)", 1)
 
-    products = data.get("products", [])
-    laneige_products = [p for p in products if p.get("brand", "").upper() == "LANEIGE"]
+    products = products_as_list(data)
+    laneige_products = [p for p in products if str(p.get("brand", "")).upper() == "LANEIGE"]
     laneige_products = sorted(laneige_products, key=lambda x: x.get("rank", 999))[:10]
 
     if laneige_products:
@@ -519,10 +508,10 @@ async def export_docx(http_request: Request, request: ExportRequest):
     doc.add_page_break()
 
     # ===== 5. AI 인사이트 및 전략 제언 =====
-    if request.include_strategy:
+    if payload.include_strategy:
         doc.add_heading("5. AI 인사이트 및 전략 제언", 1)
 
-        insights = data.get("ai_insights", {})
+        insights = ai_insights_from(data)
         strategic_insights = insights.get("strategic_insights", [])
 
         if strategic_insights:
@@ -541,14 +530,14 @@ async def export_docx(http_request: Request, request: ExportRequest):
 """)
 
     # ===== 6. 외부 트렌드 신호 =====
-    if request.include_external_signals:
+    if payload.include_external_signals:
         doc.add_heading("6. 외부 트렌드 신호", 1)
 
         # 분석 기간 계산
-        if request.start_date and request.end_date:
+        if payload.start_date and payload.end_date:
             try:
-                start = datetime.strptime(request.start_date, "%Y-%m-%d")
-                end = datetime.strptime(request.end_date, "%Y-%m-%d")
+                start = datetime.strptime(payload.start_date, "%Y-%m-%d")
+                end = datetime.strptime(payload.end_date, "%Y-%m-%d")
                 days = (end - start).days + 1
             except ValueError:
                 days = 7
@@ -556,7 +545,7 @@ async def export_docx(http_request: Request, request: ExportRequest):
             days = 7
 
         signals_result = await _get_external_signals(
-            days=days, start_date=request.start_date, end_date=request.end_date
+            days=days, start_date=payload.start_date, end_date=payload.end_date
         )
         external_signals_text = signals_result.get("report_section", "")
 
@@ -603,20 +592,20 @@ async def export_docx(http_request: Request, request: ExportRequest):
     )
 
 
-@router.post("/analyst-report")
+@router.post("/analyst-report", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
-async def export_analyst_report(http_request: Request, request: AnalystReportRequest):
+async def export_analyst_report(request: Request, payload: AnalystReportRequest):
     """
     기간별 애널리스트 리포트 DOCX 생성 (8 Sections)
 
     Args:
-        request: AnalystReportRequest with start_date, end_date, options
+        payload: AnalystReportRequest with start_date, end_date, options
 
     Returns:
         StreamingResponse with DOCX file
     """
     logger = logging.getLogger(__name__)
-    logger.info(f"Generating analyst report: {request.start_date} ~ {request.end_date}")
+    logger.info(f"Generating analyst report: {payload.start_date} ~ {payload.end_date}")
 
     # AMOREPACIFIC colors
     PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
@@ -626,26 +615,26 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
     try:
         # 1. Period Analysis
         analyzer = PeriodAnalyzer()
-        analysis = await analyzer.analyze(request.start_date, request.end_date)
+        analysis = await analyzer.analyze(payload.start_date, payload.end_date)
 
         if analysis.total_days == 0:
             raise HTTPException(
                 status_code=404,
-                detail=f"No data found for period {request.start_date} ~ {request.end_date}",
+                detail=f"No data found for period {payload.start_date} ~ {payload.end_date}",
             )
 
         # 2. External Signals (optional) - Tavily 뉴스 포함 + 3-Tier 분류
         external_signals = None
         external_signals_list = []
-        if request.include_external_signals:
+        if payload.include_external_signals:
             try:
                 # 새로운 통합 함수 사용 (Tavily + RSS + Reddit + 3-Tier 분류)
                 signals_result = await _get_external_signals(
                     days=analysis.total_days,
                     brands=["LANEIGE", "COSRX", "K-Beauty"],
                     include_tavily=True,
-                    start_date=request.start_date,  # 3-Tier 분류용
-                    end_date=request.end_date,  # 3-Tier 분류용
+                    start_date=payload.start_date,  # 3-Tier 분류용
+                    end_date=payload.end_date,  # 3-Tier 분류용
                 )
                 if signals_result.get("signals"):
                     external_signals = signals_result
@@ -668,7 +657,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
 
         # 4. Generate Charts
         chart_paths = {}
-        if request.include_charts:
+        if payload.include_charts:
             temp_dir = tempfile.mkdtemp()
             chart_gen = ChartGenerator(output_dir=temp_dir)
             chart_paths = chart_gen.generate_all_charts(analysis)
@@ -676,7 +665,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
 
         # 5. Reference Tracker
         tracker = ReferenceTracker()
-        tracker.auto_add_amazon_sources(start_date=request.start_date, end_date=request.end_date)
+        tracker.auto_add_amazon_sources(start_date=payload.start_date, end_date=payload.end_date)
 
         # 외부 신호를 참고자료에 자동 추가 (Tavily 뉴스, RSS, Reddit 등)
         if external_signals_list:
@@ -698,7 +687,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
             doc,
             title="LANEIGE Amazon US 경쟁력 분석 보고서",
             subtitle="Weekly Insight Report",
-            date_range=f"{request.start_date} ~ {request.end_date}",
+            date_range=f"{payload.start_date} ~ {payload.end_date}",
             generation_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
         )
 
@@ -734,7 +723,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
                         doc.add_paragraph(line)
 
             # Insert SoS chart if available
-            if request.include_charts and "sos_trend" in chart_paths:
+            if payload.include_charts and "sos_trend" in chart_paths:
                 doc.add_paragraph()
                 doc.add_picture(str(chart_paths["sos_trend"]), width=Inches(6))
 
@@ -761,7 +750,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
                         doc.add_paragraph(line)
 
             # Insert charts
-            if request.include_charts:
+            if payload.include_charts:
                 doc.add_paragraph()
                 if "sos_trend" in chart_paths:
                     doc.add_heading("일별 SoS 추이", 3)
@@ -794,7 +783,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
                         doc.add_paragraph(line)
 
             # Insert brand comparison chart
-            if request.include_charts and "brand_comparison" in chart_paths:
+            if payload.include_charts and "brand_comparison" in chart_paths:
                 doc.add_paragraph()
                 doc.add_heading("브랜드별 점유율", 3)
                 doc.add_picture(str(chart_paths["brand_comparison"]), width=Inches(6))
@@ -821,7 +810,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
                         doc.add_paragraph(line)
 
             # Insert HHI chart
-            if request.include_charts and "hhi_trend" in chart_paths:
+            if payload.include_charts and "hhi_trend" in chart_paths:
                 doc.add_paragraph()
                 doc.add_heading("HHI 추이", 3)
                 doc.add_picture(str(chart_paths["hhi_trend"]), width=Inches(6))
@@ -969,10 +958,10 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
         buffer.seek(0)
 
         # Generate filename
-        filename = f"AMORE_Analyst_Report_{request.start_date}_{request.end_date}.docx"
+        filename = f"AMORE_Analyst_Report_{payload.start_date}_{payload.end_date}.docx"
 
         # Cleanup temp charts
-        if request.include_charts and chart_paths:
+        if payload.include_charts and chart_paths:
             try:
                 for chart_path in chart_paths.values():
                     if chart_path.exists():
@@ -997,7 +986,7 @@ async def export_analyst_report(http_request: Request, request: AnalystReportReq
         raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}") from e
 
 
-@router.post("/excel")
+@router.post("/excel", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
 async def export_excel(request: Request):
     """
@@ -1110,20 +1099,9 @@ async def get_signal_status(request: Request):
 # ============================================================
 
 
-class AsyncExportRequest(BaseModel):
-    """비동기 내보내기 요청"""
-
-    job_type: str  # "export_docx", "export_analyst_report", "export_excel"
-    start_date: str | None = None
-    end_date: str | None = None
-    include_charts: bool = True
-    include_external_signals: bool = True
-    include_metrics: bool = True
-
-
-@router.post("/async/start")
+@router.post("/async/start", dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
-async def start_async_export(http_request: Request, request: AsyncExportRequest):
+async def start_async_export(request: Request, payload: AsyncExportRequest):
     """
     비동기 내보내기 작업 시작
 
@@ -1131,7 +1109,7 @@ async def start_async_export(http_request: Request, request: AsyncExportRequest)
     작업 ID를 반환하며, /async/status/{job_id}로 진행 상태 확인 가능.
 
     Args:
-        request: AsyncExportRequest
+        payload: AsyncExportRequest
 
     Returns:
         {
@@ -1147,15 +1125,15 @@ async def start_async_export(http_request: Request, request: AsyncExportRequest)
 
     # 파라미터 준비
     params = {
-        "start_date": request.start_date,
-        "end_date": request.end_date,
-        "include_charts": request.include_charts,
-        "include_external_signals": request.include_external_signals,
-        "include_metrics": request.include_metrics,
+        "start_date": payload.start_date,
+        "end_date": payload.end_date,
+        "include_charts": payload.include_charts,
+        "include_external_signals": payload.include_external_signals,
+        "include_metrics": payload.include_metrics,
     }
 
     # 작업 생성
-    job_id = await queue.create_job(request.job_type, params)
+    job_id = await queue.create_job(payload.job_type, params)
 
     return {
         "job_id": job_id,
