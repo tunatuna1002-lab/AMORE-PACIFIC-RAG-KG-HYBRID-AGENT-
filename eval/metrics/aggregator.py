@@ -32,6 +32,11 @@ DEFAULT_THRESHOLDS = {
     # L5 gating
     "groundedness_min": 0.70,
     "answer_f1_min": 0.50,
+    # 수치 정확도 (2026-09-06): gold_source="snapshot" 문항에만 적용한다.
+    # 골드가 DB 스냅샷에서 생성된 문항만 원자료로 정답을 검증할 수 있다.
+    # document·domain_expectation 문항에서는 보고만 하고 게이트로 쓰지 않는다 —
+    # 검증할 수 없는 골드에 정답 일치를 요구하면 지표가 문체 유사도를 재게 된다.
+    "numeric_accuracy_min": 0.50,
     # token-F1은 골드(단문 정의)와 에이전트(장문 마크다운)의 스타일 차이에
     # 구조적으로 취약하므로, semantic similarity가 계산된 경우 이 값 이상이면
     # answer_f1 미달이어도 정답으로 인정한다
@@ -72,6 +77,7 @@ FAIL_REASONS = {
     "L4_type_inconsistency": "Type consistency rate below threshold",
     "L5_grounding_fail": "Groundedness score below threshold",
     "L5_wrong_answer": "Answer F1 below threshold",
+    "L5_numeric_mismatch": "Numeric accuracy below threshold (snapshot items only)",
     "L5_relevance_fail": "Relevance score below threshold",
 }
 
@@ -238,14 +244,24 @@ class MetricAggregator:
         if l4.type_consistency_rate < self.thresholds.get("type_consistency_min", 0.9):
             fail_reasons.append("L4_type_inconsistency")
 
-        # L5 checks — token-F1 미달이어도 semantic similarity가 충분하면 정답 인정
-        answer_ok = l5.answer_f1 >= self.thresholds.get("answer_f1_min", 0.5)
-        if not answer_ok and l5.semantic_similarity is not None:
-            answer_ok = l5.semantic_similarity >= self.thresholds.get(
-                "semantic_similarity_min", 0.65
-            )
-        if not answer_ok:
-            fail_reasons.append("L5_wrong_answer")
+        gold_source = metadata.gold_source if metadata else "document"
+
+        # L5 checks — token-F1 미달이어도 semantic similarity가 충분하면 정답 인정.
+        # domain_expectation 문항은 골드 자체를 원자료로 검증할 수 없으므로 정답
+        # 일치 게이트에서 제외하고 groundedness·relevance만 본다.
+        if gold_source != "domain_expectation":
+            answer_ok = l5.answer_f1 >= self.thresholds.get("answer_f1_min", 0.5)
+            if not answer_ok and l5.semantic_similarity is not None:
+                answer_ok = l5.semantic_similarity >= self.thresholds.get(
+                    "semantic_similarity_min", 0.65
+                )
+            if not answer_ok:
+                fail_reasons.append("L5_wrong_answer")
+
+        # 수치 정확도는 골드가 DB에서 생성된 snapshot 문항에만 게이트로 적용한다
+        if gold_source == "snapshot" and l5.numeric_accuracy is not None:
+            if l5.numeric_accuracy < self.thresholds.get("numeric_accuracy_min", 0.5):
+                fail_reasons.append("L5_numeric_mismatch")
 
         if l5.groundedness_score is not None:
             if l5.groundedness_score < self.thresholds.get("groundedness_min", 0.7):

@@ -18,6 +18,79 @@ from eval.judge.stub import StubJudge
 from eval.metrics.base import MetricCalculator
 from eval.schemas import AnswerTrace, GoldEvidence, L5Metrics
 
+# 답변에서 수치를 뽑는 패턴. 천 단위 쉼표를 허용하고 통화·퍼센트 기호는 밖에 둔다.
+_NUMBER_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
+
+# 상대 오차 허용치. 골드가 크롤 스냅샷에서 나오므로 반올림·표기 차이를 흡수할
+# 만큼만 열어 둔다.
+NUMERIC_TOLERANCE = 0.10
+
+
+def extract_numbers(text: str) -> list[float]:
+    """답변 문자열에서 수치를 모두 뽑는다 (쉼표 제거, 중복 유지)."""
+    values: list[float] = []
+    for match in _NUMBER_RE.finditer(text or ""):
+        try:
+            values.append(float(match.group().replace(",", "")))
+        except ValueError:
+            continue
+    return values
+
+
+def _matches(expected: float, found: list[float]) -> bool:
+    """상대 오차 10% 이내면 맞힌 것으로 본다. 0은 절대 비교한다."""
+    if expected == 0:
+        return any(abs(v) < 1e-9 for v in found)
+    return any(abs(v - expected) / abs(expected) <= NUMERIC_TOLERANCE for v in found)
+
+
+def _in_range(low: float, high: float, found: list[float]) -> bool:
+    """범위형 기대값(_low/_high 쌍)은 구간 포함 여부로 본다."""
+    lo, hi = min(low, high), max(low, high)
+    return any(lo <= v <= hi for v in found)
+
+
+def numeric_accuracy(answer: str, expected_values: dict[str, float]) -> float | None:
+    """expected_values의 각 항목을 답변이 맞힌 비율.
+
+    - `x_low`/`x_high` 쌍은 하나의 항목으로 묶어 구간 포함으로 판정한다.
+    - 나머지는 상대 오차 10% 이내면 정답.
+    - expected_values가 비어 있으면 None (측정 대상 아님).
+
+    수치 정확도가 없으면 정답 일치 계열 지표(token F1·의미 유사도)가 데이터형
+    문항에서 문체 유사도만 재게 된다. 이 지표가 그 구멍을 메운다.
+    """
+    if not expected_values:
+        return None
+
+    found = extract_numbers(answer)
+    checked = 0
+    hit = 0
+    consumed: set[str] = set()
+
+    for key, value in expected_values.items():
+        if key in consumed:
+            continue
+        if key.endswith("_low"):
+            partner = key[: -len("_low")] + "_high"
+            if partner in expected_values:
+                consumed.update({key, partner})
+                checked += 1
+                hit += int(_in_range(value, expected_values[partner], found))
+                continue
+        if key.endswith("_high"):
+            partner = key[: -len("_high")] + "_low"
+            if partner in expected_values:
+                consumed.update({key, partner})
+                checked += 1
+                hit += int(_in_range(expected_values[partner], value, found))
+                continue
+        consumed.add(key)
+        checked += 1
+        hit += int(_matches(value, found))
+
+    return hit / checked if checked else None
+
 
 class L5AnswerMetrics(MetricCalculator):
     """
@@ -77,6 +150,7 @@ class L5AnswerMetrics(MetricCalculator):
         """
         exact_match = self._compute_exact_match(trace, gold)
         token_f1 = self._compute_token_f1(trace, gold)
+        numeric = numeric_accuracy(trace.final_answer, gold.expected_values)
 
         # Semantic similarity (optional)
         semantic_sim = None
@@ -105,6 +179,7 @@ class L5AnswerMetrics(MetricCalculator):
             groundedness_score=groundedness,
             answer_relevance_score=relevance,
             factuality_score=factuality,
+            numeric_accuracy=numeric,
         )
 
     def compute_sync(
@@ -137,6 +212,7 @@ class L5AnswerMetrics(MetricCalculator):
             semantic_similarity=semantic_sim,
             groundedness_score=None,
             answer_relevance_score=None,
+            numeric_accuracy=numeric_accuracy(trace.final_answer, gold.expected_values),
         )
 
     def _compute_exact_match(self, trace: AnswerTrace, gold: GoldEvidence) -> float:

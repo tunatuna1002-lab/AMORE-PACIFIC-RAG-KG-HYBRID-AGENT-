@@ -126,6 +126,30 @@ Human-readable summary including:
 - **Token F1**: Token-level F1 score
 - **Groundedness Score**: LLM judge score for context grounding (optional)
 - **Answer Relevance Score**: LLM judge score for question relevance (optional)
+- **Numeric Accuracy**: `gold.expected_values`의 수치를 답변이 맞힌 비율.
+  상대 오차 10% 이내면 정답, `x_low`/`x_high` 쌍은 구간 포함으로 판정한다.
+  `expected_values`가 없는 문항은 None(측정 대상 아님).
+
+## 골드 층(gold_source)과 채점
+
+`metadata.gold_source`는 골드 수치를 무엇으로 검증할 수 있는지를 말한다
+(`scripts/classify_golden_sources.py`). 층에 따라 게이트 적용 범위가 다르다.
+
+| gold_source | 뜻 | Numeric Accuracy | L5_wrong_answer |
+|---|---|---|---|
+| `document` | 코퍼스 문서 기반, 시간 불변 | 보고만 | 적용 |
+| `snapshot` | `as_of` 시점 크롤 DB 수치 | **게이트 (< 0.50 실패)** | 적용 |
+| `domain_expectation` | DB에도 문서에도 없는 추정치 | 보고만 | **제외** |
+
+`domain_expectation` 문항을 정답 일치 게이트에서 빼는 이유: 원자료로 검증할 수
+없는 골드에 정답 일치를 요구하면 지표가 문체 유사도를 재게 된다. 이 문항들은
+groundedness·relevance로만 판정한다.
+
+Numeric Accuracy는 **종합 점수 공식에는 넣지 않는다.** 적용 대상이 일부 문항이라
+분모가 달라져 문항 간 비교가 깨지기 때문이다. 게이트와 보고 전용이다.
+
+snapshot 문항의 `expected_values`는 `scripts/refresh_golden_snapshot_values.py`가
+`as_of` 시점 DB에서 생성한다. 문항별 조회 SQL이 그 스크립트에 있다.
 
 ## Overall Score
 
@@ -175,7 +199,8 @@ Items are marked as failed if any of these thresholds are violated:
 | KG Edge Recall | < 0.50 | `L3_edge_fail` |
 | Constraint Violation Rate | > 0.05 | `L4_constraint_violation` |
 | Type Consistency Rate | < 0.90 | `L4_type_inconsistency` |
-| Answer F1 | < 0.50 | `L5_wrong_answer` |
+| Answer F1 (domain_expectation 제외) | < 0.50 | `L5_wrong_answer` |
+| Numeric Accuracy (snapshot만) | < 0.50 | `L5_numeric_mismatch` |
 | Groundedness | < 0.70 | `L5_grounding_fail` |
 | Relevance | < 0.70 | `L5_relevance_fail` |
 

@@ -208,6 +208,15 @@ class ReportGenerator:
                 r.l5.groundedness_score for r in results if r.l5.groundedness_score is not None
             )
             / max(1, sum(1 for r in results if r.l5.groundedness_score is not None)),
+            # 수치 정확도는 expected_values가 있는 문항에서만 계산되므로
+            # 그 문항들만의 평균으로 보고한다 (없으면 0.0)
+            "l5_numeric_accuracy": (
+                sum(r.l5.numeric_accuracy for r in results if r.l5.numeric_accuracy is not None)
+                / max(1, sum(1 for r in results if r.l5.numeric_accuracy is not None))
+            ),
+            "l5_numeric_accuracy_items": float(
+                sum(1 for r in results if r.l5.numeric_accuracy is not None)
+            ),
             "l5_relevance": sum(
                 r.l5.answer_relevance_score
                 for r in results
@@ -362,6 +371,11 @@ class ReportGenerator:
         )
         lines.append(f"| L5 | Answer F1 | {by_layer.get('l5_answer_f1', 0):.3f} |")
         lines.append(f"| L5 | Groundedness | {by_layer.get('l5_groundedness', 0):.3f} |")
+        if by_layer.get("l5_numeric_accuracy_items", 0):
+            lines.append(
+                f"| L5 | Numeric Accuracy | {by_layer.get('l5_numeric_accuracy', 0):.3f} "
+                f"({int(by_layer['l5_numeric_accuracy_items'])} items) |"
+            )
         lines.append("")
 
         # Cost Summary (only if cost data exists)

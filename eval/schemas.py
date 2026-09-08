@@ -387,6 +387,15 @@ class L5Metrics(BaseModel):
     factuality_score: float | None = Field(
         default=None, ge=0.0, le=1.0, description="Judge-based factuality (0-1)"
     )
+    numeric_accuracy: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "gold.expected_values의 수치를 답변이 맞힌 비율. "
+            "expected_values가 없으면 None. gold_source=snapshot 문항에만 게이트로 쓴다."
+        ),
+    )
 
 
 # =============================================================================
