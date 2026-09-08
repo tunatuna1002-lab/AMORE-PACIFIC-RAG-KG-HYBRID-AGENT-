@@ -335,3 +335,36 @@ class TestGoldSourceMetadata:
                 assert meta.get("as_of"), f"{row['id']}: snapshot인데 as_of가 없다"
             else:
                 assert "as_of" not in meta, f"{row['id']}: {meta['gold_source']}인데 as_of가 있다"
+
+    def test_snapshot_items_have_db_generated_values(self):
+        """snapshot 문항은 DB에서 생성된 expected_values를 가져야 한다 (4단계).
+
+        예외는 수치를 물어보지 않는 lg079(ASIN 조회)뿐이다. 이 문항은 해당 스냅샷의
+        Top 100에 제품이 없다는 사실 자체가 답이라 수치 기대값이 없다.
+        """
+        import json
+        from pathlib import Path
+
+        path = (
+            Path(__file__).resolve().parents[2]
+            / "eval"
+            / "data"
+            / "golden"
+            / "laneige_golden_v2.jsonl"
+        )
+        rows = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        no_numeric_answer = {"lg079"}
+
+        missing = [
+            row["id"]
+            for row in rows
+            if row["metadata"]["gold_source"] == "snapshot"
+            and not row["gold"].get("expected_values")
+            and row["id"] not in no_numeric_answer
+        ]
+
+        assert not missing, f"expected_values가 비어 있는 snapshot 문항: {missing}"
