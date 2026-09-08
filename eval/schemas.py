@@ -88,6 +88,16 @@ class ItemMetadata(BaseModel):
     difficulty: Literal["easy", "medium", "hard"] = Field(
         default="medium", description="Difficulty level for stratified analysis"
     )
+    # 골드 수치의 출처. 검증 가능한 근거가 무엇이냐에 따라 채점 방식이 갈린다
+    # (scripts/classify_golden_sources.py, 2026-09-06):
+    #   document          — 코퍼스 문서에서 나오고 시간에 따라 변하지 않는 답
+    #   snapshot          — 크롤 DB의 특정 시점 수치 (as_of 필수)
+    #   domain_expectation— DB에도 문서에도 없는 도메인 추정치
+    # 원자료로 검증할 수 없는 골드에 정답 일치를 요구하면 지표가 문체 유사도를 잰다.
+    gold_source: Literal["document", "snapshot", "domain_expectation"] = Field(
+        default="document", description="골드 수치의 검증 근거"
+    )
+    as_of: str | None = Field(default=None, description="snapshot 문항의 기준 시점 (YYYY-MM-DD)")
 
 
 class EvalItem(BaseModel):
