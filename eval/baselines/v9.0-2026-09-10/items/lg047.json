@@ -1,0 +1,137 @@
+{
+  "item_id": "lg047",
+  "question": "CPI와 SoS가 동시에 하락할 때 전략은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.8571428571428571,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1195219123505976,
+    "semantic_similarity": 0.8497970700263977,
+    "groundedness_score": 0.846,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 0.2222222222222222,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.46411680365202485,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail"
+  ],
+  "trace": {
+    "item_id": "lg047",
+    "timestamp": "2026-09-10T11:31:44.291794",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "us_beauty_trends_weekly_3_2",
+        "negative_issue_response_6_0",
+        "laneige_strategy_2026_6_1",
+        "negative_issue_response_1_0",
+        "laneige_strategy_2026_3_1",
+        "laneige_strategy_2026_6_0",
+        "laneige_strategy_2026_3_4",
+        "kbeauty_industry_6_2"
+      ],
+      "snippets": [
+        "l mucin cream” 등을 테스트한다. CPC·전환율을 모니터링해 효율적인 키워드를 선별한다.\n5. **Reddit AMA/소셜 리스닝** – 스킨케어 서브레딧에서 **LANEIGE 개발자 AMA**를 개최하여 소비자의 성분 관련 질문에 답변하고 신뢰를 구축한다. 또한 Reddit 및 TikTok 댓글을 분석해 제품에 대한 불만(예: 끈적임, 향)에 ",
+        "---\n\n**6\\. 위기 벡터 V: 플랫폼 불신과 가품 공포 \\- 공급망(Supply Chain)의 위기**\n\n### **6.1. 이슈의 발단: 아마존의 '복불복' 게임**\n\n코스알엑스(COSRX), 라운드랩, 아누아 등 인기 K-뷰티 제품들이 아마존에서 '가품(Fake)' 논란에 시달리고 있다. 아마존의 재고 혼합(Commingled Inventory) ",
+        "'핑크 펩타이드'는 현재 아마존 내에서 새롭게 부상하는 고효율 키워드이다. 소비자들은 틱톡에서 본 핑크색 세럼을 찾기 위해 이 키워드를 사용하고 있다.8 LANEIGE는 Bouncy & Firm 라인의 핑크색 비주얼 자산을 활용하여 이 키워드에 대한 검색 점유율(Share of Voice)을 높여야 한다. 경쟁사인 Medicube가 해당 키워드를 선점하려 ",
+        "**1\\. 서론: 시장 맥락 및 위기 지형도**\n\n### **1.1. 보고서 개요 및 목적**\n\n본 보고서는 2025년 12월부터 2026년 1월까지 지난 30일간 미국 소셜 미디어(Reddit, TikTok) 및 주요 이커머스(Amazon, Target) 커뮤니티에서 관측된 K-뷰티 및 최신 스킨케어 트렌드 관련 부정적 토픽을 심층 분석한 결과물이다. 본",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "아마존 검색 데이터상에서 소비자들이 \"Pink Serum\" 혹은 \"Pink Peptide\"를 검색할 때, 두 브랜드의 제품이 동시에 노출되는 경향이 짙다. Medicube는 PDRN이라는 트렌디한 성분과 낮은 가격을 앞세우고 있고, LANEIGE는 작약(Peony) 복합체와 브랜드 헤리티지를 강조하고 있다. 이 경쟁에서 승리하기 위해서는 핑크색 제형이 주는",
+        "### 4.2. 중국 집중 전략의 위험성과 추격자들의 위협 \n![image]()\n1. **대기업의 특정 지역 집중 전략 실패**:\n  1. 도전하는 대기업들의 모습은 특정 지역 집중 전략의 위험성을 보여준다 \n  2. 2010년까지 한국 화장품 수출의 <mark>90%</mark>를 차지했던 두 개 대기업의 비중이 이제 <mark>10% 아래</mark>로"
+      ],
+      "scores": [
+        0.3566960096359253,
+        0.33794379234313965,
+        0.33123230934143066,
+        0.32076817750930786,
+        0.3161705732345581,
+        0.3144479990005493,
+        0.3114924430847168,
+        0.3396620750427246
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "# CPI와 SoS가 동시에 하락할 때 전략 제언\n\n## 인사이트\n- CPI(Competitive Price Index)와 SoS(Share of Shelf)가 동시에 하락하는 현상은 가격 경쟁력 약화와 시장 내 제품 가시성 감소가 동시에 발생했을 가능성을 시사합니다.\n- 이 경우, 소비자 인지도 및 구매 전환율 저하로 이어질 수 있어 신속한 대응이 필요할 수 있습니다.\n\n## 근거\n- CPI와 SoS 하락은 제품의 가격 경쟁력과 노출 점유율이 동시에 약화된 상태를 의미할 수 있습니다.\n- 참고 가이드라인에서는 효율적인 키워드 선별과 소비자 신뢰 구축을 위한 Reddit AMA, 소셜 리스닝 대응을 권장하고 있습니다 [출처: rag, Document ID: us_beauty_trends_weekly].\n- 또한, 가품 논란 등 플랫폼 신뢰 문제에 대한 대응도 중요할 수 있음을 시사합니다 [출처: rag, Document ID: negative_issue_response].\n\n## 권장 전략\n1. **키워드 및 광고 효율성 점검 및 개선**  \n   - CPC와 전환율을 모니터링하며 효율적인 키워드를 테스트하여 광고 효율을 높이는 방안을 검토할 수 있습니다.  \n   - 예를 들어, \"mucin cream\" 등 신흥 키워드를 활용해 광고 전략을 다각화하는 것이 도움이 될 수 있습니다 [출처: rag, Document ID: us_beauty_trends_weekly].\n\n2. **소비자 신뢰 회복 및 소통 강화**  \n   - Reddit AMA 등 소비자와 직접 소통하는 채널을 활용해 제품 성분 및 품질에 대한 신뢰를 구축하는 방안을 고려할 수 있습니다.  \n   - 소셜 미디어 댓글 분석을 통해 소비자 불만 사항(예: 끈적임, 향)에 신속히 대응하는 것도 중요합니다 [출처: rag, Document ID: us_beauty_trends_weekly].\n\n3. **플랫폼 신뢰 문제 대응**  \n   - 아마존 내 가품 논란 등 공급망 이슈가 CPI와 SoS 하락에 영향을 미쳤을 가능성을 염두에 두고, 관련 문제에 대한 모니터링과 대응 전략을 마련하는 것이 필요할 수 있습니다 [출처: rag, Document ID: negative_issue_response].\n\n4. **상품 구성 및 번들링 전략 검토**  \n   - 객단가 상승과 소비자 관심 유도를 위해 번들링 상품 구성 전략을 도입하는 방안도 고려할 수 있습니다 [출처: rag, Document ID: laneige_strategy_2026].\n\n## 요약\nCPI와 SoS가 동시에 하락하는 상황에서는 광고 키워드 효율성 개선, 소비자 신뢰 강화, 플랫폼 신뢰 문제 대응, 그리고 번들링 등 상품 전략 다각화가 복합적으로 요구될 수 있습니다. 다만, 단기 노이즈 가능성도 있으므로 추이를 지속 관찰하며 전략을 조정하는 것이 바람직합니다 [출처: rag].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **다음 주 테스트 액션 제안**\n   - 관련도: 0.36\n\n2. 📄 **---**\n   - 관련도: 0.34\n\n3. 📄 **---**\n   - 관련도: 0.33\n\n4. 📄 **4. K-뷰티의 위협 요인과 미래 초격차 전략**\n   - 관련도: 0.34\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3246,
+      "judge_tokens": 6162,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0007852499999999999,
+      "judge_cost_usd": 0.0019305
+    },
+    "latency_ms": 15680.517196655273,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "metric",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "item_id": "lg171",
+  "question": "랜지 립스틱 순위가 왜 이렇게 낮아?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.018433179723502304,
+    "semantic_similarity": 0.46540504693984985,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.49437877373303507,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L5_wrong_answer",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg171",
+    "timestamp": "2026-09-10T11:45:25.633032",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_4_0",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_3_2",
+        "strategic_indicators_3_0",
+        "strategic_indicators_1_1",
+        "home_insight_rules_8",
+        "metric_interpretation_2_1",
+        "metric_interpretation_3_1"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 상황별 심층 분석 II: 랭킹 급등(Sudden Spike)의 원인 역추적**\n\n경쟁사 제품의 BSR이 뚜렷한 이유(가격 인하, 딜 배지 등) 없이 급격히 상승했다면, 이는 외부 트래픽 캠페인이나 정교한 알고리즘 공략 전략이 작동하고 있음을 시사합니다.\n\n### **4.1 외부 트래픽 포렌식 (TikTok & Social Media)**",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **지식 그래프의 모순:** 리스팅에서는 \"조립이 쉽다\"고 주장하지만, 최근 리뷰 데이터에서 \"조립이 악몽 같다\"는 텍스트가 반복되면, 루퍼스는 이를 감지하고 해당 제품의 추천 순위를 낮춥니다.1 이는 별점이 4.5점으로 높더라도 발생할 수 있는 현상입니다.  \n* **진단 조치:** 최근 등록된 10\\~20개의 리뷰를 전수 조사하여, 리스팅의 핵심 소",
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "1.6 Issue Preview (Top 이슈 미리보기)\n\n### 목표\n- Home에서 “최상위 3개”만 미리 노출하고 상세는 L3에서 확인\n\n### 구성(권장)\n- Rank Shock Top 3 (제품명 + 변화폭/날짜)\n- Streak Days Top 3 (제품명 + 연속 체류일)\n\n### 정렬 규칙\n- Rank Shock 리스트: 하락 폭 큰 순(또는",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati"
+      ],
+      "scores": [
+        0.35694313049316406,
+        0.3562363386154175,
+        0.3355838656425476,
+        0.37048864364624023,
+        0.36222898960113525,
+        0.35542893409729004,
+        0.34486210346221924,
+        0.3400961756706238
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 랜지 립스틱 순위 저조 원인 분석\n\n### 인사이트\n- 랜지 립스틱의 아마존 내 베스트셀러 순위가 낮은 현상은 판매 속도 저하, 외부 트래픽 부족, 혹은 리뷰 및 리스팅 품질 문제 등이 복합적으로 작용했을 가능성이 있습니다.\n- 특히 아마존 알고리즘은 판매 속도, 키워드 적합성, 가격 경쟁력, 재고 상태 등을 종합 평가하므로, 이 중 하나 이상의 요소가 순위 하락에 영향을 미쳤을 수 있습니다.\n- 또한, 외부 소셜 미디어(예: TikTok)에서의 화제성 부족도 순위 상승에 부정적 영향을 줄 수 있습니다.\n\n### 근거\n- 아마존 BSR은 최근 판매량과 판매 속도에 높은 가중치를 두고 있으며, 판매 속도가 느려지면 순위가 악화되는 경향이 있습니다【2】.\n- 외부 트래픽 캠페인이나 소셜 미디어 바이럴이 없으면 급격한 순위 상승이 어려운 점도 참고할 필요가 있습니다【1】.\n- 리뷰 데이터와 리스팅 내용 간 불일치가 있을 경우, 알고리즘이 순위를 낮출 가능성도 존재합니다【3】.\n\n### 권장 사항\n- 최근 10~20개 리뷰를 점검하여 제품에 대한 부정적 피드백이나 리스팅과 상충되는 내용이 있는지 확인할 것을 권장합니다.\n- 키워드 최적화, 가격 경쟁력 확보, 재고 관리 상태 점검 등 기본적인 판매 조건을 재검토하는 것이 필요합니다.\n- 외부 소셜 미디어 채널을 통한 마케팅 강화로 트래픽 유입을 늘리는 전략도 고려해볼 수 있습니다.\n\n현재 확인된 데이터 기준으로, 랜지 립스틱 순위 저조의 구체적 수치나 순위 변동 내역은 제공되지 않아 상세 원인 분석에는 한계가 있으니 추가 데이터 확보가 필요합니다【출처: 현재 데이터, rag】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 **---**\n   - 관련도: 0.36\n\n2. 📄 **개요**\n   - 관련도: 0.36\n\n3. 📄 **C. Level 3: Product & Risk**\n   - 관련도: 0.37\n\n4. 📄 **1.6 Issue Preview (Top 이슈 미리보기)**\n   - 관련도: 0.36\n\n5. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.34\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3025,
+      "judge_tokens": 5185,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0006575999999999999,
+      "judge_cost_usd": 0.0015945
+    },
+    "latency_ms": 6923.816204071045,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "edge",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

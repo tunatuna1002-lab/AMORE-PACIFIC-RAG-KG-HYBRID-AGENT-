@@ -36,7 +36,10 @@ LLM_PRICING: dict[str, dict[str, float]] = {
     "gpt-4o": {"input": 2.50, "output": 10.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
     "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
-    # Anthropic
+    # Anthropic (2026-09 공식 요금, per 1M tokens)
+    "claude-opus-5": {"input": 5.00, "output": 25.00},
+    "claude-sonnet-5": {"input": 2.00, "output": 10.00},
+    "claude-haiku-4-5": {"input": 1.00, "output": 5.00},
     "claude-3-5-sonnet-20241022": {"input": 3.00, "output": 15.00},
     "claude-3-5-haiku-20241022": {"input": 1.00, "output": 5.00},
     "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
