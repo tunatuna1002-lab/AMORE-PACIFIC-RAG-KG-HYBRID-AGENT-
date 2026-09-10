@@ -28,6 +28,12 @@ DB에서 `expected_values`를 생성하며, **DB에 값이 없는 문항은 그 
 domain_expectation으로 강등하거나 "해당 기간 데이터 없음"으로 바꾼다.**
 이 스크립트는 값을 만들지 않는다 — 층만 나눈다.
 
+실행 순서
+--------
+이 스크립트 → `scripts/refresh_golden_snapshot_values.py`. 4단계에서 DB에 관측이
+없어 강등된 문항은 `DEMOTED_BY_DATA`에 기록돼 있어, 어느 순서로 다시 돌려도
+결과가 같다(둘 다 멱등).
+
 사용법:
     python3 scripts/classify_golden_sources.py --dry-run
     python3 scripts/classify_golden_sources.py
@@ -236,6 +242,19 @@ CLASSIFICATION: dict[str, tuple[str, str]] = {
     "lg212": (D, "3Q25 립 슬리핑 마스크 신제품 에디션 — IR 원문"),
 }
 
+# 분류상으로는 snapshot이지만, 4단계(refresh_golden_snapshot_values.py)가 as_of 시점의
+# DB에 해당 관측이 없음을 확인해 domain_expectation으로 강등한 문항들.
+# 여기 적어 두지 않으면 이 스크립트를 다시 돌릴 때 강등이 되돌아가고, 두 스크립트가
+# 서로를 덮어쓴다. 분류 판단(CLASSIFICATION)은 그대로 두고 결과만 여기서 보정한다.
+DEMOTED_BY_DATA: dict[str, str] = {
+    "lg077": "product_metrics에 LANEIGE rank_change가 한 건도 없다 (순위 상승 판정 불가)",
+    "lg093": "raw_data.is_subscribe_save가 전부 0이다 (구독 여부 미수집)",
+    "lg175": "지난 3개월(2026-06·07) 월 스냅샷 부재",
+    "lg176": "작년 대비 비교에 필요한 2025-08~11 스냅샷 부재",
+    "lg178": "최근 1년 비교에 필요한 2025-08~11 스냅샷 부재",
+    "lg181": "최근 6개월(2026-05~07) 스냅샷 부재 + lip_care CPI가 NULL",
+}
+
 # 층이 갈릴 수 있는 문항. 판단 근거를 남겨 재검토가 가능하게 한다.
 BORDERLINE: dict[str, str] = {
     "lg054": "SoS-매출 상관. 코퍼스 지표 가이드에 경험칙으로 적혀 있다면 document",
@@ -264,6 +283,8 @@ def apply_classification(rows: list[dict]) -> tuple[list[dict], int]:
     changed = 0
     for row in rows:
         source, _ = CLASSIFICATION[row["id"]]
+        if row["id"] in DEMOTED_BY_DATA:
+            source = X
         meta = row.setdefault("metadata", {})
         as_of = AS_OF if source == "snapshot" else None
         if meta.get("gold_source") != source or meta.get("as_of") != as_of:
@@ -276,8 +297,13 @@ def apply_classification(rows: list[dict]) -> tuple[list[dict], int]:
     return rows, changed
 
 
+def effective_source(item_id: str) -> str:
+    """분류 결과에 4단계의 데이터 기반 강등을 반영한 최종 층."""
+    return X if item_id in DEMOTED_BY_DATA else CLASSIFICATION[item_id][0]
+
+
 def print_distribution(rows: list[dict]) -> None:
-    by_source = collections.Counter(CLASSIFICATION[r["id"]][0] for r in rows)
+    by_source = collections.Counter(effective_source(r["id"]) for r in rows)
     print(f"\n총 {len(rows)}문항")
     print("\n| gold_source | 문항 수 | 비율 |")
     print("|---|---|---|")
@@ -289,12 +315,18 @@ def print_distribution(rows: list[dict]) -> None:
     print("|---|---|---|---|")
     grid: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
     for row in rows:
-        grid[row["metadata"]["domain"]][CLASSIFICATION[row["id"]][0]] += 1
+        grid[row["metadata"]["domain"]][effective_source(row["id"])] += 1
     for domain in sorted(grid):
         c = grid[domain]
         print(f"| {domain} | {c[D]} | {c[S]} | {c[X]} |")
 
     print(f"\nas_of={AS_OF}가 붙는 문항: {by_source[S]}건")
+    print(
+        f"\n분류상 snapshot이나 DB에 관측이 없어 강등된 문항 {len(DEMOTED_BY_DATA)}건 "
+        "(4단계 확인 결과):"
+    )
+    for item_id, why in DEMOTED_BY_DATA.items():
+        print(f"  {item_id} → domain_expectation — {why}")
     print("\n경계 사례 (재검토 대상):")
     for item_id, why in BORDERLINE.items():
         source, reason = CLASSIFICATION[item_id]
