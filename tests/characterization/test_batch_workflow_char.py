@@ -3,11 +3,13 @@ Characterization: src.application.workflows.batch_workflow.BatchWorkflow.run_dai
 
 Injection notes
 ---------------
-BatchWorkflow has no constructor parameters for its agents; they are created
-lazily by properties (``crawler``, ``storage``, ``metrics_agent``,
-``hybrid_insight``, ``hybrid_chatbot``, ``dashboard_exporter``,
-``knowledge_graph``) from private ``_xxx`` slots. We pre-populate those slots
-on the *instance* with fakes (no module-path patching).
+BatchWorkflow resolves its agents lazily through properties (``crawler``,
+``storage``, ``metrics_agent``, ``hybrid_insight``, ``alert_agent``,
+``hybrid_chatbot``, ``dashboard_exporter``, ``knowledge_graph``) from private
+``_xxx`` slots; ``WorkflowDependencies`` (F1) fills the same slots at
+construction time. We pre-populate those slots on the *instance* with fakes
+(no module-path patching). The StateManager (F7) is a tmp_path instance so the
+run never touches ./data/system_state.json.
 
 The mocks in tests/unit/application/conftest.py (MockScraper, MockStorage,
 MockMetricCalculator, MockInsightAgent, ...) model the domain *protocols*
@@ -31,6 +33,7 @@ from typing import Any
 import pytest
 
 from src.application.workflows.batch_workflow import BatchWorkflow
+from src.core.state_manager import StateManager
 from src.ontology.knowledge_graph import KnowledgeGraph
 from tests.characterization.conftest import PROJECT_ROOT
 
@@ -119,6 +122,28 @@ class RecordingChatbot:
         self.data_contexts.append(data)
 
 
+class RecordingAlertAgent:
+    """Fake AlertAgent: ``process_metrics`` + ``send_pending_alerts``.
+
+    ``send_pending_alerts`` returns the *real* AlertAgent shape (``"sent"``, no
+    ``"sent_count"``) so the D6 key fix inside the alert step is exercised.
+    """
+
+    def __init__(self, created: int = 1, sent: int = 1):
+        self.created = created
+        self.sent = sent
+        self.processed: list[dict] = []
+        self.send_calls = 0
+
+    async def process_metrics(self, metrics_data: dict) -> list[dict]:
+        self.processed.append(metrics_data)
+        return [{"type": "rank_change"}] * self.created
+
+    async def send_pending_alerts(self) -> dict[str, Any]:
+        self.send_calls += 1
+        return {"processed": self.created, "sent": self.sent, "failed": 0, "skipped": 0}
+
+
 class FakeExporter:
     def __init__(self):
         self.calls: list[Any] = []
@@ -136,7 +161,11 @@ class FakeExporter:
 def workflow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> BatchWorkflow:
     monkeypatch.chdir(tmp_path)
     kg_path = tmp_path / "kg.json"
-    wf = BatchWorkflow(config_path=CONFIG_PATH, kg_persist_path=str(kg_path))
+    wf = BatchWorkflow(
+        config_path=CONFIG_PATH,
+        kg_persist_path=str(kg_path),
+        state_manager=StateManager(persist_dir=tmp_path / "state"),
+    )
     wf._knowledge_graph = KnowledgeGraph(
         persist_path=str(kg_path), auto_load=False, auto_save=False
     )
@@ -144,6 +173,7 @@ def workflow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> BatchWorkflow:
     wf._storage = RecordingAgent(STORE_RESULT)
     wf._metrics_agent = RecordingAgent(METRICS_RESULT)
     wf._hybrid_insight = RecordingAgent(INSIGHT_RESULT)
+    wf._alert_agent = RecordingAlertAgent()
     wf._hybrid_chatbot = RecordingChatbot()
     wf._dashboard_exporter = FakeExporter()
     return wf
@@ -154,8 +184,11 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
 
     assert result["status"] == "completed"
     assert result["hybrid_mode"] is True
+    # PIN FLIPPED (F1): the result now always carries an "errors" list (D12 partial
+    # crawl / storage errors are surfaced here so CrawlManager can map them).
     assert sorted(result) == [
         "completed_at",
+        "errors",
         "hybrid_mode",
         "metrics",
         "session_id",
@@ -165,14 +198,18 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
         "summary",
         "trace",
     ]
+    assert result["errors"] == []
 
     # Step order and per-step payloads
+    # PIN FLIPPED (F1): the scheduled pipeline now includes the alert step
+    # (AlertAgent.process_metrics + send_pending_alerts) between insight and export.
     assert list(result["steps"]) == [
         "crawl",
         "store",
         "update_kg",
         "calculate",
         "insight",
+        "alert",
         "export",
     ]
     assert all(step["status"] == "completed" for step in result["steps"].values())
@@ -186,6 +223,13 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
     }
     assert result["steps"]["calculate"]["result"] is METRICS_RESULT
     assert result["steps"]["insight"]["result"] is INSIGHT_RESULT
+    # D6: "alerts_sent" is read from AlertAgent's "sent" key (not "sent_count")
+    assert result["steps"]["alert"]["result"] == {
+        "alerts_created": 1,
+        "alerts_sent": 1,
+        "alerts_failed": 0,
+        "alerts_skipped": 0,
+    }
     assert result["steps"]["export"]["result"] == {
         "exported": True,
         "path": "./data/dashboard_data.json",
@@ -201,6 +245,7 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
         "laneige_tracked": 1,
         "categories": ["lip_care"],
         "alerts": 1,
+        "alerts_sent": 1,  # PIN FLIPPED (F1): alert step summary
         "action_items": 1,
         "daily_insight": "LANEIGE leads...",  # always suffixed with "..."
         "dashboard_exported": True,
@@ -240,6 +285,8 @@ async def test_run_daily_workflow_agent_call_shapes(workflow: BatchWorkflow) -> 
             },
         )
     ]
+    assert workflow._alert_agent.processed == [METRICS_RESULT]
+    assert workflow._alert_agent.send_calls == 1
     assert workflow._hybrid_chatbot.data_contexts == [METRICS_RESULT]
     assert workflow._dashboard_exporter.calls == [
         "initialize",
@@ -293,7 +340,8 @@ async def test_get_status_after_run(workflow: BatchWorkflow) -> None:
     # PINS CURRENT BEHAVIOR: ContextManager.start_workflow seeds current_step with
     # the first step, and advance_workflow appends current_step before popping the
     # next one, so "crawl" is recorded twice, "export" is never marked completed
-    # and progress stalls at 6/7 even though the workflow finished.
+    # and progress stalls at 7/8 even though the workflow finished.
+    # PIN FLIPPED (F1): "alert" joined the step list (6/7 -> 7/8).
     assert status["workflow"]["completed_steps"] == [
         "crawl",
         "crawl",
@@ -301,10 +349,11 @@ async def test_get_status_after_run(workflow: BatchWorkflow) -> None:
         "update_kg",
         "calculate",
         "insight",
+        "alert",
     ]
     assert status["workflow"]["current_step"] == "export"
     assert status["workflow"]["pending_steps"] == []
-    assert status["workflow"]["progress"] == "6/7"
+    assert status["workflow"]["progress"] == "7/8"
     assert status["workflow"]["has_errors"] is False
 
 
@@ -326,7 +375,9 @@ async def test_failed_crawl_stops_after_crawl_but_reports_completed(
     assert workflow._storage.calls == []
     assert workflow._metrics_agent.calls == []
     assert workflow._hybrid_insight.calls == []
+    assert workflow._alert_agent.processed == []
     assert workflow._dashboard_exporter.calls == []
+    assert result["errors"] == [result["error"].removeprefix("critical step(s) failed: ")]
     assert result["summary"]["products_crawled"] == 0
     assert result["summary"]["dashboard_exported"] is False
     assert result["summary"]["hybrid"] == {"kg_triples": 0, "inferences": 0, "explanations": 0}
@@ -346,12 +397,14 @@ async def test_agent_exception_marks_step_failed_and_continues(workflow: BatchWo
     assert result["status"] == "failed"
     assert result["error"] == "critical step(s) failed: store: sheets down"
     assert result["steps"]["store"] == {"status": "failed", "error": "sheets down"}
+    assert result["errors"] == ["store: sheets down"]
     assert list(result["steps"]) == [
         "crawl",
         "store",
         "update_kg",
         "calculate",
         "insight",
+        "alert",  # PIN FLIPPED (F1)
         "export",
     ]
     assert workflow.get_status()["workflow"]["has_errors"] is True

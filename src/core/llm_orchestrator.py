@@ -13,7 +13,7 @@ LLM 기반 동적 라우팅 및 도구 선택
 - core/models.py: Context, Response, Decision, ConfidenceLevel
 - core/confidence.py: ConfidenceAssessor
 - core/cache.py: ResponseCache
-- core/state.py: OrchestratorState
+- core/state_manager.py: StateManager (단일 시스템 상태)
 - core/context_gatherer.py: ContextGatherer
 - core/tools.py: ToolExecutor, AGENT_TOOLS
 - core/response_pipeline.py: ResponsePipeline
@@ -32,7 +32,7 @@ from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .models import ConfidenceLevel, Context, Decision, Response
 from .response_pipeline import ResponsePipeline
-from .state import OrchestratorState
+from .state_manager import StateManager, get_state_manager
 from .tools import AGENT_TOOLS, ToolExecutor
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class LLMOrchestrator:
         tool_executor: ToolExecutor | None = None,
         response_pipeline: ResponsePipeline | None = None,
         cache: ResponseCache | None = None,
-        state: OrchestratorState | None = None,
+        state: StateManager | None = None,
         model: str = DEFAULT_MODEL,
     ):
         """
@@ -121,7 +121,7 @@ class LLMOrchestrator:
         self.tool_executor = tool_executor or ToolExecutor()
         self.response_pipeline = response_pipeline or ResponsePipeline()
         self.cache = cache or ResponseCache()
-        self.state = state or OrchestratorState()
+        self.state = state or get_state_manager()
         self.model = model
 
         # 컴포넌트

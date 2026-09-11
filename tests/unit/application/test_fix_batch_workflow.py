@@ -5,7 +5,7 @@ crawl payload said ``status="failed"`` (loop broke after the crawl step) or when
 agent raised (step recorded as failed). Final status is now:
 
 - ``"failed"``  if the crawl step failed or a critical step (crawl, store) raised
-- ``"partial"`` if only non-critical steps (update_kg, calculate, insight, export) failed
+- ``"partial"`` if only non-critical steps (update_kg, calculate, insight, alert, export) failed
 - ``"completed"`` otherwise
 """
 
@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 
 from src.application.workflows.batch_workflow import BatchWorkflow
+from src.core.state_manager import StateManager
 from src.ontology.knowledge_graph import KnowledgeGraph
 from tests.characterization.conftest import PROJECT_ROOT
 from tests.characterization.test_batch_workflow_char import (
@@ -26,6 +27,7 @@ from tests.characterization.test_batch_workflow_char import (
     STORE_RESULT,
     FakeExporter,
     RecordingAgent,
+    RecordingAlertAgent,
     RecordingChatbot,
 )
 
@@ -41,7 +43,11 @@ class Boom:
 def workflow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> BatchWorkflow:
     monkeypatch.chdir(tmp_path)
     kg_path = tmp_path / "kg.json"
-    wf = BatchWorkflow(config_path=CONFIG_PATH, kg_persist_path=str(kg_path))
+    wf = BatchWorkflow(
+        config_path=CONFIG_PATH,
+        kg_persist_path=str(kg_path),
+        state_manager=StateManager(persist_dir=tmp_path / "state"),
+    )
     wf._knowledge_graph = KnowledgeGraph(
         persist_path=str(kg_path), auto_load=False, auto_save=False
     )
@@ -49,6 +55,7 @@ def workflow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> BatchWorkflow:
     wf._storage = RecordingAgent(STORE_RESULT)
     wf._metrics_agent = RecordingAgent(METRICS_RESULT)
     wf._hybrid_insight = RecordingAgent(INSIGHT_RESULT)
+    wf._alert_agent = RecordingAlertAgent()
     wf._hybrid_chatbot = RecordingChatbot()
     wf._dashboard_exporter = FakeExporter()
     return wf
@@ -95,7 +102,16 @@ async def test_raising_storage_reports_failed(workflow: BatchWorkflow) -> None:
     assert "agent down" in result["error"]
     assert result["steps"]["store"] == {"status": "failed", "error": "agent down"}
     # later steps still ran (observe advances regardless)
-    assert list(result["steps"]) == ["crawl", "store", "update_kg", "calculate", "insight", "export"]
+    # F1: the alert step now sits between insight and export
+    assert list(result["steps"]) == [
+        "crawl",
+        "store",
+        "update_kg",
+        "calculate",
+        "insight",
+        "alert",
+        "export",
+    ]
 
 
 @pytest.mark.asyncio

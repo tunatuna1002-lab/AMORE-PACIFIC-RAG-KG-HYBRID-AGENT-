@@ -13,7 +13,7 @@ src/core/crawl_manager.py 커버리지 15% → 50%+ 목표
 - check_sheets_data_exists
 - should_notify, mark_notified
 - get_status_message, get_notification_message
-- start_crawl, _run_crawl (complete lifecycle)
+- start_crawl, _run_crawl (delegates to BatchWorkflow; status mapping)
 - Singleton pattern (get_crawl_manager)
 - Edge cases and error handling
 """
@@ -513,148 +513,166 @@ class TestSaveStateAtomic:
 
 
 # =========================================================================
-# _run_crawl complete lifecycle
+# _run_crawl complete lifecycle (F1: delegates to BatchWorkflow)
 # =========================================================================
+
+
+class FakeWorkflow:
+    """Stand-in for BatchWorkflow: returns a canned run_daily_workflow result."""
+
+    def __init__(self, result: dict, raise_exc: Exception | None = None):
+        self.result = result
+        self.raise_exc = raise_exc
+        self.calls: list[dict] = []
+        self.cleanup_calls = 0
+
+    async def run_daily_workflow(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.raise_exc:
+            raise self.raise_exc
+        callback = kwargs.get("progress_callback")
+        if callback:
+            for step, payload in self.result.get("steps", {}).items():
+                callback(step, payload)
+        return self.result
+
+    async def cleanup(self):
+        self.cleanup_calls += 1
+
+
+def _workflow_result(status: str = "completed", **overrides) -> dict:
+    crawl = {
+        "status": "completed",
+        "total_products": 500,
+        "categories": {
+            "cat1": {"products": [{"name": "p1"}]},
+            "cat2": {"products": [{"name": "p2"}]},
+        },
+        "snapshot_date": "2025-06-15",
+    }
+    result = {
+        "status": status,
+        "errors": [],
+        "steps": {
+            "crawl": {"status": "completed", "result": crawl},
+            "store": {"status": "completed", "result": {"raw_records": 500}},
+            "export": {"status": "completed", "result": {"exported": True}},
+        },
+        "summary": {},
+    }
+    result.update(overrides)
+    return result
 
 
 class TestRunCrawlLifecycle:
     @pytest.mark.asyncio
     async def test_run_crawl_success_flow(self, manager):
-        """Should execute complete crawl workflow successfully"""
+        """Delegates to BatchWorkflow and maps 'completed' -> COMPLETED"""
         fixed_time = datetime(2025, 6, 15, 22, 30, tzinfo=KST)
-
-        # Mock all dependencies
-        mock_crawler = MagicMock()
-        mock_crawler.scraper = MagicMock()
-        mock_crawler.scraper.initialize = AsyncMock()
-        mock_crawler.scraper.close = AsyncMock()
-        mock_crawler.execute = AsyncMock(
-            return_value={
-                "status": "success",
-                "total_products": 500,
-                "categories": {
-                    "cat1": {"products": [{"name": "p1"}]},
-                    "cat2": {"products": [{"name": "p2"}]},
-                },
-                "snapshot_date": "2025-06-15",
-            }
-        )
-
-        mock_storage = MagicMock()
-        mock_storage.execute = AsyncMock(return_value={"raw_records": 500, "errors": []})
-
-        mock_exporter = MagicMock()
-        mock_exporter.initialize = AsyncMock()
-        mock_exporter.export_dashboard_data = AsyncMock()
+        workflow = FakeWorkflow(_workflow_result())
+        manager._workflow_factory = lambda: workflow
 
         mock_brain = MagicMock()
         mock_brain._response_pipeline = MagicMock()
         mock_brain._response_pipeline._cache = MagicMock()
-        mock_brain._response_pipeline._cache.clear = MagicMock()
 
         with (
             patch("src.core.crawl_manager.datetime") as mock_dt,
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent",
-                return_value=mock_crawler,
-            ),
-            patch(
-                "src.infrastructure.container.Container.get_storage_agent",
-                return_value=mock_storage,
-            ),
-            patch(
-                "src.tools.exporters.dashboard_exporter.DashboardExporter",
-                return_value=mock_exporter,
-            ),
-            patch("src.core.brain.get_brain", return_value=mock_brain),
+            patch("src.core.brain.get_brain", AsyncMock(return_value=mock_brain)),
         ):
             mock_dt.now.return_value = fixed_time
-
             await manager._run_crawl()
 
-        # Verify final state
         assert manager.state.status == CrawlStatus.COMPLETED
         assert manager.state.products_collected == 500
         assert manager.state.categories_done == 2
         assert manager.state.progress == 100
         assert manager.state.date == "2025-06-15"
+        assert manager.state.errors == []
+        # single pipeline entry: BatchWorkflow.run_daily_workflow, once, with progress callback
+        assert len(workflow.calls) == 1
+        assert workflow.calls[0]["progress_callback"] == manager._on_workflow_step
+        assert workflow.cleanup_calls == 1
+        mock_brain._response_pipeline._cache.clear.assert_called_once()
 
-        # Verify workflow calls
-        mock_crawler.scraper.initialize.assert_called_once()
-        mock_crawler.execute.assert_called_once()
-        mock_storage.execute.assert_called_once()
-        mock_exporter.export_dashboard_data.assert_called_once()
+    @pytest.mark.asyncio
+    async def test_run_crawl_uses_container_batch_workflow_by_default(self, manager):
+        """Without a factory the workflow comes from Container.get_batch_workflow"""
+        workflow = FakeWorkflow(_workflow_result())
+        with (
+            patch(
+                "src.infrastructure.container.Container.get_batch_workflow",
+                return_value=workflow,
+            ) as get_wf,
+            patch("src.core.brain.get_brain", AsyncMock(return_value=None)),
+        ):
+            await manager._run_crawl()
+
+        assert manager.state.status == CrawlStatus.COMPLETED
+        get_wf.assert_called_once()
+        assert get_wf.call_args.kwargs["state_manager"] is manager.state_manager
+
+    @pytest.mark.asyncio
+    async def test_run_crawl_progress_follows_workflow_steps(self, manager):
+        """progress_callback updates progress/products while the pipeline runs"""
+        workflow = FakeWorkflow(_workflow_result())
+        manager._workflow_factory = lambda: workflow
+        seen: list[int] = []
+        original = manager._on_workflow_step
+
+        def spy(step, payload):
+            original(step, payload)
+            seen.append(manager.state.progress)
+
+        manager._on_workflow_step = spy
+        with patch("src.core.brain.get_brain", AsyncMock(return_value=None)):
+            await manager._run_crawl()
+
+        assert seen == [30, 50, 100]
 
     @pytest.mark.asyncio
     async def test_run_crawl_failure(self, manager):
-        """Should handle crawl failure and set error state"""
+        """'failed' workflow status -> FAILED with the workflow error"""
         fixed_time = datetime(2025, 6, 15, 22, 30, tzinfo=KST)
+        failed = _workflow_result(
+            status="failed",
+            error="critical step(s) failed: crawl: crawler returned status=failed",
+            errors=["crawl: crawler returned status=failed"],
+        )
+        failed["steps"]["crawl"]["result"]["total_products"] = 0
+        manager._workflow_factory = lambda: FakeWorkflow(failed)
+        callback = AsyncMock()
+        manager._on_complete_callback = callback
 
-        mock_crawler = MagicMock()
-        mock_crawler.scraper = MagicMock()
-        mock_crawler.scraper.initialize = AsyncMock()
-        mock_crawler.scraper.close = AsyncMock()
-        mock_crawler.execute = AsyncMock(return_value={"status": "failed"})
-
-        with (
-            patch("src.core.crawl_manager.datetime") as mock_dt,
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent",
-                return_value=mock_crawler,
-            ),
-        ):
+        with patch("src.core.crawl_manager.datetime") as mock_dt:
             mock_dt.now.return_value = fixed_time
-
             await manager._run_crawl()
 
         assert manager.state.status == CrawlStatus.FAILED
-        assert "All categories failed" in manager.state.error
+        assert "crawler returned status=failed" in manager.state.error
+        assert manager.state.errors == ["crawl: crawler returned status=failed"]
+        callback.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_run_crawl_workflow_exception(self, manager):
+        """An exception escaping the workflow -> FAILED, cleanup still runs"""
+        workflow = FakeWorkflow({}, raise_exc=RuntimeError("boom"))
+        manager._workflow_factory = lambda: workflow
+
+        await manager._run_crawl()
+
+        assert manager.state.status == CrawlStatus.FAILED
+        assert "boom" in manager.state.error
+        assert workflow.cleanup_calls == 1
 
     @pytest.mark.asyncio
     async def test_run_crawl_calls_callback(self, manager):
         """Should invoke completion callback after success"""
-        fixed_time = datetime(2025, 6, 15, 22, 30, tzinfo=KST)
         callback = AsyncMock()
         manager._on_complete_callback = callback
+        manager._workflow_factory = lambda: FakeWorkflow(_workflow_result())
 
-        mock_crawler = MagicMock()
-        mock_crawler.scraper = MagicMock()
-        mock_crawler.scraper.initialize = AsyncMock()
-        mock_crawler.scraper.close = AsyncMock()
-        mock_crawler.execute = AsyncMock(
-            return_value={
-                "status": "success",
-                "total_products": 100,
-                "categories": {"cat1": {"products": []}},
-                "snapshot_date": "2025-06-15",
-            }
-        )
-
-        mock_storage = MagicMock()
-        mock_storage.execute = AsyncMock(return_value={"raw_records": 100, "errors": []})
-
-        mock_exporter = MagicMock()
-        mock_exporter.initialize = AsyncMock()
-        mock_exporter.export_dashboard_data = AsyncMock()
-
-        with (
-            patch("src.core.crawl_manager.datetime") as mock_dt,
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent",
-                return_value=mock_crawler,
-            ),
-            patch(
-                "src.infrastructure.container.Container.get_storage_agent",
-                return_value=mock_storage,
-            ),
-            patch(
-                "src.tools.exporters.dashboard_exporter.DashboardExporter",
-                return_value=mock_exporter,
-            ),
-            patch("src.core.brain.get_brain", return_value=None),
-        ):
-            mock_dt.now.return_value = fixed_time
-
+        with patch("src.core.brain.get_brain", AsyncMock(return_value=None)):
             await manager._run_crawl()
 
         callback.assert_called_once()
@@ -662,151 +680,29 @@ class TestRunCrawlLifecycle:
     @pytest.mark.asyncio
     async def test_run_crawl_handles_callback_error(self, manager, caplog):
         """Should continue even if callback fails"""
-        fixed_time = datetime(2025, 6, 15, 22, 30, tzinfo=KST)
         callback = AsyncMock(side_effect=Exception("Callback error"))
         manager._on_complete_callback = callback
+        manager._workflow_factory = lambda: FakeWorkflow(_workflow_result())
 
-        mock_crawler = MagicMock()
-        mock_crawler.scraper = MagicMock()
-        mock_crawler.scraper.initialize = AsyncMock()
-        mock_crawler.scraper.close = AsyncMock()
-        mock_crawler.execute = AsyncMock(
-            return_value={
-                "status": "success",
-                "total_products": 100,
-                "categories": {"cat1": {"products": []}},
-                "snapshot_date": "2025-06-15",
-            }
-        )
-
-        mock_storage = MagicMock()
-        mock_storage.execute = AsyncMock(return_value={"raw_records": 100, "errors": []})
-
-        mock_exporter = MagicMock()
-        mock_exporter.initialize = AsyncMock()
-        mock_exporter.export_dashboard_data = AsyncMock()
-
-        with (
-            patch("src.core.crawl_manager.datetime") as mock_dt,
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent",
-                return_value=mock_crawler,
-            ),
-            patch(
-                "src.infrastructure.container.Container.get_storage_agent",
-                return_value=mock_storage,
-            ),
-            patch(
-                "src.tools.exporters.dashboard_exporter.DashboardExporter",
-                return_value=mock_exporter,
-            ),
-            patch("src.core.brain.get_brain", return_value=None),
-        ):
-            mock_dt.now.return_value = fixed_time
-
+        with patch("src.core.brain.get_brain", AsyncMock(return_value=None)):
             await manager._run_crawl()
 
-        # Should still complete
         assert manager.state.status == CrawlStatus.COMPLETED
         assert "Complete callback error" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_run_crawl_handles_export_failure(self, manager, caplog):
-        """Should continue if dashboard export fails (non-fatal)"""
-        fixed_time = datetime(2025, 6, 15, 22, 30, tzinfo=KST)
+    async def test_run_crawl_partial_from_workflow(self, manager):
+        """'partial' workflow status (e.g. export failed) -> PARTIAL with errors"""
+        partial = _workflow_result(status="partial", errors=["export: Export failed"])
+        partial["steps"]["export"] = {"status": "failed", "error": "Export failed"}
+        manager._workflow_factory = lambda: FakeWorkflow(partial)
 
-        mock_crawler = MagicMock()
-        mock_crawler.scraper = MagicMock()
-        mock_crawler.scraper.initialize = AsyncMock()
-        mock_crawler.scraper.close = AsyncMock()
-        mock_crawler.execute = AsyncMock(
-            return_value={
-                "status": "success",
-                "total_products": 100,
-                "categories": {"cat1": {"products": []}},
-                "snapshot_date": "2025-06-15",
-            }
-        )
-
-        mock_storage = MagicMock()
-        mock_storage.execute = AsyncMock(return_value={"raw_records": 100, "errors": []})
-
-        mock_exporter = MagicMock()
-        mock_exporter.initialize = AsyncMock(side_effect=Exception("Export failed"))
-
-        with (
-            patch("src.core.crawl_manager.datetime") as mock_dt,
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent",
-                return_value=mock_crawler,
-            ),
-            patch(
-                "src.infrastructure.container.Container.get_storage_agent",
-                return_value=mock_storage,
-            ),
-            patch(
-                "src.tools.exporters.dashboard_exporter.DashboardExporter",
-                return_value=mock_exporter,
-            ),
-            patch("src.core.brain.get_brain", return_value=None),
-        ):
-            mock_dt.now.return_value = fixed_time
-
+        with patch("src.core.brain.get_brain", AsyncMock(return_value=None)):
             await manager._run_crawl()
 
-        # Should still complete
-        assert manager.state.status == CrawlStatus.COMPLETED
-        assert "Dashboard export failed (non-fatal)" in caplog.text
-
-    @pytest.mark.asyncio
-    async def test_run_crawl_saves_json_files(self, manager):
-        """Should save crawl results to JSON files"""
-        fixed_time = datetime(2025, 6, 15, 22, 30, tzinfo=KST)
-
-        mock_crawler = MagicMock()
-        mock_crawler.scraper = MagicMock()
-        mock_crawler.scraper.initialize = AsyncMock()
-        mock_crawler.scraper.close = AsyncMock()
-        mock_crawler.execute = AsyncMock(
-            return_value={
-                "status": "success",
-                "total_products": 100,
-                "categories": {"cat1": {"products": [{"name": "p1"}]}},
-                "snapshot_date": "2025-06-15",
-            }
-        )
-
-        mock_storage = MagicMock()
-        mock_storage.execute = AsyncMock(return_value={"raw_records": 100, "errors": []})
-
-        mock_exporter = MagicMock()
-        mock_exporter.initialize = AsyncMock()
-        mock_exporter.export_dashboard_data = AsyncMock()
-
-        with (
-            patch("src.core.crawl_manager.datetime") as mock_dt,
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent",
-                return_value=mock_crawler,
-            ),
-            patch(
-                "src.infrastructure.container.Container.get_storage_agent",
-                return_value=mock_storage,
-            ),
-            patch(
-                "src.tools.exporters.dashboard_exporter.DashboardExporter",
-                return_value=mock_exporter,
-            ),
-            patch("src.core.brain.get_brain", return_value=None),
-            patch("builtins.open", create=True) as mock_open,
-            patch("pathlib.Path.mkdir"),
-        ):
-            mock_dt.now.return_value = fixed_time
-
-            await manager._run_crawl()
-
-        # Should have attempted to write JSON files
-        assert mock_open.called
+        assert manager.state.status == CrawlStatus.PARTIAL
+        assert manager.state.errors == ["export: Export failed"]
+        assert manager.state.products_collected == 500
 
 
 # =========================================================================

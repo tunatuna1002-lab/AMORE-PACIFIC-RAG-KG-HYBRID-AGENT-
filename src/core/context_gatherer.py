@@ -14,7 +14,7 @@ RAG + KG 통합 컨텍스트를 LLM 판단용으로 수집
 - ontology/knowledge_graph.py: KG 직접 조회
 - ontology/reasoner.py: 추론 결과 조회
 - core/models.py: Context, KGFact, SystemState
-- core/state.py: OrchestratorState
+- core/state_manager.py: StateManager (단일 시스템 상태)
 """
 
 import logging
@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any
 
 from .models import Context, KGFact, SystemState
-from .state import OrchestratorState
+from .state_manager import StateManager, get_state_manager
 
 logger = logging.getLogger(__name__)
 
@@ -35,26 +35,33 @@ class ContextGatherer:
     HybridRetriever를 래핑하여 core 모듈의 데이터 모델로 변환.
 
     Usage:
-        gatherer = ContextGatherer(hybrid_retriever, orchestrator_state)
+        gatherer = ContextGatherer(hybrid_retriever, state_manager)
         context = await gatherer.gather(query, entities)
     """
 
     def __init__(
         self,
         hybrid_retriever: Any | None = None,
-        orchestrator_state: OrchestratorState | None = None,
+        state_manager: StateManager | None = None,
         max_rag_docs: int = 5,
         max_kg_facts: int = 10,
+        orchestrator_state: StateManager | None = None,
     ):
         """
         Args:
             hybrid_retriever: HybridRetriever 인스턴스
-            orchestrator_state: 오케스트레이터 상태
+            state_manager: 단일 시스템 상태 (None이면 싱글톤)
             max_rag_docs: RAG 문서 최대 수
             max_kg_facts: KG 사실 최대 수
+            orchestrator_state: (deprecated) ``state_manager`` 의 이전 이름
         """
         self.retriever = hybrid_retriever
-        self.state = orchestrator_state or OrchestratorState()
+        if state_manager is None and orchestrator_state is not None:
+            logger.warning(
+                "ContextGatherer(orchestrator_state=...) is deprecated; use state_manager="
+            )
+            state_manager = orchestrator_state
+        self.state: StateManager = state_manager or get_state_manager()
         self.max_rag_docs = max_rag_docs
         self.max_kg_facts = max_kg_facts
 
@@ -262,9 +269,10 @@ class ContextGatherer:
 
     def _get_system_state(self) -> SystemState:
         """현재 시스템 상태 수집"""
+        freshness = self.state.data_freshness
         return SystemState(
             last_crawl_time=self.state.last_crawl_time,
-            data_freshness=self.state.data_freshness,
+            data_freshness=getattr(freshness, "value", freshness),
             kg_triple_count=self.state.kg_triple_count,
             kg_initialized=self.state.kg_initialized,
         )

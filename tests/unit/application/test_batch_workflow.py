@@ -31,6 +31,7 @@ from src.application.workflows.batch_workflow import (
     WorkflowStatus,
     WorkflowStep,
 )
+from src.core.state_manager import StateManager
 
 # =========================================================================
 # Helper
@@ -47,8 +48,9 @@ def tmp_config(tmp_path):
 
 
 @pytest.fixture
-def workflow(tmp_config, tmp_path):
-    """테스트용 BatchWorkflow (KG 영속화 비활성)"""
+def workflow(tmp_config, tmp_path, monkeypatch):
+    """테스트용 BatchWorkflow (KG 영속화 비활성, ./data 출력은 tmp_path로 격리)"""
+    monkeypatch.chdir(tmp_path)
     kg_path = str(tmp_path / "kg.json")
     with patch("src.application.workflows.batch_workflow.AgentLogger"):
         with patch("src.application.workflows.batch_workflow.ExecutionTracer"):
@@ -59,6 +61,8 @@ def workflow(tmp_config, tmp_path):
                             wf = BatchWorkflow(
                                 config_path=tmp_config,
                                 kg_persist_path=kg_path,
+                                # F7: isolated system state (never touch ./data/system_state.json)
+                                state_manager=StateManager(persist_dir=tmp_path / "state"),
                             )
     return wf
 
@@ -521,7 +525,8 @@ class TestObserve:
             },
         )
         result = await workflow._observe(act)
-        assert result.next_step == WorkflowStep.EXPORT
+        # F1: insight is followed by the alert step, then export
+        assert result.next_step == WorkflowStep.ALERT
         mock_chatbot.set_data_context.assert_called_once()
 
     @pytest.mark.asyncio
@@ -1085,8 +1090,8 @@ class TestObserveLLMBrandVerification:
     @pytest.mark.asyncio
     async def test_observe_crawl_saves_json_file(self, workflow, tmp_path):
         """Test crawl observation saves JSON file"""
-        # Mock the data directory to use tmp_path
-        with patch("pathlib.Path") as mock_path_class:
+        # Mock the data directory to use tmp_path (Path is imported at module level now)
+        with patch("src.application.workflows.batch_workflow.Path") as mock_path_class:
             mock_data_dir = tmp_path / "data"
             mock_data_dir.mkdir(parents=True, exist_ok=True)
             mock_path_class.return_value = mock_data_dir

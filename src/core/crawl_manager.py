@@ -1,12 +1,21 @@
 """
 Crawl Manager
-일일 크롤링 상태 관리 및 백그라운드 크롤링 서비스
+일일 크롤링 **작업 제어** (job control) 및 백그라운드 실행 서비스
 
 플로우:
 1. 첫 질문 시 오늘 데이터 체크
 2. 없으면 백그라운드 크롤링 시작
 3. 크롤링 중에도 과거 데이터로 응답 가능
 4. 완료 시 다음 응답에 알림 포함
+
+책임 분리 (F1/F7):
+- 이 클래스는 작업 제어만 담당한다: 시작/중복 방지/stale lock/진행률/완료 대기/알림,
+  그리고 ``crawl_state.json`` (작업 상태) 영속화.
+- 실제 파이프라인(crawl → store → kg → metrics → insight → alert → export)은
+  ``BatchWorkflow.run_daily_workflow()`` 하나뿐이며, ``_run_crawl`` 은 그 결과의
+  status("completed"/"partial"/"failed")를 ``CrawlStatus`` 로 매핑한다.
+- 데이터 신선도/KG 상태는 ``StateManager`` (``system_state.json``) 가 단일 출처이며
+  BatchWorkflow가 기록한다.
 """
 
 import asyncio
@@ -83,11 +92,54 @@ class CrawlManager:
     STATE_FILE = f"{_get_data_dir()}/crawl_state.json"
     DATA_FILE = f"{_get_data_dir()}/dashboard_data.json"
 
-    def __init__(self):
+    # BatchWorkflow 스텝 -> 진행률(%)
+    STEP_PROGRESS: dict[str, int] = {
+        "crawl": 30,
+        "store": 50,
+        "update_kg": 55,
+        "calculate": 65,
+        "insight": 80,
+        "alert": 90,
+        "export": 100,
+    }
+
+    def __init__(
+        self,
+        state_manager: Any | None = None,
+        workflow_factory: Callable[[], Any] | None = None,
+    ):
+        """
+        Args:
+            state_manager: 단일 시스템 상태 (None이면 싱글톤). BatchWorkflow에 전달된다.
+            workflow_factory: BatchWorkflow 생성 팩토리 (테스트/커스텀 DI용).
+                None이면 ``Container.get_batch_workflow(state_manager=...)``.
+        """
         self.state = CrawlState()
         self._crawl_task: asyncio.Task | None = None
         self._on_complete_callback: Callable | None = None
+        self._state_manager = state_manager
+        self._workflow_factory = workflow_factory
         self._load_state()
+
+    @property
+    def state_manager(self):
+        """단일 시스템 상태 (StateManager)"""
+        if self._state_manager is None:
+            from src.core.state_manager import get_state_manager
+
+            self._state_manager = get_state_manager()
+        return self._state_manager
+
+    def _create_workflow(self):
+        """배치 파이프라인(BatchWorkflow) 생성 — 유일한 파이프라인 진입점"""
+        if self._workflow_factory is not None:
+            return self._workflow_factory()
+
+        from src.infrastructure.container import Container
+
+        return Container.get_batch_workflow(
+            state_manager=self.state_manager, data_dir=_get_data_dir()
+        )
 
     def _load_state(self):
         """저장된 상태 로드"""
@@ -345,11 +397,22 @@ class CrawlManager:
 
         return self.state.status == CrawlStatus.COMPLETED
 
-    async def _run_crawl(self):
-        """실제 크롤링 실행"""
-        from src.infrastructure.container import Container
-        from src.tools.exporters.dashboard_exporter import DashboardExporter
+    def _on_workflow_step(self, step: str, payload: dict[str, Any]) -> None:
+        """BatchWorkflow 진행률 콜백: 작업 상태(progress/products)만 갱신"""
+        if step == "crawl" and payload.get("status") == "completed":
+            crawl_result = payload.get("result") or {}
+            self.state.products_collected = crawl_result.get("total_products", 0)
+            self.state.categories_done = len(crawl_result.get("categories", {}))
+        self.state.progress = self.STEP_PROGRESS.get(step, self.state.progress)
+        self._save_state()
 
+    async def _run_crawl(self):
+        """백그라운드 크롤링 작업 실행 (BatchWorkflow에 위임)
+
+        - 파이프라인 status 매핑: completed → COMPLETED, partial → PARTIAL,
+          그 외(failed) → FAILED. ``result["errors"]`` 는 ``state.errors`` 로 복사된다.
+        - PARTIAL 은 ``needs_crawl()`` 이 재크롤링 대상으로 취급한다 (D12).
+        """
         kst_today = self.get_kst_today()
 
         # 상태 초기화
@@ -363,119 +426,41 @@ class CrawlManager:
 
         logger.info(f"Starting daily crawl for {kst_today} (KST)")
 
+        workflow = None
         try:
-            # 1. 크롤링 실행
-            crawler = Container.get_crawler_agent()
-            await crawler.scraper.initialize()
+            workflow = self._create_workflow()
+            result = await workflow.run_daily_workflow(progress_callback=self._on_workflow_step)
 
-            result = await crawler.execute()
+            crawl_step = (result.get("steps") or {}).get("crawl") or {}
+            crawl_result = crawl_step.get("result") or {}
+            self.state.products_collected = crawl_result.get("total_products", 0)
+            self.state.categories_done = len(crawl_result.get("categories", {}))
+            self.state.errors = [str(e) for e in (result.get("errors") or [])]
 
-            await crawler.scraper.close()
-
-            if result.get("status") == "failed":
-                raise Exception("All categories failed")
-
-            # D12: 크롤러가 일부 카테고리만 성공한 경우("partial") 오류를 기록하고
-            # 최종 상태를 COMPLETED가 아닌 PARTIAL로 마킹한다 (재크롤링 대상).
-            crawl_partial = result.get("status") == "partial"
-            crawl_errors = [str(e) for e in (result.get("errors") or [])]
-            if crawl_partial and not crawl_errors:
-                crawl_errors = ["crawler reported partial result"]
-            if crawl_errors:
-                logger.warning(f"Crawl partial: {crawl_errors}")
-                self.state.errors.extend(crawl_errors)
-
-            self.state.products_collected = result.get("total_products", 0)
-            self.state.categories_done = len(result.get("categories", {}))
-            self.state.progress = 30
-            self._save_state()
-
-            logger.info(f"Crawl completed: {self.state.products_collected} products")
-
-            # 크롤링 원본 데이터를 JSON으로 저장 (Excel export용)
-            try:
-                crawl_json_path = Path(f"{_get_data_dir()}/latest_crawl_result.json")
-
-                # JSON 직렬화 가능한 형태로 변환 (datetime, Decimal 등 처리)
-                def json_serializer(obj):
-                    if hasattr(obj, "isoformat"):
-                        return obj.isoformat()
-                    if hasattr(obj, "__str__"):
-                        return str(obj)
-                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-                with open(crawl_json_path, "w", encoding="utf-8") as f:
-                    json.dump(result, f, ensure_ascii=False, indent=2, default=json_serializer)
-                logger.info(f"Crawl result saved to {crawl_json_path}")
-
-                # 날짜별 히스토리 데이터 저장 (raw_products 폴더)
-                raw_products_dir = Path(f"{_get_data_dir()}/raw_products")
-                raw_products_dir.mkdir(parents=True, exist_ok=True)
-
-                snapshot_date = result.get("snapshot_date", datetime.now(KST).strftime("%Y-%m-%d"))
-                history_path = raw_products_dir / f"{snapshot_date}.json"
-
-                # 모든 카테고리의 제품을 플랫 리스트로 저장
-                all_products = []
-                for cat_id, cat_data in result.get("categories", {}).items():
-                    for product in cat_data.get("products", []):
-                        product["category_id"] = cat_id
-                        all_products.append(product)
-
-                with open(history_path, "w", encoding="utf-8") as f:
-                    json.dump(
-                        all_products, f, ensure_ascii=False, indent=2, default=json_serializer
-                    )
+            workflow_status = result.get("status")
+            if workflow_status == "completed":
+                self.state.status = CrawlStatus.COMPLETED
                 logger.info(
-                    f"Historical data saved to {history_path} ({len(all_products)} products)"
+                    f"Crawl completed for {kst_today}: {self.state.products_collected} products"
                 )
-            except Exception as save_error:
-                logger.error(f"Failed to save crawl result JSON: {save_error}")
-
-            # 2. Google Sheets에 데이터 저장
-            logger.info("Saving data to Google Sheets...")
-            storage = Container.get_storage_agent()
-            storage_result = await storage.execute(result)
-
-            self.state.progress = 60
-            self._save_state()
-
-            storage_errors = [str(e) for e in (storage_result.get("errors") or [])]
-            if storage_errors:
-                logger.warning(f"Storage warnings: {storage_errors}")
-                # D12: 저장 오류는 데이터 유실 가능성이 있으므로 COMPLETED로 취급하지 않음
-                self.state.errors.extend(storage_errors)
-            else:
-                logger.info(
-                    f"Saved {storage_result.get('raw_records', 0)} records to Google Sheets"
-                )
-
-            # 3. Dashboard 데이터 생성 (Google Sheets에서 읽어옴)
-            logger.info("Starting Dashboard data export...")
-            try:
-                exporter = DashboardExporter()
-                logger.info("DashboardExporter created")
-                await exporter.initialize()
-                logger.info("DashboardExporter initialized")
-                await exporter.export_dashboard_data(self.DATA_FILE)
-                logger.info(f"Dashboard data exported to {self.DATA_FILE}")
-            except Exception as export_error:
-                logger.error(f"Dashboard export failed (non-fatal): {export_error}")
-                # 크롤링+저장은 성공 → export 실패는 치명적이지 않으므로 계속 진행
-
-            self.state.progress = 100
-            if crawl_partial or self.state.errors:
+            elif workflow_status == "partial":
                 # D12: 일부 카테고리 실패/저장 오류 -> PARTIAL (needs_crawl()이 재시도)
                 self.state.status = CrawlStatus.PARTIAL
                 logger.warning(
                     f"Crawl finished PARTIAL for {kst_today}: {len(self.state.errors)} error(s)"
                 )
             else:
-                self.state.status = CrawlStatus.COMPLETED
-                logger.info(f"Dashboard data exported for {kst_today}")
+                self.state.status = CrawlStatus.FAILED
+                self.state.error = str(result.get("error") or "batch workflow failed")
+                logger.error(f"Crawl failed for {kst_today}: {self.state.error}")
+
+            self.state.progress = 100
             self.state.completed_at = datetime.now(KST).isoformat()
             self.state.notified_sessions = set()  # 알림 초기화
             self._save_state()
+
+            if self.state.status is CrawlStatus.FAILED:
+                return
 
             # Brain 캐시 무효화
             try:
@@ -501,6 +486,14 @@ class CrawlManager:
             self.state.error = str(e)
             self.state.completed_at = datetime.now(KST).isoformat()
             self._save_state()
+
+        finally:
+            cleanup = getattr(workflow, "cleanup", None)
+            if callable(cleanup):
+                try:
+                    await cleanup()
+                except Exception as e:
+                    logger.warning(f"Workflow cleanup failed (ignored): {e}")
 
     def get_status_message(self) -> str:
         """현재 상태 메시지 반환"""

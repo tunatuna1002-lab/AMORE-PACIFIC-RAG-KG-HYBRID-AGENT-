@@ -3,25 +3,33 @@ Batch Workflow Orchestrator
 ============================
 배치 워크플로우 전용 오케스트레이터 (Think-Act-Observe 루프)
 
-NOTE: This is now the canonical location for BatchWorkflow.
-Previously located at src/core/batch_workflow.py - moved to application/ layer
-to follow Clean Architecture principles.
+이 모듈은 **유일한** 배치 파이프라인 진입점입니다 (F1). 스케줄러(UnifiedBrain →
+CrawlManager), 독립 실행 스크립트(scripts/daily_crawl.py), CLI(main.py)는 모두
+``BatchWorkflow.run_daily_workflow()`` 를 호출합니다.
 
 역할:
 - 일일 크롤링 워크플로우 실행
-- 에이전트 순차 호출 (Crawl → Store → KG → Calculate → Insight → Export)
+- 에이전트 순차 호출 (Crawl → Store → KG → Calculate → Insight → Alert → Export)
 - Knowledge Graph 관리
+- 시스템 상태(StateManager) 기록 (F7: 단일 시스템 상태)
 
-이 모듈은 예약된 배치 작업 실행에 특화되어 있습니다.
 챗봇/질의 처리는 core/brain.py (UnifiedBrain)를 사용합니다.
 
 Workflow Steps:
-1. Crawl: Amazon 베스트셀러 크롤링
+1. Crawl: Amazon 베스트셀러 크롤링 (+ 크롤링 스냅샷 JSON 덤프)
 2. Store: Google Sheets 저장
 3. Update KG: Knowledge Graph 업데이트 (하이브리드 모드)
 4. Calculate: 지표 계산 (SoS, HHI, CPI 등)
 5. Insight: 하이브리드 인사이트 생성 (Ontology + RAG + LLM)
-6. Export: 대시보드 데이터 내보내기
+6. Alert: 순위 변동 알림 생성 + 발송 (AlertAgent)
+7. Export: 대시보드 데이터 내보내기
+
+최종 상태:
+- "completed": 실패 없음
+- "partial": 비크리티컬 스텝(update_kg/calculate/insight/alert/export) 실패,
+             크롤러가 status="partial" 을 반환, 또는 저장 오류 목록이 존재
+- "failed": 크리티컬 스텝(crawl/store) 실패
+``result["errors"]`` 에 모든 오류가 ``"<step>: <message>"`` 형태로 나열됩니다.
 
 Usage:
     from src.application.workflows.batch_workflow import BatchWorkflow, run_full_workflow
@@ -29,24 +37,32 @@ Usage:
     # 전체 워크플로우 실행
     results = await run_full_workflow()
 
-    # 커스텀 워크플로우
-    workflow = BatchWorkflow()
-    results = await workflow.run_daily_workflow(categories=["Beauty & Personal Care"])
+    # 의존성 주입 (테스트 / 드라이런)
+    deps = WorkflowDependencies(crawler=FakeCrawler())
+    workflow = BatchWorkflow(deps=deps)
+    results = await workflow.run_daily_workflow(categories=["lip_care"])
 """
 
+from __future__ import annotations
+
+import copy
 import json
+import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, ClassVar
 
-if TYPE_CHECKING:
-    pass
-
-# UnifiedBrain (챗봇 질의 처리용)
 from src.core.brain import get_brain
-
-# Agent Protocols (for type hints)
+from src.core.state_manager import StateManager, get_state_manager
+from src.domain.interfaces.agent import (
+    CrawlerAgentProtocol,
+    InsightAgentProtocol,
+    MetricsAgentProtocol,
+    StorageAgentProtocol,
+)
 from src.memory.context import ContextManager
 from src.memory.history import HistoryManager
 from src.memory.session import SessionManager
@@ -54,19 +70,32 @@ from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
 from src.ontology.business_rules import register_all_rules
-
-# Ontology Components (신규)
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
-from src.tools.exporters.dashboard_exporter import DashboardExporter
+
+if TYPE_CHECKING:
+    from src.tools.exporters.dashboard_exporter import DashboardExporter
+
+# 스텝별 진행률 콜백 시그니처: (step_name, step_payload)
+ProgressCallback = Callable[[str, dict[str, Any]], Any]
+
+
+def _default_data_dir() -> str:
+    """Railway Volume(/data) 또는 로컬(./data) 데이터 디렉토리"""
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        return "/data"
+    return "./data"
+
+
+def _json_default(obj: Any) -> Any:
+    """datetime / Decimal 등 JSON 직렬화 불가 객체 처리"""
+    if hasattr(obj, "isoformat"):
+        return obj.isoformat()
+    return str(obj)
+
 
 # =========================================================================
-# DI Classes (kept for future refactoring)
-# =========================================================================
-# These classes represent the Clean Architecture DI pattern and are kept
-# for future migration towards full dependency injection. Currently, the
-# BatchWorkflow class below uses direct instantiation, but these provide
-# a blueprint for eventual refactoring.
+# Result / DI types
 # =========================================================================
 
 
@@ -74,12 +103,13 @@ class WorkflowStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
+    PARTIAL = "partial"
     FAILED = "failed"
 
 
 @dataclass
 class WorkflowResult:
-    """워크플로우 실행 결과 (DI 버전 - 향후 마이그레이션용)"""
+    """워크플로우 실행 결과 (구조화 버전)"""
 
     status: WorkflowStatus
     started_at: datetime
@@ -103,24 +133,52 @@ class WorkflowResult:
 
 @dataclass
 class WorkflowDependencies:
-    """워크플로우 의존성 컨테이너 (DI - 향후 마이그레이션용)"""
+    """워크플로우 의존성 컨테이너 (DI)
 
-    from src.domain.interfaces.agent import (
-        CrawlerAgentProtocol,
-        InsightAgentProtocol,
-        MetricsAgentProtocol,
-        StorageAgentProtocol,
+    모든 컴포넌트는 선택 사항입니다. ``None`` 인 컴포넌트는 BatchWorkflow가 처음
+    접근하는 시점에 ``from_container()`` 로 **하나씩** 지연 해석합니다.
+    (application 레이어는 infrastructure를 import 시점에 알지 못합니다.)
+    """
+
+    COMPONENTS: ClassVar[tuple[str, ...]] = (
+        "crawler",
+        "storage",
+        "metrics",
+        "insight",
+        "alert",
+        "exporter",
+        "chatbot",
     )
 
-    crawler: CrawlerAgentProtocol
-    storage: StorageAgentProtocol
-    metrics: MetricsAgentProtocol
+    crawler: CrawlerAgentProtocol | None = None
+    storage: StorageAgentProtocol | None = None
+    metrics: MetricsAgentProtocol | None = None
     insight: InsightAgentProtocol | None = None
+    alert: Any | None = None
+    exporter: Any | None = None
+    chatbot: Any | None = None
+    knowledge_graph: KnowledgeGraph | None = None
     categories: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_container(
+        cls, only: tuple[str, ...] | None = None, **context: Any
+    ) -> WorkflowDependencies:
+        """infrastructure DI 컨테이너에서 의존성 해석 (지연 import)
+
+        Args:
+            only: 해석할 컴포넌트 이름 목록 (None이면 전체)
+            **context: 컴포넌트 생성에 필요한 컨텍스트 (config_path, spreadsheet_id,
+                model, tracer, metrics, knowledge_graph, reasoner, context_manager,
+                state_manager ...)
+        """
+        from src.infrastructure.container import Container
+
+        return Container.build_workflow_dependencies(only=only, **context)
 
 
 # =========================================================================
-# Production BatchWorkflow Implementation
+# Think-Act-Observe types
 # =========================================================================
 
 
@@ -129,9 +187,10 @@ class WorkflowStep(Enum):
 
     CRAWL = "crawl"
     STORE = "store"
-    UPDATE_KG = "update_kg"  # 신규: Knowledge Graph 업데이트
+    UPDATE_KG = "update_kg"
     CALCULATE = "calculate"
     INSIGHT = "insight"
+    ALERT = "alert"
     EXPORT = "export"
     COMPLETE = "complete"
 
@@ -165,30 +224,47 @@ class ObserveResult:
     next_step: WorkflowStep | None = None
 
 
+# =========================================================================
+# BatchWorkflow
+# =========================================================================
+
+
 class BatchWorkflow:
     """
     배치 워크플로우 전용 오케스트레이터 (Think-Act-Observe 루프)
 
     워크플로우:
-    1. Crawl: Amazon 베스트셀러 크롤링
-    2. Store: Google Sheets 저장
-    3. Update KG: Knowledge Graph 업데이트
-    4. Calculate: 지표 계산
-    5. Insight: 하이브리드 인사이트 생성 (Ontology + RAG + LLM)
-    6. Export: 대시보드 데이터 내보내기
+    1. Crawl → 2. Store → 3. Update KG → 4. Calculate → 5. Insight → 6. Alert → 7. Export
 
     참고:
-    - 챗봇/질의 처리는 chat() 메서드가 통합 오케스트레이터로 위임
-    - 이 클래스는 배치 워크플로우 실행에 집중
+    - 챗봇/질의 처리는 chat() 메서드가 UnifiedBrain으로 위임
+    - 크롤링/지표/KG 진행 상황은 StateManager(단일 시스템 상태)에 기록
     """
+
+    # 실패 시 워크플로우 전체를 실패로 간주하는 스텝 (데이터 수집/저장)
+    CRITICAL_STEPS: tuple[str, ...] = (WorkflowStep.CRAWL.value, WorkflowStep.STORE.value)
+
+    # 의존성 이름 -> 내부 슬롯
+    _DEP_SLOTS: dict[str, str] = {
+        "crawler": "_crawler",
+        "storage": "_storage",
+        "metrics": "_metrics_agent",
+        "insight": "_hybrid_insight",
+        "alert": "_alert_agent",
+        "exporter": "_dashboard_exporter",
+        "chatbot": "_hybrid_chatbot",
+    }
 
     def __init__(
         self,
         config_path: str = "./config/thresholds.json",
         spreadsheet_id: str | None = None,
         model: str = "gpt-4.1-mini",
-        use_hybrid: bool = True,  # 신규: 하이브리드 모드 사용
-        kg_persist_path: str | None = "./data/knowledge_graph.json",  # 신규
+        use_hybrid: bool = True,
+        kg_persist_path: str | None = "./data/knowledge_graph.json",
+        deps: WorkflowDependencies | None = None,
+        state_manager: StateManager | None = None,
+        data_dir: str | None = None,
     ):
         """
         Args:
@@ -197,6 +273,9 @@ class BatchWorkflow:
             model: LLM 모델
             use_hybrid: 하이브리드 에이전트 사용 여부
             kg_persist_path: Knowledge Graph 영속화 경로
+            deps: 주입할 의존성 (None인 항목은 Container에서 지연 해석)
+            state_manager: 시스템 상태 (None이면 싱글톤)
+            data_dir: 대시보드/크롤링 스냅샷 출력 디렉토리 (기본: ./data, Railway: /data)
         """
         # 모니터링 컴포넌트 (설정 로드보다 먼저 초기화 — _load_config에서 사용)
         self.logger = AgentLogger("batch_workflow")
@@ -207,6 +286,7 @@ class BatchWorkflow:
         self.spreadsheet_id = spreadsheet_id
         self.model = model
         self.use_hybrid = use_hybrid
+        self.data_dir = data_dir or _default_data_dir()
         self.tracer = ExecutionTracer()
         self.metrics = QualityMetrics()
 
@@ -215,22 +295,24 @@ class BatchWorkflow:
         self.history_manager = HistoryManager()
         self.context_manager = ContextManager()
 
-        # =========================================================================
-        # Ontology 컴포넌트 (신규)
-        # =========================================================================
-        self._knowledge_graph: KnowledgeGraph | None = None
+        # 시스템 상태 (F7)
+        self._state_manager = state_manager
+
+        # Ontology 컴포넌트
+        deps = deps or WorkflowDependencies()
+        self._deps = deps
+        self._knowledge_graph: KnowledgeGraph | None = deps.knowledge_graph
         self._reasoner: OntologyReasoner | None = None
         self._kg_persist_path = kg_persist_path
 
-        # 에이전트 (lazy initialization)
-        self._crawler = None
-        self._storage = None
-        self._metrics_agent = None
-        self._dashboard_exporter: DashboardExporter | None = None
-
-        # Hybrid 에이전트
-        self._hybrid_insight = None
-        self._hybrid_chatbot = None
+        # 에이전트 (주입 또는 lazy 해석)
+        self._crawler = deps.crawler
+        self._storage = deps.storage
+        self._metrics_agent = deps.metrics
+        self._hybrid_insight = deps.insight
+        self._alert_agent = deps.alert
+        self._dashboard_exporter: DashboardExporter | None = deps.exporter
+        self._hybrid_chatbot = deps.chatbot
 
         # 현재 상태
         self._current_step = WorkflowStep.CRAWL
@@ -247,7 +329,18 @@ class BatchWorkflow:
             return {}
 
     # =========================================================================
-    # Ontology 컴포넌트 (신규)
+    # 시스템 상태 (F7)
+    # =========================================================================
+
+    @property
+    def state_manager(self) -> StateManager:
+        """단일 시스템 상태 (StateManager)"""
+        if self._state_manager is None:
+            self._state_manager = get_state_manager()
+        return self._state_manager
+
+    # =========================================================================
+    # Ontology 컴포넌트
     # =========================================================================
 
     @property
@@ -263,98 +356,79 @@ class BatchWorkflow:
         """Ontology Reasoner (공유 인스턴스)"""
         if self._reasoner is None:
             self._reasoner = OntologyReasoner(self.knowledge_graph)
-            # 비즈니스 규칙 등록
             register_all_rules(self._reasoner)
             self.logger.info(f"Reasoner initialized with {len(self._reasoner.rules)} rules")
         return self._reasoner
 
     # =========================================================================
-    # 기존 에이전트 초기화 (Lazy)
+    # 의존성 지연 해석
     # =========================================================================
+
+    def _dependency_context(self, name: str) -> dict[str, Any]:
+        """컴포넌트 생성에 필요한 컨텍스트 (컴포넌트별 최소한만 전달)"""
+        context: dict[str, Any] = {
+            "config_path": self.config_path,
+            "spreadsheet_id": self.spreadsheet_id,
+            "model": self.model,
+            "tracer": self.tracer,
+            "metrics": self.metrics,
+        }
+        if name in ("insight", "chatbot"):
+            context["knowledge_graph"] = self.knowledge_graph
+            context["reasoner"] = self.reasoner
+        if name == "chatbot":
+            context["context_manager"] = self.context_manager
+        if name == "alert":
+            context["state_manager"] = self.state_manager
+        return context
+
+    def _resolve(self, name: str) -> Any:
+        """누락된 의존성을 Container에서 하나만 해석하여 캐시"""
+        slot = self._DEP_SLOTS[name]
+        current = getattr(self, slot)
+        if current is None:
+            resolved = WorkflowDependencies.from_container(
+                only=(name,), **self._dependency_context(name)
+            )
+            current = getattr(resolved, name)
+            setattr(self, slot, current)
+            setattr(self._deps, name, current)
+        return current
 
     @property
     def crawler(self):
-        if self._crawler is None:
-            from src.agents.crawler_agent import CrawlerAgent
-
-            self._crawler = CrawlerAgent(
-                config_path=self.config_path,
-                logger=AgentLogger("crawler"),
-                tracer=self.tracer,
-                metrics=self.metrics,
-            )
-        return self._crawler
+        return self._resolve("crawler")
 
     @property
     def storage(self):
-        if self._storage is None:
-            from src.infrastructure.container import Container
-
-            self._storage = Container.get_storage_agent(
-                spreadsheet_id=self.spreadsheet_id,
-                logger=AgentLogger("storage"),
-                tracer=self.tracer,
-                metrics=self.metrics,
-            )
-        return self._storage
+        return self._resolve("storage")
 
     @property
     def metrics_agent(self):
-        if self._metrics_agent is None:
-            from src.infrastructure.container import Container
-
-            self._metrics_agent = Container.get_metrics_agent(
-                config_path=self.config_path,
-                logger=AgentLogger("metrics"),
-                tracer=self.tracer,
-                metrics=self.metrics,
-            )
-        return self._metrics_agent
-
-    # =========================================================================
-    # Hybrid 에이전트 초기화
-    # =========================================================================
+        return self._resolve("metrics")
 
     @property
     def hybrid_insight(self):
         """하이브리드 인사이트 에이전트"""
-        if self._hybrid_insight is None:
-            from src.agents.hybrid_insight_agent import HybridInsightAgent
+        return self._resolve("insight")
 
-            self._hybrid_insight = HybridInsightAgent(
-                model=self.model,
-                docs_dir=".",
-                knowledge_graph=self.knowledge_graph,
-                reasoner=self.reasoner,
-                logger=AgentLogger("hybrid_insight"),
-                tracer=self.tracer,
-                metrics=self.metrics,
-            )
-        return self._hybrid_insight
+    @property
+    def alert_agent(self):
+        """알림 에이전트 (AlertAgent)"""
+        return self._resolve("alert")
 
     @property
     def hybrid_chatbot(self):
         """하이브리드 챗봇 에이전트"""
-        if self._hybrid_chatbot is None:
-            from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
-
-            self._hybrid_chatbot = HybridChatbotAgent(
-                model=self.model,
-                docs_dir=".",
-                knowledge_graph=self.knowledge_graph,
-                reasoner=self.reasoner,
-                logger=AgentLogger("hybrid_chatbot"),
-                tracer=self.tracer,
-                metrics=self.metrics,
-                context_manager=self.context_manager,
-            )
-        return self._hybrid_chatbot
+        return self._resolve("chatbot")
 
     @property
     def dashboard_exporter(self) -> DashboardExporter:
-        if self._dashboard_exporter is None:
-            self._dashboard_exporter = DashboardExporter(spreadsheet_id=self.spreadsheet_id)
-        return self._dashboard_exporter
+        return self._resolve("exporter")
+
+    # =========================================================================
+    # 후처리 헬퍼
+    # =========================================================================
 
     async def _verify_unknown_brands(self) -> dict[str, Any]:
         """
@@ -366,7 +440,6 @@ class BatchWorkflow:
         try:
             from src.tools.utilities.brand_resolver import get_brand_resolver
 
-            # 크롤링 결과에서 제품 목록 추출
             crawl_result = self._state.get("crawl_result", {})
             all_products = []
 
@@ -379,7 +452,6 @@ class BatchWorkflow:
                 self.logger.info("No products to verify brands")
                 return {"verified_count": 0, "skipped": True}
 
-            # Unknown 브랜드 검증
             resolver = get_brand_resolver()
             result = await resolver.verify_unknown_brands(
                 products=all_products,
@@ -415,13 +487,11 @@ class BatchWorkflow:
 
             self.logger.info("Starting Google Sheets → SQLite auto-sync")
 
-            # Google Sheets 연결
             sheets = SheetsWriter(spreadsheet_id=self.spreadsheet_id)
             if not await sheets.initialize():
                 self.logger.warning("Google Sheets connection failed for sync")
                 return {"synced_count": 0, "error": "Sheets connection failed"}
 
-            # SQLite 연결
             sqlite = SQLiteStorage()
             if not await sqlite.initialize():
                 self.logger.warning("SQLite connection failed for sync")
@@ -434,7 +504,6 @@ class BatchWorkflow:
                 self.logger.info("No records to sync from Sheets")
                 return {"synced_count": 0, "message": "No records"}
 
-            # SQLite에 삽입 (ON CONFLICT 처리로 중복 방지)
             result = await sqlite.append_rank_records(records)
 
             synced_count = result.get("rows_added", 0)
@@ -452,21 +521,81 @@ class BatchWorkflow:
             self.logger.error(f"Sheets → SQLite sync failed: {e}", exc_info=True)
             return {"synced_count": 0, "error": str(e)}
 
+    def _dump_crawl_snapshot(self, result: dict[str, Any]) -> list[str]:
+        """크롤링 원본을 JSON으로 덤프 (단일 위치, CrawlManager에서 이동)
+
+        - ``<data_dir>/latest_crawl_result.json``: 전체 payload (Excel export용)
+        - ``<data_dir>/raw_products/<snapshot_date>.json``: 카테고리별 제품을 평탄화한
+          히스토리 (원본 payload는 변경하지 않음)
+        """
+        observations: list[str] = []
+        data_dir = Path(self.data_dir)
+        try:
+            data_dir.mkdir(parents=True, exist_ok=True)
+            crawl_json_path = data_dir / "latest_crawl_result.json"
+            with open(crawl_json_path, "w", encoding="utf-8") as f:
+                json.dump(result, f, ensure_ascii=False, indent=2, default=_json_default)
+            self.logger.info(f"Crawl result saved to {crawl_json_path}")
+            observations.append(f"크롤링 원본 저장: {crawl_json_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to save crawl result JSON: {e}")
+
+        try:
+            raw_products_dir = data_dir / "raw_products"
+            raw_products_dir.mkdir(parents=True, exist_ok=True)
+            snapshot_date = result.get("snapshot_date") or datetime.now().strftime("%Y-%m-%d")
+            history_path = raw_products_dir / f"{snapshot_date}.json"
+
+            all_products = []
+            for cat_id, cat_data in result.get("categories", {}).items():
+                for product in cat_data.get("products", []):
+                    all_products.append({**copy.deepcopy(product), "category_id": cat_id})
+
+            with open(history_path, "w", encoding="utf-8") as f:
+                json.dump(all_products, f, ensure_ascii=False, indent=2, default=_json_default)
+            self.logger.info(
+                f"Historical data saved to {history_path} ({len(all_products)} products)"
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to save crawl history JSON: {e}")
+
+        return observations
+
     # =========================================================================
     # 워크플로우 실행
     # =========================================================================
 
-    async def run_daily_workflow(self, categories: list[str] | None = None) -> dict[str, Any]:
+    def _workflow_steps(self) -> list[str]:
+        steps = [WorkflowStep.CRAWL.value, WorkflowStep.STORE.value]
+        if self.use_hybrid:
+            steps.append(WorkflowStep.UPDATE_KG.value)
+        steps.extend(
+            [
+                WorkflowStep.CALCULATE.value,
+                WorkflowStep.INSIGHT.value,
+                WorkflowStep.ALERT.value,
+                WorkflowStep.EXPORT.value,
+            ]
+        )
+        return steps
+
+    async def run_daily_workflow(
+        self,
+        categories: list[str] | None = None,
+        crawl_only: bool = False,
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
         """
         일일 워크플로우 실행
 
         Args:
             categories: 크롤링할 카테고리 (None이면 전체)
+            crawl_only: True면 크롤링(+스냅샷 덤프) 후 종료
+            progress_callback: 스텝 완료마다 호출 ``(step_name, step_payload)``
 
         Returns:
-            워크플로우 결과
+            워크플로우 결과 (``status``, ``steps``, ``errors``, ``summary`` ...)
         """
-        # 세션 시작
         self._session_id = self.session_manager.create_session()
         self.tracer.start_trace(self._session_id)
         self.metrics.start_session()
@@ -475,35 +604,17 @@ class BatchWorkflow:
             f"Starting daily workflow - Session: {self._session_id}, Hybrid: {self.use_hybrid}"
         )
 
-        # 워크플로우 스텝 정의 (하이브리드 모드에 따라 다름)
-        if self.use_hybrid:
-            workflow_steps = [
-                WorkflowStep.CRAWL.value,
-                WorkflowStep.STORE.value,
-                WorkflowStep.UPDATE_KG.value,  # 신규
-                WorkflowStep.CALCULATE.value,
-                WorkflowStep.INSIGHT.value,
-                WorkflowStep.EXPORT.value,
-            ]
-        else:
-            workflow_steps = [
-                WorkflowStep.CRAWL.value,
-                WorkflowStep.STORE.value,
-                WorkflowStep.CALCULATE.value,
-                WorkflowStep.INSIGHT.value,
-                WorkflowStep.EXPORT.value,
-            ]
-
-        self.context_manager.start_workflow(workflow_steps)
+        self.context_manager.start_workflow(self._workflow_steps())
 
         self._current_step = WorkflowStep.CRAWL
         self._state = {"categories": categories}
 
-        results = {
+        results: dict[str, Any] = {
             "session_id": self._session_id,
             "started_at": datetime.now().isoformat(),
             "steps": {},
             "status": "running",
+            "errors": [],
             "hybrid_mode": self.use_hybrid,
         }
 
@@ -540,12 +651,14 @@ class BatchWorkflow:
 
                 # Observe
                 observe_result = await self._observe(act_result)
-
-                # 상태 업데이트
                 self._state.update(observe_result.state_updates)
 
+                self._notify_progress(progress_callback, step_name, results["steps"][step_name])
+
                 # 다음 스텝
-                if observe_result.next_step:
+                if crawl_only and step_name == WorkflowStep.CRAWL.value:
+                    self._current_step = WorkflowStep.COMPLETE
+                elif observe_result.next_step:
                     self._current_step = observe_result.next_step
                     self.context_manager.advance_workflow(act_result.result)
                 else:
@@ -553,27 +666,25 @@ class BatchWorkflow:
 
                 self.logger.workflow_step(step_name, "complete")
 
-            # 완료 상태 판정 (D27): 크리티컬 스텝 실패 -> failed, 비크리티컬 실패 -> partial
-            final_status, status_error = self._resolve_final_status(results["steps"])
+            # 완료 상태 판정 (D27/D12)
+            final_status, status_error, errors = self._resolve_final_status(results["steps"])
             results["status"] = final_status
+            results["errors"] = errors
             if status_error:
                 results["error"] = status_error
             results["completed_at"] = datetime.now().isoformat()
 
-            # 최종 결과
             results["summary"] = self._generate_summary()
 
             # Knowledge Graph 저장 및 자동 백업
-            if self.use_hybrid and self._knowledge_graph:
+            if self.use_hybrid and self._knowledge_graph and not crawl_only:
                 self._knowledge_graph.save()
                 self.logger.info("Knowledge Graph saved")
 
-                # 자동 백업 (일 1회, 7일 롤링 보관)
                 try:
                     from src.tools.utilities.kg_backup import get_kg_backup_service
 
-                    backup_service = get_kg_backup_service()
-                    backup_path = backup_service.auto_backup()
+                    backup_path = get_kg_backup_service().auto_backup()
                     if backup_path:
                         self.logger.info(f"KG auto-backup created: {backup_path}")
                 except Exception as e:
@@ -583,69 +694,90 @@ class BatchWorkflow:
             self.logger.error(f"Workflow failed: {e}", exc_info=True)
             results["status"] = "failed"
             results["error"] = str(e)
+            results["errors"] = [*results.get("errors", []), f"workflow: {e}"]
 
         finally:
-            # 세션 종료
             session_summary = self.session_manager.end_session(self._session_id)
             self.history_manager.add_execution(session_summary)
 
-            trace_summary = self.tracer.end_trace()
-            metrics_summary = self.metrics.end_session(results["status"])
-
-            results["trace"] = trace_summary
-            results["metrics"] = metrics_summary
+            results["trace"] = self.tracer.end_trace()
+            results["metrics"] = self.metrics.end_session(results["status"])
 
             self.logger.info(f"Workflow completed - Status: {results['status']}")
 
         return results
 
-    # 실패 시 워크플로우 전체를 실패로 간주하는 스텝 (데이터 수집/저장)
-    CRITICAL_STEPS: tuple[str, ...] = (WorkflowStep.CRAWL.value, WorkflowStep.STORE.value)
+    def _notify_progress(
+        self, callback: ProgressCallback | None, step_name: str, payload: dict[str, Any]
+    ) -> None:
+        if callback is None:
+            return
+        try:
+            callback(step_name, payload)
+        except Exception as e:
+            self.logger.warning(f"progress_callback failed for {step_name} (ignored): {e}")
 
-    def _resolve_final_status(self, steps: dict[str, dict[str, Any]]) -> tuple[str, str | None]:
-        """최종 워크플로우 상태 판정 (D27)
+    def _resolve_final_status(
+        self, steps: dict[str, dict[str, Any]]
+    ) -> tuple[str, str | None, list[str]]:
+        """최종 워크플로우 상태 판정 (D27 + D12)
 
-        - "failed": 크롤 결과 payload가 status="failed"이거나, 크리티컬 스텝(crawl, store)이 실패
-        - "partial": 비크리티컬 스텝(update_kg, calculate, insight, export)만 실패
+        - "failed": 크롤 payload가 status="failed"이거나, 크리티컬 스텝(crawl, store) 실패
+        - "partial": 비크리티컬 스텝 실패, 크롤 payload가 status="partial",
+                     또는 저장 결과에 errors 목록 존재
         - "completed": 실패 없음
 
         Returns:
-            (status, error_message | None)
+            (status, error_message | None, errors)
         """
         failed_steps = [name for name, step in steps.items() if step.get("status") == "failed"]
 
         crawl_result = self._state.get("crawl_result") or {}
-        crawl_payload_failed = crawl_result.get("status") == "failed"
+        crawl_status = crawl_result.get("status")
+        crawl_step = WorkflowStep.CRAWL.value
+        store_step = WorkflowStep.STORE.value
 
-        critical_failures: list[str] = []
-        if crawl_payload_failed:
-            critical_failures.append(
-                f"{WorkflowStep.CRAWL.value}: "
+        critical: list[str] = []
+        if crawl_status == "failed":
+            critical.append(
+                f"{crawl_step}: "
                 + str(crawl_result.get("error") or "crawler returned status=failed")
             )
         for name in failed_steps:
             if name in self.CRITICAL_STEPS and not (
-                crawl_payload_failed and name == WorkflowStep.CRAWL.value
+                crawl_status == "failed" and name == crawl_step
             ):
-                critical_failures.append(f"{name}: {steps[name].get('error') or 'failed'}")
+                critical.append(f"{name}: {steps[name].get('error') or 'failed'}")
 
-        if critical_failures:
-            return "failed", "critical step(s) failed: " + "; ".join(critical_failures)
+        partial: list[str] = []
+        if crawl_status == "partial":
+            crawl_errors = [str(e) for e in (crawl_result.get("errors") or [])]
+            if not crawl_errors:
+                crawl_errors = ["crawler reported partial result"]
+            partial.extend(f"{crawl_step}: {e}" for e in crawl_errors)
 
-        non_critical = [
+        storage_result = self._state.get("storage_result") or {}
+        partial.extend(f"{store_step}: {e}" for e in (storage_result.get("errors") or []))
+
+        partial.extend(
             f"{name}: {steps[name].get('error') or 'failed'}"
             for name in failed_steps
             if name not in self.CRITICAL_STEPS
-        ]
-        if non_critical:
-            return "partial", "non-critical step(s) failed: " + "; ".join(non_critical)
+        )
 
-        return "completed", None
+        errors = critical + partial
+        if critical:
+            return "failed", "critical step(s) failed: " + "; ".join(critical), errors
+        if partial:
+            return "partial", "partial result: " + "; ".join(partial), errors
+        return "completed", None, errors
+
+    # =========================================================================
+    # Think / Act / Observe
+    # =========================================================================
 
     async def _think(self) -> ThinkResult:
-        """
-        Think 단계: 다음 행동 결정
-        """
+        """Think 단계: 다음 행동 결정"""
         step = self._current_step
 
         if step == WorkflowStep.CRAWL:
@@ -670,12 +802,10 @@ class BatchWorkflow:
             )
 
         elif step == WorkflowStep.UPDATE_KG:
-            # 신규: Knowledge Graph 업데이트
-            crawl_data = self._state.get("crawl_result")
             return ThinkResult(
                 next_action="update_kg",
                 reasoning="Knowledge Graph에 크롤링 데이터 반영 (엔티티 관계 구축)",
-                parameters={"crawl_data": crawl_data},
+                parameters={"crawl_data": self._state.get("crawl_result")},
             )
 
         elif step == WorkflowStep.CALCULATE:
@@ -703,28 +833,29 @@ class BatchWorkflow:
                     reasoning="지표 데이터 없음으로 인사이트 생성 스킵",
                     should_continue=False,
                 )
+            return ThinkResult(
+                next_action="hybrid_insight",
+                reasoning="하이브리드 인사이트 생성 (Ontology 추론 + RAG + LLM)",
+                parameters={
+                    "metrics_data": metrics_data,
+                    "crawl_data": self._state.get("crawl_result"),
+                    "crawl_summary": (self._state.get("crawl_result") or {}).get("summary"),
+                },
+            )
 
-            if self.use_hybrid:
+        elif step == WorkflowStep.ALERT:
+            metrics_data = self._state.get("metrics_result")
+            if not metrics_data:
                 return ThinkResult(
-                    next_action="hybrid_insight",
-                    reasoning="하이브리드 인사이트 생성 (Ontology 추론 + RAG + LLM)",
-                    parameters={
-                        "metrics_data": metrics_data,
-                        "crawl_data": self._state.get("crawl_result"),
-                        "crawl_summary": self._state.get("crawl_result", {}).get("summary"),
-                    },
+                    next_action="skip",
+                    reasoning="지표 데이터 없음으로 알림 단계 스킵",
+                    should_continue=False,
                 )
-            else:
-                # 비하이브리드 모드에서도 하이브리드 에이전트 사용 (레거시 에이전트 제거됨)
-                return ThinkResult(
-                    next_action="hybrid_insight",
-                    reasoning="하이브리드 인사이트 생성 (Ontology + RAG + LLM)",
-                    parameters={
-                        "metrics_data": metrics_data,
-                        "crawl_data": self._state.get("crawl_result"),
-                        "crawl_summary": self._state.get("crawl_result", {}).get("summary"),
-                    },
-                )
+            return ThinkResult(
+                next_action="alert",
+                reasoning="지표 기반 순위 변동 알림 생성 및 발송",
+                parameters={"metrics_data": metrics_data},
+            )
 
         elif step == WorkflowStep.EXPORT:
             return ThinkResult(
@@ -735,16 +866,31 @@ class BatchWorkflow:
             next_action="complete", reasoning="모든 단계 완료", should_continue=False
         )
 
+    async def _run_crawler(self, categories: list[str] | None) -> dict[str, Any]:
+        """크롤러 실행 (스크래퍼 브라우저 초기화/종료 포함)"""
+        crawler = self.crawler
+        scraper = getattr(crawler, "scraper", None)
+        initialize = getattr(scraper, "initialize", None)
+        if callable(initialize):
+            await initialize()
+        try:
+            return await crawler.execute(categories)
+        finally:
+            close = getattr(scraper, "close", None)
+            if callable(close):
+                try:
+                    await close()
+                except Exception as e:
+                    self.logger.warning(f"Scraper close failed (ignored): {e}")
+
     async def _act(self, think_result: ThinkResult) -> ActResult:
-        """
-        Act 단계: 행동 실행
-        """
+        """Act 단계: 행동 실행"""
         action = think_result.next_action
         params = think_result.parameters
 
         try:
             if action == "crawl":
-                result = await self.crawler.execute(params.get("categories"))
+                result = await self._run_crawler(params.get("categories"))
                 return ActResult(action=action, success=True, result=result)
 
             elif action == "store":
@@ -752,8 +898,7 @@ class BatchWorkflow:
                 return ActResult(action=action, success=True, result=result)
 
             elif action == "update_kg":
-                # 신규: Knowledge Graph 업데이트
-                crawl_data = params.get("crawl_data", {})
+                crawl_data = params.get("crawl_data") or {}
                 added = self.knowledge_graph.load_from_crawl_data(crawl_data)
                 kg_stats = self.knowledge_graph.get_stats()
 
@@ -772,7 +917,6 @@ class BatchWorkflow:
                 return ActResult(action=action, success=True, result=result)
 
             elif action == "hybrid_insight":
-                # 신규: 하이브리드 인사이트 에이전트
                 result = await self.hybrid_insight.execute(
                     metrics_data=params.get("metrics_data"),
                     crawl_data=params.get("crawl_data"),
@@ -780,11 +924,22 @@ class BatchWorkflow:
                 )
                 return ActResult(action=action, success=True, result=result)
 
+            elif action == "alert":
+                alerts = await self.alert_agent.process_metrics(params.get("metrics_data") or {})
+                send_result = await self.alert_agent.send_pending_alerts() or {}
+                # D6: AlertAgent는 "sent"/"failed" 키를 반환 (레거시 "*_count" 도 허용)
+                result = {
+                    "alerts_created": len(alerts or []),
+                    "alerts_sent": send_result.get("sent", send_result.get("sent_count", 0)),
+                    "alerts_failed": send_result.get("failed", send_result.get("failed_count", 0)),
+                    "alerts_skipped": send_result.get("skipped", 0),
+                }
+                return ActResult(action=action, success=True, result=result)
+
             elif action == "export":
+                export_path = f"{self.data_dir}/dashboard_data.json"
                 await self.dashboard_exporter.initialize()
-                result = await self.dashboard_exporter.export_dashboard_data(
-                    "./data/dashboard_data.json"
-                )
+                result = await self.dashboard_exporter.export_dashboard_data(export_path)
 
                 # Unknown 브랜드 배치 검증 (크롤링 후 처리)
                 brand_verify_result = await self._verify_unknown_brands()
@@ -792,14 +947,15 @@ class BatchWorkflow:
                 # Google Sheets → SQLite 자동 동기화
                 sync_result = await self._sync_sheets_to_sqlite()
 
+                metadata = (result or {}).get("metadata", {})
                 return ActResult(
                     action=action,
                     success=True,
                     result={
                         "exported": True,
-                        "path": "./data/dashboard_data.json",
-                        "products": result.get("metadata", {}).get("total_products", 0),
-                        "laneige_count": result.get("metadata", {}).get("laneige_products", 0),
+                        "path": export_path,
+                        "products": metadata.get("total_products", 0),
+                        "laneige_count": metadata.get("laneige_products", 0),
                         "brands_verified": brand_verify_result.get("verified_count", 0),
                         "sqlite_synced": sync_result.get("synced_count", 0),
                     },
@@ -816,12 +972,10 @@ class BatchWorkflow:
             return ActResult(action=action, success=False, error=str(e))
 
     async def _observe(self, act_result: ActResult) -> ObserveResult:
-        """
-        Observe 단계: 결과 관찰 및 상태 업데이트
-        """
-        observations = []
-        state_updates = {}
-        next_step = None
+        """Observe 단계: 결과 관찰 및 상태 업데이트"""
+        observations: list[str] = []
+        state_updates: dict[str, Any] = {}
+        next_step: WorkflowStep | None = None
 
         if act_result.action == "crawl":
             result = act_result.result
@@ -832,7 +986,6 @@ class BatchWorkflow:
                 for cat_data in result.get("categories", {}).values():
                     all_products.extend(cat_data.get("products", []))
 
-                # Unknown/빈 브랜드 개수 확인
                 unknown_count = sum(
                     1
                     for p in all_products
@@ -854,10 +1007,8 @@ class BatchWorkflow:
                         f"{verify_result.get('failed_count', 0)}개 실패"
                     )
 
-                    # 결과 업데이트 (categories 내 products 갱신)
                     updated_products = verify_result.get("updated_products", [])
                     if updated_products:
-                        # ASIN 기준으로 빠른 조회용 딕셔너리
                         updated_by_asin = {p["asin"]: p for p in updated_products if p.get("asin")}
 
                         for cat_data in result.get("categories", {}).values():
@@ -884,24 +1035,13 @@ class BatchWorkflow:
                 laneige_products=result.get("laneige_products", []),
             )
 
-            # 크롤링 원본 데이터를 JSON 파일로 저장 (Excel export용)
-            try:
-                from pathlib import Path
-
-                # dashboard_data.json과 동일한 경로 사용 (./data/)
-                data_dir = Path("./data")
-                data_dir.mkdir(parents=True, exist_ok=True)
-                crawl_json_path = data_dir / "latest_crawl_result.json"
-
-                with open(crawl_json_path, "w", encoding="utf-8") as f:
-                    import json
-
-                    json.dump(result, f, ensure_ascii=False, indent=2)
-
-                self.logger.info(f"Crawl result saved to {crawl_json_path}")
-                observations.append(f"크롤링 원본 저장: {crawl_json_path}")
-            except Exception as e:
-                self.logger.error(f"Failed to save crawl result JSON: {e}")
+            if act_result.success and result.get("status") != "failed":
+                # F7: 단일 시스템 상태에 크롤링 완료 기록
+                self.state_manager.mark_crawled(
+                    success=True, products_count=result.get("total_products", 0)
+                )
+                # 크롤링 스냅샷 덤프 (단일 위치)
+                observations.extend(self._dump_crawl_snapshot(result))
 
         elif act_result.action == "store":
             result = act_result.result
@@ -911,14 +1051,9 @@ class BatchWorkflow:
             )
             state_updates["storage_result"] = result
 
-            # 하이브리드 모드면 KG 업데이트로, 아니면 지표 계산으로
-            if self.use_hybrid:
-                next_step = WorkflowStep.UPDATE_KG
-            else:
-                next_step = WorkflowStep.CALCULATE
+            next_step = WorkflowStep.UPDATE_KG if self.use_hybrid else WorkflowStep.CALCULATE
 
         elif act_result.action == "update_kg":
-            # 신규: KG 업데이트 관찰
             result = act_result.result
             observations.append(
                 f"Knowledge Graph 업데이트: {result.get('relations_added', 0)} 관계 추가, "
@@ -926,6 +1061,13 @@ class BatchWorkflow:
             )
             state_updates["kg_result"] = result
             next_step = WorkflowStep.CALCULATE
+
+            if act_result.success:
+                total = int(result.get("total_triples", 0) or 0)
+                if self.state_manager.kg_initialized:
+                    self.state_manager.update_kg_stats(total)
+                else:
+                    self.state_manager.mark_kg_initialized(total)
 
         elif act_result.action == "calculate":
             result = act_result.result
@@ -939,6 +1081,8 @@ class BatchWorkflow:
             next_step = WorkflowStep.INSIGHT
 
             self.context_manager.set_metrics_calculated(True)
+            if act_result.success:
+                self.state_manager.mark_metrics_calculated()
 
             # KG에 지표 데이터 반영
             if self.use_hybrid:
@@ -953,13 +1097,22 @@ class BatchWorkflow:
                 + (f", 추론 {inferences_count}건" if inferences_count else "")
             )
             state_updates["insight_result"] = result
-            next_step = WorkflowStep.EXPORT
+            next_step = WorkflowStep.ALERT
 
             self.context_manager.set_insights_generated(True)
 
             # 챗봇 데이터 컨텍스트 설정
             if self.use_hybrid:
                 self.hybrid_chatbot.set_data_context(self._state.get("metrics_result", {}))
+
+        elif act_result.action == "alert":
+            result = act_result.result
+            observations.append(
+                f"알림 처리 완료: 생성 {result.get('alerts_created', 0)}건, "
+                f"발송 {result.get('alerts_sent', 0)}건"
+            )
+            state_updates["alert_result"] = result
+            next_step = WorkflowStep.EXPORT
 
         elif act_result.action == "export":
             result = act_result.result
@@ -974,7 +1127,6 @@ class BatchWorkflow:
             observations.append("단계 스킵됨")
             next_step = WorkflowStep.COMPLETE
 
-        # 에러 관찰
         if not act_result.success:
             observations.append(f"에러 발생: {act_result.error}")
             self.context_manager.record_workflow_error(
@@ -993,6 +1145,7 @@ class BatchWorkflow:
         crawl = self._state.get("crawl_result", {})
         metrics = self._state.get("metrics_result", {})
         insight = self._state.get("insight_result", {})
+        alert = self._state.get("alert_result", {})
         export = self._state.get("export_result", {})
         kg = self._state.get("kg_result", {})
 
@@ -1001,13 +1154,13 @@ class BatchWorkflow:
             "laneige_tracked": crawl.get("laneige_count", 0),
             "categories": list(crawl.get("categories", {}).keys()),
             "alerts": len(metrics.get("alerts", [])),
+            "alerts_sent": alert.get("alerts_sent", 0),
             "action_items": len(insight.get("action_items", [])),
             "daily_insight": insight.get("daily_insight", "")[:200] + "...",
             "dashboard_exported": export.get("exported", False),
             "dashboard_path": export.get("path", ""),
         }
 
-        # 하이브리드 모드 추가 정보
         if self.use_hybrid:
             summary["hybrid"] = {
                 "kg_triples": kg.get("total_triples", 0),
@@ -1018,19 +1171,11 @@ class BatchWorkflow:
         return summary
 
     # =========================================================================
-    # 챗봇 인터페이스 (통합 오케스트레이터로 위임)
+    # 챗봇 인터페이스 (UnifiedBrain으로 위임)
     # =========================================================================
 
     async def chat(self, message: str) -> dict[str, Any]:
-        """
-        챗봇 질의 - UnifiedBrain으로 위임
-
-        Args:
-            message: 사용자 메시지
-
-        Returns:
-            챗봇 응답
-        """
+        """챗봇 질의 - UnifiedBrain으로 위임"""
         brain = get_brain()
         response = await brain.process_query(
             query=message,
@@ -1040,15 +1185,7 @@ class BatchWorkflow:
         return response.to_dict() if hasattr(response, "to_dict") else response
 
     async def process_query(self, query: str) -> dict[str, Any]:
-        """
-        질의 처리 - UnifiedBrain으로 위임
-
-        Args:
-            query: 사용자 질문
-
-        Returns:
-            Response 딕셔너리
-        """
+        """질의 처리 - UnifiedBrain으로 위임"""
         brain = get_brain()
         response = await brain.process_query(
             query=query,
@@ -1063,10 +1200,10 @@ class BatchWorkflow:
 
     async def cleanup(self) -> None:
         """리소스 정리"""
-        if self._crawler:
-            await self._crawler.close()
+        close = getattr(self._crawler, "close", None) if self._crawler else None
+        if callable(close):
+            await close()
 
-        # Knowledge Graph 저장
         if self._knowledge_graph:
             self._knowledge_graph.save()
 
@@ -1083,7 +1220,6 @@ class BatchWorkflow:
             "hybrid_mode": self.use_hybrid,
         }
 
-        # 하이브리드 모드 추가 상태
         if self.use_hybrid and self._knowledge_graph:
             status["knowledge_graph"] = self._knowledge_graph.get_stats()
 
@@ -1108,14 +1244,12 @@ class BatchWorkflow:
         stats = self._knowledge_graph.get_stats()
         stats["initialized"] = True
         stats["most_connected"] = self._knowledge_graph.get_most_connected(5)
-
         return stats
 
     def get_inference_stats(self) -> dict[str, Any]:
         """추론 통계 조회"""
         if not self._reasoner:
             return {"initialized": False}
-
         return self._reasoner.get_inference_stats()
 
 
@@ -1123,10 +1257,8 @@ class BatchWorkflow:
 # Backward Compatibility Aliases
 # =========================================================================
 
-# Original class name for backward compatibility
 Orchestrator = BatchWorkflow
 
-# Convenience types for external use
 CrawlResult = dict[str, Any]
 MetricsResult = dict[str, Any]
 InsightResult = dict[str, Any]
@@ -1144,24 +1276,12 @@ async def run_full_workflow(
     spreadsheet_id: str | None = None,
     use_hybrid: bool = True,
 ) -> dict[str, Any]:
-    """
-    전체 배치 워크플로우 실행 (편의 함수)
-
-    Args:
-        categories: 크롤링할 카테고리 (None이면 전체)
-        config_path: 설정 파일 경로
-        spreadsheet_id: Google Sheets ID
-        use_hybrid: 하이브리드 모드 사용 여부
-
-    Returns:
-        워크플로우 결과
-    """
+    """전체 배치 워크플로우 실행 (편의 함수)"""
     workflow = BatchWorkflow(
         config_path=config_path, spreadsheet_id=spreadsheet_id, use_hybrid=use_hybrid
     )
 
     try:
-        results = await workflow.run_daily_workflow(categories=categories)
-        return results
+        return await workflow.run_daily_workflow(categories=categories)
     finally:
         await workflow.cleanup()

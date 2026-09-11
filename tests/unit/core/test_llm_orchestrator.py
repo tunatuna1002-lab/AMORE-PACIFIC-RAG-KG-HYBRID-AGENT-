@@ -106,7 +106,7 @@ def mock_cache():
 
 @pytest.fixture
 def mock_state():
-    """Mock OrchestratorState"""
+    """Mock StateManager (single system state)"""
     state = MagicMock()
     state.set_session = MagicMock()
     state.to_dict = MagicMock(return_value={"session_id": "test"})
@@ -189,7 +189,7 @@ class TestInitialization:
         assert orch.tool_executor is not None  # ToolExecutor()
         assert orch.response_pipeline is not None  # ResponsePipeline()
         assert orch.cache is not None  # ResponseCache()
-        assert orch.state is not None  # OrchestratorState()
+        assert orch.state is not None  # StateManager singleton
 
     def test_init_stats(self, orchestrator):
         """통계 초기화"""

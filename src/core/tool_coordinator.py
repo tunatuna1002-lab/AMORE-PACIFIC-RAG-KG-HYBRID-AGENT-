@@ -21,7 +21,7 @@ from typing import Any
 from .cache import ResponseCache
 from .circuit_breaker import CircuitBreaker
 from .models import ToolResult
-from .state import OrchestratorState
+from .state_manager import StateManager, get_state_manager
 from .tools import ToolExecutor
 
 logger = logging.getLogger(__name__)
@@ -70,21 +70,25 @@ class ToolCoordinator:
     def __init__(
         self,
         tool_executor: ToolExecutor | None = None,
-        state: OrchestratorState | None = None,
+        state_manager: StateManager | None = None,
         cache: ResponseCache | None = None,
         max_retries: int = 2,
         retry_delay: float = 1.0,
+        state: StateManager | None = None,
     ):
         """
         Args:
             tool_executor: 도구 실행기
-            state: 오케스트레이터 상태
+            state_manager: 단일 시스템 상태 (None이면 싱글톤)
             cache: 응답 캐시 (폴백용)
             max_retries: 최대 재시도 횟수
             retry_delay: 재시도 간 대기 시간 (초)
+            state: (deprecated) ``state_manager`` 의 이전 이름
         """
         self.tool_executor = tool_executor or ToolExecutor()
-        self.state = state or OrchestratorState()
+        if state_manager is None and state is not None:
+            state_manager = state
+        self.state: StateManager = state_manager or get_state_manager()
         self.cache = cache or ResponseCache()
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -153,9 +157,9 @@ class ToolCoordinator:
 
         while retry_count <= self.max_retries:
             try:
-                self.state.start_tool(tool_name)
+                self._tool_started(tool_name)
                 result = await self.tool_executor.execute(tool_name, params)
-                self.state.end_tool(tool_name)
+                self._tool_ended(tool_name, success=result.success, error=result.error)
 
                 if result.success:
                     self._stats["successful"] += 1
@@ -173,7 +177,7 @@ class ToolCoordinator:
                 return await self._handle_error(error_info, strategy, tool_name, params)
 
             except TimeoutError:
-                self.state.end_tool(tool_name)
+                self._tool_ended(tool_name, success=False, error="Timeout")
                 error_info = self._record_error(
                     tool_name=tool_name,
                     error_message="Timeout",
@@ -190,7 +194,7 @@ class ToolCoordinator:
                 return await self._handle_error(error_info, strategy, tool_name, params)
 
             except Exception as e:
-                self.state.end_tool(tool_name)
+                self._tool_ended(tool_name, success=False, error=str(e))
                 error_info = self._record_error(
                     tool_name=tool_name,
                     error_message=str(e),
@@ -242,6 +246,20 @@ class ToolCoordinator:
         # NOTIFY_USER 또는 기타
         self._stats["failed"] += 1
         return ToolResult(tool_name=tool_name, success=False, error=error_info["error_message"])
+
+    def _tool_started(self, tool_name: str) -> None:
+        """StateManager에 도구 실행 시작 기록"""
+        try:
+            self.state.start_agent(tool_name)
+        except Exception as e:  # 상태 기록 실패는 도구 실행을 막지 않음
+            logger.debug(f"state start_agent failed for {tool_name}: {e}")
+
+    def _tool_ended(self, tool_name: str, success: bool = True, error: str | None = None) -> None:
+        """StateManager에 도구 실행 종료 기록"""
+        try:
+            self.state.complete_agent(tool_name, success=success, error=error)
+        except Exception as e:
+            logger.debug(f"state complete_agent failed for {tool_name}: {e}")
 
     def _record_error(
         self, tool_name: str, error_message: str, error_type: str, retry_count: int

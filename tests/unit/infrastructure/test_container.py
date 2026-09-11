@@ -4,7 +4,11 @@ TDD Phase 4: DI 컨테이너 테스트 (RED → GREEN)
 테스트 대상: src/infrastructure/container.py
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from src.infrastructure.container import Container
 
 
 class TestContainerSingleton:
@@ -256,3 +260,50 @@ class TestContainerContextManager:
         # 컨텍스트 종료 후 원래 값 복원
         result = Container.get_knowledge_graph()
         assert result is not mock_kg
+
+
+class TestBuildWorkflowDependencies:
+    """F1: Container assembles WorkflowDependencies for BatchWorkflow."""
+
+    def setup_method(self):
+        Container.reset()
+
+    def teardown_method(self):
+        Container.reset()
+
+    def test_only_resolves_requested_components(self):
+        from src.application.workflows.batch_workflow import WorkflowDependencies
+
+        with patch.object(Container, "get_crawler_agent", return_value="crawler") as get_crawler:
+            deps = Container.build_workflow_dependencies(only=("crawler",), config_path="x.json")
+
+        assert isinstance(deps, WorkflowDependencies)
+        assert deps.crawler == "crawler"
+        assert get_crawler.call_args.kwargs["config_path"] == "x.json"
+        for name in WorkflowDependencies.COMPONENTS:
+            if name != "crawler":
+                assert getattr(deps, name) is None
+
+    def test_overrides_are_honoured(self):
+        fake_storage = MagicMock()
+        fake_alert = MagicMock()
+        fake_exporter = MagicMock()
+        with (
+            Container.test_override("storage_agent", fake_storage),
+            Container.test_override("alert_agent", fake_alert),
+            Container.test_override("dashboard_exporter", fake_exporter),
+        ):
+            deps = Container.build_workflow_dependencies(only=("storage", "alert", "exporter"))
+
+        assert deps.storage is fake_storage
+        assert deps.alert is fake_alert
+        assert deps.exporter is fake_exporter
+
+    def test_unknown_component_rejected(self):
+        with pytest.raises(ValueError):
+            Container.build_workflow_dependencies(only=("nope",))
+
+    def test_dead_workflow_getters_removed(self):
+        # crawl/insight workflows were folded into BatchWorkflow (F1)
+        assert not hasattr(Container, "get_crawl_workflow")
+        assert not hasattr(Container, "get_insight_workflow")

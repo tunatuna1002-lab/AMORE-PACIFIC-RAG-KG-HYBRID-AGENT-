@@ -50,7 +50,7 @@ class Container:
     - AlertAgent
     - MetricsAgent
     - StorageAgent
-    - BatchWorkflow
+    - BatchWorkflow (+ build_workflow_dependencies)
     """
 
     _instances: dict[str, Any] = {}
@@ -266,9 +266,12 @@ class Container:
         )
 
     @classmethod
-    def get_crawler_agent(cls):
+    def get_crawler_agent(cls, **kwargs):
         """
         CrawlerAgent 생성 (매번 새 인스턴스)
+
+        Args:
+            **kwargs: CrawlerAgent 생성자 파라미터 (config_path, logger, tracer, metrics)
 
         Returns:
             CrawlerAgent 인스턴스
@@ -278,7 +281,7 @@ class Container:
 
         from src.agents.crawler_agent import CrawlerAgent
 
-        return CrawlerAgent()
+        return CrawlerAgent(**kwargs)
 
     @classmethod
     def get_batch_workflow(cls, **kwargs):
@@ -297,6 +300,126 @@ class Container:
         from src.application.workflows.batch_workflow import BatchWorkflow
 
         return BatchWorkflow(**kwargs)
+
+    @classmethod
+    def build_workflow_dependencies(
+        cls,
+        only: tuple[str, ...] | None = None,
+        *,
+        config_path: str | None = None,
+        spreadsheet_id: str | None = None,
+        model: str | None = None,
+        knowledge_graph: Any | None = None,
+        reasoner: Any | None = None,
+        tracer: Any | None = None,
+        metrics: Any | None = None,
+        context_manager: Any | None = None,
+        state_manager: Any | None = None,
+        categories: list[str] | None = None,
+    ):
+        """
+        BatchWorkflow 의존성(WorkflowDependencies) 조립 (F1)
+
+        application 레이어(batch_workflow.py)가 agents/tools를 직접 import 하지 않도록,
+        컴포넌트 생성은 여기서만 이루어집니다. ``only`` 로 필요한 컴포넌트만 하나씩
+        해석할 수 있습니다 (BatchWorkflow는 누락된 의존성을 지연 해석).
+
+        Args:
+            only: 해석할 컴포넌트 이름 (``WorkflowDependencies.COMPONENTS`` 부분집합)
+            config_path / spreadsheet_id / model: 에이전트 생성 설정
+            knowledge_graph / reasoner: 인사이트/챗봇 에이전트가 공유할 온톨로지 컴포넌트
+            tracer / metrics / context_manager / state_manager: 모니터링·상태 컴포넌트
+
+        Returns:
+            WorkflowDependencies (요청되지 않은 컴포넌트는 None)
+        """
+        from src.application.workflows.batch_workflow import WorkflowDependencies
+        from src.monitoring.logger import AgentLogger
+
+        wanted = set(only) if only is not None else set(WorkflowDependencies.COMPONENTS)
+        unknown = wanted - set(WorkflowDependencies.COMPONENTS)
+        if unknown:
+            raise ValueError(f"Unknown workflow dependencies: {sorted(unknown)}")
+
+        deps = WorkflowDependencies(
+            knowledge_graph=knowledge_graph, categories=list(categories or [])
+        )
+        monitoring = {"tracer": tracer, "metrics": metrics}
+
+        def _kg():
+            return knowledge_graph if knowledge_graph is not None else cls.get_knowledge_graph()
+
+        def _reasoner():
+            return reasoner if reasoner is not None else cls.get_reasoner()
+
+        if "crawler" in wanted:
+            crawler_kwargs = {"logger": AgentLogger("crawler"), **monitoring}
+            if config_path is not None:
+                crawler_kwargs["config_path"] = config_path
+            deps.crawler = cls.get_crawler_agent(**crawler_kwargs)
+
+        if "storage" in wanted:
+            deps.storage = cls.get_storage_agent(
+                spreadsheet_id=spreadsheet_id, logger=AgentLogger("storage"), **monitoring
+            )
+
+        if "metrics" in wanted:
+            metrics_kwargs = {"logger": AgentLogger("metrics"), **monitoring}
+            if config_path is not None:
+                metrics_kwargs["config_path"] = config_path
+            deps.metrics = cls.get_metrics_agent(**metrics_kwargs)
+
+        if "insight" in wanted:
+            if "insight_agent" in cls._overrides:
+                deps.insight = cls._overrides["insight_agent"]
+            else:
+                from src.agents.hybrid_insight_agent import HybridInsightAgent
+
+                insight_kwargs = {
+                    "docs_dir": ".",
+                    "knowledge_graph": _kg(),
+                    "reasoner": _reasoner(),
+                    "logger": AgentLogger("hybrid_insight"),
+                    **monitoring,
+                }
+                if model is not None:
+                    insight_kwargs["model"] = model
+                deps.insight = HybridInsightAgent(**insight_kwargs)
+
+        if "chatbot" in wanted:
+            if "chatbot_agent" in cls._overrides:
+                deps.chatbot = cls._overrides["chatbot_agent"]
+            else:
+                from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
+
+                chatbot_kwargs = {
+                    "docs_dir": ".",
+                    "knowledge_graph": _kg(),
+                    "reasoner": _reasoner(),
+                    "logger": AgentLogger("hybrid_chatbot"),
+                    "context_manager": context_manager,
+                    **monitoring,
+                }
+                if model is not None:
+                    chatbot_kwargs["model"] = model
+                deps.chatbot = HybridChatbotAgent(**chatbot_kwargs)
+
+        if "alert" in wanted:
+            deps.alert = cls.get_alert_agent(
+                state_manager=state_manager
+                if state_manager is not None
+                else cls.get_state_manager()
+            )
+
+        if "exporter" in wanted:
+            if "dashboard_exporter" in cls._overrides:
+                deps.exporter = cls._overrides["dashboard_exporter"]
+            else:
+                from src.tools.exporters.dashboard_exporter import DashboardExporter
+
+                deps.exporter = DashboardExporter(spreadsheet_id=spreadsheet_id)
+
+        return deps
 
     @classmethod
     def get_alert_agent(cls, **kwargs):
@@ -474,61 +597,6 @@ class Container:
         return ChatWorkflow(
             chatbot=cls.get_chatbot_agent(),
             retriever=cls.get_hybrid_retriever(),
-        )
-
-    @classmethod
-    def get_crawl_workflow(cls, scraper=None, storage=None, metric_calculator=None):
-        """
-        CrawlWorkflow 생성 (매번 새 인스턴스)
-
-        Args:
-            scraper: ScraperProtocol 구현 (None이면 기본 CrawlerAgent)
-            storage: StorageProtocol 구현 (None이면 기본 StorageAgent)
-            metric_calculator: MetricCalculatorProtocol 구현
-
-        Returns:
-            CrawlWorkflow 인스턴스
-        """
-        if "crawl_workflow" in cls._overrides:
-            return cls._overrides["crawl_workflow"]
-
-        from src.application.workflows.crawl_workflow import CrawlWorkflow
-
-        if scraper is None:
-            scraper = cls.get_crawler_agent()
-        if storage is None:
-            storage = cls.get_storage_agent()
-        if metric_calculator is None:
-            metric_calculator = cls.get_metrics_agent()
-
-        return CrawlWorkflow(
-            scraper=scraper,
-            storage=storage,
-            metric_calculator=metric_calculator,
-        )
-
-    @classmethod
-    def get_insight_workflow(cls, storage=None):
-        """
-        InsightWorkflow 생성 (매번 새 인스턴스)
-
-        Args:
-            storage: StorageProtocol 구현 (None이면 기본 StorageAgent)
-
-        Returns:
-            InsightWorkflow 인스턴스
-        """
-        if "insight_workflow" in cls._overrides:
-            return cls._overrides["insight_workflow"]
-
-        from src.application.workflows.insight_workflow import InsightWorkflow
-
-        if storage is None:
-            storage = cls.get_storage_agent()
-
-        return InsightWorkflow(
-            insight_agent=cls.get_insight_agent(),
-            storage=storage,
         )
 
     @classmethod

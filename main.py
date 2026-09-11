@@ -13,8 +13,8 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 
+from src.application.workflows.batch_workflow import BatchWorkflow  # 단일 배치 파이프라인
 from src.core.brain import get_brain  # 챗봇용
-from src.core.orchestrator import Orchestrator  # 워크플로우용
 from src.monitoring.logger import AgentLogger
 
 # 환경 변수 로드
@@ -49,8 +49,8 @@ async def run_daily_workflow(
     # Spreadsheet ID
     sheet_id = spreadsheet_id or os.getenv("GOOGLE_SPREADSHEET_ID")
 
-    # 오케스트레이터 초기화
-    orchestrator = Orchestrator(
+    # 단일 배치 파이프라인 (crawl → store → kg → metrics → insight → alert → export)
+    orchestrator = BatchWorkflow(
         config_path="./config/thresholds.json", spreadsheet_id=sheet_id, model="gpt-4.1-mini"
     )
 
@@ -66,8 +66,10 @@ async def run_daily_workflow(
         summary = result.get("summary", {})
         logger.info(f"Products crawled: {summary.get('products_crawled', 0)}")
         logger.info(f"LANEIGE tracked: {summary.get('laneige_tracked', 0)}")
-        logger.info(f"Alerts: {summary.get('alerts', 0)}")
+        logger.info(f"Alerts: {summary.get('alerts', 0)} (sent: {summary.get('alerts_sent', 0)})")
         logger.info(f"Action items: {summary.get('action_items', 0)}")
+        for err in result.get("errors", []):
+            logger.warning(f"Pipeline error: {err}")
 
         if result.get("status") == "completed":
             logger.info("\n📊 Daily Insight Preview:")

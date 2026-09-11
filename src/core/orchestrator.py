@@ -26,6 +26,7 @@ from src.application.workflows.batch_workflow import (
     ObserveResult,
     Orchestrator,
     ThinkResult,
+    WorkflowDependencies,
     WorkflowState,
     WorkflowStep,
     run_full_workflow,
@@ -35,6 +36,7 @@ __all__ = [
     "BatchWorkflow",
     "Orchestrator",  # Alias for BatchWorkflow
     "run_full_workflow",
+    "WorkflowDependencies",
     "WorkflowStep",
     "ThinkResult",
     "ActResult",

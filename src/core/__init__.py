@@ -7,7 +7,7 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 - models.py: 데이터 모델 정의 (Context, Response, Decision 등)
 - confidence.py: 신뢰도 평가 로직
 - cache.py: 응답 캐싱
-- state.py: 오케스트레이터 상태 관리
+- state_manager.py: 단일 시스템 상태 (StateManager)
 - context_gatherer.py: RAG + KG 컨텍스트 수집
 - tools.py: 에이전트 도구 정의
 - response_pipeline.py: 응답 생성 파이프라인
@@ -39,7 +39,6 @@ from .response_pipeline import ResponsePipeline
 
 # Autonomous Scheduler
 from .scheduler import AutonomousScheduler
-from .state import OrchestratorState
 from .tools import AGENT_TOOLS, AgentTool, ToolExecutor
 
 # Lazy loading for brain module to prevent circular imports
@@ -78,7 +77,6 @@ __all__ = [
     # Components
     "ConfidenceAssessor",
     "ResponseCache",
-    "OrchestratorState",
     "ContextGatherer",
     "AgentTool",
     "ToolExecutor",

@@ -19,7 +19,7 @@ from src.core.models import (
     SystemState,
     ToolResult,
 )
-from src.core.state import OrchestratorState
+from src.core.state_manager import DataFreshness, StateManager
 from src.core.tools import AGENT_TOOLS, ToolExecutor, get_all_tool_schemas
 
 
@@ -148,38 +148,38 @@ class TestResponseCache:
         assert cache.get("key2", "kg") is not None
 
 
-class TestOrchestratorState:
+class TestStateManager:
     """상태 관리 테스트"""
 
     def test_crawl_needed(self, tmp_path):
         """크롤링 필요 여부"""
         # 임시 경로로 격리하여 기존 상태 파일 영향 제거
-        state = OrchestratorState(_persist_path=tmp_path / "state.json")
+        state = StateManager(persist_dir=tmp_path)
 
         # 초기 상태: 크롤링 필요
         assert state.is_crawl_needed()
 
         # 크롤링 완료 표시
-        state.mark_crawled(100)
+        state.mark_crawled(products_count=100)
         assert not state.is_crawl_needed()
-        assert state.data_freshness == "fresh"
+        assert state.data_freshness is DataFreshness.FRESH
 
     def test_tool_tracking(self, tmp_path):
         """도구 실행 추적"""
-        state = OrchestratorState(_persist_path=tmp_path / "state.json")
+        state = StateManager(persist_dir=tmp_path)
 
-        state.start_tool("crawl_amazon")
-        assert state.is_tool_running("crawl_amazon")
-        assert state.has_active_tools()
+        state.start_agent("crawl_amazon")
+        assert state.is_agent_running("crawl_amazon")
+        assert state.has_active_agents()
 
-        state.end_tool("crawl_amazon")
-        assert not state.is_tool_running("crawl_amazon")
-        assert not state.has_active_tools()
+        state.complete_agent("crawl_amazon")
+        assert not state.is_agent_running("crawl_amazon")
+        assert not state.has_active_agents()
 
     def test_context_summary(self, tmp_path):
         """컨텍스트 요약"""
-        state = OrchestratorState(_persist_path=tmp_path / "state.json")
-        state.mark_crawled(50)
+        state = StateManager(persist_dir=tmp_path)
+        state.mark_crawled(products_count=50)
         state.mark_kg_initialized(1000)
 
         summary = state.to_context_summary()
@@ -248,12 +248,12 @@ class TestIntegration:
     def test_full_flow_simulation(self, tmp_path):
         """전체 흐름 시뮬레이션"""
         # 1. 상태 초기화 (임시 경로로 격리)
-        state = OrchestratorState(_persist_path=tmp_path / "state.json")
+        state = StateManager(persist_dir=tmp_path)
         assert state.is_crawl_needed()
 
         # 2. 크롤링 완료
-        state.mark_crawled(100)
-        assert state.data_freshness == "fresh"
+        state.mark_crawled(products_count=100)
+        assert state.data_freshness is DataFreshness.FRESH
 
         # 3. KG 초기화
         state.mark_kg_initialized(500)

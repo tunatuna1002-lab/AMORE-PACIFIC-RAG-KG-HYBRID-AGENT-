@@ -68,7 +68,6 @@ from .prompt_guard import PromptGuard
 from .query_graph import QueryGraph
 from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
-from .state import OrchestratorState
 from .tool_coordinator import ToolCoordinator
 from .tools import AGENT_TOOLS, ToolExecutor
 
@@ -79,7 +78,7 @@ if TYPE_CHECKING:
 # AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
 from src.shared.constants import DEFAULT_MODEL
 
-from ..core.state_manager import StateManager
+from ..core.state_manager import StateManager, get_state_manager
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +173,8 @@ class UnifiedBrain:
         # 공유 컴포넌트
         self.cache = cache or ResponseCache()
         self.confidence_assessor = ConfidenceAssessor()
-        self.state = OrchestratorState()
+        # 단일 시스템 상태 (F7): BatchWorkflow가 기록, ContextGatherer/ToolCoordinator가 읽음
+        self.state: StateManager = get_state_manager()
 
         # LLM 설정
         self.model = model
@@ -265,7 +265,7 @@ class UnifiedBrain:
         if self._tool_coordinator is None:
             self._tool_coordinator = ToolCoordinator(
                 tool_executor=self._tool_executor,
-                state=self.state,
+                state_manager=self.state,
                 cache=self.cache,
                 max_retries=self.max_retries,
             )
@@ -335,7 +335,7 @@ class UnifiedBrain:
             logger.info("UnifiedBrain: HybridRetriever initialized")
 
             self._context_gatherer = ContextGatherer(
-                hybrid_retriever=hybrid_retriever, orchestrator_state=self.state
+                hybrid_retriever=hybrid_retriever, state_manager=self.state
             )
             await self._context_gatherer.initialize()
 
@@ -360,8 +360,7 @@ class UnifiedBrain:
         try:
             from ..agents.alert_agent import AlertAgent
 
-            state_manager = StateManager()
-            self._alert_agent = AlertAgent(state_manager)
+            self._alert_agent = AlertAgent(self.state)
             logger.info("AlertAgent initialized successfully")
         except Exception as e:
             logger.warning(f"AlertAgent initialization failed: {e}")
@@ -1239,9 +1238,10 @@ class UnifiedBrain:
             if action == "crawl_workflow":
                 # BatchWorkflow 호출
                 if not self._workflow_agent:
-                    from src.application.workflows.batch_workflow import BatchWorkflow
+                    from src.infrastructure.container import Container
 
-                    self._workflow_agent = BatchWorkflow()
+                    # 단일 배치 파이프라인 (F1) + 단일 시스템 상태 (F7)
+                    self._workflow_agent = Container.get_batch_workflow(state_manager=self.state)
 
                 result = await self._workflow_agent.run_daily_workflow()
 

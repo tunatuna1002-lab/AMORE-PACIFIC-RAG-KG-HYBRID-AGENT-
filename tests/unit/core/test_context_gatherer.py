@@ -13,7 +13,7 @@ Critical test areas:
 - gather_for_decision() lightweight context
 - Error handling in gather()
 - _convert_kg_facts() with max_kg_facts limit
-- _get_system_state() from OrchestratorState
+- _get_system_state() from StateManager (F7)
 - _build_summary() formatting
 - _build_decision_summary() formatting
 - _format_system_state() variations
@@ -28,7 +28,7 @@ import pytest
 
 from src.core.context_gatherer import ContextGatherer
 from src.core.models import Context, KGFact, SystemState
-from src.core.state import OrchestratorState
+from src.core.state_manager import DataFreshness, StateManager
 from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
 # =============================================================================
@@ -37,11 +37,11 @@ from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
 
 @pytest.fixture
-def mock_orchestrator_state():
-    """OrchestratorState mock"""
-    state = OrchestratorState()
+def mock_orchestrator_state(tmp_path):
+    """StateManager (F7: single system state) pre-marked as fresh, isolated in tmp_path"""
+    state = StateManager(persist_dir=tmp_path / "state")
     state.last_crawl_time = datetime.now() - timedelta(hours=2)
-    state.data_freshness = "fresh"
+    state.data_freshness = DataFreshness.FRESH
     state.kg_initialized = True
     state.kg_triple_count = 1000
     return state
@@ -148,9 +148,16 @@ class TestInitialization:
         assert gatherer.max_kg_facts == 7
 
     def test_init_creates_default_state(self):
-        """State가 없으면 기본 생성"""
+        """State가 없으면 StateManager 싱글톤 사용 (F7)"""
         gatherer = ContextGatherer()
-        assert isinstance(gatherer.state, OrchestratorState)
+        assert isinstance(gatherer.state, StateManager)
+
+    def test_init_accepts_deprecated_orchestrator_state_kwarg(self, mock_orchestrator_state):
+        """orchestrator_state= 는 state_manager= 의 deprecated 별칭"""
+        gatherer = ContextGatherer(state_manager=mock_orchestrator_state)
+        legacy = ContextGatherer(orchestrator_state=mock_orchestrator_state)
+        assert gatherer.state is mock_orchestrator_state
+        assert legacy.state is mock_orchestrator_state
 
     @pytest.mark.asyncio
     async def test_initialize_idempotent(self, mock_retriever_unified):
@@ -459,7 +466,7 @@ class TestHelperMethods:
         assert result[0].data == {}
 
     def test_get_system_state(self, mock_orchestrator_state):
-        """_get_system_state() - OrchestratorState에서 SystemState 생성"""
+        """_get_system_state() - StateManager에서 SystemState 생성 (enum -> str)"""
         gatherer = ContextGatherer(orchestrator_state=mock_orchestrator_state)
         result = gatherer._get_system_state()
 

@@ -2,6 +2,8 @@
 
 D12: a partial crawl (crawler status "partial") and storage errors were reported as
      COMPLETED, so ``needs_crawl()`` treated a half-collected day as fully done.
+     (F1: the partial/failed detection now lives in BatchWorkflow; ``_run_crawl`` maps
+     its ``status``/``errors`` onto ``CrawlStatus``.)
 D13: ``start_crawl`` only schedules a task; callers need ``wait_for_completion`` to
      await the actual crawl (the scheduler was marking tasks done immediately).
 """
@@ -11,7 +13,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -33,44 +35,31 @@ def manager(tmp_path) -> CrawlManager:
     return mgr
 
 
-def _crawler(result: dict[str, Any]) -> MagicMock:
-    crawler = MagicMock()
-    crawler.scraper = MagicMock()
-    crawler.scraper.initialize = AsyncMock()
-    crawler.scraper.close = AsyncMock()
-    crawler.execute = AsyncMock(return_value=result)
-    return crawler
+class _FakeWorkflow:
+    """BatchWorkflow stand-in returning a canned ``run_daily_workflow`` result."""
+
+    def __init__(self, result: dict[str, Any]):
+        self.result = result
+
+    async def run_daily_workflow(self, **kwargs: Any) -> dict[str, Any]:
+        return self.result
+
+    async def cleanup(self) -> None:
+        return None
 
 
-def _storage(result: dict[str, Any]) -> MagicMock:
-    storage = MagicMock()
-    storage.execute = AsyncMock(return_value=result)
-    return storage
-
-
-def _patches(crawler: MagicMock, storage: MagicMock) -> "_PatchSet":
-    exporter = MagicMock()
-    exporter.initialize = AsyncMock()
-    exporter.export_dashboard_data = AsyncMock()
-    return _PatchSet(crawler, storage, exporter)
+def _run_with(manager: CrawlManager, workflow_result: dict[str, Any]) -> _PatchSet:
+    manager._workflow_factory = lambda: _FakeWorkflow(workflow_result)
+    return _PatchSet()
 
 
 class _PatchSet:
-    """Context manager bundling the Container/exporter/brain patches."""
+    """Context manager bundling the datetime/brain patches."""
 
-    def __init__(self, crawler: MagicMock, storage: MagicMock, exporter: MagicMock):
+    def __init__(self):
         self._patches = [
             patch("src.core.crawl_manager.datetime"),
-            patch(
-                "src.infrastructure.container.Container.get_crawler_agent", return_value=crawler
-            ),
-            patch(
-                "src.infrastructure.container.Container.get_storage_agent", return_value=storage
-            ),
-            patch(
-                "src.tools.exporters.dashboard_exporter.DashboardExporter", return_value=exporter
-            ),
-            patch("src.core.brain.get_brain", return_value=None),
+            patch("src.core.brain.get_brain", AsyncMock(return_value=None)),
         ]
 
     def __enter__(self):
@@ -92,15 +81,22 @@ GOOD_CRAWL = {
 }
 
 
+def _workflow_result(
+    status: str, errors: list[str] | None = None, crawl: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Shape of ``BatchWorkflow.run_daily_workflow`` as consumed by ``_run_crawl``."""
+    return {
+        "status": status,
+        "errors": list(errors or []),
+        "steps": {"crawl": {"status": "completed", "result": crawl or GOOD_CRAWL}},
+    }
+
+
 @pytest.mark.asyncio
 async def test_partial_crawl_is_not_completed(manager: CrawlManager) -> None:
-    partial = {
-        **GOOD_CRAWL,
-        "status": "partial",
-        "errors": ["lip_makeup: timeout"],
-        "categories": {"cat1": {"products": []}},
-    }
-    with _patches(_crawler(partial), _storage({"raw_records": 100, "errors": []})):
+    # BatchWorkflow maps a "partial" crawler payload to status="partial" + errors
+    partial = _workflow_result("partial", errors=["crawl: lip_makeup: timeout"])
+    with _run_with(manager, partial):
         await manager._run_crawl()
 
     assert manager.state.status == CrawlStatus.PARTIAL
@@ -113,19 +109,17 @@ async def test_partial_crawl_is_not_completed(manager: CrawlManager) -> None:
 
 @pytest.mark.asyncio
 async def test_storage_errors_are_recorded_and_not_completed(manager: CrawlManager) -> None:
-    with _patches(
-        _crawler(GOOD_CRAWL), _storage({"raw_records": 0, "errors": ["Sheets quota exceeded"]})
-    ):
+    with _run_with(manager, _workflow_result("partial", errors=["store: Sheets quota exceeded"])):
         await manager._run_crawl()
 
-    assert manager.state.errors == ["Sheets quota exceeded"]
+    assert manager.state.errors == ["store: Sheets quota exceeded"]
     assert manager.state.status != CrawlStatus.COMPLETED
     assert manager.state.status == CrawlStatus.PARTIAL
 
 
 @pytest.mark.asyncio
 async def test_clean_crawl_is_still_completed(manager: CrawlManager) -> None:
-    with _patches(_crawler(GOOD_CRAWL), _storage({"raw_records": 100, "errors": []})):
+    with _run_with(manager, _workflow_result("completed")):
         await manager._run_crawl()
 
     assert manager.state.status == CrawlStatus.COMPLETED

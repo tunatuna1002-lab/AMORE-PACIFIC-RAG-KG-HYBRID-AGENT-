@@ -1,13 +1,29 @@
 """
 상태 관리자 (State Manager)
 ===========================
-Level 4 Autonomous Agent의 통합 상태 관리
+Level 4 Autonomous Agent의 **단일** 시스템 상태 (F7)
 
 역할:
 1. 시스템 전체 상태 통합 관리
 2. 이벤트/알림 구독 관리
 3. 사용자 설정 (이메일 동의 등) 관리
 4. 상태 영속화
+
+기록자 / 독자:
+- 기록: BatchWorkflow (mark_crawled / mark_metrics_calculated / mark_kg_initialized /
+  update_kg_stats), ToolCoordinator (start_agent / complete_agent), UnifiedBrain (set_session)
+- 독자: ContextGatherer (데이터 신선도·KG 상태를 LLM 프롬프트에 반영), UnifiedBrain
+  (is_crawl_needed / to_context_summary), AlertAgent (이메일 구독)
+
+상태 파일 (data/ 아래, 이 두 파일이 시스템 상태의 전부):
+- ``system_state.json``: 이 클래스가 관리 — 마지막 크롤링 시각/성공 여부/제품 수,
+  데이터 신선도, KG 초기화 여부/트리플 수/갱신 시각, 마지막 지표 계산 시각
+  (``email_subscriptions.json`` 은 구독 정보용 보조 파일)
+- ``crawl_state.json``: ``src.core.crawl_manager.CrawlManager`` 가 관리 — 백그라운드
+  크롤링 **작업**의 제어 상태 (idle/running/completed/partial/failed, 진행률, 오류 목록).
+  작업 제어 전용이며 데이터 신선도의 출처가 아니다.
+(이전의 ``orchestrator_state.json`` / ``OrchestratorState`` 는 제거됨 — 기록자가 없어
+데이터 신선도가 항상 "unknown" 이었던 D9 결함의 원인)
 
 관리하는 상태:
 - 크롤링 상태 (마지막 시간, 성공 여부)

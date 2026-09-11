@@ -7,7 +7,7 @@ Clean Architecture의 Use Case Layer (Application Business Rules)
 Domain 레이어에만 의존하며, Infrastructure 레이어를 알지 못합니다.
 
 구조:
-- workflows/: 배치 워크플로우 (크롤링 → 저장 → 분석)
+- workflows/: 배치 워크플로우 (batch_workflow: 크롤링 → 저장 → KG → 지표 → 인사이트 → 알림 → 내보내기)
 - services/: 애플리케이션 서비스 (채팅, 인사이트 등)
 - orchestrators/: 오케스트레이션 로직 (Brain, CrawlManager)
 """
@@ -20,7 +20,6 @@ from src.application.services.query_analyzer import (
 )
 
 # Workflows
-from src.application.workflows.alert_workflow import AlertWorkflow, AlertWorkflowResult
 from src.application.workflows.batch_workflow import (
     ActResult,
     BatchWorkflow,
@@ -37,11 +36,6 @@ from src.application.workflows.batch_workflow import (
     run_full_workflow,
 )
 from src.application.workflows.chat_workflow import ChatWorkflow, ChatWorkflowResult
-from src.application.workflows.crawl_workflow import CrawlWorkflow, CrawlWorkflowResult
-from src.application.workflows.insight_workflow import (
-    InsightWorkflow,
-    InsightWorkflowResult,
-)
 
 __all__ = [
     # Services
@@ -64,10 +58,4 @@ __all__ = [
     "run_full_workflow",
     "ChatWorkflow",
     "ChatWorkflowResult",
-    "CrawlWorkflow",
-    "CrawlWorkflowResult",
-    "InsightWorkflow",
-    "InsightWorkflowResult",
-    "AlertWorkflow",
-    "AlertWorkflowResult",
 ]
