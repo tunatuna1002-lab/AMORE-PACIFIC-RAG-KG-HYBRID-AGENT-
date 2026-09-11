@@ -187,14 +187,35 @@ class TestNoConstantMetricFields:
             ("rating_gap_positive", "rating_gap"),
             ("rank_improving", "rank_change_7d"),
             ("rank_declining", "rank_change_7d"),
+            # 사이클 10: SoS·HHI·CPI 조건이 이 규칙에서 빠져 있었다. HHI 결측이 0으로
+            # 읽혀 "분산 시장" 규칙이 발화했고 답변에 "HHI: 0.000"이 나왔다.
+            ("sos_above", "sos"),
+            ("sos_below", "sos"),
+            ("hhi_above", "hhi"),
+            ("hhi_below", "hhi"),
+            ("cpi_above", "cpi"),
+            ("cpi_below", "cpi"),
         ],
     )
     def test_missing_value_does_not_trigger_rule(self, condition_factory, key):
         """결측(None)은 0으로 취급되지 않고 조건이 False가 된다"""
         from src.ontology.reasoner import StandardConditions
 
+        threshold_args = {
+            "streak_days_above": 30,
+            "sos_above": 0.15,
+            "sos_below": 0.05,
+            "hhi_above": 0.25,
+            "hhi_below": 0.15,
+            "cpi_above": 90,
+            "cpi_below": 110,
+        }
         factory = getattr(StandardConditions, condition_factory)
-        condition = factory(30) if condition_factory == "streak_days_above" else factory()
+        condition = (
+            factory(threshold_args[condition_factory])
+            if condition_factory in threshold_args
+            else factory()
+        )
 
         assert condition.check({}) is False, "키 없음인데 규칙이 발화했습니다"
         assert condition.check({key: None}) is False, "None인데 규칙이 발화했습니다"

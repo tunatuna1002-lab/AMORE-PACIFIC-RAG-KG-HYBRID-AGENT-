@@ -1110,7 +1110,10 @@ class HybridRetriever:
                 bm.get("is_laneige")
                 or bm.get("brand_name", "").lower() == context.get("brand", "").lower()
             ):
-                context["sos"] = bm.get("share_of_shelf", context.get("sos", 0))
+                # 결측 필드에 기본값(0·100)을 넣지 않는다. 0은 "존재하는 값"이라
+                # 추론 규칙이 결측을 걸러내지 못하고 "HHI: 0.000" 같은 답을 만든다.
+                if bm.get("share_of_shelf") is not None:
+                    context["sos"] = bm["share_of_shelf"]
                 context["avg_rank"] = bm.get("avg_rank")
                 context["product_count"] = bm.get("product_count", 0)
                 break
@@ -1119,10 +1122,14 @@ class HybridRetriever:
         market_metrics = current_metrics.get("market_metrics", [])
         for mm in market_metrics:
             if not entities.get("categories") or mm.get("category_id") == entities["categories"][0]:
-                context["hhi"] = mm.get("hhi", 0)
-                context["cpi"] = mm.get("cpi", 100)
-                context["churn_rate"] = mm.get("churn_rate_7d", 0)
-                context["rating_gap"] = mm.get("avg_rating_gap", 0)
+                for ctx_key, metric_key in (
+                    ("hhi", "hhi"),
+                    ("cpi", "cpi"),
+                    ("churn_rate", "churn_rate_7d"),
+                    ("rating_gap", "avg_rating_gap"),
+                ):
+                    if mm.get(metric_key) is not None:
+                        context[ctx_key] = mm[metric_key]
                 break
 
         # 제품 메트릭에서
@@ -1133,8 +1140,8 @@ class HybridRetriever:
             context["current_rank"] = best_product.get("current_rank")
             context["rank_change_1d"] = best_product.get("rank_change_1d")
             context["rank_change_7d"] = best_product.get("rank_change_7d")
-            context["rank_volatility"] = best_product.get("rank_volatility", 0)
-            context["streak_days"] = best_product.get("streak_days", 0)
+            context["rank_volatility"] = best_product.get("rank_volatility")
+            context["streak_days"] = best_product.get("streak_days")
             context["asin"] = best_product.get("asin")
 
         # 알림 정보

@@ -680,7 +680,7 @@ class StandardConditions:
         """SoS가 임계값 이상"""
         return RuleCondition(
             name=f"sos_above_{threshold}",
-            check=lambda ctx: ctx.get("sos", 0) >= threshold,
+            check=lambda ctx: (v := _present(ctx, "sos")) is not None and v >= threshold,
             description=f"SoS >= {threshold * 100:.0f}%",
         )
 
@@ -689,7 +689,7 @@ class StandardConditions:
         """SoS가 임계값 이하"""
         return RuleCondition(
             name=f"sos_below_{threshold}",
-            check=lambda ctx: ctx.get("sos", 0) < threshold,
+            check=lambda ctx: (v := _present(ctx, "sos")) is not None and v < threshold,
             description=f"SoS < {threshold * 100:.0f}%",
         )
 
@@ -698,7 +698,7 @@ class StandardConditions:
         """HHI가 임계값 이상 (집중 시장)"""
         return RuleCondition(
             name=f"hhi_above_{threshold}",
-            check=lambda ctx: ctx.get("hhi", 0) >= threshold,
+            check=lambda ctx: (v := _present(ctx, "hhi")) is not None and v >= threshold,
             description=f"HHI >= {threshold} (집중 시장)",
         )
 
@@ -707,7 +707,7 @@ class StandardConditions:
         """HHI가 임계값 이하 (분산 시장)"""
         return RuleCondition(
             name=f"hhi_below_{threshold}",
-            check=lambda ctx: ctx.get("hhi", 0) < threshold,
+            check=lambda ctx: (v := _present(ctx, "hhi")) is not None and v < threshold,
             description=f"HHI < {threshold} (분산 시장)",
         )
 
@@ -716,7 +716,7 @@ class StandardConditions:
         """CPI가 임계값 이상 (프리미엄)"""
         return RuleCondition(
             name=f"cpi_above_{threshold}",
-            check=lambda ctx: ctx.get("cpi", 100) > threshold,
+            check=lambda ctx: (v := _present(ctx, "cpi")) is not None and v > threshold,
             description=f"CPI > {threshold} (프리미엄 포지션)",
         )
 
@@ -725,7 +725,7 @@ class StandardConditions:
         """CPI가 임계값 이하 (가성비)"""
         return RuleCondition(
             name=f"cpi_below_{threshold}",
-            check=lambda ctx: ctx.get("cpi", 100) < threshold,
+            check=lambda ctx: (v := _present(ctx, "cpi")) is not None and v < threshold,
             description=f"CPI < {threshold} (가성비 포지션)",
         )
 
