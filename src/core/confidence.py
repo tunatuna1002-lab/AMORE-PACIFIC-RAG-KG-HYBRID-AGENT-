@@ -68,7 +68,7 @@ class ConfidenceAssessor:
 
         Note:
             context 파라미터는 더 이상 점수에 반영되지 않습니다.
-            호출자(brain.py, llm_orchestrator.py)가 이미 컨텍스트 데이터를
+            호출자(brain.py, query_graph.py)가 이미 컨텍스트 데이터를
             max_score에 반영하므로, 여기서 다시 가산하면 이중 계산됩니다.
         """
         # 절대 점수 추출 (max_score 우선, 없으면 confidence로 추정)

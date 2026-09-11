@@ -103,8 +103,9 @@ def test_knowledge_graph(results: TestResult):
     print("\n📋 테스트 2: Knowledge Graph")
 
     try:
-        from ontology.knowledge_graph import KnowledgeGraph
         from ontology.relations import Relation, RelationType
+
+        from ontology.knowledge_graph import KnowledgeGraph
 
         kg = KnowledgeGraph()
         results.record_pass("KnowledgeGraph 인스턴스 생성")
@@ -143,8 +144,9 @@ def test_reasoner(results: TestResult):
     print("\n📋 테스트 3: Ontology Reasoner")
 
     try:
-        from ontology.reasoner import InferenceRule, OntologyReasoner, RuleCondition
         from ontology.relations import InsightType
+
+        from ontology.reasoner import InferenceRule, OntologyReasoner, RuleCondition
 
         reasoner = OntologyReasoner()
         results.record_pass("OntologyReasoner 인스턴스 생성")
@@ -267,6 +269,7 @@ def test_context_builder(results: TestResult):
 
     try:
         from ontology.relations import InferenceResult, InsightType
+
         from rag.context_builder import CompactContextBuilder, ContextBuilder
         from rag.hybrid_retriever import HybridContext
 
@@ -367,7 +370,7 @@ def test_orchestrator_integration(results: TestResult):
     print("\n📋 테스트 9: Orchestrator Integration")
 
     try:
-        from src.core.orchestrator import Orchestrator, WorkflowStep
+        from src.application.workflows.batch_workflow import Orchestrator, WorkflowStep
 
         # Orchestrator 인스턴스 생성 (hybrid 모드)
         orchestrator = Orchestrator(use_hybrid=True)
@@ -412,10 +415,11 @@ def test_end_to_end_workflow(results: TestResult):
     print("\n📋 테스트 10: End-to-End Workflow")
 
     try:
+        from ontology.relations import Relation, RelationType
+
         from ontology.business_rules import register_all_rules
         from ontology.knowledge_graph import KnowledgeGraph
         from ontology.reasoner import OntologyReasoner
-        from ontology.relations import Relation, RelationType
         from rag.context_builder import ContextBuilder
         from rag.hybrid_retriever import HybridRetriever
 

@@ -1,94 +1,61 @@
 """
 Core 모듈
 =========
-LLM 기반 오케스트레이터 핵심 컴포넌트
+챗봇 질의 파이프라인과 자율 스케줄러의 핵심 컴포넌트
 
 모듈 구조:
-- models.py: 데이터 모델 정의 (Context, Response, Decision 등)
-- confidence.py: 신뢰도 평가 로직
+- models.py: 데이터 모델 (Context, Response, Decision 등)
+- confidence.py: 신뢰도 평가
 - cache.py: 응답 캐싱
 - state_manager.py: 단일 시스템 상태 (StateManager)
 - context_gatherer.py: RAG + KG 컨텍스트 수집
 - tools.py: 에이전트 도구 정의
 - response_pipeline.py: 응답 생성 파이프라인
+- query_graph.py: 질의 처리 상태 그래프
 - scheduler.py: 자율 작업 스케줄러
-- decision_maker.py: LLM 의사결정 (SRP 분해)
-- tool_coordinator.py: 도구 실행 조율 (SRP 분해)
-- alert_manager.py: 알림 관리 (SRP 분해)
-- brain.py: Level 4 자율 에이전트 두뇌 (LLM-First Facade)
-- batch_workflow.py: 배치 워크플로우 오케스트레이터 (Think-Act-Observe)
-- llm_orchestrator.py: 메인 오케스트레이터 (Legacy)
+- decision_maker.py / tool_coordinator.py / alert_manager.py: SRP 분해 컴포넌트
+- brain.py: UnifiedBrain (Facade)
+- crawl_manager.py: 배치 작업 제어 (단계 실행은 application.workflows.batch_workflow)
 
-주요 클래스:
-- UnifiedBrain: 통합 두뇌 (Facade) - 모든 컴포넌트 조율
-- DecisionMaker: LLM 의사결정
-- ToolCoordinator: 도구 실행 조율
-- AlertManager: 알림 처리
-- ContextGatherer: 컨텍스트 수집
-- ResponsePipeline: 응답 생성
+패키지 최상위 이름은 지연 로딩된다 (brain ↔ agents ↔ state_manager 순환 import 방지, 경량 import).
 """
 
-# 순환 import 방지: brain 관련 import는 lazy loading으로 처리
-# brain.py → alert_agent.py → state_manager.py → core/__init__.py → brain.py 순환 방지
-from .cache import ResponseCache
-from .confidence import ConfidenceAssessor
-from .context_gatherer import ContextGatherer
-from .llm_orchestrator import LLMOrchestrator
-from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
-from .response_pipeline import ResponsePipeline
+import importlib
 
-# Autonomous Scheduler
-from .scheduler import AutonomousScheduler
-from .tools import AGENT_TOOLS, AgentTool, ToolExecutor
+_LAZY: dict[str, str] = {
+    "Context": ".models",
+    "Response": ".models",
+    "ToolResult": ".models",
+    "Decision": ".models",
+    "ConfidenceLevel": ".models",
+    "ConfidenceAssessor": ".confidence",
+    "ResponseCache": ".cache",
+    "ContextGatherer": ".context_gatherer",
+    "AgentTool": ".tools",
+    "ToolExecutor": ".tools",
+    "AGENT_TOOLS": ".tools",
+    "ResponsePipeline": ".response_pipeline",
+    "AutonomousScheduler": ".scheduler",
+    "StateManager": ".state_manager",
+    "get_state_manager": ".state_manager",
+    "UnifiedBrain": ".brain",
+    "get_brain": ".brain",
+    "get_initialized_brain": ".brain",
+    "BrainMode": ".brain",
+    "TaskPriority": ".brain",
+}
 
-# Lazy loading for brain module to prevent circular imports
-_brain_module = None
+__all__ = list(_LAZY)
 
 
-def _load_brain():
-    global _brain_module
-    if _brain_module is None:
-        from . import brain as _brain_module
-    return _brain_module
-
-
-def __getattr__(name):
-    """Lazy loading for brain-related exports"""
-    brain_exports = {
-        "UnifiedBrain",
-        "get_brain",
-        "get_initialized_brain",
-        "BrainMode",
-        "TaskPriority",
-    }
-    if name in brain_exports:
-        brain = _load_brain()
-        return getattr(brain, name)
+def __getattr__(name: str):
+    if name in _LAZY:
+        module = importlib.import_module(_LAZY[name], __name__)
+        value = getattr(module, name)
+        globals()[name] = value
+        return value
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = [
-    # Models
-    "Context",
-    "Response",
-    "ToolResult",
-    "Decision",
-    "ConfidenceLevel",
-    # Components
-    "ConfidenceAssessor",
-    "ResponseCache",
-    "ContextGatherer",
-    "AgentTool",
-    "ToolExecutor",
-    "AGENT_TOOLS",
-    "ResponsePipeline",
-    "LLMOrchestrator",
-    # Scheduler
-    "AutonomousScheduler",
-    # Level 4 Brain (lazy loaded)
-    "UnifiedBrain",
-    "get_brain",
-    "get_initialized_brain",
-    "BrainMode",
-    "TaskPriority",
-]
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_LAZY))

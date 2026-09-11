@@ -12,7 +12,7 @@ OpenAI Function Calling 형식의 도구 정의
 - agents/crawler_agent.py: crawl_amazon 도구
 - agents/metrics_agent.py: calculate_metrics 도구
 - core/models.py: ToolResult
-- core/llm_orchestrator.py: 도구 실행 호출
+- core/tool_coordinator.py: 도구 실행 호출
 """
 
 import logging
