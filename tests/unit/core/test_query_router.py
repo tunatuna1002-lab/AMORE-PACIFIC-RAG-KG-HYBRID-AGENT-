@@ -1,37 +1,6 @@
-"""Tests for QueryRouter (3.2)"""
+"""Tests for QueryRouter (F2: is_compound only)"""
 
-from unittest.mock import AsyncMock
-
-import pytest
-
-from src.core.query_router import (
-    QueryCategory,
-    QueryRouter,
-    RouteResult,
-    SubQuery,
-)
-
-
-class TestQueryClassification:
-    def test_classify_metric(self):
-        router = QueryRouter()
-        assert router.classify("LANEIGE 점유율 알려줘") == QueryCategory.METRIC
-
-    def test_classify_trend(self):
-        router = QueryRouter()
-        assert router.classify("최근 순위 변화 추이") == QueryCategory.TREND
-
-    def test_classify_competitive(self):
-        router = QueryRouter()
-        assert router.classify("경쟁사 비교 분석") == QueryCategory.COMPETITIVE
-
-    def test_classify_diagnostic(self):
-        router = QueryRouter()
-        assert router.classify("왜 순위가 떨어졌나") == QueryCategory.DIAGNOSTIC
-
-    def test_classify_general(self):
-        router = QueryRouter()
-        assert router.classify("안녕하세요") == QueryCategory.GENERAL
+from src.core.query_router import MAX_QUERY_LENGTH, QueryCategory, QueryRouter
 
 
 class TestCompoundDetection:
@@ -48,117 +17,31 @@ class TestCompoundDetection:
         assert router.is_compound("LANEIGE 순위 알려줘") is False
 
 
-class TestDecomposition:
-    def test_decompose_compound(self):
-        router = QueryRouter()
-        subs = router.decompose("LANEIGE 점유율과 경쟁사 비교 분석")
-        assert len(subs) >= 1
-        assert all(isinstance(sq, SubQuery) for sq in subs)
-
-    def test_decompose_simple_returns_original(self):
-        router = QueryRouter()
-        subs = router.decompose("LANEIGE 순위")
-        assert len(subs) == 1
-        assert subs[0].query == "LANEIGE 순위"
-
-
-class TestRouting:
-    def test_route_simple(self):
-        router = QueryRouter()
-        result = router.route("LANEIGE 순위 알려줘")
-        assert isinstance(result, RouteResult)
-        assert not result.is_compound
-
-    def test_route_compound(self):
-        router = QueryRouter()
-        result = router.route("LANEIGE 점유율과 경쟁사 비교 분석")
-        assert result.is_compound
-        assert len(result.sub_queries) >= 1
-
-
-class TestDispatchAndSynthesize:
-    @pytest.mark.asyncio
-    async def test_dispatch_parallel(self):
-        router = QueryRouter()
-        sub_queries = [
-            SubQuery(query="A", category=QueryCategory.METRIC),
-            SubQuery(query="B", category=QueryCategory.TREND),
-        ]
-        handler = AsyncMock(side_effect=["result_A", "result_B"])
-        results = await router.dispatch_parallel(sub_queries, handler)
-        assert len(results) == 2
-        assert results[0]["success"]
-        assert results[1]["success"]
-
-    @pytest.mark.asyncio
-    async def test_dispatch_with_error(self):
-        router = QueryRouter()
-        sub_queries = [SubQuery(query="A", category=QueryCategory.METRIC)]
-        handler = AsyncMock(side_effect=Exception("fail"))
-        results = await router.dispatch_parallel(sub_queries, handler)
-        assert not results[0]["success"]
-
-    def test_synthesize(self):
-        router = QueryRouter()
-        results = [
-            {"sub_query": "Q1", "category": "metric", "result": "Answer1", "success": True},
-            {"sub_query": "Q2", "category": "trend", "result": "Answer2", "success": True},
-        ]
-        text = router.synthesize("Original Q", results)
-        assert "Q1" in text
-        assert "Q2" in text
-
-    def test_synthesize_all_failed(self):
-        router = QueryRouter()
-        results = [{"sub_query": "Q", "category": "metric", "result": "err", "success": False}]
-        text = router.synthesize("Q", results)
-        assert "오류" in text
-
-
-class TestStats:
-    def test_stats_tracking(self):
-        router = QueryRouter()
-        router.route("simple query")
-        router.route("LANEIGE 점유율과 경쟁사 비교 분석")
-        stats = router.get_stats()
-        assert stats["total_routes"] == 2
-
-
 class TestReDoSDefense:
     """Task #6: ReDoS defense via MAX_QUERY_LENGTH (5000 chars)."""
 
-    def test_long_query_returns_general(self):
-        """Queries exceeding MAX_QUERY_LENGTH should return GENERAL."""
-        router = QueryRouter()
-        long_query = "A" * 5001
-        result = router.route(long_query)
-        assert result.category == QueryCategory.GENERAL
-        assert not result.is_compound
-
-    def test_long_query_truncates_original(self):
-        """RouteResult.original_query should be truncated to MAX_QUERY_LENGTH."""
-        router = QueryRouter()
-        long_query = "B" * 6000
-        result = router.route(long_query)
-        assert len(result.original_query) == 5000
+    def test_long_query_is_not_compound(self):
+        """Queries exceeding MAX_QUERY_LENGTH short-circuit before any regex runs."""
+        assert QueryRouter().is_compound("A와 B 비교 " * 1000) is False
 
     def test_query_at_limit_passes_through(self):
-        """Query exactly at MAX_QUERY_LENGTH should be processed normally."""
-        router = QueryRouter()
-        query = "안녕" * 2500  # 5000 chars exactly
-        result = router.route(query)
-        # Should be classified normally, not short-circuited
-        assert isinstance(result, RouteResult)
+        """Query exactly at MAX_QUERY_LENGTH is still matched normally."""
+        suffix = "점유율과 경쟁사 비교"
+        query = ("가" * (MAX_QUERY_LENGTH - len(suffix))) + suffix
+        assert len(query) == MAX_QUERY_LENGTH
+        assert QueryRouter().is_compound(query) is True
 
-    def test_normal_query_unaffected(self):
-        """Normal-length queries should route as before."""
-        router = QueryRouter()
-        result = router.route("LANEIGE 순위 알려줘")
-        assert result.category != QueryCategory.GENERAL or True  # just runs without error
-        assert isinstance(result, RouteResult)
 
-    def test_stats_counted_for_long_query(self):
-        """Long queries should still be counted in stats."""
-        router = QueryRouter()
-        router.route("X" * 5001)
-        assert router.get_stats()["total_routes"] == 1
+class TestDeadMethodsRemoved:
+    def test_only_is_compound_remains(self):
+        for dead in ("classify", "decompose", "route", "dispatch_parallel", "synthesize"):
+            assert not hasattr(QueryRouter, dead), dead
+
+    def test_query_category_values_match_intent_mapping(self):
+        assert {c.value for c in QueryCategory} == {
+            "metric",
+            "trend",
+            "competitive",
+            "diagnostic",
+            "general",
+        }

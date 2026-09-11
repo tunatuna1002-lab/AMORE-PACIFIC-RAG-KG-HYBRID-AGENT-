@@ -63,13 +63,13 @@ from .cache import ResponseCache
 from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
-from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
-from .prompt_guard import PromptGuard
+from .graph_state import QueryState
+from .models import Response
 from .query_graph import QueryGraph
 from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
 from .tool_coordinator import ToolCoordinator
-from .tools import AGENT_TOOLS, ToolExecutor
+from .tools import ToolExecutor
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
@@ -478,6 +478,44 @@ class UnifiedBrain:
     # 사용자 질문 처리 (최우선)
     # =========================================================================
 
+    def _ensure_query_graph(self) -> QueryGraph:
+        """QueryGraph lazy init (테스트에서 _initialized=True 직접 설정 시)"""
+        if self._query_graph is None:
+            self._query_graph = QueryGraph(
+                cache=self.cache,
+                context_gatherer=self._context_gatherer,
+                confidence_assessor=self.confidence_assessor,
+                decision_maker=self.decision_maker,
+                tool_coordinator=self.tool_coordinator,
+                response_pipeline=self._response_pipeline,
+                react_agent=self._react_agent,
+            )
+        return self._query_graph
+
+    def _build_query_state(
+        self,
+        query: str,
+        session_id: str | None,
+        current_metrics: dict[str, Any] | None,
+        skip_cache: bool = False,
+    ) -> QueryState:
+        """QueryGraph 입력 상태 구성 (세션 설정 + 시스템 상태 스냅샷)"""
+        if session_id:
+            self.state.set_session(session_id)
+        return QueryState(
+            query=query,
+            session_id=session_id,
+            current_metrics=current_metrics,
+            skip_cache=skip_cache,
+            system_state=self._get_system_state(current_metrics),
+        )
+
+    def _record_query_stats(self, state: QueryState) -> None:
+        if state.metadata.get("cache_hit"):
+            self._stats["cache_hits"] += 1
+        if state.route == "decide":
+            self._stats["llm_decisions"] += 1
+
     async def process_query(
         self,
         query: str,
@@ -486,7 +524,7 @@ class UnifiedBrain:
         skip_cache: bool = False,
     ) -> Response:
         """
-        사용자 질문 처리 (최우선)
+        사용자 질문 처리 (최우선) — ``QueryGraph.run`` 에 위임
 
         Args:
             query: 사용자 질문
@@ -497,8 +535,6 @@ class UnifiedBrain:
         Returns:
             Response 객체
         """
-        from .graph_state import QueryState
-
         start_time = datetime.now()
         self._stats["total_queries"] += 1
 
@@ -514,50 +550,12 @@ class UnifiedBrain:
         self.mode = BrainMode.RESPONDING
 
         try:
-            # QueryState 초기화
-            state = QueryState(
-                query=query,
-                session_id=session_id,
-                current_metrics=current_metrics,
-                skip_cache=skip_cache,
-                system_state=self._get_system_state(current_metrics),
-            )
-
-            # 세션 설정
-            if session_id:
-                self.state.set_session(session_id)
-
-            # Lazy init query graph (테스트에서 _initialized=True 직접 설정 시)
-            if self._query_graph is None:
-                self._query_graph = QueryGraph(
-                    cache=self.cache,
-                    context_gatherer=self._context_gatherer,
-                    confidence_assessor=self.confidence_assessor,
-                    decision_maker=self.decision_maker,
-                    tool_coordinator=self.tool_coordinator,
-                    response_pipeline=self._response_pipeline,
-                    react_agent=self._react_agent,
-                )
-
-            # 그래프 실행
-            state = await self._query_graph.run(state)
-
-            # 통계 업데이트
-            if state.response:
-                if state.metadata.get("cache_hit"):
-                    self._stats["cache_hits"] += 1
-                if state.decision and state.decision.tool != "direct_answer":
-                    self._stats["llm_decisions"] += 1
+            state = self._build_query_state(query, session_id, current_metrics, skip_cache)
+            state = await self._ensure_query_graph().run(state)
+            self._record_query_stats(state)
 
             response = state.response or Response.fallback("처리 결과가 없습니다.")
-
-            # 처리 시간
             response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
-
-            # 캐시 저장 (PromptGuard 차단 응답과 fallback은 캐시하지 않음)
-            if not skip_cache and not response.is_fallback and not state.is_blocked:
-                self.cache.set(query, response, "query")
-
             return response
 
         except Exception as e:
@@ -570,7 +568,7 @@ class UnifiedBrain:
             self.mode = previous_mode
 
     # =========================================================================
-    # 스트리밍 응답 (Phase 5: v3에서 포팅)
+    # 스트리밍 응답
     # =========================================================================
 
     async def process_query_stream(
@@ -580,10 +578,10 @@ class UnifiedBrain:
         current_metrics: dict[str, Any] | None = None,
     ):
         """
-        SSE 스트리밍 방식으로 질문 처리
+        SSE 스트리밍 방식으로 질문 처리 — ``QueryGraph.run_stream`` 에 위임
 
-        v3의 chat_stream()에서 포팅. PromptGuard + 도구 호출 + LLM 응답을
-        실시간 SSE 청크로 yield합니다.
+        비스트리밍 ``process_query`` 와 같은 그래프(캐시·가드·복합 쿼리 판정 포함)를
+        실행하며, 그래프가 emit 하는 토큰/이벤트를 SSE 청크로 yield 합니다.
 
         Yields:
             dict: {"type": "status"|"tool_call"|"text"|"done"|"error", "content": ...}
@@ -595,150 +593,51 @@ class UnifiedBrain:
         if not self._initialized:
             await self.initialize()
 
-        # PromptGuard 입력 검증
-        is_safe, block_reason, sanitized_query = PromptGuard.check_input(query)
-        if not is_safe:
-            logger.warning(f"PromptGuard blocked input (stream): {block_reason}")
-            rejection_msg = PromptGuard.get_rejection_message(block_reason)
-            yield {"type": "text", "content": rejection_msg}
-            yield {
-                "type": "done",
-                "content": {
-                    "confidence": 0.0,
-                    "sources": [],
-                    "tools_used": [],
-                    "suggestions": ["다른 질문을 해주세요"],
-                    "processing_time_ms": 0,
-                    "mode": "blocked",
-                    "confidence_level": "unknown",
-                },
-            }
-            return
-
-        if block_reason == "out_of_scope_warning":
-            query = sanitized_query
+        await self.emit_event("user_request", {"query": query})
 
         # 모드 전환
         previous_mode = self.mode
         self.mode = BrainMode.RESPONDING
 
+        queue: asyncio.Queue = asyncio.Queue()
+        _END = object()
+
+        async def on_token(text: str) -> None:
+            await queue.put({"type": "text", "content": text})
+
+        async def on_event(event: dict[str, Any]) -> None:
+            if event.get("type") == "tool_call":
+                self.mode = BrainMode.EXECUTING
+            await queue.put(event)
+
+        task: asyncio.Task | None = None
         try:
-            if session_id:
-                self.state.set_session(session_id)
-
-            # 1. 컨텍스트 수집 단계
-            yield {"type": "status", "content": "컨텍스트 수집 중..."}
-
-            context = await self._context_gatherer.gather(
-                query=query, current_metrics=current_metrics
+            state = self._build_query_state(query, session_id, current_metrics)
+            graph = self._ensure_query_graph()
+            task = asyncio.create_task(
+                graph.run_stream(state, on_token=on_token, on_event=on_event)
             )
+            task.add_done_callback(lambda _t: queue.put_nowait(_END))
 
-            # 2. 신뢰도 기반 라우팅 (non-streaming과 동일한 4-tier 분기)
-            confidence_level = self._assess_confidence_level(context)
-            use_react = False
+            while True:
+                item = await queue.get()
+                if item is _END:
+                    break
+                yield item
 
-            if self.confidence_assessor.should_skip_llm_decision(confidence_level):
-                # HIGH: LLM 판단 스킵, 컨텍스트로 직접 응답
-                yield {"type": "status", "content": "높은 신뢰도 — 빠른 응답 생성 중..."}
-                logger.info(f"[stream] HIGH confidence - skipping LLM decision: {query[:50]}...")
-                decision = Decision(
-                    tool="direct_answer",
-                    tool_params={},
-                    reason=f"HIGH confidence ({confidence_level.value}) - direct context answer",
-                    confidence=0.9,
-                    key_points=self._extract_key_points_from_context(context),
-                )
-                response = await self._generate_response(
-                    query=query, context=context, decision=decision, tool_result=None
-                )
+            state = await task  # 그래프 예외는 여기서 재발생
+            self._record_query_stats(state)
+            response = state.response or Response.fallback("처리 결과가 없습니다.")
 
-            elif self.confidence_assessor.should_request_clarification(confidence_level):
-                # UNKNOWN: 명확화 요청
-                yield {"type": "status", "content": "질문 분석 중..."}
-                logger.info(
-                    f"[stream] UNKNOWN confidence - requesting clarification: {query[:50]}..."
-                )
-                response = Response(
-                    text="질문을 더 구체적으로 해주시겠어요? 예를 들어 특정 브랜드나 카테고리, 분석 지표(SoS, HHI 등)를 포함해주세요.",
-                    query_type="clarification",
-                    confidence_level=confidence_level,
-                    confidence_score=0.2,
-                    suggestions=[
-                        "LANEIGE의 Lip Care 카테고리 점유율은?",
-                        "최근 크롤링 데이터 기반 Top 10 브랜드 알려줘",
-                        "경쟁사 대비 LANEIGE 포지셔닝 분석해줘",
-                    ],
-                )
+            if state.metadata.get("output_sanitized"):
+                # 토큰이 이미 전송된 뒤 출력 가드가 텍스트를 정제함:
+                # 프론트엔드는 error 이벤트로 본문을 교체하므로 정제된 전문을 보낸다.
+                yield {"type": "error", "content": response.text}
 
-            else:
-                # MEDIUM/LOW: 기존 플로우 (ReAct 또는 DecisionMaker)
-                use_react = self._react_agent and self._is_complex_query(query, context)
-
-                if use_react:
-                    yield {
-                        "type": "status",
-                        "content": "복잡한 질문 감지 — ReAct 분석 모드 시작...",
-                    }
-                    response = await self._process_with_react(query, context)
-
-                else:
-                    # LLM 의사결정
-                    yield {"type": "status", "content": "분석 중..."}
-
-                    system_state = self._get_system_state(current_metrics)
-                    decision = await self.decision_maker.decide(
-                        query,
-                        context,
-                        system_state,
-                        confidence_level=confidence_level.value if confidence_level else "medium",
-                    )
-                    self._stats["llm_decisions"] += 1
-
-                    # 도구 실행 (필요시)
-                    tool_result = None
-                    tool_name = decision.tool
-                    if tool_name and tool_name != "direct_answer":
-                        yield {
-                            "type": "tool_call",
-                            "content": {"name": tool_name, "status": "calling"},
-                        }
-                        self.mode = BrainMode.EXECUTING
-                        tool_result = await self.tool_coordinator.execute(
-                            tool_name=tool_name, params=decision.tool_params or {}
-                        )
-
-                    # 응답 생성
-                    yield {"type": "status", "content": "응답 생성 중..."}
-
-                    response = await self._generate_response(
-                        query=query,
-                        context=context,
-                        decision=decision,
-                        tool_result=tool_result,
-                    )
-
-            # PromptGuard 출력 검증
-            is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
-            final_text = sanitized_text if not is_output_safe else response.text
-
-            # 처리 시간
-            processing_time = (datetime.now() - start_time).total_seconds() * 1000
-
-            # 텍스트 청크로 yield (자연스러운 스트리밍)
-            yield {"type": "text", "content": final_text}
-
-            # 완료 이벤트 (content는 dict - dashboard_api에서 json.dumps 처리)
+            # 완료 이벤트 (content는 dict - 라우트에서 json.dumps 처리)
             yield {
                 "type": "done",
-                "content": {
-                    "confidence": response.confidence_score,
-                    "sources": response.sources[:5] if response.sources else [],
-                    "tools_used": response.tools_called,
-                    "suggestions": response.suggestions[:3] if response.suggestions else [],
-                    "processing_time_ms": round(processing_time, 1),
-                    "mode": "react" if use_react else "direct",
-                    "confidence_level": confidence_level.value if confidence_level else "medium",
-                },
+                "content": self._stream_done_payload(state, response, start_time),
             }
 
         except Exception as e:
@@ -761,7 +660,38 @@ class UnifiedBrain:
             }
 
         finally:
+            if task is not None and not task.done():
+                task.cancel()
             self.mode = previous_mode
+
+    @staticmethod
+    def _stream_done_payload(
+        state: QueryState, response: Response, start_time: datetime
+    ) -> dict[str, Any]:
+        """스트리밍 ``done`` 이벤트 페이로드"""
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+        if state.is_blocked:
+            mode = "blocked"
+            suggestions = ["다른 질문을 해주세요"]
+            confidence_level = "unknown"
+        else:
+            mode = {"react": "react", "cache_hit": "cache"}.get(state.route or "", "direct")
+            suggestions = response.suggestions[:3] if response.suggestions else []
+            if state.confidence_level:
+                confidence_level = state.confidence_level.value
+            elif response.confidence_level and response.confidence_level.value != "unknown":
+                confidence_level = response.confidence_level.value
+            else:
+                confidence_level = "medium"
+        return {
+            "confidence": response.confidence_score,
+            "sources": response.sources[:5] if response.sources else [],
+            "tools_used": response.tools_called,
+            "suggestions": suggestions,
+            "processing_time_ms": round(processing_time, 1),
+            "mode": mode,
+            "confidence_level": confidence_level,
+        }
 
     # =========================================================================
     # KG + OWL 동기화 (Phase 4: v3에서 포팅)
@@ -821,7 +751,6 @@ class UnifiedBrain:
 
     def _register_dashboard_tools(self) -> None:
         """v3 대시보드 조회 도구를 ToolCoordinator에 등록"""
-        import json
 
         data_path = os.environ.get("DASHBOARD_DATA_PATH", f"{_DATA_DIR}/dashboard_data.json")
 
@@ -924,256 +853,6 @@ class UnifiedBrain:
         executor.register_executor("get_action_items", exec_action_items)
 
         logger.info("Registered 5 v3 dashboard tools in ToolCoordinator")
-
-    # =========================================================================
-    # 응답 생성
-    # =========================================================================
-
-    async def _generate_response(
-        self,
-        query: str,
-        context: Context,
-        decision: Decision,
-        tool_result: ToolResult | None = None,
-    ) -> Response:
-        """응답 생성"""
-        if self._response_pipeline:
-            return await self._response_pipeline.generate(
-                query=query, context=context, decision=decision, tool_result=tool_result
-            )
-
-        # 폴백 응답 생성
-        content = ""
-        if tool_result and tool_result.success:
-            content = (
-                f"도구 실행 결과:\n{json.dumps(tool_result.data, ensure_ascii=False, indent=2)}"
-            )
-        elif context.summary:
-            content = context.summary
-        else:
-            content = "관련 정보를 찾을 수 없습니다."
-
-        return Response(
-            text=content,
-            confidence_score=decision.confidence,
-            sources=context.rag_docs[:3] if context.rag_docs else [],
-            tools_called=[decision.tool] if decision.tool != "direct_answer" else [],
-        )
-
-    # =========================================================================
-    # ReAct 처리
-    # =========================================================================
-
-    def _is_complex_query(self, query: str, context: Context) -> bool:
-        """
-        복잡한 질문인지 판단
-
-        복잡한 질문의 특징:
-        - 여러 단계 추론 필요
-        - 다중 데이터 소스 필요
-        - "왜", "어떻게", "비교" 등 분석적 질문
-        - 컨텍스트가 불충분
-        """
-        # 복잡도 키워드
-        complex_keywords = ["왜", "어떻게", "비교", "분석", "추천", "전략", "예측", "원인"]
-        has_complex_keyword = any(keyword in query for keyword in complex_keywords)
-
-        # 컨텍스트 부족
-        has_kg_triples = hasattr(context, "kg_triples") and context.kg_triples
-        low_context = not context.rag_docs or len(context.rag_docs) < 2 or not has_kg_triples
-
-        # 다단계 질문 (여러 개의 의문사 또는 접속사)
-        multi_step = query.count("?") > 1 or any(
-            conj in query for conj in ["그리고", "또한", "하지만", "그러나"]
-        )
-
-        return has_complex_keyword or (low_context and multi_step)
-
-    async def _process_with_react(self, query: str, context: Context) -> Response:
-        """
-        ReAct 모드로 질문 처리
-
-        Args:
-            query: 사용자 질문
-            context: 수집된 컨텍스트
-
-        Returns:
-            Response 객체
-        """
-        if not self._react_agent:
-            return Response.fallback("ReAct 에이전트를 사용할 수 없습니다.")
-
-        try:
-            # ReAct 실행
-            react_result = await self._react_agent.run(
-                query=query, context=context.summary or "컨텍스트 없음"
-            )
-
-            # 응답 생성
-            response = Response(
-                text=react_result.final_answer,
-                confidence_score=react_result.confidence,
-                sources=context.rag_docs[:3] if context.rag_docs else [],
-                tools_called=[step.action for step in react_result.steps if step.action],
-            )
-
-            # 개선 필요 시 로깅
-            if react_result.needs_improvement:
-                logger.warning(
-                    f"ReAct result needs improvement (confidence: {react_result.confidence:.2f})"
-                )
-
-            return response
-
-        except Exception as e:
-            logger.error(f"ReAct processing failed: {e}")
-            return Response.fallback(f"ReAct 처리 실패: {str(e)}")
-
-    def _assess_confidence_level(self, context: Context) -> "ConfidenceLevel":
-        """컨텍스트 기반 신뢰도 평가
-
-        UNKNOWN은 질문 자체가 이해 불가할 때만 사용.
-        데이터가 부족해도 의도가 명확하면 LOW 이상 → LLM에게 위임.
-        """
-        # Build rule_result from context signals
-        rule_result = {"max_score": 0.0, "confidence": 0.0, "query_type": "unknown"}
-
-        # --- 1) 컨텍스트 데이터 점수 ---
-        score = 0.0
-        if context.kg_facts:
-            score += min(len(context.kg_facts), 3) * 1.5
-        if context.rag_docs:
-            score += min(len(context.rag_docs), 3) * 1.0
-        if context.kg_inferences:
-            score += min(len(context.kg_inferences), 2) * 2.0
-        if context.entities:
-            entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
-            score += min(entity_count, 3) * 1.0
-
-        # --- 2) 쿼리 의도 명확성 점수 (최소 바닥 보장) ---
-        # 데이터가 없어도 의미 있는 질문이면 UNKNOWN이 아닌 LOW로 분류
-        query = context.query if hasattr(context, "query") else ""
-        query_intent_score = self._assess_query_intent(query)
-        score += query_intent_score
-
-        rule_result["max_score"] = score
-
-        return self.confidence_assessor.assess(rule_result, context)
-
-    def _assess_query_intent(self, query: str) -> float:
-        """쿼리 자체의 의도 명확성 점수 반환
-
-        UNKNOWN(< 1.5)은 의도 파악이 불가한 경우에만 해당.
-        한국어/영어로 의미 있는 질문이면 최소 1.5점(LOW) 보장.
-
-        Returns:
-            0.0: 빈 쿼리 또는 의미 없는 문자열
-            1.5: 일반적인 질문 (의도 파악 가능)
-            2.5: 도메인 관련 질문 (브랜드, 지표, 분석 키워드 포함)
-        """
-        if not query or not query.strip():
-            return 0.0
-
-        stripped = query.strip()
-
-        # 너무 짧은 무의미 입력 (1~2자)
-        if len(stripped) <= 2:
-            return 0.0
-
-        score = 0.0
-
-        # 도메인 키워드 (브랜드, 제품, 카테고리)
-        domain_keywords = [
-            "laneige",
-            "라네즈",
-            "lip",
-            "립",
-            "mask",
-            "마스크",
-            "sleeping",
-            "슬리핑",
-            "cream",
-            "크림",
-            "skin",
-            "스킨",
-            "beauty",
-            "뷰티",
-            "makeup",
-            "메이크업",
-            "powder",
-            "파우더",
-            "아모레",
-            "amore",
-            "설화수",
-            "sulwhasoo",
-            "이니스프리",
-            "amazon",
-            "아마존",
-        ]
-        if any(kw in stripped.lower() for kw in domain_keywords):
-            score += 1.0
-
-        # 분석/질문 의도 키워드
-        intent_keywords = [
-            "분석",
-            "비교",
-            "추천",
-            "전략",
-            "예측",
-            "원인",
-            "이유",
-            "왜",
-            "어떻게",
-            "알려",
-            "보여",
-            "설명",
-            "순위",
-            "상승",
-            "하락",
-            "점유",
-            "경쟁",
-            "트렌드",
-            "현황",
-            "변화",
-            "추이",
-            "sos",
-            "hhi",
-            "cpi",
-            "share",
-            "rank",
-            "top",
-            "analyze",
-            "compare",
-            "explain",
-            "show",
-            "tell",
-        ]
-        if any(kw in stripped.lower() for kw in intent_keywords):
-            score += 1.0
-
-        # 의미 있는 질문이면 최소 LOW 바닥 보장 (1.5)
-        # 한글 3자 이상 또는 영어 단어 2개 이상이면 의도 있는 질문으로 간주
-        has_meaningful_length = len(stripped) >= 3
-        if has_meaningful_length and score == 0.0:
-            # 도메인/의도 키워드 없어도 최소 바닥 점수
-            score = 1.5
-
-        # 도메인 또는 의도 키워드가 있으면 바닥 보장
-        if score > 0.0 and score < 1.5:
-            score = 1.5
-
-        return score
-
-    def _extract_key_points_from_context(self, context: Context) -> list[str]:
-        """컨텍스트에서 핵심 포인트 추출"""
-        points = []
-        for fact in (context.kg_facts or [])[:3]:
-            if hasattr(fact, "entity") and hasattr(fact, "fact_type"):
-                points.append(f"{fact.entity}: {fact.fact_type}")
-        for inf in (context.kg_inferences or [])[:2]:
-            if isinstance(inf, dict) and "insight" in inf:
-                points.append(inf["insight"])
-        return points
 
     # =========================================================================
     # 자율 작업 (Autonomous)
@@ -1379,27 +1058,6 @@ class UnifiedBrain:
             "mode": self.mode.value,
             "cache_stats": self.cache.get_stats(),
         }
-
-    def _format_system_state(self, state: dict[str, Any]) -> str:
-        """시스템 상태 포맷"""
-        lines = [
-            f"- 데이터 상태: {state['data_status']}",
-            f"- 동작 모드: {state['mode']}",
-            f"- 사용 가능 도구: {', '.join(state['available_tools'])}",
-        ]
-        if state["failed_tools"]:
-            lines.append(f"- 실패 도구: {', '.join(state['failed_tools'])}")
-        return "\n".join(lines)
-
-    def _format_tools_description(self, state: dict[str, Any]) -> str:
-        """도구 설명 포맷"""
-        available = state.get("available_tools", [])
-        lines = []
-        for name, tool in AGENT_TOOLS.items():
-            if name in available:
-                lines.append(f"- {name}: {tool.description}")
-        lines.append("- direct_answer: 컨텍스트만으로 직접 답변")
-        return "\n".join(lines)
 
     # =========================================================================
     # 상태 및 통계

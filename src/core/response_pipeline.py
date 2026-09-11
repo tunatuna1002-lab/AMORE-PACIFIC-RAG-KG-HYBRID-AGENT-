@@ -18,6 +18,7 @@ RAG + KG 컨텍스트 기반 LLM 응답 생성
 
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
@@ -143,104 +144,195 @@ class ResponsePipeline:
             # 프롬프트 구성
             messages = self._build_messages(query, context, decision, tool_result)
 
-            # HIGH confidence fast path - lighter LLM call
-            is_high_confidence = (
-                decision
-                and hasattr(decision, "confidence")
-                and decision.confidence >= 0.85
-                and decision.tool == "direct_answer"
-                and hasattr(decision, "reason")
-                and "HIGH confidence" in (decision.reason or "")
+            is_high_confidence = self._is_high_confidence_shortcut(decision)
+            llm_available = self._llm_available()
+
+            response_text = await self._produce_text(
+                query, context, messages, is_high_confidence, llm_available
             )
 
-            # LLM 사용 가능 여부 (litellm은 OPENAI_API_KEY로 직접 호출)
-            import os
-
-            llm_available = self.client or os.environ.get("OPENAI_API_KEY")
-
-            if is_high_confidence and llm_available:
-                # Use faster, shorter prompt for HIGH confidence
-                response_text = await self._call_llm_fast(query, context)
-            elif llm_available:
-                response_text = await self._call_llm(messages)
-            else:
-                # LLM 없으면 컨텍스트 기반 기본 응답
-                response_text = self._generate_fallback_response(query, context)
-
-            # 응답 후처리
-            processed_text = self._post_process(response_text, context)
-
-            # 신뢰도 계산 (0-10 raw → 0.0-1.0 정규화). API 노출용 confidence는 단일 스케일.
-            calculated_confidence = self._calculate_confidence_score(context)
-            norm_calculated = self._normalize_unit(calculated_confidence / 10.0)
-
-            decision_confidence: float | None = None
-            is_shortcut = False
-            if decision and hasattr(decision, "confidence") and decision.confidence:
-                decision_confidence = self._normalize_unit(float(decision.confidence))
-                is_shortcut = bool(getattr(decision, "is_high_confidence_shortcut", False))
-
-            # 환각 감지 게이트: 정규화된 컨텍스트 점수 또는 (LLM 판단인 경우) 판단 신뢰도가
-            # 임계값 미만이면 검사. HIGH fast-path의 0.9는 LLM 판단이 아니므로
-            # 그것만으로 검사를 건너뛰지 않는다.
-            hallucination_penalty = 1.0
-            grounding_warning = False
-            needs_check = decision is not None and (
-                norm_calculated < self.HALLUCINATION_CHECK_THRESHOLD
-                or (
-                    not is_shortcut
-                    and decision_confidence is not None
-                    and decision_confidence < self.HALLUCINATION_CHECK_THRESHOLD
-                )
-            )
-            if needs_check:
-                try:
-                    context_text = context.summary or ""
-                    groundedness = await self._hallucination_detector.check(
-                        processed_text, context_text
-                    )
-                    if not groundedness.is_grounded:
-                        logger.warning(f"Hallucination warning: score={groundedness.score:.2f}")
-                        # 로깅만 하지 않고 응답 신뢰도에 반영 (근거 부족 → 신뢰도 하향)
-                        hallucination_penalty = 0.6
-                        grounding_warning = True
-                except Exception as e:
-                    logger.debug(f"Hallucination check skipped: {e}")
-
-            # 제안 질문 생성
-            suggestions = self._generate_suggestions(query, context)
-
-            # 출처 추출
-            sources = self._extract_sources(context)
-
-            processing_time = (datetime.now() - start_time).total_seconds() * 1000
-
-            # 최종 신뢰도 - 동일 스케일(0.0-1.0)에서 max 병합
-            if decision_confidence is not None:
-                final_confidence = max(norm_calculated, decision_confidence)
-            else:
-                final_confidence = norm_calculated
-
-            return Response(
-                text=processed_text,
-                query_type=self._infer_query_type(query, context),
-                confidence_level=self._assess_confidence(context),
-                confidence_score=self._normalize_unit(final_confidence * hallucination_penalty),
-                grounding_warning=grounding_warning,
-                sources=sources,
-                entities=context.entities,
-                tools_called=[tool_result.tool_name]
-                if tool_result and hasattr(tool_result, "tool_name")
-                else [],
-                suggestions=suggestions,
-                processing_time_ms=processing_time,
+            return await self._finalize_response(
+                query, context, decision, tool_result, response_text, start_time
             )
 
         except Exception as e:
             logger.error(f"Response generation failed: {e}", exc_info=True)
-            processing_time = (datetime.now() - start_time).total_seconds() * 1000
-
             return Response.fallback(f"응답 생성 중 오류가 발생했습니다: {str(e)}")
+
+    async def generate_stream(
+        self,
+        query: str,
+        context: Context,
+        decision: Decision | None = None,
+        tool_result: ToolResult | None = None,
+        on_token: Callable[[str], Awaitable[None]] | None = None,
+    ) -> Response:
+        """
+        스트리밍 응답 생성
+
+        ``generate`` 와 동일한 Response를 반환하되, LLM 토큰이 도착할 때마다
+        ``on_token`` 을 호출합니다. LLM을 쓸 수 없거나 스트리밍이 시작 전에 실패하면
+        비스트리밍 경로로 폴백하고 전체 텍스트를 ``on_token`` 으로 한 번 emit 합니다.
+        스트리밍 도중 실패하면 이미 전송한 부분 텍스트를 답변으로 확정합니다
+        (토큰을 되돌릴 수 없으므로 재전송하지 않음).
+
+        Args:
+            query: 사용자 질문
+            context: 수집된 컨텍스트
+            decision: LLM 판단 결과 (있으면 활용)
+            tool_result: 도구 실행 결과 (있으면 포함)
+            on_token: 텍스트 조각마다 호출되는 async 콜백
+
+        Returns:
+            Response 객체 (text는 후처리된 전체 텍스트)
+        """
+        start_time = datetime.now()
+
+        try:
+            messages = self._build_messages(query, context, decision, tool_result)
+            is_high_confidence = self._is_high_confidence_shortcut(decision)
+            llm_available = self._llm_available()
+
+            response_text: str | None = None
+            if llm_available:
+                if is_high_confidence:
+                    response_text = await self._stream_llm(
+                        self._fast_messages(query, context), 800, 0.2, on_token
+                    )
+                else:
+                    response_text = await self._stream_llm(
+                        messages, self.max_tokens, self.temperature, on_token
+                    )
+
+            if response_text is None:
+                # 스트리밍 불가/시작 전 실패: 비스트리밍 경로 + 전체 텍스트 1회 emit
+                response_text = await self._produce_text(
+                    query, context, messages, is_high_confidence, llm_available
+                )
+                if on_token and response_text:
+                    await on_token(response_text)
+
+            return await self._finalize_response(
+                query, context, decision, tool_result, response_text, start_time
+            )
+
+        except Exception as e:
+            logger.error(f"Streaming response generation failed: {e}", exc_info=True)
+            return Response.fallback(f"응답 생성 중 오류가 발생했습니다: {str(e)}")
+
+    @staticmethod
+    def _is_high_confidence_shortcut(decision: Decision | None) -> bool:
+        """HIGH confidence fast path 여부 - lighter LLM call"""
+        return bool(
+            decision
+            and hasattr(decision, "confidence")
+            and decision.confidence >= 0.85
+            and decision.tool == "direct_answer"
+            and hasattr(decision, "reason")
+            and "HIGH confidence" in (decision.reason or "")
+        )
+
+    def _llm_available(self) -> bool:
+        """LLM 사용 가능 여부 (litellm은 OPENAI_API_KEY로 직접 호출)"""
+        import os
+
+        return bool(self.client or os.environ.get("OPENAI_API_KEY"))
+
+    async def _produce_text(
+        self,
+        query: str,
+        context: Context,
+        messages: list[dict[str, str]],
+        is_high_confidence: bool,
+        llm_available: bool,
+    ) -> str:
+        """비스트리밍 텍스트 생성 (fast / normal / LLM 없음 폴백)"""
+        if is_high_confidence and llm_available:
+            # Use faster, shorter prompt for HIGH confidence
+            return await self._call_llm_fast(query, context)
+        if llm_available:
+            return await self._call_llm(messages)
+        # LLM 없으면 컨텍스트 기반 기본 응답
+        return self._generate_fallback_response(query, context)
+
+    async def _finalize_response(
+        self,
+        query: str,
+        context: Context,
+        decision: Decision | None,
+        tool_result: ToolResult | None,
+        response_text: str,
+        start_time: datetime,
+    ) -> Response:
+        """생성된 텍스트를 후처리·신뢰도 계산·환각 검사하여 Response로 확정"""
+        # 응답 후처리
+        processed_text = self._post_process(response_text, context)
+
+        # 신뢰도 계산 (0-10 raw → 0.0-1.0 정규화). API 노출용 confidence는 단일 스케일.
+        calculated_confidence = self._calculate_confidence_score(context)
+        norm_calculated = self._normalize_unit(calculated_confidence / 10.0)
+
+        decision_confidence: float | None = None
+        is_shortcut = False
+        if decision and hasattr(decision, "confidence") and decision.confidence:
+            decision_confidence = self._normalize_unit(float(decision.confidence))
+            is_shortcut = bool(getattr(decision, "is_high_confidence_shortcut", False))
+
+        # 환각 감지 게이트: 정규화된 컨텍스트 점수 또는 (LLM 판단인 경우) 판단 신뢰도가
+        # 임계값 미만이면 검사. HIGH fast-path의 0.9는 LLM 판단이 아니므로
+        # 그것만으로 검사를 건너뛰지 않는다.
+        hallucination_penalty = 1.0
+        grounding_warning = False
+        needs_check = decision is not None and (
+            norm_calculated < self.HALLUCINATION_CHECK_THRESHOLD
+            or (
+                not is_shortcut
+                and decision_confidence is not None
+                and decision_confidence < self.HALLUCINATION_CHECK_THRESHOLD
+            )
+        )
+        if needs_check:
+            try:
+                context_text = context.summary or ""
+                groundedness = await self._hallucination_detector.check(
+                    processed_text, context_text
+                )
+                if not groundedness.is_grounded:
+                    logger.warning(f"Hallucination warning: score={groundedness.score:.2f}")
+                    # 로깅만 하지 않고 응답 신뢰도에 반영 (근거 부족 → 신뢰도 하향)
+                    hallucination_penalty = 0.6
+                    grounding_warning = True
+            except Exception as e:
+                logger.debug(f"Hallucination check skipped: {e}")
+
+        # 제안 질문 생성
+        suggestions = self._generate_suggestions(query, context)
+
+        # 출처 추출
+        sources = self._extract_sources(context)
+
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+
+        # 최종 신뢰도 - 동일 스케일(0.0-1.0)에서 max 병합
+        if decision_confidence is not None:
+            final_confidence = max(norm_calculated, decision_confidence)
+        else:
+            final_confidence = norm_calculated
+
+        return Response(
+            text=processed_text,
+            query_type=self._infer_query_type(query, context),
+            confidence_level=self._assess_confidence(context),
+            confidence_score=self._normalize_unit(final_confidence * hallucination_penalty),
+            grounding_warning=grounding_warning,
+            sources=sources,
+            entities=context.entities,
+            tools_called=[tool_result.tool_name]
+            if tool_result and hasattr(tool_result, "tool_name")
+            else [],
+            suggestions=suggestions,
+            processing_time_ms=processing_time,
+        )
 
     async def generate_with_tool_result(
         self, query: str, context: Context, tool_result: ToolResult
@@ -445,23 +537,10 @@ class ResponsePipeline:
         """
         from litellm import acompletion
 
-        # 간결한 시스템 프롬프트
-        fast_system = (
-            "아모레퍼시픽 LANEIGE 브랜드 Amazon 마켓 분석 전문가입니다. "
-            "제공된 데이터를 바탕으로 간결하고 정확하게 한국어로 답변하세요. "
-            "수치와 근거를 명시하세요."
-        )
-
-        # 컨텍스트 요약을 사용자 메시지에 직접 포함
-        user_msg = f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
-
         try:
             response = await acompletion(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": fast_system},
-                    {"role": "user", "content": user_msg},
-                ],
+                messages=self._fast_messages(query, context),
                 max_tokens=800,  # 절반으로 줄임
                 temperature=0.2,  # 더 결정적
             )
@@ -469,6 +548,66 @@ class ResponsePipeline:
         except Exception as e:
             logger.warning(f"Fast LLM call failed, falling back: {e}")
             return self._generate_fallback_response(query, context)
+
+    @staticmethod
+    def _fast_messages(query: str, context: Context) -> list[dict[str, str]]:
+        """HIGH 신뢰도용 간결한 프롬프트 (컨텍스트 요약을 사용자 메시지에 직접 포함)"""
+        fast_system = (
+            "아모레퍼시픽 LANEIGE 브랜드 Amazon 마켓 분석 전문가입니다. "
+            "제공된 데이터를 바탕으로 간결하고 정확하게 한국어로 답변하세요. "
+            "수치와 근거를 명시하세요."
+        )
+        user_msg = f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
+        return [
+            {"role": "system", "content": fast_system},
+            {"role": "user", "content": user_msg},
+        ]
+
+    async def _stream_llm(
+        self,
+        messages: list[dict[str, str]],
+        max_tokens: int,
+        temperature: float,
+        on_token: Callable[[str], Awaitable[None]] | None,
+    ) -> str | None:
+        """
+        LLM 스트리밍 호출 (litellm ``stream=True``)
+
+        Returns:
+            전체 텍스트. 스트리밍이 토큰을 하나도 보내기 전에 실패하면 None
+            (호출자가 비스트리밍 경로로 폴백). 도중에 실패하면 부분 텍스트.
+        """
+        from litellm import acompletion
+
+        parts: list[str] = []
+        try:
+            stream = await acompletion(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=True,
+            )
+            async for chunk in stream:
+                choices = getattr(chunk, "choices", None) or []
+                if not choices:
+                    continue
+                delta = getattr(choices[0], "delta", None)
+                text = getattr(delta, "content", None) if delta is not None else None
+                if text:
+                    parts.append(text)
+                    if on_token:
+                        await on_token(text)
+        except Exception as e:
+            if parts:
+                logger.warning(
+                    f"LLM stream interrupted after {len(parts)} chunks, keeping partial text: {e}"
+                )
+                return "".join(parts)
+            logger.warning(f"LLM streaming failed, falling back to non-streaming call: {e}")
+            return None
+
+        return "".join(parts)
 
     # =========================================================================
     # 후처리

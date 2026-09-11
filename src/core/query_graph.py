@@ -6,18 +6,25 @@ LangGraph 패턴의 경량 자체 구현.
 프레임워크 의존 없이 노드 함수 + 조건부 엣지로
 쿼리 처리 파이프라인을 명시적 상태 그래프로 표현합니다.
 
+이 그래프가 챗봇 질의 처리의 **유일한** 구현입니다 (F2).
+``UnifiedBrain.process_query`` 와 ``process_query_stream`` 은 모두 여기로 위임하며,
+스트리밍은 응답 노드에 토큰/이벤트 콜백을 주입하는 것으로만 다릅니다.
+
 Graph Structure:
     GUARD → CACHE_CHECK → GATHER_CONTEXT → ASSESS_CONFIDENCE
         → [HIGH] → GENERATE_RESPONSE
         → [UNKNOWN] → CLARIFICATION
-        → [MEDIUM/LOW + complex] → REACT_AGENT → GENERATE_RESPONSE
+        → [MEDIUM/LOW + complex/compound] → REACT_AGENT
         → [MEDIUM/LOW + simple] → DECIDE → EXECUTE_TOOL → GENERATE_RESPONSE
-    GENERATE_RESPONSE → OUTPUT_GUARD → DONE
+    (CLARIFICATION | REACT_AGENT | GENERATE_RESPONSE) → OUTPUT_GUARD → STORE_CACHE → DONE
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from .cache import ResponseCache
@@ -32,6 +39,38 @@ from .response_pipeline import ResponsePipeline
 from .tool_coordinator import ToolCoordinator
 
 logger = logging.getLogger(__name__)
+
+TokenCallback = Callable[[str], Awaitable[None]]
+EventCallback = Callable[[dict[str, Any]], Awaitable[None]]
+
+# 복합 쿼리 감지는 상태가 없으므로 모듈 단위 인스턴스 하나로 충분
+_ROUTER = QueryRouter()
+
+
+class _Sink:
+    """스트리밍 콜백 묶음. 콜백이 없으면 모든 emit은 no-op (= 비스트리밍 실행)."""
+
+    def __init__(self, on_token: TokenCallback | None, on_event: EventCallback | None):
+        self._on_token = on_token
+        self._on_event = on_event
+        self.streamed: list[str] = []
+
+    @property
+    def streaming(self) -> bool:
+        return self._on_token is not None
+
+    async def token(self, text: str) -> None:
+        if self._on_token is None or not text:
+            return
+        self.streamed.append(text)
+        await self._on_token(text)
+
+    async def event(self, event: dict[str, Any]) -> None:
+        if self._on_event is not None:
+            await self._on_event(event)
+
+    async def status(self, content: str) -> None:
+        await self.event({"type": "status", "content": content})
 
 
 class QueryGraph:
@@ -71,6 +110,36 @@ class QueryGraph:
         self._react_agent = react_agent
 
     # =========================================================================
+    # Cache key
+    # =========================================================================
+
+    @staticmethod
+    def _metrics_digest(current_metrics: Any) -> str:
+        """current_metrics의 안정적 요약 다이제스트 (전체 페이로드를 해시하지 않음)."""
+        if current_metrics is None:
+            return "none"
+        if not isinstance(current_metrics, dict):
+            return hashlib.sha256(str(current_metrics).encode()).hexdigest()
+        summary = {
+            "metadata": current_metrics.get("metadata"),
+            "keys": sorted(str(k) for k in current_metrics),
+            "sizes": {
+                str(k): len(v)
+                for k, v in current_metrics.items()
+                if isinstance(v, (list, dict, str))
+            },
+        }
+        payload = json.dumps(summary, sort_keys=True, ensure_ascii=False, default=str)
+        return hashlib.sha256(payload.encode()).hexdigest()
+
+    @classmethod
+    def build_cache_key(cls, query: str, session_id: str | None, current_metrics: Any) -> str:
+        """캐시 키 = sha256(정규화 질문 + 세션 ID + current_metrics 요약 다이제스트)."""
+        normalized = " ".join((query or "").lower().split())
+        raw = "\x1f".join([normalized, session_id or "", cls._metrics_digest(current_metrics)])
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    # =========================================================================
     # Node Methods — each takes QueryState, returns QueryState
     # =========================================================================
 
@@ -83,7 +152,7 @@ class QueryGraph:
             state.is_blocked = True
             state.block_reason = block_reason
             # 차단 응답은 근거 없는 fallback: 낮은 신뢰도 + is_fallback 플래그
-            # (is_fallback=True 이므로 brain.process_query가 캐시에 저장하지 않음)
+            # (is_fallback=True 이므로 STORE_CACHE 노드가 캐시에 저장하지 않음)
             state.response = Response(
                 text=PromptGuard.get_rejection_message(block_reason),
                 confidence_score=0.0,
@@ -99,14 +168,34 @@ class QueryGraph:
         return state
 
     async def _node_cache_check(self, state: QueryState) -> QueryState:
-        """캐시 확인 노드"""
+        """캐시 확인 노드 (히트 시 재저장하지 않음 — sliding TTL 없음)"""
+        state.cache_key = self.build_cache_key(
+            state.original_query or state.query, state.session_id, state.current_metrics
+        )
         if not state.skip_cache:
-            cached = self._cache.get(state.query, "query")
+            cached = self._cache.get(state.cache_key, "query")
             if cached:
                 logger.info(f"Cache hit: {state.query[:30]}...")
                 state.response = cached
                 state.metadata["cache_hit"] = True
 
+        return state
+
+    def _node_store_cache(self, state: QueryState) -> QueryState:
+        """캐시 저장 노드: guard 거절·fallback·캐시 히트·skip_cache는 저장하지 않음"""
+        response = state.response
+        if (
+            state.skip_cache
+            or state.is_blocked
+            or state.metadata.get("cache_hit")
+            or response is None
+            or response.is_fallback
+        ):
+            return state
+        key = state.cache_key or self.build_cache_key(
+            state.original_query or state.query, state.session_id, state.current_metrics
+        )
+        self._cache.set(key, response, "query")
         return state
 
     async def _node_gather_context(self, state: QueryState) -> QueryState:
@@ -119,7 +208,6 @@ class QueryGraph:
     def _node_assess_confidence(self, state: QueryState) -> QueryState:
         """신뢰도 평가 노드
 
-        brain.py의 _assess_confidence_level 로직을 복제.
         컨텍스트 데이터 점수 + 쿼리 의도 명확성 점수를 합산하여
         ConfidenceAssessor에 위임합니다.
         """
@@ -208,19 +296,38 @@ class QueryGraph:
 
         return state
 
-    async def _node_generate_response(self, state: QueryState) -> QueryState:
-        """응답 생성 노드"""
+    async def _node_generate_response(
+        self, state: QueryState, sink: _Sink | None = None
+    ) -> QueryState:
+        """응답 생성 노드
+
+        스트리밍 실행(sink.streaming)이고 파이프라인이 ``generate_stream`` 을 제공하면
+        토큰을 sink로 흘려보내며 생성합니다. 그 외에는 ``generate`` 를 사용하고,
+        전체 텍스트는 ``_finish`` 에서 한 번에 emit 됩니다.
+        """
         if self._response_pipeline:
-            state.response = await self._response_pipeline.generate(
-                query=state.query,
-                context=state.context,
-                decision=state.decision,
-                tool_result=state.tool_result,
+            generate_stream = (
+                getattr(self._response_pipeline, "generate_stream", None)
+                if sink is not None and sink.streaming
+                else None
             )
+            if generate_stream is not None:
+                state.response = await generate_stream(
+                    query=state.query,
+                    context=state.context,
+                    decision=state.decision,
+                    tool_result=state.tool_result,
+                    on_token=sink.token,
+                )
+            else:
+                state.response = await self._response_pipeline.generate(
+                    query=state.query,
+                    context=state.context,
+                    decision=state.decision,
+                    tool_result=state.tool_result,
+                )
         else:
             # 폴백 응답 생성
-            import json
-
             context = state.context
             decision = state.decision
 
@@ -318,7 +425,7 @@ class QueryGraph:
         return "generate_response"
 
     # =========================================================================
-    # Helper Methods (replicated from brain.py for self-containment)
+    # Helper Methods
     # =========================================================================
 
     @staticmethod
@@ -426,7 +533,7 @@ class QueryGraph:
 
     @staticmethod
     def _is_complex_query(query: str, context: Context | None) -> bool:
-        """복잡한 질문인지 판단 (QueryRouter 통합)
+        """복잡한 질문인지 판단 (QueryRouter.is_compound 통합)
 
         복잡한 질문의 특징:
         - 여러 단계 추론 필요
@@ -452,8 +559,7 @@ class QueryGraph:
         )
 
         # QueryRouter 복합 쿼리 감지
-        router = QueryRouter()
-        is_compound = router.is_compound(query)
+        is_compound = _ROUTER.is_compound(query)
 
         return has_complex_keyword or (low_context and multi_step) or is_compound
 
@@ -478,7 +584,7 @@ class QueryGraph:
 
     async def run(self, state: QueryState) -> QueryState:
         """
-        상태 그래프 실행
+        상태 그래프 실행 (비스트리밍)
 
         Args:
             state: 초기 QueryState
@@ -486,21 +592,55 @@ class QueryGraph:
         Returns:
             최종 QueryState (response 포함)
         """
+        return await self._execute(state, _Sink(None, None))
+
+    async def run_stream(
+        self,
+        state: QueryState,
+        on_token: TokenCallback | None = None,
+        on_event: EventCallback | None = None,
+    ) -> QueryState:
+        """
+        상태 그래프 실행 (스트리밍)
+
+        ``run`` 과 동일한 그래프를 실행하되, 진행 중 다음 콜백을 호출합니다.
+
+        Args:
+            state: 초기 QueryState
+            on_token: 응답 텍스트 조각(str)마다 호출. 파이프라인이 ``generate_stream`` 을
+                제공하면 LLM 토큰 단위로, 아니면 최종 텍스트 한 번에 호출됩니다.
+                guard 거절·캐시 히트·명확화·ReAct 응답도 전체 텍스트를 한 번 emit 합니다.
+                ``on_token`` 으로 흘려보낸 텍스트를 이어붙이면 ``state.response.text`` 와
+                같습니다 (출력 가드가 텍스트를 수정한 경우 ``metadata["output_sanitized"]``).
+            on_event: 진행 이벤트 dict마다 호출:
+                ``{"type": "status", "content": str}`` /
+                ``{"type": "tool_call", "content": {"name": str, "status": "calling"}}``.
+                두 콜백을 모두 생략하면 ``run`` 과 완전히 동일하게 동작합니다.
+
+        Returns:
+            최종 QueryState (response, route, cache_key 포함)
+        """
+        return await self._execute(state, _Sink(on_token, on_event))
+
+    async def _execute(self, state: QueryState, sink: _Sink) -> QueryState:
         state.original_query = state.query
 
         # GUARD
         state = await self._node_guard(state)
-        next_node = self._route_after_guard(state)
-        if next_node == "done":
+        if self._route_after_guard(state) == "done":
+            state.route = "blocked"
+            await sink.token(state.response.text if state.response else "")
             return state
 
         # CACHE_CHECK
         state = await self._node_cache_check(state)
-        next_node = self._route_after_cache(state)
-        if next_node == "done":
+        if self._route_after_cache(state) == "done":
+            state.route = "cache_hit"
+            await sink.token(state.response.text)
             return state
 
         # GATHER_CONTEXT
+        await sink.status("컨텍스트 수집 중...")
         state = await self._node_gather_context(state)
 
         # ASSESS_CONFIDENCE
@@ -508,9 +648,11 @@ class QueryGraph:
 
         # ROUTE based on confidence
         next_node = self._route_after_confidence(state)
+        state.route = next_node
 
         if next_node == "generate_response":
             # HIGH confidence - direct answer (skip LLM decision)
+            await sink.status("높은 신뢰도 — 빠른 응답 생성 중...")
             logger.info(f"HIGH confidence - skipping LLM decision for: {state.query[:50]}...")
             state.decision = Decision(
                 tool="direct_answer",
@@ -522,26 +664,46 @@ class QueryGraph:
                 key_points=self._extract_key_points(state.context),
             )
         elif next_node == "clarification":
+            await sink.status("질문 분석 중...")
             state = self._node_clarification(state)
-            state = self._node_output_guard(state)
-            return state
+            return await self._finish(state, sink)
         elif next_node == "react":
+            await sink.status("복잡한 질문 감지 — ReAct 분석 모드 시작...")
             logger.info(f"Complex query detected, using ReAct mode: {state.query[:50]}...")
             state = await self._node_react(state)
-            state = self._node_output_guard(state)
-            return state
+            return await self._finish(state, sink)
         else:
             # DECIDE
+            await sink.status("분석 중...")
             state = await self._node_decide(state)
             # ROUTE after decide
-            next_node = self._route_after_decide(state)
-            if next_node == "execute_tool":
+            if self._route_after_decide(state) == "execute_tool":
+                await sink.event(
+                    {
+                        "type": "tool_call",
+                        "content": {"name": state.decision.tool, "status": "calling"},
+                    }
+                )
                 state = await self._node_execute_tool(state)
+            await sink.status("응답 생성 중...")
 
         # GENERATE_RESPONSE
-        state = await self._node_generate_response(state)
+        state = await self._node_generate_response(state, sink)
 
-        # OUTPUT_GUARD
+        return await self._finish(state, sink)
+
+    async def _finish(self, state: QueryState, sink: _Sink) -> QueryState:
+        """OUTPUT_GUARD → (미전송 텍스트 emit) → STORE_CACHE"""
+        before = state.response.text if state.response else None
         state = self._node_output_guard(state)
+        after = state.response.text if state.response else None
 
+        if sink.streaming:
+            if not sink.streamed:
+                await sink.token(after or "")
+            elif before != after:
+                # 토큰은 이미 전송됨: 정제된 최종 텍스트는 response/cache에만 반영
+                state.metadata["output_sanitized"] = True
+
+        self._node_store_cache(state)
         return state

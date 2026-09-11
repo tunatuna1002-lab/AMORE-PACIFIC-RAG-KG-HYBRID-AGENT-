@@ -36,6 +36,9 @@ class QueryState:
         is_blocked: PromptGuard 차단 여부
         block_reason: 차단 사유
         error: 에러 메시지
+        route: 그래프가 택한 경로 ("blocked" | "cache_hit" | "generate_response"
+            | "clarification" | "react" | "decide")
+        cache_key: 이 질의의 캐시 키 (QueryGraph.build_cache_key)
         metadata: 추가 메타데이터 (트레이싱 등)
     """
 
@@ -61,6 +64,8 @@ class QueryState:
     is_blocked: bool = False
     block_reason: str | None = None
     error: str | None = None
+    route: str | None = None
+    cache_key: str | None = None
 
     # Metadata
     metadata: dict[str, Any] = field(default_factory=dict)

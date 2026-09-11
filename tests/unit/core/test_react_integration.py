@@ -1,6 +1,6 @@
 """
 ReAct Agent 통합 검증 테스트
-brain.py의 신뢰도 라우팅과 ReAct 에이전트 연동 검증
+QueryGraph(유일한 질의 파이프라인)의 신뢰도 라우팅과 ReAct 에이전트 연동 검증
 """
 
 import inspect
@@ -32,21 +32,21 @@ class TestReActIntegration:
         # ReActAgent는 run() 메서드 사용
         assert hasattr(agent, "run")
 
-    def test_brain_complex_query_detection(self):
-        """brain.py의 복잡한 질문 감지 로직"""
+    def test_graph_complex_query_detection(self):
+        """복잡한 질문 감지 로직은 QueryGraph에만 존재 (F2: brain 복사본 삭제)"""
         from src.core.brain import UnifiedBrain
+        from src.core.query_graph import QueryGraph
 
-        brain = UnifiedBrain.__new__(UnifiedBrain)
+        assert callable(QueryGraph._is_complex_query)
+        assert not hasattr(UnifiedBrain, "_is_complex_query")
 
-        # _is_complex_query가 존재하는지 확인
-        assert hasattr(brain, "_is_complex_query")
-
-    def test_brain_has_react_agent_field(self):
-        """brain.py에 _process_with_react 메서드 존재"""
+    def test_graph_has_react_node(self):
+        """ReAct 실행 노드는 QueryGraph._node_react (F2: brain._process_with_react 삭제)"""
         from src.core.brain import UnifiedBrain
+        from src.core.query_graph import QueryGraph
 
-        # _process_with_react 메서드 존재 확인
-        assert hasattr(UnifiedBrain, "_process_with_react")
+        assert hasattr(QueryGraph, "_node_react")
+        assert not hasattr(UnifiedBrain, "_process_with_react")
 
     def test_confidence_routing_preserves_react_path(self):
         """신뢰도 라우팅이 ReAct 경로를 보존하는지 확인
@@ -60,8 +60,8 @@ class TestReActIntegration:
         route_source = inspect.getsource(QueryGraph._route_after_confidence)
         assert "_is_complex_query" in route_source
 
-        # QueryGraph.run에서 ReAct 노드 호출 확인
-        run_source = inspect.getsource(QueryGraph.run)
+        # QueryGraph._execute (run/run_stream 공통)에서 ReAct 노드 호출 확인
+        run_source = inspect.getsource(QueryGraph._execute)
         assert "_node_react" in run_source
 
     def test_high_confidence_skips_react(self):
@@ -86,23 +86,17 @@ class TestComplexQueryDetection:
 
     def test_analysis_keyword_is_complex(self):
         """분석 키워드 포함 → 복잡"""
-        from src.core.brain import UnifiedBrain
-
-        brain = UnifiedBrain.__new__(UnifiedBrain)
-        brain._react_agent = True  # Mock
+        from src.core.query_graph import QueryGraph
 
         context = Context(query="분석해줘")
         context.rag_docs = []
 
-        result = brain._is_complex_query("LANEIGE 경쟁사 대비 분석해줘", context)
+        result = QueryGraph._is_complex_query("LANEIGE 경쟁사 대비 분석해줘", context)
         assert result is True
 
     def test_simple_query_not_complex(self):
         """단순 질문 → 비복잡"""
-        from src.core.brain import UnifiedBrain
-
-        brain = UnifiedBrain.__new__(UnifiedBrain)
-        brain._react_agent = True
+        from src.core.query_graph import QueryGraph
 
         context = Context(query="순위")
         context.rag_docs = [
@@ -111,18 +105,15 @@ class TestComplexQueryDetection:
             {"content": "doc3"},
         ]
 
-        result = brain._is_complex_query("LANEIGE 순위", context)
+        result = QueryGraph._is_complex_query("LANEIGE 순위", context)
         assert result is False
 
     def test_multi_step_query_is_complex(self):
         """다단계 질문 → 복잡"""
-        from src.core.brain import UnifiedBrain
-
-        brain = UnifiedBrain.__new__(UnifiedBrain)
-        brain._react_agent = True
+        from src.core.query_graph import QueryGraph
 
         context = Context(query="test")
         context.rag_docs = []
 
-        result = brain._is_complex_query("LANEIGE 순위는? 그리고 경쟁사 대비 어때?", context)
+        result = QueryGraph._is_complex_query("LANEIGE 순위는? 그리고 경쟁사 대비 어때?", context)
         assert result is True
