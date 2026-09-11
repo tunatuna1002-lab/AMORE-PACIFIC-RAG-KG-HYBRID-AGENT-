@@ -866,7 +866,7 @@ class OWLReasoner:
                     count += 1
 
             # 제품 관계 → OWL Product
-            from .relations import RelationType
+            from src.domain.entities.relations import RelationType
 
             for rel in kg.query(predicate=RelationType.HAS_PRODUCT):
                 brand = rel.subject

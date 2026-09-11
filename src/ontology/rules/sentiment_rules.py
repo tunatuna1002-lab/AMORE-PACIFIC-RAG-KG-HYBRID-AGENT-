@@ -3,8 +3,9 @@ Sentiment Analysis Based Rules
 감성 분석 기반 규칙
 """
 
+from src.domain.entities.relations import InsightType
+
 from ..reasoner import InferenceRule, RuleCondition, cluster_size
-from ..relations import InsightType
 
 
 def _cluster_value(ctx: dict, cluster: str):

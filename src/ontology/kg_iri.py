@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .relations import Relation, RelationType
+    from src.domain.entities.relations import Relation, RelationType
 
 logger = logging.getLogger(__name__)
 

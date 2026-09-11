@@ -9,8 +9,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from src.domain.entities.relations import Relation, RelationType
 from src.ontology.knowledge_graph import KnowledgeGraph, get_knowledge_graph
-from src.ontology.relations import Relation, RelationType
 
 
 class TestKnowledgeGraphInit:

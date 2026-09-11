@@ -3,8 +3,9 @@ IR Cross-Analysis Rules
 IR 크로스 분석 규칙 (2026-01-26 추가)
 """
 
+from src.domain.entities.relations import InsightType
+
 from ..reasoner import InferenceRule, RuleCondition, ctx_num
-from ..relations import InsightType
 
 RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
     name="ir_prime_day_impact",

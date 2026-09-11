@@ -17,7 +17,7 @@ from typing import Any
 
 from rdflib import Namespace
 
-from .relations import Relation, RelationType
+from src.domain.entities.relations import Relation, RelationType
 
 AMORE = Namespace("http://amore.ontology/")
 

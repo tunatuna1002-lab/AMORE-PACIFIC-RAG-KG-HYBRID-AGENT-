@@ -12,6 +12,18 @@ Components:
 
 # Schema (기존)
 # Business Rules (신규)
+# Relations (신규)
+from src.domain.entities.relations import (
+    InferenceResult,
+    InsightType,
+    MarketPosition,
+    Relation,
+    RelationType,
+    create_brand_product_relation,
+    create_competition_relation,
+    create_product_category_relation,
+)
+
 from .business_rules import (
     ALL_BUSINESS_RULES,
     get_high_priority_rules,
@@ -25,18 +37,6 @@ from .knowledge_graph import KnowledgeGraph
 # Ontology Knowledge Graph (T-Box + A-Box 통합)
 # Reasoner (신규)
 from .reasoner import InferenceRule, OntologyReasoner, RuleCondition, StandardConditions
-
-# Relations (신규)
-from .relations import (
-    InferenceResult,
-    InsightType,
-    MarketPosition,
-    Relation,
-    RelationType,
-    create_brand_product_relation,
-    create_competition_relation,
-    create_product_category_relation,
-)
 from .schema import (
     Brand,
     BrandMetrics,

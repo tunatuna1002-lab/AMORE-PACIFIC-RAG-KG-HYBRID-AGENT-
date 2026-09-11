@@ -3,8 +3,9 @@ Risk and Alert Rules
 위험 및 경고 관련 규칙
 """
 
+from src.domain.entities.relations import InsightType
+
 from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
-from ..relations import InsightType
 
 # =========================================================================
 # 규칙: 가격-품질 불일치 (Price-Quality Mismatch)

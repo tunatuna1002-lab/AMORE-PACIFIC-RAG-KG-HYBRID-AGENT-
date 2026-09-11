@@ -16,9 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from src.shared.units import percent_to_fraction
-
-from .relations import (
+from src.domain.entities.relations import (
     Relation,
     RelationType,
     create_ai_summary_relation,
@@ -28,6 +26,7 @@ from .relations import (
     create_sentiment_relation,
     get_cluster_for_sentiment,
 )
+from src.shared.units import percent_to_fraction
 
 
 class KGUpdaterMixin:

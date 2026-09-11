@@ -7,9 +7,8 @@ _resolve_id, and query_iri in src/ontology/knowledge_graph.py.
 
 import pytest
 
-from src.domain.entities.relations import IRI, RelationType
+from src.domain.entities.relations import IRI, Relation, RelationType
 from src.ontology.knowledge_graph import KnowledgeGraph
-from src.ontology.relations import Relation
 
 
 class TestResolveId:

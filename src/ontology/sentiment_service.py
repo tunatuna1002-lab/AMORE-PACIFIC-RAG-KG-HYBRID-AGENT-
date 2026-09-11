@@ -56,7 +56,7 @@ class SentimentService:
         Returns:
             추가된 관계 수
         """
-        from .relations import (
+        from src.domain.entities.relations import (
             create_ai_summary_relation,
             create_sentiment_relation,
             get_cluster_for_sentiment,

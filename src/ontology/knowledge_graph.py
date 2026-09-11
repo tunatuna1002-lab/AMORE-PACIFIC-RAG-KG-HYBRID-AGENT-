@@ -65,10 +65,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.domain.entities.relations import Relation, RelationType
+
 from .kg_iri import KGIRIMixin
 from .kg_query import KGQueryMixin
 from .kg_updater import KGUpdaterMixin
-from .relations import Relation, RelationType
 
 logger = logging.getLogger(__name__)
 

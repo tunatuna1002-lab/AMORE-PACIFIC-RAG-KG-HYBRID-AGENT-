@@ -5,8 +5,9 @@ Price, Discount, and Causality Rules
 
 from typing import Any
 
+from src.domain.entities.relations import InsightType
+
 from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
-from ..relations import InsightType
 
 # =========================================================================
 # 헬퍼 함수: 순위-할인 상관관계 분석

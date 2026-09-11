@@ -90,8 +90,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from src.domain.entities.relations import InferenceResult, InsightType
+
 from .knowledge_graph import KnowledgeGraph
-from .relations import InferenceResult, InsightType
 
 # 로거 설정
 logger = logging.getLogger(__name__)

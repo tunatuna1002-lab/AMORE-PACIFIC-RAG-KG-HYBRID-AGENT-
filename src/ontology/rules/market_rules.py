@@ -3,8 +3,9 @@ Market Position and Competition Rules
 시장 포지션 및 경쟁 관련 규칙
 """
 
+from src.domain.entities.relations import InsightType, MarketPosition
+
 from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
-from ..relations import InsightType, MarketPosition
 
 # =========================================================================
 # 규칙 1: 분산 시장 지배자 (Dominant in Fragmented Market)

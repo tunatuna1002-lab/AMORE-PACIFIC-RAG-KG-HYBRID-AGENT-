@@ -3,8 +3,9 @@ Growth, Opportunity, and Stability Rules
 성장, 기회 및 안정성 관련 규칙
 """
 
+from src.domain.entities.relations import InsightType, MarketPosition
+
 from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
-from ..relations import InsightType, MarketPosition
 
 # =========================================================================
 # 규칙: 안정적 성장 (Stable Growth)
