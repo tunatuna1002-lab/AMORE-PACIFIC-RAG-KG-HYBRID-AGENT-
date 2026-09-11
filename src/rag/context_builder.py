@@ -371,6 +371,13 @@ class ContextBuilder:
             inference_section = self._build_inference_section(hybrid_context.inferences)
             sections.append(inference_section)
 
+        # 2.5 크롤 DB 수치 섹션 (SQLite 정본, 스냅샷 날짜 포함)
+        metric_facts = getattr(hybrid_context, "metric_facts", None)
+        if isinstance(metric_facts, list) and metric_facts:
+            metric_section = self._build_metric_facts_section(metric_facts)
+            if metric_section.content.strip():
+                sections.append(metric_section)
+
         # 3. 현재 데이터 섹션
         if current_metrics:
             data_section = self._build_data_section(current_metrics, entities)
@@ -566,6 +573,79 @@ class ContextBuilder:
             title="현재 데이터", content=content, priority=ContextPriority.HIGH, source="data"
         )
 
+    @staticmethod
+    def _format_product(product: dict[str, Any]) -> str:
+        text = f"{product.get('rank')}위 {product.get('name', '')}"
+        if product.get("price") is not None:
+            text += f" ${product['price']:.2f}"
+        if product.get("rating") is not None:
+            text += f" 평점 {product['rating']}"
+        if product.get("reviews_count") is not None:
+            text += f" 리뷰 {product['reviews_count']:,}건"
+        return text
+
+    def _build_metric_facts_section(self, facts: list[dict[str, Any]]) -> ContextSection:
+        """크롤 DB 수치 섹션. 값이 없는 필드는 쓰지 않는다 (0으로 채우지 않는다)."""
+        lines: list[str] = []
+        for fact in facts:
+            kind = fact.get("type")
+            category = fact.get("category", "")
+            date = fact.get("snapshot_date", "")
+            if kind == "category_market":
+                parts = []
+                if fact.get("hhi") is not None:
+                    parts.append(f"HHI {fact['hhi']:.4f}")
+                if fact.get("churn_rate") is not None:
+                    parts.append(f"이탈률 {fact['churn_rate']:.1f}%")
+                if fact.get("category_avg_price") is not None:
+                    parts.append(f"Top 100 평균가 ${fact['category_avg_price']:.2f}")
+                if fact.get("category_avg_rating") is not None:
+                    parts.append(f"평균 평점 {fact['category_avg_rating']:.2f}")
+                if parts:
+                    lines.append(f"- {category} 시장 ({date}): " + ", ".join(parts))
+            elif kind == "category_top_brands":
+                ranked = ", ".join(f"{b['brand']} {b['sos']:.1f}%" for b in fact.get("brands", []))
+                lines.append(f"- {category} SoS 상위 브랜드 ({date}): {ranked}")
+            elif kind == "brand_share":
+                if fact.get("present"):
+                    lines.append(
+                        f"- {fact['brand']} {category} SoS ({date}): {fact['sos']:.1f}%"
+                        f" — Top 100 내 {fact.get('product_count')}개, 브랜드 중"
+                        f" {fact.get('brand_rank')}위"
+                    )
+                else:
+                    lines.append(
+                        f"- {fact['brand']} {category} ({date}): Top 100 내 제품 없음 (SoS 0%)"
+                    )
+            elif kind == "category_top_products":
+                products = "; ".join(self._format_product(p) for p in fact.get("products", []))
+                lines.append(f"- {category} Top 제품 ({date}): {products}")
+            elif kind == "brand_products":
+                products = "; ".join(self._format_product(p) for p in fact.get("products", []))
+                lines.append(f"- {fact.get('brand')} {category} 제품 ({date}): {products}")
+
+        if not lines:
+            return ContextSection(
+                title="크롤 DB 지표", content="", priority=ContextPriority.HIGH, source="data"
+            )
+
+        dates = sorted({str(f.get("snapshot_date")) for f in facts if f.get("snapshot_date")})
+        src_idx = self._register_source(
+            source_type="data",
+            title="Amazon US Best Sellers 크롤 DB",
+            detail=f"스냅샷 {', '.join(dates)}",
+        )
+        header = (
+            f"아래 수치는 크롤 DB [{src_idx}]의 표시된 스냅샷 날짜 기준이다. "
+            "여기에 없는 수치는 데이터에 없는 것이다."
+        )
+        return ContextSection(
+            title="크롤 DB 지표",
+            content="\n".join([header, *lines]),
+            priority=ContextPriority.HIGH,
+            source="data",
+        )
+
     def _build_facts_section(self, facts: list[dict[str, Any]]) -> ContextSection:
         """지식 그래프 사실 섹션 구성"""
         lines = []
@@ -695,8 +775,11 @@ class ContextBuilder:
         parts.append(
             "## 응답 가이드\n"
             "- 위 컨텍스트에 **포함된 데이터만** 사용하여 답변하세요.\n"
-            "- 수치 인용 형식: [지표명] [수치]% ([기간/카테고리])\n"
-            '- 예시: "LANEIGE의 Lip Care SoS는 5.0%입니다 (Top 60 기준)"\n'
+            "- 수치 인용 형식: [지표명] [수치]% ([스냅샷 날짜/카테고리])\n"
+            # 예시에 구체 수치를 두지 않는다. 예전 예시의 "5.0%"는 컨텍스트에 없는 숫자인데
+            # 수치가 없는 질문에서 답변으로 새어 나올 수 있었다 (사이클 10).
+            '- 예시 형식: "[브랜드]의 [카테고리] SoS는 [수치]%입니다 ([스냅샷 날짜] 기준)"'
+            " — 수치는 반드시 위 컨텍스트에서 가져오세요.\n"
             "- 컨텍스트에 없는 브랜드, 제품, 수치를 생성하지 마세요."
         )
 

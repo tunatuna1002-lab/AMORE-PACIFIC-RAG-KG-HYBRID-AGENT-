@@ -192,6 +192,19 @@ L2·L3 성분은 **게이트와 같은 지표**를 쓴다 (2026-09-06 변경).
 질의 재구성·질의 확장 호출은 아직 배선되지 않아 실제 지출은 기록값보다 조금 크다.
 usage가 없는 응답은 추정으로 채우지 않고 0으로 남긴다 — 미계측임이 드러나야 한다.
 
+## 크롤 DB 수치 사실과 데이터 시점
+
+검색은 링크된 브랜드·카테고리에 대해 크롤 DB(SQLite)의 SoS·HHI·순위·가격·리뷰 수를
+스냅샷 날짜와 함께 컨텍스트에 싣는다(`src/rag/metric_facts.py`, 사이클 10). 평가에서는:
+
+- **데이터 시점을 골드와 맞춘다.** `eval.cli run`은 데이터셋 snapshot 문항의 `as_of`를
+  읽어 `AMORE_DATA_AS_OF`로 설정한다(`--data-as-of`로 덮어쓰기, as_of가 여럿이면 실행
+  거부). 시스템은 그 날짜 이하의 최신 스냅샷을 읽고, 값은 리포트의 `config.data_as_of`에
+  남는다. 운영 기본값(최신 스냅샷)은 바뀌지 않는다.
+- **judge 근거성 컨텍스트에 DB 사실이 포함된다**(`trace.data_facts`). 답변이 근거로 쓴
+  수치를 judge가 못 보면 근거성이 부당하게 낮아진다. 그 결과 **사이클 10 이전 리포트와
+  L5 groundedness는 judge 컨텍스트 정의가 달라 직접 비교하지 않는다.**
+
 ## Gating Thresholds
 
 Items are marked as failed if any of these thresholds are violated:

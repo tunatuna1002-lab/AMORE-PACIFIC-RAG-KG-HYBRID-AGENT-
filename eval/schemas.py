@@ -285,6 +285,10 @@ class EvalTrace(BaseModel):
     l3_kg_query: KGQueryTrace = Field(default_factory=KGQueryTrace)
     l4_ontology: OntologyReasoningTrace = Field(default_factory=OntologyReasoningTrace)
     l5_answer: AnswerTrace = Field(default_factory=AnswerTrace)
+    data_facts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="검색이 컨텍스트에 실은 크롤 DB 수치 사실 (judge 근거성 컨텍스트에 포함)",
+    )
     cost: CostTrace = Field(default_factory=CostTrace, description="Cost tracking")
     latency_ms: float = Field(default=0.0, description="Total latency in milliseconds")
     error: str | None = Field(default=None, description="Error message if any")
@@ -473,6 +477,13 @@ class EvalConfig(BaseModel):
         description=(
             "문항당 에이전트 호출 상한(초). 초과하면 그 문항은 0점이 아니라 "
             "인프라 실패로 분리된다 (trace.error, AggregateMetrics.errored)."
+        ),
+    )
+    data_as_of: str | None = Field(
+        default=None,
+        description=(
+            "시스템이 읽을 크롤 DB 시점 상한(YYYY-MM-DD). 골든셋 snapshot 문항의 as_of에서 "
+            "정해진다 — 골드와 같은 날짜의 데이터를 읽어야 수치 비교가 성립한다."
         ),
     )
     use_judge: bool = Field(default=False, description="Whether to use LLM judge")

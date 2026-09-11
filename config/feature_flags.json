@@ -2,7 +2,8 @@
   "retriever": {
     "use_owl_strategy": true,
     "use_reranker": false,
-    "use_confidence_fusion": true
+    "use_confidence_fusion": true,
+    "use_db_metric_facts": true
   },
   "reasoner": {
     "use_unified_reasoner": true,

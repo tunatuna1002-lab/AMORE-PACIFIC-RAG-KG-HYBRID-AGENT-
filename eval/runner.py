@@ -379,10 +379,17 @@ class EvalRunner:
             l3_kg_query=l3_trace,
             l4_ontology=l4_trace,
             l5_answer=l5_trace,
+            data_facts=self._extract_data_facts(hybrid_ctx),
             cost=(item_cost or self._new_item_cost_tracker()).to_cost_trace(),
             latency_ms=latency_ms,
             error=None,
         )
+
+    @staticmethod
+    def _extract_data_facts(hybrid_ctx: Any) -> list[dict[str, Any]]:
+        """검색이 실은 크롤 DB 수치 사실. 없거나 리스트가 아니면 빈 리스트."""
+        facts = getattr(hybrid_ctx, "metric_facts", None) if hybrid_ctx is not None else None
+        return [f for f in facts if isinstance(f, dict)] if isinstance(facts, list) else []
 
     def _extract_l1_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> EntityLinkingTrace:
         """Extract L1 entity linking trace."""
@@ -565,6 +572,11 @@ class EvalRunner:
 
         # Add KG facts
         for fact in trace.l3_kg_query.ontology_facts:
+            if isinstance(fact, dict):
+                parts.append(str(fact))
+
+        # 크롤 DB 수치 사실 — 답변이 근거로 쓴 수치를 judge도 봐야 근거성이 공정하다
+        for fact in trace.data_facts:
             if isinstance(fact, dict):
                 parts.append(str(fact))
 

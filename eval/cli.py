@@ -31,6 +31,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -131,6 +132,16 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         default=False,
         help="Load dataset and validate without running evaluation",
+    )
+
+    parser.add_argument(
+        "--data-as-of",
+        type=str,
+        default=None,
+        help=(
+            "시스템이 읽을 크롤 DB 시점 상한 (YYYY-MM-DD). 생략하면 데이터셋 snapshot "
+            "문항의 as_of를 쓴다"
+        ),
     )
 
     parser.add_argument(
@@ -345,6 +356,22 @@ Configs:
 # =============================================================================
 
 
+def resolve_data_as_of(items: list, override: str | None = None) -> str | None:
+    """평가에서 시스템이 읽을 크롤 DB 시점.
+
+    명시값이 있으면 그것을, 없으면 데이터셋 snapshot 문항의 as_of를 쓴다. as_of가
+    여러 개면 하나의 시점으로 고정할 수 없으므로 명시를 요구한다.
+    """
+    if override:
+        return override
+    dates = {item.metadata.as_of for item in items if getattr(item.metadata, "as_of", None)}
+    if len(dates) > 1:
+        raise ValueError(
+            f"데이터셋의 as_of가 여러 개다 {sorted(dates)} — --data-as-of로 시점을 지정할 것"
+        )
+    return dates.pop() if dates else None
+
+
 async def run_evaluation(
     dataset_path: str,
     out_dir: str,
@@ -357,6 +384,7 @@ async def run_evaluation(
     dry_run: bool,
     baseline: str | None = None,
     baseline_dir: str = "eval/baselines",
+    data_as_of: str | None = None,
 ) -> int:
     """
     Run the full evaluation pipeline.
@@ -372,6 +400,14 @@ async def run_evaluation(
     except Exception as e:
         logger.error(f"Failed to load dataset: {e}")
         return 1
+
+    try:
+        data_as_of = resolve_data_as_of(items, data_as_of)
+    except ValueError as e:
+        logger.error(str(e))
+        return 1
+    if data_as_of:
+        logger.info(f"Data as-of pinned to {data_as_of} (crawl DB snapshots <= this date)")
 
     if dry_run:
         logger.info("Dry run mode - skipping evaluation")
@@ -389,7 +425,15 @@ async def run_evaluation(
         use_judge=use_judge,
         judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
         save_traces=save_traces,
+        data_as_of=data_as_of,
     )
+
+    if data_as_of:
+        # 골드가 이 날짜의 DB에서 생성됐으므로 시스템도 같은 날짜의 DB를 읽게 한다.
+        # 운영 기본값(최신 스냅샷)은 바꾸지 않는다 — 평가 프로세스에서만 설정한다.
+        from src.rag.metric_facts import AS_OF_ENV
+
+        os.environ[AS_OF_ENV] = data_as_of
 
     # Initialize agent
     logger.info("Initializing agent...")
@@ -766,6 +810,7 @@ def main(argv: list[str] | None = None):
                 dry_run=args.dry_run,
                 baseline=args.baseline,
                 baseline_dir=args.baseline_dir,
+                data_as_of=args.data_as_of,
             )
         )
 

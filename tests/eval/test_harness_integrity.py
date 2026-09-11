@@ -255,3 +255,50 @@ class TestOverallScoreUsesGateMetrics:
         assert self._score(concept_recall=1.0, requires_kg=False) > self._score(
             concept_recall=0.0, requires_kg=False
         )
+
+
+# =============================================================================
+# 사이클 10: 크롤 DB 수치 사실과 데이터 시점 고정
+# =============================================================================
+
+
+class TestDataFactsAndAsOf:
+    @pytest.mark.asyncio
+    async def test_data_facts_reach_the_judge_context(self):
+        from types import SimpleNamespace
+
+        fact = {"type": "category_market", "category": "lip_care", "hhi": 0.0681}
+        hybrid = SimpleNamespace(
+            entities={}, rag_chunks=[], ontology_facts=[], inferences=[], metric_facts=[fact]
+        )
+        runner = EvalRunner(agent=_FakeAgent(), config=EvalConfig())
+
+        trace = await runner._capture_trace(
+            "lg049", {"response": "HHI는 0.0681입니다.", "hybrid_context": hybrid}, 0.0
+        )
+
+        assert trace.data_facts == [fact]
+        assert "0.0681" in runner._build_context_string(trace)
+        # KG 사실과 분리 — L3 엔티티 추출을 오염시키지 않는다
+        assert trace.l3_kg_query.kg_entities_found == []
+
+    def test_as_of_comes_from_snapshot_items(self):
+        from eval.cli import resolve_data_as_of
+
+        items = [
+            _item("a", gold_source="snapshot", as_of="2026-08-31"),
+            _item("b", gold_source="document"),
+        ]
+        assert resolve_data_as_of(items) == "2026-08-31"
+        assert resolve_data_as_of(items, "2026-09-11") == "2026-09-11"
+        assert resolve_data_as_of([_item("c")]) is None
+
+    def test_conflicting_as_of_requires_explicit_choice(self):
+        from eval.cli import resolve_data_as_of
+
+        items = [
+            _item("a", gold_source="snapshot", as_of="2026-08-31"),
+            _item("b", gold_source="snapshot", as_of="2026-09-11"),
+        ]
+        with pytest.raises(ValueError):
+            resolve_data_as_of(items)

@@ -108,6 +108,14 @@ class FeatureFlags:
         """Whether to query the Knowledge Graph during retrieval (ablation: no-kg)."""
         return self.get_flag("ontology", "use_ontology_kg", default=True)
 
+    def use_db_metric_facts(self) -> bool:
+        """Whether to attach crawl-DB metric facts (SoS/HHI/rank/price) to retrieval context.
+
+        SQLite가 지표의 정본이다. 끄면 수치 질문에 답할 근거가 컨텍스트에서 사라진다
+        (사이클 10 이전 상태, ablation: no-db-metrics).
+        """
+        return self.get_flag("retriever", "use_db_metric_facts", default=True)
+
     def use_sqlite_embedding_cache(self) -> bool:
         """Whether to use SQLite-backed embedding cache (vs in-memory dict)."""
         return self.get_flag("cache", "use_sqlite_embedding_cache", default=False)

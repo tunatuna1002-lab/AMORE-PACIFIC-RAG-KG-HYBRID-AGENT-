@@ -215,6 +215,9 @@ class HybridContext:
     ontology_facts: list[dict[str, Any]] = field(default_factory=list)
     inferences: list[InferenceResult] = field(default_factory=list)
     rag_chunks: list[dict[str, Any]] = field(default_factory=list)
+    # 크롤 DB 수치 사실 (src/rag/metric_facts.py). ontology_facts와 분리한다 — 섞으면
+    # 평가 러너가 여기서 엔티티를 뽑아 L3 Hits@k가 KG와 무관하게 오른다.
+    metric_facts: list[dict[str, Any]] = field(default_factory=list)
     combined_context: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -226,6 +229,7 @@ class HybridContext:
             "ontology_facts": self.ontology_facts,
             "inferences": [inf.to_dict() for inf in self.inferences],
             "rag_chunks": self.rag_chunks,
+            "metric_facts": self.metric_facts,
             "combined_context": self.combined_context,
             "metadata": self.metadata,
         }
@@ -331,6 +335,7 @@ class HybridRetriever:
         doc_retriever: DocumentRetriever | None = None,
         auto_init_rules: bool = True,
         owl_strategy: Any | None = None,
+        metric_facts_provider: Any | None = None,
     ):
         """
         Args:
@@ -349,6 +354,11 @@ class HybridRetriever:
 
         # OWL retrieval strategy (optional)
         self.owl_strategy = owl_strategy
+
+        # 크롤 DB 수치 사실 제공자 (SQLite 정본, 스냅샷 날짜 포함)
+        from src.rag.metric_facts import MetricFactsProvider
+
+        self.metric_facts_provider = metric_facts_provider or MetricFactsProvider()
 
         # 엔티티 추출기
         self.entity_extractor = EntityExtractor()
@@ -509,6 +519,15 @@ class HybridRetriever:
                 logger.info("KG query disabled by feature flag (use_ontology_kg=false)")
                 ontology_facts = []
             context.ontology_facts = ontology_facts
+
+            # 2.5 크롤 DB 수치 사실 (ablation no-db-metrics: FF_RETRIEVER_USE_DB_METRIC_FACTS=false)
+            # 수치 질문의 근거는 KG·문서가 아니라 SQLite 스냅샷이다 (사이클 10 §2).
+            if flags.use_db_metric_facts():
+                try:
+                    context.metric_facts = await self.metric_facts_provider.collect(entities)
+                except Exception:
+                    logger.warning("DB 지표 사실 조회 실패", exc_info=True)
+                    context.metric_facts = []
 
             # 3. 추론 컨텍스트 구성
             inference_context = self._build_inference_context(entities, current_metrics or {})
