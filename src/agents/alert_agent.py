@@ -25,9 +25,8 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-# 순환 import 방지: RulesEngine, StateManager는 TYPE_CHECKING + 지연 import
+# 순환 import 방지: StateManager는 TYPE_CHECKING + 지연 import
 if TYPE_CHECKING:
-    from src.core.rules_engine import RulesEngine
     from src.core.state_manager import StateManager
 from src.tools.notifications.email_sender import EmailSender, SendResult
 
@@ -97,22 +96,14 @@ class AlertAgent:
     def __init__(
         self,
         state_manager: "StateManager",
-        rules_engine: "RulesEngine | None" = None,
         email_sender: EmailSender | None = None,
     ):
         """
         Args:
             state_manager: 상태 관리자 (동의 정보 포함)
-            rules_engine: 규칙 엔진
             email_sender: 이메일 발송기
         """
         self.state_manager = state_manager
-        # 순환 import 방지: 지연 import
-        if rules_engine is None:
-            from src.core.rules_engine import RulesEngine
-
-            rules_engine = RulesEngine()
-        self.rules_engine = rules_engine
         self.email_sender = email_sender or EmailSender()
 
         # 알림 저장소

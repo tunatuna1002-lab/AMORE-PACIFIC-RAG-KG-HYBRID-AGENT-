@@ -24,7 +24,6 @@ Legacy imports maintained for backward compatibility.
 from .collectors.external_signal_collector import ExternalSignal, ExternalSignalCollector
 from .collectors.public_data_collector import CosmeticsProduct, PublicDataCollector, TradeData
 from .collectors.tavily_search import TavilySearchClient
-from .scrapers.amazon_product_scraper import AmazonProductScraper
 from .scrapers.amazon_scraper import AmazonScraper
 from .scrapers.deals_scraper import AmazonDealsScraper
 
@@ -65,7 +64,6 @@ except ImportError:
 __all__ = [
     # Scrapers
     "AmazonScraper",
-    "AmazonProductScraper",
     "AmazonDealsScraper",
     # Storage
     "SheetsWriter",

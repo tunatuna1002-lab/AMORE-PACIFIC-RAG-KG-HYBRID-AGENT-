@@ -25,12 +25,6 @@ def mock_state_manager():
 
 
 @pytest.fixture
-def mock_rules_engine():
-    """Mock RulesEngine"""
-    return MagicMock()
-
-
-@pytest.fixture
 def mock_email_sender():
     """Mock EmailSender with AsyncMock methods"""
     mock = MagicMock()
@@ -51,11 +45,10 @@ def mock_email_sender():
 
 
 @pytest.fixture
-def alert_agent(mock_state_manager, mock_rules_engine, mock_email_sender):
+def alert_agent(mock_state_manager, mock_email_sender):
     """AlertAgent instance with mocked dependencies"""
     return AlertAgent(
         state_manager=mock_state_manager,
-        rules_engine=mock_rules_engine,
         email_sender=mock_email_sender,
     )
 
@@ -149,16 +142,14 @@ def test_alert_defaults():
 # =============================================================================
 
 
-def test_alert_agent_init_with_all_params(mock_state_manager, mock_rules_engine, mock_email_sender):
+def test_alert_agent_init_with_all_params(mock_state_manager, mock_email_sender):
     """Test AlertAgent initialization with all parameters"""
     agent = AlertAgent(
         state_manager=mock_state_manager,
-        rules_engine=mock_rules_engine,
         email_sender=mock_email_sender,
     )
 
     assert agent.state_manager == mock_state_manager
-    assert agent.rules_engine == mock_rules_engine
     assert agent.email_sender == mock_email_sender
     assert agent._alerts == []
     assert agent._pending_alerts == []
@@ -166,20 +157,15 @@ def test_alert_agent_init_with_all_params(mock_state_manager, mock_rules_engine,
     assert agent._stats == {"total_alerts": 0, "emails_sent": 0, "emails_failed": 0}
 
 
-@patch("src.core.rules_engine.RulesEngine")
 @patch("src.agents.alert_agent.EmailSender")
-def test_alert_agent_init_with_defaults(mock_email_cls, mock_rules_cls, mock_state_manager):
-    """Test AlertAgent initialization with default RulesEngine and EmailSender"""
-    mock_rules_instance = MagicMock()
+def test_alert_agent_init_with_defaults(mock_email_cls, mock_state_manager):
+    """Test AlertAgent initialization with default EmailSender"""
     mock_email_instance = MagicMock()
-    mock_rules_cls.return_value = mock_rules_instance
     mock_email_cls.return_value = mock_email_instance
 
     agent = AlertAgent(state_manager=mock_state_manager)
 
-    mock_rules_cls.assert_called_once()
     mock_email_cls.assert_called_once()
-    assert agent.rules_engine == mock_rules_instance
     assert agent.email_sender == mock_email_instance
 
 
@@ -1037,16 +1023,14 @@ async def test_send_pending_alerts_partial_failure(alert_agent, mock_email_sende
     assert alert_agent._stats["emails_sent"] == 1
 
 
-def test_alert_agent_isolation(mock_state_manager, mock_rules_engine, mock_email_sender):
+def test_alert_agent_isolation(mock_state_manager, mock_email_sender):
     """Test that multiple AlertAgent instances are isolated"""
     agent1 = AlertAgent(
         state_manager=mock_state_manager,
-        rules_engine=mock_rules_engine,
         email_sender=mock_email_sender,
     )
     agent2 = AlertAgent(
         state_manager=mock_state_manager,
-        rules_engine=mock_rules_engine,
         email_sender=mock_email_sender,
     )
 

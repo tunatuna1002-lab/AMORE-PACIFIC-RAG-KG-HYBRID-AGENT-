@@ -153,25 +153,6 @@ class TestOWLRetrievalStrategyInitialize:
         assert strategy.doc_retriever.initialize.call_count == first_call_count
 
     @pytest.mark.asyncio
-    async def test_initialize_with_ontology_kg(self):
-        """OntologyKG 초기화"""
-        mock_okg = AsyncMock()
-        strategy = _make_owl_strategy(ontology_kg=mock_okg)
-        strategy.doc_retriever = AsyncMock()
-        await strategy.initialize()
-        mock_okg.initialize.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_initialize_ontology_kg_failure_handled(self):
-        """OntologyKG 초기화 실패 시 경고만 발생"""
-        mock_okg = AsyncMock()
-        mock_okg.initialize.side_effect = RuntimeError("init fail")
-        strategy = _make_owl_strategy(ontology_kg=mock_okg)
-        strategy.doc_retriever = AsyncMock()
-        await strategy.initialize()
-        assert strategy._initialized is True  # 실패해도 계속 진행
-
-    @pytest.mark.asyncio
     async def test_initialize_with_owl_reasoner(self):
         """OWL Reasoner 초기화 및 KG 임포트"""
         # initialize는 async로 호출됨, 나머지는 sync
@@ -566,31 +547,15 @@ class TestInferWithOntology:
     async def test_no_reasoners_returns_empty(self):
         """reasoner가 없으면 빈 컨텍스트"""
         strategy = _make_owl_strategy()
-        strategy.unified_reasoner = None
         strategy.owl_reasoner = None
         result = await strategy._infer_with_ontology([], None)
         assert result["inferences"] == []
         assert result["facts"] == []
 
     @pytest.mark.asyncio
-    async def test_unified_reasoner_brand_inference(self):
-        """UnifiedReasoner로 브랜드 추론"""
-        strategy = _make_owl_strategy()
-        mock_result = MagicMock()
-        mock_result.to_dict.return_value = {"type": "market_position", "brand": "LANEIGE"}
-        strategy.unified_reasoner = MagicMock()
-        strategy.unified_reasoner.infer.return_value = mock_result
-        strategy.ontology_kg = None
-
-        entity = FakeLinkedEntity(text="LANEIGE", entity_type="brand", ontology_id="laneige")
-        result = await strategy._infer_with_ontology([entity], {"sos": 0.15})
-        assert len(result["inferences"]) == 1
-
-    @pytest.mark.asyncio
     async def test_owl_reasoner_fallback(self):
         """UnifiedReasoner 없으면 OWL reasoner 폴백"""
         strategy = _make_owl_strategy()
-        strategy.unified_reasoner = None
         strategy.owl_reasoner = MagicMock()
         strategy.owl_reasoner.get_inferred_facts.return_value = [{"fact": "test"}]
         strategy.owl_reasoner.get_brand_info.return_value = {
@@ -608,9 +573,6 @@ class TestInferWithOntology:
     async def test_inference_exception_handled(self):
         """추론 예외 시 빈 결과 반환"""
         strategy = _make_owl_strategy()
-        strategy.unified_reasoner = MagicMock()
-        strategy.unified_reasoner.infer.side_effect = Exception("infer fail")
-        strategy.ontology_kg = None
 
         entity = FakeLinkedEntity(text="LANEIGE", entity_type="brand")
         result = await strategy._infer_with_ontology([entity], None)

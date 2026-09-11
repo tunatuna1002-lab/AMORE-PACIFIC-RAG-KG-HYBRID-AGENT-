@@ -242,8 +242,6 @@ class OWLRetrievalStrategy:
         knowledge_graph: Any | None = None,
         owl_reasoner: Any | None = None,
         doc_retriever: Any | None = None,
-        ontology_kg: Any | None = None,
-        unified_reasoner: Any | None = None,
         use_reranking: bool = True,
         use_query_expansion: bool = True,
         docs_path: str | None = None,
@@ -255,8 +253,6 @@ class OWLRetrievalStrategy:
 
         self.kg = knowledge_graph
         self.owl_reasoner = owl_reasoner
-        self.ontology_kg = ontology_kg
-        self.unified_reasoner = unified_reasoner
 
         if doc_retriever is not None:
             self.doc_retriever = doc_retriever
@@ -283,16 +279,6 @@ class OWLRetrievalStrategy:
             return
 
         await self.doc_retriever.initialize()
-
-        if self.ontology_kg:
-            try:
-                await self.ontology_kg.initialize()
-                logger.info("OntologyKnowledgeGraph initialized")
-            except Exception as e:
-                logger.warning(f"Failed to initialize OntologyKnowledgeGraph: {e}")
-
-        if self.unified_reasoner:
-            logger.info("UnifiedReasoner ready")
 
         if self.owl_reasoner:
             await self.owl_reasoner.initialize()
@@ -511,48 +497,12 @@ class OWLRetrievalStrategy:
 
         flags = FeatureFlags.get_instance()
 
-        # ablation no-ontology: 두 reasoner 플래그가 모두 false면 추론 전체 생략
-        if not flags.use_unified_reasoner() and not flags.use_owl_reasoner():
+        # ablation no-ontology: OWL reasoner 플래그가 false면 추론 전체 생략
+        if not flags.use_owl_reasoner():
             logger.info("Ontology inference disabled by feature flags (OWL strategy)")
             return context
 
         try:
-            if self.unified_reasoner and flags.use_unified_reasoner():
-                for entity in entities:
-                    entity_type = (
-                        entity.entity_type.value
-                        if hasattr(entity.entity_type, "value")
-                        else entity.entity_type
-                    )
-                    entity_id = (
-                        entity.ontology_id
-                        if hasattr(entity, "ontology_id")
-                        else getattr(entity, "concept_label", entity.text)
-                    )
-                    if entity_type == "brand":
-                        result = self.unified_reasoner.infer(
-                            context={"brand": entity_id, **(current_metrics or {})},
-                            query=f"{entity_id} market analysis",
-                        )
-                        if result and hasattr(result, "to_dict"):
-                            context["inferences"].append(result.to_dict())
-                        elif isinstance(result, list):
-                            for r in result:
-                                if hasattr(r, "to_dict"):
-                                    context["inferences"].append(r.to_dict())
-
-                if (
-                    flags.use_ontology_kg()
-                    and self.ontology_kg
-                    and hasattr(self.ontology_kg, "owl")
-                    and self.ontology_kg.owl
-                ):
-                    try:
-                        context["facts"] = self.ontology_kg.owl.get_inferred_facts()
-                    except Exception as e:
-                        logger.warning(f"Failed to get inferred facts from OntologyKG: {e}")
-                return context
-
             # Fallback to OWL-only reasoning
             if self.owl_reasoner and flags.use_owl_reasoner():
                 inferred_facts = self.owl_reasoner.get_inferred_facts()
