@@ -129,6 +129,12 @@ Human-readable summary including:
 - **Numeric Accuracy**: `gold.expected_values`의 수치를 답변이 맞힌 비율.
   상대 오차 10% 이내면 정답, `x_low`/`x_high` 쌍은 구간 포함으로 판정한다.
   `expected_values`가 없는 문항은 None(측정 대상 아님).
+  **모델 답변 본문만 본다** — 시스템이 붙인 출처 목록·경고 블록, 줄머리 목록 번호,
+  대괄호 인용은 제외한다. 답변 수치는 키에 맞는 단위를 달고 있어야 한다
+  (SoS·점유율·성장률·격차 `%`, 순위 `위`, 가격 `$`, 개수·리뷰 `개/건`, HHI·비율 무단위).
+  사이클 9 첫 배선 때는 이 두 조건이 없어 출처 목록 번호("2. 🧠")가 SoS 2.0%에
+  걸리는 거짓양성이 대부분이었다(0.465 → 재채점 0.04,
+  `docs/experiments/eval_cycle10_2026-09-12.md`).
 
 ## 골드 층(gold_source)과 채점
 

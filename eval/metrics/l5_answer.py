@@ -25,16 +25,100 @@ _NUMBER_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
 # 만큼만 열어 둔다.
 NUMERIC_TOLERANCE = 0.10
 
+# 챗봇이 모델 답변 뒤에 덧붙이는 시스템 블록의 시작 표식
+# (src/agents/hybrid_chatbot_agent.py: response + failed_signal_warning + formatted_sources,
+#  src/agents/source_provider.py: "---" → "📅 데이터 기준" → "📚 출처 및 참고자료").
+# 여기부터는 모델의 주장이 아니라 출처 목록·경고 보일러플레이트다.
+_TRAILER_MARKERS = (
+    "> ⚠️ **외부 신호 수집 실패**",
+    "📅 **데이터 기준:",
+    "**📚 출처 및 참고자료:**",
+)
+# 줄머리 목록 번호("1. ", "## 2. ", "- 3. ")와 대괄호 인용("[1]", "[Knowledge Graph 1, 2;
+# RAG 3]", "[출처: 현재 데이터]")은 수치 주장이 아니다. 챗봇 시스템 프롬프트가 인용을
+# 대괄호로 쓰게 하므로(prompts/agents/chatbot_system.txt) 한 줄 안의 대괄호 구간은 뺀다.
+_LIST_MARKER_RE = re.compile(r"(?m)^[ \t>#*\-]*\d+\.[ \t]+")
+_CITATION_RE = re.compile(r"\[[^\]\n]{0,200}\]")
+
+
+def answer_body(text: str) -> str:
+    """시스템이 덧붙인 출처·경고 블록을 떼고 모델 답변 본문만 남긴다."""
+    text = text or ""
+    cut = len(text)
+    for marker in _TRAILER_MARKERS:
+        idx = text.find(marker)
+        if idx != -1:
+            cut = min(cut, idx)
+    body = text[:cut].rstrip()
+    if body.endswith("---"):
+        body = body[:-3].rstrip()
+    body = _LIST_MARKER_RE.sub("", body)
+    return _CITATION_RE.sub("", body)
+
 
 def extract_numbers(text: str) -> list[float]:
     """답변 문자열에서 수치를 모두 뽑는다 (쉼표 제거, 중복 유지)."""
-    values: list[float] = []
+    return [value for value, _, _ in _extract_tokens(text)]
+
+
+def _extract_tokens(text: str) -> list[tuple[float, str, str]]:
+    """(수치, 앞 3자, 뒤 4자). 단위 판정에 앞뒤 문맥이 필요하다."""
+    tokens: list[tuple[float, str, str]] = []
     for match in _NUMBER_RE.finditer(text or ""):
         try:
-            values.append(float(match.group().replace(",", "")))
+            value = float(match.group().replace(",", ""))
         except ValueError:
             continue
-    return values
+        before = text[max(0, match.start() - 3) : match.start()]
+        after = text[match.end() : match.end() + 4]
+        tokens.append((value, before, after))
+    return tokens
+
+
+def _unit_for(key: str) -> str:
+    """기대값 키 이름으로 답변 수치가 가져야 할 단위를 정한다.
+
+    단위 확인이 없으면 "2개 제품"의 2가 SoS 2.0%에, "7. 📄"의 7이 순위 7위에
+    걸린다(사이클 10 감사: v9.0 snapshot 문항의 점수 대부분이 이런 우연 일치였다).
+    단위를 강제해 생기는 거짓음성("SoS 2.0"처럼 %를 생략한 답)은 허용한다 —
+    게이트에서는 거짓양성이 더 해롭다.
+    """
+    k = key.lower()
+    if "ratio" in k or "hhi" in k or k == "cpi":
+        return "plain"
+    if "rank" in k:
+        return "rank"
+    if "price" in k:
+        return "usd"
+    if "review" in k:
+        return "count"
+    if (
+        k.startswith("count_")
+        or k.endswith("_count")
+        or any(s in k for s in ("listings", "in_top10", "new_entrants"))
+    ):
+        return "count"
+    if any(s in k for s in ("sos", "share", "growth", "gap", "churn", "range", "peak", "trough")):
+        return "percent"
+    return "plain"
+
+
+def _unit_ok(unit: str, before: str, after: str) -> bool:
+    tail = after.lstrip()
+    if unit == "percent":
+        return tail.startswith("%")
+    if unit == "rank":
+        return tail.startswith("위") or before.endswith("#")
+    if unit == "usd":
+        return before.rstrip().endswith("$")
+    if unit == "count":
+        return tail[:1] in ("개", "건", "종") or tail.lower().startswith("rev")
+    return True
+
+
+def _candidates(tokens: list[tuple[float, str, str]], key: str) -> list[float]:
+    unit = _unit_for(key)
+    return [value for value, before, after in tokens if _unit_ok(unit, before, after)]
 
 
 def _matches(expected: float, found: list[float]) -> bool:
@@ -53,6 +137,8 @@ def _in_range(low: float, high: float, found: list[float]) -> bool:
 def numeric_accuracy(answer: str, expected_values: dict[str, float]) -> float | None:
     """expected_values의 각 항목을 답변이 맞힌 비율.
 
+    - 모델 답변 본문만 본다 — 시스템이 붙인 출처 목록·경고, 목록 번호, 인용 번호 제외.
+    - 답변 수치는 키에 맞는 단위를 달고 있어야 한다(`_unit_for`).
     - `x_low`/`x_high` 쌍은 하나의 항목으로 묶어 구간 포함으로 판정한다.
     - 나머지는 상대 오차 10% 이내면 정답.
     - expected_values가 비어 있으면 None (측정 대상 아님).
@@ -63,7 +149,7 @@ def numeric_accuracy(answer: str, expected_values: dict[str, float]) -> float | 
     if not expected_values:
         return None
 
-    found = extract_numbers(answer)
+    tokens = _extract_tokens(answer_body(answer))
     checked = 0
     hit = 0
     consumed: set[str] = set()
@@ -72,22 +158,26 @@ def numeric_accuracy(answer: str, expected_values: dict[str, float]) -> float | 
         if key in consumed:
             continue
         if key.endswith("_low"):
-            partner = key[: -len("_low")] + "_high"
+            base = key[: -len("_low")]
+            partner = base + "_high"
             if partner in expected_values:
                 consumed.update({key, partner})
                 checked += 1
+                found = _candidates(tokens, base)
                 hit += int(_in_range(value, expected_values[partner], found))
                 continue
         if key.endswith("_high"):
-            partner = key[: -len("_high")] + "_low"
+            base = key[: -len("_high")]
+            partner = base + "_low"
             if partner in expected_values:
                 consumed.update({key, partner})
                 checked += 1
+                found = _candidates(tokens, base)
                 hit += int(_in_range(expected_values[partner], value, found))
                 continue
         consumed.add(key)
         checked += 1
-        hit += int(_matches(value, found))
+        hit += int(_matches(value, _candidates(tokens, key)))
 
     return hit / checked if checked else None
 

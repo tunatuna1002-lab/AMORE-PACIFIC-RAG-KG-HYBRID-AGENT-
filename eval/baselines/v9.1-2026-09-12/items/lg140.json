@@ -1,0 +1,293 @@
+{
+  "item_id": "lg140",
+  "question": "Amazon Prime Day가 뷰티 카테고리 시장 구조에 미치는 영향은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1092436974789916,
+    "semantic_similarity": 0.6604798436164856,
+    "groundedness_score": 0.6363636363636364,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.8,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6405478459713203,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg140",
+    "timestamp": "2026-09-10T11:42:05.104922",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "prime_day"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_4_1",
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_ranking_diagnosis_9_2",
+        "negative_issue_response_1_1",
+        "amazon_ranking_diagnosis_9_3",
+        "amazon_algorithm_guide_8_3",
+        "amazon_algorithm_guide_8_7",
+        "amazon_algorithm_guide_8_10"
+      ],
+      "snippets": [
+        "* **탐지 전략:**  \n  * **해시태그 추적:** 틱톡, 인스타그램 릴스, 유튜브 쇼츠에서 경쟁사 브랜드명, 제품명, 또는 \\#AmazonFinds, \\#AmazonMustHaves 등의 태그와 함께 해당 카테고리를 검색합니다.16  \n  * **광고 라이브러리:** 틱톡 크리에이티브 센터(TikTok Creative Center)나 메타 광고 라이",
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "현재 미국 뷰티 시장의 소비자 정서는 '맹목적 바이럴 수용'에서 '검증과 회의주의'로 급격히 전환되고 있다. 지난 1년간 틱톡(TikTok)을 중심으로 폭발적인 성장을 이룬 브랜드들이 이제는 '인플루언서 피로감(Influencer Fatigue)'과 '효능 불일치'라는 역풍을 맞이하고 있다. 데이터 분석 결과, 위기는 크게 네 가지 핵심 벡터로 분류된다. ",
+        "k Content Driving Amazon Sales* – #TikTokMadeMeBuyIt 해시태그로 TikTok에서 제품이 바이럴되면 아마존 판매가 급증하고, Micro‑Influencer의 영향력이 큼을 보여준다【757634067288727†L63-L84】. TikTok Analytics와 Amazon Attribution을 사용해 외부 트래픽이 판",
+        "tering-the-Amazon-COSMO-Algorithm-with-AI-Content-Optimization/1976471090287931392)  \n4. Introduction: Why Surge Pricing and TikTok Matter for Amazon Sellers \\- Profasee, 1월 21, 2026에 액세스, [https://pr",
+        "log/57/_My_Amazon_Sales_Just_Dropped_____Use_this_Sudden_Sales_Slump_Checklist_Before_You_Panic)  \n16. Can You See a Competitor's Amazon Traffic Sources? The Truth \\+ What You Can Track Instead \\- Sel",
+        "-funnel-a-practical-guide-to-the-sqp-report.html)  \n25. Amazon Brand Analytics: A 2025 Guide to Smarter Selling with Data, 1월 21, 2026에 액세스, [https://www.sarasanalytics.com/blog/amazon-brand-analytics"
+      ],
+      "scores": [
+        0.5348284840583801,
+        0.48628103733062744,
+        0.47734999656677246,
+        0.42854827642440796,
+        0.46966618299484253,
+        0.46625781059265137,
+        0.46134889125823975,
+        0.4376218318939209
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 42,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 49,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              },
+              {
+                "brand": "dove",
+                "product_count": 5,
+                "products": [
+                  "B00MEDOY2G",
+                  "B09DDD6YGJ",
+                  "B00SK71SAG",
+                  "B001ET7IQK",
+                  "B00I69SEK0"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## Amazon Prime Day가 뷰티 카테고리 시장 구조에 미치는 영향\n\n### 인사이트\n- Amazon Prime Day는 뷰티 카테고리 내 판매 순위에 단기적으로 긍정적 변동을 유발할 가능성이 있습니다.\n- 이벤트 기간 동안 외부 트래픽과 프로모션이 증가하여, 판매 속도와 순위가 일시적으로 상승할 수 있습니다.\n- Prime Day와 같은 대규모 세일 이벤트는 경쟁 브랜드 간 순위 변동을 촉진하며, 시장 내 점유율 재편 가능성을 내포합니다.\n\n### 근거\n- Amazon BSR(판매 순위)은 최근 판매량에 더 큰 가중치를 두며, 외부 프로모션과 이벤트가 순위를 일시적으로 상승시킬 수 있다고 알려져 있습니다【437377726246902†L408-L415】【93813†L14-L22】.\n- 2025년 기준 아마존 검색 알고리즘에서 외부 트래픽과 광고 활용이 순위 향상에 중요한 역할을 하며, Prime Day와 같은 이벤트는 이러한 외부 트래픽 증가를 유발할 수 있습니다【340261456527992†L168-L200】【340261456527992†L274-L286】.\n- 뷰티 카테고리 내 상위 브랜드(unknown, medicube, cerave) 간 경쟁이 심화될 수 있으며, Prime Day 기간 중 이들 브랜드의 순위 변동이 관찰될 가능성이 있습니다.\n\n### 권장 사항\n- Prime Day 전후로 뷰티 카테고리 내 브랜드별 순위 변동을 면밀히 모니터링하여 이벤트 효과를 분석할 필요가 있습니다.\n- 프로모션과 광고 전략을 Prime Day에 맞춰 최적화하여 외부 트래픽 유입을 극대화하는 방안을 고려할 수 있습니다.\n- 단기 순위 변동이 장기적 시장 구조 변화로 이어지는지 추이를 지속 관찰하는 것이 중요합니다.\n\n현재 확인된 데이터 기준으로, Prime Day가 뷰티 카테고리 시장 구조에 미치는 구체적 수치나 장기 영향에 대한 직접적 데이터는 제공되어 있지 않습니다. 따라서 위 내용은 아마존 판매 순위 및 알고리즘 특성에 기반한 가능성 중심의 해석임을 참고하시기 바랍니다【출처: 현재 데이터】【출처: RAG 가이드】.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 0.53\n\n3. 📄 **참고문헌**\n   - 관련도: 0.49\n\n4. 📄 ****1\\. 서론: 시장 맥락 및 위기 지형도****\n   - 관련도: 0.43\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3230,
+      "judge_tokens": 6430,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00071985,
+      "judge_cost_usd": 0.0019229999999999998
+    },
+    "latency_ms": 7712.257862091064,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "hard",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}
