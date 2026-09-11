@@ -577,8 +577,8 @@ class OWLRetrievalStrategy:
         entity_confidence: float,
     ) -> Any:
         """Confidence fusion to merge results from multiple sources."""
-        from src.rag.confidence_fusion import InferenceResult
-        from src.rag.confidence_fusion import LinkedEntity as FusionLinkedEntity
+        from src.rag.confidence_fusion import FusedEntity as FusionLinkedEntity
+        from src.rag.confidence_fusion import FusionInferenceResult
         from src.rag.confidence_fusion import SearchResult as FusionSearchResult
 
         fusion_vector = (
@@ -597,7 +597,7 @@ class OWLRetrievalStrategy:
 
         fusion_ontology = (
             [
-                InferenceResult(
+                FusionInferenceResult(
                     insight=r.get("insight", ""),
                     confidence=r.get("confidence", 0.5),
                     evidence=r.get("evidence", {}),

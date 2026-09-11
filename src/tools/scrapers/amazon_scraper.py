@@ -88,7 +88,7 @@ logger = logging.getLogger(__name__)
 
 
 # 한국 시간대 (UTC+9)
-class CircuitBreaker:
+class ScraperCircuitBreaker:
     """연속 실패 시 자동 중단하는 회로 차단기"""
 
     def __init__(self, threshold: int = 3, reset_minutes: int = 30):
@@ -161,7 +161,7 @@ class AmazonScraper:
         self.fingerprint_generator = FingerprintGenerator() if BROWSERFORGE_AVAILABLE else None
 
         # 회로 차단기
-        self.circuit_breaker = CircuitBreaker(threshold=3, reset_minutes=30)
+        self.circuit_breaker = ScraperCircuitBreaker(threshold=3, reset_minutes=30)
 
         # 브랜드 매핑 resolver (캐시된 ASIN→Brand 조회)
         try:

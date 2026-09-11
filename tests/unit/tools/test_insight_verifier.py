@@ -4,7 +4,7 @@ InsightVerifier 단위 테스트
 src/tools/intelligence/insight_verifier.py 테스트
 
 테스트 구조:
-1. VerificationIssue / VerificationResult - 데이터 클래스 테스트
+1. VerificationIssue / InsightVerificationResult - 데이터 클래스 테스트
 2. InsightVerifier 초기화
 3. _verify_rank_comparisons - 순위 비교 검증
 4. _verify_brand_names - 브랜드명 정확성 검증
@@ -22,9 +22,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.tools.intelligence.insight_verifier import (
+    InsightVerificationResult,
     InsightVerifier,
     VerificationIssue,
-    VerificationResult,
     verify_insight_report,
 )
 
@@ -80,7 +80,7 @@ HHI: 15000으로 매우 집중된 시장입니다.
 
 
 # =============================================================================
-# 1. VerificationIssue / VerificationResult Tests
+# 1. VerificationIssue / InsightVerificationResult Tests
 # =============================================================================
 
 
@@ -117,11 +117,11 @@ class TestVerificationIssue:
 
 
 class TestVerificationResult:
-    """VerificationResult 데이터 클래스 테스트"""
+    """InsightVerificationResult 데이터 클래스 테스트"""
 
     def test_creation_defaults(self):
         """기본값 생성 테스트"""
-        result = VerificationResult(
+        result = InsightVerificationResult(
             verified_at="2026-01-01T00:00:00",
             total_checks=4,
             passed_checks=4,
@@ -140,7 +140,7 @@ class TestVerificationResult:
             location="test",
             original_text="test",
         )
-        result = VerificationResult(
+        result = InsightVerificationResult(
             verified_at="2026-01-01T00:00:00",
             total_checks=4,
             passed_checks=3,
@@ -158,7 +158,7 @@ class TestVerificationResult:
             location="test",
             original_text="test",
         )
-        result = VerificationResult(
+        result = InsightVerificationResult(
             verified_at="2026-01-01T00:00:00",
             total_checks=4,
             passed_checks=3,
@@ -176,7 +176,7 @@ class TestVerificationResult:
             original_text="Burt's",
             suggested_fix="Burt's Bees 사용",
         )
-        result = VerificationResult(
+        result = InsightVerificationResult(
             verified_at="2026-01-01T00:00:00",
             total_checks=4,
             passed_checks=3,
@@ -196,7 +196,7 @@ class TestVerificationResult:
 
     def test_to_dict_empty_issues(self):
         """이슈 없는 경우 to_dict"""
-        result = VerificationResult(
+        result = InsightVerificationResult(
             verified_at="2026-01-01T00:00:00",
             total_checks=4,
             passed_checks=4,
@@ -490,7 +490,7 @@ class TestVerifyReport:
         ):
             result = await verifier.verify_report(clean_report, sample_analysis_data)
 
-        assert isinstance(result, VerificationResult)
+        assert isinstance(result, InsightVerificationResult)
         assert result.total_checks == 4
         assert result.verified_at is not None
 
@@ -547,7 +547,7 @@ class TestVerifyReport:
             return_value=mock_response,
         ):
             result = await verifier.verify_report(content, sample_analysis_data, raw_data=raw_data)
-        assert isinstance(result, VerificationResult)
+        assert isinstance(result, InsightVerificationResult)
 
 
 # =============================================================================
@@ -695,7 +695,7 @@ class TestVerifyInsightReportFunction:
 
     @pytest.mark.asyncio
     async def test_convenience_function(self, sample_analysis_data):
-        """verify_insight_report 편의 함수가 VerificationResult 반환"""
+        """verify_insight_report 편의 함수가 InsightVerificationResult 반환"""
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(message=MagicMock(content='{"issues": [], "is_consistent": true}'))
@@ -706,5 +706,5 @@ class TestVerifyInsightReportFunction:
             return_value=mock_response,
         ):
             result = await verify_insight_report("LANEIGE SoS: 12.0%", sample_analysis_data)
-        assert isinstance(result, VerificationResult)
+        assert isinstance(result, InsightVerificationResult)
         assert result.total_checks == 4

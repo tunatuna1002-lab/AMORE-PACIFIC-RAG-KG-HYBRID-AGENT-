@@ -1,82 +1,63 @@
 """
 Ontology Module
-온톨로지 스키마, 관계, 지식 그래프, 추론 엔진
+온톨로지 스키마(도메인 엔티티), 관계, 지식 그래프, 추론 엔진
 
-Components:
-- schema: 데이터 모델 정의 (Pydantic)
-- relations: 관계 타입 및 트리플 구조
-- knowledge_graph: 지식 그래프 구현
-- reasoner: 추론 규칙 엔진
-- business_rules: 비즈니스 추론 규칙
+- 엔티티·관계 타입의 정본은 src.domain.entities 이다 (여기서는 편의 재수출).
+- knowledge_graph: JSON 트리플 저장소
+- reasoner + rules: 규칙 기반 추론 엔진
+- owl_reasoner: OWL(owlready2) 추론 (배치에서 실행, 챗 경로는 물질화 결과만 읽음)
 """
 
-# Schema (기존)
-# Business Rules (신규)
-# Relations (신규)
-from src.domain.entities.relations import (
-    InferenceResult,
-    InsightType,
-    MarketPosition,
-    Relation,
-    RelationType,
-    create_brand_product_relation,
-    create_competition_relation,
-    create_product_category_relation,
-)
+import importlib
 
-from .business_rules import (
-    ALL_BUSINESS_RULES,
-    get_high_priority_rules,
-    get_rules_by_category,
-    register_all_rules,
-)
+_LAZY: dict[str, str] = {
+    "Brand": "src.domain.entities.brand",
+    "BrandMetrics": "src.domain.entities.brand",
+    "Category": "src.domain.entities.market",
+    "MarketMetrics": "src.domain.entities.market",
+    "ProductMetrics": "src.domain.entities.market",
+    "Snapshot": "src.domain.entities.market",
+    "Product": "src.domain.entities.product",
+    "RankRecord": "src.domain.entities.product",
+    "BadgeType": "src.domain.entities.product",
+    "RelationType": "src.domain.entities.relations",
+    "InsightType": "src.domain.entities.relations",
+    "MarketPosition": "src.domain.entities.relations",
+    "Relation": "src.domain.entities.relations",
+    "InferenceResult": "src.domain.entities.relations",
+    "create_brand_product_relation": "src.domain.entities.relations",
+    "create_product_category_relation": "src.domain.entities.relations",
+    "create_competition_relation": "src.domain.entities.relations",
+    "KnowledgeGraph": ".knowledge_graph",
+    "OntologyReasoner": ".reasoner",
+    "InferenceRule": ".reasoner",
+    "RuleCondition": ".reasoner",
+    "StandardConditions": ".reasoner",
+    "ALL_BUSINESS_RULES": ".rules",
+    "register_all_rules": ".rules",
+    "get_rules_by_category": ".rules",
+    "get_high_priority_rules": ".rules",
+}
+_OPTIONAL = frozenset(())
 
-# Knowledge Graph (신규)
-from .knowledge_graph import KnowledgeGraph
+__all__ = list(_LAZY)
 
-# Ontology Knowledge Graph (T-Box + A-Box 통합)
-# Reasoner (신규)
-from .reasoner import InferenceRule, OntologyReasoner, RuleCondition, StandardConditions
-from .schema import (
-    Brand,
-    BrandMetrics,
-    Category,
-    MarketMetrics,
-    Product,
-    ProductMetrics,
-    RankRecord,
-    Snapshot,
-)
 
-__all__ = [
-    # Schema
-    "Brand",
-    "Product",
-    "Category",
-    "Snapshot",
-    "RankRecord",
-    "ProductMetrics",
-    "BrandMetrics",
-    "MarketMetrics",
-    # Relations
-    "RelationType",
-    "InsightType",
-    "MarketPosition",
-    "Relation",
-    "InferenceResult",
-    "create_brand_product_relation",
-    "create_product_category_relation",
-    "create_competition_relation",
-    # Knowledge Graph
-    "KnowledgeGraph",
-    # Reasoner
-    "OntologyReasoner",
-    "InferenceRule",
-    "RuleCondition",
-    "StandardConditions",
-    # Business Rules
-    "ALL_BUSINESS_RULES",
-    "register_all_rules",
-    "get_rules_by_category",
-    "get_high_priority_rules",
-]
+def __getattr__(name: str):
+    """지연 로딩: 하위 모듈은 실제로 접근할 때만 import한다 (무거운 의존성 로딩 방지)."""
+    if name in _LAZY:
+        try:
+            module = importlib.import_module(_LAZY[name], __name__)
+        except ImportError:
+            if name in _OPTIONAL:
+                globals()[name] = None
+                return None
+            raise
+        value = getattr(module, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_LAZY))

@@ -6,10 +6,10 @@ ConfidenceFusion 단위 테스트
 
 from src.rag.confidence_fusion import (
     ConfidenceFusion,
+    FusedEntity,
     FusedResult,
+    FusionInferenceResult,
     FusionStrategy,
-    InferenceResult,
-    LinkedEntity,
     ScoreNormalizationMethod,
     SearchResult,
     SourceScore,
@@ -57,27 +57,27 @@ class TestSearchResult:
 
 
 class TestInferenceResult:
-    """InferenceResult 데이터클래스"""
+    """FusionInferenceResult 데이터클래스"""
 
     def test_create(self):
-        r = InferenceResult(insight="test", confidence=0.7, evidence={})
+        r = FusionInferenceResult(insight="test", confidence=0.7, evidence={})
         assert r.insight == "test"
         assert r.confidence == 0.7
 
     def test_optional_rule_name(self):
-        r = InferenceResult(insight="test", confidence=0.7, evidence={}, rule_name="rule1")
+        r = FusionInferenceResult(insight="test", confidence=0.7, evidence={}, rule_name="rule1")
         assert r.rule_name == "rule1"
 
     def test_default_rule_name_none(self):
-        r = InferenceResult(insight="test", confidence=0.7, evidence={})
+        r = FusionInferenceResult(insight="test", confidence=0.7, evidence={})
         assert r.rule_name is None
 
 
 class TestLinkedEntity:
-    """LinkedEntity 데이터클래스"""
+    """FusedEntity 데이터클래스"""
 
     def test_create(self):
-        e = LinkedEntity(
+        e = FusedEntity(
             entity_id="e1",
             entity_name="LANEIGE",
             entity_type="brand",
@@ -87,7 +87,7 @@ class TestLinkedEntity:
         assert e.link_confidence == 0.9
 
     def test_optional_fields(self):
-        e = LinkedEntity(
+        e = FusedEntity(
             entity_id="e1",
             entity_name="LANEIGE",
             entity_type="brand",
@@ -241,10 +241,10 @@ class TestFuse:
             SearchResult(content="doc1", score=0.8, metadata={}, source="vector"),
         ]
         ontology_results = [
-            InferenceResult(insight="insight1", confidence=0.7, evidence={}),
+            FusionInferenceResult(insight="insight1", confidence=0.7, evidence={}),
         ]
         entity_links = [
-            LinkedEntity(
+            FusedEntity(
                 entity_id="e1", entity_name="LANEIGE", entity_type="brand", link_confidence=0.9
             ),
         ]

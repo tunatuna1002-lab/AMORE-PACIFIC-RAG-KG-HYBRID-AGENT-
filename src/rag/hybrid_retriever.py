@@ -1530,13 +1530,11 @@ class HybridRetriever:
         try:
             from src.rag.confidence_fusion import (
                 ConfidenceFusion,
+                FusedEntity,
+                FusionInferenceResult,
                 FusionStrategy,
-                LinkedEntity,
                 ScoreNormalizationMethod,
                 SearchResult,
-            )
-            from src.rag.confidence_fusion import (
-                InferenceResult as FusionInferenceResult,
             )
         except ImportError:
             logger.debug("confidence_fusion module not available, skipping fusion scoring")
@@ -1612,7 +1610,7 @@ class HybridRetriever:
         entity_links = []
         for fact in context.ontology_facts or []:
             entity_links.append(
-                LinkedEntity(
+                FusedEntity(
                     entity_id=fact.get("type", "unknown"),
                     entity_name=fact.get("subject", fact.get("type", "")),
                     entity_type=fact.get("type", "KG_Fact"),

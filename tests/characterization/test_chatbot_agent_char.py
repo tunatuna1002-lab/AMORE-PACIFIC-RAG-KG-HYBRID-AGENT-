@@ -157,7 +157,7 @@ async def test_chat_response_shape_and_prompt(
     }
     assert result["stats"]["inferences_count"] == 1
     assert result["stats"]["rag_chunks_count"] == 2
-    assert result["stats"]["kg_facts_count"] == 3
+    assert result["stats"]["kg_facts_count"] == 4  # Phase 1 대소문자 무관 조회로 brand_products 사실 추가
 
     # Sources: KG summary, ontology rule, the two RAG chunks, AI disclaimer
     assert len(result["sources"]) == 5

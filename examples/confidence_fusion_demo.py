@@ -6,8 +6,8 @@ Confidence Fusion 실전 사용 예제
 
 from src.rag.confidence_fusion import (
     ConfidenceFusion,
-    InferenceResult,
-    LinkedEntity,
+    FusedEntity,
+    FusionInferenceResult,
     SearchResult,
     create_conservative_fusion,
     create_default_fusion,
@@ -48,7 +48,7 @@ def scenario_laneige_analysis():
 
     # 2. 온톨로지 추론 결과 (규칙 기반)
     ontology_results = [
-        InferenceResult(
+        FusionInferenceResult(
             insight="LANEIGE는 Lip Care 카테고리에서 지배적 포지션 보유 (SoS 35%, Rank #1)",
             confidence=0.88,
             evidence={
@@ -60,7 +60,7 @@ def scenario_laneige_analysis():
             },
             rule_name="market_dominance_rule",
         ),
-        InferenceResult(
+        FusionInferenceResult(
             insight="LANEIGE Lip Sleeping Mask는 안정적 순위 유지 (30일 변동률 < 5%)",
             confidence=0.82,
             evidence={"rule": "stability_rule", "rank_volatility": 0.03, "days_tracked": 30},
@@ -70,7 +70,7 @@ def scenario_laneige_analysis():
 
     # 3. 엔티티 연결 결과 (Knowledge Graph)
     entity_links = [
-        LinkedEntity(
+        FusedEntity(
             entity_id="brand_laneige",
             entity_name="LANEIGE",
             entity_type="Brand",
@@ -78,7 +78,7 @@ def scenario_laneige_analysis():
             context="Query explicitly mentioned 'LANEIGE'",
             metadata={"linked_by": "exact_match", "product_count": 5, "avg_rank": 12.4},
         ),
-        LinkedEntity(
+        FusedEntity(
             entity_id="product_B074PXJGSB",
             entity_name="Lip Sleeping Mask",
             entity_type="Product",
@@ -86,7 +86,7 @@ def scenario_laneige_analysis():
             context="Top product of LANEIGE in Lip Care",
             metadata={"asin": "B074PXJGSB", "rank": 1, "category": "Lip Care"},
         ),
-        LinkedEntity(
+        FusedEntity(
             entity_id="cat_lip_care",
             entity_name="Lip Care",
             entity_type="Category",
@@ -152,7 +152,7 @@ def scenario_ambiguous_query():
 
     # 낮은 추론 신뢰도
     ontology_results = [
-        InferenceResult(
+        FusionInferenceResult(
             insight="일부 립 제품 카테고리에서 변동 감지",
             confidence=0.38,
             evidence={"volatility": 0.15, "confidence": "low"},
@@ -161,7 +161,7 @@ def scenario_ambiguous_query():
 
     # 약한 엔티티 연결
     entity_links = [
-        LinkedEntity(
+        FusedEntity(
             entity_id="cat_lip_care",
             entity_name="Lip Care",
             entity_type="Category",
@@ -207,7 +207,7 @@ def scenario_conflicting_sources():
 
     # 매우 낮은 온톨로지 점수
     ontology_results = [
-        InferenceResult(
+        FusionInferenceResult(
             insight="CeraVe는 현재 하락세를 보이고 있음",
             confidence=0.25,
             evidence={"rank_drop": -15, "sos_decline": -0.08},
@@ -242,9 +242,9 @@ def scenario_strategy_comparison():
     print("=" * 80)
 
     vector_results = [SearchResult(content="Document A", score=0.85, metadata={})]
-    ontology_results = [InferenceResult(insight="Inference B", confidence=0.75, evidence={})]
+    ontology_results = [FusionInferenceResult(insight="Inference B", confidence=0.75, evidence={})]
     entity_links = [
-        LinkedEntity(
+        FusedEntity(
             entity_id="e1", entity_name="Entity", entity_type="Brand", link_confidence=0.80
         )
     ]
@@ -305,7 +305,7 @@ def scenario_chatbot_response():
 
     # 온톨로지 비교 추론
     ontology_results = [
-        InferenceResult(
+        FusionInferenceResult(
             insight="LANEIGE는 Lip Care에서, CeraVe는 Skin Care에서 각각 강점 보유",
             confidence=0.85,
             evidence={"laneige_sos_lip_care": 0.35, "cerave_sos_skin_care": 0.28},
@@ -315,13 +315,13 @@ def scenario_chatbot_response():
 
     # 양쪽 브랜드 엔티티 연결
     entity_links = [
-        LinkedEntity(
+        FusedEntity(
             entity_id="brand_laneige",
             entity_name="LANEIGE",
             entity_type="Brand",
             link_confidence=0.92,
         ),
-        LinkedEntity(
+        FusedEntity(
             entity_id="brand_cerave",
             entity_name="CeraVe",
             entity_type="Brand",

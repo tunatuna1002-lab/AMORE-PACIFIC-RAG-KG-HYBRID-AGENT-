@@ -37,7 +37,7 @@ from src.monitoring.logger import AgentLogger
 from src.tools.exporters.insight_formatter import format_insight
 
 if TYPE_CHECKING:
-    from src.tools.intelligence.insight_verifier import VerificationResult
+    from src.tools.intelligence.insight_verifier import InsightVerificationResult
 
 logger = AgentLogger(__name__)
 
@@ -287,7 +287,7 @@ class PeriodInsightAgent:
 
         return report
 
-    async def _verify_report(self, report: "PeriodReport", analysis) -> "VerificationResult":
+    async def _verify_report(self, report: "PeriodReport", analysis) -> "InsightVerificationResult":
         """보고서 최종 검증"""
         try:
             from src.tools.intelligence.insight_verifier import InsightVerifier
@@ -309,9 +309,9 @@ class PeriodInsightAgent:
         except Exception as e:
             logger.error(f"Verification failed: {e}")
             # 검증 실패해도 보고서 생성은 계속
-            from src.tools.intelligence.insight_verifier import VerificationResult
+            from src.tools.intelligence.insight_verifier import InsightVerificationResult
 
-            return VerificationResult(
+            return InsightVerificationResult(
                 verified_at=datetime.now().isoformat(),
                 total_checks=0,
                 passed_checks=0,

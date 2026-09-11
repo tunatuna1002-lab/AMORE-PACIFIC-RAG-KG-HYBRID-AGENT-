@@ -8,8 +8,8 @@ Confidence Fusion을 Hybrid Retriever에 통합하는 예제
 from typing import Any
 
 from src.rag.confidence_fusion import (
-    InferenceResult,
-    LinkedEntity,
+    FusedEntity,
+    FusionInferenceResult,
     SearchResult,
     create_default_fusion,
 )
@@ -112,7 +112,7 @@ class EnhancedHybridRetriever:
                 )
             ]
 
-    def _ontology_inference(self, query: str) -> list[InferenceResult]:
+    def _ontology_inference(self, query: str) -> list[FusionInferenceResult]:
         """
         온톨로지 추론 수행
 
@@ -121,13 +121,13 @@ class EnhancedHybridRetriever:
         # 모의 추론 결과
         if "LANEIGE" in query:
             return [
-                InferenceResult(
+                FusionInferenceResult(
                     insight="LANEIGE는 Lip Care에서 지배적 포지션 보유",
                     confidence=0.88,
                     evidence={"rule": "market_dominance", "sos": 0.35, "rank": 1},
                     rule_name="market_dominance_rule",
                 ),
-                InferenceResult(
+                FusionInferenceResult(
                     insight="LANEIGE는 안정적인 순위 유지 중",
                     confidence=0.82,
                     evidence={"rule": "stability", "volatility": 0.03},
@@ -136,7 +136,7 @@ class EnhancedHybridRetriever:
             ]
         else:
             return [
-                InferenceResult(
+                FusionInferenceResult(
                     insight="일반적인 시장 트렌드 관찰됨",
                     confidence=0.45,
                     evidence={"rule": "general_trend"},
@@ -144,7 +144,7 @@ class EnhancedHybridRetriever:
                 )
             ]
 
-    def _entity_linking(self, query: str) -> list[LinkedEntity]:
+    def _entity_linking(self, query: str) -> list[FusedEntity]:
         """
         엔티티 연결 수행
 
@@ -155,7 +155,7 @@ class EnhancedHybridRetriever:
 
         if "LANEIGE" in query:
             entities.append(
-                LinkedEntity(
+                FusedEntity(
                     entity_id="brand_laneige",
                     entity_name="LANEIGE",
                     entity_type="Brand",
@@ -167,7 +167,7 @@ class EnhancedHybridRetriever:
 
         if "Lip" in query or "립" in query:
             entities.append(
-                LinkedEntity(
+                FusedEntity(
                     entity_id="cat_lip_care",
                     entity_name="Lip Care",
                     entity_type="Category",
@@ -179,7 +179,7 @@ class EnhancedHybridRetriever:
 
         if "Sleeping Mask" in query:
             entities.append(
-                LinkedEntity(
+                FusedEntity(
                     entity_id="product_B074PXJGSB",
                     entity_name="Lip Sleeping Mask",
                     entity_type="Product",

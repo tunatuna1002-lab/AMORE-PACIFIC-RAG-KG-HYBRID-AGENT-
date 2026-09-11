@@ -10,10 +10,10 @@ from .source_manager import InsightSourceBuilder, Source, SourceManager
 
 # Insight Verifier (optional)
 try:
-    from .insight_verifier import InsightVerifier, VerificationResult, verify_insight_report
+    from .insight_verifier import InsightVerificationResult, InsightVerifier, verify_insight_report
 except ImportError:
     InsightVerifier = None
-    VerificationResult = None
+    InsightVerificationResult = None
     verify_insight_report = None
 
 __all__ = [
@@ -29,6 +29,6 @@ __all__ = [
     "Source",
     "InsightSourceBuilder",
     "InsightVerifier",
-    "VerificationResult",
+    "InsightVerificationResult",
     "verify_insight_report",
 ]

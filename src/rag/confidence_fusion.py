@@ -46,7 +46,7 @@ class SearchResult:
 
 
 @dataclass
-class InferenceResult:
+class FusionInferenceResult:
     """온톨로지 추론 결과"""
 
     insight: str
@@ -56,7 +56,7 @@ class InferenceResult:
 
 
 @dataclass
-class LinkedEntity:
+class FusedEntity:
     """엔티티 연결 결과"""
 
     entity_id: str
@@ -170,8 +170,8 @@ class ConfidenceFusion:
     def fuse(
         self,
         vector_results: list[SearchResult] | None = None,
-        ontology_results: list[InferenceResult] | None = None,
-        entity_links: list[LinkedEntity] | None = None,
+        ontology_results: list[FusionInferenceResult] | None = None,
+        entity_links: list[FusedEntity] | None = None,
         query: str | None = None,
     ) -> FusedResult:
         """
@@ -271,7 +271,7 @@ class ConfidenceFusion:
         top_k = sorted(scores, reverse=True)[:3]
         return np.mean(top_k)
 
-    def _compute_ontology_score(self, results: list[InferenceResult]) -> float:
+    def _compute_ontology_score(self, results: list[FusionInferenceResult]) -> float:
         """온톨로지 추론 점수 계산"""
         if not results:
             return 0.0
@@ -281,7 +281,7 @@ class ConfidenceFusion:
             return 0.0
         return max(confidences)
 
-    def _compute_entity_score(self, entities: list[LinkedEntity]) -> float:
+    def _compute_entity_score(self, entities: list[FusedEntity]) -> float:
         """엔티티 연결 점수 계산"""
         if not entities:
             return 0.0
@@ -400,8 +400,8 @@ class ConfidenceFusion:
     def _merge_documents(
         self,
         vector_results: list[SearchResult] | None,
-        ontology_results: list[InferenceResult] | None,
-        entity_links: list[LinkedEntity] | None,
+        ontology_results: list[FusionInferenceResult] | None,
+        entity_links: list[FusedEntity] | None,
     ) -> list[dict[str, Any]]:
         """문서들을 통합"""
         documents = []

@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock, mock_open, patch
 
 import pytest
 
-from src.tools.scrapers.amazon_scraper import AmazonScraper, CircuitBreaker
+from src.tools.scrapers.amazon_scraper import AmazonScraper, ScraperCircuitBreaker
 
 
 @pytest.fixture
@@ -53,22 +53,22 @@ def scraper(mock_config):
 
 
 class TestCircuitBreaker:
-    """Test CircuitBreaker functionality"""
+    """Test ScraperCircuitBreaker functionality"""
 
     def test_initial_state(self):
-        cb = CircuitBreaker(threshold=3, reset_minutes=30)
+        cb = ScraperCircuitBreaker(threshold=3, reset_minutes=30)
         assert cb.failures == 0
         assert cb.is_open is False
         assert cb.can_proceed() is True
 
     def test_record_failure(self):
-        cb = CircuitBreaker(threshold=3, reset_minutes=30)
+        cb = ScraperCircuitBreaker(threshold=3, reset_minutes=30)
         cb.record_failure()
         assert cb.failures == 1
         assert cb.is_open is False
 
     def test_open_after_threshold(self):
-        cb = CircuitBreaker(threshold=3, reset_minutes=30)
+        cb = ScraperCircuitBreaker(threshold=3, reset_minutes=30)
         cb.record_failure()
         cb.record_failure()
         cb.record_failure()
@@ -77,7 +77,7 @@ class TestCircuitBreaker:
         assert cb.can_proceed() is False
 
     def test_record_success(self):
-        cb = CircuitBreaker(threshold=3, reset_minutes=30)
+        cb = ScraperCircuitBreaker(threshold=3, reset_minutes=30)
         cb.record_failure()
         cb.record_failure()
         assert cb.failures == 2
@@ -86,7 +86,7 @@ class TestCircuitBreaker:
         assert cb.is_open is False
 
     def test_reset_after_timeout(self):
-        cb = CircuitBreaker(threshold=3, reset_minutes=0)  # 0 minutes for instant reset
+        cb = ScraperCircuitBreaker(threshold=3, reset_minutes=0)  # 0 minutes for instant reset
         cb.record_failure()
         cb.record_failure()
         cb.record_failure()
@@ -102,7 +102,7 @@ class TestCircuitBreaker:
         assert cb.failures == 0
 
     def test_get_backoff_seconds(self):
-        cb = CircuitBreaker(threshold=5, reset_minutes=30)
+        cb = ScraperCircuitBreaker(threshold=5, reset_minutes=30)
 
         cb.record_failure()
         assert cb.get_backoff_seconds() == 60  # 60 * 2^0

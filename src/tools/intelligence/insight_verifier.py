@@ -45,7 +45,7 @@ class VerificationIssue:
 
 
 @dataclass
-class VerificationResult:
+class InsightVerificationResult:
     """검증 결과"""
 
     verified_at: str
@@ -96,7 +96,7 @@ class InsightVerifier:
 
     async def verify_report(
         self, report_content: str, analysis_data: dict[str, Any], raw_data: list[dict] | None = None
-    ) -> VerificationResult:
+    ) -> InsightVerificationResult:
         """
         보고서 종합 검증
 
@@ -106,7 +106,7 @@ class InsightVerifier:
             raw_data: 원본 크롤링 데이터 (선택)
 
         Returns:
-            VerificationResult
+            InsightVerificationResult
         """
         issues = []
         checks = 0
@@ -139,7 +139,7 @@ class InsightVerifier:
         passed = checks - len([i for i in issues if i.severity == "critical"])
         confidence = passed / checks if checks > 0 else 1.0
 
-        return VerificationResult(
+        return InsightVerificationResult(
             verified_at=datetime.now().isoformat(),
             total_checks=checks,
             passed_checks=passed,
@@ -407,7 +407,7 @@ class InsightVerifier:
 # 편의 함수
 async def verify_insight_report(
     report_content: str, analysis_data: dict[str, Any]
-) -> VerificationResult:
+) -> InsightVerificationResult:
     """인사이트 보고서 검증 편의 함수"""
     verifier = InsightVerifier()
     return await verifier.verify_report(report_content, analysis_data)
