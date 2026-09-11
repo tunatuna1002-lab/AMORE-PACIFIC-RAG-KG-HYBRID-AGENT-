@@ -162,7 +162,7 @@ async def test_chat_response_shape_and_prompt(
     # Sources: KG summary, ontology rule, the two RAG chunks, AI disclaimer
     assert len(result["sources"]) == 5
     assert result["sources"][0]["type"] == "knowledge_graph"
-    assert result["sources"][0]["fact_count"] == 3
+    assert result["sources"][0]["fact_count"] == 4  # brand_products 사실 추가
     assert result["sources"][1]["type"] == "ontology_inference"
     assert result["sources"][1]["rule_name"] == "category_entry_opportunity"
     assert result["sources"][1]["confidence"] == 0.7
