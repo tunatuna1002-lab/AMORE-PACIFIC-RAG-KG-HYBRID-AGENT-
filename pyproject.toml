@@ -59,7 +59,9 @@ exclude_lines = [
 show_missing = true
 precision = 2
 # CI 게이트와 같은 값. 로컬에서 `pytest --no-cov` 없이 돌려도 같은 기준이 적용된다.
-fail_under = 55
+# 2026-09-16 실측 79.23% (tests/unit+characterization+eval+adversarial, -m "not slow").
+# 통상적인 변동을 CI 실패로 만들지 않도록 4%p 여유를 두고 75로 잡는다.
+fail_under = 75
 
 [tool.coverage.html]
 directory = "coverage_html"

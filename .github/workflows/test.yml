@@ -55,7 +55,7 @@ jobs:
             -m "not slow" --tb=short --timeout=120 \
             --cov=src \
             --cov-report=term-missing \
-            --cov-fail-under=55
+            --cov-fail-under=75
 
       - name: Run integration tests (if API key available)
         if: env.OPENAI_API_KEY != ''
