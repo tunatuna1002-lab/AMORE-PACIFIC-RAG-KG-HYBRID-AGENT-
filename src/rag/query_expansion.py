@@ -1,19 +1,33 @@
-"""
-Query Enhancer
-==============
-사전 검색 쿼리 강화 모듈
+"""Query expansion
+===============
 
-기존 QueryRewriter(대화 맥락 지시어 해소)와 공존하며,
-검색 품질을 높이기 위한 사전 처리를 담당합니다.
+Everything that rewrites or widens a query *before* it hits the index:
 
-기능:
-1. 도메인 동의어 확장 (LLM 불필요, 딕셔너리 기반)
-2. 복합 질문 분해 (복잡 질문만 LLM 사용)
+* :class:`QueryEnhancer` / :class:`EnhancedQuery` — dictionary-based domain
+  synonym expansion and rule-based decomposition of compound questions
+  (absorbed from the former ``src/rag/query_enhancer.py``).
+* :func:`expand_query` — appends interpretation keywords derived from the
+  ontology inferences and the extracted indicators.
+* :func:`rewrite_for_relevance` — the one-shot retry rewrite used when
+  relevance grading finds too few relevant documents.
+
+LLM-driven expansion is a different thing and stays where it is used:
+``DocumentRetriever.expand_query`` (bilingual paraphrases) and
+``src/rag/query_rewriter.py`` (conversational deixis).
+
+Moved out of ``hybrid_retriever.py`` / ``query_enhancer.py`` (F3 split).
 """
+
+from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from src.domain.entities.relations import InsightType
+
+if TYPE_CHECKING:
+    from src.domain.entities.relations import InferenceResult
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +90,7 @@ class QueryEnhancer:
         self,
         query: str,
         entities: dict[str, list[str]] | None = None,
-    ) -> "EnhancedQuery":
+    ) -> EnhancedQuery:
         """
         쿼리 강화 (메인 메서드)
 
@@ -235,3 +249,106 @@ class EnhancedQuery:
             f"expanded='{self.expanded_query}', "
             f"sub_queries={self.sub_queries})"
         )
+
+
+# ---------------------------------------------------------------------------
+# Inference-driven expansion
+# ---------------------------------------------------------------------------
+
+# 추론된 인사이트 유형 → 검색에 덧붙일 해석 키워드
+_INSIGHT_EXPANSIONS: list[tuple[set[InsightType], str]] = [
+    ({InsightType.MARKET_POSITION, InsightType.MARKET_DOMINANCE}, "시장 포지션 해석"),
+    ({InsightType.RISK_ALERT}, "위험 신호 대응"),
+    ({InsightType.COMPETITIVE_THREAT}, "경쟁 위협 분석"),
+    ({InsightType.GROWTH_OPPORTUNITY, InsightType.GROWTH_MOMENTUM}, "성장 기회 전략"),
+    ({InsightType.PRICE_QUALITY_GAP, InsightType.PRICE_POSITION}, "가격 전략 해석"),
+]
+
+# 지표 → 검색에 덧붙일 해석 키워드
+_INDICATOR_EXPANSIONS: dict[str, str] = {
+    "sos": "SoS 점유율 해석",
+    "hhi": "HHI 시장집중도 해석",
+    "cpi": "CPI 가격지수 해석",
+}
+
+# 재작성 시 사용할 지표·카테고리의 전체 이름
+_INDICATOR_FULL_NAMES: dict[str, str] = {
+    "sos": "Share of Shelf 점유율",
+    "hhi": "HHI 시장집중도",
+    "cpi": "CPI 가격지수",
+}
+
+_CATEGORY_FULL_NAMES: dict[str, str] = {
+    "lip_care": "Lip Care 립케어",
+    "lip_makeup": "Lip Makeup 립메이크업",
+    "face_powder": "Face Powder 파우더",
+}
+
+
+def expand_query(
+    query: str,
+    inferences: list[InferenceResult],
+    entities: dict[str, list[str]],
+) -> str:
+    """추론 결과 기반 쿼리 확장.
+
+    Args:
+        query: 원본 쿼리
+        inferences: 추론 결과
+        entities: 엔티티
+
+    Returns:
+        확장된 쿼리 (덧붙일 것이 없으면 원본 그대로)
+    """
+    expansion_terms: list[str] = []
+
+    insight_types = {inf.insight_type for inf in inferences}
+    for trigger_types, term in _INSIGHT_EXPANSIONS:
+        if insight_types & trigger_types:
+            expansion_terms.append(term)
+
+    for indicator in entities.get("indicators", []):
+        term = _INDICATOR_EXPANSIONS.get(indicator)
+        if term:
+            expansion_terms.append(term)
+
+    if expansion_terms:
+        return f"{query} {' '.join(expansion_terms)}"
+    return query
+
+
+def rewrite_for_relevance(query: str, entities: dict) -> str:
+    """관련성 부족 시 쿼리 재작성.
+
+    엔티티 정보를 활용하여 더 구체적인 검색 쿼리를 생성합니다.
+
+    Args:
+        query: 원본 쿼리
+        entities: 추출된 엔티티
+
+    Returns:
+        재작성된 쿼리
+    """
+    parts = [query]
+
+    # 브랜드 추가
+    brands = entities.get("brands", [])
+    if brands and brands[0].lower() not in query.lower():
+        parts.append(brands[0])
+
+    # 지표 추가
+    for ind in entities.get("indicators", [])[:2]:
+        full_name = _INDICATOR_FULL_NAMES.get(ind, ind)
+        if full_name.lower() not in query.lower():
+            parts.append(full_name)
+
+    # 카테고리 추가
+    for cat in entities.get("categories", [])[:1]:
+        full_name = _CATEGORY_FULL_NAMES.get(cat, cat)
+        if full_name.lower() not in query.lower():
+            parts.append(full_name)
+
+    rewritten = " ".join(parts)
+    if rewritten != query:
+        logger.info(f"Query rewritten for relevance: '{query}' → '{rewritten}'")
+    return rewritten

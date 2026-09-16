@@ -29,6 +29,8 @@ from typing import Any, Protocol, runtime_checkable
 from src.core.intent import UnifiedIntent
 from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
+from .context_render import LEGACY_CHUNK_CHARS, MAX_CHUNKS, truncate
+
 logger = logging.getLogger(__name__)
 
 
@@ -731,14 +733,11 @@ class OWLRetrievalStrategy:
 
         if documents:
             parts.append("## 관련 문서\n")
-            for i, doc in enumerate(documents[:3], 1):
+            for i, doc in enumerate(documents[:MAX_CHUNKS], 1):
                 title = doc.get("metadata", {}).get("title", "")
-                content = doc.get("content", "")
                 if title:
                     parts.append(f"### {i}. {title}")
-                if len(content) > 500:
-                    content = content[:500] + "..."
-                parts.append(content)
+                parts.append(truncate(doc.get("content", ""), LEGACY_CHUNK_CHARS))
                 parts.append("")
 
         return "\n".join(parts)

@@ -1,8 +1,9 @@
 """
-Export Job Handlers
+Export Renderers & Job Handlers
 
-비동기 내보내기 작업 핸들러들.
-job_queue.py와 함께 사용하여 페이지 새로고침에도 다운로드 지속 가능.
+DOCX 렌더링(동기 API 경로와 비동기 작업 큐가 **함께** 쓰는 단일 구현)과
+job_queue 핸들러들. 페이지 새로고침에도 다운로드가 지속되도록 job_queue.py와
+함께 사용한다.
 
 Usage:
     from src.tools.utilities.job_queue import get_job_queue
@@ -12,22 +13,32 @@ Usage:
     await queue.initialize()
     register_all_handlers(queue)
     await queue.start_worker()
+
+데이터 수집/집계는 ``src/application/services/export_service.py``가, 문서 조립은
+이 모듈이 담당한다. 이 모듈은 ``src.api``를 import 하지 않는다 (계층 역전 제거).
 """
+
+from __future__ import annotations
 
 import logging
 import os
-import tempfile
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
 
-from src.tools.calculators.period_analyzer import PeriodAnalyzer
-from src.tools.exporters.chart_generator import ChartGenerator
+from src.application.services.export_service import (
+    ANALYST_REPORT_TOC,
+    AnalystReportContext,
+    build_analyst_report_context,
+    filter_reference_lines,
+)
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 from src.tools.utilities.job_queue import JobQueue, JobType
-from src.tools.utilities.reference_tracker import ReferenceTracker
 
 logger = logging.getLogger(__name__)
 
@@ -36,91 +47,357 @@ PACIFIC_BLUE = RGBColor(0, 28, 88)  # #001C58
 AMORE_BLUE = RGBColor(31, 87, 149)  # #1F5795
 GRAY = RGBColor(125, 125, 125)  # #7D7D7D
 
+STRATEGY_FALLBACK = """
+1. Top 10 유지 전략: 현재 상위권 제품의 리뷰 관리 및 재고 확보를 통한 포지션 유지
+
+2. 경쟁사 모니터링: e.l.f., Maybelline 등 주요 경쟁사의 가격 및 프로모션 동향 파악
+
+3. 신규 진입 기회: Lip Care 카테고리 외 Face Powder, Toner 등 확장 가능성 검토
+"""
+
+NO_SIGNALS_HINT = (
+    "외부 신호를 수집하려면:\n"
+    "1. RSS 피드 자동 수집: /api/signals/fetch/rss\n"
+    "2. Reddit 트렌드 수집: /api/signals/fetch/reddit\n"
+    "3. 수동 입력: /api/signals/manual"
+)
+
 
 def register_all_handlers(queue: JobQueue) -> None:
     """모든 export 핸들러 등록"""
-    queue.register_handler(JobType.EXPORT_DOCX.value, handle_export_docx)
     queue.register_handler(JobType.EXPORT_ANALYST_REPORT.value, handle_export_analyst_report)
     queue.register_handler(JobType.EXPORT_EXCEL.value, handle_export_excel)
     logger.info("Registered all export handlers")
 
 
-async def handle_export_docx(job_id: str, params: dict, queue: JobQueue) -> str:
+# ===========================================================================
+# 1. 인사이트 리포트 (대시보드 스냅샷 기반)
+# ===========================================================================
+
+
+@dataclass
+class InsightReportView:
     """
-    간단한 DOCX 리포트 생성 핸들러
+    인사이트 리포트가 필요로 하는 값들 (대시보드 JSON을 호출자가 평탄화해서 넘긴다).
 
-    Args:
-        job_id: 작업 ID
-        params: {start_date, end_date, include_strategy, include_external_signals}
-        queue: JobQueue 인스턴스 (진행률 업데이트용)
-
-    Returns:
-        생성된 파일 경로
+    ``src/api/dashboard_shape.py``의 어댑터가 exporter/legacy 두 형태를 흡수하므로
+    렌더러는 한 가지 형태만 알면 된다.
     """
-    await queue.update_progress(job_id, 10, "데이터 로드 중...")
 
-    # Load data (lazy import to avoid circular dependency)
-    from src.api.dependencies import load_dashboard_data
+    metadata: dict[str, Any] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
+    brands: list[dict[str, Any]] = field(default_factory=list)
+    categories: list[dict[str, Any]] = field(default_factory=list)
+    products: list[dict[str, Any]] = field(default_factory=list)
+    strategic_insights: list[dict[str, Any]] = field(default_factory=list)
+    include_strategy: bool = True
+    include_external_signals: bool = False
+    signals_section: str = ""
+    signals_days: int = 7
 
-    data = load_dashboard_data()
+    @property
+    def filename(self) -> str:
+        return f"AMORE_Insight_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.docx"
 
-    await queue.update_progress(job_id, 30, "DOCX 문서 생성 중...")
 
-    # Create document
+def render_insight_report(view: InsightReportView) -> Document:
+    """인사이트 리포트 DOCX (동기 API 경로와 비동기 작업이 공유하는 단일 구현)."""
     doc = Document()
 
-    # Style
+    # 스타일 설정
     style = doc.styles["Normal"]
     font = style.font
     font.name = "Arial"
     font.size = Pt(11)
 
-    # Title
-    title = doc.add_heading("AMORE Pacific 인사이트 리포트", 0)
+    # ===== 표지 =====
+    title = doc.add_heading("AMORE INSIGHT Report", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    for run in title.runs:
-        run.font.color.rgb = PACIFIC_BLUE
 
-    await queue.update_progress(job_id, 50, "섹션 작성 중...")
+    subtitle = doc.add_paragraph("LANEIGE Amazon US 분석 리포트")
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    # 1. Summary
-    doc.add_heading("1. Executive Summary", 1)
-    if data.get("home", {}).get("insight_message"):
-        doc.add_paragraph(data["home"]["insight_message"])
+    # 날짜
+    metadata = view.metadata
+    date_para = doc.add_paragraph()
+    date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    date_para.add_run(
+        f"분석 기준일: {metadata.get('data_date', datetime.now().strftime('%Y-%m-%d'))}"
+    )
+    date_para.add_run(f"\n생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+    doc.add_page_break()
+
+    # ===== 목차 =====
+    doc.add_heading("목차", 1)
+    for item in [
+        "1. 요약 통계",
+        "2. 브랜드별 성과",
+        "3. 카테고리별 분석",
+        "4. 주요 제품",
+        "5. AI 인사이트 및 전략 제언",
+        "6. 외부 트렌드 신호",
+    ]:
+        doc.add_paragraph(item, style="List Bullet")
+
+    doc.add_page_break()
+
+    # ===== 1. 요약 통계 =====
+    doc.add_heading("1. 요약 통계", 1)
+    summary = view.summary
+
+    table = doc.add_table(rows=5, cols=2)
+    table.style = "Light Grid Accent 1"
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    stats = [
+        ("총 제품 수", summary.get("total_products", 0)),
+        ("크롤링 카테고리", summary.get("categories_count", 0)),
+        ("LANEIGE 제품 수", summary.get("laneige_products", 0)),
+        ("평균 가격", f"${summary.get('avg_price', 0):.2f}"),
+        ("데이터 날짜", metadata.get("data_date", "N/A")),
+    ]
+
+    for i, (label, value) in enumerate(stats):
+        table.rows[i].cells[0].text = label
+        table.rows[i].cells[1].text = str(value)
+
+    doc.add_paragraph()
+
+    # ===== 2. 브랜드별 성과 =====
+    doc.add_heading("2. 브랜드별 성과", 1)
+
+    if view.brands:
+        # 상위 10개 브랜드
+        top_brands = sorted(view.brands, key=lambda x: x.get("product_count", 0), reverse=True)[:10]
+
+        brand_table = doc.add_table(rows=len(top_brands) + 1, cols=4)
+        brand_table.style = "Light Grid Accent 1"
+
+        headers = brand_table.rows[0].cells
+        headers[0].text = "브랜드"
+        headers[1].text = "제품 수"
+        headers[2].text = "평균 순위"
+        headers[3].text = "SoS (%)"
+
+        for i, brand in enumerate(top_brands, start=1):
+            cells = brand_table.rows[i].cells
+            cells[0].text = brand.get("brand", "Unknown")
+            cells[1].text = str(brand.get("product_count", 0))
+            cells[2].text = f"{brand.get('avg_rank', 0):.1f}"
+            cells[3].text = f"{brand.get('sos', 0):.2f}%"
     else:
-        doc.add_paragraph("데이터가 충분하지 않습니다.")
+        doc.add_paragraph("브랜드 데이터가 없습니다.")
 
-    await queue.update_progress(job_id, 70, "브랜드 분석 추가 중...")
+    doc.add_page_break()
 
-    # 2. Brand Performance
-    doc.add_heading("2. 브랜드 성과", 1)
-    brand_data = data.get("brand", {})
-    kpis = brand_data.get("kpis", {})
-    if kpis:
-        table = doc.add_table(rows=1, cols=3)
-        table.style = "Table Grid"
-        hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = "KPI"
-        hdr_cells[1].text = "현재"
-        hdr_cells[2].text = "변동"
+    # ===== 3. 카테고리별 분석 =====
+    doc.add_heading("3. 카테고리별 분석", 1)
 
-        for kpi_name, kpi_data in kpis.items():
-            row = table.add_row().cells
-            row[0].text = kpi_name
-            row[1].text = str(kpi_data.get("value", "-"))
-            row[2].text = str(kpi_data.get("change", "-"))
+    if view.categories:
+        for category in view.categories:
+            doc.add_heading(category.get("category", "Unknown"), 2)
 
-    await queue.update_progress(job_id, 90, "파일 저장 중...")
+            for label, value in [
+                ("총 제품 수", category.get("total_products", 0)),
+                ("LANEIGE 제품 수", category.get("laneige_products", 0)),
+                ("평균 가격", f"${category.get('avg_price', 0):.2f}"),
+                ("HHI", f"{category.get('hhi', 0):.2f}"),
+                ("CPI", f"{category.get('cpi', 0):.2f}"),
+            ]:
+                doc.add_paragraph(f"{label}: {value}")
 
-    # Save
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"AMORE_Insight_Report_{timestamp}.docx"
-    output_path = os.path.join(queue.output_dir, filename)
+            doc.add_paragraph()
+    else:
+        doc.add_paragraph("카테고리 데이터가 없습니다.")
 
-    doc.save(output_path)
-    logger.info(f"DOCX saved: {output_path}")
+    doc.add_page_break()
 
-    return output_path
+    # ===== 4. 주요 제품 =====
+    doc.add_heading("4. 주요 제품 (LANEIGE Top 10)", 1)
+
+    laneige_products = sorted(view.products, key=lambda x: x.get("rank", 999))[:10]
+
+    if laneige_products:
+        product_table = doc.add_table(rows=len(laneige_products) + 1, cols=5)
+        product_table.style = "Light Grid Accent 1"
+
+        headers = product_table.rows[0].cells
+        headers[0].text = "순위"
+        headers[1].text = "제품명"
+        headers[2].text = "카테고리"
+        headers[3].text = "가격"
+        headers[4].text = "평점"
+
+        for i, product in enumerate(laneige_products, start=1):
+            cells = product_table.rows[i].cells
+            cells[0].text = str(product.get("rank", "N/A"))
+            cells[1].text = product.get("title", "Unknown")[:50]
+            cells[2].text = product.get("category", "Unknown")
+            cells[3].text = f"${product.get('price', 0):.2f}" if product.get("price") else "N/A"
+            cells[4].text = str(product.get("rating", "N/A"))
+    else:
+        doc.add_paragraph("LANEIGE 제품이 없습니다.")
+
+    doc.add_page_break()
+
+    # ===== 5. AI 인사이트 및 전략 제언 =====
+    if view.include_strategy:
+        doc.add_heading("5. AI 인사이트 및 전략 제언", 1)
+
+        if view.strategic_insights:
+            for insight in view.strategic_insights:
+                doc.add_heading(insight.get("title", "Insight"), 2)
+                doc.add_paragraph(insight.get("content", ""))
+                doc.add_paragraph()
+        else:
+            # 폴백 전략
+            doc.add_paragraph(STRATEGY_FALLBACK)
+
+    # ===== 6. 외부 트렌드 신호 =====
+    if view.include_external_signals:
+        doc.add_heading("6. 외부 트렌드 신호", 1)
+
+        if view.signals_section:
+            doc.add_paragraph(f"분석 기간: 최근 {view.signals_days}일")
+            doc.add_paragraph()
+
+            # 신호 섹션별로 파싱하여 추가
+            for line in view.signals_section.split("\n"):
+                if line.startswith("■"):
+                    doc.add_heading(line.replace("■ ", ""), 2)
+                elif line.startswith("•"):
+                    doc.add_paragraph(line, style="List Bullet")
+                elif line.strip():
+                    doc.add_paragraph(line)
+        else:
+            doc.add_paragraph("수집된 외부 트렌드 신호가 없습니다.")
+            doc.add_paragraph()
+            doc.add_paragraph(NO_SIGNALS_HINT)
+
+    # ===== 푸터 =====
+    doc.add_paragraph()
+    footer = doc.add_paragraph()
+    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    footer.add_run(f"© {datetime.now().year} AMORE Pacific - Confidential").italic = True
+
+    return doc
+
+
+# ===========================================================================
+# 2. 애널리스트 리포트 (8 섹션, IR 표지)
+# ===========================================================================
+
+
+def render_analyst_report(ctx: AnalystReportContext, include_charts: bool = True) -> Document:
+    """
+    애널리스트 리포트 DOCX (8 섹션).
+
+    동기 ``POST /api/export/analyst-report``와 비동기 작업이 **같은** 문서를
+    생성한다 (F6: 두 경로가 서로 다른 문서를 만들던 중복 제거).
+    """
+    from src.tools.exporters.report_generator import DocxReportGenerator
+
+    design_gen = DocxReportGenerator()
+    doc = Document()
+    report = ctx.report
+    chart_paths = ctx.chart_paths
+
+    # 표지/목차에 Arita 폰트 및 페이지 여백 설정
+    design_gen._setup_document_styles(doc)
+    design_gen._setup_page_margins(doc)
+
+    # ===== 표지 페이지 - Pacific Blue 헤더바 + AMOREPACIFIC 로고 =====
+    design_gen._add_cover_page(
+        doc,
+        title="LANEIGE Amazon US 경쟁력 분석 보고서",
+        subtitle="Weekly Insight Report",
+        date_range=f"{ctx.start_date} ~ {ctx.end_date}",
+        generation_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    )
+
+    # ===== 목차 페이지 =====
+    design_gen._add_toc_page(doc, list(ANALYST_REPORT_TOC))
+
+    def add_section_content(section, section_charts: list[str] | None = None):
+        """DocxReportGenerator 스타일로 섹션 콘텐츠 추가"""
+        design_gen._add_section_heading(doc, section.section_id, section.section_title)
+
+        # 본문 내용 (참고자료 라인은 8장으로 모으므로 본문에서 제거)
+        if section.content:
+            is_first_heading = True
+            for raw_line in filter_reference_lines(section.content).split("\n"):
+                line = raw_line.strip()
+                if not line:
+                    continue
+
+                if line.startswith("■"):
+                    # 목차(■) - IR 스타일 적용
+                    design_gen._add_content_paragraph(
+                        doc, line, is_highlight=True, add_space_before=not is_first_heading
+                    )
+                    is_first_heading = False
+                elif line.startswith("•") or line.startswith("-"):
+                    # 불릿 포인트
+                    design_gen._add_content_paragraph(doc, line.lstrip("•- "), is_bullet=True)
+                else:
+                    design_gen._add_content_paragraph(doc, line)
+
+        # 차트 추가
+        if section_charts and include_charts:
+            for chart_key in section_charts:
+                if chart_key in chart_paths:
+                    doc.add_paragraph()
+                    design_gen._add_chart_image(doc, chart_paths[chart_key])
+
+        doc.add_page_break()
+
+    if report.executive_summary:
+        add_section_content(report.executive_summary, ["sos_trend"])
+    if report.laneige_analysis:
+        add_section_content(report.laneige_analysis, ["sos_trend", "product_ranks"])
+    if report.competitive_analysis:
+        add_section_content(report.competitive_analysis, ["brand_comparison"])
+    if report.market_trends:
+        add_section_content(report.market_trends, ["hhi_trend"])
+    if report.external_signals:
+        add_section_content(report.external_signals)
+    if report.risks_opportunities:
+        add_section_content(report.risks_opportunities)
+    if report.strategic_recommendations:
+        add_section_content(report.strategic_recommendations)
+
+    # ===== Section 8: 참고자료 =====
+    design_gen._add_section_heading(doc, 8, "참고자료 (References)")
+
+    # 8.1 외부 자료
+    doc.add_heading("8.1 외부 자료", 2)
+    for run in doc.paragraphs[-1].runs:
+        run.font.color.rgb = AMORE_BLUE
+    external_refs = ctx.tracker.get_formatted_references(source_type="external")
+    if external_refs:
+        for ref in external_refs.split("\n"):
+            if ref.strip():
+                design_gen._add_content_paragraph(doc, ref, is_bullet=True)
+    else:
+        design_gen._add_content_paragraph(doc, "외부 자료 없음")
+
+    # 8.2 데이터 소스
+    doc.add_heading("8.2 데이터 소스", 2)
+    for run in doc.paragraphs[-1].runs:
+        run.font.color.rgb = AMORE_BLUE
+    data_refs = ctx.tracker.get_formatted_references(source_type="data")
+    if data_refs:
+        for ref in data_refs.split("\n"):
+            if ref.strip():
+                design_gen._add_content_paragraph(doc, ref, is_bullet=True)
+
+    return doc
+
+
+# ===========================================================================
+# 3. Job handlers
+# ===========================================================================
 
 
 async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueue) -> str:
@@ -143,205 +420,26 @@ async def handle_export_analyst_report(job_id: str, params: dict, queue: JobQueu
     if not start_date or not end_date:
         raise ValueError("start_date and end_date are required")
 
-    await queue.update_progress(job_id, 5, "기간 분석 중...")
+    async def _progress(pct: int, message: str) -> None:
+        await queue.update_progress(job_id, pct, message)
 
-    # 1. Period Analysis
-    analyzer = PeriodAnalyzer()
-    analysis = await analyzer.analyze(start_date, end_date)
-
-    if analysis.total_days == 0:
-        raise ValueError(f"No data found for period {start_date} ~ {end_date}")
-
-    await queue.update_progress(job_id, 15, "데이터 처리 중...")
-
-    # 2. External Signals
-    external_signals = None
-    external_signals_list = []
-    if include_external_signals:
-        try:
-            from src.api.routes.export import _get_external_signals
-
-            signals_result = await _get_external_signals(
-                days=analysis.total_days,
-                brands=["LANEIGE", "COSRX", "K-Beauty"],
-                include_tavily=True,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            if signals_result.get("signals"):
-                external_signals = signals_result
-                external_signals_list = signals_result.get("signals", [])
-        except Exception as e:
-            logger.warning(f"External signal collection failed: {e}")
-
-    await queue.update_progress(job_id, 30, "AI 인사이트 생성 중...")
-
-    # 3. Generate Insights (via Container to avoid tools → agents layer violation)
-    from src.infrastructure.container import Container
-
-    insight_agent = Container.get_period_insight_agent()
-    report = await insight_agent.generate_report(analysis, external_signals=external_signals)
-
-    await queue.update_progress(job_id, 50, "차트 생성 중...")
-
-    # 4. Generate Charts
-    chart_paths = {}
-    temp_dir = None
-    if include_charts:
-        temp_dir = tempfile.mkdtemp()
-        chart_gen = ChartGenerator(output_dir=temp_dir)
-        chart_paths = chart_gen.generate_all_charts(analysis)
-        logger.info(f"Generated {len(chart_paths)} charts")
-
-    await queue.update_progress(job_id, 60, "참고자료 추적 중...")
-
-    # 5. Reference Tracker
-    tracker = ReferenceTracker()
-    tracker.auto_add_amazon_sources(start_date=start_date, end_date=end_date)
-    if external_signals_list:
-        tracker.add_external_signals(external_signals_list)
-
-    await queue.update_progress(job_id, 70, "DOCX 문서 생성 중...")
-
-    # 6. Create DOCX with IR Cover Design
-    from src.tools.exporters.report_generator import DocxReportGenerator
-
-    design_gen = DocxReportGenerator()
-    doc = Document()
-
-    # 표지/목차에 Arita 폰트 및 페이지 여백 설정
-    design_gen._setup_document_styles(doc)
-    design_gen._setup_page_margins(doc)
-
-    # ===== 표지 페이지 - Pacific Blue 헤더바 + AMOREPACIFIC 로고 =====
-    design_gen._add_cover_page(
-        doc,
-        title="LANEIGE Amazon US 경쟁력 분석 보고서",
-        subtitle="Weekly Insight Report",
-        date_range=f"{start_date} ~ {end_date}",
-        generation_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    ctx = await build_analyst_report_context(
+        start_date=start_date,
+        end_date=end_date,
+        include_charts=include_charts,
+        include_external_signals=include_external_signals,
+        progress=_progress,
     )
 
-    # ===== 목차 페이지 - Pacific Blue 헤더바 + AMOREPACIFIC 로고 =====
-    toc_items = [
-        "1. Executive Summary",
-        "2. LANEIGE 심층 분석",
-        "3. 경쟁 환경 분석",
-        "4. 시장 동향",
-        "5. 외부 신호 분석",
-        "6. 리스크 및 기회 요인",
-        "7. 전략 제언",
-        "8. 참고자료 (References)",
-    ]
-    design_gen._add_toc_page(doc, toc_items)
-
-    await queue.update_progress(job_id, 80, "섹션 작성 중...")
-
-    # ===== 본문 섹션 처리 헬퍼 함수 =====
-    def add_section_content(section, section_charts: list[str] = None):
-        """DocxReportGenerator 스타일로 섹션 콘텐츠 추가"""
-        # 섹션 제목
-        design_gen._add_section_heading(doc, section.section_id, section.section_title)
-
-        # 본문 내용
-        if section.content:
-            is_first_heading = True
-            for line in section.content.split("\n"):
-                line = line.strip()
-                if not line:
-                    continue
-
-                if line.startswith("■"):
-                    # 목차(■) - IR 스타일 적용
-                    design_gen._add_content_paragraph(
-                        doc, line, is_highlight=True, add_space_before=not is_first_heading
-                    )
-                    is_first_heading = False
-                elif line.startswith("•") or line.startswith("-"):
-                    # 불릿 포인트
-                    clean_line = line.lstrip("•- ")
-                    design_gen._add_content_paragraph(doc, clean_line, is_bullet=True)
-                else:
-                    design_gen._add_content_paragraph(doc, line)
-
-        # 차트 추가
-        if section_charts and include_charts:
-            for chart_key in section_charts:
-                if chart_key in chart_paths:
-                    doc.add_paragraph()
-                    design_gen._add_chart_image(doc, chart_paths[chart_key])
-
-        doc.add_page_break()
-
-    # ===== Section 1: Executive Summary =====
-    if report.executive_summary:
-        add_section_content(report.executive_summary, ["sos_trend"])
-
-    # ===== Section 2: LANEIGE 심층 분석 =====
-    if report.laneige_analysis:
-        add_section_content(report.laneige_analysis, ["sos_trend", "product_ranks"])
-
-    # ===== Section 3: 경쟁 환경 분석 =====
-    if report.competitive_analysis:
-        add_section_content(report.competitive_analysis, ["brand_comparison"])
-
-    # ===== Section 4: 시장 동향 =====
-    if report.market_trends:
-        add_section_content(report.market_trends, ["hhi_trend"])
-
-    await queue.update_progress(job_id, 90, "외부 신호 및 전략 섹션 작성 중...")
-
-    # ===== Section 5: 외부 신호 분석 =====
-    if report.external_signals:
-        add_section_content(report.external_signals)
-
-    # ===== Section 6: 리스크 및 기회 =====
-    if report.risks_opportunities:
-        add_section_content(report.risks_opportunities)
-
-    # ===== Section 7: 전략 제언 =====
-    if report.strategic_recommendations:
-        add_section_content(report.strategic_recommendations)
-
-    # ===== Section 8: 참고자료 =====
-    design_gen._add_section_heading(doc, 8, "참고자료 (References)")
-
-    # 8.1 외부 자료
-    doc.add_heading("8.1 외부 자료", 2)
-    for run in doc.paragraphs[-1].runs:
-        run.font.color.rgb = AMORE_BLUE
-    external_refs = tracker.get_formatted_references(source_type="external")
-    if external_refs:
-        for ref in external_refs.split("\n"):
-            if ref.strip():
-                design_gen._add_content_paragraph(doc, ref, is_bullet=True)
-    else:
-        design_gen._add_content_paragraph(doc, "외부 자료 없음")
-
-    # 8.2 데이터 소스
-    doc.add_heading("8.2 데이터 소스", 2)
-    for run in doc.paragraphs[-1].runs:
-        run.font.color.rgb = AMORE_BLUE
-    data_refs = tracker.get_formatted_references(source_type="data")
-    if data_refs:
-        for ref in data_refs.split("\n"):
-            if ref.strip():
-                design_gen._add_content_paragraph(doc, ref, is_bullet=True)
+    await queue.update_progress(job_id, 70, "DOCX 문서 생성 중...")
+    doc = render_analyst_report(ctx, include_charts=include_charts)
 
     await queue.update_progress(job_id, 95, "파일 저장 중...")
-
-    # Save
-    filename = f"AMORE_Analyst_Report_{start_date}_{end_date}.docx"
-    output_path = os.path.join(queue.output_dir, filename)
-
+    output_path = os.path.join(queue.output_dir, ctx.filename)
     doc.save(output_path)
     logger.info(f"Analyst report saved: {output_path}")
 
-    # Cleanup temp charts
-    if temp_dir:
-        import shutil
-
-        shutil.rmtree(temp_dir, ignore_errors=True)
+    ctx.cleanup_charts()
 
     return output_path
 

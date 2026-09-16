@@ -1069,85 +1069,13 @@ class TestReciprocalRankFusionStatic:
         assert results[0]["content"] == "A"
 
 
-# ---------------------------------------------------------------------------
-# search_hybrid (sync)
-# ---------------------------------------------------------------------------
-
-
-class TestSearchHybrid:
-    """search_hybrid 동기 메서드 테스트"""
-
-    def _make_retriever_with_chunks(self):
-        r = DocumentRetriever(docs_path="/tmp/fake")
-        r.chunks = _bm25_test_chunks()
-        r._chunk_index = {c["id"]: c for c in r.chunks}
-        return r
-
-    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
-    def test_search_hybrid_returns_results(self):
-        """하이브리드 검색이 결과 반환"""
-        r = self._make_retriever_with_chunks()
-        results = r.search_hybrid("LANEIGE", top_k=2)
-        assert len(results) > 0
-
-    def test_search_hybrid_no_chunks(self):
-        """청크 없으면 빈 결과"""
-        r = DocumentRetriever(docs_path="/tmp/fake")
-        results = r.search_hybrid("LANEIGE", top_k=5)
-        assert results == []
-
-
-# ---------------------------------------------------------------------------
-# search_hybrid_async
-# ---------------------------------------------------------------------------
-
-
-class TestSearchHybridAsync:
-    """search_hybrid_async 비동기 테스트"""
-
-    @pytest.mark.asyncio
-    async def test_method_exists(self):
-        """메서드 존재 확인"""
-        r = DocumentRetriever(docs_path="/tmp/fake")
-        assert hasattr(r, "search_hybrid_async")
-
-    @pytest.mark.asyncio
-    async def test_both_empty(self):
-        """dense와 sparse 모두 빈 결과"""
-        r = DocumentRetriever(docs_path="/tmp/fake")
-        r._initialized = False
-        r.collection = None
-        results = await r.search_hybrid_async("query", top_k=5)
-        assert results == []
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
-    async def test_sparse_only_fallback(self):
-        """dense 실패 시 sparse만 반환"""
-        r = DocumentRetriever(docs_path="/tmp/fake")
-        r._initialized = False
-        r.collection = None
-        r.chunks = _bm25_test_chunks()
-        r._chunk_index = {c["id"]: c for c in r.chunks}
-        results = await r.search_hybrid_async("LANEIGE Lip", top_k=5)
-        assert len(results) > 0
-
-    @pytest.mark.asyncio
-    async def test_dense_only_fallback(self):
-        """sparse 결과 없을 때 dense만 반환"""
-        r = DocumentRetriever(docs_path="/tmp/fake")
-        r._initialized = True
-        r.collection = MagicMock()
-        mock_dense = [{"id": "d1", "content": "dense result", "metadata": {}, "score": 0.8}]
-        r._vector_search = AsyncMock(return_value=mock_dense)
-        # No chunks -> no BM25 results
-        r.chunks = []
-        r._chunk_index = {}
-        results = await r.search_hybrid_async("query", top_k=5)
-        assert len(results) == 1
-        assert results[0]["content"] == "dense result"
-
-
+# DELETED (F3): TestSearchHybrid / TestSearchHybridAsync removed together with
+# DocumentRetriever.search_hybrid / search_hybrid_async. Grep evidence for the
+# deletion: the only references to either name in src/, tests/, scripts/ and
+# eval/ were their own definitions and these tests. search_hybrid also never
+# did a hybrid search - it returned search_bm25() unchanged and ignored its
+# own `k` argument. Live BM25+RRF fusion is DocumentRetriever.search and
+# HybridRetriever._hybrid_search, both still covered.
 # ---------------------------------------------------------------------------
 # _bm25_search (internal async)
 # ---------------------------------------------------------------------------

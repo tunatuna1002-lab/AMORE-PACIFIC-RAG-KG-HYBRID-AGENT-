@@ -29,20 +29,23 @@ RAG를 위한 문서 검색 모듈
 - AP_3Q25_EN.md (아모레퍼시픽 2025 Q3)
 """
 
-import hashlib
+from __future__ import annotations
+
 import logging
 import os
-import re
 import time
 from pathlib import Path
 from typing import Any
 
-try:
-    from rank_bm25 import BM25Okapi
-
-    BM25_AVAILABLE = True
-except ImportError:
-    BM25_AVAILABLE = False
+from . import bm25_index, document_loader, search_cache, vector_index
+from . import fusion as _fusion
+from .bm25_index import BM25_AVAILABLE
+from .document_loader import strip_embedded_binaries
+from .document_registry import CONFIG_PATH as _REGISTRY_CONFIG_PATH
+from .document_registry import DEFAULT_CACHE_TTL, load_rag_config
+from .document_registry import DOCUMENTS as _DOCUMENTS
+from .section_chunker import chunk_size_for, split_into_chunks
+from .selfrag_gate import needs_retrieval as _needs_retrieval_gate
 
 try:
     from .reranker import get_reranker
@@ -63,376 +66,61 @@ VECTOR_SEARCH_AVAILABLE = None
 
 logger = logging.getLogger(__name__)
 
-_HANGUL_RE = re.compile(r"[가-힣]")
+# Backwards-compatible re-export: several modules and tests import this helper
+# from ``src.rag.retriever``. It lives in ``document_loader`` now.
+_has_hangul = document_loader.has_hangul
 
-
-def _has_hangul(text: str) -> bool:
-    """한글이 포함된 질의인지 — 교차언어 확장 방향 결정용."""
-    return bool(_HANGUL_RE.search(text or ""))
-
-
-# PDF→마크다운 변환 산출물에 남는 이미지 data URI 링크 정의
-#   `[image1]: <data:image/png;base64,iVBORw0KGgo...>`
-_DATA_URI_DEF_RE = re.compile(r"^\[[^\]]+\]:\s*<?data:[^>\n]+>?\s*$", re.MULTILINE)
-# 위 형태에 들어맞지 않는 잔여 base64 덩어리 (200자 이상 연속)
-_LONG_BASE64_RE = re.compile(r"[A-Za-z0-9+/]{200,}={0,2}")
-
-
-def strip_embedded_binaries(content: str) -> str:
-    """문서에 인라인된 base64 이미지 데이터를 제거한다.
-
-    IR 분기보고서 3종은 PDF→마크다운 변환물이라 본문 끝에 이미지가 data URI로
-    통째로 박혀 있고, 그 분량이 파일의 97%에 달한다. 이를 그대로 청킹하면
-    2,242청크 중 **1,877청크(84%)가 base64 덩어리**가 되어 임베딩 비용을 쓰고
-    LLM 컨텍스트에 잡음으로 들어간다 (2026-08-30 사이클 6 실측).
-    실제 IR 본문은 파일당 약 1.5만 자다.
-    """
-    cleaned = _DATA_URI_DEF_RE.sub("", content)
-    return _LONG_BASE64_RE.sub("", cleaned)
+__all__ = [
+    "BM25_AVAILABLE",
+    "RERANKER_AVAILABLE",
+    "SEMANTIC_CHUNKER_AVAILABLE",
+    "VECTOR_SEARCH_AVAILABLE",
+    "DocumentRetriever",
+    "strip_embedded_binaries",
+]
 
 
 class DocumentRetriever:
-    """문서 검색 클래스 (TTL 캐싱 지원)"""
+    """문서 검색 파사드 (TTL 캐싱 지원).
+
+    조립만 하고, 각 책임은 별도 모듈이 갖는다:
+
+    ======================  ==================================
+    책임                     모듈
+    ======================  ==================================
+    문서 카탈로그·설정        :mod:`src.rag.document_registry`
+    파일 로드·전처리          :mod:`src.rag.document_loader`
+    섹션/표 청킹             :mod:`src.rag.section_chunker`
+    벡터 색인·검색           :mod:`src.rag.vector_index`
+    BM25 색인·검색           :mod:`src.rag.bm25_index`
+    결과 캐시                :mod:`src.rag.search_cache`
+    RRF 융합                 :mod:`src.rag.fusion`
+    Self-RAG 게이트          :mod:`src.rag.selfrag_gate`
+    ======================  ==================================
+    """
 
     # 설정 파일 경로
-    CONFIG_PATH = "config/thresholds.json"
+    CONFIG_PATH = _REGISTRY_CONFIG_PATH
 
-    # 검색 결과 캐시 (maxsize=100, TTL=5분)
+    # 검색 결과 캐시 (maxsize=100, TTL=5분) — 인스턴스 간 공유
     _search_cache: dict[str, Any] = {}
     _cache_timestamps: dict[str, float] = {}
     _CACHE_TTL = None  # 설정에서 로드
 
+    # 문서 메타데이터 (src.rag.document_registry.DOCUMENTS)
+    DOCUMENTS = _DOCUMENTS
+
     @classmethod
     def _load_config(cls) -> dict:
         """설정 파일에서 RAG 관련 설정 로드"""
-        import json
-
-        project_root = Path(__file__).parent.parent.parent
-        config_path = project_root / cls.CONFIG_PATH
-
-        if config_path.exists():
-            try:
-                with open(config_path, encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("system", {}).get("rag", {})
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
-
-        return {}  # 설정 없으면 기본값 사용
+        return load_rag_config()
 
     @classmethod
     def get_cache_ttl(cls) -> int:
         """캐시 TTL 반환 (설정 파일에서 로드, 기본 300초)"""
         if cls._CACHE_TTL is None:
-            config = cls._load_config()
-            cls._CACHE_TTL = config.get("ttl_seconds", 300)
+            cls._CACHE_TTL = cls._load_config().get("ttl_seconds", DEFAULT_CACHE_TTL)
         return cls._CACHE_TTL
-
-    # 문서 메타데이터
-    DOCUMENTS = {
-        # ========== Type D: 기존 지표 가이드 (docs/guides/) ==========
-        "strategic_indicators": {
-            "filename": "Strategic Indicators Definition.md",
-            "description": "지표 정의 및 산출식",
-            "doc_type": "metric_guide",
-            "keywords": ["정의", "산출식", "SoS", "HHI", "CPI", "계산", "공식"],
-            "intent_triggers": ["정의", "공식", "계산", "산출"],
-            "freshness": "static",
-        },
-        "metric_interpretation": {
-            "filename": "Metric Interpretation Guide.md",
-            "description": "지표 해석 가이드",
-            "doc_type": "metric_guide",
-            "keywords": ["해석", "의미", "높음", "낮음", "주의사항", "함께 봐야"],
-            "intent_triggers": ["의미", "해석", "뜻"],
-            "freshness": "static",
-        },
-        "indicator_combination": {
-            "filename": "Indicator Combination Playbook.md",
-            "description": "지표 조합 해석 플레이북",
-            "doc_type": "metric_guide",
-            "keywords": ["조합", "시나리오", "액션", "전략", "상승", "하락"],
-            "intent_triggers": ["조합", "같이", "함께", "시나리오"],
-            "freshness": "static",
-        },
-        "home_insight_rules": {
-            "filename": "Home Page Insight Rules.md",
-            "description": "인사이트 생성 규칙",
-            "doc_type": "metric_guide",
-            "keywords": ["인사이트", "요약", "문구", "템플릿", "톤", "안전장치"],
-            "intent_triggers": ["인사이트", "요약", "규칙"],
-            "freshness": "static",
-        },
-        # ========== Type A: 분석 플레이북 (docs/market/) ==========
-        "amazon_ranking_diagnosis": {
-            "filename": "아마존 랭킹 급등 원인 역추적 보고서.md",
-            "description": "BSR 급변 원인 진단 체크리스트 및 If-Then 가설 트리",
-            "doc_type": "playbook",
-            "keywords": [
-                "순위",
-                "BSR",
-                "급등",
-                "급락",
-                "원인",
-                "분석",
-                "체크리스트",
-                "가설",
-                "재고",
-                "광고",
-                "프로모션",
-                "리뷰",
-                "가격",
-            ],
-            "intent_triggers": ["왜", "원인", "갑자기", "급변", "떨어", "올라", "변동"],
-            "freshness": "quarterly",
-        },
-        "amazon_algorithm_guide": {
-            "filename": "아마존 랭킹 변동 원인 분석 가이드.md",
-            "description": "COSMO/Rufus 알고리즘 대응 및 심층 진단",
-            "doc_type": "playbook",
-            "keywords": [
-                "알고리즘",
-                "COSMO",
-                "Rufus",
-                "A10",
-                "검색",
-                "억제",
-                "외부트래픽",
-                "틱톡",
-                "바이럴",
-                "지식그래프",
-                "BSR",
-            ],
-            "intent_triggers": ["알고리즘", "검색", "노출", "억제", "틱톡", "자세히"],
-            "freshness": "quarterly",
-        },
-        # ========== Type B: 시장 인텔리전스 (docs/market/) ==========
-        "kbeauty_industry": {
-            "filename": "(1) K-뷰티 초격차의 서막 [풀영상] _ 창 534회 (KBS 26.1.20.) - YouTube.md",
-            "description": "K-뷰티 산업 배경 (ODM, 글로벌 확장, 중국 위협)",
-            "doc_type": "knowledge_base",
-            "keywords": [
-                "K-뷰티",
-                "ODM",
-                "글로벌",
-                "중국",
-                "미용기기",
-                "맞춤화장품",
-                "콘텐츠",
-                "편집숍",
-                "아마존",
-                "초격차",
-                "한국 화장품",
-            ],
-            "intent_triggers": ["K-뷰티", "한국 화장품", "산업", "배경", "ODM"],
-            "freshness": "static",
-        },
-        "us_beauty_trends_weekly": {
-            "filename": "미국 뷰티 트렌드 레이더.md",
-            "description": "미국 주간 뷰티 트렌드 Top 10 및 LANEIGE 연결 가설",
-            "doc_type": "intelligence",
-            "keywords": [
-                "트렌드",
-                "펩타이드",
-                "PDRN",
-                "립케어",
-                "글래스스킨",
-                "세라마이드",
-                "스네일뮤신",
-                "나이아신아마이드",
-                "키워드",
-                "TikTok",
-            ],
-            "intent_triggers": ["트렌드", "요즘", "최근", "인기", "바이럴", "키워드"],
-            "freshness": "weekly",
-            "valid_period": "2025-12-21 ~ 2026-01-20",
-        },
-        "laneige_strategy_2026": {
-            "filename": "뷰티 트렌드 분석 및 판매 전략 제안.md",
-            "description": "2026년 1월 LANEIGE 아마존 판매 전략 (모닝쉐드, PDRN, 립케어)",
-            "doc_type": "intelligence",
-            "keywords": [
-                "전략",
-                "판매",
-                "모닝쉐드",
-                "슬리핑마스크",
-                "번들",
-                "립베이스팅",
-                "핑크펩타이드",
-                "워터뱅크",
-                "크림스킨",
-                "LANEIGE",
-            ],
-            "intent_triggers": ["전략", "어떻게", "제안", "추천", "LANEIGE"],
-            "freshness": "monthly",
-            "target_brand": "laneige",
-        },
-        # ========== Type C: 대응 가이드 (docs/market/) ==========
-        "negative_issue_response": {
-            "filename": "부정 이슈 조기경보 및 대응 프롬프트.md",
-            "description": "브랜드별 부정 이슈 분석 및 대응 문구 (라운드랩, 아누아, 티르티르)",
-            "doc_type": "response_guide",
-            "keywords": [
-                "부정",
-                "위기",
-                "리뷰",
-                "대응",
-                "라운드랩",
-                "아누아",
-                "티르티르",
-                "가품",
-                "리포뮬레이션",
-                "끈적임",
-                "산화",
-                "트러블",
-            ],
-            "intent_triggers": ["부정", "문제", "이슈", "대응", "어떻게 해", "위기"],
-            "freshness": "monthly",
-            "brands_covered": ["round_lab", "anua", "tirtir", "beef_tallow"],
-        },
-        "laneige_influencer_map": {
-            "filename": "인플루언서 맵 & 메시지 맵 생성.md",
-            "description": "LANEIGE 채널별 인플루언서 분류 및 크리에이티브 훅 5선",
-            "doc_type": "response_guide",
-            "keywords": [
-                "인플루언서",
-                "틱톡",
-                "유튜브",
-                "레딧",
-                "인스타그램",
-                "메시지",
-                "크리에이티브",
-                "훅",
-                "리스크",
-                "LANEIGE",
-                "마케팅",
-            ],
-            "intent_triggers": ["인플루언서", "마케팅", "메시지", "콘텐츠", "크리에이터"],
-            "freshness": "monthly",
-            "target_brand": "laneige",
-        },
-        # ========== Type E: IR 분기 실적 보고서 (docs/ir/) ==========
-        "ir_2025_q1": {
-            "filename": "AP_1Q25_EN.md",
-            "description": "아모레퍼시픽 2025 Q1 실적 (COSRX 편입, Americas +102%)",
-            "doc_type": "ir_report",
-            "keywords": [
-                "매출",
-                "영업이익",
-                "Revenue",
-                "Operating Profit",
-                "Americas",
-                "COSRX",
-                "LANEIGE",
-                "Sulwhasoo",
-                "Prime Day",
-                "Western Region",
-                "Greater China",
-                "Q1",
-                "1분기",
-                "실적",
-                "아모레퍼시픽",
-                "Amorepacific",
-                "IR",
-                "earnings",
-            ],
-            "intent_triggers": [
-                "Q1",
-                "1분기",
-                "2025",
-                "실적",
-                "매출",
-                "Americas",
-                "COSRX 편입",
-                "IR",
-                "분기",
-                "earnings",
-            ],
-            "freshness": "quarterly",
-            "quarter": "2025-Q1",
-            "parent_company": "amorepacific",
-        },
-        "ir_2025_q2": {
-            "filename": "AP_2Q25_EN.md",
-            "description": "아모레퍼시픽 2025 Q2 실적 (Greater China 턴어라운드, OP +1673%)",
-            "doc_type": "ir_report",
-            "keywords": [
-                "매출",
-                "영업이익",
-                "Revenue",
-                "Operating Profit",
-                "Americas",
-                "Greater China",
-                "턴어라운드",
-                "LANEIGE",
-                "Neo Cushion",
-                "Aestura",
-                "Q2",
-                "2분기",
-                "실적",
-                "아모레퍼시픽",
-                "Amorepacific",
-                "IR",
-                "earnings",
-                "중국",
-            ],
-            "intent_triggers": [
-                "Q2",
-                "2분기",
-                "2025",
-                "중국",
-                "Greater China",
-                "실적",
-                "IR",
-                "분기",
-                "earnings",
-                "턴어라운드",
-            ],
-            "freshness": "quarterly",
-            "quarter": "2025-Q2",
-            "parent_company": "amorepacific",
-        },
-        "ir_2025_q3": {
-            "filename": "AP_3Q25_EN.md",
-            "description": "아모레퍼시픽 2025 Q3 실적 (Prime Day 2배, Americas +6.9%)",
-            "doc_type": "ir_report",
-            "keywords": [
-                "매출",
-                "영업이익",
-                "Revenue",
-                "Operating Profit",
-                "Americas",
-                "Prime Day",
-                "아마존",
-                "Amazon",
-                "LANEIGE",
-                "Illiyoon",
-                "Mise-en-scène",
-                "Q3",
-                "3분기",
-                "실적",
-                "아모레퍼시픽",
-                "Amorepacific",
-                "IR",
-                "earnings",
-            ],
-            "intent_triggers": [
-                "Q3",
-                "3분기",
-                "2025",
-                "Prime Day",
-                "아마존",
-                "실적",
-                "IR",
-                "분기",
-                "earnings",
-                "최근",
-            ],
-            "freshness": "quarterly",
-            "quarter": "2025-Q3",
-            "parent_company": "amorepacific",
-        },
-    }
 
     def __init__(
         self,
@@ -487,18 +175,7 @@ class DocumentRetriever:
         """벡터 검색 가능 여부 확인 (OpenAI Embeddings + ChromaDB)"""
         global VECTOR_SEARCH_AVAILABLE
         if VECTOR_SEARCH_AVAILABLE is None:
-            try:
-                import importlib.util
-
-                chromadb_spec = importlib.util.find_spec("chromadb")
-                openai_spec = importlib.util.find_spec("openai")
-
-                api_key = os.getenv("OPENAI_API_KEY")
-                VECTOR_SEARCH_AVAILABLE = bool(chromadb_spec and openai_spec and api_key)
-            except ImportError:
-                VECTOR_SEARCH_AVAILABLE = False
-            except Exception:
-                VECTOR_SEARCH_AVAILABLE = False
+            VECTOR_SEARCH_AVAILABLE = vector_index.detect_availability()
         return VECTOR_SEARCH_AVAILABLE
 
     async def initialize(self) -> bool:
@@ -530,211 +207,36 @@ class DocumentRetriever:
         return True
 
     async def _load_documents(self) -> None:
-        """MD 문서 로드"""
-        # 프로젝트 루트에서 MD 파일 찾기
-        root_path = self.docs_path.parent
-        guides_path = self.docs_path / "guides"  # docs/guides/ 폴더
-        market_path = self.docs_path / "market"  # docs/market/ 폴더
-        ir_path = self.docs_path / "ir"  # docs/ir/ 폴더 (IR 실적 보고서)
-
+        """MD 문서 로드 (:mod:`src.rag.document_loader` 로 위임)"""
         # Semantic Chunker 초기화 (옵션)
         semantic_chunker = None
         if self.use_semantic_chunking and SEMANTIC_CHUNKER_AVAILABLE:
             semantic_chunker = get_semantic_chunker()
 
-        for doc_id, doc_info in self.DOCUMENTS.items():
-            # docs/guides, docs/market, docs/ir, docs, 루트 폴더 순으로 검색
-            possible_paths = [
-                guides_path / doc_info["filename"],  # docs/guides/
-                market_path / doc_info["filename"],  # docs/market/
-                ir_path / doc_info["filename"],  # docs/ir/ (IR 보고서)
-                self.docs_path / doc_info["filename"],  # docs/
-                root_path / doc_info["filename"],  # 프로젝트 루트
-            ]
-
-            for file_path in possible_paths:
-                if file_path.exists():
-                    with open(file_path, encoding="utf-8") as f:
-                        content = strip_embedded_binaries(f.read())
-                        self.documents[doc_id] = content
-
-                        # 청크 분할
-                        if semantic_chunker:
-                            # Semantic Chunking 사용
-                            chunks = semantic_chunker.chunk_document(content, doc_info)
-                        else:
-                            # 기존 청킹 방식
-                            doc_type = doc_info.get("doc_type", "metric_guide")
-                            chunk_size = self._get_chunk_size_by_type(doc_type)
-                            chunks = self._split_into_chunks(content, doc_id, doc_info, chunk_size)
-
-                        self.chunks.extend(chunks)
-                    break
+        documents, chunks = document_loader.load_documents(
+            self.docs_path, self.DOCUMENTS, semantic_chunker
+        )
+        self.documents.update(documents)
+        self.chunks.extend(chunks)
 
         # 청크 인덱스 갱신 (벡터 검색 결과 메타데이터 보강용)
-        self._chunk_index = {chunk["id"]: chunk for chunk in self.chunks}
+        self._chunk_index = document_loader.index_chunks(self.chunks)
 
     def _get_chunk_size_by_type(self, doc_type: str) -> int:
-        """문서 유형별 청크 크기 반환"""
-        chunk_sizes = {
-            "playbook": 800,  # Type A: 분석 플레이북 - 큰 청크
-            "intelligence": 600,  # Type B: 시장 인텔리전스
-            "knowledge_base": 600,  # Type B: 지식 베이스
-            "response_guide": 500,  # Type C: 대응 가이드
-            "metric_guide": 500,  # Type D: 기존 지표 가이드
-            "ir_report": 700,  # Type E: IR 분기 실적 - 테이블 포함 큰 청크
-        }
-        return chunk_sizes.get(doc_type, 500)
+        """문서 유형별 청크 크기 반환 (:mod:`src.rag.section_chunker` 로 위임)"""
+        return chunk_size_for(doc_type)
 
     def _split_into_chunks(
         self, content: str, doc_id: str, doc_info: dict, chunk_size: int = 500
     ) -> list[dict[str, Any]]:
-        """
-        문서를 청크로 분할
-
-        - 표(Table)는 별도 청크로 분리하여 완전성 유지
-        - 섹션 기반 분할 후 크기 초과 시 추가 분할
-        """
-        chunks = []
-        doc_type = doc_info.get("doc_type", "metric_guide")
-        source_filename = doc_info.get("filename", "")
-        target_brand = doc_info.get("target_brand")
-        brands_covered = doc_info.get("brands_covered", [])
-
-        # 1. 표(Table) 추출 및 별도 청크 생성
-        table_pattern = r"(\|[^\n]+\|\n(?:\|[-:| ]+\|\n)?(?:\|[^\n]+\|\n)+)"
-        tables = re.findall(table_pattern, content)
-
-        for t_idx, table in enumerate(tables):
-            table_text = table.strip()
-            if table_text:
-                # 표 주변 컨텍스트 찾기 (표 바로 위의 제목)
-                table_pos = content.find(table)
-                context_before = content[:table_pos].strip()
-                lines_before = context_before.split("\n")
-
-                # 표 제목 추출 (### 또는 **로 시작하는 마지막 라인)
-                table_title = ""
-                for line in reversed(lines_before[-5:]):
-                    line_stripped = line.strip()
-                    if line_stripped.startswith("#") or line_stripped.startswith("**"):
-                        table_title = line_stripped.replace("#", "").replace("*", "").strip()
-                        break
-
-                chunks.append(
-                    {
-                        "id": f"{doc_id}_table_{t_idx}",
-                        "doc_id": doc_id,
-                        "doc_type": doc_type,
-                        "title": table_title or f"Table {t_idx + 1}",
-                        "content": table_text,
-                        "content_type": "table",
-                        "source_filename": source_filename,
-                        "target_brand": target_brand,
-                        "brands_covered": brands_covered,
-                        "keywords": doc_info["keywords"],
-                        "description": doc_info["description"],
-                    }
-                )
-
-        # 2. 표를 플레이스홀더로 대체한 후 섹션 분할
-        content_without_tables = re.sub(table_pattern, "\n[TABLE]\n", content)
-        sections = content_without_tables.split("\n## ")
-
-        for i, section in enumerate(sections):
-            if not section.strip():
-                continue
-
-            # [TABLE] 플레이스홀더만 있는 섹션은 스킵
-            if section.strip() == "[TABLE]":
-                continue
-
-            # 섹션 제목 추출
-            lines = section.split("\n")
-            title = lines[0].replace("#", "").strip() if lines else ""
-
-            # 청크 생성
-            text = section.strip()
-
-            # [TABLE] 플레이스홀더 제거
-            text = re.sub(r"\n*\[TABLE\]\n*", "\n", text).strip()
-
-            if not text:
-                continue
-
-            if len(text) > chunk_size:
-                # 긴 섹션은 추가 분할
-                sub_chunks = self._smart_split(text, chunk_size)
-                for k, sub_chunk in enumerate(sub_chunks):
-                    if sub_chunk.strip():
-                        chunks.append(
-                            {
-                                "id": f"{doc_id}_{i}_{k}",
-                                "doc_id": doc_id,
-                                "doc_type": doc_type,
-                                "title": title,
-                                "content": sub_chunk,
-                                "content_type": "text",
-                                "source_filename": source_filename,
-                                "target_brand": target_brand,
-                                "brands_covered": brands_covered,
-                                "keywords": doc_info["keywords"],
-                                "description": doc_info["description"],
-                            }
-                        )
-            else:
-                chunks.append(
-                    {
-                        "id": f"{doc_id}_{i}",
-                        "doc_id": doc_id,
-                        "doc_type": doc_type,
-                        "title": title,
-                        "content": text,
-                        "content_type": "text",
-                        "source_filename": source_filename,
-                        "target_brand": target_brand,
-                        "brands_covered": brands_covered,
-                        "keywords": doc_info["keywords"],
-                        "description": doc_info["description"],
-                    }
-                )
-
-        return chunks
+        """문서를 청크로 분할 (:mod:`src.rag.section_chunker` 로 위임)"""
+        return split_into_chunks(content, doc_id, doc_info, chunk_size)
 
     def _smart_split(self, text: str, chunk_size: int) -> list[str]:
-        """
-        텍스트를 의미 단위로 분할
+        """텍스트를 의미 단위로 분할 (:mod:`src.rag.section_chunker` 로 위임)"""
+        from .section_chunker import smart_split
 
-        - 단락(\n\n) 기준으로 우선 분할
-        - 단락이 chunk_size보다 크면 문장 단위로 분할
-        """
-        paragraphs = text.split("\n\n")
-        chunks = []
-        current_chunk = ""
-
-        for para in paragraphs:
-            para = para.strip()
-            if not para:
-                continue
-
-            if len(current_chunk) + len(para) + 2 <= chunk_size:
-                current_chunk = f"{current_chunk}\n\n{para}".strip()
-            else:
-                if current_chunk:
-                    chunks.append(current_chunk)
-
-                if len(para) <= chunk_size:
-                    current_chunk = para
-                else:
-                    # 단락이 chunk_size보다 크면 강제 분할
-                    for j in range(0, len(para), chunk_size):
-                        chunks.append(para[j : j + chunk_size])
-                    current_chunk = ""
-
-        if current_chunk:
-            chunks.append(current_chunk)
-
-        return chunks
+        return smart_split(text, chunk_size)
 
     async def _initialize_vector_search(self) -> None:
         """
@@ -748,78 +250,27 @@ class DocumentRetriever:
         if not VECTOR_SEARCH_AVAILABLE:
             raise ImportError("Vector search dependencies not available. Install: chromadb, openai")
 
-        import chromadb
-        import openai
-
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
-
-        # OpenAI 클라이언트 초기화
-        self.openai_client = openai.OpenAI(api_key=api_key)
-        self.embedding_model_name = os.getenv(
-            "OPENAI_EMBEDDING_MODEL", self.embedding_model_name or "text-embedding-3-small"
-        )
-
-        # ChromaDB 초기화 (modern API - persistent client)
-        persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
-        os.makedirs(persist_dir, exist_ok=True)
-
-        self.client = chromadb.PersistentClient(path=persist_dir)
-
-        # 컬렉션 생성/로드
-        self.collection = self.client.get_or_create_collection(
-            name="amore_docs", metadata={"hnsw:space": "cosine"}
-        )
+        (
+            self.openai_client,
+            self.client,
+            self.collection,
+            self.embedding_model_name,
+        ) = vector_index.open_collection(self.embedding_model_name)
 
         # 문서 인덱싱 — 컬렉션에 없는 청크만 증분 색인한다.
-        # 기존 조건(`count() == 0`)은 최초 1회만 색인했기 때문에, 나중에
-        # DOCUMENTS에 추가된 문서(IR 분기보고서 3종 = 1,971청크)가 영원히
-        # 색인되지 않고 검색에서 침묵으로 누락됐다 (2026-08-30 사이클 4 발견).
         await self._index_documents()
 
         logger.info(f"ChromaDB initialized: {self.collection.count()} documents indexed")
 
     def _get_text_hash(self, text: str) -> str:
-        """텍스트 해시 생성"""
-        return hashlib.sha256(text.encode()).hexdigest()
+        """텍스트 해시 생성 (:mod:`src.rag.vector_index` 로 위임)"""
+        return vector_index.text_hash(text)
 
     async def _embed_texts(self, texts: list[str]) -> list[list[float]]:
         """OpenAI Embeddings API로 텍스트 임베딩 생성 (캐시 적용)"""
-        if not self.openai_client:
-            return []
-
-        results = []
-        texts_to_embed = []
-        indices_to_embed = []
-
-        # 캐시 확인
-        for i, text in enumerate(texts):
-            text_hash = self._get_text_hash(text)
-            cached = await self._embedding_cache.get(text_hash)
-            if cached is not None:
-                results.append(cached)
-            else:
-                results.append(None)  # placeholder
-                texts_to_embed.append(text)
-                indices_to_embed.append(i)
-
-        # 캐시 미스 텍스트만 임베딩
-        if texts_to_embed:
-            response = self.openai_client.embeddings.create(
-                model=self.embedding_model_name, input=texts_to_embed
-            )
-
-            for j, embedding_data in enumerate(response.data):
-                idx = indices_to_embed[j]
-                embedding = embedding_data.embedding
-                results[idx] = embedding
-
-                # 캐시 저장
-                text_hash = self._get_text_hash(texts_to_embed[j])
-                await self._embedding_cache.put(text_hash, embedding)
-
-        return results
+        return await vector_index.embed_texts(
+            self.openai_client, self.embedding_model_name, self._embedding_cache, texts
+        )
 
     def get_embedding_cache_stats(self) -> dict:
         """캐시 통계 반환"""
@@ -895,56 +346,10 @@ Do not include any explanation."""
             return [query]
 
     async def _index_documents(self) -> None:
-        """문서 벡터 인덱싱 (컬렉션에 없는 청크만 증분 색인)"""
-        if not self.collection or not self.openai_client:
-            return
-
-        try:
-            already_indexed = set(self.collection.get(include=[])["ids"])
-        except Exception:
-            logger.warning("Failed to read indexed chunk ids", exc_info=True)
-            already_indexed = set()
-
-        ids = []
-        documents = []
-        metadatas = []
-
-        for chunk in self.chunks:
-            if chunk["id"] in already_indexed:
-                continue
-            ids.append(chunk["id"])
-            documents.append(chunk["content"])
-            metadatas.append(
-                {
-                    "doc_id": chunk["doc_id"],
-                    "doc_type": chunk.get("doc_type", "metric_guide"),
-                    "title": chunk["title"],
-                    "description": chunk["description"],
-                    "content_type": chunk.get("content_type", "text"),
-                    "source_filename": chunk.get("source_filename", ""),
-                }
-            )
-
-        if documents:
-            batch_size = 100
-            total_batches = (len(documents) - 1) // batch_size + 1
-            for i in range(0, len(documents), batch_size):
-                batch_docs = documents[i : i + batch_size]
-                batch_ids = ids[i : i + batch_size]
-                batch_metadatas = metadatas[i : i + batch_size]
-
-                try:
-                    embeddings = await self._embed_texts(batch_docs)
-                    if embeddings:
-                        self.collection.add(
-                            ids=batch_ids,
-                            documents=batch_docs,
-                            embeddings=embeddings,
-                            metadatas=batch_metadatas,
-                        )
-                        logger.info(f"Indexed batch {i // batch_size + 1}/{total_batches}")
-                except Exception as e:
-                    logger.error(f"Indexing batch failed: {e}")
+        """문서 벡터 인덱싱 (:mod:`src.rag.vector_index` 로 위임)"""
+        await vector_index.index_documents(
+            self.collection, self.openai_client, self.chunks, self._embed_texts
+        )
 
     def _get_cache_key(
         self,
@@ -953,29 +358,16 @@ Do not include any explanation."""
         doc_filter: str | None,
         doc_type_filter: list[str] | None = None,
     ) -> str:
-        """캐시 키 생성"""
-        type_key = ",".join(doc_type_filter) if doc_type_filter else "all_types"
-        return f"{query}:{top_k}:{doc_filter or 'all'}:{type_key}"
+        """캐시 키 생성 (:mod:`src.rag.search_cache` 로 위임)"""
+        return search_cache.make_key(query, top_k, doc_filter, doc_type_filter)
 
     def _is_cache_valid(self, cache_key: str) -> bool:
         """캐시 유효성 확인 (TTL 체크)"""
-        if cache_key not in self._cache_timestamps:
-            return False
-        elapsed = time.time() - self._cache_timestamps[cache_key]
-        return elapsed < self.get_cache_ttl()
+        return search_cache.is_valid(self._cache_timestamps, cache_key, self.get_cache_ttl())
 
     def _clean_expired_cache(self) -> None:
         """만료된 캐시 항목 정리"""
-        current_time = time.time()
-        cache_ttl = self.get_cache_ttl()
-        expired_keys = [
-            key
-            for key, timestamp in self._cache_timestamps.items()
-            if current_time - timestamp >= cache_ttl
-        ]
-        for key in expired_keys:
-            self._search_cache.pop(key, None)
-            self._cache_timestamps.pop(key, None)
+        search_cache.clean_expired(self._search_cache, self._cache_timestamps, self.get_cache_ttl())
 
     async def search(
         self,
@@ -1106,103 +498,57 @@ Do not include any explanation."""
         doc_filter: str | None,
         doc_type_filter: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """벡터 유사도 검색"""
+        """벡터 유사도 검색 (:mod:`src.rag.vector_index` 로 위임)"""
         if not self.openai_client:
             return []
         query_embedding = await self._embed_texts([query])
         if not query_embedding:
             return []
 
-        # 필터 조건 구성
-        where_filter = None
-        if doc_filter and doc_type_filter:
-            # doc_id와 doc_type 모두 필터링
-            where_filter = {
-                "$and": [{"doc_id": doc_filter}, {"doc_type": {"$in": doc_type_filter}}]
-            }
-        elif doc_filter:
-            where_filter = {"doc_id": doc_filter}
-        elif doc_type_filter:
-            where_filter = {"doc_type": {"$in": doc_type_filter}}
-
         results = self.collection.query(
             query_embeddings=query_embedding,
             n_results=top_k,
-            where=where_filter,
+            where=vector_index.build_where_filter(doc_filter, doc_type_filter),
             include=["documents", "metadatas", "distances"],
         )
-
-        search_results = []
-        if results["ids"] and results["ids"][0]:
-            for i in range(len(results["ids"][0])):
-                chunk_id = results["ids"][0][i]
-                chunk = self._chunk_index.get(chunk_id)
-                if chunk:
-                    metadata = {
-                        "doc_id": chunk["doc_id"],
-                        "doc_type": chunk.get("doc_type", "metric_guide"),
-                        "title": chunk.get("title", ""),
-                        "description": chunk.get("description", ""),
-                        "keywords": chunk.get("keywords", []),
-                        "content_type": chunk.get("content_type", "text"),
-                        "chunk_id": chunk_id,
-                        "source_filename": chunk.get("source_filename", ""),
-                        "target_brand": chunk.get("target_brand"),
-                        "brands_covered": chunk.get("brands_covered", []),
-                    }
-                else:
-                    # Chroma 메타데이터 폴백 — chunk_id를 보존해야
-                    # 리랭킹 후 재조립(search)에서 id가 유실되지 않는다
-                    metadata = dict(results["metadatas"][0][i] or {})
-                    metadata.setdefault("chunk_id", chunk_id)
-
-                search_results.append(
-                    {
-                        "id": chunk_id,
-                        "content": results["documents"][0][i],
-                        "metadata": metadata,
-                        "score": 1 - results["distances"][0][i],  # 거리를 유사도로 변환
-                    }
-                )
-
-        return search_results
+        return vector_index.format_hits(results, self._chunk_index)
 
     def _needs_retrieval(self, query: str) -> bool:
-        """Self-RAG: 검색 필요성 판단"""
-        query_lower = query.lower().strip()
-        no_retrieval_patterns = [
-            r"^(안녕|hello|hi|hey|감사|고마워|thank)",
-            r"^(네|예|응|ok|okay|맞아|그래)$",
-            r"^(도움|help|뭐 할 수|무엇을 할)",
-        ]
-        for pattern in no_retrieval_patterns:
-            if re.match(pattern, query_lower):
-                return False
-        if len(query_lower) < 3:
-            return False
-        return True
+        """Self-RAG: 검색 필요성 판단 (:mod:`src.rag.selfrag_gate` 로 위임)"""
+        return _needs_retrieval_gate(query)
 
     def _tokenize(self, text: str) -> list[str]:
-        """Simple tokenizer for Korean+English"""
-        tokens = re.findall(r"[가-힣]+|[a-zA-Z]+|[0-9]+", text.lower())
-        return [t for t in tokens if len(t) > 1]
+        """Simple tokenizer for Korean+English (:mod:`src.rag.bm25_index` 로 위임)"""
+        return bm25_index.tokenize(text)
 
     def _build_bm25_index(self):
         """Build BM25 index from current chunks"""
         if not BM25_AVAILABLE:
             return
-        tokenized_corpus = []
-        corpus_ids = []
-        for chunk in self.chunks:
-            content = chunk.get("content", "")
-            title = chunk.get("title", "")
-            keywords = " ".join(chunk.get("keywords", []))
-            combined_text = f"{title} {keywords} {content}"
-            tokenized_corpus.append(self._tokenize(combined_text))
-            corpus_ids.append(chunk["id"])
-        if tokenized_corpus:
-            self._bm25_index = BM25Okapi(tokenized_corpus)
+        index, corpus_ids = bm25_index.build(self.chunks)
+        if index is not None:
+            self._bm25_index = index
             self._bm25_corpus_ids = corpus_ids
+
+    def _rank_bm25(
+        self,
+        query: str,
+        top_k: int,
+        doc_filter: str | None = None,
+        doc_type_filter: list[str] | None = None,
+    ) -> tuple[list[tuple[str, dict[str, Any], float]], float]:
+        """BM25 채점 — 두 결과 형태가 공유하는 단일 검색."""
+        if self._bm25_index is None:
+            self._build_bm25_index()
+        return bm25_index.rank(
+            self._bm25_index,
+            self._bm25_corpus_ids,
+            self._chunk_index,
+            query,
+            top_k=top_k,
+            doc_filter=doc_filter,
+            doc_type_filter=doc_type_filter,
+        )
 
     async def _bm25_search(
         self,
@@ -1211,48 +557,23 @@ Do not include any explanation."""
         doc_filter: str | None = None,
         doc_type_filter: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """BM25 sparse search"""
+        """BM25 sparse search — raw scores, vector-search-shaped metadata."""
         if not BM25_AVAILABLE:
             return []
-        if self._bm25_index is None:
-            self._build_bm25_index()
-        if self._bm25_index is None or not self._bm25_corpus_ids:
+        hits, _max_score = self._rank_bm25(query, top_k, doc_filter, doc_type_filter)
+        return bm25_index.as_detailed_results(hits)
+
+    def search_bm25(self, query: str, top_k: int = 10) -> list[dict]:
+        """
+        BM25 sparse retrieval (synchronous public API).
+
+        Returns list of dicts with keys: id, content, score, metadata, source.
+        Scores are normalized to 0-1 range.
+        """
+        if not BM25_AVAILABLE:
             return []
-        tokenized_query = self._tokenize(query)
-        if not tokenized_query:
-            return []
-        scores = self._bm25_index.get_scores(tokenized_query)
-        scored_results = []
-        for _idx, (chunk_id, score) in enumerate(zip(self._bm25_corpus_ids, scores, strict=False)):
-            chunk = self._chunk_index.get(chunk_id)
-            if chunk is None:
-                continue
-            if doc_filter and chunk.get("doc_id") != doc_filter:
-                continue
-            if doc_type_filter and chunk.get("doc_type") not in doc_type_filter:
-                continue
-            if score > 0:
-                scored_results.append(
-                    {
-                        "id": chunk_id,
-                        "content": chunk["content"],
-                        "metadata": {
-                            "doc_id": chunk["doc_id"],
-                            "doc_type": chunk.get("doc_type", "metric_guide"),
-                            "title": chunk.get("title", ""),
-                            "description": chunk.get("description", ""),
-                            "keywords": chunk.get("keywords", []),
-                            "content_type": chunk.get("content_type", "text"),
-                            "chunk_id": chunk_id,
-                            "source_filename": chunk.get("source_filename", ""),
-                            "target_brand": chunk.get("target_brand"),
-                            "brands_covered": chunk.get("brands_covered", []),
-                        },
-                        "score": float(score),
-                    }
-                )
-        scored_results.sort(key=lambda x: x["score"], reverse=True)
-        return scored_results[:top_k]
+        hits, max_score = self._rank_bm25(query, top_k)
+        return bm25_index.as_normalized_results(hits, max_score)
 
     @staticmethod
     def _reranker_flag_enabled() -> bool:
@@ -1283,74 +604,13 @@ Do not include any explanation."""
             return []
         if len(rankings) == 1:
             return rankings[0]
-
-        scores: dict[str, float] = {}
-        docs: dict[str, dict] = {}
-        for ranked in rankings:
-            for rank, result in enumerate(ranked):
-                rid = result.get("id", "")
-                scores[rid] = scores.get(rid, 0.0) + 1.0 / (k + rank + 1)
-                docs.setdefault(rid, result)
-        return [docs[rid] for rid in sorted(scores, key=lambda r: -scores[r])]
+        return _fusion.fuse(rankings, k=k, key=_fusion.key_by_id)
 
     def _rrf_merge(
         self, dense_results: list[dict], sparse_results: list[dict], k: int = 60
     ) -> list[dict]:
         """Reciprocal Rank Fusion: RRF_score(d) = Σ 1/(k + rank_i(d))"""
-        score_map: dict[str, float] = {}
-        result_map: dict[str, dict] = {}
-        for rank, result in enumerate(dense_results):
-            rid = result.get("id", str(rank))
-            score_map[rid] = score_map.get(rid, 0) + 1.0 / (k + rank + 1)
-            result_map[rid] = result
-        for rank, result in enumerate(sparse_results):
-            rid = result.get("id", str(rank))
-            score_map[rid] = score_map.get(rid, 0) + 1.0 / (k + rank + 1)
-            if rid not in result_map:
-                result_map[rid] = result
-        sorted_ids = sorted(score_map, key=lambda x: score_map[x], reverse=True)
-        return [result_map[rid] for rid in sorted_ids]
-
-    def search_bm25(self, query: str, top_k: int = 10) -> list[dict]:
-        """
-        BM25 sparse retrieval (synchronous public API).
-
-        Returns list of dicts with keys: id, content, score, metadata, source.
-        Scores are normalized to 0-1 range.
-        """
-        if not BM25_AVAILABLE:
-            return []
-        if self._bm25_index is None:
-            self._build_bm25_index()
-        if self._bm25_index is None or not self._bm25_corpus_ids:
-            return []
-
-        query_tokens = self._tokenize(query)
-        if not query_tokens:
-            return []
-
-        scores = self._bm25_index.get_scores(query_tokens)
-        max_score = float(max(scores)) if len(scores) > 0 and max(scores) > 0 else 1.0
-
-        scored = []
-        for chunk_id, score in zip(self._bm25_corpus_ids, scores, strict=False):
-            if score <= 0:
-                continue
-            chunk = self._chunk_index.get(chunk_id)
-            if chunk is None:
-                continue
-            scored.append(
-                {
-                    "id": chunk_id,
-                    "content": chunk.get("content", ""),
-                    "score": float(score / max_score),
-                    "metadata": {k: v for k, v in chunk.items() if k not in ("content",)},
-                    "source": "bm25",
-                }
-            )
-
-        scored.sort(key=lambda x: x["score"], reverse=True)
-        return scored[:top_k]
+        return _fusion.fuse([dense_results, sparse_results], k=k, key=_fusion.key_by_id_or_rank)
 
     @staticmethod
     def reciprocal_rank_fusion(
@@ -1369,78 +629,15 @@ Do not include any explanation."""
             top_k: Number of results to return.
 
         Returns:
-            Merged and re-ranked list of results.
+            Merged and re-ranked list of results, each carrying ``rrf_score``.
         """
-        doc_scores: dict[str, float] = {}
-        doc_data: dict[str, dict] = {}
-
-        for ranked_list in ranked_lists:
-            for rank, doc in enumerate(ranked_list):
-                content = doc.get("content", "")
-                doc_id = hashlib.sha256(content.encode()).hexdigest()[:16]
-
-                rrf_score = 1.0 / (k + rank + 1)
-                doc_scores[doc_id] = doc_scores.get(doc_id, 0.0) + rrf_score
-
-                if doc_id not in doc_data:
-                    doc_data[doc_id] = doc
-
-        sorted_docs = sorted(doc_scores.items(), key=lambda x: x[1], reverse=True)
-
-        results = []
-        for doc_id, rrf_score in sorted_docs[:top_k]:
-            doc = doc_data[doc_id].copy()
-            doc["rrf_score"] = rrf_score
-            doc["source"] = "hybrid_rrf"
-            results.append(doc)
-
-        return results
-
-    def search_hybrid(self, query: str, top_k: int = 10, k: int = 60) -> list[dict]:
-        """
-        Hybrid search: Dense (vector) + Sparse (BM25) with RRF fusion.
-
-        Synchronous public API that combines BM25 results with any
-        pre-computed dense results via reciprocal rank fusion.
-        """
-        sparse_results = self.search_bm25(query, top_k=top_k)
-
-        # If no chunks are indexed yet, return sparse-only
-        if not sparse_results:
-            return []
-
-        return sparse_results[:top_k]
-
-    async def search_hybrid_async(
-        self,
-        query: str,
-        top_k: int = 10,
-        k: int = 60,
-    ) -> list[dict]:
-        """
-        Async hybrid search: Dense (vector) + Sparse (BM25) with RRF.
-
-        Uses both vector search and BM25, then merges via RRF.
-        """
-        # Dense search
-        dense_results: list[dict] = []
-        if self._initialized and self.collection is not None:
-            try:
-                dense_results = await self._vector_search(query, top_k=top_k)
-            except Exception:
-                logger.warning("Dense search failed in hybrid mode", exc_info=True)
-
-        # Sparse search
-        sparse_results = self.search_bm25(query, top_k=top_k)
-
-        if not dense_results and not sparse_results:
-            return []
-        if not dense_results:
-            return sparse_results[:top_k]
-        if not sparse_results:
-            return dense_results[:top_k]
-
-        return self.reciprocal_rank_fusion(dense_results, sparse_results, k=k, top_k=top_k)
+        return _fusion.fuse(
+            ranked_lists,
+            k=k,
+            top_k=top_k,
+            key=_fusion.key_by_content_hash,
+            annotate=True,
+        )
 
     async def get_document(self, doc_id: str) -> str | None:
         """특정 문서 전체 반환"""

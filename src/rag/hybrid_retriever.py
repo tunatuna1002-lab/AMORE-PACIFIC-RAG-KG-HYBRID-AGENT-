@@ -81,21 +81,32 @@ Query → Entity Extraction → [Ontology Reasoning + RAG Search] → Context Me
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
-from src.domain.entities.relations import InferenceResult, InsightType, RelationType
+from src.core.intent import classify_intent as _unified_classify
+from src.domain.entities.relations import InferenceResult
 from src.monitoring.rag_metrics import RAGMetricsCollector
+from src.ontology.inference_context import normalize_sentiment_clusters
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.ontology.rules import register_all_rules
 
-from .query_enhancer import QueryEnhancer
+from . import context_render, kg_facts, selfrag_gate
+from .fusion import compute_fusion_confidence as _compute_fusion_confidence
+from .fusion import load_retrieval_weights, weighted_merge
+from .fusion.hybrid_search import bm25_actually_available, hybrid_search
+from .hybrid_context import EntityExtractor, HybridContext
+from .legacy_intent import (
+    INTENT_DOC_TYPE_PRIORITY,
+    QueryIntent,
+    classify_intent,
+    get_doc_type_filter,
+)
+from .query_expansion import QueryEnhancer, expand_query, rewrite_for_relevance
 from .relevance_grader import RelevanceGrader
 from .retriever import DocumentRetriever
 
@@ -103,192 +114,23 @@ from .retriever import DocumentRetriever
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# Query Intent Classification
-# Delegates to unified classifier (src/core/intent.py).
-# QueryIntent enum and helpers are kept for backward compatibility.
-# ============================================================================
-from src.core.intent import classify_intent as _unified_classify
-from src.core.intent import to_query_intent as _to_query_intent
-from src.ontology.inference_context import build_inference_context, normalize_sentiment_clusters
-
-from .entity_linker import product_name_slugs as _product_name_slugs
-
-# 브랜드 정체성·지표 엣지의 정보량 우선순위 (12개 상한에서 살아남을 순서)
-_REST_EDGE_PRIORITY = {
-    "ownedBy": 0,
-    "hasSoS": 1,
-    "rankedIn": 2,
-    "hasHHI": 3,
-    "hasPosition": 4,
-}
-
-
-def _dedupe_edges(edges: list[dict]) -> list[dict]:
-    """같은 (subject, predicate, object) 엣지를 대소문자 무시로 1회만 남긴다."""
-    seen: set[tuple[str, str, str]] = set()
-    unique: list[dict] = []
-    for edge in edges:
-        key = (
-            str(edge["subject"]).lower(),
-            str(edge["predicate"]),
-            str(edge["object"]).lower(),
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        unique.append(edge)
-    return unique
-
-
-class QueryIntent(Enum):
-    """쿼리 의도 분류 (backward compat - delegates to UnifiedIntent)"""
-
-    DIAGNOSIS = "diagnosis"  # 원인 분석 → Type A (플레이북) 우선
-    TREND = "trend"  # 트렌드 → Type B (인텔리전스) 우선
-    CRISIS = "crisis"  # 위기 대응 → Type C (대응 가이드) 우선
-    METRIC = "metric"  # 지표 해석 → Type D (기존 가이드) 우선
-    GENERAL = "general"  # 일반 → 모든 문서
-
-
-# 의도별 우선 검색 문서 유형 매핑
-INTENT_DOC_TYPE_PRIORITY = {
-    QueryIntent.DIAGNOSIS: ["playbook", "metric_guide", "intelligence"],
-    QueryIntent.TREND: ["intelligence", "knowledge_base", "response_guide"],
-    QueryIntent.CRISIS: ["response_guide", "intelligence", "playbook"],
-    QueryIntent.METRIC: ["metric_guide", "playbook"],
-    QueryIntent.GENERAL: None,  # 모든 문서 검색
-}
-
-
-def classify_intent(query: str) -> QueryIntent:
-    """
-    쿼리 의도 분류 - delegates to unified classifier.
-
-    Args:
-        query: 사용자 쿼리
-
-    Returns:
-        QueryIntent enum 값
-
-    Note:
-        키워드 우선순위: TREND > CRISIS > DIAGNOSIS > METRIC > GENERAL
-        트렌드/위기 키워드가 있으면 분석 키워드보다 우선
-    """
-    unified = _unified_classify(query)
-    value = _to_query_intent(unified)
-    try:
-        return QueryIntent(value)
-    except ValueError:
-        return QueryIntent.GENERAL
-
-
-def get_doc_type_filter(intent: QueryIntent) -> list[str] | None:
-    """
-    의도에 따른 문서 유형 필터 반환
-
-    Args:
-        intent: 쿼리 의도
-
-    Returns:
-        우선 검색할 문서 유형 리스트 (None이면 모든 문서)
-    """
-    return INTENT_DOC_TYPE_PRIORITY.get(intent)
-
-
-@dataclass
-class HybridContext:
-    """
-    하이브리드 검색 결과
-
-    Attributes:
-        query: 원본 쿼리
-        entities: 추출된 엔티티
-        ontology_facts: 지식 그래프에서 조회한 사실
-        inferences: 온톨로지 추론 결과
-        rag_chunks: RAG 검색 결과 청크
-        combined_context: 통합된 컨텍스트 (LLM 프롬프트용)
-        metadata: 추가 메타데이터
-    """
-
-    query: str
-    entities: dict[str, list[str]] = field(default_factory=dict)
-    ontology_facts: list[dict[str, Any]] = field(default_factory=list)
-    inferences: list[InferenceResult] = field(default_factory=list)
-    rag_chunks: list[dict[str, Any]] = field(default_factory=list)
-    combined_context: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> dict[str, Any]:
-        """딕셔너리 변환"""
-        return {
-            "query": self.query,
-            "entities": self.entities,
-            "ontology_facts": self.ontology_facts,
-            "inferences": [inf.to_dict() for inf in self.inferences],
-            "rag_chunks": self.rag_chunks,
-            "combined_context": self.combined_context,
-            "metadata": self.metadata,
-        }
-
-
-class EntityExtractor:
-    """
-    쿼리에서 엔티티 추출 (thin wrapper around EntityLinker).
-
-    All extraction is delegated to EntityLinker.extract_entities().
-    """
-
-    def __init__(self) -> None:
-        from src.rag.entity_linker import EntityLinker
-
-        self._linker = EntityLinker(use_spacy=False)
-
-    @classmethod
-    def get_known_brands(cls) -> list:
-        """EntityLinker에서 브랜드 목록 가져오기 (이름 + 별칭 평탄화)"""
-        from src.rag.entity_linker import EntityLinker
-
-        return list(EntityLinker(use_spacy=False)._get_merged_brands().keys())
-
-    @classmethod
-    def get_brand_normalization_map(cls) -> dict:
-        """EntityLinker에서 별칭 → 정규화된 브랜드명 매핑"""
-        from src.rag.entity_linker import EntityLinker
-
-        return EntityLinker(use_spacy=False)._get_merged_brands()
-
-    def extract(self, query: str, knowledge_graph=None) -> dict[str, list[str]]:
-        """
-        쿼리에서 엔티티 추출. Delegates to EntityLinker.extract_entities().
-
-        Args:
-            query: 사용자 쿼리
-            knowledge_graph: 지식 그래프 (제품 검색용, optional)
-
-        Returns:
-            {
-                "brands": [...],
-                "categories": [...],
-                "indicators": [...],
-                "time_range": [...],
-                "products": [...],
-                "sentiments": [...],
-                "sentiment_clusters": [...],
-                "concepts": [...]
-            }
-        """
-        entities = self._linker.extract_entities(query, knowledge_graph=knowledge_graph)
-        try:
-            entities["concepts"] = self._linker.extract_concepts(query)
-        except Exception:
-            entities["concepts"] = []
-        return entities
-
-
 class HybridRetriever:
     """
-    Ontology + RAG 하이브리드 검색기
+    Ontology + RAG 하이브리드 검색기 (파사드)
+
+    자신은 조립만 하고, 각 책임은 별도 모듈이 갖는다:
+
+    ==========================  =======================================
+    책임                         모듈
+    ==========================  =======================================
+    Self-RAG 게이트              :mod:`src.rag.selfrag_gate`
+    KG 조회 · 추론 컨텍스트       :mod:`src.rag.kg_facts`
+    엣지 정렬 · 상한             :mod:`src.rag.kg_edges`
+    쿼리 확장 · 재작성            :mod:`src.rag.query_expansion`
+    RRF · 가중 병합              :mod:`src.rag.fusion`
+    프롬프트 렌더링              :mod:`src.rag.context_render`
+    문서 검색                    :mod:`src.rag.retriever`
+    ==========================  =======================================
 
     동작 방식:
     1. 쿼리에서 엔티티 추출
@@ -302,28 +144,9 @@ class HybridRetriever:
         context = await retriever.retrieve(query, current_metrics)
     """
 
-    # Self-RAG: patterns that indicate retrieval is NOT needed
-    SKIP_PATTERNS = [
-        # Greetings (no \b for Korean; Korean chars are not word-boundary friendly)
-        r"^(안녕|하이|헬로)",
-        r"^(hi|hello|hey)\b",
-        # Thanks
-        r"^(고마워|감사|thanks|thank you)",
-        # System commands
-        r"^(도움말|설정|help|config)",
-    ]
-
-    # Self-RAG: patterns that indicate retrieval IS needed
-    RETRIEVE_PATTERNS = [
-        # Brand names
-        r"(?i)(laneige|cosrx|anua|tirtir|round\s*lab|innisfree|sulwhasoo)",
-        # Metrics
-        r"(?i)(sos|hhi|cpi|share\s*of\s*shelf|순위|rank|점유율)",
-        # Analysis keywords
-        r"(분석|비교|전략|경쟁|트렌드|시장|매출|성장)",
-        # Question words
-        r"(왜|어떻게|뭐|몇|어디|언제|무엇|how|what|why|which)",
-    ]
+    # Self-RAG gate patterns (see src.rag.selfrag_gate)
+    SKIP_PATTERNS = selfrag_gate.SKIP_PATTERNS
+    RETRIEVE_PATTERNS = selfrag_gate.RETRIEVE_PATTERNS
 
     def __init__(
         self,
@@ -397,28 +220,7 @@ class HybridRetriever:
             (should_retrieve, reason, confidence)
             confidence: 1.0 for strong domain queries, 0.8 for default, 0.0 for skip
         """
-        import re
-
-        if not query or len(query.strip()) <= 2:
-            return False, "query_too_short", 0.0
-
-        query_stripped = query.strip()
-
-        # Check skip patterns first
-        for pattern in self.SKIP_PATTERNS:
-            if re.search(pattern, query_stripped, re.IGNORECASE):
-                return False, "greeting_or_command", 0.0
-
-        # Check retrieve patterns
-        for pattern in self.RETRIEVE_PATTERNS:
-            if re.search(pattern, query_stripped):
-                return True, "domain_query_detected", 1.0
-
-        # Default: retrieve (conservative)
-        if len(query_stripped) > 5:
-            return True, "default_retrieve", 0.8
-
-        return False, "short_non_domain_query", 0.0
+        return selfrag_gate.should_retrieve(query, self.SKIP_PATTERNS, self.RETRIEVE_PATTERNS)
 
     async def retrieve(
         self,
@@ -733,15 +535,8 @@ class HybridRetriever:
         return await self.doc_retriever.search(query=query, top_k=top_k, doc_filter=doc_filter)
 
     def _bm25_actually_available(self) -> bool:
-        """BM25 sparse 검색 가용 여부 — 메서드 존재가 아니라 rank_bm25 설치 여부까지 확인"""
-        if not hasattr(self.doc_retriever, "search_bm25"):
-            return False
-        try:
-            from src.rag.retriever import BM25_AVAILABLE
-
-            return bool(BM25_AVAILABLE)
-        except ImportError:
-            return False
+        """BM25 sparse 검색 가용 여부 (:mod:`src.rag.fusion.hybrid_search` 로 위임)"""
+        return bm25_actually_available(self.doc_retriever)
 
     async def _hybrid_search(
         self,
@@ -749,332 +544,19 @@ class HybridRetriever:
         top_k: int = 5,
         doc_type_filter: list[str] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
-        """
-        Dense + BM25 hybrid search with RRF fusion.
+        """Dense + BM25 hybrid search with RRF fusion.
 
-        Args:
-            query: Search query
-            top_k: Number of results to return
-            doc_type_filter: Optional document type filter
+        (:mod:`src.rag.fusion.hybrid_search` 로 위임)
 
         Returns:
             (results, search_method) where search_method is
             "hybrid_rrf" or "dense_only"
         """
-        # 1. Dense search via doc_retriever.search()
-        dense_results = await self.doc_retriever.search(
-            query, top_k=top_k, doc_type_filter=doc_type_filter
-        )
-
-        # 2. BM25 search (if available)
-        bm25_results = []
-        if hasattr(self.doc_retriever, "search_bm25"):
-            try:
-                bm25_results = self.doc_retriever.search_bm25(query, top_k=top_k)
-            except Exception as e:
-                logger.debug(f"BM25 search failed in _hybrid_search: {e}")
-
-        # 3. RRF fusion
-        if bm25_results:
-            if hasattr(self.doc_retriever, "reciprocal_rank_fusion"):
-                fused = self.doc_retriever.reciprocal_rank_fusion(
-                    dense_results, bm25_results, k=60, top_k=top_k
-                )
-                return fused, "hybrid_rrf"
-            # Fallback: try confidence_fusion.fuse_documents_rrf
-            try:
-                from src.rag.confidence_fusion import ConfidenceFusion
-
-                fusion = ConfidenceFusion()
-                fused = fusion.fuse_documents_rrf(
-                    {"dense": dense_results, "bm25": bm25_results},
-                    k=60,
-                    top_n=top_k,
-                )
-                return fused, "hybrid_rrf"
-            except (ImportError, Exception) as e:
-                logger.debug(f"Confidence fusion RRF fallback failed: {e}")
-
-        return dense_results, "dense_only"
+        return await hybrid_search(self.doc_retriever, query, top_k, doc_type_filter)
 
     def _query_knowledge_graph(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
-        """
-        지식 그래프에서 관련 사실 조회
-
-        Args:
-            entities: 추출된 엔티티
-
-        Returns:
-            사실 리스트
-        """
-        facts = []
-
-        # 브랜드 관련 사실
-        for brand in entities.get("brands", []):
-            # 브랜드 메타데이터
-            brand_meta = self.kg.get_entity_metadata(brand)
-            if brand_meta:
-                facts.append({"type": "brand_info", "entity": brand, "data": brand_meta})
-
-            # 브랜드의 제품들
-            products = self.kg.get_brand_products(brand)
-            if products:
-                facts.append(
-                    {
-                        "type": "brand_products",
-                        "entity": brand,
-                        "data": {
-                            "product_count": len(products),
-                            "products": products[:10],  # 상위 10개
-                        },
-                    }
-                )
-
-            # 경쟁사
-            competitors = self.kg.get_competitors(brand)
-            if competitors:
-                facts.append(
-                    {
-                        "type": "competitors",
-                        "entity": brand,
-                        "data": competitors[:5],  # 상위 5개
-                    }
-                )
-
-            # 경쟁사 네트워크 (직/간접 이웃)
-            try:
-                network = self.kg.get_neighbors(
-                    brand,
-                    direction="both",
-                    predicate_filter=[
-                        RelationType.COMPETES_WITH,
-                        RelationType.DIRECT_COMPETITOR,
-                        RelationType.INDIRECT_COMPETITOR,
-                    ],
-                )
-                if network.get("outgoing") or network.get("incoming"):
-                    facts.append(
-                        {
-                            "type": "competitor_network",
-                            "entity": brand,
-                            "data": {
-                                "outgoing": network.get("outgoing", [])[:10],
-                                "incoming": network.get("incoming", [])[:10],
-                            },
-                        }
-                    )
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
-
-            # 메트릭/관계 엣지 (kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등)
-            try:
-                # 시드 온톨로지는 'LANEIGE'(대문자), kg_enricher는 'laneige'(소문자)로
-                # 저장한다. 추출기가 내는 브랜드는 소문자이므로 대문자 변형을 조회하지
-                # 않으면 시드 트리플(ownedByGroup 등)이 통째로 누락됐다.
-                subject_variants: list[str] = []
-                for variant in (brand, brand.lower(), brand.upper(), brand.title()):
-                    if variant not in subject_variants:
-                        subject_variants.append(variant)
-                edge_relations = []
-                for variant in subject_variants:
-                    edge_relations += list(self.kg.query(subject=variant))
-                priority_preds = {
-                    "hasSoS",
-                    "hasHHI",
-                    "rankedIn",
-                    "competesWith",
-                    "hasPosition",
-                    "ownedBy",
-                }
-                query_categories = {c.lower() for c in entities.get("categories", [])}
-                query_brands = {b.lower() for b in entities.get("brands", [])}
-                query_products = {p.lower() for p in entities.get("products", [])}
-                relevant, competes, rest = [], [], []
-                top_products: list[tuple[int, str, str]] = []  # (rank, title, category)
-                for rel in edge_relations:
-                    enum_pred = (
-                        rel.predicate.value
-                        if hasattr(rel.predicate, "value")
-                        else str(rel.predicate)
-                    )
-                    orig = rel.properties.get("original_predicate")
-                    # 골드/KG 표기는 camelCase — original_predicate는 hasSoS처럼
-                    # 의미가 더 구체적인 camelCase일 때만 우선한다
-                    pred = orig if orig and "_" not in orig and not orig.isupper() else enum_pred
-                    # 시드 온톨로지 표기 정합화 (ownedByGroup → ownedBy)
-                    pred = {"ownedByGroup": "ownedBy"}.get(pred, pred)
-                    if pred == "hasProduct":
-                        # 상위 랭크 제품은 제품명 슬러그 엣지로 방출 (ASIN은 조회 불가 표기)
-                        title = rel.properties.get("title", "")
-                        rank = rel.properties.get("rank")
-                        if title and isinstance(rank, int) and rank <= 10:
-                            top_products.append((rank, title, rel.properties.get("category", "")))
-                        elif title and any(
-                            slug in query_products for slug in _product_name_slugs(title, brand)
-                        ):
-                            # 질의가 직접 지목한 제품은 랭크와 무관하게 포함
-                            top_products.append(
-                                (
-                                    rank if isinstance(rank, int) else 999,
-                                    title,
-                                    rel.properties.get("category", ""),
-                                ),
-                            )
-                        continue
-                    if pred not in priority_preds:
-                        continue  # siblingBrand 등 시드 온톨로지는 엣지 노출에서 제외
-                    edge = {"subject": rel.subject, "predicate": pred, "object": rel.object}
-                    obj_lower = str(rel.object).lower()
-                    # 쿼리에 등장한 카테고리/브랜드와 닿는 엣지를 우선
-                    if obj_lower in query_categories or obj_lower in query_brands:
-                        relevant.append(edge)
-                    elif pred == "competesWith":
-                        competes.append(edge)
-                    else:
-                        rest.append(edge)
-
-                # 상위 랭크 제품(브랜드당 2개) → 제품명 슬러그 hasProduct/belongsToCategory 엣지
-                product_edges = []
-                for _rank, title, category in sorted(set(top_products))[:2]:
-                    for slug in _product_name_slugs(title, brand):
-                        product_edges.append(
-                            {"subject": brand, "predicate": "hasProduct", "object": slug}
-                        )
-                    if category:
-                        main_slugs = _product_name_slugs(title, brand)
-                        if main_slugs:
-                            product_edges.append(
-                                {
-                                    "subject": main_slugs[0],
-                                    "predicate": "belongsToCategory",
-                                    "object": category,
-                                }
-                            )
-                # 선택 순서: 질의와 직접 닿는 엣지 → 제품 엣지 → 브랜드 정체성·지표
-                # 엣지 → 경쟁 엣지. competesWith는 브랜드당 최대 8개로 가장 수가 많고
-                # 질의 특정성이 낮아, 이전 순서(경쟁 우선)에서는 12개 상한이
-                # ownedBy·rankedIn을 밀어냈다. rest 안에서도 정보량 순으로 정렬한다
-                # (소유관계 > 점유율 > 랭킹 > 집중도 > 가격 포지션).
-                # 상한 12개는 유지한다 — recall 게이트를 "엣지 전량 방출"로 우회하지
-                # 않기 위한 정밀도 가드 (kg_edge_precision으로 감시).
-                rest.sort(key=lambda e: _REST_EDGE_PRIORITY.get(e["predicate"], 9))
-                metric_edges = _dedupe_edges(relevant + product_edges + rest + competes[:3])[:12]
-                if metric_edges:
-                    facts.append(
-                        {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
-                    )
-            except Exception:
-                logger.debug("metric edge query failed", exc_info=True)
-
-            # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
-            trend_relations = self.kg.query(subject=brand, predicate=RelationType.HAS_TREND)
-            if not trend_relations:
-                trend_relations = self.kg.query(subject="MARKET", predicate=RelationType.HAS_TREND)
-            if trend_relations:
-                trend_keywords = [rel.object for rel in trend_relations[:10]]
-                facts.append(
-                    {
-                        "type": "trend_keywords",
-                        "entity": brand,
-                        "data": {"keywords": trend_keywords, "count": len(trend_relations)},
-                    }
-                )
-
-        # 카테고리 관련 사실
-        for category in entities.get("categories", []):
-            # 카테고리 브랜드 정보
-            category_brands = self.kg.get_category_brands(category)
-            if category_brands:
-                facts.append(
-                    {
-                        "type": "category_brands",
-                        "entity": category,
-                        "data": {
-                            "brand_count": len(category_brands),
-                            "top_brands": category_brands[:5],
-                        },
-                    }
-                )
-
-            # 카테고리 계층 정보 (부모/자식 관계)
-            try:
-                hierarchy = self.kg.get_category_hierarchy(category)
-                if hierarchy and not hierarchy.get("error"):
-                    facts.append(
-                        {
-                            "type": "category_hierarchy",
-                            "entity": category,
-                            "data": {
-                                "name": hierarchy.get("name", ""),
-                                "level": hierarchy.get("level", 0),
-                                "path": hierarchy.get("path", []),
-                                "ancestors": hierarchy.get("ancestors", []),
-                                "descendants": hierarchy.get("descendants", []),
-                            },
-                        }
-                    )
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
-
-        # 감성 관련 사실 조회
-        sentiment_clusters = entities.get("sentiment_clusters", [])
-        if sentiment_clusters or entities.get("sentiments"):
-            # 제품이 지정된 경우 해당 제품의 감성 조회
-            for asin in entities.get("products", []):
-                try:
-                    product_sentiments = self.kg.get_product_sentiments(asin)
-                    if product_sentiments.get("sentiment_tags") or product_sentiments.get(
-                        "ai_summary"
-                    ):
-                        facts.append(
-                            {
-                                "type": "product_sentiment",
-                                "entity": asin,
-                                "data": product_sentiments,
-                            }
-                        )
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
-
-            # 브랜드가 지정된 경우 브랜드 감성 프로필 조회
-            for brand in entities.get("brands", []):
-                try:
-                    brand_sentiment = self.kg.get_brand_sentiment_profile(brand)
-                    if brand_sentiment.get("all_tags"):
-                        facts.append(
-                            {"type": "brand_sentiment", "entity": brand, "data": brand_sentiment}
-                        )
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
-
-            # 특정 감성 클러스터로 제품 검색
-            for cluster in sentiment_clusters:
-                if cluster not in ["sentiment_general", "ai_summary"]:
-                    try:
-                        # 해당 감성을 가진 제품 찾기
-                        from src.domain.entities.relations import SENTIMENT_CLUSTERS
-
-                        cluster_tags = SENTIMENT_CLUSTERS.get(cluster, [])
-                        for tag in cluster_tags[:2]:  # 상위 2개 태그만
-                            products_with_sentiment = self.kg.find_products_by_sentiment(tag)
-                            if products_with_sentiment:
-                                facts.append(
-                                    {
-                                        "type": "sentiment_products",
-                                        "entity": tag,
-                                        "data": {
-                                            "sentiment_tag": tag,
-                                            "cluster": cluster,
-                                            "product_count": len(products_with_sentiment),
-                                            "products": products_with_sentiment[:5],
-                                        },
-                                    }
-                                )
-                                break
-                    except Exception:
-                        logger.warning("Suppressed Exception", exc_info=True)
-
-        return facts
+        """지식 그래프에서 관련 사실 조회 (:mod:`src.rag.kg_facts` 로 위임)."""
+        return kg_facts.query_knowledge_graph(self.kg, entities)
 
     @staticmethod
     def _chunk_key(chunk: Any) -> tuple[str, Any]:
@@ -1094,618 +576,48 @@ class HybridRetriever:
     def _build_inference_context(
         self, entities: dict[str, list[str]], current_metrics: dict[str, Any]
     ) -> dict[str, Any]:
-        """
-        추론용 컨텍스트 구성
-
-        지표 정규화(퍼센트→분수, 기본값 미조작)는 ``src.ontology.inference_context`` 의 단일
-        빌더가 담당하고, 여기서는 KG 조회(경쟁사·트렌드·감성)만 덧붙인다.
-
-        Args:
-            entities: 추출된 엔티티
-            current_metrics: 현재 지표 데이터
-
-        Returns:
-            추론 컨텍스트
-        """
-        brand = entities["brands"][0] if entities.get("brands") else None
-        category = entities["categories"][0] if entities.get("categories") else None
-        context = build_inference_context(current_metrics or {}, brand, category=category)
-
-        # 경쟁사 수 (지식 그래프에서)
-        if context.get("brand"):
-            competitors = self.kg.get_competitors(context["brand"])
-            context["competitor_count"] = len(competitors)
-            context["competitors"] = competitors
-
-            # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
-            trend_relations = self.kg.query(
-                subject=context["brand"], predicate=RelationType.HAS_TREND
-            )
-            if not trend_relations:
-                trend_relations = self.kg.query(subject="MARKET", predicate=RelationType.HAS_TREND)
-            if trend_relations:
-                context["trend_keywords"] = [rel.object for rel in trend_relations[:10]]
-
-        # 감성 데이터 (지식 그래프에서)
-        if entities.get("sentiments") or entities.get("sentiment_clusters"):
-            # 자사 브랜드 감성 프로필
-            if context.get("brand"):
-                try:
-                    brand_sentiment = self.kg.get_brand_sentiment_profile(context["brand"])
-                    context["sentiment_tags"] = brand_sentiment.get("all_tags", [])
-                    context["sentiment_clusters"] = self._normalize_sentiment_clusters(
-                        brand_sentiment.get("clusters", {})
-                    )
-                    context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
-
-            # 제품별 감성 데이터
-            if context.get("asin"):
-                try:
-                    product_sentiment = self.kg.get_product_sentiments(context["asin"])
-                    context["ai_summary"] = product_sentiment.get("ai_summary")
-                    if not context.get("sentiment_tags"):
-                        context["sentiment_tags"] = product_sentiment.get("sentiment_tags", [])
-                        context["sentiment_clusters"] = self._normalize_sentiment_clusters(
-                            product_sentiment.get("sentiment_clusters", {})
-                        )
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
-
-            # 경쟁사 감성 데이터 (비교용)
-            if context.get("competitors"):
-                competitor_tags = []
-                competitor_clusters = {}
-                for comp in context["competitors"][:3]:  # 상위 3개 경쟁사
-                    comp_brand = comp.get("brand", comp) if isinstance(comp, dict) else comp
-                    try:
-                        comp_sentiment = self.kg.get_brand_sentiment_profile(comp_brand)
-                        competitor_tags.extend(comp_sentiment.get("all_tags", []))
-                        for cluster, count in comp_sentiment.get("clusters", {}).items():
-                            competitor_clusters[cluster] = (
-                                competitor_clusters.get(cluster, 0) + count
-                            )
-                    except Exception:
-                        logger.warning("Suppressed Exception", exc_info=True)
-                context["competitor_sentiment_tags"] = list(set(competitor_tags))
-                context["competitor_sentiment_clusters"] = competitor_clusters
-
-        return context
+        """추론용 컨텍스트 구성 (:mod:`src.rag.kg_facts` 로 위임)."""
+        return kg_facts.build_retrieval_context(self.kg, entities, current_metrics)
 
     def _expand_query(
         self, query: str, inferences: list[InferenceResult], entities: dict[str, list[str]]
     ) -> str:
-        """
-        추론 결과 기반 쿼리 확장
-
-        Args:
-            query: 원본 쿼리
-            inferences: 추론 결과
-            entities: 엔티티
-
-        Returns:
-            확장된 쿼리
-        """
-        expanded = query
-        expansion_terms = []
-
-        # 추론된 인사이트 유형에 따라 검색 키워드 추가
-        insight_types = {inf.insight_type for inf in inferences}
-
-        if (
-            InsightType.MARKET_POSITION in insight_types
-            or InsightType.MARKET_DOMINANCE in insight_types
-        ):
-            expansion_terms.append("시장 포지션 해석")
-
-        if InsightType.RISK_ALERT in insight_types:
-            expansion_terms.append("위험 신호 대응")
-
-        if InsightType.COMPETITIVE_THREAT in insight_types:
-            expansion_terms.append("경쟁 위협 분석")
-
-        if (
-            InsightType.GROWTH_OPPORTUNITY in insight_types
-            or InsightType.GROWTH_MOMENTUM in insight_types
-        ):
-            expansion_terms.append("성장 기회 전략")
-
-        if (
-            InsightType.PRICE_QUALITY_GAP in insight_types
-            or InsightType.PRICE_POSITION in insight_types
-        ):
-            expansion_terms.append("가격 전략 해석")
-
-        # 지표 관련 확장
-        for indicator in entities.get("indicators", []):
-            if indicator == "sos":
-                expansion_terms.append("SoS 점유율 해석")
-            elif indicator == "hhi":
-                expansion_terms.append("HHI 시장집중도 해석")
-            elif indicator == "cpi":
-                expansion_terms.append("CPI 가격지수 해석")
-
-        if expansion_terms:
-            expanded = f"{query} {' '.join(expansion_terms)}"
-
-        return expanded
+        """추론 결과 기반 쿼리 확장 (:mod:`src.rag.query_expansion` 로 위임)."""
+        return expand_query(query, inferences, entities)
 
     def _rewrite_for_relevance(self, query: str, entities: dict) -> str:
-        """
-        관련성 부족 시 쿼리 재작성
-
-        엔티티 정보를 활용하여 더 구체적인 검색 쿼리를 생성합니다.
-
-        Args:
-            query: 원본 쿼리
-            entities: 추출된 엔티티
-
-        Returns:
-            재작성된 쿼리
-        """
-        parts = [query]
-
-        # 브랜드 추가
-        brands = entities.get("brands", [])
-        if brands and brands[0].lower() not in query.lower():
-            parts.append(brands[0])
-
-        # 지표 추가
-        indicators = entities.get("indicators", [])
-        if indicators:
-            indicator_names = {
-                "sos": "Share of Shelf 점유율",
-                "hhi": "HHI 시장집중도",
-                "cpi": "CPI 가격지수",
-            }
-            for ind in indicators[:2]:
-                full_name = indicator_names.get(ind, ind)
-                if full_name.lower() not in query.lower():
-                    parts.append(full_name)
-
-        # 카테고리 추가
-        categories = entities.get("categories", [])
-        if categories:
-            category_names = {
-                "lip_care": "Lip Care 립케어",
-                "lip_makeup": "Lip Makeup 립메이크업",
-                "face_powder": "Face Powder 파우더",
-            }
-            for cat in categories[:1]:
-                full_name = category_names.get(cat, cat)
-                if full_name.lower() not in query.lower():
-                    parts.append(full_name)
-
-        rewritten = " ".join(parts)
-        if rewritten != query:
-            logger.info(f"Query rewritten for relevance: '{query}' → '{rewritten}'")
-        return rewritten
+        """관련성 부족 시 쿼리 재작성 (:mod:`src.rag.query_expansion` 로 위임)."""
+        return rewrite_for_relevance(query, entities)
 
     def _load_retrieval_weights(self) -> dict:
-        """config/retrieval_weights.json에서 가중치 로드"""
-        import json
-        from pathlib import Path
-
-        defaults = {
-            "weights": {"kg": 0.4, "rag": 0.4, "inference": 0.2},
-            "freshness": {"weekly": 1.0, "quarterly": 0.9, "static": 0.8},
-            "max_context_items": {"ontology_facts": 5, "inferences": 5, "rag_chunks": 3},
-        }
-
-        config_path = Path(__file__).parent.parent.parent / "config" / "retrieval_weights.json"
-        if config_path.exists():
-            try:
-                with open(config_path, encoding="utf-8") as f:
-                    loaded = json.load(f)
-                    # Merge with defaults (loaded overrides)
-                    for key in defaults:
-                        if key in loaded:
-                            defaults[key] = loaded[key]
-                logger.info(f"Retrieval weights loaded from {config_path}")
-            except Exception as e:
-                logger.warning(f"Failed to load retrieval weights: {e}, using defaults")
-
-        return defaults
+        """config/retrieval_weights.json에서 가중치 로드 (:mod:`src.rag.fusion` 로 위임)."""
+        return load_retrieval_weights()
 
     def _weighted_merge(
         self,
         context: HybridContext,
         intent_weights: dict[str, float] | None = None,
     ) -> HybridContext:
-        """
-        가중치 기반 컨텍스트 병합
-
-        KG facts, RAG chunks, Ontology inferences에 가중치를 부여하고
-        최종 점수로 정렬하여 상위 항목만 유지합니다.
+        """가중치 기반 컨텍스트 병합 (:mod:`src.rag.fusion` 로 위임).
 
         가중치 우선순위:
         1. intent_weights (인텐트 기반 전략에서 전달)
         2. config/retrieval_weights.json (파일 설정)
         3. 기본값: kg=0.4, rag=0.4, inference=0.2
-
-        Args:
-            context: 병합 전 HybridContext
-            intent_weights: 인텐트 기반 가중치 (optional override)
-
-        Returns:
-            가중치 적용된 HybridContext
         """
-        weights = (
-            intent_weights if intent_weights is not None else self._retrieval_weights["weights"]
-        )
-        freshness = self._retrieval_weights["freshness"]
-        max_items = self._retrieval_weights["max_context_items"]
-
-        weighted_scores = {}
-
-        # 1. Ontology facts 점수 계산
-        if context.ontology_facts:
-            scored_facts = []
-            for fact in context.ontology_facts:
-                fact_type = fact.get("type", "")
-
-                # 기본 점수 할당
-                if fact_type in ["brand_info", "competitors", "competitor_network"]:
-                    base_score = 1.0
-                elif fact_type in ["category_brands", "category_hierarchy"]:
-                    base_score = 0.8
-                else:
-                    base_score = 0.6
-
-                weighted_score = weights["kg"] * base_score
-                fact["_weighted_score"] = weighted_score
-                scored_facts.append(fact)
-
-            # 점수로 정렬 및 제한
-            scored_facts.sort(key=lambda x: x.get("_weighted_score", 0), reverse=True)
-            context.ontology_facts = scored_facts[: max_items["ontology_facts"]]
-            weighted_scores["ontology_facts"] = [
-                f.get("_weighted_score", 0) for f in context.ontology_facts
-            ]
-
-        # 2. RAG chunks 점수 계산
-        if context.rag_chunks:
-            scored_chunks = []
-            for chunk in context.rag_chunks:
-                similarity_score = chunk.get("score", 0.5)
-
-                # Freshness factor 결정
-                doc_type = chunk.get("metadata", {}).get("doc_type", "")
-                if doc_type in ["intelligence", "response_guide"]:
-                    freshness_factor = freshness["weekly"]
-                elif doc_type in ["playbook", "knowledge_base"]:
-                    freshness_factor = freshness["quarterly"]
-                else:
-                    freshness_factor = freshness["static"]
-
-                weighted_score = weights["rag"] * similarity_score * freshness_factor
-                chunk["_weighted_score"] = weighted_score
-                scored_chunks.append(chunk)
-
-            # 점수로 정렬 및 제한
-            scored_chunks.sort(key=lambda x: x.get("_weighted_score", 0), reverse=True)
-            context.rag_chunks = scored_chunks[: max_items["rag_chunks"]]
-            weighted_scores["rag_chunks"] = [
-                c.get("_weighted_score", 0) for c in context.rag_chunks
-            ]
-
-        # 3. Inferences 점수 계산
-        if context.inferences:
-            scored_inferences = []
-            for inference in context.inferences:
-                confidence = getattr(inference, "confidence", 0.5)
-                weighted_score = weights["inference"] * confidence
-
-                # Store score as attribute (not in dict)
-                inference._weighted_score = weighted_score
-                scored_inferences.append(inference)
-
-            # 점수로 정렬 및 제한
-            scored_inferences.sort(key=lambda x: getattr(x, "_weighted_score", 0), reverse=True)
-            context.inferences = scored_inferences[: max_items["inferences"]]
-            weighted_scores["inferences"] = [
-                getattr(i, "_weighted_score", 0) for i in context.inferences
-            ]
-
-        # 메타데이터에 점수 저장
-        if not context.metadata:
-            context.metadata = {}
-        context.metadata["weighted_scores"] = weighted_scores
-
-        # ConfidenceFusion: 전체 신뢰도 계산 + 충돌 감지
-        fusion_meta = self._compute_fusion_confidence(context, intent_weights)
-        context.metadata["fusion"] = fusion_meta
-
-        logger.info(
-            f"Weighted merge applied: {len(context.ontology_facts)} facts, "
-            f"{len(context.rag_chunks)} chunks, {len(context.inferences)} inferences"
-            f" | fusion_confidence={fusion_meta.get('confidence', 0):.3f}"
-            f" strategy={fusion_meta.get('strategy', 'n/a')}"
-        )
-
-        if fusion_meta.get("warnings"):
-            for w in fusion_meta["warnings"]:
-                logger.warning(f"Fusion conflict: {w}")
-
-        return context
+        return weighted_merge(context, self._retrieval_weights, intent_weights)
 
     def _compute_fusion_confidence(
         self,
         context: HybridContext,
         intent_weights: dict[str, float] | None = None,
     ) -> dict[str, Any]:
-        """
-        ConfidenceFusion을 사용해 전체 신뢰도를 계산하고 소스 간 충돌을 감지합니다.
-
-        기존 _weighted_merge의 per-item 점수 산정은 유지하고,
-        이 메서드는 3개 소스의 aggregate 신뢰도 + 충돌 경고를 추가합니다.
-
-        Args:
-            context: 가중 병합 완료된 HybridContext
-            intent_weights: 인텐트별 가중치 (kg/rag/inference)
-
-        Returns:
-            dict with confidence, strategy, warnings, source_scores, explanation
-        """
-        from src.infrastructure.feature_flags import FeatureFlags
-
-        if not FeatureFlags.get_instance().use_confidence_fusion():
-            logger.info("Confidence fusion disabled by feature flag")
-            return {"confidence": 0.0, "strategy": "disabled", "warnings": []}
-
-        try:
-            from src.rag.confidence_fusion import (
-                ConfidenceFusion,
-                FusedEntity,
-                FusionInferenceResult,
-                FusionStrategy,
-                ScoreNormalizationMethod,
-                SearchResult,
-            )
-        except ImportError:
-            logger.debug("confidence_fusion module not available, skipping fusion scoring")
-            return {"confidence": 0.0, "strategy": "unavailable", "warnings": []}
-
-        # 인텐트 가중치 → ConfidenceFusion 가중치 매핑
-        # ConfidenceFusion uses: vector(=rag), ontology(=inference), entity(=kg)
-        w = intent_weights or {"kg": 0.4, "rag": 0.4, "inference": 0.2}
-        fusion_weights = {
-            "vector": w.get("rag", 0.4),
-            "ontology": w.get("inference", 0.2),
-            "entity": w.get("kg", 0.4),
-        }
-
-        # 인텐트 설정에서 fusion_strategy 결정
-        fusion_strategy_name = "weighted_sum"
-        try:
-            from src.core.intent import classify_intent as _cl
-            from src.rag.retrieval_strategy import get_intent_retrieval_config
-
-            intent = _cl(context.query)
-            config = get_intent_retrieval_config(intent)
-            fusion_strategy_name = config.fusion_strategy
-        except Exception:
-            pass
-
-        strategy_map = {
-            "weighted_sum": FusionStrategy.WEIGHTED_SUM,
-            "harmonic_mean": FusionStrategy.HARMONIC_MEAN,
-            "geometric_mean": FusionStrategy.GEOMETRIC_MEAN,
-            "max_score": FusionStrategy.MAX_SCORE,
-            "rrf": FusionStrategy.RRF,
-        }
-        strategy = strategy_map.get(fusion_strategy_name, FusionStrategy.WEIGHTED_SUM)
-
-        # harmonic/geometric mean은 0 점수에 취약 → 정규화 생략 (원점수가 이미 0-1)
-        if strategy in (FusionStrategy.HARMONIC_MEAN, FusionStrategy.GEOMETRIC_MEAN):
-            normalization = ScoreNormalizationMethod.NONE
-        else:
-            normalization = ScoreNormalizationMethod.MIN_MAX
-
-        fusion = ConfidenceFusion(
-            weights=fusion_weights,
-            normalization=normalization,
-            strategy=strategy,
-            min_sources=1,
-            conflict_threshold=0.3,
-        )
-
-        # HybridContext → ConfidenceFusion 입력 변환
-        vector_results = []
-        for chunk in context.rag_chunks or []:
-            vector_results.append(
-                SearchResult(
-                    content=chunk.get("content", chunk.get("text", "")),
-                    score=chunk.get("_weighted_score", chunk.get("score", 0.5)),
-                    metadata=chunk.get("metadata", {}),
-                    source="vector",
-                )
-            )
-
-        ontology_results = []
-        for inf in context.inferences or []:
-            ontology_results.append(
-                FusionInferenceResult(
-                    insight=getattr(inf, "conclusion", str(inf)),
-                    confidence=getattr(inf, "confidence", 0.5),
-                    evidence=getattr(inf, "evidence", {}),
-                    rule_name=getattr(inf, "rule_name", None),
-                )
-            )
-
-        entity_links = []
-        for fact in context.ontology_facts or []:
-            entity_links.append(
-                FusedEntity(
-                    entity_id=fact.get("type", "unknown"),
-                    entity_name=fact.get("subject", fact.get("type", "")),
-                    entity_type=fact.get("type", "KG_Fact"),
-                    link_confidence=fact.get("_weighted_score", 0.6),
-                    context=str(fact.get("data", "")),
-                )
-            )
-
-        # Fusion 실행
-        result = fusion.fuse(
-            vector_results=vector_results or None,
-            ontology_results=ontology_results or None,
-            entity_links=entity_links or None,
-            query=context.query,
-        )
-
-        return {
-            "confidence": round(result.confidence, 4),
-            "strategy": result.fusion_strategy,
-            "warnings": result.warnings,
-            "explanation": result.explanation,
-            "source_scores": [
-                {
-                    "source": s.source_name,
-                    "raw": round(s.raw_score, 3),
-                    "normalized": round(s.normalized_score, 3),
-                    "weight": round(s.weight, 3),
-                    "contribution": round(s.contribution, 3),
-                    "level": s.confidence_level,
-                }
-                for s in result.source_scores
-            ],
-        }
+        """ConfidenceFusion 신뢰도 + 충돌 감지 (:mod:`src.rag.fusion` 로 위임)."""
+        return _compute_fusion_confidence(context, intent_weights)
 
     def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
-        """
-        온톨로지 + RAG 컨텍스트 통합
-
-        Args:
-            context: HybridContext
-            include_explanations: 추론 설명 포함
-
-        Returns:
-            통합된 컨텍스트 문자열
-        """
-        parts = []
-
-        # 1. 온톨로지 추론 결과 (구조화된 인사이트)
-        if context.inferences:
-            parts.append("## 분석 결과 (Ontology Reasoning)\n")
-
-            for i, inf in enumerate(context.inferences, 1):
-                parts.append(
-                    f"### 인사이트 {i}: {inf.insight_type.value.replace('_', ' ').title()}"
-                )
-                parts.append(f"- **결론**: {inf.insight}")
-
-                if inf.recommendation:
-                    parts.append(f"- **권장 액션**: {inf.recommendation}")
-
-                parts.append(f"- **신뢰도**: {inf.confidence:.0%}")
-
-                if include_explanations and inf.evidence:
-                    conditions = inf.evidence.get("satisfied_conditions", [])
-                    if conditions:
-                        parts.append(f"- **근거 조건**: {', '.join(conditions)}")
-
-                parts.append("")
-
-        # 2. 지식 그래프 사실 (관련 정보)
-        if context.ontology_facts:
-            parts.append("## 관련 정보 (Knowledge Graph)\n")
-
-            for fact in context.ontology_facts[:5]:  # 상위 5개
-                fact_type = fact.get("type", "unknown")
-                entity = fact.get("entity", "")
-                data = fact.get("data", {})
-
-                if fact_type == "brand_info":
-                    sos = data.get("sos", 0)
-                    if sos:
-                        parts.append(f"- **{entity}** SoS: {sos * 100:.1f}%")
-                    if data.get("avg_rank"):
-                        parts.append(f"  - 평균 순위: {data['avg_rank']:.1f}")
-
-                elif fact_type == "brand_products":
-                    parts.append(f"- **{entity}** 제품 수: {data.get('product_count', 0)}개")
-
-                elif fact_type == "competitors":
-                    competitors = [c.get("brand", "") for c in data[:3]]
-                    parts.append(f"- **{entity}** 주요 경쟁사: {', '.join(competitors)}")
-
-                elif fact_type == "category_brands":
-                    top_brands = [b.get("brand", "") for b in data.get("top_brands", [])[:3]]
-                    parts.append(f"- **{entity}** Top 브랜드: {', '.join(top_brands)}")
-
-                elif fact_type == "category_hierarchy":
-                    level = data.get("level", 0)
-                    path = data.get("path", [])
-                    ancestors = data.get("ancestors", [])
-                    name = data.get("name", entity)
-                    if path:
-                        path_str = " > ".join(
-                            [
-                                a.get("name", a.get("id", "")) if isinstance(a, dict) else a
-                                for a in path
-                            ]
-                        )
-                        parts.append(f"- **{name}** 계층: {path_str} (Level {level})")
-                    if ancestors:
-                        parent_names = [a.get("name", "") for a in ancestors[:2]]
-                        parts.append(f"  - 상위 카테고리: {', '.join(parent_names)}")
-
-            parts.append("")
-
-        # 3. RAG 가이드라인 (비구조화 문서)
-        if context.rag_chunks:
-            parts.append("## 참고 가이드라인 (RAG)\n")
-
-            for chunk in context.rag_chunks[:3]:  # 상위 3개
-                title = chunk.get("metadata", {}).get("title", "")
-                content = chunk.get("content", "")
-
-                if title:
-                    parts.append(f"### {title}")
-
-                # 내용 축약 (500자)
-                if len(content) > 500:
-                    content = content[:500] + "..."
-
-                parts.append(content)
-                parts.append("")
-
-        return "\n".join(parts)
-
-    async def retrieve_for_entity(
-        self, entity: str, entity_type: str = "brand", current_metrics: dict[str, Any] | None = None
-    ) -> HybridContext:
-        """
-        특정 엔티티에 대한 하이브리드 검색
-
-        Args:
-            entity: 엔티티 ID
-            entity_type: 엔티티 유형 (brand, product, category)
-            current_metrics: 현재 지표
-
-        Returns:
-            HybridContext
-        """
-        # 엔티티 기반 쿼리 생성
-        if entity_type == "brand":
-            query = f"{entity} 브랜드 분석"
-            entities = {"brands": [entity.lower()]}
-        elif entity_type == "product":
-            query = f"{entity} 제품 분석"
-            entities = {"products": [entity]}
-        elif entity_type == "category":
-            query = f"{entity} 카테고리 분석"
-            entities = {"categories": [entity]}
-        else:
-            query = f"{entity} 분석"
-            entities = {}
-
-        # 검색 수행
-        context = await self.retrieve(query, current_metrics)
-        context.entities.update(entities)
-
-        return context
+        """온톨로지 + RAG 컨텍스트 통합 (:mod:`src.rag.context_render` 로 위임)."""
+        return context_render.combine_contexts(context, include_explanations)
 
     def update_knowledge_graph(
         self, crawl_data: dict[str, Any] | None = None, metrics_data: dict[str, Any] | None = None
@@ -1740,3 +652,14 @@ class HybridRetriever:
             "rag_metrics": self.rag_metrics.get_metrics(),
             "initialized": self._initialized,
         }
+
+
+__all__ = [
+    "INTENT_DOC_TYPE_PRIORITY",
+    "EntityExtractor",
+    "HybridContext",
+    "HybridRetriever",
+    "QueryIntent",
+    "classify_intent",
+    "get_doc_type_filter",
+]

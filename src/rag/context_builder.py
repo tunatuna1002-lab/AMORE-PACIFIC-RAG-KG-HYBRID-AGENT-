@@ -15,6 +15,15 @@ from typing import Any
 
 from src.domain.entities.relations import InferenceResult
 
+from .context_render import (
+    CITED_CHUNK_CHARS,
+    MAX_CHUNKS,
+    MAX_FACTS,
+    as_percent,
+    brand_names,
+    truncate,
+)
+
 
 @dataclass
 class SourceReference:
@@ -570,7 +579,7 @@ class ContextBuilder:
         """지식 그래프 사실 섹션 구성"""
         lines = []
 
-        for fact in facts[:5]:  # 상위 5개
+        for fact in facts[:MAX_FACTS]:
             fact_type = fact.get("type", "")
             entity = fact.get("entity", "")
             data = fact.get("data", {})
@@ -578,7 +587,7 @@ class ContextBuilder:
             if fact_type == "brand_info":
                 lines.append(f"**{entity}**:")
                 if data.get("sos"):
-                    lines.append(f"  - 점유율: {data['sos'] * 100:.1f}%")
+                    lines.append(f"  - 점유율: {as_percent(data['sos'])}")
                 if data.get("avg_rank"):
                     lines.append(f"  - 평균 순위: {data['avg_rank']:.1f}")
                 if data.get("product_count"):
@@ -589,11 +598,10 @@ class ContextBuilder:
 
             elif fact_type == "competitors":
                 if isinstance(data, list):
-                    competitors = [c.get("brand", "") for c in data[:3]]
-                    lines.append(f"**{entity}** 경쟁사: {', '.join(competitors)}")
+                    lines.append(f"**{entity}** 경쟁사: {', '.join(brand_names(data))}")
 
             elif fact_type == "category_brands":
-                top_brands = [b.get("brand", "") for b in data.get("top_brands", [])[:3]]
+                top_brands = brand_names(data.get("top_brands", []))
                 if top_brands:
                     lines.append(f"**{entity}** Top 브랜드: {', '.join(top_brands)}")
 
@@ -612,7 +620,7 @@ class ContextBuilder:
         """RAG 검색 결과 섹션 구성"""
         lines = []
 
-        for chunk in chunks[:3]:  # 상위 3개
+        for chunk in chunks[:MAX_CHUNKS]:
             title = chunk.get("metadata", {}).get("title", "")
             content = chunk.get("content", "")
             doc_id = chunk.get("metadata", {}).get("doc_id", "")
@@ -629,10 +637,7 @@ class ContextBuilder:
                 lines.append(f"### {doc_id} [{src_idx}]")
 
             # 내용 축약
-            if len(content) > 400:
-                content = content[:400] + "..."
-
-            lines.append(content)
+            lines.append(truncate(content, CITED_CHUNK_CHARS))
             lines.append("")
 
         content = "\n".join(lines)

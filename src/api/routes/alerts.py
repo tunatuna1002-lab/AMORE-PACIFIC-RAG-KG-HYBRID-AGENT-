@@ -13,7 +13,6 @@ Alert API Routes
 
 import logging
 import re
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -35,8 +34,8 @@ from src.api.models import (
     SubscribeRequest,
     UpdateAlertSettingsRequest,
 )
-from src.core.state_manager import EmailSubscription, get_state_manager
-from src.domain.brand import is_target_brand
+from src.application.services import alert_service as alert_svc
+from src.core.state_manager import get_state_manager
 from src.tools.notifications.alert_service import get_alert_service
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -75,40 +74,11 @@ async def send_pending_alerts(request: AlertSendRequest | None = None):
         storage = get_sqlite_storage()
         await storage.initialize()
 
-        alert_service = get_alert_service()
-
-        # 미발송 알림 조회
-        unsent_alerts = await storage.get_unsent_alerts(limit=50)
-
-        if not unsent_alerts:
-            return {"success": True, "message": "No pending alerts to send", "sent_count": 0}
-
-        # 특정 ID 필터링
-        if request and request.alert_ids:
-            unsent_alerts = [a for a in unsent_alerts if a.get("id") in request.alert_ids]
-
-        if not unsent_alerts:
-            return {"success": True, "message": "No matching alerts found", "sent_count": 0}
-
-        # 알림 발송
-        sent_count = 0
-        for alert in unsent_alerts:
-            result = await alert_service.send_single_alert(alert)
-
-            # 성공 시 발송 완료 표시
-            if result.get("slack") or result.get("email"):
-                await storage.mark_alert_sent(alert["id"])
-                sent_count += 1
-
-        return {
-            "success": True,
-            "sent_count": sent_count,
-            "total_pending": len(unsent_alerts),
-            "channels": {
-                "slack": alert_service._slack_enabled,
-                "email": alert_service._email_enabled,
-            },
-        }
+        return await alert_svc.send_unsent_alerts(
+            storage=storage,
+            alert_sender=get_alert_service(),
+            alert_ids=request.alert_ids if request else None,
+        )
 
     except Exception as e:
         logger.error(f"Alert send error: {e}")
@@ -121,21 +91,7 @@ async def send_test_alert():
     try:
         alert_service = get_alert_service()
 
-        test_alert = {
-            "alert_datetime": datetime.now().isoformat(),
-            "brand": "TEST BRAND",
-            "asin": "B000TEST01",
-            "product_name": "Test Product - Alert System Verification",
-            "deal_type": "lightning",
-            "discount_percent": 50.0,
-            "deal_price": 19.99,
-            "original_price": 39.99,
-            "time_remaining": "2h 30m",
-            "claimed_percent": 45,
-            "product_url": "https://amazon.com/dp/B000TEST01",
-            "alert_type": "lightning_deal",
-            "alert_message": "Test Alert - 시스템 테스트 알림입니다",
-        }
+        test_alert = alert_svc.build_test_alert()
 
         result = await alert_service.send_single_alert(test_alert)
 
@@ -165,20 +121,7 @@ async def get_alert_settings():
 
     참고: 현재는 단일 사용자 설정만 지원 (첫 번째 등록된 이메일)
     """
-    state_manager = get_app_state_manager()
-    subscriptions = state_manager.get_all_subscriptions()
-
-    if not subscriptions:
-        return {"email": "", "consent": False, "alert_types": [], "consent_date": None}
-
-    # 첫 번째 구독 반환
-    email, sub = next(iter(subscriptions.items()))
-    return {
-        "email": email,
-        "consent": sub.consent,
-        "alert_types": sub.alert_types,
-        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
-    }
+    return alert_svc.alert_settings_v3(get_app_state_manager())
 
 
 @router.post("/v3/alert-settings", dependencies=[Depends(verify_api_key)])
@@ -195,23 +138,19 @@ async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
     if not settings.email:
         raise HTTPException(status_code=400, detail="이메일 주소가 필요합니다.")
 
+    saved = alert_svc.save_alert_settings_v3(
+        state_manager,
+        email=settings.email,
+        consent=settings.consent,
+        alert_types=settings.alert_types,
+    )
+
     if settings.consent:
-        # 이메일 등록 (명시적 동의)
-        success = state_manager.register_email(
-            email=settings.email, consent=True, alert_types=settings.alert_types
-        )
-
-        if not success:
+        if not saved:
             raise HTTPException(status_code=400, detail="이메일 등록 실패")
-
         return {"status": "ok", "message": "알림 설정이 저장되었습니다."}
-    else:
-        # 동의 없으면 업데이트만 (알림 유형 변경)
-        success = state_manager.update_email_subscription(
-            email=settings.email, alert_types=settings.alert_types
-        )
 
-        return {"status": "ok", "message": "설정이 업데이트되었습니다."}
+    return {"status": "ok", "message": "설정이 업데이트되었습니다."}
 
 
 @router.post("/v3/alert-settings/revoke", dependencies=[Depends(verify_api_key)])
@@ -223,15 +162,8 @@ async def revoke_alert_consent(request: Request):
     보안: API Key + Rate Limiting
     첫 번째 등록된 이메일의 동의를 철회합니다.
     """
-    state_manager = get_app_state_manager()
-    subscriptions = state_manager.get_all_subscriptions()
-
-    if not subscriptions:
+    if not alert_svc.revoke_first_consent(get_app_state_manager()):
         return {"status": "ok", "message": "철회할 동의가 없습니다."}
-
-    # 첫 번째 이메일 철회
-    email = next(iter(subscriptions.keys()))
-    state_manager.revoke_email_consent(email)
 
     return {"status": "ok", "message": "동의가 철회되었습니다."}
 
@@ -267,11 +199,7 @@ async def subscribe_v4(request: Request, body: SubscribeRequest):
             "success": True,
             "already_verified": True,
             "message": "이미 가입한 이메일이에요.",
-            "current_settings": {
-                "alert_types": existing.alert_types,
-                "active": existing.active,
-                "consent": existing.consent,
-            },
+            "current_settings": alert_svc.existing_subscription_settings(existing),
         }
 
     # 신규 이메일 - JWT 인증 메일 발송
@@ -294,21 +222,7 @@ async def subscribe_v4(request: Request, body: SubscribeRequest):
 
         if result.success:
             # 인증 전이지만 선택한 alert_types를 미리 저장 (인증 완료 시 적용)
-            if not existing:
-                # 새 구독 생성 (아직 미인증, 미동의 상태)
-                sub = EmailSubscription(
-                    email=email,
-                    consent=False,
-                    alert_types=body.alert_types,
-                    active=False,
-                    verified=False,
-                )
-                state_manager._email_subscriptions[email] = sub
-                state_manager._save_subscriptions()
-            else:
-                # 기존 미인증 구독 업데이트
-                existing.alert_types = body.alert_types
-                state_manager._save_subscriptions()
+            alert_svc.store_pending_subscription(state_manager, email, body.alert_types)
 
             logger.info(f"[v4] Verification email sent to {email}, alert_types={body.alert_types}")
             return {
@@ -337,39 +251,7 @@ async def get_alert_settings_v4(email: str | None = None):
     Args:
         email: 조회할 이메일 (없으면 첫 번째 구독자)
     """
-    state_manager = get_state_manager()
-
-    if email:
-        sub = state_manager.get_subscription(email)
-        if not sub:
-            return {"found": False, "email": email, "message": "등록되지 않은 이메일입니다."}
-        return {
-            "found": True,
-            "email": sub.email,
-            "consent": sub.consent,
-            "alert_types": sub.alert_types,
-            "active": sub.active,
-            "verified": sub.verified,
-            "verified_at": sub.verified_at.isoformat() if sub.verified_at else None,
-            "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
-        }
-
-    # email 미지정 시 기존 v3 동작 (첫 번째 구독자)
-    subscriptions = state_manager.get_all_subscriptions()
-    if not subscriptions:
-        return {"found": False, "email": "", "consent": False, "alert_types": []}
-
-    email_key, sub = next(iter(subscriptions.items()))
-    return {
-        "found": True,
-        "email": email_key,
-        "consent": sub.consent,
-        "alert_types": sub.alert_types,
-        "active": sub.active,
-        "verified": sub.verified,
-        "verified_at": sub.verified_at.isoformat() if sub.verified_at else None,
-        "consent_date": sub.consent_date.isoformat() if sub.consent_date else None,
-    }
+    return alert_svc.alert_settings_v4(get_state_manager(), email)
 
 
 @router.put("/v4/alert-settings", dependencies=[Depends(verify_api_key)])
@@ -393,16 +275,7 @@ async def update_alert_settings_v4(request: Request, body: UpdateAlertSettingsRe
     if not sub.verified:
         raise HTTPException(status_code=403, detail="이메일 인증이 완료되지 않았습니다.")
 
-    # alert_types 업데이트
-    success = state_manager.update_email_subscription(
-        email=email, alert_types=body.alert_types, active=True
-    )
-
-    # consent도 True로 설정 (설정 수정 = 동의 유지)
-    if success and not sub.consent:
-        sub.consent = True
-        sub.consent_date = datetime.now()
-        state_manager._save_subscriptions()
+    success = alert_svc.update_subscription(state_manager, sub, email, body.alert_types)
 
     if success:
         return {
@@ -573,33 +446,7 @@ async def verify_email_token_endpoint(request: Request):
 
         # StateManager에 인증 완료 상태 영구 저장
         try:
-            state_manager = get_state_manager()
-
-            # 기존 구독 정보 확인
-            existing = state_manager.get_subscription(email)
-
-            if existing:
-                # 기존 구독이 있으면 verified 상태 업데이트 + 활성화
-                existing.verified = True
-                existing.verified_at = datetime.now()
-                existing.consent = True
-                existing.consent_date = datetime.now()
-                existing.active = True
-                state_manager._save_subscriptions()
-            else:
-                # 새 구독 등록 (verified=True로 생성)
-                state_manager.register_email(
-                    email=email,
-                    consent=True,
-                    alert_types=["rank_change", "important_insight", "daily_summary"],
-                )
-                # verified 상태 추가 설정
-                subscription = state_manager.get_subscription(email)
-                if subscription:
-                    subscription.verified = True
-                    subscription.verified_at = datetime.now()
-                    state_manager._save_subscriptions()
-
+            alert_svc.mark_email_verified(get_state_manager(), email)
             logger.info(f"Email verified and saved to StateManager: {email}")
         except Exception as e:
             logger.warning(f"Failed to save verification status: {e}")
@@ -693,28 +540,7 @@ async def confirm_email_page(token: str, email: str):
 
     # StateManager에 인증 완료 상태 저장
     try:
-        state_manager = get_state_manager()
-        existing = state_manager.get_subscription(email)
-
-        if existing:
-            existing.verified = True
-            existing.verified_at = datetime.now()
-            existing.consent = True
-            existing.consent_date = datetime.now()
-            existing.active = True
-            state_manager._save_subscriptions()
-        else:
-            state_manager.register_email(
-                email=email,
-                consent=True,
-                alert_types=["rank_change", "important_insight", "daily_summary"],
-            )
-            subscription = state_manager.get_subscription(email)
-            if subscription:
-                subscription.verified = True
-                subscription.verified_at = datetime.now()
-                state_manager._save_subscriptions()
-
+        alert_svc.mark_email_verified(get_state_manager(), email)
         logger.info(f"Email verified via confirm page: {email}")
     except Exception as e:
         logger.warning(f"Failed to save verification status: {e}")
@@ -827,19 +653,7 @@ async def get_verification_status(email: str):
     JWT 방식으로 변경되어 인증 완료 상태는 StateManager에 영구 저장됩니다.
     """
     try:
-        state_manager = get_state_manager()
-        subscription = state_manager.get_subscription(email)
-
-        if subscription:
-            return {
-                "verified": subscription.verified,
-                "status": "verified" if subscription.verified else "pending",
-                "verified_at": subscription.verified_at.isoformat()
-                if subscription.verified_at
-                else None,
-            }
-
-        return {"verified": False, "status": "not_found"}
+        return alert_svc.verification_status(get_state_manager(), email)
 
     except Exception as e:
         logger.error(f"Get verification status error: {e}")
@@ -890,81 +704,11 @@ async def send_insight_report_email(request: Request):
         if not dashboard_data:
             raise HTTPException(status_code=404, detail="대시보드 데이터가 없습니다.")
 
-        # KPI 계산 (dashboard_data.json은 products를 ASIN 키 dict로 저장 → 리스트로 정규화)
-        products = products_as_list(dashboard_data)
-        laneige_products = [p for p in products if is_target_brand(p.get("brand"))]
-        avg_rank = (
-            sum(p.get("rank", 100) for p in laneige_products) / len(laneige_products)
-            if laneige_products
-            else 0
+        # KPI/본문 계산 (dashboard_data.json은 products를 ASIN 키 dict로 저장 → 리스트로 정규화)
+        payload = alert_svc.build_insight_email_payload(
+            products=products_as_list(dashboard_data),
+            latest_insight=dashboard_data.get("latest_insight", ""),
         )
-
-        # SoS 계산 (Top 100 기준)
-        top100 = products[:100]
-        laneige_in_top100 = len([p for p in top100 if is_target_brand(p.get("brand"))])
-        sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
-
-        # HHI 계산
-        brand_counts = {}
-        for p in top100:
-            brand = p.get("brand", "Unknown")
-            brand_counts[brand] = brand_counts.get(brand, 0) + 1
-        hhi = (
-            sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
-            if top100
-            else 0
-        )
-
-        # 인사이트 가져오기 (캐시된 것 또는 새로 생성)
-        insight_content = dashboard_data.get("latest_insight", "")
-        if not insight_content:
-            insight_content = (
-                "<p>현재 생성된 인사이트가 없습니다. 대시보드에서 인사이트를 먼저 생성해주세요.</p>"
-            )
-        else:
-            # 마크다운을 HTML로 간단 변환
-            insight_content = insight_content.replace("\n\n", "</p><p>").replace("\n", "<br>")
-            insight_content = f"<p>{insight_content}</p>"
-
-        # Top 10 제품 데이터
-        top10_products = []
-        for i, p in enumerate(products[:10]):
-            top10_products.append(
-                {
-                    "rank": i + 1,
-                    "name": p.get("title", "N/A"),
-                    "brand": p.get("brand", "Unknown"),
-                    "change": p.get("rank_change", 0),
-                }
-            )
-
-        # 브랜드별 변동
-        brand_changes = []
-        for brand in ["LANEIGE", "e.l.f.", "Maybelline", "Summer Fridays", "COSRX"]:
-            brand_products = [p for p in products if p.get("brand") == brand]
-            if brand_products:
-                avg_change = sum(p.get("rank_change", 0) for p in brand_products) / len(
-                    brand_products
-                )
-                if avg_change > 0:
-                    brand_changes.append(
-                        {
-                            "brand": brand,
-                            "change_text": f"평균 ▲{avg_change:.1f} 상승",
-                            "color": "#28a745",
-                        }
-                    )
-                elif avg_change < 0:
-                    brand_changes.append(
-                        {
-                            "brand": brand,
-                            "change_text": f"평균 ▼{abs(avg_change):.1f} 하락",
-                            "color": "#dc3545",
-                        }
-                    )
-
-        # 리포트 날짜
-        report_date = datetime.now().strftime("%Y년 %m월 %d일")
 
         # 대시보드 URL (Railway 자동 감지)
         dashboard_url = get_base_url() + "/dashboard"
@@ -972,14 +716,8 @@ async def send_insight_report_email(request: Request):
         # 이메일 발송
         result = await email_sender.send_insight_report(
             recipients=[recipient_email],
-            report_date=report_date,
-            avg_rank=avg_rank,
-            sos=sos,
-            hhi=hhi,
-            insight_content=insight_content,
-            top10_products=top10_products,
-            brand_changes=brand_changes,
             dashboard_url=dashboard_url,
+            **payload,
         )
 
         if result.success:

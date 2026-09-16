@@ -99,7 +99,9 @@ class TestNoAdHocBrandLiterals:
         """The files converted by F6-2 import the single helper."""
         converged = [
             "src/agents/metrics_agent.py",
-            "src/api/routes/alerts.py",
+            # CHANGED (Phase 4): the alerts route's brand logic moved into
+            # src/application/services/alert_service.py, so the helper is imported there now.
+            "src/application/services/alert_service.py",
             "src/core/brain.py",
             "src/tools/intelligence/morning_brief.py",
             "src/tools/exporters/dashboard_exporter.py",

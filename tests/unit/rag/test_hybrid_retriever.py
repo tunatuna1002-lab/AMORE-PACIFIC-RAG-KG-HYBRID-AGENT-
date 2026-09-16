@@ -1381,112 +1381,12 @@ class TestCombineContexts:
         assert combined.count("X") <= 510  # 약간의 여유
 
 
-# =============================================================================
-# Retrieve For Entity Tests
-# =============================================================================
-
-
-class TestRetrieveForEntity:
-    """엔티티별 검색 테스트"""
-
-    @pytest.mark.asyncio
-    async def test_retrieve_for_brand_entity(self):
-        """브랜드 엔티티 검색 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_entity_metadata.return_value = {}
-        mock_kg.get_brand_products.return_value = []
-        mock_kg.get_competitors.return_value = []
-        mock_kg.get_category_brands.return_value = []
-        mock_kg.query.return_value = []
-
-        mock_doc_retriever = MagicMock()
-        mock_doc_retriever.initialize = AsyncMock()
-        mock_doc_retriever.search = AsyncMock(return_value=[])
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=mock_doc_retriever,
-            auto_init_rules=False,
-        )
-
-        context = await retriever.retrieve_for_entity("LANEIGE", entity_type="brand")
-
-        assert context.query == "LANEIGE 브랜드 분석"
-        assert "laneige" in context.entities.get("brands", [])
-
-    @pytest.mark.asyncio
-    async def test_retrieve_for_product_entity(self):
-        """제품 엔티티 검색 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_entity_metadata.return_value = {}
-        mock_kg.get_brand_products.return_value = []
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        mock_doc_retriever = MagicMock()
-        mock_doc_retriever.initialize = AsyncMock()
-        mock_doc_retriever.search = AsyncMock(return_value=[])
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=mock_doc_retriever,
-            auto_init_rules=False,
-        )
-
-        context = await retriever.retrieve_for_entity("B08XYZ1234", entity_type="product")
-
-        assert context.query == "B08XYZ1234 제품 분석"
-        assert "B08XYZ1234" in context.entities.get("products", [])
-
-    @pytest.mark.asyncio
-    async def test_retrieve_for_category_entity(self):
-        """카테고리 엔티티 검색 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_entity_metadata.return_value = {}
-        mock_kg.get_category_brands.return_value = []
-        mock_kg.query.return_value = []
-
-        mock_doc_retriever = MagicMock()
-        mock_doc_retriever.initialize = AsyncMock()
-        mock_doc_retriever.search = AsyncMock(return_value=[])
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=mock_doc_retriever,
-            auto_init_rules=False,
-        )
-
-        context = await retriever.retrieve_for_entity("lip_care", entity_type="category")
-
-        assert context.query == "lip_care 카테고리 분석"
-        assert "lip_care" in context.entities.get("categories", [])
-
-    @pytest.mark.asyncio
-    async def test_retrieve_for_unknown_entity_type(self):
-        """알 수 없는 엔티티 타입 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_entity_metadata.return_value = {}
-        mock_kg.query.return_value = []
-
-        mock_doc_retriever = MagicMock()
-        mock_doc_retriever.initialize = AsyncMock()
-        mock_doc_retriever.search = AsyncMock(return_value=[])
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=mock_doc_retriever,
-            auto_init_rules=False,
-        )
-
-        context = await retriever.retrieve_for_entity("unknown", entity_type="unknown_type")
-
-        assert context.query == "unknown 분석"
-        assert context.entities.get("brands", []) == []
-
+# DELETED (F3): TestRetrieveForEntity removed together with
+# HybridRetriever.retrieve_for_entity. Grep evidence: the only references to
+# the name in src/, tests/, scripts/ and eval/ were its own definition and
+# these tests - no production caller, and it is not part of any Protocol in
+# src/domain/interfaces/. It only built a canned query string and called
+# retrieve(), which stays covered.
 
 # =============================================================================
 # Retrieve Edge Cases Tests
