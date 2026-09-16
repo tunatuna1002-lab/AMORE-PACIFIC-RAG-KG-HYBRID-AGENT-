@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인증 실패 - AMORE Pacific</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #001C58 0%, #1F5795 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 48px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: #fee2e2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        .icon svg { width: 40px; height: 40px; color: #ef4444; }
+        h1 { color: #001C58; font-size: 24px; margin-bottom: 12px; }
+        p { color: #64748b; font-size: 15px; line-height: 1.6; }
+        .error-msg { color: #ef4444; font-size: 13px; margin-top: 16px; padding: 12px; background: #fef2f2; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
+        <h1>인증 실패</h1>
+        <p>이메일 인증 링크가 만료되었거나 유효하지 않습니다.</p>
+        <div class="error-msg">$error_message</div>
+        <p style="margin-top: 20px; font-size: 13px;">대시보드에서 다시 인증을 요청해주세요.</p>
+    </div>
+</body>
+</html>

@@ -34,6 +34,7 @@ from src.api.models import (
     SubscribeRequest,
     UpdateAlertSettingsRequest,
 )
+from src.api.templates import render as render_template
 from src.application.services import alert_service as alert_svc
 from src.core.state_manager import get_state_manager
 from src.tools.notifications.alert_service import get_alert_service
@@ -473,64 +474,10 @@ async def confirm_email_page(token: str, email: str):
     result = verify_jwt_email_token(token)
 
     if not result["valid"]:
-        error_html = f"""
-        <!DOCTYPE html>
-        <html lang="ko">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>인증 실패 - AMORE Pacific</title>
-            <style>
-                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-                body {{
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    background: linear-gradient(135deg, #001C58 0%, #1F5795 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                }}
-                .card {{
-                    background: white;
-                    border-radius: 20px;
-                    padding: 48px;
-                    max-width: 420px;
-                    width: 100%;
-                    text-align: center;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                }}
-                .icon {{
-                    width: 80px;
-                    height: 80px;
-                    background: #fee2e2;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto 24px;
-                }}
-                .icon svg {{ width: 40px; height: 40px; color: #ef4444; }}
-                h1 {{ color: #001C58; font-size: 24px; margin-bottom: 12px; }}
-                p {{ color: #64748b; font-size: 15px; line-height: 1.6; }}
-                .error-msg {{ color: #ef4444; font-size: 13px; margin-top: 16px; padding: 12px; background: #fef2f2; border-radius: 8px; }}
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <div class="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </div>
-                <h1>인증 실패</h1>
-                <p>이메일 인증 링크가 만료되었거나 유효하지 않습니다.</p>
-                <div class="error-msg">{result.get("error", "토큰이 유효하지 않습니다.")}</div>
-                <p style="margin-top: 20px; font-size: 13px;">대시보드에서 다시 인증을 요청해주세요.</p>
-            </div>
-        </body>
-        </html>
-        """
+        error_html = render_template(
+            "email_confirm_error",
+            error_message=result.get("error", "토큰이 유효하지 않습니다."),
+        )
         return HTMLResponse(content=error_html, status_code=400)
 
     # 토큰의 이메일과 요청 이메일 일치 확인
@@ -546,102 +493,7 @@ async def confirm_email_page(token: str, email: str):
         logger.warning(f"Failed to save verification status: {e}")
 
     # 인증 성공 페이지 반환
-    success_html = f"""
-    <!DOCTYPE html>
-    <html lang="ko">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>인증 완료 - AMORE Pacific</title>
-        <style>
-            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: linear-gradient(135deg, #001C58 0%, #1F5795 100%);
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            }}
-            .card {{
-                background: white;
-                border-radius: 20px;
-                padding: 48px;
-                max-width: 420px;
-                width: 100%;
-                text-align: center;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            }}
-            .icon {{
-                width: 80px;
-                height: 80px;
-                background: #d1fae5;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 24px;
-                animation: pulse 2s infinite;
-            }}
-            @keyframes pulse {{
-                0%, 100% {{ transform: scale(1); }}
-                50% {{ transform: scale(1.05); }}
-            }}
-            .icon svg {{ width: 40px; height: 40px; color: #10b981; }}
-            h1 {{ color: #001C58; font-size: 24px; margin-bottom: 12px; }}
-            p {{ color: #64748b; font-size: 15px; line-height: 1.6; }}
-            .email {{
-                color: #1F5795;
-                font-weight: 600;
-                background: #f0f9ff;
-                padding: 8px 16px;
-                border-radius: 8px;
-                display: inline-block;
-                margin: 16px 0;
-            }}
-            .hint {{
-                margin-top: 24px;
-                padding: 16px;
-                background: #f8fafc;
-                border-radius: 12px;
-                font-size: 13px;
-                color: #475569;
-            }}
-            .close-btn {{
-                margin-top: 24px;
-                padding: 14px 32px;
-                background: #001C58;
-                color: white;
-                border: none;
-                border-radius: 10px;
-                font-size: 15px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: background 0.2s;
-            }}
-            .close-btn:hover {{ background: #1F5795; }}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
-            <h1>이메일 인증 완료!</h1>
-            <div class="email">{email}</div>
-            <p>이메일 주소가 성공적으로 인증되었습니다.</p>
-            <div class="hint">
-                이 창은 닫아도 됩니다.<br>
-                원래 대시보드 화면에서 자동으로 다음 단계로 이동합니다.
-            </div>
-            <button class="close-btn" onclick="window.close()">이 창 닫기</button>
-        </div>
-    </body>
-    </html>
-    """
+    success_html = render_template("email_confirm_success", email=email)
     return HTMLResponse(content=success_html)
 
 
