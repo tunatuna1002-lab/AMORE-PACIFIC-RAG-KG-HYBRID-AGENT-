@@ -300,3 +300,47 @@ v1에서 제안한 항목은 유효하나 **F1~F7 뒤로** 미룬다. 유령 경
 
 Phase 1 잔여: D9(→F7 상태 단일화에서 처리), D15(→F7 메모리 단일화), D16(→Phase 5).
 Phase 1에서 추가 발견: D22(slowapi 파라미터명), D23(스트림 500), D24(브랜드 정규화 "Beauty" 오염), D25(metadata 덮어쓰기), D26(KG save no-op), D27(배치 실패를 completed로 보고).
+
+### Phase 2~4 (2026-09-03 ~ 09-16)
+
+| 일시 | Phase | 커밋 | 내용 |
+|------|-------|------|------|
+| 2026-09-03 | 2 | 730ad55 | 사문 모듈 삭제 — rules_engine·rules.json(호출 0), unified_reasoner·ontology_knowledge_graph(생성 0), query_processor·core/types·brain_components·session_crypto·llm_retry·amazon_product_scraper·exchange_rate(참조 0) |
+| 2026-09-03 | 2 | 279c3d3 | relations.py 호환 shim 삭제 — 16개 파일 import 를 `src.domain.entities.relations` 로 교체 |
+| 2026-09-03 | 3 | 8cdf522 | 패키지 `__init__` 지연 로딩(tools·rag·agents·ontology), schema shim 삭제, 동명 클래스 정리 |
+| 2026-09-03 | 3 | 61cb8ab | 노후 디렉토리별 AGENTS.md 18개 삭제, 루트 AGENTS.md 는 CLAUDE.md 포인터로 |
+| 2026-09-04 | 2 | 7ded067 | **F1** 배치 파이프라인 단일화 + **F7** 시스템 상태 단일화 |
+| 2026-09-04 | 2 | 8349d7a | 레거시 LLMOrchestrator·orchestrator shim 삭제, core/`__init__` 지연 로딩 |
+| 2026-09-05 | 2 | 63d5d89 | **F2** QueryGraph 단일 챗 경로 — 스트림·비스트림 모두 `QueryGraph.run/run_stream`, brain 복사본 메서드 8개 삭제, 캐시 키에 세션·컨텍스트 포함, 거절·폴백 캐시 제외, QueryRouter 는 `is_compound` 만 유지 |
+| 2026-09-08 | 2 | c275e42 | WIP — **F4/F9** 온톨로지(tbox·builder·materializer·thresholds·inference_context·CQ 테스트) + **F6** 데이터 접근 서비스·deps 분할·메모리 단일화. 미완성(21 실패/4 오류) |
+| 2026-09-12 | 2 | f08b1ac | WIP 마무리 — 메모리 단일화·deps 분할·임계값 단일 출처·F9 배선 완결 (21실패/4오류 → 0) |
+| 2026-09-14 | 2 | fe99e5d | Phase 2 잔여: **F6** 데이터 접근·브랜드·날짜 수렴, **F7** 세션 메모리 연결, business_rules shim 삭제, D16 Protocol 정렬, import 그래프 테스트 신설 |
+| 2026-09-15 | 3,4,5 | 6ff6e88 | report_generator·brain 분할, AlertType 도메인 승격, tools 지연 로딩, 오프라인 테스트 게이트 |
+| 2026-09-16 | 4 | a3705ad | **Phase 4 완료** — **F3** rag 스택 분할 + **F6** API 라우트 → 서비스 추출 |
+| 2026-09-16 | 5 | 5c274eb | 커버리지 게이트를 실측(79.23%)에 맞춰 `fail_under = 75` 로, 다음 세션 인계 프롬프트 |
+
+**Phase 4 분할 결과**
+
+- `src/rag/`: `hybrid_retriever.py` 1,742→665, `retriever.py` 1,479→676 (둘 다 파사드).
+  신설 `selfrag_gate` `kg_facts` `kg_edges` `query_expansion` `context_render` `hybrid_context`
+  `legacy_intent` `fusion/{rrf,weighted,hybrid_search}` `document_registry` `document_loader`
+  `section_chunker` `vector_index` `bm25_index` `search_cache`.
+- `src/api/routes/`: `export` 1,244→346, `analytics` 742→195, `data` 821→113, `alerts` 999→737.
+- `src/application/services/` 신설 12개, `src/api/deps/` 신설 6개
+  (`src/api/dependencies.py` 는 전부 재수출하는 파사드).
+- `src/ontology/`: `tbox` `builder` `materializer` `thresholds` `inference_context` + CQ 테스트.
+- 기타: `src/core/brain_scheduler.py`, `src/tools/intelligence/newsletter.py`,
+  `src/tools/exporters/report/{design,docx,pptx,pdf,facade}.py`,
+  `src/domain/brand.py`, `src/domain/entities/alert.py`, `src/shared/{units,parsing}.py`.
+
+### Phase 5 — 문서 정합화 (2026-09-16)
+
+| 일시 | Phase | 커밋 | 내용 |
+|------|-------|------|------|
+| 2026-09-16 | 5 | (이 커밋) | `CLAUDE.md` 구조 트리·핵심 모듈 표·규모 수치·Clean Architecture 절을 실제 상태로 갱신, 로깅 컨벤션 명문화, `docs/dev/FUTURE_WORK.md` 전면 재작성, 본 §9 진행 로그 보강 |
+
+**미해결로 남긴 것** — `docs/dev/FUTURE_WORK.md` 참조.
+동작 변경이라 별도 커밋이 필요한 8건(RRF dedup 키, KG 렌더러 문구, BM25+RRF 이중 실행,
+doc-type 필터 BM25 누락, 검색 캐시 키 모델명 누락, `retrieval_weights.json` 죽은 `weights` 블록,
+`legacy_intent` shim, `dashboard_shape` 위치)과 사용자 확인 대기 3건(Q4),
+그리고 골든셋 회귀 게이트 기록 파일(키 있는 환경에서 1회 기록 필요).

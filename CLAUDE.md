@@ -18,12 +18,12 @@
 
 | 항목 | 수치 |
 |------|------|
-| src/ Python 파일 | 214개 |
-| src/ 코드 라인 | ~75,700 lines |
-| tests/ 파일 | 184개 |
-| tests/ 코드 라인 | ~74,000 lines |
+| src/ Python 파일 | 238개 |
+| src/ 코드 라인 | ~74,900 lines |
+| tests/ 파일 | 228개 |
+| tests/ 코드 라인 | ~79,200 lines |
 | src/api/dashboard_api.py | 195 lines (진입점, 라우트는 routes/ 분리) |
-| 커버리지 목표 | 60% (pytest-cov) |
+| 커버리지 게이트 | 75% (`fail_under`, pyproject + CI) |
 
 ---
 
@@ -55,7 +55,7 @@
 | `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 12개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
 | `scripts/start.py` | Railway 배포용 시작 스크립트 | `python scripts/start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
-| `src/core/orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from src.core.orchestrator import Orchestrator` |
+| `src/application/workflows/batch_workflow.py` | 일일 배치 파이프라인 | `BatchWorkflow.run_daily_workflow()` |
 
 ### 주요 API 엔드포인트
 
@@ -78,283 +78,184 @@
 │
 ├── src/
 │   ├── api/                      # API (FastAPI)
-│   │   ├── dashboard_api.py      # FastAPI 메인 서버 (루트에서 이동)
+│   │   ├── dashboard_api.py      # FastAPI 메인 서버 (195줄, 진입점)
 │   │   ├── app_factory.py        # 앱 초기화
-│   │   ├── routes/               # 라우트 모듈
-│   │   │   ├── chat.py, crawl.py, data.py
-│   │   │   ├── health.py, brain.py, export.py
-│   │   │   ├── alerts.py, analytics.py
+│   │   ├── dashboard_shape.py    # 대시보드 응답 형태 어댑터
+│   │   ├── dependencies.py       # deps/ 전체를 재수출하는 파사드
+│   │   ├── deps/                 # 의존성 주입 (dependencies.py 에서 분할)
+│   │   │   ├── auth.py, session.py, audit.py
+│   │   │   ├── data.py, suggestions.py, providers.py
+│   │   ├── routes/               # 라우트 모듈 13개
+│   │   │   ├── chat.py, crawl.py, data.py (113줄)
+│   │   │   ├── health.py, brain.py, export.py (346줄)
+│   │   │   ├── alerts.py (737줄), analytics.py (195줄)
 │   │   │   ├── competitors.py, deals.py
-│   │   │   ├── market_intelligence.py
-│   │   │   ├── signals.py, sync.py
-│   │   │   └── __init__.py
-│   │   ├── validators/
-│   │   │   └── input_validator.py
-│   │   ├── dependencies.py
+│   │   │   ├── market_intelligence.py, signals.py, sync.py
+│   │   ├── middleware/           # csrf.py, security_headers.py
+│   │   ├── validators/           # input_validator.py
 │   │   └── models.py
 │   │
 │   ├── core/                     # 핵심 오케스트레이션
-│   │   ├── brain.py              # UnifiedBrain - 자율 스케줄러
-│   │   ├── react_agent.py        # ReAct Self-Reflection Agent
-│   │   ├── batch_workflow.py     # 배치 워크플로우 (=Orchestrator)
-│   │   ├── orchestrator.py       # BatchWorkflow 하위 호환 래퍼 (루트에서 이동)
-│   │   ├── query_router.py       # 쿼리 라우팅
-│   │   ├── query_processor.py    # 쿼리 처리
-│   │   ├── response_pipeline.py  # 응답 파이프라인
-│   │   ├── hallucination_detector.py
+│   │   ├── brain.py              # UnifiedBrain — 자율 에이전트 코어
+│   │   ├── brain_scheduler.py    # 스케줄 루프 (brain 에서 분리)
+│   │   ├── query_graph.py        # **단일 챗 경로** (run / run_stream)
+│   │   ├── graph_state.py        # QueryGraph 상태
+│   │   ├── intent.py             # 의도 분류 (단일 출처)
+│   │   ├── query_router.py       # is_compound 판정만 유지
+│   │   ├── react_agent.py        # ReAct Self-Reflection (기본 off)
+│   │   ├── state_manager.py      # 시스템 상태 단일 출처
+│   │   ├── response_pipeline.py, verification_pipeline.py
+│   │   ├── hallucination_detector.py, confidence.py
 │   │   ├── prompt_guard.py       # 프롬프트 인젝션 방어
-│   │   ├── circuit_breaker.py    # 서킷브레이커
-│   │   ├── cache.py              # 캐시
-│   │   ├── scheduler.py          # 크론 스케줄러
-│   │   └── ... (30+ modules)
+│   │   ├── circuit_breaker.py, cache.py
+│   │   ├── alert_manager.py, crawl_manager.py
+│   │   ├── context_gatherer.py, decision_maker.py
+│   │   ├── explainability.py, tool_coordinator.py, tools.py
+│   │   └── models.py
 │   │
 │   ├── agents/                   # AI 에이전트
-│   │   ├── hybrid_chatbot_agent.py   # 하이브리드 챗봇
-│   │   ├── hybrid_insight_agent.py   # 인사이트 생성
-│   │   ├── crawler_agent.py          # 크롤러 에이전트
-│   │   ├── alert_agent.py            # 알림 에이전트
-│   │   ├── metrics_agent.py          # 메트릭 에이전트
-│   │   ├── storage_agent.py          # 저장 에이전트
-│   │   ├── suggestion_engine.py      # 후속 질문 생성 엔진
-│   │   ├── source_provider.py        # 출처 추출 및 포매팅
-│   │   ├── external_signal_manager.py # 외부 신호 수집 관리
-│   │   ├── period_insight_agent.py   # 기간별 인사이트
-│   │   └── true_hybrid_insight_agent.py
+│   │   ├── base_hybrid_agent.py  # 공통 베이스
+│   │   ├── hybrid_chatbot_agent.py
+│   │   ├── hybrid_insight_agent.py, period_insight_agent.py
+│   │   ├── crawler_agent.py, alert_agent.py
+│   │   ├── metrics_agent.py, storage_agent.py
+│   │   ├── suggestion_engine.py, source_provider.py
+│   │   └── external_signal_manager.py
 │   │
-│   ├── rag/                      # RAG 시스템
-│   │   ├── hybrid_retriever.py   # KG + RAG 통합 검색
-│   │   ├── retrieval_strategy.py  # OWL + Legacy 전략 패턴
-│   │   ├── confidence_fusion.py  # 다중 소스 신뢰도 융합
-│   │   ├── retriever.py          # 문서 검색 + 임베딩 캐시
-│   │   ├── embedding_cache.py    # 임베딩 캐시 (InMemory/SQLite)
-│   │   ├── reranker.py           # 재순위화
-│   │   ├── entity_linker.py      # 엔티티 링킹
-│   │   ├── chunker.py            # 문서 청킹
-│   │   ├── query_rewriter.py     # 쿼리 리라이팅
-│   │   ├── confidence_fusion.py  # 신뢰도 융합
-│   │   ├── context_builder.py    # 컨텍스트 빌더
-│   │   └── router.py             # RAG 라우터
+│   ├── rag/                      # RAG 시스템 (Phase 4 에서 분할)
+│   │   ├── hybrid_retriever.py   # KG + RAG 통합 파사드 (665줄)
+│   │   ├── retriever.py          # 문서 검색 파사드 (676줄)
+│   │   ├── fusion/               # rrf.py, weighted.py, hybrid_search.py
+│   │   ├── vector_index.py, bm25_index.py, search_cache.py
+│   │   ├── document_registry.py, document_loader.py
+│   │   ├── chunker.py, section_chunker.py
+│   │   ├── kg_facts.py, kg_edges.py        # KG 사실·엣지 수집
+│   │   ├── context_builder.py, context_render.py, hybrid_context.py
+│   │   ├── query_expansion.py, query_rewriter.py
+│   │   ├── selfrag_gate.py, relevance_grader.py, reranker.py
+│   │   ├── retrieval_strategy.py, confidence_fusion.py
+│   │   ├── embedding_cache.py, entity_linker.py
+│   │   ├── legacy_intent.py      # (deprecated shim — core/intent.py 사용)
+│   │   ├── rag_kg_extractor.py, templates.py, router.py
 │   │
 │   ├── ontology/                 # Knowledge Graph & 추론
 │   │   ├── knowledge_graph.py    # Triple Store (JSON 기반)
-│   │   ├── ontology_knowledge_graph.py
-│   │   ├── reasoner.py           # 규칙 기반 추론 엔진
-│   │   ├── owl_reasoner.py       # OWL 추론
-│   │   ├── unified_reasoner.py   # 통합 추론
-│   │   ├── kg_enricher.py        # KG 보강
-│   │   ├── kg_query.py           # KG 쿼리
-│   │   ├── kg_updater.py         # KG 업데이트
-│   │   ├── schema.py             # 온톨로지 스키마
-│   │   ├── category_service.py   # 카테고리 서비스
-│   │   ├── sentiment_service.py  # 감성 분석 서비스
-│   │   └── rules/                # 비즈니스 규칙
-│   │       ├── alert_rules.py
-│   │       ├── growth_rules.py
-│   │       ├── market_rules.py
-│   │       ├── price_rules.py
-│   │       ├── ir_rules.py
-│   │       └── sentiment_rules.py
+│   │   ├── tbox.py               # OWL TBox 정의
+│   │   ├── builder.py            # ABox 구축
+│   │   ├── materializer.py       # 추론 결과 물질화 (provenance)
+│   │   ├── inference_context.py  # 추론 컨텍스트
+│   │   ├── thresholds.py         # config/thresholds.json 단일 출처
+│   │   ├── reasoner.py           # 규칙 기반 추론
+│   │   ├── owl_reasoner.py       # OWL 추론 (**배치 전용**)
+│   │   ├── kg_enricher.py, kg_query.py, kg_updater.py, kg_iri.py
+│   │   ├── category_service.py, sentiment_service.py
+│   │   └── rules/                # alert, growth, market, price, ir, sentiment
 │   │
 │   ├── tools/                    # 도구 모음
-│   │   ├── scrapers/             # 웹 스크래퍼
-│   │   │   ├── amazon_scraper.py
-│   │   │   ├── amazon_product_scraper.py
-│   │   │   └── deals_scraper.py
-│   │   ├── collectors/           # 데이터 수집기
-│   │   │   ├── google_trends_collector.py
-│   │   │   ├── public_data_collector.py
-│   │   │   ├── external_signal_collector.py
-│   │   │   └── tavily_search.py
-│   │   ├── calculators/          # 지표 계산
-│   │   │   ├── metric_calculator.py   # SoS, HHI, CPI
-│   │   │   ├── period_analyzer.py
-│   │   │   └── exchange_rate.py
-│   │   ├── intelligence/         # 시장 정보
-│   │   │   ├── market_intelligence.py
-│   │   │   ├── morning_brief.py
-│   │   │   ├── ir_report_parser.py
-│   │   │   ├── claim_extractor.py
-│   │   │   ├── claim_verifier.py
-│   │   │   ├── confidence_scorer.py
-│   │   │   ├── insight_verifier.py
-│   │   │   └── source_manager.py
-│   │   ├── exporters/            # 내보내기
-│   │   │   ├── report_generator.py
-│   │   │   ├── chart_generator.py
-│   │   │   ├── dashboard_exporter.py
-│   │   │   ├── export_handlers.py
+│   │   ├── scrapers/             # amazon_scraper.py, deals_scraper.py
+│   │   ├── collectors/           # google_trends, public_data,
+│   │   │                         #   external_signal, tavily_search
+│   │   ├── calculators/          # metric_calculator.py (SoS/HHI/CPI),
+│   │   │                         #   period_analyzer.py
+│   │   ├── intelligence/         # market_intelligence, morning_brief,
+│   │   │                         #   newsletter, ir_report_parser,
+│   │   │                         #   claim_extractor/verifier,
+│   │   │                         #   confidence_scorer, insight_verifier,
+│   │   │                         #   source_manager
+│   │   ├── exporters/
+│   │   │   ├── report/           # design, docx, pptx, pdf, facade
+│   │   │   ├── report_generator.py, chart_generator.py
+│   │   │   ├── dashboard_exporter.py, export_handlers.py
 │   │   │   └── insight_formatter.py
-│   │   ├── storage/              # 저장소
-│   │   │   ├── sqlite_storage.py
-│   │   │   └── sheets_writer.py
-│   │   ├── notifications/        # 알림
-│   │   │   ├── email_sender.py
-│   │   │   ├── telegram_bot.py
-│   │   │   └── alert_service.py
-│   │   └── utilities/            # 유틸리티
-│   │       ├── kg_backup.py
-│   │       ├── brand_resolver.py
-│   │       ├── data_integrity_checker.py
-│   │       ├── job_queue.py
-│   │       └── reference_tracker.py
+│   │   ├── storage/              # sqlite_storage.py, sheets_writer.py
+│   │   ├── notifications/        # email_sender, telegram_bot, alert_service
+│   │   └── utilities/            # kg_backup, brand_resolver,
+│   │                             #   data_integrity_checker, job_queue,
+│   │                             #   reference_tracker
 │   │
 │   ├── domain/                   # Clean Architecture Layer 1
-│   │   ├── entities/             # 도메인 엔티티
-│   │   │   ├── product.py
-│   │   │   ├── brand.py
-│   │   │   ├── market.py
-│   │   │   ├── brain_models.py
-│   │   │   └── relations.py
-│   │   ├── interfaces/           # 프로토콜/인터페이스
-│   │   │   ├── agent.py, alert.py, brain.py
-│   │   │   ├── chatbot.py, insight.py, retriever.py
-│   │   │   ├── knowledge_graph.py, llm_client.py
-│   │   │   ├── metric.py, repository.py
-│   │   │   ├── scraper.py, signal.py, storage.py
-│   │   │   └── brain_components.py
-│   │   ├── value_objects/
+│   │   ├── entities/             # product, brand, market, alert,
+│   │   │                         #   brain_models, relations
+│   │   ├── interfaces/           # Protocol 정의 13개
+│   │   ├── value_objects/        # retrieval_result.py
+│   │   ├── brand.py              # 브랜드 정규화·해석 (도메인 승격)
 │   │   └── exceptions.py
 │   │
 │   ├── application/              # Clean Architecture Layer 2
-│   │   ├── workflows/            # 유스케이스
-│   │   │   ├── chat_workflow.py
-│   │   │   ├── crawl_workflow.py
-│   │   │   ├── insight_workflow.py
-│   │   │   ├── alert_workflow.py
-│   │   │   └── batch_workflow.py
-│   │   ├── services/
-│   │   │   └── query_analyzer.py
-│   │   └── orchestrators/
-│   │
-│   ├── adapters/                 # Clean Architecture Layer 3
-│   │   ├── agents/
-│   │   ├── presenters/
-│   │   └── rag/
+│   │   ├── workflows/
+│   │   │   ├── batch_workflow.py # 일일 배치 (크롤→저장→KG→지표→인사이트→알림→내보내기)
+│   │   │   └── chat_workflow.py
+│   │   └── services/             # API 라우트에서 추출한 서비스 12개
+│   │       ├── dashboard_data_service.py, sql_rows.py
+│   │       ├── date_range.py, category_names.py
+│   │       ├── query_analyzer.py, export_service.py
+│   │       ├── alert_service.py, analytics_service.py
+│   │       ├── sos_trend_service.py, historical_service.py
+│   │       ├── brand_matrix.py, external_signals_service.py
 │   │
 │   ├── infrastructure/           # Clean Architecture Layer 4
-│   │   ├── bootstrap.py
-│   │   ├── container.py          # DI 컨테이너
-│   │   ├── feature_flags.py      # Feature flag 시스템
-│   │   ├── config/
-│   │   │   └── config_manager.py
-│   │   └── persistence/
-│   │       ├── json_repository.py
-│   │       └── sheets_repository.py
+│   │   ├── bootstrap.py, container.py, feature_flags.py
+│   │   ├── config/config_manager.py
+│   │   └── persistence/          # json_repository.py, sheets_repository.py
 │   │
-│   ├── memory/                   # 대화 메모리
-│   │   ├── conversation_memory.py
-│   │   ├── session.py
-│   │   ├── context.py
-│   │   └── history.py
-│   │
-│   ├── monitoring/               # 모니터링
-│   │   ├── logger.py             # AgentLogger
-│   │   ├── metrics.py
-│   │   ├── rag_metrics.py
-│   │   └── tracer.py
-│   │
-│   └── shared/                   # 공유 유틸
-│       ├── constants.py
-│       └── llm_client.py
+│   ├── memory/                   # conversation_memory, session, context, history
+│   ├── monitoring/               # logger(AgentLogger), metrics, rag_metrics, tracer
+│   └── shared/                   # constants, llm_client, units, parsing
 │
 ├── config/                       # 설정 파일
-│   ├── thresholds.json           # 시스템 설정 + 카테고리 URL
+│   ├── thresholds.json           # **임계값 단일 출처** + 카테고리 URL
 │   ├── category_hierarchy.json   # Amazon 카테고리 트리
-│   ├── competitors.json          # 경쟁사 정보
-│   ├── tracked_competitors.json
-│   ├── brands.json               # 브랜드 매핑
-│   ├── asin_brand_mapping.json
-│   ├── entities.json             # 엔티티 정의
-│   ├── rules.json                # 비즈니스 규칙
-│   ├── retrieval_weights.json    # RAG 가중치
-│   └── public_apis.json          # 공공 API 설정
+│   ├── competitors.json, tracked_competitors.json
+│   ├── brands.json, asin_brand_mapping.json, entities.json
+│   ├── retrieval_weights.json    # freshness / max_context_items
+│   └── public_apis.json
 │
 ├── prompts/                      # 프롬프트 템플릿
-│   ├── agents/chatbot_system.txt # 챗봇 시스템 프롬프트 (registry가 로드)
-│   ├── agents/variants/          # 프롬프트 실험 변형 v0~v4
-│   ├── metrics.json
-│   ├── version_manager.py
 │   ├── registry.py               # 프롬프트 중앙 관리
-│   └── components/               # 프롬프트 컴포넌트
+│   ├── agents/chatbot_system.txt
+│   ├── agents/variants/          # 프롬프트 실험 변형
+│   ├── components/, metrics.json, version_manager.py
 │
 ├── dashboard/                    # 프론트엔드
-│   ├── amore_unified_dashboard_v4.html  # 메인 대시보드
-│   └── test_chat.html
+│   └── amore_unified_dashboard_v4.html
 │
 ├── eval/                         # 평가 프레임워크
-│   ├── cli.py, runner.py, loader.py
-│   ├── schemas.py, regression.py, report.py
-│   ├── cost_tracker.py
-│   ├── judge/                    # LLM Judge
-│   ├── metrics/                  # 평가 메트릭 (L1~L5)
-│   ├── validators/               # 검증기
-│   └── data/                     # 골든셋
-│       ├── golden/
-│       └── examples/
+│   ├── cli.py, runner.py, loader.py, schemas.py
+│   ├── regression.py, report.py, cost_tracker.py
+│   ├── judge/, metrics/, validators/
+│   ├── baselines/replay/         # 골든셋 record/replay 기록 (gitignored 아님)
+│   └── data/golden/, data/examples/
 │
-├── tests/                        # 테스트
-│   ├── conftest.py               # 공통 fixture
-│   ├── unit/                     # 단위 테스트 (레이어별)
-│   │   ├── agents/, api/, application/
-│   │   ├── core/, domain/, infrastructure/
-│   │   ├── memory/, monitoring/
-│   │   ├── ontology/, prompts/
-│   │   ├── rag/, shared/, tools/
-│   │   └── __init__.py
-│   ├── eval/                     # 평가 테스트 (semantic, metrics, regression)
-│   ├── integration/              # 통합 테스트
-│   ├── adversarial/              # 적대적 테스트 (prompt injection)
-│   └── golden/
+├── tests/                        # 테스트 (228 파일)
+│   ├── conftest.py               # .env.test 격리 + 아웃바운드 소켓 차단 + 싱글턴 리셋
+│   ├── unit/                     # 레이어별 단위 테스트
+│   │   └── test_import_graph.py  # **순환 0 / 역방향 0 정적 검증**
+│   ├── characterization/         # 동작 고정(특성화) 테스트
+│   ├── eval/                     # 평가 + 골든셋 재생 게이트
+│   ├── integration/, adversarial/, golden/
 │
 ├── scripts/                      # 운영 스크립트
-│   ├── start.py                  # Railway 배포용 시작 (루트에서 이동)
-│   ├── start_dashboard.command   # macOS 원클릭 시작 (루트에서 이동)
-│   ├── sync_from_railway.py
-│   ├── sync_sheets_to_sqlite.py
-│   ├── sync_to_railway.py
-│   ├── evaluate_golden.py
-│   ├── export_dashboard.py
-│   ├── run_evaluation.py
-│   └── ...
-│
-├── examples/                     # 예제 스크립트
-│   ├── react_agent_demo.py
-│   ├── confidence_fusion_demo.py
-│   ├── conversation_memory_demo.py
-│   └── ...
+│   ├── start.py                  # Railway 배포용 시작
+│   ├── record_golden_replay.py   # 골든셋 기록 (OPENAI_API_KEY 필요)
+│   ├── sync_from_railway.py, sync_sheets_to_sqlite.py
+│   └── evaluate_golden.py, export_dashboard.py, ...
 │
 ├── data/                         # 런타임 데이터 (gitignored)
-│   ├── amore_data.db             # 메인 SQLite DB
-│   ├── knowledge_graph.json      # KG Triple Store
-│   ├── dashboard_data.json       # 캐시된 대시보드 데이터
-│   ├── chroma/                   # ChromaDB 벡터 스토어
-│   ├── market_intelligence/      # 시장 정보 (signals, youtube, ir 등)
-│   └── ...
+│   ├── amore_data.db, knowledge_graph.json
+│   ├── dashboard_data.json, chroma/, market_intelligence/
 │
 ├── docs/                         # 문서
-│   ├── analysis/                 # 의존성 분석, 정리 계획
-│   ├── architecture/             # 아키텍처 설계
-│   ├── guides/                   # 가이드
-│   ├── reports/                  # 분석 리포트
-│   ├── research/                 # 리서치 자료
-│   ├── security/                 # 보안 감사
-│   ├── diagrams/
-│   ├── plans/
-│   ├── refactoring/
-│   └── dev/                      # 개발 노트
+│   ├── plans/                    # 리팩토링 계획 + 인계 프롬프트
+│   ├── analysis/, architecture/, guides/, reports/
+│   ├── research/, security/, diagrams/, refactoring/
+│   └── dev/FUTURE_WORK.md        # 미해결 항목
 │
-├── logs/                         # 로그 (gitignored)
-├── static/fonts/                 # 웹 폰트 + AMOREPACIFIC CI 폰트
-│
-├── pyproject.toml                # 프로젝트 설정 (pytest, ruff, coverage)
-├── requirements.txt              # Python 의존성
-├── Dockerfile                    # Docker 빌드 (python:3.11-slim + Playwright)
-├── railway.toml                  # Railway 배포 설정
-├── .pre-commit-config.yaml       # Pre-commit 훅
-└── .env.example                  # 환경변수 템플릿
+├── pyproject.toml                # pytest, ruff, coverage(fail_under=75)
+├── requirements.txt
+├── Dockerfile                    # python:3.11-slim + Playwright Chromium
+├── railway.toml
+└── .env.example
 ```
-
----
 
 ## 5. 모니터링 카테고리 (Amazon BSR)
 
@@ -451,20 +352,26 @@ TELEGRAM_ADMIN_CHAT_ID=...
 ```
 src/
 ├── domain/           # Layer 1: Entities + Interfaces (외부 의존 없음)
-├── application/      # Layer 2: Use Cases / Workflows
-├── adapters/         # Layer 3: Interface Adapters
-└── infrastructure/   # Layer 4: Frameworks & Drivers
+├── application/      # Layer 2: Use Cases / Workflows + Services
+├── infrastructure/   # Layer 3: Frameworks & Drivers (DI, 설정, 영속화)
+└── api/ core/ agents/ rag/ ontology/ tools/   # Layer 4: 진입점·구현
 ```
+
+> `src/adapters/` 는 빈 패키지여서 삭제됐다. 어댑터 역할은 `api/`(요청·응답)와
+> `infrastructure/persistence/`(저장소)가 나눠 맡는다.
 
 ### Import 규칙 (의존성: 안쪽으로만)
 
-| From → To | 허용 |
-|-----------|------|
-| domain → (nothing) | O |
-| application → domain | O |
-| adapters → domain, application | O |
-| infrastructure → domain, application | O |
-| **domain → application/infrastructure** | X |
+| 규칙 | 상태 |
+|------|------|
+| `src` 모듈 간 **최상위 import 순환** | 0 (SCC 크기 1) |
+| `domain` → `src.domain` · `src.shared` 외 | X |
+| `application` → `src.api` | X |
+| `tools` · `rag` · `ontology` → `src.api` | X |
+
+> `tests/unit/test_import_graph.py` 가 `ast` 파싱으로 정적 검증한다(실행 없음).
+> **최상위 import 만** 센다 — 함수 본문 안의 지연 import 는 이 코드베이스가 순환을
+> 의도적으로 끊는 방식이라 실패시키지 않고 별도로 수집해 보고만 한다.
 
 ### DI 패턴
 
@@ -485,33 +392,43 @@ class MyWorkflow:
 
 | 모듈 | 경로 | 역할 |
 |------|------|------|
-| DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 |
-| Orchestrator | `src/core/orchestrator.py` | BatchWorkflow 하위 호환 래퍼 |
-| UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
-| ReActAgent | `src/core/react_agent.py` | Self-Reflection (복잡한 질문) |
-| BatchWorkflow | `src/core/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
+| DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 (진입점) |
+| AppFactory | `src/api/app_factory.py` | 앱 초기화 |
+| BatchWorkflow | `src/application/workflows/batch_workflow.py` | 일일 배치 파이프라인 |
+| ChatWorkflow | `src/application/workflows/chat_workflow.py` | 챗 유스케이스 |
+| UnifiedBrain | `src/core/brain.py` | 자율 에이전트 코어 |
+| BrainScheduler | `src/core/brain_scheduler.py` | 스케줄 루프 (brain 에서 분리) |
+| QueryGraph | `src/core/query_graph.py` | **단일 챗 경로** (스트림·비스트림 공통) |
+| ReActAgent | `src/core/react_agent.py` | Self-Reflection (`ENABLE_REACT_AGENT`, 기본 off) |
+| StateManager | `src/core/state_manager.py` | 시스템 상태 단일 출처 |
 | HybridChatbot | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
 | HybridInsight | `src/agents/hybrid_insight_agent.py` | 인사이트 생성 |
 | AlertAgent | `src/agents/alert_agent.py` | 순위 변동 알림 |
-| SuggestionEngine | `src/agents/suggestion_engine.py` | 후속 질문 생성 엔진 |
-| SourceProvider | `src/agents/source_provider.py` | 출처 추출 및 포매팅 |
-| ExternalSignalManager | `src/agents/external_signal_manager.py` | 외부 신호 수집 관리 |
-| HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
+| SuggestionEngine | `src/agents/suggestion_engine.py` | 후속 질문 생성 |
+| SourceProvider | `src/agents/source_provider.py` | 출처 추출·포매팅 |
+| HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 (파사드, 665줄) |
+| Retriever | `src/rag/retriever.py` | 문서 검색 파사드 (676줄) |
 | RetrievalStrategy | `src/rag/retrieval_strategy.py` | OWL + 인텐트 기반 전략 패턴 |
-| ConfidenceFusion | `src/rag/confidence_fusion.py` | 다중 소스 신뢰도 융합 엔진 |
-| Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
-| EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
+| ConfidenceFusion | `src/rag/confidence_fusion.py` | 다중 소스 신뢰도 융합 |
+| ContextBuilder | `src/rag/context_builder.py` | 컨텍스트 조립 + 출처 등록 |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |
-| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 (OWL + Rules) |
+| OntologyReasoner | `src/ontology/reasoner.py` | 규칙 기반 추론 |
+| OWLReasoner | `src/ontology/owl_reasoner.py` | OWL 추론 (**배치 전용**) |
+| Materializer | `src/ontology/materializer.py` | 추론 결과를 KG 에 물질화 (provenance 포함) |
+| Thresholds | `src/ontology/thresholds.py` | `config/thresholds.json` 단일 출처 접근 |
 | PromptRegistry | `prompts/registry.py` | 프롬프트 중앙 관리 |
-| FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default) |
+| FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag (ENV > JSON > default) |
+| Container | `src/infrastructure/container.py` | DI 컨테이너 |
 | MetricCalculator | `src/tools/calculators/metric_calculator.py` | SoS, HHI, CPI |
 | AmazonScraper | `src/tools/scrapers/amazon_scraper.py` | Playwright 크롤러 |
 | KGBackup | `src/tools/utilities/kg_backup.py` | KG 백업 (7일 롤링) |
 | EmailSender | `src/tools/notifications/email_sender.py` | Gmail SMTP |
 | TelegramBot | `src/tools/notifications/telegram_bot.py` | Telegram 알림 |
 | AgentLogger | `src/monitoring/logger.py` | 구조화 로깅 |
-| Container | `src/infrastructure/container.py` | DI 컨테이너 |
+| units | `src/shared/units.py` | 퍼센트 ↔ 분수 변환 (단위 경계 단일 지점) |
+
+> **단위 규약**: `MetricCalculator.calculate_sos` 와 `share_of_shelf`(저장·API)는 **퍼센트**,
+> 온톨로지·KG 메타데이터·규칙은 **분수(0~1)**. 변환은 `src/shared/units.py` 한 곳에서만.
 
 ---
 
@@ -542,6 +459,8 @@ class MyWorkflow:
 - **TDD**: RED → GREEN → REFACTOR
 - **테스트 경로**: `tests/unit/{layer}/test_*.py`
 - **테스트 환경 분리**: `.env.test` 사용
+- **로깅**: 에이전트·워크플로우는 `AgentLogger`, 라이브러리 모듈은
+  `logging.getLogger(__name__)`. CLI(`__main__`)와 docstring 예시의 `print` 는 유지
 
 ---
 
