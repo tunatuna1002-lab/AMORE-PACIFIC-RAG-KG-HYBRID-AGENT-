@@ -158,185 +158,13 @@ class OWLReasoner:
     # =========================================================================
 
     def _define_ontology_structure(self):
-        """OWL 클래스 및 프로퍼티 정의"""
+        """OWL 클래스 및 프로퍼티 정의 (T-Box 정본은 ``src.ontology.tbox``)."""
         if not OWLREADY2_AVAILABLE or not self.onto:
             return
 
-        with self.onto:
-            # ===== Classes =====
-            # owlready2에서 클래스는 먼저 기존 여부를 확인하고 없으면 생성
+        from .tbox import define_tbox
 
-            # Brand 클래스
-            self.onto.Brand or type("Brand", (Thing,), {"namespace": self.onto})
-
-            # Product 클래스
-            self.onto.Product or type("Product", (Thing,), {"namespace": self.onto})
-
-            # Category 클래스
-            self.onto.Category or type("Category", (Thing,), {"namespace": self.onto})
-
-            # Trend 클래스
-            self.onto.Trend or type("Trend", (Thing,), {"namespace": self.onto})
-
-        # 클래스 정의 후 서브클래스와 프로퍼티 정의
-        with self.onto:
-            # Market Position 서브클래스
-            if not self.onto.DominantBrand:
-                type("DominantBrand", (self.onto.Brand,), {"namespace": self.onto})
-
-            if not self.onto.StrongBrand:
-                type("StrongBrand", (self.onto.Brand,), {"namespace": self.onto})
-
-            if not self.onto.NicheBrand:
-                type("NicheBrand", (self.onto.Brand,), {"namespace": self.onto})
-
-            # ===== A-3: Disjointness Axiom =====
-            # Brand 서브클래스 간 상호 배타 (동시에 두 포지션에 속할 수 없음)
-            AllDisjoint(
-                [
-                    self.onto.DominantBrand,
-                    self.onto.StrongBrand,
-                    self.onto.NicheBrand,
-                ]
-            )
-
-            # ===== Object Properties =====
-
-            # hasBrand: Product → Brand
-            if not self.onto.hasBrand:
-
-                class hasBrand(ObjectProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Product]
-                    range = [self.onto.Brand]
-                    python_name = "has_brand"
-
-            # hasProduct: Brand → Product (역관계)
-            if not self.onto.hasProduct:
-
-                class hasProduct(ObjectProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Brand]
-                    range = [self.onto.Product]
-                    python_name = "has_product"
-
-            # belongsToCategory: Product → Category
-            if not self.onto.belongsToCategory:
-
-                class belongsToCategory(ObjectProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Product]
-                    range = [self.onto.Category]
-                    python_name = "belongs_to_category"
-
-            # Cardinality: Product must belong to exactly 1 Category
-            self.onto.Product.is_a.append(
-                self.onto.belongsToCategory.exactly(1, self.onto.Category)
-            )
-
-            # competsWith: Brand → Brand (대칭 관계)
-            if not self.onto.competsWith:
-
-                class competsWith(SymmetricProperty, ObjectProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Brand]
-                    range = [self.onto.Brand]
-                    python_name = "competes_with"
-
-            # hasTrend: Brand → Trend
-            if not self.onto.hasTrend:
-
-                class hasTrend(ObjectProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Brand]
-                    range = [self.onto.Trend]
-                    python_name = "has_trend"
-
-            # ===== Data Properties =====
-
-            # shareOfShelf: Brand → float
-            if not self.onto.shareOfShelf:
-
-                class shareOfShelf(DataProperty, FunctionalProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Brand]
-                    range = [float]
-                    python_name = "share_of_shelf"
-
-            # averageRank: Brand → float
-            if not self.onto.averageRank:
-
-                class averageRank(DataProperty, FunctionalProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Brand]
-                    range = [float]
-                    python_name = "average_rank"
-
-            # productCount: Brand → int
-            if not self.onto.productCount:
-
-                class productCount(DataProperty, FunctionalProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Brand]
-                    range = [int]
-                    python_name = "product_count"
-
-            # rank: Product → int
-            if not self.onto.rank:
-
-                class rank(DataProperty, FunctionalProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Product]
-                    range = [int]
-                    python_name = "rank_value"
-
-            # price: Product → float
-            if not self.onto.price:
-
-                class price(DataProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Product]
-                    range = [float]
-                    python_name = "price_value"
-
-            # rating: Product → float
-            if not self.onto.rating:
-
-                class rating(DataProperty):
-                    namespace = self.onto
-                    domain = [self.onto.Product]
-                    range = [float]
-                    python_name = "rating_value"
-
-        # ===== A-1: OWL Class Restrictions =====
-        # equivalent_to를 사용한 형식적 OWL 2 정의
-        with self.onto:
-            # DominantBrand ≡ Brand ⊓ ∃shareOfShelf[≥0.30]
-            self.onto.DominantBrand.equivalent_to = [
-                self.onto.Brand
-                & self.onto.shareOfShelf.some(ConstrainedDatatype(float, min_inclusive=0.30))
-            ]
-
-            # StrongBrand ≡ Brand ⊓ ∃shareOfShelf[≥0.15 ∧ <0.30]
-            self.onto.StrongBrand.equivalent_to = [
-                self.onto.Brand
-                & self.onto.shareOfShelf.some(
-                    ConstrainedDatatype(float, min_inclusive=0.15, max_exclusive=0.30)
-                )
-            ]
-
-            # NicheBrand ≡ Brand ⊓ ∃shareOfShelf[<0.15]
-            self.onto.NicheBrand.equivalent_to = [
-                self.onto.Brand
-                & self.onto.shareOfShelf.some(ConstrainedDatatype(float, max_exclusive=0.15))
-            ]
-
-        # ===== A-2: inverseOf 선언 =====
-        # hasBrand ↔ hasProduct 역관계 연결
-        with self.onto:
-            if self.onto.hasProduct and self.onto.hasBrand:
-                self.onto.hasProduct.inverse_property = self.onto.hasBrand
-
+        define_tbox(self.onto)
         logger.info("OWL ontology structure defined")
 
     # =========================================================================
@@ -548,6 +376,9 @@ class OWLReasoner:
             return {}
 
         positions = {}
+        from .thresholds import get_thresholds
+
+        thresholds = get_thresholds()
 
         try:
             with self.onto:
@@ -565,11 +396,11 @@ class OWLReasoner:
                     if self.onto.NicheBrand in brand.is_a:
                         brand.is_a.remove(self.onto.NicheBrand)
 
-                    # SoS 기반 분류
-                    if sos >= 0.30:
+                    # SoS 기반 분류 (임계값: thresholds.json ontology.owl_*_sos)
+                    if sos >= thresholds.owl_dominant_sos:
                         brand.is_a.append(self.onto.DominantBrand)
                         positions[brand.name] = "DominantBrand"
-                    elif sos >= 0.15:
+                    elif sos >= thresholds.owl_strong_sos:
                         brand.is_a.append(self.onto.StrongBrand)
                         positions[brand.name] = "StrongBrand"
                     else:

@@ -5,7 +5,7 @@ Market Position and Competition Rules
 
 from src.domain.entities.relations import InsightType, MarketPosition
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
 
 # =========================================================================
 # 규칙 1: 분산 시장 지배자 (Dominant in Fragmented Market)
@@ -15,8 +15,8 @@ RULE_MARKET_DOMINANCE = InferenceRule(
     name="market_dominance_fragmented",
     description="높은 SoS와 낮은 HHI는 분산된 시장에서의 지배적 포지션을 나타냄",
     conditions=[
-        StandardConditions.sos_above(0.15),  # SoS >= 15%
-        StandardConditions.hhi_below(0.15),  # HHI < 0.15 (분산 시장)
+        StandardConditions.sos_above("sos_dominance"),  # SoS >= 15%
+        StandardConditions.hhi_below("hhi_fragmented"),  # HHI < 0.15 (분산 시장)
     ],
     conclusion=lambda ctx: {
         "insight": f"{ctx.get('brand', '해당 브랜드')}는 분산된 시장 구조에서 "
@@ -42,8 +42,8 @@ RULE_DOMINANT_CONCENTRATED = InferenceRule(
     name="market_dominance_concentrated",
     description="높은 SoS와 높은 HHI는 집중된 시장에서의 지배적 포지션을 나타냄",
     conditions=[
-        StandardConditions.sos_above(0.20),  # SoS >= 20%
-        StandardConditions.hhi_above(0.25),  # HHI >= 0.25 (집중 시장)
+        StandardConditions.sos_above("sos_major_player"),  # SoS >= 20%
+        StandardConditions.hhi_above("hhi_concentrated"),  # HHI >= 0.25 (집중 시장)
     ],
     conclusion=lambda ctx: {
         "insight": f"{ctx.get('brand', '해당 브랜드')}는 집중된 시장에서 "
@@ -68,10 +68,10 @@ RULE_CHALLENGER_POSITION = InferenceRule(
     name="challenger_position",
     description="집중 시장에서 중간 수준의 SoS는 도전자 포지션을 나타냄",
     conditions=[
-        StandardConditions.hhi_above(0.25),  # 집중 시장
+        StandardConditions.hhi_above("hhi_concentrated"),  # 집중 시장
         RuleCondition(
             name="mid_sos",
-            check=lambda ctx: 0.05 <= ctx_num(ctx, "sos", 0) < 0.15,
+            check=lambda ctx: T("sos_challenger_min") <= ctx_num(ctx, "sos", 0) < T("sos_dominance"),
             description="SoS 5~15% (중간 수준)",
         ),
     ],
@@ -99,8 +99,8 @@ RULE_FRAGMENTED_COMPETITION = InferenceRule(
     name="fragmented_market_competition",
     description="분산된 시장에서의 다수 경쟁자 존재는 성장 기회와 위협이 공존",
     conditions=[
-        StandardConditions.hhi_below(0.15),  # 분산 시장
-        StandardConditions.has_competitors(5),  # 5개 이상 경쟁사
+        StandardConditions.hhi_below("hhi_fragmented"),  # 분산 시장
+        StandardConditions.has_competitors("competitor_count_many"),  # 5개 이상 경쟁사
     ],
     conclusion=lambda ctx: {
         "insight": f"시장이 분산되어 있고(HHI: {ctx.get('hhi', 0):.3f}) "
@@ -133,7 +133,7 @@ RULE_STRONG_AVG_RANK = InferenceRule(
     conditions=[
         RuleCondition(
             name="low_avg_rank",
-            check=lambda ctx: ctx_num(ctx, "avg_rank", 100) < 20,
+            check=lambda ctx: ctx_num(ctx, "avg_rank", 100) < T("avg_rank_strong"),
             description="평균 순위 < 20",
         ),
         RuleCondition(
@@ -167,10 +167,10 @@ RULE_COMPETITIVE_PRESSURE = InferenceRule(
     conditions=[
         RuleCondition(
             name="sos_declining",
-            check=lambda ctx: ctx_num(ctx, "sos_change", 0) < -0.02,  # SoS 2%p 이상 하락
+            check=lambda ctx: ctx_num(ctx, "sos_change", 0) < T("sos_decline_pp"),  # SoS 2%p 이상 하락
             description="SoS 2%p 이상 하락",
         ),
-        StandardConditions.has_competitors(3),  # 경쟁사 3개 이상
+        StandardConditions.has_competitors("competitor_count_some"),  # 경쟁사 3개 이상
     ],
     conclusion=lambda ctx: {
         "insight": f"점유율이 하락 추세({ctx.get('sos_change', 0) * 100:+.1f}%p)이며 "

@@ -37,6 +37,19 @@ _LAZY: dict[str, str] = {
     "register_all_rules": ".rules",
     "get_rules_by_category": ".rules",
     "get_high_priority_rules": ".rules",
+    "Thresholds": ".thresholds",
+    "get_thresholds": ".thresholds",
+    "load_thresholds": ".thresholds",
+    "set_thresholds": ".thresholds",
+    "build_inference_context": ".inference_context",
+    "normalize_sentiment_clusters": ".inference_context",
+    "OntologyBuilder": ".builder",
+    "BuildResult": ".builder",
+    "canonical_brand": ".builder",
+    "materialize": ".materializer",
+    "list_inferred": ".materializer",
+    "inferred_facts": ".materializer",
+    "define_tbox": ".tbox",
 }
 _OPTIONAL = frozenset(())
 

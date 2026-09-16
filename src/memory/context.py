@@ -9,15 +9,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.memory.conversation_memory import ConversationTurn
 
-@dataclass
-class ConversationTurn:
-    """대화 턴"""
+__all__ = ["ContextManager", "ConversationTurn", "DataContext", "WorkflowContext"]
 
-    role: str  # "user" or "assistant"
-    content: str
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    metadata: dict[str, Any] = field(default_factory=dict)
+
+def _turn_record(turn: ConversationTurn) -> dict[str, Any]:
+    """직렬화 형태: {"role", "content", "timestamp"(ISO), "metadata"}"""
+    return {
+        "role": turn.role,
+        "content": turn.content,
+        "timestamp": turn.timestamp.isoformat(),
+        "metadata": turn.metadata,
+    }
 
 
 @dataclass
@@ -83,7 +87,7 @@ class ContextManager:
     def get_conversation_history(self, limit: int = 10) -> list[dict]:
         """최근 대화 기록 조회"""
         recent = self._conversation[-limit:]
-        return [asdict(turn) for turn in recent]
+        return [_turn_record(turn) for turn in recent]
 
     def get_conversation_summary(self) -> str:
         """대화 요약 생성 (LLM 프롬프트용)"""
@@ -242,7 +246,7 @@ class ContextManager:
         filepath = self.context_dir / f"{session_id}_context.json"
 
         data = {
-            "conversation": [asdict(t) for t in self._conversation],
+            "conversation": [_turn_record(t) for t in self._conversation],
             "workflow": asdict(self._workflow),
             "data": asdict(self._data),
             "variables": self._variables,
@@ -263,7 +267,9 @@ class ContextManager:
             with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
 
-            self._conversation = [ConversationTurn(**t) for t in data.get("conversation", [])]
+            self._conversation = [
+                ConversationTurn.from_dict(t) for t in data.get("conversation", [])
+            ]
             self._workflow = WorkflowContext(**data.get("workflow", {}))
             self._data = DataContext(**data.get("data", {}))
             self._variables = data.get("variables", {})

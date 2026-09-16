@@ -11,6 +11,7 @@ LangGraph add_messages reducer 패턴 적용.
 
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -35,6 +36,23 @@ class ConversationTurn:
             "timestamp": self.timestamp.isoformat(),
             "entities": self.entities,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ConversationTurn":
+        """Inverse of ``to_dict`` (ISO timestamps accepted; unknown keys ignored)."""
+        ts = data.get("timestamp")
+        if isinstance(ts, str):
+            try:
+                ts = datetime.fromisoformat(ts)
+            except ValueError:
+                ts = None
+        return cls(
+            role=data.get("role", "user"),
+            content=data.get("content", ""),
+            timestamp=ts if isinstance(ts, datetime) else datetime.now(),
+            entities=dict(data.get("entities") or {}),
+            metadata=dict(data.get("metadata") or {}),
+        )
 
 
 @dataclass
@@ -86,16 +104,22 @@ class ConversationMemory:
         max_recent_turns: int = 6,
         max_sessions: int = 100,
         max_turns_per_session: int = 50,
+        ttl_hours: float | None = None,
+        now_fn: Callable[[], datetime] | None = None,
     ):
         """
         Args:
             max_recent_turns: LLM에 전달할 최근 턴 수
             max_sessions: 최대 세션 수 (LRU eviction)
             max_turns_per_session: 세션당 최대 턴 수
+            ttl_hours: 마지막 활동 후 이 시간이 지난 세션은 만료 (None = 만료 없음)
+            now_fn: 시계 주입 (테스트용). 기본 ``datetime.now``
         """
         self.max_recent_turns = max_recent_turns
         self.max_sessions = max_sessions
         self.max_turns_per_session = max_turns_per_session
+        self.ttl_hours = ttl_hours
+        self.now_fn: Callable[[], datetime] = now_fn or datetime.now
 
         # 세션별 대화 이력
         self._sessions: dict[str, list[ConversationTurn]] = defaultdict(list)
@@ -105,6 +129,8 @@ class ConversationMemory:
         self._tracked_entities: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
         # 세션 접근 순서 (LRU)
         self._access_order: list[str] = []
+        # 세션별 마지막 활동 시각 (TTL)
+        self._last_activity: dict[str, datetime] = {}
 
     def add_turn(
         self,
@@ -122,8 +148,11 @@ class ConversationMemory:
             content: 메시지 내용
             entities: 추출된 엔티티 (없으면 자동 추출)
         """
-        # LRU 업데이트
+        # 만료 세션 정리 (매 추가 시) + LRU/활동 시각 갱신
+        self.cleanup_expired_sessions()
+        now = self.now_fn()
         self._touch_session(session_id)
+        self._last_activity[session_id] = now
 
         # 엔티티 자동 추출
         if entities is None:
@@ -132,6 +161,7 @@ class ConversationMemory:
         turn = ConversationTurn(
             role=role,
             content=content,
+            timestamp=now,
             entities=entities,
         )
 
@@ -186,13 +216,47 @@ class ConversationMemory:
         """세션 전체 대화 이력"""
         return [t.to_dict() for t in self._sessions.get(session_id, [])]
 
+    def get_recent_turns(self, session_id: str, limit: int | None = None) -> list[dict[str, str]]:
+        """최근 ``limit``개 턴을 ``{"role", "content"}`` 목록으로 (LLM 메시지용)"""
+        turns = self._sessions.get(session_id, [])
+        n = self.max_recent_turns if limit is None else limit
+        recent = turns[-n:] if n > 0 else []
+        return [{"role": t.role, "content": t.content} for t in recent]
+
+    def has_session(self, session_id: str) -> bool:
+        return session_id in self._sessions
+
     def clear_session(self, session_id: str) -> None:
         """세션 초기화"""
         self._sessions.pop(session_id, None)
         self._summaries.pop(session_id, None)
         self._tracked_entities.pop(session_id, None)
+        self._last_activity.pop(session_id, None)
         if session_id in self._access_order:
             self._access_order.remove(session_id)
+
+    def clear(self) -> None:
+        """모든 세션 초기화 (테스트/관리용)"""
+        self._sessions.clear()
+        self._summaries.clear()
+        self._tracked_entities.clear()
+        self._last_activity.clear()
+        self._access_order.clear()
+
+    def cleanup_expired_sessions(self) -> int:
+        """TTL이 지난 세션 제거. 제거된 세션 수 반환 (``ttl_hours`` None이면 0)."""
+        if self.ttl_hours is None:
+            return 0
+        now = self.now_fn()
+        limit_seconds = self.ttl_hours * 3600
+        expired = [
+            sid
+            for sid, last in list(self._last_activity.items())
+            if (now - last).total_seconds() > limit_seconds
+        ]
+        for sid in expired:
+            self.clear_session(sid)
+        return len(expired)
 
     def _touch_session(self, session_id: str) -> None:
         """세션 접근 기록 (LRU)"""

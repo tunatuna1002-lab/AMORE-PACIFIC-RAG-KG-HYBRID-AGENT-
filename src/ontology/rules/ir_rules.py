@@ -5,7 +5,7 @@ IR 크로스 분석 규칙 (2026-01-26 추가)
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, T, ctx_num
 
 RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
     name="ir_prime_day_impact",
@@ -18,7 +18,7 @@ RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
         ),
         RuleCondition(
             name="amazon_rank_surge",
-            check=lambda ctx: ctx_num(ctx, "rank_change_during_event", 0) < -10,
+            check=lambda ctx: ctx_num(ctx, "rank_change_during_event", 0) < -T("ir_event_rank_surge"),
             description="이벤트 기간 순위 10+ 상승",
         ),
     ],
@@ -90,7 +90,8 @@ RULE_IR_GROWTH_MOMENTUM = InferenceRule(
     conditions=[
         RuleCondition(
             name="ir_consecutive_growth",
-            check=lambda ctx: ctx_num(ctx, "ir_consecutive_growth_quarters", 0) >= 2,
+            check=lambda ctx: ctx_num(ctx, "ir_consecutive_growth_quarters", 0)
+            >= T("ir_consecutive_growth_quarters"),
             description="IR 2분기 이상 연속 성장",
         ),
     ],
@@ -122,7 +123,7 @@ RULE_IR_GROWTH_SLOWDOWN = InferenceRule(
             check=lambda ctx: (
                 (
                     ctx_num(ctx, "ir_current_qtr_growth", 0)
-                    < ctx_num(ctx, "ir_prev_qtr_growth", 0) * 0.5
+                    < ctx_num(ctx, "ir_prev_qtr_growth", 0) * T("ir_growth_slowdown_ratio")
                 )
                 if ctx_num(ctx, "ir_prev_qtr_growth", 0) > 0
                 else False

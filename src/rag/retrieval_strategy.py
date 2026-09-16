@@ -280,7 +280,10 @@ class OWLRetrievalStrategy:
 
         await self.doc_retriever.initialize()
 
-        if self.owl_reasoner:
+        # F9-4: reasoning runs offline (batch update_kg -> materializer). The chat path
+        # reads the materialized facts from the KG and never imports owlready2. Request-time
+        # OWL reasoning survives only behind FF_REASONER_OWL_REQUEST_TIME_FALLBACK=true.
+        if self.owl_reasoner and self._request_time_owl_enabled():
             await self.owl_reasoner.initialize()
 
             if self.kg:
@@ -487,10 +490,24 @@ class OWLRetrievalStrategy:
                 return False
         return True
 
+    @staticmethod
+    def _request_time_owl_enabled() -> bool:
+        """Feature-flag guarded fallback: run owlready2 at request time (default off)."""
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        return FeatureFlags.get_instance().get_flag(
+            "reasoner", "owl_request_time_fallback", default=False
+        )
+
     async def _infer_with_ontology(
         self, entities: list, current_metrics: dict[str, Any] | None
     ) -> dict[str, Any]:
-        """Execute OWL ontology reasoning."""
+        """Ontology inference for the chat path.
+
+        Reads the facts materialized by the batch (``src.ontology.materializer``) from the
+        JSON KG. Falls back to request-time owlready2 reasoning only when the
+        ``reasoner.owl_request_time_fallback`` flag is on and nothing is materialized.
+        """
         context: dict[str, Any] = {"inferences": [], "facts": [], "related_docs": []}
 
         from src.infrastructure.feature_flags import FeatureFlags
@@ -503,49 +520,94 @@ class OWLRetrievalStrategy:
             return context
 
         try:
-            # Fallback to OWL-only reasoning
-            if self.owl_reasoner and flags.use_owl_reasoner():
-                inferred_facts = self.owl_reasoner.get_inferred_facts()
-                context["facts"] = inferred_facts
+            brand_entities = self._brand_entity_ids(entities)
+            if self.kg is not None:
+                from src.ontology.materializer import brand_position, inferred_facts
 
-                for entity in entities:
-                    entity_type = (
-                        entity.entity_type.value
-                        if hasattr(entity.entity_type, "value")
-                        else entity.entity_type
-                    )
-                    entity_id = (
-                        entity.ontology_id
-                        if hasattr(entity, "ontology_id")
-                        else getattr(entity, "concept_label", entity.text)
-                    )
-                    if entity_type == "brand":
-                        brand_info = self.owl_reasoner.get_brand_info(entity_id)
-                        if brand_info:
-                            position = brand_info.get("market_position")
-                            if position:
-                                context["inferences"].append(
-                                    {
-                                        "type": "market_position",
-                                        "brand": entity_id,
-                                        "position": position,
-                                        "sos": brand_info.get("sos", 0.0),
-                                    }
-                                )
-                            competitors = brand_info.get("competitors", [])
-                            if competitors:
-                                context["inferences"].append(
-                                    {
-                                        "type": "competition",
-                                        "brand": entity_id,
-                                        "competitors": competitors[:5],
-                                    }
-                                )
+                facts = inferred_facts(self.kg)
+                if facts:
+                    context["facts"] = facts
+                    for entity_id in brand_entities:
+                        position = brand_position(self.kg, entity_id)
+                        if position:
+                            context["inferences"].append(
+                                {
+                                    "type": "market_position",
+                                    "brand": entity_id,
+                                    "position": position["position"],
+                                    "sos": position.get("sos", 0.0),
+                                    "categories": position.get("categories", {}),
+                                    "provenance": position.get("provenance"),
+                                }
+                            )
+                        competitors = [
+                            f["object"]
+                            for f in inferred_facts(self.kg, entity_id)
+                            if f["type"] == "competition"
+                        ]
+                        if competitors:
+                            context["inferences"].append(
+                                {
+                                    "type": "competition",
+                                    "brand": entity_id,
+                                    "competitors": competitors[:5],
+                                    "provenance": "owl:competesWith.symmetric",
+                                }
+                            )
+                    return context
+
+            # Fallback: request-time OWL reasoning (feature-flag guarded)
+            if self.owl_reasoner and self._request_time_owl_enabled():
+                context["facts"] = self.owl_reasoner.get_inferred_facts()
+                for entity_id in brand_entities:
+                    brand_info = self.owl_reasoner.get_brand_info(entity_id)
+                    if not brand_info:
+                        continue
+                    position = brand_info.get("market_position")
+                    if position:
+                        context["inferences"].append(
+                            {
+                                "type": "market_position",
+                                "brand": entity_id,
+                                "position": position,
+                                "sos": brand_info.get("sos", 0.0),
+                            }
+                        )
+                    competitors = brand_info.get("competitors", [])
+                    if competitors:
+                        context["inferences"].append(
+                            {
+                                "type": "competition",
+                                "brand": entity_id,
+                                "competitors": competitors[:5],
+                            }
+                        )
 
         except Exception as e:
             logger.warning(f"Ontology inference failed: {e}")
 
         return context
+
+    @staticmethod
+    def _brand_entity_ids(entities: list) -> list[str]:
+        """Ontology ids of the brand entities among linked entities."""
+        ids: list[str] = []
+        for entity in entities or []:
+            entity_type = (
+                entity.entity_type.value
+                if hasattr(entity.entity_type, "value")
+                else entity.entity_type
+            )
+            if entity_type != "brand":
+                continue
+            entity_id = (
+                entity.ontology_id
+                if getattr(entity, "ontology_id", None)
+                else getattr(entity, "concept_label", None) or entity.text
+            )
+            if entity_id:
+                ids.append(entity_id)
+        return ids
 
     async def _rerank(
         self, query: str, documents: list[dict[str, Any]], top_k: int

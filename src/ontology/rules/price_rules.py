@@ -7,7 +7,7 @@ from typing import Any
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
 
 # =========================================================================
 # 헬퍼 함수: 순위-할인 상관관계 분석
@@ -146,8 +146,8 @@ def calculate_premium_defense_index(
     price_premium = (price - category_avg_price) / category_avg_price * 100
 
     # 프리미엄 가격인데 좋은 순위면 높은 점수
-    if price_premium > 20:  # 평균보다 20% 이상 비쌈
-        if rank <= 10:
+    if price_premium > T("price_premium_pct"):  # 평균보다 20% 이상 비쌈
+        if rank <= T("top_n"):
             return {
                 "index": 90,
                 "interpretation": "강력한 프리미엄 방어",
@@ -200,7 +200,7 @@ def rule_discount_dependent(product_data: dict) -> dict | None:
     overlap_count = count_period_overlap(discount_periods, rank_improvements)
     overlap_ratio = overlap_count / len(rank_improvements) if rank_improvements else 0
 
-    if overlap_ratio >= 0.8:
+    if overlap_ratio >= T("discount_overlap_ratio"):
         return {
             "rule_name": "discount_dependent",
             "insight_type": "price_dependency",
@@ -288,7 +288,7 @@ RULE_VALUE_POSITION = InferenceRule(
     name="value_position",
     description="낮은 CPI와 높은 평점은 강한 가성비 포지션을 나타냄",
     conditions=[
-        StandardConditions.cpi_below(90),  # CPI < 90 (가성비)
+        StandardConditions.cpi_below("cpi_value"),  # CPI < 90 (가성비)
         StandardConditions.rating_gap_positive(),  # 평점 우위
     ],
     conclusion=lambda ctx: {
@@ -314,7 +314,7 @@ RULE_PREMIUM_POSITION = InferenceRule(
     name="premium_price_position",
     description="높은 CPI와 높은 평점은 성공적인 프리미엄 포지셔닝을 나타냄",
     conditions=[
-        StandardConditions.cpi_above(150),  # CPI > 150 (프리미엄)
+        StandardConditions.cpi_above("cpi_luxury"),  # CPI > 150 (프리미엄)
         RuleCondition(
             name="good_rating",
             check=lambda ctx: ctx_num(ctx, "rating_gap", 0) >= 0,
@@ -362,7 +362,7 @@ RULE_DISCOUNT_DEPENDENT = InferenceRule(
                         ctx.get("discount_periods", []), ctx.get("rank_improvements", [])
                     )
                     / len(ctx.get("rank_improvements", [1]))
-                    >= 0.8
+                    >= T("discount_overlap_ratio")
                 )
                 if ctx.get("rank_improvements")
                 else False
@@ -446,7 +446,7 @@ RULE_BESTSELLER_BADGE_EFFECT = InferenceRule(
         ),
         RuleCondition(
             name="rank_stable",
-            check=lambda ctx: abs(ctx_num(ctx, "rank_change_7d", 0)) <= 3,
+            check=lambda ctx: abs(ctx_num(ctx, "rank_change_7d", 0)) <= T("rank_stable_abs"),
             description="순위 변동 ±3 이내 (안정)",
         ),
     ],
@@ -482,7 +482,8 @@ RULE_HIGH_DISCOUNT_DEPENDENCY_SCORE = InferenceRule(
         RuleCondition(
             name="high_dependency",
             check=lambda ctx: (
-                calculate_discount_dependency_score(ctx.get("product_history", [])) >= 61
+                calculate_discount_dependency_score(ctx.get("product_history", []))
+                >= T("discount_dependency_score")
             ),
             description="할인 의존도 점수 >= 61",
         ),
@@ -526,7 +527,7 @@ RULE_PREMIUM_DEFENSE_SUCCESS = InferenceRule(
                     (ctx_num(ctx, "price", 0) - ctx_num(ctx, "category_avg_price", 0))
                     / ctx_num(ctx, "category_avg_price", 1)
                     * 100
-                    > 20
+                    > T("price_premium_pct")
                 )
                 if ctx.get("category_avg_price")
                 else False
@@ -535,7 +536,7 @@ RULE_PREMIUM_DEFENSE_SUCCESS = InferenceRule(
         ),
         RuleCondition(
             name="good_rank",
-            check=lambda ctx: ctx_num(ctx, "rank", 100) <= 10,
+            check=lambda ctx: ctx_num(ctx, "rank", 100) <= T("top_n"),
             description="Top 10 순위",
         ),
     ],

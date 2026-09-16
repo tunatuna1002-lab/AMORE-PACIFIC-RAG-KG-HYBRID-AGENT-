@@ -5,7 +5,7 @@ Risk and Alert Rules
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
 
 # =========================================================================
 # 규칙: 가격-품질 불일치 (Price-Quality Mismatch)
@@ -15,7 +15,7 @@ RULE_PRICE_QUALITY_MISMATCH = InferenceRule(
     name="price_quality_mismatch",
     description="높은 CPI와 낮은 평점 갭은 가격 대비 품질 인식 문제 가능성을 나타냄",
     conditions=[
-        StandardConditions.cpi_above(110),  # CPI > 110 (프리미엄)
+        StandardConditions.cpi_above("cpi_premium"),  # CPI > 110 (프리미엄)
         StandardConditions.rating_gap_negative(),  # 평점 경쟁 열위
     ],
     conclusion=lambda ctx: {
@@ -44,7 +44,7 @@ RULE_MARKET_DISRUPTION = InferenceRule(
     description="순위 급변과 높은 Churn Rate는 시장 구조 변화 신호",
     conditions=[
         StandardConditions.has_rank_shock(),
-        StandardConditions.churn_rate_high(0.2),
+        StandardConditions.churn_rate_high("churn_rate_high"),
     ],
     conclusion=lambda ctx: {
         "insight": f"순위 급변과 높은 시장 변동성(Churn Rate: {ctx.get('churn_rate', 0) * 100:.1f}%)이 "
@@ -73,7 +73,7 @@ RULE_RANK_DECLINE = InferenceRule(
         StandardConditions.rank_declining(),
         RuleCondition(
             name="high_volatility",
-            check=lambda ctx: ctx_num(ctx, "rank_volatility", 0) > 5,
+            check=lambda ctx: ctx_num(ctx, "rank_volatility", 0) > T("rank_volatility_high"),
             description="순위 변동성 > 5",
         ),
     ],

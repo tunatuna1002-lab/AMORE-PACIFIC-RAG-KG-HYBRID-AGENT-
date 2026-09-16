@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from src.shared.constants import KST
+from src.ontology.inference_context import build_inference_context
 from src.shared.units import percent_to_fraction
 
 # 한국 시간대 (UTC+9)
@@ -1439,7 +1440,11 @@ class DashboardExporter:
         }
 
     def _build_inference_context(self, dashboard_data: dict[str, Any]) -> dict[str, Any]:
-        """추론 컨텍스트 구성"""
+        """추론 컨텍스트 구성 (``src.ontology.inference_context`` 단일 빌더에 위임).
+
+        대시보드 데이터를 MetricsAgent 형태로 바꿔 넘기고, 대시보드에만 있는
+        ``top1_sos`` / ``best_rank`` / ``competitor_count`` 만 여기서 덧붙인다.
+        """
         brand_kpis = dashboard_data.get("brand", {}).get("kpis", {})
         categories = dashboard_data.get("categories", {})
         products = dashboard_data.get("products", {})
@@ -1454,40 +1459,46 @@ class DashboardExporter:
                 best_rank = rank
                 best_asin = asin
 
-        # 첫 번째 카테고리 기준
+        first_cat_id = next(iter(categories.keys()), "unknown")
         first_cat = next(iter(categories.values()), {}) if categories else {}
 
-        # 대시보드 KPI 의 sos 는 PERCENT, 규칙 컨텍스트는 FRACTION (src.shared.units 가 유일한 변환점)
-        context: dict[str, Any] = {
-            # 브랜드 지표
-            "brand": "LANEIGE",
-            "is_target": True,
-            "sos": percent_to_fraction(brand_kpis.get("sos") or 0.0),
+        # 대시보드 KPI 의 sos 는 PERCENT -> 단일 빌더가 분수로 변환한다
+        brand_metric: dict[str, Any] = {
+            "brand_name": "LANEIGE",
+            "is_laneige": True,
+            "share_of_shelf": brand_kpis.get("sos") or 0.0,
             "avg_rank": brand_kpis.get("avg_rank", 0),
             "product_count": len(products),
-            # 시장 지표
-            "hhi": brand_kpis.get("hhi", 0),
-            "top1_sos": (
-                percent_to_fraction(competitors[0].get("sos") or 0.0) if competitors else 0.0
-            ),
-            # 카테고리 지표
-            "category": next(iter(categories.keys()), "unknown"),
-            "cpi": first_cat.get("cpi", 100),
-            "best_rank": first_cat.get("best_rank", best_rank),
-            # 경쟁 지표
-            "competitor_count": len(
-                [c for c in competitors if c.get("brand", "").upper() != "LANEIGE"]
-            ),
-            # 제품 지표
-            "current_rank": best_rank,
         }
-
+        market_metric: dict[str, Any] = {
+            "category_id": first_cat_id,
+            "hhi": brand_kpis.get("hhi", 0),
+            "cpi": first_cat.get("cpi", 100),
+        }
+        product_metric: dict[str, Any] = {"asin": best_asin, "current_rank": best_rank}
         # rank_change_7d 는 실제 계산된 액션 아이템에서만 가져온다. streak_days / rating_gap 은
         # 계산 근거가 없으므로 넣지 않는다 (임의 기본값은 규칙을 오발동시킨다).
         rank_change_7d = self._lookup_rank_change_7d(dashboard_data, best_asin)
         if rank_change_7d is not None:
-            context["rank_change_7d"] = rank_change_7d
+            product_metric["rank_change_7d"] = rank_change_7d
 
+        context = build_inference_context(
+            {"brand_metrics": [brand_metric], "market_metrics": [market_metric]},
+            "LANEIGE",
+            products=[product_metric],
+            category=first_cat_id,
+        )
+        context.pop("asin", None)
+        context.pop("has_rank_shock", None)
+        context.pop("alert_count", None)
+        context["current_rank"] = best_rank
+        context["top1_sos"] = (
+            percent_to_fraction(competitors[0].get("sos") or 0.0) if competitors else 0.0
+        )
+        context["best_rank"] = first_cat.get("best_rank", best_rank)
+        context["competitor_count"] = len(
+            [c for c in competitors if c.get("brand", "").upper() != "LANEIGE"]
+        )
         return context
 
     @staticmethod

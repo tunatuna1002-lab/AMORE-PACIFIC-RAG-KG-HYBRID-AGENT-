@@ -110,7 +110,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 from src.core.intent import classify_intent as _unified_classify
 from src.core.intent import to_query_intent as _to_query_intent
-from src.shared.units import percent_to_fraction
+from src.ontology.inference_context import build_inference_context, normalize_sentiment_clusters
 
 from .entity_linker import product_name_slugs as _product_name_slugs
 
@@ -1088,28 +1088,17 @@ class HybridRetriever:
 
     @staticmethod
     def _normalize_sentiment_clusters(clusters: Any) -> dict[str, Any]:
-        """감성 클러스터를 규칙이 읽는 dict 형태로 정규화.
-
-        - dict (``{"Hydration": 2}`` 또는 ``{"Hydration": [...]}``) 는 그대로
-        - list/tuple/set (``["Hydration", "Sensory"]``) 는 ``{cluster: count}`` 로
-        - None/빈 값은 ``{}``
-        """
-        if not clusters:
-            return {}
-        if isinstance(clusters, dict):
-            return dict(clusters)
-        if isinstance(clusters, (list, tuple, set)):
-            counts: dict[str, int] = {}
-            for cluster in clusters:
-                counts[cluster] = counts.get(cluster, 0) + 1
-            return counts
-        return {}
+        """감성 클러스터 정규화 (``src.ontology.inference_context`` 로 위임)."""
+        return normalize_sentiment_clusters(clusters)
 
     def _build_inference_context(
         self, entities: dict[str, list[str]], current_metrics: dict[str, Any]
     ) -> dict[str, Any]:
         """
         추론용 컨텍스트 구성
+
+        지표 정규화(퍼센트→분수, 기본값 미조작)는 ``src.ontology.inference_context`` 의 단일
+        빌더가 담당하고, 여기서는 KG 조회(경쟁사·트렌드·감성)만 덧붙인다.
 
         Args:
             entities: 추출된 엔티티
@@ -1118,71 +1107,9 @@ class HybridRetriever:
         Returns:
             추론 컨텍스트
         """
-        context = {}
-
-        # 엔티티 정보
-        if entities.get("brands"):
-            context["brand"] = entities["brands"][0]  # 첫 번째 브랜드
-            context["is_target"] = entities["brands"][0].lower() == "laneige"
-
-        if entities.get("categories"):
-            context["category"] = entities["categories"][0]
-
-        # 메트릭 정보 (summary에서)
-        summary = current_metrics.get("summary", {})
-
-        # 브랜드별 SoS
-        sos_by_category = summary.get("laneige_sos_by_category", {})
-        # summary.laneige_sos_by_category / brand_metrics.share_of_shelf 는 PERCENT,
-        # 추론 컨텍스트(규칙)는 FRACTION -> 여기서만 변환한다 (src.shared.units)
-        if entities.get("categories") and entities["categories"][0] in sos_by_category:
-            context["sos"] = percent_to_fraction(sos_by_category[entities["categories"][0]])
-        elif sos_by_category:
-            # 첫 번째 카테고리의 SoS
-            context["sos"] = percent_to_fraction(list(sos_by_category.values())[0])
-
-        # 브랜드 메트릭에서 추가 정보
-        brand_metrics = current_metrics.get("brand_metrics", [])
-        for bm in brand_metrics:
-            if (
-                bm.get("is_laneige")
-                or bm.get("brand_name", "").lower() == context.get("brand", "").lower()
-            ):
-                context["sos"] = (
-                    percent_to_fraction(bm["share_of_shelf"])
-                    if "share_of_shelf" in bm
-                    else context.get("sos", 0)
-                )
-                context["avg_rank"] = bm.get("avg_rank")
-                context["product_count"] = bm.get("product_count", 0)
-                break
-
-        # 마켓 메트릭에서 HHI 등
-        market_metrics = current_metrics.get("market_metrics", [])
-        for mm in market_metrics:
-            if not entities.get("categories") or mm.get("category_id") == entities["categories"][0]:
-                context["hhi"] = mm.get("hhi", 0)
-                context["cpi"] = mm.get("cpi", 100)
-                context["churn_rate"] = mm.get("churn_rate_7d", 0)
-                context["rating_gap"] = mm.get("avg_rating_gap", 0)
-                break
-
-        # 제품 메트릭에서
-        product_metrics = current_metrics.get("product_metrics", [])
-        if product_metrics:
-            # 첫 번째 제품 또는 가장 좋은 순위 제품
-            best_product = min(product_metrics, key=lambda p: p.get("current_rank", 100))
-            context["current_rank"] = best_product.get("current_rank")
-            context["rank_change_1d"] = best_product.get("rank_change_1d")
-            context["rank_change_7d"] = best_product.get("rank_change_7d")
-            context["rank_volatility"] = best_product.get("rank_volatility", 0)
-            context["streak_days"] = best_product.get("streak_days", 0)
-            context["asin"] = best_product.get("asin")
-
-        # 알림 정보
-        alerts = current_metrics.get("alerts", [])
-        context["has_rank_shock"] = any(a.get("type") == "rank_shock" for a in alerts)
-        context["alert_count"] = len(alerts)
+        brand = entities["brands"][0] if entities.get("brands") else None
+        category = entities["categories"][0] if entities.get("categories") else None
+        context = build_inference_context(current_metrics or {}, brand, category=category)
 
         # 경쟁사 수 (지식 그래프에서)
         if context.get("brand"):

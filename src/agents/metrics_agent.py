@@ -284,13 +284,18 @@ class MetricsAgent:
         current_rank = product_metric.get("current_rank", 0)
         rank_change_1d = product_metric.get("rank_change_1d")
 
-        # 순위 급락 알림
+        # 순위 급락 알림 (임계값: thresholds.json ranking.significant_drop / significant_rise)
+        from src.ontology.thresholds import get_thresholds
+
+        thresholds = get_thresholds()
         significant_drop = self._significant_drop_threshold()
+        critical_drop = thresholds.rank_rise
+        top_n = thresholds.top_n
         if rank_change_1d and rank_change_1d >= significant_drop:
             alerts.append(
                 {
                     "type": "rank_drop",
-                    "severity": "warning" if rank_change_1d < 10 else "critical",
+                    "severity": "warning" if rank_change_1d < critical_drop else "critical",
                     "asin": product_metric["asin"],
                     "title": product_metric["product_title"],
                     "message": f"순위 {rank_change_1d}단계 하락 (현재 {current_rank}위)",
@@ -303,16 +308,16 @@ class MetricsAgent:
             )
 
         # Top 10 진입 알림
-        if current_rank <= 10:
+        if current_rank <= top_n:
             previous_rank = current_rank - (rank_change_1d or 0)
-            if previous_rank > 10:
+            if previous_rank > top_n:
                 alerts.append(
                     {
                         "type": "top10_entry",
                         "severity": "info",
                         "asin": product_metric["asin"],
                         "title": product_metric["product_title"],
-                        "message": f"Top 10 진입 ({current_rank}위)",
+                        "message": f"Top {top_n} 진입 ({current_rank}위)",
                         "details": {
                             "current_rank": current_rank,
                             "category": product_metric["category_id"],
@@ -345,16 +350,10 @@ class MetricsAgent:
         return alerts
 
     def _significant_drop_threshold(self) -> int:
-        """순위 급락 임계값 조회
+        """순위 급락 임계값 (config/thresholds.json ``ranking.significant_drop`` 단일 출처)."""
+        from src.ontology.thresholds import get_thresholds
 
-        config/thresholds.json의 실제 키는 ``ranking.significant_drop``이다.
-        과거 코드가 참조하던 ``thresholds.significant_rank_drop``은 fallback으로만 사용한다.
-        """
-        ranking = self.config.get("ranking", {})
-        if "significant_drop" in ranking:
-            return int(ranking["significant_drop"])
-        legacy = self.config.get("thresholds", {})
-        return int(legacy.get("significant_rank_drop", 5))
+        return int(get_thresholds().rank_drop)
 
     def _calc_avg_rating_gap(self, products: list[dict]) -> float | None:
         """평균 평점 갭 계산"""

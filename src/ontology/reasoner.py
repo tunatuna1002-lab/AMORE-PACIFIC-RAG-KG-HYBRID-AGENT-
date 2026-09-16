@@ -93,6 +93,8 @@ from typing import Any
 from src.domain.entities.relations import InferenceResult, InsightType
 
 from .knowledge_graph import KnowledgeGraph
+from .thresholds import get_thresholds
+from .thresholds import threshold as T
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -675,6 +677,7 @@ def _num(ctx: dict[str, Any], key: str, default: float) -> float:
 ctx_num = _num  # 규칙 모듈용 공개 별칭
 
 
+
 def cluster_size(value: Any) -> int:
     """감성 클러스터 값의 크기.
 
@@ -694,60 +697,89 @@ def cluster_size(value: Any) -> int:
 
 
 class StandardConditions:
-    """자주 사용되는 표준 조건들"""
+    """자주 사용되는 표준 조건들
+
+    임계값 인자는 숫자 또는 ``Thresholds`` 필드명(str)을 받는다. 필드명을 주면 조건 이름·설명은
+    생성 시점의 값으로 고정되지만 판정은 매번 ``get_thresholds()`` 를 읽는다 (설정이 실효).
+    """
 
     @staticmethod
-    def sos_above(threshold: float) -> RuleCondition:
+    def _resolve(threshold: float | str) -> Callable[[], float]:
+        if isinstance(threshold, str):
+            key = threshold
+            return lambda: float(getattr(get_thresholds(), key))
+        value = float(threshold)
+        return lambda: value
+
+    @staticmethod
+    def _label(threshold: float | str) -> float:
+        value = StandardConditions._resolve(threshold)()
+        return int(value) if float(value).is_integer() else value
+
+    @staticmethod
+    def sos_above(threshold: float | str) -> RuleCondition:
         """SoS가 임계값 이상"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"sos_above_{threshold}",
-            check=lambda ctx: _num(ctx, "sos", 0) >= threshold,
-            description=f"SoS >= {threshold * 100:.0f}%",
+            name=f"sos_above_{label}",
+            check=lambda ctx: _num(ctx, "sos", 0) >= get(),
+            description=f"SoS >= {label * 100:.0f}%",
         )
 
     @staticmethod
-    def sos_below(threshold: float) -> RuleCondition:
+    def sos_below(threshold: float | str) -> RuleCondition:
         """SoS가 임계값 이하"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"sos_below_{threshold}",
-            check=lambda ctx: _num(ctx, "sos", 0) < threshold,
-            description=f"SoS < {threshold * 100:.0f}%",
+            name=f"sos_below_{label}",
+            check=lambda ctx: _num(ctx, "sos", 0) < get(),
+            description=f"SoS < {label * 100:.0f}%",
         )
 
     @staticmethod
-    def hhi_above(threshold: float) -> RuleCondition:
+    def hhi_above(threshold: float | str) -> RuleCondition:
         """HHI가 임계값 이상 (집중 시장)"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"hhi_above_{threshold}",
-            check=lambda ctx: _num(ctx, "hhi", 0) >= threshold,
-            description=f"HHI >= {threshold} (집중 시장)",
+            name=f"hhi_above_{label}",
+            check=lambda ctx: _num(ctx, "hhi", 0) >= get(),
+            description=f"HHI >= {label} (집중 시장)",
         )
 
     @staticmethod
-    def hhi_below(threshold: float) -> RuleCondition:
+    def hhi_below(threshold: float | str) -> RuleCondition:
         """HHI가 임계값 이하 (분산 시장)"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"hhi_below_{threshold}",
-            check=lambda ctx: _num(ctx, "hhi", 0) < threshold,
-            description=f"HHI < {threshold} (분산 시장)",
+            name=f"hhi_below_{label}",
+            check=lambda ctx: _num(ctx, "hhi", 0) < get(),
+            description=f"HHI < {label} (분산 시장)",
         )
 
     @staticmethod
-    def cpi_above(threshold: float) -> RuleCondition:
+    def cpi_above(threshold: float | str) -> RuleCondition:
         """CPI가 임계값 이상 (프리미엄)"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"cpi_above_{threshold}",
-            check=lambda ctx: _num(ctx, "cpi", 100) > threshold,
-            description=f"CPI > {threshold} (프리미엄 포지션)",
+            name=f"cpi_above_{label}",
+            check=lambda ctx: _num(ctx, "cpi", 100) > get(),
+            description=f"CPI > {label} (프리미엄 포지션)",
         )
 
     @staticmethod
-    def cpi_below(threshold: float) -> RuleCondition:
+    def cpi_below(threshold: float | str) -> RuleCondition:
         """CPI가 임계값 이하 (가성비)"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"cpi_below_{threshold}",
-            check=lambda ctx: _num(ctx, "cpi", 100) < threshold,
-            description=f"CPI < {threshold} (가성비 포지션)",
+            name=f"cpi_below_{label}",
+            check=lambda ctx: _num(ctx, "cpi", 100) < get(),
+            description=f"CPI < {label} (가성비 포지션)",
         )
 
     @staticmethod
@@ -778,21 +810,25 @@ class StandardConditions:
         )
 
     @staticmethod
-    def churn_rate_high(threshold: float = 0.2) -> RuleCondition:
+    def churn_rate_high(threshold: float | str = "churn_rate_high") -> RuleCondition:
         """Churn Rate가 높음"""
+        get = StandardConditions._resolve(threshold)
+        label = StandardConditions._label(threshold)
         return RuleCondition(
-            name=f"churn_rate_high_{threshold}",
-            check=lambda ctx: _num(ctx, "churn_rate", 0) > threshold,
-            description=f"Churn Rate > {threshold * 100:.0f}%",
+            name=f"churn_rate_high_{label}",
+            check=lambda ctx: _num(ctx, "churn_rate", 0) > get(),
+            description=f"Churn Rate > {label * 100:.0f}%",
         )
 
     @staticmethod
-    def streak_days_above(days: int) -> RuleCondition:
+    def streak_days_above(days: int | str) -> RuleCondition:
         """연속 체류일이 N일 이상"""
+        get = StandardConditions._resolve(days)
+        label = StandardConditions._label(days)
         return RuleCondition(
-            name=f"streak_above_{days}",
-            check=lambda ctx: _num(ctx, "streak_days", 0) >= days,
-            description=f"Top N 연속 체류 >= {days}일",
+            name=f"streak_above_{label}",
+            check=lambda ctx: _num(ctx, "streak_days", 0) >= get(),
+            description=f"Top N 연속 체류 >= {label}일",
         )
 
     @staticmethod
@@ -825,21 +861,25 @@ class StandardConditions:
         )
 
     @staticmethod
-    def has_competitors(min_count: int = 1) -> RuleCondition:
+    def has_competitors(min_count: int | str = 1) -> RuleCondition:
         """경쟁사가 N개 이상"""
+        get = StandardConditions._resolve(min_count)
+        label = StandardConditions._label(min_count)
         return RuleCondition(
-            name=f"has_competitors_{min_count}",
-            check=lambda ctx: _num(ctx, "competitor_count", 0) >= min_count,
-            description=f"경쟁사 >= {min_count}개",
+            name=f"has_competitors_{label}",
+            check=lambda ctx: _num(ctx, "competitor_count", 0) >= get(),
+            description=f"경쟁사 >= {label}개",
         )
 
     @staticmethod
-    def in_top_n(n: int) -> RuleCondition:
+    def in_top_n(n: int | str) -> RuleCondition:
         """Top N 이내"""
+        get = StandardConditions._resolve(n)
+        label = StandardConditions._label(n)
         return RuleCondition(
-            name=f"in_top_{n}",
-            check=lambda ctx: (ctx.get("current_rank") or 100) <= n,
-            description=f"현재 순위 Top {n} 이내",
+            name=f"in_top_{label}",
+            check=lambda ctx: (ctx.get("current_rank") or 100) <= get(),
+            description=f"현재 순위 Top {label} 이내",
         )
 
 

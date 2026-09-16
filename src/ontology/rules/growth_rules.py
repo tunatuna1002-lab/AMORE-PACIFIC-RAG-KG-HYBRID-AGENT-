@@ -5,7 +5,7 @@ Growth, Opportunity, and Stability Rules
 
 from src.domain.entities.relations import InsightType, MarketPosition
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
 
 # =========================================================================
 # 규칙: 안정적 성장 (Stable Growth)
@@ -15,7 +15,7 @@ RULE_STABLE_GROWTH = InferenceRule(
     name="stable_growth",
     description="장기 Top N 체류와 순위 상승 추세는 안정적 성장을 나타냄",
     conditions=[
-        StandardConditions.streak_days_above(30),  # 30일 이상 연속 체류
+        StandardConditions.streak_days_above("streak_long_days"),  # 30일 이상 연속 체류
         StandardConditions.rank_improving(),  # 순위 상승 중
     ],
     conclusion=lambda ctx: {
@@ -47,7 +47,7 @@ RULE_TREND_ALIGNMENT = InferenceRule(
     conditions=[
         RuleCondition(
             name="has_trend_keywords",
-            check=lambda ctx: len(ctx.get("trend_keywords") or []) >= 2,
+            check=lambda ctx: len(ctx.get("trend_keywords") or []) >= T("trend_keywords_min"),
             description="트렌드 키워드 2개 이상",
         ),
         StandardConditions.is_target_brand(),
@@ -75,11 +75,11 @@ RULE_TOP10_STABILITY = InferenceRule(
     name="top10_stability",
     description="Top 10 장기 체류는 안정적인 시장 포지션을 나타냄",
     conditions=[
-        StandardConditions.in_top_n(10),
-        StandardConditions.streak_days_above(14),  # 2주 이상 연속
+        StandardConditions.in_top_n("top_n"),
+        StandardConditions.streak_days_above("streak_short_days"),  # 2주 이상 연속
         RuleCondition(
             name="low_volatility",
-            check=lambda ctx: ctx_num(ctx, "rank_volatility", 10) < 3,
+            check=lambda ctx: ctx_num(ctx, "rank_volatility", 10) < T("rank_volatility_low"),
             description="순위 변동성 < 3 (안정적)",
         ),
     ],
@@ -111,10 +111,10 @@ RULE_CATEGORY_OPPORTUNITY = InferenceRule(
     name="category_entry_opportunity",
     description="분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
     conditions=[
-        StandardConditions.hhi_below(0.15),  # 분산 시장
+        StandardConditions.hhi_below("hhi_fragmented"),  # 분산 시장
         RuleCondition(
             name="low_target_presence",
-            check=lambda ctx: ctx_num(ctx, "sos", 0) < 0.03,  # SoS < 3%
+            check=lambda ctx: ctx_num(ctx, "sos", 0) < T("sos_niche_max"),  # SoS < 3%
             description="타겟 브랜드 점유율 < 3%",
         ),
         RuleCondition(
@@ -154,12 +154,12 @@ RULE_RATING_MOMENTUM = InferenceRule(
     conditions=[
         RuleCondition(
             name="rating_trend_positive",
-            check=lambda ctx: ctx_num(ctx, "rating_trend", 0) > 0.05,
+            check=lambda ctx: ctx_num(ctx, "rating_trend", 0) > T("rating_trend_up"),
             description="평점 추세 양수 (상승)",
         ),
         RuleCondition(
             name="has_reviews",
-            check=lambda ctx: ctx_num(ctx, "review_count", 0) > 100,
+            check=lambda ctx: ctx_num(ctx, "review_count", 0) > T("review_count_min"),
             description="리뷰 100개 이상 (신뢰성)",
         ),
     ],
@@ -190,7 +190,7 @@ RULE_TOP3_ACHIEVEMENT = InferenceRule(
     name="top3_achievement",
     description="Top 3 순위 달성은 카테고리 내 강한 경쟁력을 나타냄",
     conditions=[
-        StandardConditions.in_top_n(3),  # Top 3 이내
+        StandardConditions.in_top_n("top_n_leader"),  # Top 3 이내
         RuleCondition(
             name="is_target_brand",
             check=lambda ctx: (
@@ -224,7 +224,7 @@ RULE_STRONG_RATING = InferenceRule(
     conditions=[
         RuleCondition(
             name="rating_advantage",
-            check=lambda ctx: ctx_num(ctx, "rating_gap", 0) > 0.05,
+            check=lambda ctx: ctx_num(ctx, "rating_gap", 0) > T("rating_gap_advantage"),
             description="평점 갭 > 0.05 (경쟁 우위)",
         ),
         RuleCondition(

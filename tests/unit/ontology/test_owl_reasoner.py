@@ -626,28 +626,21 @@ class TestOWLAxiomsFallbackSafety:
 
 
 class TestOWLCardinality:
-    """A-4: Product.belongsToCategory exactly 1 Category 카디널리티 제약 테스트"""
+    """A-4: Product.belongsToCategory min 1 Category 카디널리티 제약 테스트
 
-    def test_cardinality_exactly_one_category(self):
-        """_define_ontology_structure가 cardinality 제약을 Product.is_a에 추가"""
-        with patch("src.ontology.owl_reasoner.OWLREADY2_AVAILABLE", False):
-            r = OWLReasoner(fallback_reasoner=MagicMock())
+    (F9-1) T-Box 정본은 ``src.ontology.tbox``; 같은 ASIN 이 여러 BSR 리스트에 오르므로
+    ``exactly 1`` 이 아니라 ``min 1`` 이다.
+    """
 
-        # Set up mock ontology that simulates owlready2 classes
-        mock_onto = MagicMock()
-        mock_product_is_a = []
-        mock_onto.Product.is_a = mock_product_is_a
+    @_skip_no_owl
+    def test_cardinality_min_one_category(self):
+        """define_tbox 가 Product.is_a 에 belongsToCategory.min(1, Category) 를 추가"""
+        from src.ontology.tbox import define_tbox, new_world_ontology
 
-        # Mock the exactly() call on belongsToCategory
-        mock_cardinality = MagicMock(name="exactly_1_Category")
-        mock_onto.belongsToCategory.exactly.return_value = mock_cardinality
-
-        # Simulate owlready2 being available
-        r.onto = mock_onto
-        with patch("src.ontology.owl_reasoner.OWLREADY2_AVAILABLE", True):
-            r._define_ontology_structure()
-
-        # Verify belongsToCategory.exactly(1, Category) was called
-        mock_onto.belongsToCategory.exactly.assert_called_once_with(1, mock_onto.Category)
-        # Verify the cardinality restriction was appended to Product.is_a
-        assert mock_cardinality in mock_product_is_a
+        _world, onto = new_world_ontology()
+        define_tbox(onto)
+        restriction = onto.belongsToCategory.min(1, onto.Category)
+        assert restriction in onto.Product.is_a
+        # idempotent: re-defining does not duplicate the restriction
+        define_tbox(onto)
+        assert onto.Product.is_a.count(restriction) == 1

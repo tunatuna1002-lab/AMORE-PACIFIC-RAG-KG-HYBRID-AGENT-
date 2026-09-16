@@ -175,13 +175,20 @@ class AlertAgent:
         """
         alerts = []
 
+        # 임계값은 config/thresholds.json (ranking.alert_rank_change / ranking.top_n) 단일 출처
+        from src.ontology.thresholds import get_thresholds
+
+        thresholds = get_thresholds()
+        rank_change_threshold = thresholds.alert_rank_change
+        top_n = thresholds.top_n
+
         # 제품별 순위 변동 확인
         products = metrics_data.get("products", [])
         for product in products:
             rank_change = product.get("rank_change", 0)
 
-            # 순위 급락 (10등 이상)
-            if rank_change >= 10:
+            # 순위 급락 (기본 10등 이상)
+            if rank_change >= rank_change_threshold:
                 alert = self.create_alert(
                     alert_type="rank_change",
                     title=f"{product.get('name', '제품')} 순위 급락",
@@ -197,8 +204,8 @@ class AlertAgent:
                 )
                 alerts.append(alert)
 
-            # 순위 급등 (-10등 이하)
-            elif rank_change <= -10:
+            # 순위 급등 (기본 -10등 이하)
+            elif rank_change <= -rank_change_threshold:
                 alert = self.create_alert(
                     alert_type="rank_change",
                     title=f"{product.get('name', '제품')} 순위 급등",
@@ -219,11 +226,11 @@ class AlertAgent:
             current_rank = product.get("current_rank", 999)
             previous_rank = product.get("previous_rank", 999)
 
-            if current_rank <= 10 and previous_rank > 10:
+            if current_rank <= top_n and previous_rank > top_n:
                 alert = self.create_alert(
                     alert_type="important_insight",
-                    title=f"{product.get('name', '제품')} Top 10 진입!",
-                    message=f"Top 10에 새로 진입했습니다. ({previous_rank}등 → {current_rank}등)",
+                    title=f"{product.get('name', '제품')} Top {top_n} 진입!",
+                    message=f"Top {top_n}에 새로 진입했습니다. ({previous_rank}등 → {current_rank}등)",
                     data={
                         "product_name": product.get("name"),
                         "brand": product.get("brand"),

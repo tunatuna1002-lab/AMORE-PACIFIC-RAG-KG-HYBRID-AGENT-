@@ -5,7 +5,7 @@ Sentiment Analysis Based Rules
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, cluster_size
+from ..reasoner import InferenceRule, RuleCondition, T, cluster_size
 
 
 def _cluster_value(ctx: dict, cluster: str):
@@ -41,7 +41,8 @@ RULE_SENTIMENT_STRENGTH_HYDRATION = InferenceRule(
         ),
         RuleCondition(
             name="hydration_tags_count",
-            check=lambda ctx: cluster_size(_cluster_value(ctx, "Hydration")) >= 2,
+            check=lambda ctx: cluster_size(_cluster_value(ctx, "Hydration"))
+            >= T("sentiment_cluster_min_mentions"),
             description="Hydration 감성 태그 2개 이상",
         ),
     ],
@@ -186,7 +187,8 @@ RULE_SENTIMENT_EFFECTIVENESS = InferenceRule(
         ),
         RuleCondition(
             name="effectiveness_tags_count",
-            check=lambda ctx: cluster_size(_cluster_value(ctx, "Effectiveness")) >= 1,
+            check=lambda ctx: cluster_size(_cluster_value(ctx, "Effectiveness"))
+            >= T("sentiment_cluster_any"),
             description="효과성 감성 태그 1개 이상",
         ),
     ],

@@ -899,15 +899,38 @@ class BatchWorkflow:
 
             elif action == "update_kg":
                 crawl_data = params.get("crawl_data") or {}
-                added = self.knowledge_graph.load_from_crawl_data(crawl_data)
-                kg_stats = self.knowledge_graph.get_stats()
+                # F9: OntologyBuilder writes JSON KG + OWL A-Box from the same normalised
+                # entities; materialize() runs the OWL reasoning offline and stores the
+                # inferred facts (with provenance) in the KG for the chat path to read.
+                from src.ontology.builder import OntologyBuilder
+                from src.ontology.materializer import materialize
 
-                result = {
-                    "relations_added": added,
-                    "total_triples": kg_stats.get("total_triples", 0),
-                    "unique_subjects": kg_stats.get("unique_subjects", 0),
-                    "unique_objects": kg_stats.get("unique_objects", 0),
-                }
+                result: dict[str, Any] = {"relations_added": 0, "inferred_added": 0}
+                try:
+                    build = OntologyBuilder().from_snapshot(
+                        crawl_data, metrics=None, kg=self.knowledge_graph
+                    )
+                    result["relations_added"] = build.stats["relations_added"]
+                    result["owl_individuals"] = build.stats["owl_individuals"]
+                    if build.owl is not None:
+                        result["inferred_added"] = materialize(build.owl, self.knowledge_graph)
+                except Exception as e:  # recorded, never swallowed silently
+                    result["ontology_error"] = f"{type(e).__name__}: {e}"
+                    self.logger.error(f"Ontology build/materialize failed: {e}")
+                    # keep the JSON KG usable even when the ontology step fails
+                    if not result["relations_added"]:
+                        result["relations_added"] = self.knowledge_graph.load_from_crawl_data(
+                            crawl_data
+                        )
+
+                kg_stats = self.knowledge_graph.get_stats()
+                result.update(
+                    {
+                        "total_triples": kg_stats.get("total_triples", 0),
+                        "unique_subjects": kg_stats.get("unique_subjects", 0),
+                        "unique_objects": kg_stats.get("unique_objects", 0),
+                    }
+                )
                 return ActResult(action=action, success=True, result=result)
 
             elif action == "calculate":
