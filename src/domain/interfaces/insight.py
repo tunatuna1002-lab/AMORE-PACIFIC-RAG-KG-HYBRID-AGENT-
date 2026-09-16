@@ -30,8 +30,8 @@ class InsightAgentProtocol(Protocol):
     async def execute(
         self,
         metrics_data: dict[str, Any],
-        target_brand: str = "LANEIGE",
-        category_id: str | None = None,
+        crawl_data: dict[str, Any] | None = None,
+        crawl_summary: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         메트릭 데이터를 분석하고 전략적 인사이트를 생성합니다.
@@ -51,8 +51,8 @@ class InsightAgentProtocol(Protocol):
                     "product_metrics": {...},
                     ...
                 }
-            target_brand: 분석 대상 브랜드 (기본: "LANEIGE")
-            category_id: 카테고리 ID (선택)
+            crawl_data: 같은 배치의 크롤 결과 (선택)
+            crawl_summary: 크롤 요약 (선택)
 
         Returns:
             인사이트 결과 딕셔너리

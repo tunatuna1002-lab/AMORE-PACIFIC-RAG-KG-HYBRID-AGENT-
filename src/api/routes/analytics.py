@@ -8,13 +8,13 @@ import asyncio
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 
-from src.api.dependencies import limiter
-from src.shared.constants import KST
+from src.api.dependencies import get_data_service, limiter
+from src.application.services.date_range import resolve_date_range
+from src.domain.brand import is_target_brand
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -23,11 +23,6 @@ router = APIRouter(tags=["Analytics"])
 
 
 # ============= Helper =============
-
-
-def _today_kst() -> datetime:
-    """크롤러가 snapshot_date를 KST 기준으로 기록하므로 기본 날짜 범위도 KST '오늘'을 사용"""
-    return datetime.now(KST)
 
 
 def _fetch_all(sqlite, query: str, params: tuple) -> list:
@@ -46,7 +41,7 @@ def _fetch_pair(sqlite, first: tuple[str, tuple], second: tuple[str, tuple]) -> 
 
 def _load_crawl_data_for_sos():
     """JSON 파일에서 크롤링 데이터 로드 (SQLite fallback)"""
-    crawl_path = Path("./data/latest_crawl_result.json")
+    crawl_path = get_data_service().latest_crawl_json_path
     if crawl_path.exists():
         with open(crawl_path, encoding="utf-8") as f:
             return json.load(f)
@@ -78,11 +73,8 @@ async def get_category_kpi(
         KPI 데이터: sos, best_rank, cpi, new_competitors
     """
     try:
-        # 날짜 범위 설정
-        if not end_date:
-            end_date = _today_kst().strftime("%Y-%m-%d")
-        if not start_date:
-            start_date = (_today_kst() - timedelta(days=7)).strftime("%Y-%m-%d")
+        # 날짜 범위 설정 (기본: 최근 7일, KST 기준)
+        start_date, end_date = resolve_date_range(start_date, end_date, default_days=7)
 
         rows = []
 
@@ -204,11 +196,8 @@ async def get_sos_by_category(
         if compare_brands:
             compare_brand_list = [b.strip() for b in compare_brands.split(",") if b.strip()]
 
-        # 날짜 범위 설정
-        if not end_date:
-            end_date = _today_kst().strftime("%Y-%m-%d")
-        if not start_date:
-            start_date = end_date
+        # 날짜 범위 설정 (기본: 당일, KST 기준)
+        start_date, end_date = resolve_date_range(start_date, end_date, default_days=0)
 
         # SQLite 먼저 시도
         rows = []
@@ -423,8 +412,7 @@ async def get_available_brands(
         브랜드 목록 (제품 수 기준 정렬)
     """
     try:
-        end_date = _today_kst().strftime("%Y-%m-%d")
-        start_date = (_today_kst() - timedelta(days=7)).strftime("%Y-%m-%d")
+        start_date, end_date = resolve_date_range(None, None, default_days=7)
 
         rows = []
         # SQLite 먼저 시도
@@ -487,7 +475,7 @@ async def get_available_brands(
                                 "name": brand_name,
                                 "product_count": count,
                                 "days_present": 1,
-                                "is_laneige": "laneige" in brand_name.lower(),
+                                "is_laneige": is_target_brand(brand_name),
                             }
                         )
         else:
@@ -499,7 +487,7 @@ async def get_available_brands(
                             "name": brand_name,
                             "product_count": product_count,
                             "days_present": days_present,
-                            "is_laneige": "laneige" in brand_name.lower(),
+                            "is_laneige": is_target_brand(brand_name),
                         }
                     )
 
@@ -547,8 +535,7 @@ async def get_sos_trend(
         if start_date and end_date:
             pass  # 그대로 사용
         else:
-            end_date = _today_kst().strftime("%Y-%m-%d")
-            start_date = (_today_kst() - timedelta(days=days)).strftime("%Y-%m-%d")
+            start_date, end_date = resolve_date_range(None, None, default_days=days)
 
         # 일별 전체 제품 수
         if category_id:
@@ -659,8 +646,7 @@ async def get_competitors_avg_sos_trend(
         if start_date and end_date:
             pass
         else:
-            end_date = _today_kst().strftime("%Y-%m-%d")
-            start_date = (_today_kst() - timedelta(days=days)).strftime("%Y-%m-%d")
+            start_date, end_date = resolve_date_range(None, None, default_days=days)
 
         # 일별 전체 제품 수 쿼리
         if category_id:

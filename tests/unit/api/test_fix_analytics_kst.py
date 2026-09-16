@@ -29,9 +29,16 @@ class FrozenDatetime(datetime):
 
 @pytest.fixture
 def frozen_clock(monkeypatch):
+    # CHANGED (F6): the clock now has to be frozen in
+    # src.application.services.date_range, not in src.api.routes.analytics.
+    # F6 moved the "default the missing start/end date" logic out of the route
+    # module into the single resolve_date_range() service, so analytics.py no
+    # longer imports `datetime` at all and patching it raises AttributeError.
+    # The assertions below are unchanged - the same KST defaults are pinned.
     from src.api.routes import analytics
+    from src.application.services import date_range
 
-    monkeypatch.setattr(analytics, "datetime", FrozenDatetime)
+    monkeypatch.setattr(date_range, "datetime", FrozenDatetime)
     monkeypatch.setattr(analytics, "get_sqlite_storage", lambda: FakeSqliteStorage())
     monkeypatch.setattr(analytics, "_load_crawl_data_for_sos", lambda: None)
 

@@ -1,5 +1,5 @@
 """Application Services"""
 
-from .query_analyzer import ComplexityLevel, QueryAnalyzer, QueryIntent
+from .query_analyzer import ChatQueryIntent, ComplexityLevel, QueryAnalyzer
 
-__all__ = ["QueryAnalyzer", "ComplexityLevel", "QueryIntent"]
+__all__ = ["QueryAnalyzer", "ComplexityLevel", "ChatQueryIntent"]

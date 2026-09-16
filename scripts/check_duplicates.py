@@ -17,6 +17,7 @@ from collections import Counter, defaultdict
 # 프로젝트 루트를 path에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from src.domain.brand import is_target_brand
 from src.tools.storage.sheets_writer import SheetsWriter
 
 
@@ -80,7 +81,7 @@ async def check_duplicates():
             print(f"      {cat}: {count}개 {status}")
 
         # LANEIGE 제품
-        laneige = [r for r in jan02_records if "laneige" in r.get("brand", "").lower()]
+        laneige = [r for r in jan02_records if is_target_brand(r.get("brand"))]
         print(f"\n   LANEIGE 제품: {len(laneige)}개")
     else:
         print("   데이터 없음")

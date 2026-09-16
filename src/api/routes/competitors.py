@@ -11,7 +11,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 
 from src.api.dashboard_shape import category_top_products
-from src.api.dependencies import limiter, load_dashboard_data
+from src.api.dependencies import get_data_service, limiter, load_dashboard_data
+from src.domain.brand import is_target_brand
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ async def get_competitor_data(request: Request, brand: str | None = None):
 
         # 2. JSON 파일에서 폴백
         if not result["competitors"]:
-            json_path = Path("./data/competitor_products.json")
+            json_path = get_data_service().path_for("competitor_products.json")
             if json_path.exists():
                 with open(json_path, encoding="utf-8") as f:
                     json_data = json.load(f)
@@ -112,7 +113,7 @@ async def get_competitor_data(request: Request, brand: str | None = None):
             # 카테고리별 LANEIGE 제품 추출 (exporter 형식: products{asin} → 카테고리별 그룹)
             for cat_id, top_products in category_top_products(data).items():
                 for product in top_products:
-                    if "laneige" in str(product.get("brand", "")).lower():
+                    if is_target_brand(product.get("brand")):
                         product_type = _detect_product_type(product.get("product_name", ""))
                         if product_type not in result["laneige_products"]:
                             result["laneige_products"][product_type] = []

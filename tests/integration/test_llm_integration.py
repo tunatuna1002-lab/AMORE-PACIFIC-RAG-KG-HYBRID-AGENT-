@@ -23,9 +23,9 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 from src.agents.hybrid_insight_agent import HybridInsightAgent
 from src.domain.entities.relations import Relation, RelationType
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.ontology.rules import register_all_rules
 from src.rag.context_builder import ContextBuilder
 from src.rag.hybrid_retriever import HybridContext
 

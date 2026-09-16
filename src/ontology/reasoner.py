@@ -59,7 +59,7 @@ explanation = reasoner.explain_all(inferences)
 ```
 
 ## 규칙 정의 위치
-비즈니스 규칙 → src/ontology/business_rules.py
+비즈니스 규칙 → src/ontology/rules/
 규칙 설정 → config/rules.json
 
 ## 기능
@@ -90,6 +90,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from src.domain.brand import is_target_brand
 from src.domain.entities.relations import InferenceResult, InsightType
 
 from .knowledge_graph import KnowledgeGraph
@@ -852,9 +853,7 @@ class StandardConditions:
         """타겟 브랜드 (LANEIGE)"""
         return RuleCondition(
             name="is_target_brand",
-            check=lambda ctx: (
-                ctx.get("is_target", False) or str(ctx.get("brand", "")).lower() == "laneige"
-            ),
+            check=lambda ctx: (ctx.get("is_target", False) or is_target_brand(ctx.get("brand"))),
             description="타겟 브랜드 (LANEIGE)",
         )
 

@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from typing import Any
 
+from src.domain.brand import is_target_brand
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
@@ -226,7 +227,7 @@ class MetricsAgent:
                     "product_count": len(brand_products),
                     "top10_count": sum(1 for r in ranks if r <= 10),
                     "top20_count": sum(1 for r in ranks if r <= 20),
-                    "is_laneige": brand.lower() == "laneige",
+                    "is_laneige": is_target_brand(brand),
                 }
             )
 
@@ -363,9 +364,7 @@ class MetricsAgent:
 
     def _is_laneige(self, product: dict) -> bool:
         """LANEIGE 제품 여부"""
-        title = str(product.get("title", "")).lower()
-        brand = str(product.get("brand", "")).lower()
-        return "laneige" in title or "laneige" in brand
+        return is_target_brand(product.get("title")) or is_target_brand(product.get("brand"))
 
     def _generate_summary(self, results: dict) -> dict[str, Any]:
         """결과 요약 생성"""

@@ -20,6 +20,7 @@ from fastapi.responses import StreamingResponse
 from src.api.dependencies import (
     add_to_memory,
     clear_session,
+    get_recent_turns,
     limiter,
     load_dashboard_data,
     log_chat_interaction,
@@ -178,13 +179,18 @@ async def chat_v4(request: Request, body: BrainChatRequest):
         data = load_dashboard_data()
         current_metrics = data if data else None
 
-        # Brain으로 처리 (LLM-First)
+        # Brain으로 처리 (LLM-First). 같은 세션의 이전 턴을 함께 넘긴다 (F7).
         response = await brain.process_query(
             query=message,
             session_id=session_id,
             current_metrics=current_metrics,
             skip_cache=body.skip_cache,
+            conversation_history=get_recent_turns(session_id),
         )
+
+        # 이번 턴을 세션 메모리에 기록 (다음 질문의 맥락이 된다)
+        add_to_memory(session_id, "user", message)
+        add_to_memory(session_id, "assistant", response.text)
 
         processing_time = (time.time() - start_time) * 1000
 
@@ -251,13 +257,21 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
             brain = await get_initialized_brain()
             data = load_dashboard_data()
             current_metrics = data if data else None
+            # 같은 세션의 이전 턴을 brain에 전달한다 (F7). 기록은 done 프레임을 받은 뒤.
+            answer_parts: list[str] = []
             async for chunk in brain.process_query_stream(
                 query=message,
                 session_id=session_id,
                 current_metrics=current_metrics,
+                conversation_history=get_recent_turns(session_id),
             ):
+                if chunk.get("type") == "text":
+                    answer_parts.append(str(chunk.get("content") or ""))
                 event_data = json.dumps(chunk, ensure_ascii=False)
                 yield f"data: {event_data}\n\n"
+
+            add_to_memory(session_id, "user", message)
+            add_to_memory(session_id, "assistant", "".join(answer_parts))
         except Exception as e:
             logger.error(f"v4 SSE stream error: {e}")
             error_data = json.dumps({"type": "error", "content": str(e)}, ensure_ascii=False)

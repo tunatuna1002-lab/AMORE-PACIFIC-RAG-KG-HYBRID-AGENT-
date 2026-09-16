@@ -5,7 +5,10 @@ src/core/state_manager.py 커버리지 22% → 60%+ 목표
 
 테스트 대상:
 - Enum (AlertType, DataFreshness)
-- Dataclass (EmailSubscription, AgentStatus)
+- Dataclass (EmailSubscription, AgentHealth)
+
+CHANGED (Phase 3): AgentStatus -> AgentHealth. src.memory.session.AgentStatus is a
+StrEnum of per-session lifecycle values; this one is a per-agent health record.
 - StateManager 초기화 및 영속화
 - 크롤링 상태 (is_crawl_needed, mark_crawled, mark_data_stale, get_data_age_hours)
 - KG 상태 (mark_kg_initialized, update_kg_stats)
@@ -25,7 +28,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from src.core.state_manager import (
-    AgentStatus,
+    AgentHealth,
     AlertType,
     DataFreshness,
     EmailSubscription,
@@ -148,13 +151,13 @@ class TestEmailSubscription:
 
 
 # =========================================================================
-# AgentStatus
+# AgentHealth
 # =========================================================================
 
 
 class TestAgentStatus:
     def test_defaults(self):
-        status = AgentStatus(name="crawler", status="idle")
+        status = AgentHealth(name="crawler", status="idle")
         assert status.last_run is None
         assert status.last_error is None
         assert status.run_count == 0
@@ -301,7 +304,7 @@ class TestAgentState:
         assert "a" in statuses
         assert "b" in statuses
         # Copy check
-        statuses["c"] = AgentStatus(name="c", status="idle")
+        statuses["c"] = AgentHealth(name="c", status="idle")
         assert "c" not in state_mgr._agent_status
 
     def test_run_count_increments(self, state_mgr):

@@ -125,6 +125,7 @@ class ResponsePipeline:
         context: Context,
         decision: Decision | None = None,
         tool_result: ToolResult | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> Response:
         """
         컨텍스트 기반 응답 생성
@@ -134,6 +135,7 @@ class ResponsePipeline:
             context: 수집된 컨텍스트
             decision: LLM 판단 결과 (있으면 활용)
             tool_result: 도구 실행 결과 (있으면 포함)
+            conversation_history: 같은 세션의 이전 턴 (F7)
 
         Returns:
             Response 객체
@@ -142,7 +144,9 @@ class ResponsePipeline:
 
         try:
             # 프롬프트 구성
-            messages = self._build_messages(query, context, decision, tool_result)
+            messages = self._build_messages(
+                query, context, decision, tool_result, conversation_history
+            )
 
             is_high_confidence = self._is_high_confidence_shortcut(decision)
             llm_available = self._llm_available()
@@ -166,6 +170,7 @@ class ResponsePipeline:
         decision: Decision | None = None,
         tool_result: ToolResult | None = None,
         on_token: Callable[[str], Awaitable[None]] | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> Response:
         """
         스트리밍 응답 생성
@@ -182,6 +187,7 @@ class ResponsePipeline:
             decision: LLM 판단 결과 (있으면 활용)
             tool_result: 도구 실행 결과 (있으면 포함)
             on_token: 텍스트 조각마다 호출되는 async 콜백
+            conversation_history: 같은 세션의 이전 턴 (F7)
 
         Returns:
             Response 객체 (text는 후처리된 전체 텍스트)
@@ -189,7 +195,9 @@ class ResponsePipeline:
         start_time = datetime.now()
 
         try:
-            messages = self._build_messages(query, context, decision, tool_result)
+            messages = self._build_messages(
+                query, context, decision, tool_result, conversation_history
+            )
             is_high_confidence = self._is_high_confidence_shortcut(decision)
             llm_available = self._llm_available()
 
@@ -368,12 +376,32 @@ class ResponsePipeline:
     # 프롬프트 구성
     # =========================================================================
 
+    MAX_HISTORY_TURNS = 6  # LLM에 붙일 이전 턴 수 상한
+
+    @classmethod
+    def _history_messages(
+        cls, conversation_history: list[dict[str, str]] | None
+    ) -> list[dict[str, str]]:
+        """세션 이력을 LLM 메시지로 (F7). 역할/내용이 온전한 최근 턴만 사용."""
+        if not conversation_history:
+            return []
+        turns = [
+            {
+                "role": "assistant" if t.get("role") != "user" else "user",
+                "content": str(t.get("content") or ""),
+            }
+            for t in conversation_history
+            if (t.get("content") or "").strip()
+        ]
+        return turns[-cls.MAX_HISTORY_TURNS :]
+
     def _build_messages(
         self,
         query: str,
         context: Context,
         decision: Decision | None = None,
         tool_result: ToolResult | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> list[dict[str, str]]:
         """
         LLM 메시지 구성
@@ -383,6 +411,7 @@ class ResponsePipeline:
             context: 컨텍스트
             decision: 판단 결과
             tool_result: 도구 결과
+            conversation_history: 같은 세션의 이전 턴 (F7)
 
         Returns:
             메시지 리스트
@@ -410,6 +439,9 @@ class ResponsePipeline:
         if tool_result and tool_result.success:
             tool_content = self._format_tool_result(tool_result)
             messages.append({"role": "system", "content": f"[도구 실행 결과]\n{tool_content}"})
+
+        # 이전 대화 턴 (있으면) - 현재 질문 바로 앞에 붙인다
+        messages.extend(self._history_messages(conversation_history))
 
         # 사용자 질문
         messages.append({"role": "user", "content": query})

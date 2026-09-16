@@ -219,7 +219,7 @@ class SheetsWriter:
             return True
         except Exception as e:
             logger.error(f"Google Sheets 초기화 실패: {e}")
-            print(f"Google Sheets 초기화 실패: {e}")
+            logger.error(f"Google Sheets 초기화 실패: {e}")
             return False
 
     async def _ensure_sheets_exist(self) -> None:
@@ -254,7 +254,7 @@ class SheetsWriter:
                         await self._write_headers(sheet_config["name"], sheet_config["headers"])
 
         except HttpError as e:
-            print(f"시트 생성 오류: {e}")
+            logger.error(f"시트 생성 오류: {e}")
 
     async def _write_headers(self, sheet_name: str, headers: list[str]) -> None:
         """시트에 헤더 작성"""
@@ -483,7 +483,7 @@ class SheetsWriter:
             return records
 
         except HttpError as e:
-            print(f"데이터 조회 오류: {e}")
+            logger.error(f"데이터 조회 오류: {e}")
             return []
 
     async def get_latest_snapshot(self, category_id: str) -> list[dict[str, Any]]:

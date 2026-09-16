@@ -21,9 +21,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.domain.brand import TARGET_BRAND, is_target_brand, normalize_brand
 from src.shared.units import percent_to_fraction
-
-TARGET_BRAND = "laneige"
 
 _MARKET_KEYS: tuple[tuple[str, str], ...] = (
     ("hhi", "hhi"),
@@ -63,8 +62,14 @@ def normalize_sentiment_clusters(clusters: Any) -> dict[str, Any]:
 def _brand_matches(bm: dict[str, Any], brand: str | None) -> bool:
     if brand is None:
         return bool(bm.get("is_laneige"))
-    name = str(bm.get("brand_name", "")).lower()
-    return name == brand.lower() or (brand.lower() == TARGET_BRAND and bool(bm.get("is_laneige")))
+    # NOTE (F6): the *requested* brand is matched exactly (normalised case/whitespace).
+    # `is_target_brand` is a substring match and must NOT be used here: an arbitrary
+    # requested brand would then also match rows whose name merely contains it
+    # (defect D24, e.g. "Beauty" inside "Beauty & Personal Care").
+    if normalize_brand(bm.get("brand_name")) == normalize_brand(brand):
+        return True
+    # Only the target-brand identity check goes through the domain helper.
+    return is_target_brand(brand) and bool(bm.get("is_laneige"))
 
 
 def _pick_product(products: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -97,7 +102,7 @@ def build_inference_context(
 
     if brand:
         context["brand"] = brand
-        context["is_target"] = brand.lower() == TARGET_BRAND
+        context["is_target"] = is_target_brand(brand)
     if category:
         context["category"] = category
 

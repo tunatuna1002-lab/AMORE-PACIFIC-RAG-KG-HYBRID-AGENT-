@@ -24,6 +24,7 @@ class QueryState:
         session_id: 세션 ID
         current_metrics: 현재 지표 데이터
         skip_cache: 캐시 스킵 여부
+        conversation_history: 같은 세션의 이전 대화 턴
         context: 수집된 컨텍스트
         confidence_level: 신뢰도 레벨
         decision: LLM 판단 결과
@@ -48,6 +49,9 @@ class QueryState:
     session_id: str | None = None
     current_metrics: dict[str, Any] | None = None
     skip_cache: bool = False
+    # 같은 세션의 이전 턴 ({"role": "user"|"assistant", "content": str}).
+    # API 라우트가 세션 메모리에서 읽어 넣고, 응답 생성 시 LLM 메시지에 그대로 붙는다 (F7).
+    conversation_history: list[dict[str, str]] = field(default_factory=list)
 
     # Processing state
     context: Context | None = None

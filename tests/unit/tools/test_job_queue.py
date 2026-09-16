@@ -79,10 +79,18 @@ class TestInitialization:
     """Test JobQueue initialization"""
 
     def test_init_default_path(self):
-        """Should use default database path when none provided"""
+        """CHANGED (F6): the default path comes from resolve_data_dir()
+        (DATA_DIR > /data volume > ./data), not from a local os.getenv copy that
+        missed the /data branch."""
+        from src.application.services.dashboard_data_service import resolve_data_dir
+
         queue = JobQueue()
-        expected = os.path.join(os.getenv("DATA_DIR", "./data"), "job_queue.db")
-        assert queue.db_path == expected
+        assert queue.db_path == str(resolve_data_dir() / "job_queue.db")
+
+    def test_init_default_path_follows_DATA_DIR(self, tmp_path, monkeypatch):
+        """F6: DATA_DIR is honoured at construction time."""
+        monkeypatch.setenv("DATA_DIR", str(tmp_path))
+        assert JobQueue().db_path == str(tmp_path / "job_queue.db")
 
     def test_init_custom_path(self, temp_db):
         """Should use custom database path when provided"""
@@ -880,10 +888,11 @@ class TestSingletonPattern:
         assert queue1 is queue2
 
     def test_get_job_queue_uses_default_path(self):
-        """Should use default database path"""
+        """CHANGED (F6): same single resolver as JobQueue() (see TestInitialization)."""
+        from src.application.services.dashboard_data_service import resolve_data_dir
+
         queue = get_job_queue()
-        expected = os.path.join(os.getenv("DATA_DIR", "./data"), "job_queue.db")
-        assert queue.db_path == expected
+        assert queue.db_path == str(resolve_data_dir() / "job_queue.db")
 
 
 class TestEnums:

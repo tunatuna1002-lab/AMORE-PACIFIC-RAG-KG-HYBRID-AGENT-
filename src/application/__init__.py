@@ -14,9 +14,9 @@ Domain 레이어에만 의존하며, Infrastructure 레이어를 알지 못합�
 
 # Services
 from src.application.services.query_analyzer import (
+    ChatQueryIntent,
     ComplexityLevel,
     QueryAnalyzer,
-    QueryIntent,
 )
 
 # Workflows
@@ -41,7 +41,7 @@ __all__ = [
     # Services
     "QueryAnalyzer",
     "ComplexityLevel",
-    "QueryIntent",
+    "ChatQueryIntent",
     # Workflows
     "BatchWorkflow",
     "WorkflowDependencies",

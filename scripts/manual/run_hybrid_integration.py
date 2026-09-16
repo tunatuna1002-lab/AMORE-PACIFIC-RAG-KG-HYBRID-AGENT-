@@ -3,7 +3,7 @@
 이 테스트는 전체 하이브리드 시스템의 기능을 검증합니다.
 
 테스트 범위:
-1. Ontology 컴포넌트 (relations, knowledge_graph, reasoner, business_rules)
+1. Ontology 컴포넌트 (relations, knowledge_graph, reasoner, rules)
 2. Hybrid RAG 컴포넌트 (hybrid_retriever, context_builder)
 3. Hybrid Agents (hybrid_insight_agent, hybrid_chatbot_agent)
 4. Orchestrator 통합
@@ -194,8 +194,8 @@ def test_business_rules(results: TestResult):
     print("\n📋 테스트 4: Business Rules")
 
     try:
-        from ontology.business_rules import ALL_BUSINESS_RULES, register_all_rules
         from ontology.reasoner import OntologyReasoner
+        from ontology.rules import ALL_BUSINESS_RULES, register_all_rules
 
         # 규칙 수 확인
         assert len(ALL_BUSINESS_RULES) >= 10, (
@@ -231,9 +231,9 @@ def test_hybrid_retriever(results: TestResult):
     print("\n📋 테스트 5: Hybrid Retriever")
 
     try:
-        from ontology.business_rules import register_all_rules
         from ontology.knowledge_graph import KnowledgeGraph
         from ontology.reasoner import OntologyReasoner
+        from ontology.rules import register_all_rules
         from rag.hybrid_retriever import EntityExtractor, HybridContext, HybridRetriever
 
         # EntityExtractor 테스트
@@ -417,9 +417,9 @@ def test_end_to_end_workflow(results: TestResult):
     try:
         from ontology.relations import Relation, RelationType
 
-        from ontology.business_rules import register_all_rules
         from ontology.knowledge_graph import KnowledgeGraph
         from ontology.reasoner import OntologyReasoner
+        from ontology.rules import register_all_rules
         from rag.context_builder import ContextBuilder
         from rag.hybrid_retriever import HybridRetriever
 

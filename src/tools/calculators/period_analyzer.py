@@ -10,6 +10,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.domain.brand import is_target_brand
+
 logger = logging.getLogger(__name__)
 
 
@@ -525,9 +527,7 @@ class PeriodAnalyzer:
 
     def _is_laneige(self, product: dict) -> bool:
         """제품이 LANEIGE 브랜드인지 확인"""
-        brand = (product.get("brand") or "").upper()
-        title = (product.get("title") or "").upper()
-        return "LANEIGE" in brand or "LANEIGE" in title
+        return is_target_brand(product.get("brand")) or is_target_brand(product.get("title"))
 
     def _get_category_name(self, category_id: str) -> str:
         """카테고리 ID를 한글명으로 변환"""

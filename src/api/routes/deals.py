@@ -6,14 +6,15 @@ dashboard_api.py의 deals 엔드포인트를 추출한 모듈입니다.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from src.api.dependencies import limiter, verify_api_key
+from src.api.dependencies import get_data_service, limiter, verify_api_key
 from src.api.models import DealsRequest, DealsResponse
+from src.application.services.date_range import resolve_date_range
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
@@ -259,7 +260,8 @@ async def export_deals_report(request: Request, days: int = 7, format: str = "ex
             summary = await storage.get_deals_summary(days=days)
 
             # 전체 딜 데이터 - 동기 sqlite3는 워커 스레드에서 실행
-            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            # KST 기준 (크롤러 snapshot_date와 동일한 캘린더) - D19
+            cutoff_date, _ = resolve_date_range(None, None, default_days=days)
             all_deals = await asyncio.to_thread(_fetch_deals_since, storage, cutoff_date)
 
             return {
@@ -273,7 +275,9 @@ async def export_deals_report(request: Request, days: int = 7, format: str = "ex
         else:  # Excel
             # 엑셀 파일 생성
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = f"./data/exports/Deals_Report_{timestamp}.xlsx"
+            output_path = str(
+                get_data_service().path_for("exports", f"Deals_Report_{timestamp}.xlsx")
+            )
 
             result = storage.export_deals_report(output_path=output_path, days=days)
 

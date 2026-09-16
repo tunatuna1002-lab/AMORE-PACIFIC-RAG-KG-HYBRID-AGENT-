@@ -12,10 +12,13 @@ KnowledgeGraph에서 분리된 카테고리 관리 서비스
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from src.domain.entities import Relation, RelationType
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from src.ontology.knowledge_graph import KnowledgeGraph
@@ -53,7 +56,7 @@ class CategoryService:
             path = base_path / hierarchy_path
 
         if not path.exists():
-            print(f"Warning: Category hierarchy file not found: {hierarchy_path}")
+            logger.warning(f"Category hierarchy file not found: {hierarchy_path}")
             return 0
 
         with open(path, encoding="utf-8") as f:

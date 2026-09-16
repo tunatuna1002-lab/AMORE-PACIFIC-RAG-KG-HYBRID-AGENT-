@@ -95,9 +95,11 @@ class JobQueue:
         if db_path:
             self.db_path = db_path
         else:
-            # Railway 환경 또는 로컬 환경
-            data_dir = os.getenv("DATA_DIR", "./data")
-            self.db_path = os.path.join(data_dir, "job_queue.db")
+            # 데이터 디렉토리 해석은 한 곳(F6): DATA_DIR > /data(Railway/볼륨) > ./data.
+            # 직접 os.getenv("DATA_DIR", "./data") 를 읽으면 /data 볼륨 분기를 놓친다.
+            from src.application.services.dashboard_data_service import resolve_data_dir
+
+            self.db_path = str(resolve_data_dir() / "job_queue.db")
 
         # 출력 디렉토리
         self.output_dir = os.path.join(os.path.dirname(self.db_path), "exports")

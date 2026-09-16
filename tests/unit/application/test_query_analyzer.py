@@ -7,9 +7,9 @@ Tests query complexity analysis and intent detection.
 import pytest
 
 from src.application.services.query_analyzer import (
+    ChatQueryIntent,
     ComplexityLevel,
     QueryAnalyzer,
-    QueryIntent,
 )
 
 
@@ -57,43 +57,43 @@ class TestQueryAnalyzer:
         """Test rank query intent detection"""
         query = "LANEIGE 순위 알려줘"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.RANK_QUERY
+        assert intent == ChatQueryIntent.RANK_QUERY
 
     def test_metric_query_intent(self, analyzer):
         """Test metric query intent detection"""
         query = "LANEIGE SoS 얼마야?"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.METRIC_QUERY
+        assert intent == ChatQueryIntent.METRIC_QUERY
 
     def test_comparison_intent(self, analyzer):
         """Test comparison intent detection"""
         query = "LANEIGE와 Burt's Bees 비교"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.COMPARISON
+        assert intent == ChatQueryIntent.COMPARISON
 
     def test_trend_analysis_intent(self, analyzer):
         """Test trend analysis intent detection"""
         query = "LANEIGE 추세 분석해줘"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.TREND_ANALYSIS
+        assert intent == ChatQueryIntent.TREND_ANALYSIS
 
     def test_recommendation_intent(self, analyzer):
         """Test recommendation intent detection"""
         query = "LANEIGE 전략 제안해줘"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.RECOMMENDATION
+        assert intent == ChatQueryIntent.RECOMMENDATION
 
     def test_product_detail_intent(self, analyzer):
         """Test product detail intent detection"""
         query = "Lip Sleeping Mask 제품 정보"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.PRODUCT_DETAIL
+        assert intent == ChatQueryIntent.PRODUCT_DETAIL
 
     def test_general_question_intent(self, analyzer):
         """Test general question intent detection"""
         query = "안녕하세요"
         intent = analyzer.detect_intent(query)
-        assert intent == QueryIntent.GENERAL
+        assert intent == ChatQueryIntent.GENERAL
 
     # Edge Cases
     def test_empty_query(self, analyzer):
@@ -101,7 +101,7 @@ class TestQueryAnalyzer:
         complexity = analyzer.analyze_complexity("")
         intent = analyzer.detect_intent("")
         assert complexity == ComplexityLevel.SIMPLE
-        assert intent == QueryIntent.GENERAL
+        assert intent == ChatQueryIntent.GENERAL
 
     def test_very_long_query(self, analyzer):
         """Test very long query"""
@@ -115,7 +115,7 @@ class TestQueryAnalyzer:
         complexity = analyzer.analyze_complexity(query)
         intent = analyzer.detect_intent(query)
         assert complexity in [ComplexityLevel.SIMPLE, ComplexityLevel.MODERATE]
-        assert intent == QueryIntent.RANK_QUERY
+        assert intent == ChatQueryIntent.RANK_QUERY
 
     # Full Analysis Test
     def test_full_analysis(self, analyzer):

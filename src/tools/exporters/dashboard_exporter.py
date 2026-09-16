@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from src.domain.brand import is_target_brand
 from src.ontology.inference_context import build_inference_context
 from src.shared.constants import KST
 from src.shared.units import percent_to_fraction
@@ -32,9 +33,9 @@ from src.tools.storage.sqlite_storage import SQLiteStorage
 # Ontology components (optional import)
 try:
     from src.domain.entities.relations import Relation, RelationType
-    from src.ontology.business_rules import register_all_rules
     from src.ontology.knowledge_graph import KnowledgeGraph
     from src.ontology.reasoner import OntologyReasoner
+    from src.ontology.rules import register_all_rules
 
     ONTOLOGY_AVAILABLE = True
 except ImportError as _ontology_import_error:
@@ -1374,7 +1375,7 @@ class DashboardExporter:
         competitors = dashboard_data.get("brand", {}).get("competitors", [])
         for comp in competitors:
             brand_name = comp.get("brand", "")
-            is_laneige = brand_name.upper() == "LANEIGE"
+            is_laneige = is_target_brand(brand_name)
 
             # 메타데이터 설정
             self._knowledge_graph.set_entity_metadata(

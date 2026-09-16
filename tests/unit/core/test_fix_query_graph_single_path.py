@@ -91,8 +91,19 @@ class FakePipeline:
         self._response = response or Response(text=text, confidence_score=0.77)
         self.calls: list[dict[str, Any]] = []
 
-    async def generate(self, query, context, decision=None, tool_result=None) -> Response:
-        self.calls.append({"query": query, "decision": decision, "tool_result": tool_result})
+    async def generate(
+        self, query, context, decision=None, tool_result=None, conversation_history=None
+    ) -> Response:
+        # CHANGED (F7): the pipeline contract gained `conversation_history` so the v4 chat
+        # path can hand the session's previous turns to the LLM.
+        self.calls.append(
+            {
+                "query": query,
+                "decision": decision,
+                "tool_result": tool_result,
+                "conversation_history": conversation_history,
+            }
+        )
         return self._response
 
 
@@ -105,9 +116,18 @@ class StreamingFakePipeline(FakePipeline):
         self.stream_calls = 0
 
     async def generate_stream(
-        self, query, context, decision=None, tool_result=None, on_token=None
+        self,
+        query,
+        context,
+        decision=None,
+        tool_result=None,
+        on_token=None,
+        conversation_history=None,
     ) -> Response:
+        # CHANGED (F7): see FakePipeline.generate. `calls` stays untouched here - tests
+        # use it to prove the non-streaming path was NOT taken.
         self.stream_calls += 1
+        self.stream_history = conversation_history
         for tok in self._tokens:
             if on_token:
                 await on_token(tok)

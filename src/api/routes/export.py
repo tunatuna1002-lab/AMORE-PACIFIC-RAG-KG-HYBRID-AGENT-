@@ -25,8 +25,14 @@ from src.api.dashboard_shape import (
     products_as_list,
     summary_from,
 )
-from src.api.dependencies import limiter, load_dashboard_data, verify_api_key
+from src.api.dependencies import (
+    get_data_service,
+    limiter,
+    load_dashboard_data,
+    verify_api_key,
+)
 from src.api.models import AnalystReportRequest, AsyncExportRequest, ExportRequest
+from src.domain.brand import is_target_brand
 from src.tools.calculators.period_analyzer import PeriodAnalyzer
 from src.tools.collectors.external_signal_collector import ExternalSignalCollector
 from src.tools.exporters.chart_generator import ChartGenerator
@@ -479,7 +485,7 @@ async def export_docx(request: Request, payload: ExportRequest):
     doc.add_heading("4. 주요 제품 (LANEIGE Top 10)", 1)
 
     products = products_as_list(data)
-    laneige_products = [p for p in products if str(p.get("brand", "")).upper() == "LANEIGE"]
+    laneige_products = [p for p in products if is_target_brand(p.get("brand"))]
     laneige_products = sorted(laneige_products, key=lambda x: x.get("rank", 999))[:10]
 
     if laneige_products:
@@ -1005,7 +1011,7 @@ async def export_excel(request: Request):
 
         # 출력 경로
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = f"./data/exports/AMORE_Data_{timestamp}.xlsx"
+        output_path = str(get_data_service().path_for("exports", f"AMORE_Data_{timestamp}.xlsx"))
 
         # 엑셀 생성
         result = storage.export_to_excel(

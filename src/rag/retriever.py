@@ -778,7 +778,7 @@ class DocumentRetriever:
         # 색인되지 않고 검색에서 침묵으로 누락됐다 (2026-08-30 사이클 4 발견).
         await self._index_documents()
 
-        print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
+        logger.info(f"ChromaDB initialized: {self.collection.count()} documents indexed")
 
     def _get_text_hash(self, text: str) -> str:
         """텍스트 해시 생성"""
@@ -891,7 +891,7 @@ Do not include any explanation."""
                 return [query]
 
         except Exception as e:
-            print(f"Query expansion failed: {e}")
+            logger.warning(f"Query expansion failed: {e}")
             return [query]
 
     async def _index_documents(self) -> None:
@@ -942,9 +942,9 @@ Do not include any explanation."""
                             embeddings=embeddings,
                             metadatas=batch_metadatas,
                         )
-                        print(f"Indexed batch {i // batch_size + 1}/{total_batches}")
+                        logger.info(f"Indexed batch {i // batch_size + 1}/{total_batches}")
                 except Exception as e:
-                    print(f"Indexing batch failed: {e}")
+                    logger.error(f"Indexing batch failed: {e}")
 
     def _get_cache_key(
         self,

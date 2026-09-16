@@ -124,8 +124,13 @@ class EmailSubscription:
 
 
 @dataclass
-class AgentStatus:
-    """에이전트 상태"""
+class AgentHealth:
+    """에이전트 실행 이력 (누적 카운터 포함).
+
+    Phase 3 동명 클래스 정리: ``src.memory.session.AgentStatus`` 는 한 세션 안에서의
+    에이전트 *상태 값*(PENDING/RUNNING/...) 을 나타내는 StrEnum 이고, 이쪽은 프로세스
+    전체에 걸친 에이전트별 *건강 기록*이라 다른 개념이다. 이름을 분리한다.
+    """
 
     name: str
     status: str  # idle, running, completed, failed
@@ -177,7 +182,7 @@ class StateManager:
         self.kg_last_update: datetime | None = None
 
         # 에이전트 상태
-        self._agent_status: dict[str, AgentStatus] = {}
+        self._agent_status: dict[str, AgentHealth] = {}
         self._active_tools: set[str] = set()
 
         # 이메일 구독
@@ -258,7 +263,7 @@ class StateManager:
     def start_agent(self, name: str) -> None:
         """에이전트 시작"""
         if name not in self._agent_status:
-            self._agent_status[name] = AgentStatus(name=name, status="idle")
+            self._agent_status[name] = AgentHealth(name=name, status="idle")
 
         self._agent_status[name].status = "running"
         self._agent_status[name].run_count += 1
@@ -268,7 +273,7 @@ class StateManager:
     def complete_agent(self, name: str, success: bool = True, error: str | None = None) -> None:
         """에이전트 완료"""
         if name not in self._agent_status:
-            self._agent_status[name] = AgentStatus(name=name, status="idle")
+            self._agent_status[name] = AgentHealth(name=name, status="idle")
 
         status = self._agent_status[name]
         status.last_run = datetime.now()
@@ -293,11 +298,11 @@ class StateManager:
         """실행 중인 에이전트 있는지"""
         return len(self._active_tools) > 0
 
-    def get_agent_status(self, name: str) -> AgentStatus | None:
+    def get_agent_status(self, name: str) -> AgentHealth | None:
         """에이전트 상태 조회"""
         return self._agent_status.get(name)
 
-    def get_all_agent_statuses(self) -> dict[str, AgentStatus]:
+    def get_all_agent_statuses(self) -> dict[str, AgentHealth]:
         """모든 에이전트 상태"""
         return self._agent_status.copy()
 

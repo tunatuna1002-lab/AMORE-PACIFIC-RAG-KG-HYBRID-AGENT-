@@ -318,6 +318,7 @@ class QueryGraph:
                     decision=state.decision,
                     tool_result=state.tool_result,
                     on_token=sink.token,
+                    conversation_history=state.conversation_history,
                 )
             else:
                 state.response = await self._response_pipeline.generate(
@@ -325,6 +326,7 @@ class QueryGraph:
                     context=state.context,
                     decision=state.decision,
                     tool_result=state.tool_result,
+                    conversation_history=state.conversation_history,
                 )
         else:
             # 폴백 응답 생성

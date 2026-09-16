@@ -63,11 +63,15 @@ class TestAgentProtocol:
 
         assert CrawlerAgentProtocol is not None
 
-    def test_crawler_agent_has_crawl_method(self):
-        """CrawlerAgentProtocol이 crawl 메서드를 정의하는지 검증"""
+    def test_crawler_agent_has_execute_method(self):
+        """CHANGED (D16): 구현체는 crawl()이 아니라 execute()를 가진다.
+
+        Protocol이 존재하지 않는 메서드를 선언하고 있어 isinstance가 항상 False였다.
+        """
         from src.domain.interfaces.agent import CrawlerAgentProtocol
 
-        assert hasattr(CrawlerAgentProtocol, "crawl")
+        assert hasattr(CrawlerAgentProtocol, "execute")
+        assert not hasattr(CrawlerAgentProtocol, "crawl")
 
     def test_storage_agent_protocol_exists(self):
         """StorageAgentProtocol이 존재하는지 검증"""
@@ -75,11 +79,13 @@ class TestAgentProtocol:
 
         assert StorageAgentProtocol is not None
 
-    def test_storage_agent_has_save_method(self):
-        """StorageAgentProtocol이 save 메서드를 정의하는지 검증"""
+    def test_storage_agent_has_execute_method(self):
+        """CHANGED (D16): 구현체는 save()가 아니라 execute()/save_metrics()를 가진다."""
         from src.domain.interfaces.agent import StorageAgentProtocol
 
-        assert hasattr(StorageAgentProtocol, "save")
+        assert hasattr(StorageAgentProtocol, "execute")
+        assert hasattr(StorageAgentProtocol, "save_metrics")
+        assert not hasattr(StorageAgentProtocol, "save")
 
     def test_metrics_agent_protocol_exists(self):
         """MetricsAgentProtocol이 존재하는지 검증"""
@@ -87,11 +93,12 @@ class TestAgentProtocol:
 
         assert MetricsAgentProtocol is not None
 
-    def test_metrics_agent_has_calculate_method(self):
-        """MetricsAgentProtocol이 calculate 메서드를 정의하는지 검증"""
+    def test_metrics_agent_has_execute_method(self):
+        """CHANGED (D16): 구현체는 calculate()가 아니라 execute()를 가진다."""
         from src.domain.interfaces.agent import MetricsAgentProtocol
 
-        assert hasattr(MetricsAgentProtocol, "calculate")
+        assert hasattr(MetricsAgentProtocol, "execute")
+        assert not hasattr(MetricsAgentProtocol, "calculate")
 
     def test_insight_agent_protocol_exists(self):
         """InsightAgentProtocol이 존재하는지 검증"""

@@ -36,6 +36,7 @@ from src.api.models import (
     UpdateAlertSettingsRequest,
 )
 from src.core.state_manager import EmailSubscription, get_state_manager
+from src.domain.brand import is_target_brand
 from src.tools.notifications.alert_service import get_alert_service
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -891,7 +892,7 @@ async def send_insight_report_email(request: Request):
 
         # KPI 계산 (dashboard_data.json은 products를 ASIN 키 dict로 저장 → 리스트로 정규화)
         products = products_as_list(dashboard_data)
-        laneige_products = [p for p in products if p.get("brand") == "LANEIGE"]
+        laneige_products = [p for p in products if is_target_brand(p.get("brand"))]
         avg_rank = (
             sum(p.get("rank", 100) for p in laneige_products) / len(laneige_products)
             if laneige_products
@@ -900,7 +901,7 @@ async def send_insight_report_email(request: Request):
 
         # SoS 계산 (Top 100 기준)
         top100 = products[:100]
-        laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
+        laneige_in_top100 = len([p for p in top100 if is_target_brand(p.get("brand"))])
         sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
 
         # HHI 계산

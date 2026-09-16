@@ -60,9 +60,20 @@ class FakePipeline:
     def __init__(self):
         self.calls: list[dict[str, Any]] = []
 
-    async def generate(self, query, context, decision, tool_result) -> Response:
+    async def generate(
+        self, query, context, decision, tool_result, conversation_history=None
+    ) -> Response:
+        # CHANGED (F7): ResponsePipeline.generate gained an optional
+        # `conversation_history` kwarg (the v4 chat path hands the session's previous
+        # turns to the LLM); QueryGraph now always passes it.
         self.calls.append(
-            {"query": query, "context": context, "decision": decision, "tool_result": tool_result}
+            {
+                "query": query,
+                "context": context,
+                "decision": decision,
+                "tool_result": tool_result,
+                "conversation_history": conversation_history,
+            }
         )
         return Response(text="PIPELINE", confidence_score=0.77)
 

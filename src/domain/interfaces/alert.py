@@ -5,6 +5,9 @@ AlertAgent에 대한 추상 인터페이스
 
 구현체:
 - AlertAgent (src/agents/alert_agent.py)
+
+D16 정렬: 시그니처는 구현체(AlertAgent)의 실제 시그니처를 그대로 옮겨 적는다.
+tests/unit/domain/test_protocol_conformance.py 가 이 일치를 고정한다.
 """
 
 from typing import Any, Protocol, runtime_checkable
@@ -42,8 +45,8 @@ class AlertAgentProtocol(Protocol):
         alert_type: str,
         title: str,
         message: str,
-        priority: Any,
         data: dict[str, Any] | None = None,
+        priority: Any = None,
     ) -> Any:
         """
         알림을 생성합니다.
@@ -52,8 +55,8 @@ class AlertAgentProtocol(Protocol):
             alert_type: 알림 타입 (rank_change, sos_change, market_shift 등)
             title: 알림 제목
             message: 알림 메시지
-            priority: 알림 우선순위 (AlertPriority enum)
             data: 추가 데이터 (선택)
+            priority: 알림 우선순위 (AlertPriority enum, 기본 NORMAL)
 
         Returns:
             Alert 객체
@@ -122,18 +125,24 @@ class AlertAgentProtocol(Protocol):
 
     async def send_daily_summary(
         self,
-        metrics_summary: dict[str, Any],
-        insights: list[dict[str, Any]],
-    ) -> dict[str, Any]:
+        highlights: list[str],
+        avg_rank: float,
+        sos: float,
+        alert_count: int,
+        action_items: list[str],
+    ) -> Any:
         """
         일일 요약을 발송합니다.
 
         Args:
-            metrics_summary: 메트릭 요약
-            insights: 인사이트 목록
+            highlights: 하이라이트 문구
+            avg_rank: 평균 순위
+            sos: Share of Shelf (퍼센트 - 표시 계층)
+            alert_count: 당일 알림 수
+            action_items: 액션 아이템
 
         Returns:
-            발송 결과 딕셔너리
+            SendResult (발송 성공 여부·수신자·오류)
         """
         ...
 

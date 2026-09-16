@@ -20,8 +20,16 @@ class ComplexityLevel(StrEnum):
     COMPLEX = "complex"  # Analysis, multi-step reasoning
 
 
-class QueryIntent(StrEnum):
-    """Query intent types"""
+class ChatQueryIntent(StrEnum):
+    """
+    ChatWorkflow(v1 ``/api/chat``) 가 응답의 ``query_type`` 으로 돌려주는 의도 분류.
+
+    Phase 3 동명 클래스 정리: 이전 이름은 ``QueryIntent`` 였고 ``src.core.intent`` 의
+    ``UnifiedIntent``·``src.rag.hybrid_retriever`` 의 레거시 enum 과 이름이 겹쳤다. 값
+    체계가 서로 다르고(여기는 RANK_QUERY/PRODUCT_DETAIL 처럼 조회 대상 중심) 이 값이
+    API 응답에 그대로 나가므로, 값은 그대로 두고 이름만 분리한다. 검색 전략을 고르는
+    의도 분류는 ``src.core.intent.UnifiedIntent`` 가 단일 정의다.
+    """
 
     RANK_QUERY = "rank_query"  # 순위 조회
     METRIC_QUERY = "metric_query"  # 메트릭 조회 (SoS, HHI, CPI)
@@ -164,7 +172,7 @@ class QueryAnalyzer:
         # Default: Simple
         return ComplexityLevel.SIMPLE
 
-    def detect_intent(self, query: str) -> QueryIntent:
+    def detect_intent(self, query: str) -> ChatQueryIntent:
         """
         Detect query intent.
 
@@ -172,39 +180,39 @@ class QueryAnalyzer:
             query: User query string
 
         Returns:
-            QueryIntent enum value
+            ChatQueryIntent enum value
         """
         if not query or not query.strip():
-            return QueryIntent.GENERAL
+            return ChatQueryIntent.GENERAL
 
         query_lower = query.lower()
 
         # Priority 1: Recommendation (highest priority for complex queries)
         if any(keyword in query_lower for keyword in self.STRATEGY_KEYWORDS):
-            return QueryIntent.RECOMMENDATION
+            return ChatQueryIntent.RECOMMENDATION
 
         # Priority 2: Comparison
         if any(keyword in query_lower for keyword in self.COMPARISON_KEYWORDS):
-            return QueryIntent.COMPARISON
+            return ChatQueryIntent.COMPARISON
 
         # Priority 3: Trend Analysis
         if any(keyword in query_lower for keyword in self.TREND_KEYWORDS):
-            return QueryIntent.TREND_ANALYSIS
+            return ChatQueryIntent.TREND_ANALYSIS
 
         # Priority 4: Metric Query
         if any(keyword in query_lower for keyword in self.METRIC_KEYWORDS):
-            return QueryIntent.METRIC_QUERY
+            return ChatQueryIntent.METRIC_QUERY
 
         # Priority 5: Rank Query
         if any(keyword in query_lower for keyword in self.RANK_KEYWORDS):
-            return QueryIntent.RANK_QUERY
+            return ChatQueryIntent.RANK_QUERY
 
         # Priority 6: Product Detail
         if any(keyword in query_lower for keyword in self.PRODUCT_KEYWORDS):
-            return QueryIntent.PRODUCT_DETAIL
+            return ChatQueryIntent.PRODUCT_DETAIL
 
         # Default: General
-        return QueryIntent.GENERAL
+        return ChatQueryIntent.GENERAL
 
     def extract_keywords(self, query: str) -> list[str]:
         """
@@ -257,7 +265,7 @@ class QueryAnalyzer:
             Analysis result dictionary
             {
                 "complexity": ComplexityLevel,
-                "intent": QueryIntent,
+                "intent": ChatQueryIntent,
                 "keywords": list[str],
                 "query": str
             }

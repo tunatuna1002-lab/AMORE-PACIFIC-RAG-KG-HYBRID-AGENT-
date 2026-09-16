@@ -91,9 +91,9 @@ if TYPE_CHECKING:
 
 from src.domain.entities.relations import InferenceResult, InsightType, RelationType
 from src.monitoring.rag_metrics import RAGMetricsCollector
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.ontology.rules import register_all_rules
 
 from .query_enhancer import QueryEnhancer
 from .relevance_grader import RelevanceGrader

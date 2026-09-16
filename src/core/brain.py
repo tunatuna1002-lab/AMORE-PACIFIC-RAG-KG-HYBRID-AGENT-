@@ -76,6 +76,7 @@ if TYPE_CHECKING:
     from ..tools.intelligence.market_intelligence import MarketIntelligenceEngine
 
 # AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
+from src.domain.brand import is_target_brand
 from src.shared.constants import DEFAULT_MODEL
 
 from ..core.state_manager import StateManager, get_state_manager
@@ -498,8 +499,9 @@ class UnifiedBrain:
         session_id: str | None,
         current_metrics: dict[str, Any] | None,
         skip_cache: bool = False,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> QueryState:
-        """QueryGraph 입력 상태 구성 (세션 설정 + 시스템 상태 스냅샷)"""
+        """QueryGraph 입력 상태 구성 (세션 설정 + 시스템 상태 스냅샷 + 이전 턴)"""
         if session_id:
             self.state.set_session(session_id)
         return QueryState(
@@ -507,6 +509,7 @@ class UnifiedBrain:
             session_id=session_id,
             current_metrics=current_metrics,
             skip_cache=skip_cache,
+            conversation_history=list(conversation_history or []),
             system_state=self._get_system_state(current_metrics),
         )
 
@@ -522,6 +525,7 @@ class UnifiedBrain:
         session_id: str | None = None,
         current_metrics: dict[str, Any] | None = None,
         skip_cache: bool = False,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> Response:
         """
         사용자 질문 처리 (최우선) — ``QueryGraph.run`` 에 위임
@@ -531,6 +535,7 @@ class UnifiedBrain:
             session_id: 세션 ID
             current_metrics: 현재 지표 데이터
             skip_cache: 캐시 스킵 여부
+            conversation_history: 같은 세션의 이전 턴 (API 라우트가 세션 메모리에서 전달, F7)
 
         Returns:
             Response 객체
@@ -550,7 +555,9 @@ class UnifiedBrain:
         self.mode = BrainMode.RESPONDING
 
         try:
-            state = self._build_query_state(query, session_id, current_metrics, skip_cache)
+            state = self._build_query_state(
+                query, session_id, current_metrics, skip_cache, conversation_history
+            )
             state = await self._ensure_query_graph().run(state)
             self._record_query_stats(state)
 
@@ -576,6 +583,7 @@ class UnifiedBrain:
         query: str,
         session_id: str | None = None,
         current_metrics: dict[str, Any] | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ):
         """
         SSE 스트리밍 방식으로 질문 처리 — ``QueryGraph.run_stream`` 에 위임
@@ -612,7 +620,9 @@ class UnifiedBrain:
 
         task: asyncio.Task | None = None
         try:
-            state = self._build_query_state(query, session_id, current_metrics)
+            state = self._build_query_state(
+                query, session_id, current_metrics, conversation_history=conversation_history
+            )
             graph = self._ensure_query_graph()
             task = asyncio.create_task(
                 graph.run_stream(state, on_token=on_token, on_event=on_event)
@@ -818,7 +828,7 @@ class UnifiedBrain:
             return {
                 "competitors": competitors[:10],
                 "laneige_rank": next(
-                    (i + 1 for i, c in enumerate(competitors) if "LANEIGE" in c.get("brand", "")),
+                    (i + 1 for i, c in enumerate(competitors) if is_target_brand(c.get("brand"))),
                     "N/A",
                 ),
             }
@@ -1198,7 +1208,7 @@ class UnifiedBrain:
             logger.info("Sending Insight Report email...")
 
             # KPI 계산
-            laneige_products = [p for p in products if p.get("brand") == "LANEIGE"]
+            laneige_products = [p for p in products if is_target_brand(p.get("brand"))]
             avg_rank = (
                 sum(p.get("rank", 100) for p in laneige_products) / len(laneige_products)
                 if laneige_products
@@ -1207,7 +1217,7 @@ class UnifiedBrain:
 
             # SoS 계산 (Top 100 기준)
             top100 = products[:100]
-            laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
+            laneige_in_top100 = len([p for p in top100 if is_target_brand(p.get("brand"))])
             sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
 
             # HHI 계산

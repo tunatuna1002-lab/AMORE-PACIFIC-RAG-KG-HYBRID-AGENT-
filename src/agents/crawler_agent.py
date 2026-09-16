@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.domain.brand import is_target_brand
+
 # 한국 시간대 (UTC+9)
 from src.domain.entities import RankRecord
 from src.monitoring.logger import AgentLogger
@@ -238,10 +240,7 @@ class CrawlerAgent:
 
     def _is_laneige_product(self, product: dict) -> bool:
         """LANEIGE 제품 여부 확인"""
-        title = product.get("title", "").lower()
-        brand = product.get("brand", "").lower()
-
-        return "laneige" in title or "laneige" in brand
+        return is_target_brand(product.get("title")) or is_target_brand(product.get("brand"))
 
     async def _scrape_tracked_competitors(self) -> list[dict[str, Any]]:
         """

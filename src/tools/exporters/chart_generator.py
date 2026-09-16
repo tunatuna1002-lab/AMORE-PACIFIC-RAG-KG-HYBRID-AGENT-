@@ -28,6 +28,8 @@ from typing import Any
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 
+from src.domain.brand import is_target_brand
+
 logger = logging.getLogger(__name__)
 
 
@@ -380,7 +382,7 @@ class ChartGenerator:
         # 색상 (LANEIGE는 Pacific Blue, 나머지는 그라데이션)
         colors = []
         for brand in brands:
-            if "LANEIGE" in brand.upper():
+            if is_target_brand(brand):
                 colors.append(self.PACIFIC_BLUE)
             else:
                 colors.append(self.AMORE_BLUE)

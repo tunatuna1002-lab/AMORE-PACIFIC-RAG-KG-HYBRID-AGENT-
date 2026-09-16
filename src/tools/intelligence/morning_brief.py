@@ -20,6 +20,7 @@ from typing import Any
 
 from litellm import acompletion
 
+from src.domain.brand import is_target_brand
 from src.shared.constants import KST
 
 logger = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ class MorningBriefGenerator:
         products = crawl_data.get("products", [])
 
         # LANEIGE 제품 필터링
-        laneige_products = [p for p in products if p.get("brand", "").upper() == "LANEIGE"]
+        laneige_products = [p for p in products if is_target_brand(p.get("brand"))]
 
         brief.laneige_products = laneige_products
 
@@ -145,7 +146,7 @@ class MorningBriefGenerator:
         # 전일 대비 변화
         if previous_data:
             prev_products = previous_data.get("products", [])
-            prev_laneige = [p for p in prev_products if p.get("brand", "").upper() == "LANEIGE"]
+            prev_laneige = [p for p in prev_products if is_target_brand(p.get("brand"))]
             if prev_laneige:
                 prev_ranks = [p.get("rank", 100) for p in prev_laneige]
                 prev_avg = sum(prev_ranks) / len(prev_ranks)
@@ -232,7 +233,7 @@ class MorningBriefGenerator:
         category = crawl_data.get("category", "Unknown")
         products = crawl_data.get("products", [])
 
-        laneige_in_cat = [p for p in products if p.get("brand", "").upper() == "LANEIGE"]
+        laneige_in_cat = [p for p in products if is_target_brand(p.get("brand"))]
 
         brief.category_stats[category] = {
             "total_products": len(products),

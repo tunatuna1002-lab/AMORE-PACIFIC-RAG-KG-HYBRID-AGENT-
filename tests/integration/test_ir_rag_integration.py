@@ -358,11 +358,14 @@ def test_ir_business_rules(results: TestResult):
     print("\n📋 테스트 6: IR Business Rules")
 
     try:
-        from src.ontology.business_rules import (
-            ALL_BUSINESS_RULES,
+        # CHANGED (F6): src.ontology.business_rules shim deleted -> import from
+        # src.ontology.rules. RULE_* constants are not re-exported by the package
+        # __init__ (and were not re-exported by the shim either), so they come
+        # from the ir_rules submodule directly instead of inventing new exports.
+        from src.ontology.rules import ALL_BUSINESS_RULES, get_ir_rules
+        from src.ontology.rules.ir_rules import (
             RULE_BRAND_OWNERSHIP_VERIFICATION,
             RULE_IR_PRIME_DAY_IMPACT,
-            get_ir_rules,
         )
 
         # IR 규칙 수 확인

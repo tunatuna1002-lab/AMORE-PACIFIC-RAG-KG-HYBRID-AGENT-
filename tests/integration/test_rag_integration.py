@@ -318,9 +318,9 @@ async def test_hybrid_retriever_integration(results: TestResult):
     print("\n📋 테스트 5: HybridRetriever Integration")
 
     try:
-        from src.ontology.business_rules import register_all_rules
         from src.ontology.knowledge_graph import KnowledgeGraph
         from src.ontology.reasoner import OntologyReasoner
+        from src.ontology.rules import register_all_rules
         from src.rag.hybrid_retriever import HybridRetriever, QueryIntent
 
         # 컴포넌트 초기화

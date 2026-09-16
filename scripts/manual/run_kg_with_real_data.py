@@ -12,10 +12,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.domain.brand import is_target_brand
 from src.domain.entities.relations import Relation, RelationType
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.ontology.rules import register_all_rules
 
 
 def load_dashboard_data() -> dict:
@@ -91,7 +92,7 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
         sos = comp.get("sos", 0)
         avg_rank = comp.get("avg_rank", 0)
         product_count = comp.get("product_count", 0)
-        is_laneige = comp.get("is_laneige", brand_name.upper() == "LANEIGE")
+        is_laneige = comp.get("is_laneige", is_target_brand(brand_name))
 
         # 브랜드 메타데이터 설정
         kg.set_entity_metadata(

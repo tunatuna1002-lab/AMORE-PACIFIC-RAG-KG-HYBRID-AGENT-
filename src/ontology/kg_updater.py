@@ -12,6 +12,7 @@ KnowledgeGraph의 데이터 로딩 기능을 담당하는 믹스인 클래스
 """
 
 import json
+import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,8 @@ from src.domain.entities.relations import (
     get_cluster_for_sentiment,
 )
 from src.shared.units import percent_to_fraction
+
+logger = logging.getLogger(__name__)
 
 
 class KGUpdaterMixin:
@@ -208,7 +211,7 @@ class KGUpdaterMixin:
             path = base_path / hierarchy_path
 
         if not path.exists():
-            print(f"Warning: Category hierarchy file not found: {hierarchy_path}")
+            logger.warning(f"Category hierarchy file not found: {hierarchy_path}")
             return 0
 
         with open(path, encoding="utf-8") as f:
@@ -605,7 +608,7 @@ class KGUpdaterMixin:
             path = base_path / brands_config_path
 
         if not path.exists():
-            print(f"Warning: Brands config file not found: {brands_config_path}")
+            logger.warning(f"Brands config file not found: {brands_config_path}")
             return 0
 
         with open(path, encoding="utf-8") as f:

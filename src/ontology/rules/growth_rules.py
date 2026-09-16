@@ -3,6 +3,7 @@ Growth, Opportunity, and Stability Rules
 성장, 기회 및 안정성 관련 규칙
 """
 
+from src.domain.brand import is_target_brand
 from src.domain.entities.relations import InsightType, MarketPosition
 
 from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
@@ -194,9 +195,7 @@ RULE_TOP3_ACHIEVEMENT = InferenceRule(
         StandardConditions.in_top_n("top_n_leader"),  # Top 3 이내
         RuleCondition(
             name="is_target_brand",
-            check=lambda ctx: (
-                ctx.get("is_target", False) or str(ctx.get("brand", "")).upper() == "LANEIGE"
-            ),
+            check=lambda ctx: (ctx.get("is_target", False) or is_target_brand(ctx.get("brand"))),
             description="타겟 브랜드",
         ),
     ],

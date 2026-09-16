@@ -7,18 +7,22 @@ Dashboard data and historical data endpoints (SQLite-first, Sheets/local fallbac
 import json
 import logging
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.dependencies import get_sheets_writer, limiter, load_dashboard_data, verify_api_key
+from src.api.dependencies import (
+    get_data_service,
+    get_sheets_writer,
+    limiter,
+    load_dashboard_data,
+    verify_api_key,
+)
+from src.application.services.date_range import DATE_FMT, today_kst
+from src.domain.brand import is_target_brand
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
 logger = logging.getLogger(__name__)
-
-# Resolve data directory: Railway volume at /data/ vs local ./data/
-_RESOLVED_DATA_DIR = "/data" if Path("/data").exists() else "./data"
 
 router = APIRouter(tags=["data"])
 
@@ -76,8 +80,7 @@ async def _generate_dashboard_from_sqlite() -> dict[str, Any] | None:
         laneige_products = [
             r
             for r in records
-            if "laneige" in (r.get("brand", "") or "").lower()
-            or "laneige" in (r.get("product_name", "") or "").lower()
+            if is_target_brand(r.get("brand")) or is_target_brand(r.get("product_name"))
         ]
 
         total = len(records)
@@ -198,7 +201,7 @@ async def refresh_data(request: Request):
 
         exporter = DashboardExporter(enable_ontology=False)
         await exporter.initialize()
-        output_path = f"{_RESOLVED_DATA_DIR}/dashboard_data.json"
+        output_path = str(get_data_service().dashboard_json_path)
         result = await exporter.export_dashboard_data(output_path)
 
         if isinstance(result, dict) and "error" in result:
@@ -477,7 +480,7 @@ async def _calculate_brand_metrics_for_period(
         avg_price = round(sum(prices) / len(prices), 2) if prices else None
 
         bubble_size = max(5, min(25, data["product_count"] * 2))
-        is_laneige = target_brand.upper() in brand_name.upper()
+        is_laneige = is_target_brand(brand_name, target_brand)
 
         brand_metrics.append(
             {
@@ -591,7 +594,7 @@ def _get_brand_metrics_from_dashboard(dashboard_data: dict | None, target_brand:
                 "avg_rank": comp.get("avg_rank", 50),
                 "product_count": comp.get("product_count", 0),
                 "bubble_size": max(5, min(25, comp.get("product_count", 0) * 2)),
-                "is_laneige": target_brand.upper() in comp.get("brand", "").upper(),
+                "is_laneige": is_target_brand(comp.get("brand"), target_brand),
             }
         )
 
@@ -613,9 +616,7 @@ async def _get_historical_from_local(
         if data:
             brand_kpis = data.get("brand", {}).get("kpis", {})
             current_sos = brand_kpis.get("sos", 0)
-            data_date = data.get("metadata", {}).get(
-                "data_date", datetime.now().strftime("%Y-%m-%d")
-            )
+            data_date = data.get("metadata", {}).get("data_date", today_kst().strftime(DATE_FMT))
 
             if start_date <= data_date <= end_date:
                 sos_history.append(
@@ -639,7 +640,7 @@ async def _get_historical_from_local(
                     )
 
         # 2. latest_crawl_result.json에서 데이터 추출
-        latest_crawl_path = Path(f"{_RESOLVED_DATA_DIR}/latest_crawl_result.json")
+        latest_crawl_path = get_data_service().latest_crawl_json_path
         if latest_crawl_path.exists():
             try:
                 with open(latest_crawl_path, encoding="utf-8") as f:
@@ -696,7 +697,7 @@ async def _get_historical_from_local(
                 logging.warning(f"Failed to parse latest_crawl_result.json: {e}")
 
         # 3. raw_products 폴더에서 날짜별 데이터 검색
-        raw_data_dir = Path(f"{_RESOLVED_DATA_DIR}/raw_products")
+        raw_data_dir = get_data_service().path_for("raw_products")
         if raw_data_dir.exists():
             for json_file in raw_data_dir.glob("*.json"):
                 try:
@@ -753,7 +754,7 @@ async def _get_historical_from_local(
 
         # rank_history 생성 (CPI 차트용)
         rank_history = {}
-        latest_crawl_path = Path(f"{_RESOLVED_DATA_DIR}/latest_crawl_result.json")
+        latest_crawl_path = get_data_service().latest_crawl_json_path
         if latest_crawl_path.exists():
             try:
                 with open(latest_crawl_path, encoding="utf-8") as f:

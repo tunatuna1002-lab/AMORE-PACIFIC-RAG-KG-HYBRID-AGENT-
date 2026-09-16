@@ -45,6 +45,8 @@ from email.mime.text import MIMEText
 from enum import Enum
 from typing import Any, Literal
 
+from src.domain.brand import is_target_brand
+
 logger = logging.getLogger(__name__)
 
 # Resend 클라이언트 (선택적 의존성)
@@ -662,7 +664,7 @@ class EmailSender:
             change = product.get("change", 0)
 
             # LANEIGE 하이라이트
-            row_style = "background-color: #e8f4fd;" if brand == "LANEIGE" else ""
+            row_style = "background-color: #e8f4fd;" if is_target_brand(brand) else ""
 
             # 변동 표시
             if change > 0:

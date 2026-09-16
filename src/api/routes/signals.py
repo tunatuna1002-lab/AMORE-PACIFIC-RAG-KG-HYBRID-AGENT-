@@ -3,12 +3,12 @@ External Signal Routes - 외부 트렌드 신호 수집 API
 """
 
 import logging
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from src.api.dependencies import limiter, verify_api_key
+from src.application.services.date_range import resolve_date_range
 from src.tools.collectors.external_signal_collector import (
     ExternalSignalCollector,
 )
@@ -72,9 +72,8 @@ async def get_signals(
     signals = collector.signals
 
     # 날짜 필터링
-    cutoff_date = (datetime.now() - __import__("datetime").timedelta(days=days)).strftime(
-        "%Y-%m-%d"
-    )
+    # KST 기준 (크롤러 snapshot_date와 동일한 캘린더) - D19
+    cutoff_date, _ = resolve_date_range(None, None, default_days=days)
     signals = [s for s in signals if s.published_at >= cutoff_date]
 
     # Tier 필터링

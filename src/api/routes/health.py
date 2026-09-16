@@ -13,7 +13,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from src.api.dependencies import limiter
+from src.api.dependencies import get_data_service, limiter
 from src.core.brain import get_initialized_brain
 
 logger = logging.getLogger(__name__)
@@ -109,9 +109,7 @@ async def deep_health_check(request: Request):
 
     # 1. SQLite 연결 확인
     try:
-        db_path = (
-            Path("/data/amore_data.db") if Path("/data").exists() else Path("data/amore_data.db")
-        )
+        db_path = get_data_service().path_for("amore_data.db")
         if db_path.exists():
             conn = sqlite3.connect(str(db_path), timeout=5)
             cursor = conn.execute("SELECT COUNT(*) FROM raw_data")
@@ -192,7 +190,7 @@ async def deep_health_check(request: Request):
     try:
         import shutil
 
-        data_path = Path("/data") if Path("/data").exists() else Path("data")
+        data_path = get_data_service().data_dir
         if data_path.exists():
             total, used, free = shutil.disk_usage(data_path)
             used_percent = (used / total) * 100

@@ -19,9 +19,9 @@ from typing import Any
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.ontology.rules import register_all_rules
 from src.rag.context_builder import ContextBuilder
 from src.rag.hybrid_retriever import HybridContext, HybridRetriever
 from src.rag.retriever import DocumentRetriever

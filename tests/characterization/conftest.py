@@ -17,9 +17,9 @@ from typing import Any
 import pytest
 
 from src.domain.entities.relations import Relation, RelationType
-from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.ontology.rules import register_all_rules
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
