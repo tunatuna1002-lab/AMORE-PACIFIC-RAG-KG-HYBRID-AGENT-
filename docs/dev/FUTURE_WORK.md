@@ -97,8 +97,9 @@ git add eval/baselines/replay/subset_nokg.jsonl && git commit
 | `src/ontology/owl_reasoner.py` | 1,109 | 배치 전용 |
 | `src/ontology/reasoner.py` | 1,004 | |
 
-`src/api/routes/alerts.py` (737줄) 중 약 390줄은 이메일 확인 페이지 2개의 인라인 HTML 이다.
-템플릿 파일로 빼면 라우트가 ~350줄이 된다.
+`src/api/routes/alerts.py` 의 인라인 HTML 분리는 완료됐다(737 → 589줄,
+`src/api/templates/` 로 이동). 남은 589줄은 라우트 로직이라 더 줄이려면
+엔드포인트를 서비스로 더 밀어내야 한다.
 
 ---
 
@@ -115,5 +116,14 @@ git add eval/baselines/replay/subset_nokg.jsonl && git commit
 ## 6. 기타
 
 - [ ] **VULN-005 (HIGH)**: Dockerfile 에 non-root `USER` 추가 — **미해결**
+      (현재 root 로 실행. `/data` 볼륨 권한과 함께 바꿔야 해서 배포 검증 필요)
+- [ ] **`google-adk` 삭제 검토** — `requirements.txt:6` 에 선언돼 있으나
+      `src/` `scripts/` `main.py` 어디에서도 import 하지 않는다
+      (`grep -rn "google.adk\|google_adk"` → 0건). 무거운 패키지라 삭제 이득이 크지만,
+      전이 의존으로만 들어오던 `aiosqlite` 를 직접 선언으로 고정한 것처럼
+      다른 전이 의존이 더 있는지 클린 설치로 확인한 뒤 지울 것
 - [ ] Pydantic 스키마 기반 config 검증 (`config/*.json`)
 - [ ] 커버리지가 얇은 순서: `api/routes` → `ontology/rules` → `tools/notifications`
+- [ ] `tests/unit/tools/test_sqlite_storage.py::test_update_products_sync` 의
+      `except TypeError: pytest.skip(...)` 제거. 현재는 통과하지만(스킵 분기 미도달),
+      시그니처가 바뀌면 실패 대신 조용히 스킵되는 구조다

@@ -18,10 +18,10 @@
 
 | 항목 | 수치 |
 |------|------|
-| src/ Python 파일 | 238개 |
-| src/ 코드 라인 | ~74,900 lines |
-| tests/ 파일 | 228개 |
-| tests/ 코드 라인 | ~79,200 lines |
+| src/ Python 파일 | 239개 |
+| src/ 코드 라인 | ~74,800 lines |
+| tests/ 파일 | 229개 |
+| tests/ 코드 라인 | ~79,300 lines |
 | src/api/dashboard_api.py | 195 lines (진입점, 라우트는 routes/ 분리) |
 | 커버리지 게이트 | 75% (`fail_under`, pyproject + CI) |
 
@@ -36,7 +36,7 @@
 | LLM | OpenAI GPT-4.1-mini via LiteLLM |
 | Scraping | Playwright, playwright-stealth, browserforge, fake-useragent |
 | Storage | SQLite (aiosqlite), Google Sheets API |
-| RAG | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) |
+| RAG | ChromaDB(벡터) + sentence-transformers(all-MiniLM-L6-v2) + rank-bm25(키워드), RRF 융합 |
 | Ontology | owlready2, rdflib, Rule-based Reasoner |
 | NLP | spaCy (NER/Entity Linking) |
 | Data | pandas, numpy, matplotlib |
@@ -44,7 +44,7 @@
 | Lint | Ruff (line-length=100, target=py311) |
 | Deploy | Docker (python:3.11-slim), Railway |
 | Notifications | Gmail SMTP, Telegram Bot, Resend |
-| Social Media | Playwright (TikTok), Instaloader (IG), yt-dlp (YT), JSON API (Reddit) |
+| External Signals | `ExternalSignalCollector` 내장 구현 (Reddit JSON API, Google Trends, 뉴스). 전용 소셜 수집기 4종과 instaloader·yt-dlp 의존성은 2026-08-30 삭제 |
 
 ---
 
@@ -52,7 +52,7 @@
 
 | 파일 | 역할 | 실행 방법 |
 |------|------|-----------|
-| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 12개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
+| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 13개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
 | `scripts/start.py` | Railway 배포용 시작 스크립트 | `python scripts/start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
 | `src/application/workflows/batch_workflow.py` | 일일 배치 파이프라인 | `BatchWorkflow.run_daily_workflow()` |
@@ -88,9 +88,12 @@
 │   │   ├── routes/               # 라우트 모듈 13개
 │   │   │   ├── chat.py, crawl.py, data.py (113줄)
 │   │   │   ├── health.py, brain.py, export.py (346줄)
-│   │   │   ├── alerts.py (737줄), analytics.py (195줄)
+│   │   │   ├── alerts.py (589줄), analytics.py (195줄)
 │   │   │   ├── competitors.py, deals.py
 │   │   │   ├── market_intelligence.py, signals.py, sync.py
+│   │   ├── templates/            # 라우트가 직접 반환하는 HTML 페이지
+│   │   │   ├── __init__.py       # render() — string.Template 로더 (@cache)
+│   │   │   └── email_confirm_{error,success}.html
 │   │   ├── middleware/           # csrf.py, security_headers.py
 │   │   ├── validators/           # input_validator.py
 │   │   └── models.py
@@ -288,13 +291,18 @@ Beauty & Personal Care (L0)
 # 서버 실행
 uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload
 
-# 테스트 (python3 사용)
-python3 -m pytest tests/ -v                    # 전체 (커버리지 포함)
-python3 -m pytest tests/unit/domain/ -v        # Domain 레이어만
-python3 -m pytest tests/ -m "not slow" -v      # 느린 테스트 제외
+# 테스트 — 오프라인 스위트 (CI 와 동일. 네트워크 없이 전부 통과해야 한다)
+python3 -m pytest tests/unit tests/characterization tests/eval tests/adversarial \
+  -m "not slow" --cov=src --cov-fail-under=75
 
-# 골든셋 평가
+python3 -m pytest tests/unit/domain/ -v        # 레이어 하나만
+python3 -m pytest tests/ -m "not slow" -v      # tests/integration 포함 (네트워크·API 키 필요)
+
+# 골든셋 평가 (OPENAI_API_KEY 필요)
 python3 scripts/evaluate_golden.py --verbose
+
+# 골든셋 회귀 기록 — 키 있는 환경에서 1회만. 기록 후엔 오프라인 CI 에서 자동 검증
+python3 scripts/record_golden_replay.py
 
 # KG 백업
 python3 -m src.tools.utilities.kg_backup backup
@@ -305,9 +313,9 @@ python3 -m src.tools.utilities.kg_backup restore 2026-01-27
 python3 scripts/sync_from_railway.py           # Railway → 로컬
 python3 scripts/sync_sheets_to_sqlite.py       # Sheets → SQLite
 
-# 린팅
-ruff check src/ --fix
-ruff format src/
+# 린팅 (CI 와 동일 범위. 버전마다 지적 건수가 달라 0.13.3 기준으로 clean)
+ruff check src/ tests/ scripts/ --fix
+ruff format src/ tests/ scripts/
 ```
 
 ---
@@ -455,7 +463,8 @@ class MyWorkflow:
 - **Async-First**: 모든 I/O 작업은 `async/await`
 - **Type Hints**: 모든 함수에 파라미터 + 반환 타입 힌트 필수
 - **Pydantic Models**: 데이터 구조는 `BaseModel` 사용
-- **Ruff**: line-length=100, target=py311 (`E501` 무시)
+- **Ruff**: line-length=100, target=py311. 선택 규칙 E·W·F·I·B·C4·UP,
+  무시 `E501`(길이는 포매터가 처리)·`E402`·`B008`
 - **TDD**: RED → GREEN → REFACTOR
 - **테스트 경로**: `tests/unit/{layer}/test_*.py`
 - **테스트 환경 분리**: `.env.test` 사용

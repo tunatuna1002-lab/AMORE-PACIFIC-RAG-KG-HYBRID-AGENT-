@@ -337,7 +337,36 @@ Phase 1에서 추가 발견: D22(slowapi 파라미터명), D23(스트림 500), D
 
 | 일시 | Phase | 커밋 | 내용 |
 |------|-------|------|------|
-| 2026-09-16 | 5 | (이 커밋) | `CLAUDE.md` 구조 트리·핵심 모듈 표·규모 수치·Clean Architecture 절을 실제 상태로 갱신, 로깅 컨벤션 명문화, `docs/dev/FUTURE_WORK.md` 전면 재작성, 본 §9 진행 로그 보강 |
+| 2026-09-16 | 5 | 1511c54 | `CLAUDE.md` 구조 트리·핵심 모듈 표·규모 수치·Clean Architecture 절을 실제 상태로 갱신, 로깅 컨벤션 명문화, `docs/dev/FUTURE_WORK.md` 전면 재작성, 본 §9 진행 로그 보강 |
+| 2026-09-16 | 5 | a3b3515 | **B-3** `alerts.py` 인라인 HTML → `src/api/templates/` (737 → 589줄). `string.Template` 로더, 공백 정규화 비교로 렌더 결과 동일 확인 |
+| 2026-09-16 | 5 | 40bc77d | confirm-email 성공 경로·이메일 불일치 경로 테스트 신설(그전까지 실패 경로만 커버) + 템플릿 로더 테스트, 6건 |
+| 2026-09-16 | 5 | c470a53 | `aiosqlite` 직접 선언 — 저장 계층이 직접 import 하는데 `google-adk` 전이 의존으로만 들어와 있었다 |
+| 2026-09-16 | 5 | (문서 커밋) | 위 결과를 문서에 반영, §6 개발 명령어를 CI 와 동일 범위로 정렬 |
+
+### Phase 5 종료 시점 실측 (2026-09-16)
+
+| 항목 | 값 |
+|------|-----|
+| 오프라인 스위트 | **5,567 passed / 9 skipped** (4분 16초) |
+| 커버리지 | **79.29%** (게이트 75%, `Required test coverage of 75% reached`) |
+| ruff 0.13.3 | `check`·`format --check` 모두 clean (496 파일) |
+| import 그래프 | 순환 0, 역방향 0 (`tests/unit/test_import_graph.py`) |
+| src | 239 파일 / 74,803 줄 |
+| tests | 229 파일 / 79,315 줄 |
+
+스킵 9건 중 직접 사유를 확인한 것은 3건이다(`-rs` 실행):
+
+- `python-pptx not installed` — 선택 의존성
+- `embedding model unavailable (offline)` — 네트워크
+- `replay recording missing` — 골든셋 기록 부재 (§B-2)
+
+나머지 6건은 개별 사유를 확인하지 못했다. 다만 스위트 전체의 `skipif` 마커를
+훑어보면 남은 후보는 `rank_bm25`/`owlready2` 미설치 분기뿐이고 이 둘은 현재
+설치돼 있으므로, 남은 6건도 같은 선택 의존성 계열로 보인다 — **추정이며
+확인 필요**. 기능 결함으로 인한 스킵은 발견하지 못했다.
+
+관련해 `tests/unit/tools/test_sqlite_storage.py::test_update_products_sync` 의
+`except TypeError: pytest.skip(...)` 는 현재 통과한다(스킵 분기 미도달).
 
 **미해결로 남긴 것** — `docs/dev/FUTURE_WORK.md` 참조.
 동작 변경이라 별도 커밋이 필요한 8건(RRF dedup 키, KG 렌더러 문구, BM25+RRF 이중 실행,
