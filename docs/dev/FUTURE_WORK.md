@@ -127,3 +127,20 @@ git add eval/baselines/replay/subset_nokg.jsonl && git commit
 - [ ] `tests/unit/tools/test_sqlite_storage.py::test_update_products_sync` 의
       `except TypeError: pytest.skip(...)` 제거. 현재는 통과하지만(스킵 분기 미도달),
       시그니처가 바뀌면 실패 대신 조용히 스킵되는 구조다
+
+---
+
+## 7. 항상 스킵되는 테스트 6건
+
+오프라인 스위트의 9 스킵 중 **6건은 환경과 무관하게 어떤 CI 에서도 항상 스킵된다.**
+(나머지 3건만 환경 의존: `python-pptx` 미설치 · offline 임베딩 · 골든셋 기록 부재.)
+리팩토링 이전 baseline 에서도 동일했던 선재 항목이다.
+
+| 위치 | 사유 | 조치 |
+|------|------|------|
+| `tests/unit/tools/test_ir_report_parser.py:317` (클래스, 4건) | `PREDEFINED_IR_DATA 상수가 아직 구현되지 않음` | `src/` 에 해당 상수가 없다(`grep` 0건). **구현하거나 테스트를 삭제**할 것. 구현 예정이 없다면 삭제가 맞다 |
+| `tests/unit/agents/test_hybrid_insight_agent.py:385` | `통합 테스트는 별도 실행` | `tests/integration/` 은 오프라인 CI 에서 돌지 않으므로 실질적으로 미검증. 단위 수준으로 재작성 권장 |
+| `tests/unit/application/test_batch_workflow.py:975` | `get_brain() is async singleton - complex to mock` | 위와 동일. `BatchWorkflow.run_daily_workflow` 공개 진입점으로 재작성 가능한지 검토 |
+
+> 완료 정의는 "스킵은 네트워크·선택 의존성·골든셋 기록 부재만"을 요구하지만
+> 현재 상태는 이를 만족하지 않는다. 위 6건을 정리해야 충족된다.

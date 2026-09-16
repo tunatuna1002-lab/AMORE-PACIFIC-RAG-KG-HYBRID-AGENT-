@@ -354,19 +354,32 @@ Phase 1에서 추가 발견: D22(slowapi 파라미터명), D23(스트림 500), D
 | src | 239 파일 / 74,803 줄 |
 | tests | 229 파일 / 79,315 줄 |
 
-스킵 9건 중 직접 사유를 확인한 것은 3건이다(`-rs` 실행):
+스킵 9건 전체를 `-rs` 로 확인했다. **완료 정의는 "스킵은 네트워크·선택 의존성·
+골든셋 기록 부재만"이라고 했지만, 실제로는 3건만 그 범주에 든다.**
 
-- `python-pptx not installed` — 선택 의존성
-- `embedding model unavailable (offline)` — 네트워크
-- `replay recording missing` — 골든셋 기록 부재 (§B-2)
+| 건수 | 사유 | 완료 정의 범주 |
+|------|------|----------------|
+| 1 | `python-pptx not installed` | 선택 의존성 — O |
+| 1 | `embedding model unavailable (offline)` | 네트워크 — O |
+| 1 | `replay recording missing` (§B-2) | 골든셋 기록 부재 — O |
+| 1 | `통합 테스트는 별도 실행` (`test_hybrid_insight_agent.py:385`) | **해당 없음** |
+| 1 | `get_brain() is async singleton - complex to mock, tested via integration` (`test_batch_workflow.py:975`) | **해당 없음** |
+| 4 | `PREDEFINED_IR_DATA 상수가 아직 구현되지 않음` (`test_ir_report_parser.py:317`, 클래스 단위 `@pytest.mark.skip`) | **해당 없음** |
 
-나머지 6건은 개별 사유를 확인하지 못했다. 다만 스위트 전체의 `skipif` 마커를
-훑어보면 남은 후보는 `rank_bm25`/`owlready2` 미설치 분기뿐이고 이 둘은 현재
-설치돼 있으므로, 남은 6건도 같은 선택 의존성 계열로 보인다 — **추정이며
-확인 필요**. 기능 결함으로 인한 스킵은 발견하지 못했다.
+뒤의 6건은 이번 작업으로 생긴 것이 아니다 — 리팩토링 착수 전 baseline 도
+동일하게 9 스킵이었다(5,561 passed / 9 skipped). 즉 인계 문서의 "스킵은
+세 범주뿐"이라는 서술이 처음부터 부정확했다.
 
-관련해 `tests/unit/tools/test_sqlite_storage.py::test_update_products_sync` 의
-`except TypeError: pytest.skip(...)` 는 현재 통과한다(스킵 분기 미도달).
+성격도 다르다. 앞의 3건은 환경 때문에 이 컨테이너에서만 스킵되지만,
+뒤의 6건은 **어떤 환경에서도 항상 스킵된다**:
+
+- `PREDEFINED_IR_DATA` 4건은 `src/` 에 그 상수가 없다(`grep` 0건).
+  구현되지 않은 기능을 향해 쓰인 테스트이므로 구현하거나 삭제해야 한다.
+- 나머지 2건은 "통합 테스트로 대신 검증한다"는 설계 선택인데,
+  `tests/integration/` 은 오프라인 CI 에서 실행되지 않으므로 실질적으로
+  어디서도 검증되지 않는다.
+
+`docs/dev/FUTURE_WORK.md` §6 에 항목으로 남겼다.
 
 **미해결로 남긴 것** — `docs/dev/FUTURE_WORK.md` 참조.
 동작 변경이라 별도 커밋이 필요한 8건(RRF dedup 키, KG 렌더러 문구, BM25+RRF 이중 실행,
