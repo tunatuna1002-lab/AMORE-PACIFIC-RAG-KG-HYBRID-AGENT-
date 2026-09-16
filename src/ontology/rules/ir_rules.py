@@ -5,7 +5,8 @@ IR 크로스 분석 규칙 (2026-01-26 추가)
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, T, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, ctx_num
+from ..thresholds import threshold as T
 
 RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
     name="ir_prime_day_impact",
@@ -18,7 +19,8 @@ RULE_IR_PRIME_DAY_IMPACT = InferenceRule(
         ),
         RuleCondition(
             name="amazon_rank_surge",
-            check=lambda ctx: ctx_num(ctx, "rank_change_during_event", 0) < -T("ir_event_rank_surge"),
+            check=lambda ctx: ctx_num(ctx, "rank_change_during_event", 0)
+            < -T("ir_event_rank_surge"),
             description="이벤트 기간 순위 10+ 상승",
         ),
     ],

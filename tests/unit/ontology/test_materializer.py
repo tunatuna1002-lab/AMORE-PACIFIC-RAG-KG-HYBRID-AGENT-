@@ -13,9 +13,8 @@ owlready2 = pytest.importorskip("owlready2")
 
 @pytest.fixture(scope="module")
 def built():
-    from tests.unit.ontology.conftest import GROUPS, HIERARCHY, METRICS, RECORDS
-
     from src.ontology.knowledge_graph import KnowledgeGraph
+    from tests.unit.ontology.conftest import GROUPS, HIERARCHY, METRICS, RECORDS
 
     kg = KnowledgeGraph(persist_path=None, auto_load=False, auto_save=False)
     result = OntologyBuilder().from_snapshot(

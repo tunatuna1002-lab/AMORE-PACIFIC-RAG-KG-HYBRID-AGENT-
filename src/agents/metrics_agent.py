@@ -10,6 +10,7 @@ from typing import Any
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
+from src.ontology.thresholds import get_thresholds
 from src.tools.calculators.metric_calculator import MetricCalculator
 
 
@@ -28,7 +29,8 @@ class MetricsAgent:
     ):
         """
         Args:
-            config_path: 설정 파일 경로
+            config_path: MetricCalculator 설정 파일 경로.
+                알림 임계값은 여기가 아니라 ``src.ontology.thresholds`` 가 소유한다 (F4).
             logger: 로거
             tracer: 추적기
             metrics: 메트릭 수집기
@@ -284,11 +286,11 @@ class MetricsAgent:
         current_rank = product_metric.get("current_rank", 0)
         rank_change_1d = product_metric.get("rank_change_1d")
 
-        # 순위 급락 알림 (임계값: thresholds.json ranking.significant_drop / significant_rise)
-        from src.ontology.thresholds import get_thresholds
-
+        # 순위 급락 알림 (임계값: config/thresholds.json ``ranking.*`` 단일 출처.
+        # ``config_path`` 는 MetricCalculator 설정용이며 임계값은 프로세스 공용
+        # ``src.ontology.thresholds`` 가 소유한다 - F4)
         thresholds = get_thresholds()
-        significant_drop = self._significant_drop_threshold()
+        significant_drop = int(thresholds.rank_drop)
         critical_drop = thresholds.rank_rise
         top_n = thresholds.top_n
         if rank_change_1d and rank_change_1d >= significant_drop:
@@ -348,12 +350,6 @@ class MetricsAgent:
                 )
 
         return alerts
-
-    def _significant_drop_threshold(self) -> int:
-        """순위 급락 임계값 (config/thresholds.json ``ranking.significant_drop`` 단일 출처)."""
-        from src.ontology.thresholds import get_thresholds
-
-        return int(get_thresholds().rank_drop)
 
     def _calc_avg_rating_gap(self, products: list[dict]) -> float | None:
         """평균 평점 갭 계산"""

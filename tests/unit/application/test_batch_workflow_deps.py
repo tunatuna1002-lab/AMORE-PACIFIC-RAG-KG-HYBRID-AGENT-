@@ -334,7 +334,9 @@ async def test_run_marks_state_manager(make_workflow, state_manager: StateManage
     assert state_manager.is_crawl_needed() is False
     assert state_manager.last_metrics_time is not None
     assert state_manager.kg_initialized is True
-    assert state_manager.kg_triple_count == 6
+    # CHANGED (F9): update_kg now writes the ontology-built KG (category hierarchy,
+    # brand→group ownership, materialized inferences), not just the crawl relations.
+    assert state_manager.kg_triple_count == 107
 
 
 async def test_failed_crawl_does_not_mark_state_fresh(

@@ -273,6 +273,12 @@ def patched_llm(monkeypatch):
 
     monkeypatch.setattr(litellm, "acompletion", fake_acompletion)
     for module in list(sys.modules.values()):
-        if getattr(module, "acompletion", None) is original:
+        try:
+            # Lazy-import packages (transformers) resolve unknown attributes by importing
+            # a submodule, which can raise ModuleNotFoundError instead of AttributeError.
+            current = getattr(module, "acompletion", None)
+        except Exception:
+            continue
+        if current is original:
             monkeypatch.setattr(module, "acompletion", fake_acompletion, raising=False)
     return calls

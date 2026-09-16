@@ -21,6 +21,10 @@ def pytest_configure(config):
         os.path.join(tempfile.gettempdir(), "amore_test_kg", "knowledge_graph.json"),
     )
     os.environ.pop("RAILWAY_ENVIRONMENT", None)
+    # OWL 추론은 기본 python 엔진으로 고정: Pellet/HermiT는 Java 런타임에 의존해
+    # 환경마다 결과가 달라진다(특성화 핀이 흔들림). Java 엔진을 검증하는 테스트는
+    # materialize(..., reasoner=...)로 직접 지정한다.
+    os.environ.setdefault("AMORE_OWL_REASONER", "python")
 
 
 @pytest.fixture(autouse=True)

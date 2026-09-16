@@ -21,8 +21,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from src.shared.constants import KST
 from src.ontology.inference_context import build_inference_context
+from src.shared.constants import KST
 from src.shared.units import percent_to_fraction
 
 # 한국 시간대 (UTC+9)

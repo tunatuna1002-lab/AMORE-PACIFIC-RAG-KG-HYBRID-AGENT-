@@ -157,15 +157,33 @@ async def test_chat_response_shape_and_prompt(
     }
     assert result["stats"]["inferences_count"] == 1
     assert result["stats"]["rag_chunks_count"] == 2
-    assert result["stats"]["kg_facts_count"] == 4  # Phase 1 대소문자 무관 조회로 brand_products 사실 추가
+    assert (
+        result["stats"]["kg_facts_count"] == 4
+    )  # Phase 1 대소문자 무관 조회로 brand_products 사실 추가
 
-    # Sources: KG summary, ontology rule, the two RAG chunks, AI disclaimer
-    assert len(result["sources"]) == 5
-    assert result["sources"][0]["type"] == "knowledge_graph"
+    # Sources: KG summary, ontology rule, the two RAG chunks, category hierarchy,
+    # AI disclaimer.
+    # PIN FLIPPED: SourceProvider now reads the KG injected into this agent instead of the
+    # Container's singleton KG. HybridRetriever.initialize() loads
+    # config/category_hierarchy.json into that same KG, so the category-hierarchy source is
+    # emitted deterministically (before, it depended on whether some earlier test had
+    # populated the container singleton).
+    assert [s["type"] for s in result["sources"]] == [
+        "knowledge_graph",
+        "ontology_inference",
+        "rag_document",
+        "rag_document",
+        "category_hierarchy",
+        "ai_model",
+    ]
     assert result["sources"][0]["fact_count"] == 4  # brand_products 사실 추가
-    assert result["sources"][1]["type"] == "ontology_inference"
     assert result["sources"][1]["rule_name"] == "category_entry_opportunity"
     assert result["sources"][1]["confidence"] == 0.7
+    assert result["sources"][4]["path"] == [
+        "Beauty & Personal Care",
+        "Skin Care",
+        "Lip Care",
+    ]
 
     # Exactly one LLM call with system + user messages, config temperature, 800 tokens
     assert len(llm.calls) == 1
@@ -197,7 +215,8 @@ async def test_chat_response_text_and_brand_normalization(agent: HybridChatbotAg
     # Perplexity-style source appendix is appended to the LLM answer
     assert "**📚 출처 및 참고자료:**" in text
     assert "3. 📄 **SoS 정의**\n   - 관련도: 0.90" in text
-    assert "5. 🤖 **AI 분석: gpt-4.1-mini**" in text
+    assert "5. 🗂️ **카테고리 계층 구조**" in text
+    assert "6. 🤖 **AI 분석: gpt-4.1-mini**" in text
     # FIXED (D24): _normalize_response_brands no longer rewrites the category name
     # "Beauty & Personal Care" (the bare token "Beauty" is protected inside it).
     assert "Beauty & Personal Care > Skin Care > Lip Care" in text

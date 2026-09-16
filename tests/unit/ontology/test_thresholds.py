@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,7 @@ def test_defaults_match_hardcoded_values() -> None:
 
 def test_thresholds_is_frozen() -> None:
     t = Thresholds()
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         t.rank_drop = 99  # type: ignore[misc]
 
 

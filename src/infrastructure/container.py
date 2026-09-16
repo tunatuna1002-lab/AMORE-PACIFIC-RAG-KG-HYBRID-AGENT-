@@ -500,9 +500,13 @@ class Container:
     # ========================================
 
     @classmethod
-    def get_suggestion_engine(cls):
+    def get_suggestion_engine(cls, knowledge_graph=None):
         """
-        SuggestionEngine 싱글톤 반환
+        SuggestionEngine 반환
+
+        Args:
+            knowledge_graph: 후속 질문을 만들 때 읽을 KG. 주면 그 KG 전용 인스턴스를
+                새로 만들어 반환한다 (컨테이너 싱글턴 KG와 섞이지 않게).
 
         Returns:
             SuggestionEngine 인스턴스
@@ -510,9 +514,12 @@ class Container:
         if "suggestion_engine" in cls._overrides:
             return cls._overrides["suggestion_engine"]
 
-        if "suggestion_engine" not in cls._instances:
-            from src.agents.suggestion_engine import SuggestionEngine
+        from src.agents.suggestion_engine import SuggestionEngine
 
+        if knowledge_graph is not None:
+            return SuggestionEngine(knowledge_graph=knowledge_graph)
+
+        if "suggestion_engine" not in cls._instances:
             cls._instances["suggestion_engine"] = SuggestionEngine(
                 knowledge_graph=cls.get_knowledge_graph()
             )
@@ -520,9 +527,14 @@ class Container:
         return cls._instances["suggestion_engine"]
 
     @classmethod
-    def get_source_provider(cls):
+    def get_source_provider(cls, knowledge_graph=None):
         """
-        SourceProvider 싱글톤 반환
+        SourceProvider 반환
+
+        Args:
+            knowledge_graph: 출처(카테고리 계층)를 읽을 KG. 주면 그 KG 전용 인스턴스를
+                새로 만들어 반환한다 - 호출자가 자기 KG를 주입했는데 컨테이너 싱글턴 KG를
+                읽어 서로 다른 그래프를 보는 일을 막는다. 없으면 컨테이너 싱글턴.
 
         Returns:
             SourceProvider 인스턴스
@@ -530,9 +542,12 @@ class Container:
         if "source_provider" in cls._overrides:
             return cls._overrides["source_provider"]
 
-        if "source_provider" not in cls._instances:
-            from src.agents.source_provider import SourceProvider
+        from src.agents.source_provider import SourceProvider
 
+        if knowledge_graph is not None:
+            return SourceProvider(knowledge_graph=knowledge_graph)
+
+        if "source_provider" not in cls._instances:
             cls._instances["source_provider"] = SourceProvider(
                 knowledge_graph=cls.get_knowledge_graph()
             )

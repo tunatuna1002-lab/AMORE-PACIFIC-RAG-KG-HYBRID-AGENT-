@@ -215,11 +215,17 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
     assert all(step["status"] == "completed" for step in result["steps"].values())
     assert result["steps"]["crawl"]["result"] is CRAWL_RESULT
     assert result["steps"]["store"]["result"] == STORE_RESULT
+    # PIN FLIPPED (F9): update_kg now runs OntologyBuilder (JSON KG + OWL A-Box from the
+    # same normalised entities, including the category hierarchy and the brand→group
+    # ownership from config/) followed by materialize() (OWL reasoning offline, inferred
+    # triples written back with provenance). Hence the two new keys and the larger counts.
     assert result["steps"]["update_kg"]["result"] == {
-        "relations_added": 6,
-        "total_triples": 6,
-        "unique_subjects": 4,
-        "unique_objects": 5,
+        "relations_added": 94,
+        "inferred_added": 13,
+        "owl_individuals": 8,
+        "total_triples": 107,
+        "unique_subjects": 48,
+        "unique_objects": 50,
     }
     assert result["steps"]["calculate"]["result"] is METRICS_RESULT
     assert result["steps"]["insight"]["result"] is INSIGHT_RESULT
@@ -250,7 +256,8 @@ async def test_run_daily_workflow_happy_path(workflow: BatchWorkflow, tmp_path: 
         "daily_insight": "LANEIGE leads...",  # always suffixed with "..."
         "dashboard_exported": True,
         "dashboard_path": "./data/dashboard_data.json",
-        "hybrid": {"kg_triples": 6, "inferences": 1, "explanations": 0},
+        # PIN FLIPPED (F9): see the update_kg pin above for why the KG is larger.
+        "hybrid": {"kg_triples": 107, "inferences": 1, "explanations": 0},
     }
 
     # Metrics / trace summaries (QualityMetrics + ExecutionTracer)
@@ -300,11 +307,28 @@ async def test_run_daily_workflow_kg_and_filesystem_effects(
     await workflow.run_daily_workflow(categories=["lip_care"])
 
     kg = workflow._knowledge_graph
+    # PIN FLIPPED (F9): OntologyBuilder writes the category hierarchy (parentCategory /
+    # hasSubcategory) and the brand→group ownership from config/, and materialize() adds
+    # the inferred triples (hasPosition / siblingBrand / competesWith / hasState).
+    # The reasoner is pinned to the pure-Python engine by tests/conftest.py, so these
+    # counts do not depend on a Java runtime being present.
     assert kg.get_stats() == {
-        "total_triples": 6,
-        "unique_subjects": 4,
-        "unique_objects": 5,
-        "relations_by_type": {"hasProduct": 2, "belongsToCategory": 2, "directCompetitor": 2},
+        "total_triples": 107,
+        "unique_subjects": 48,
+        "unique_objects": 50,
+        "relations_by_type": {
+            "hasProduct": 2,
+            "belongsToCategory": 6,
+            "directCompetitor": 2,
+            "parentCategory": 14,
+            "hasSubcategory": 13,
+            "ownedByGroup": 31,
+            "ownsBrand": 31,
+            "hasPosition": 2,
+            "siblingBrand": 2,
+            "competesWith": 2,
+            "hasState": 2,
+        },
     }
     # load_from_metrics_data stores brand metadata keyed by the original-case brand name
     assert kg.get_entity_metadata("LANEIGE") == {
@@ -314,6 +338,12 @@ async def test_run_daily_workflow_kg_and_filesystem_effects(
         "product_count": 1,
         "is_target": True,
         "category": "lip_care",
+        # PIN FLIPPED (F9): the update_kg step runs before `calculate`, so OntologyBuilder
+        # derives SoS from the crawl records themselves (1 of 2 lip_care products = 0.5,
+        # a FRACTION). The `sos` key above is written later by load_from_metrics_data from
+        # the fixture's share_of_shelf=0.5 PERCENT; the two disagree only because the
+        # fixture's metrics are artificial.
+        "sos_by_category": {"lip_care": 0.5},
     }
     # D26: 명시적 save()는 auto_save 여부와 무관하게 파일을 쓴다
     assert (tmp_path / "kg.json").exists()

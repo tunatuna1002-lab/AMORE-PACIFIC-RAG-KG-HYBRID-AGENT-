@@ -189,8 +189,10 @@ class HybridChatbotAgent(BaseHybridAgent):
         # 분해된 컴포넌트 (always active)
         from src.infrastructure.container import Container
 
-        self.suggestion_engine = Container.get_suggestion_engine()
-        self.source_provider = Container.get_source_provider()
+        # 후속 질문·출처는 이 에이전트에 주입된 KG에서 읽는다 (컨테이너 싱글턴 KG가
+        # 아니라). 둘이 다른 그래프를 보면 답변과 출처가 어긋난다.
+        self.suggestion_engine = Container.get_suggestion_engine(knowledge_graph=self.kg)
+        self.source_provider = Container.get_source_provider(knowledge_graph=self.kg)
         self.signal_manager = Container.get_external_signal_manager()
 
     @property

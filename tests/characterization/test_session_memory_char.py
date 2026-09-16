@@ -5,6 +5,11 @@ Pins the public module functions in src/api/dependencies.py
 (add_to_memory / get_conversation_history / cleanup_expired_sessions) and
 src/memory/context.py (ContextManager).
 
+F7 memory unification: these functions now sit on top of ONE
+``src.memory.conversation_memory.ConversationMemory`` instead of the former
+ad-hoc dict-of-lists, so the store is read through its public API
+(``get_history`` / ``in``) and the clock is injected via ``now_fn``.
+
 The root conftest clears `conversation_memory` / `session_last_activity` after
 every test, so each test starts from an empty store.
 """
@@ -78,11 +83,13 @@ def test_memory_is_trimmed_to_twice_max_memory_turns():
     for i in range(total):
         add_to_memory("s1", "user", f"m{i}")
 
-    stored = deps.conversation_memory["s1"]
+    stored = deps.conversation_memory.get_history("s1")
     assert len(stored) == MAX_MEMORY_TURNS * 2
     assert stored[0]["content"] == "m5"  # oldest 5 dropped
     assert stored[-1]["content"] == f"m{total - 1}"
-    assert set(stored[0].keys()) == {"role", "content", "timestamp"}
+    # CHANGED (F7): turns are ConversationTurn records, so each dict also carries
+    # the entities extracted from the message.
+    assert set(stored[0].keys()) == {"role", "content", "timestamp", "entities"}
 
     lines = get_conversation_history("s1", limit=1000).split("\n")
     assert len(lines) == MAX_MEMORY_TURNS * 2
@@ -104,18 +111,13 @@ def test_sessions_are_isolated():
 @pytest.fixture
 def frozen_clock(monkeypatch):
     """
-    There is no injectable clock in src/api/dependencies.py — `datetime.now()` is called
-    directly — so this is the ONE allowed internal patch: replace the module's `datetime`
-    name with a subclass whose now() returns a controllable instant.
+    CHANGED (F7): ``ConversationMemory`` takes an injectable clock (``now_fn``), so the
+    former patch of the module-level ``datetime`` name is replaced by setting that
+    attribute on the API-wide memory instance.
     """
     state = {"now": datetime(2026, 9, 3, 12, 0, 0)}
 
-    class _FrozenDateTime(datetime):
-        @classmethod
-        def now(cls, tz=None):  # noqa: D401 - mirrors datetime.now signature
-            return state["now"]
-
-    monkeypatch.setattr(deps, "datetime", _FrozenDateTime)
+    monkeypatch.setattr(deps.conversation_memory, "now_fn", lambda: state["now"])
 
     def advance(**kwargs):
         state["now"] = state["now"] + timedelta(**kwargs)
@@ -126,7 +128,6 @@ def frozen_clock(monkeypatch):
 def test_cleanup_removes_sessions_older_than_ttl(frozen_clock):
     add_to_memory("old", "user", "stale")
     frozen_clock(hours=SESSION_TTL_HOURS, seconds=1)  # strictly older than TTL
-    add_to_memory("fresh", "user", "recent")
 
     removed = cleanup_expired_sessions()
 
@@ -134,6 +135,20 @@ def test_cleanup_removes_sessions_older_than_ttl(frozen_clock):
     assert get_conversation_history("old") == ""
     assert "old" not in deps.conversation_memory
     assert "old" not in deps.session_last_activity
+
+
+def test_cleanup_after_a_write_has_nothing_left_to_remove(frozen_clock):
+    """
+    CHANGED (F7): writing to any session sweeps the expired ones first, so an explicit
+    cleanup right afterwards reports 0 removed. Eviction itself is unchanged - the
+    expired session is gone either way.
+    """
+    add_to_memory("old", "user", "stale")
+    frozen_clock(hours=SESSION_TTL_HOURS, seconds=1)
+    add_to_memory("fresh", "user", "recent")
+
+    assert cleanup_expired_sessions() == 0
+    assert "old" not in deps.conversation_memory
     assert get_conversation_history("fresh") == "[사용자]: recent"
 
 
@@ -148,17 +163,19 @@ def test_cleanup_on_empty_store_returns_zero():
     assert cleanup_expired_sessions() == 0
 
 
-def test_add_to_memory_does_not_evict_expired_sessions_on_every_call(frozen_clock):
+def test_add_to_memory_evicts_expired_sessions_on_every_call(frozen_clock):
     """
-    PINS CURRENT BEHAVIOR: add_to_memory only triggers cleanup when the session count
-    is > MAX_SESSIONS or a multiple of 100 (0 included). With a single expired session
-    present, adding a second session leaves the expired one in place.
+    CHANGED (F7): the old dict-based store only swept when the session count was a
+    multiple of 100, so an expired session could survive indefinitely. The unified
+    ``ConversationMemory`` sweeps on every ``add_turn``, so the expired session is gone
+    as soon as any session writes.
     """
     add_to_memory("old", "user", "stale")
     frozen_clock(hours=2)
-    add_to_memory("new", "user", "fresh")  # len(session_last_activity) == 1 -> no cleanup
-    assert "old" in deps.conversation_memory
-    assert get_conversation_history("old") == "[사용자]: stale"
+    add_to_memory("new", "user", "fresh")
+    assert "old" not in deps.conversation_memory
+    assert get_conversation_history("old") == ""
+    assert get_conversation_history("new") == "[사용자]: fresh"
 
 
 def test_add_to_memory_refreshes_last_activity(frozen_clock):

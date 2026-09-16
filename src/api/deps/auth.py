@@ -71,6 +71,8 @@ limiter = Limiter(key_func=get_remote_address)
 
 # ============= JWT Helpers =============
 
+# Startup guard only (same pattern as API_KEY above): the helpers read the secret
+# from the environment at call time via ``get_jwt_secret()``.
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 EMAIL_VERIFICATION_EXPIRES_MINUTES = 30
@@ -99,11 +101,17 @@ if JWT_SECRET_KEY:
         )
 
 
+def get_jwt_secret() -> str | None:
+    """현재 프로세스에 설정된 JWT_SECRET_KEY (호출 시점의 환경변수)"""
+    return os.environ.get("JWT_SECRET_KEY") or None
+
+
 def create_email_verification_token(
     email: str, expires_minutes: int = EMAIL_VERIFICATION_EXPIRES_MINUTES
 ) -> str:
     """이메일 인증용 JWT 토큰 생성"""
-    if not JWT_SECRET_KEY:
+    secret = get_jwt_secret()
+    if not secret:
         raise ValueError("JWT_SECRET_KEY 환경변수가 설정되지 않았습니다.")
 
     payload = {
@@ -112,16 +120,17 @@ def create_email_verification_token(
         "exp": datetime.now(UTC) + timedelta(minutes=expires_minutes),
         "iat": datetime.now(UTC),
     }
-    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
 
 
 def verify_jwt_email_token(token: str) -> dict:
     """JWT 이메일 인증 토큰 검증"""
-    if not JWT_SECRET_KEY:
+    secret = get_jwt_secret()
+    if not secret:
         return {"valid": False, "error": "JWT_SECRET_KEY 환경변수가 설정되지 않았습니다."}
 
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, secret, algorithms=[JWT_ALGORITHM])
 
         if payload.get("purpose") != "email_verification":
             return {"valid": False, "error": "유효하지 않은 토큰입니다."}

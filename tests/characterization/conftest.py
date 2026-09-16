@@ -121,9 +121,7 @@ def seed_kg(kg: KnowledgeGraph) -> KnowledgeGraph:
 
 @pytest.fixture
 def kg(tmp_path: Path) -> KnowledgeGraph:
-    graph = KnowledgeGraph(
-        persist_path=str(tmp_path / "kg.json"), auto_load=False, auto_save=False
-    )
+    graph = KnowledgeGraph(persist_path=str(tmp_path / "kg.json"), auto_load=False, auto_save=False)
     return seed_kg(graph)
 
 

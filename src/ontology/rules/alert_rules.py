@@ -5,7 +5,8 @@ Risk and Alert Rules
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..thresholds import threshold as T
 
 # =========================================================================
 # 규칙: 가격-품질 불일치 (Price-Quality Mismatch)

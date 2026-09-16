@@ -906,6 +906,7 @@ class BatchWorkflow:
                 from src.ontology.materializer import materialize
 
                 result: dict[str, Any] = {"relations_added": 0, "inferred_added": 0}
+                ontology_error: str | None = None
                 try:
                     build = OntologyBuilder().from_snapshot(
                         crawl_data, metrics=None, kg=self.knowledge_graph
@@ -914,8 +915,11 @@ class BatchWorkflow:
                     result["owl_individuals"] = build.stats["owl_individuals"]
                     if build.owl is not None:
                         result["inferred_added"] = materialize(build.owl, self.knowledge_graph)
-                except Exception as e:  # recorded, never swallowed silently
-                    result["ontology_error"] = f"{type(e).__name__}: {e}"
+                except Exception as e:
+                    # Recorded as a step error (update_kg is non-critical, so the run ends
+                    # "partial"), never swallowed into a "completed" day.
+                    ontology_error = f"{type(e).__name__}: {e}"
+                    result["ontology_error"] = ontology_error
                     self.logger.error(f"Ontology build/materialize failed: {e}")
                     # keep the JSON KG usable even when the ontology step fails
                     if not result["relations_added"]:
@@ -931,7 +935,12 @@ class BatchWorkflow:
                         "unique_objects": kg_stats.get("unique_objects", 0),
                     }
                 )
-                return ActResult(action=action, success=True, result=result)
+                return ActResult(
+                    action=action,
+                    success=ontology_error is None,
+                    result=result,
+                    error=ontology_error,
+                )
 
             elif action == "calculate":
                 result = await self.metrics_agent.execute(

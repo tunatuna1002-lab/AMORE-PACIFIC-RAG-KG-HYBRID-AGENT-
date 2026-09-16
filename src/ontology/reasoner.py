@@ -94,7 +94,6 @@ from src.domain.entities.relations import InferenceResult, InsightType
 
 from .knowledge_graph import KnowledgeGraph
 from .thresholds import get_thresholds
-from .thresholds import threshold as T
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -675,7 +674,6 @@ def _num(ctx: dict[str, Any], key: str, default: float) -> float:
 
 
 ctx_num = _num  # 규칙 모듈용 공개 별칭
-
 
 
 def cluster_size(value: Any) -> int:

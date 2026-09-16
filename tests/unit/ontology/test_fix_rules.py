@@ -44,7 +44,7 @@ def test_churn_rate_none_is_false_without_warning(caplog):
     ],
 )
 def test_standard_conditions_do_not_raise_on_none(cond, caplog):
-    ctx = {k: None for k in ("sos", "hhi", "cpi", "rating_gap", "streak_days")}
+    ctx = dict.fromkeys(("sos", "hhi", "cpi", "rating_gap", "streak_days"))
     with caplog.at_level(logging.WARNING, logger="src.ontology.reasoner"):
         cond.evaluate(ctx)
     assert not [r for r in caplog.records if "evaluation failed" in r.getMessage()]

@@ -37,22 +37,20 @@ with patch.dict(
 
 
 class TestCleanupExpiredSessions:
-    """cleanup_expired_sessions 테스트"""
+    """cleanup_expired_sessions 테스트 (F7: 단일 ConversationMemory 기반)"""
 
     def setup_method(self):
         """각 테스트 전 세션 데이터 초기화"""
         conversation_memory.clear()
-        session_last_activity.clear()
 
     def test_cleanup_expired_sessions(self):
         """만료된 세션 정리"""
         now = datetime.now()
-        # 만료된 세션 (2시간 전)
+        add_to_memory("expired-1", "user", "hi")
+        add_to_memory("active-1", "user", "hello")
+        # 만료된 세션의 마지막 활동 시각을 2시간 전으로 되돌린다 (TTL 1시간)
         session_last_activity["expired-1"] = now - timedelta(hours=2)
-        conversation_memory["expired-1"].append({"role": "user", "content": "hi"})
-        # 활성 세션
         session_last_activity["active-1"] = now
-        conversation_memory["active-1"].append({"role": "user", "content": "hello"})
 
         cleaned = cleanup_expired_sessions()
 
@@ -63,8 +61,7 @@ class TestCleanupExpiredSessions:
 
     def test_cleanup_no_expired(self):
         """만료된 세션이 없는 경우"""
-        now = datetime.now()
-        session_last_activity["active-1"] = now
+        add_to_memory("active-1", "user", "hello")
 
         cleaned = cleanup_expired_sessions()
 
@@ -82,12 +79,11 @@ class TestGetConversationHistory:
 
     def setup_method(self):
         conversation_memory.clear()
-        session_last_activity.clear()
 
     def test_get_history_basic(self):
         """기본 대화 기록 조회"""
-        conversation_memory["sess-1"].append({"role": "user", "content": "Hello"})
-        conversation_memory["sess-1"].append({"role": "assistant", "content": "Hi there"})
+        add_to_memory("sess-1", "user", "Hello")
+        add_to_memory("sess-1", "assistant", "Hi there")
 
         history = get_conversation_history("sess-1")
 
@@ -102,7 +98,7 @@ class TestGetConversationHistory:
     def test_get_history_with_limit(self):
         """제한된 대화 기록 조회"""
         for i in range(10):
-            conversation_memory["sess-2"].append({"role": "user", "content": f"Message {i}"})
+            add_to_memory("sess-2", "user", f"Message {i}")
 
         history = get_conversation_history("sess-2", limit=3)
 
@@ -113,8 +109,7 @@ class TestGetConversationHistory:
 
     def test_get_history_truncates_long_content(self):
         """긴 내용 truncation"""
-        long_content = "A" * 200
-        conversation_memory["sess-3"].append({"role": "user", "content": long_content})
+        add_to_memory("sess-3", "user", "A" * 200)
 
         history = get_conversation_history("sess-3")
 
@@ -126,16 +121,16 @@ class TestAddToMemory:
 
     def setup_method(self):
         conversation_memory.clear()
-        session_last_activity.clear()
 
     def test_add_to_memory_basic(self):
         """기본 메모리 추가"""
         add_to_memory("sess-1", "user", "Hello")
 
-        assert len(conversation_memory["sess-1"]) == 1
-        assert conversation_memory["sess-1"][0]["role"] == "user"
-        assert conversation_memory["sess-1"][0]["content"] == "Hello"
-        assert "timestamp" in conversation_memory["sess-1"][0]
+        stored = conversation_memory.get_history("sess-1")
+        assert len(stored) == 1
+        assert stored[0]["role"] == "user"
+        assert stored[0]["content"] == "Hello"
+        assert "timestamp" in stored[0]
         assert "sess-1" in session_last_activity
 
     def test_add_to_memory_trims(self):
@@ -144,20 +139,19 @@ class TestAddToMemory:
         for i in range(25):
             add_to_memory("sess-trim", "user", f"Msg {i}")
 
-        assert len(conversation_memory["sess-trim"]) == 20
+        assert len(conversation_memory.get_history("sess-trim")) == 20
 
 
 class TestLoadDashboardData:
-    """load_dashboard_data 테스트"""
+    """load_dashboard_data 테스트 (F6: DashboardDataService 래퍼, DATA_DIR로 경로 주입)"""
 
-    def test_load_valid_json(self, tmp_path):
+    def test_load_valid_json(self, tmp_path, monkeypatch):
         """유효한 JSON 파일 로드"""
         data = {"home": {"insight_message": "Test"}, "brand": {}}
-        data_file = tmp_path / "dashboard_data.json"
-        data_file.write_text(json.dumps(data), encoding="utf-8")
+        (tmp_path / "dashboard_data.json").write_text(json.dumps(data), encoding="utf-8")
+        monkeypatch.setenv("DATA_DIR", str(tmp_path))
 
-        with patch("src.api.dependencies.DATA_PATH", str(data_file)):
-            result = load_dashboard_data()
+        result = load_dashboard_data()
 
         # Staleness metadata is injected by load_dashboard_data
         assert result["home"] == data["home"]
@@ -165,22 +159,18 @@ class TestLoadDashboardData:
         assert "_cache_age_hours" in result.get("metadata", {})
         assert "_is_stale" in result.get("metadata", {})
 
-    def test_load_file_not_found(self):
+    def test_load_file_not_found(self, tmp_path, monkeypatch):
         """파일 없는 경우 빈 딕셔너리"""
-        with patch("src.api.dependencies.DATA_PATH", "/nonexistent/path/data.json"):
-            result = load_dashboard_data()
+        monkeypatch.setenv("DATA_DIR", str(tmp_path / "nonexistent"))
 
-        assert result == {}
+        assert load_dashboard_data() == {}
 
-    def test_load_invalid_json(self, tmp_path):
+    def test_load_invalid_json(self, tmp_path, monkeypatch):
         """잘못된 JSON 파일"""
-        data_file = tmp_path / "bad_data.json"
-        data_file.write_text("not json {{{", encoding="utf-8")
+        (tmp_path / "dashboard_data.json").write_text("not json {{{", encoding="utf-8")
+        monkeypatch.setenv("DATA_DIR", str(tmp_path))
 
-        with patch("src.api.dependencies.DATA_PATH", str(data_file)):
-            result = load_dashboard_data()
-
-        assert result == {}
+        assert load_dashboard_data() == {}
 
 
 class TestBuildDataContext:
@@ -508,7 +498,8 @@ class TestLogChatInteraction:
 
     def test_log_chat_interaction(self):
         """챗봇 대화 로그 기록"""
-        with patch("src.api.dependencies.audit_logger") as mock_logger:
+        with patch("src.api.deps.audit.get_audit_logger") as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
             log_chat_interaction(
                 session_id="sess-1",
                 user_query="What is SoS?",
@@ -532,7 +523,8 @@ class TestLogChatInteraction:
         """긴 응답 truncation"""
         long_response = "A" * 600
 
-        with patch("src.api.dependencies.audit_logger") as mock_logger:
+        with patch("src.api.deps.audit.get_audit_logger") as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
             log_chat_interaction(
                 session_id="sess-2",
                 user_query="Test",
@@ -551,94 +543,68 @@ class TestLogChatInteraction:
 
 
 class TestJWTHelpers:
-    """JWT 관련 함수 테스트"""
+    """JWT 관련 함수 테스트 (JWT_SECRET_KEY는 호출 시점의 환경변수에서 읽는다)"""
 
-    @patch.dict(
-        "os.environ",
-        {"JWT_SECRET_KEY": "test-secret-key-for-jwt-12345678"},  # pragma: allowlist secret
-        clear=False,
-    )
-    def test_create_and_verify_token(self):
+    SECRET = "test-secret-key-for-jwt-12345678"  # pragma: allowlist secret
+
+    def test_create_and_verify_token(self, monkeypatch):
         """토큰 생성 및 검증"""
         import src.api.dependencies as deps
 
-        original_key = deps.JWT_SECRET_KEY
-        deps.JWT_SECRET_KEY = "test-secret-key-for-jwt-12345678"  # pragma: allowlist secret
+        monkeypatch.setenv("JWT_SECRET_KEY", self.SECRET)
 
-        try:
-            token = deps.create_email_verification_token("test@example.com")
-            assert isinstance(token, str)
+        token = deps.create_email_verification_token("test@example.com")
+        assert isinstance(token, str)
 
-            result = deps.verify_jwt_email_token(token)
-            assert result["valid"] is True
-            assert result["email"] == "test@example.com"
-        finally:
-            deps.JWT_SECRET_KEY = original_key
+        result = deps.verify_jwt_email_token(token)
+        assert result["valid"] is True
+        assert result["email"] == "test@example.com"
 
-    def test_create_token_no_secret(self):
+    def test_create_token_no_secret(self, monkeypatch):
         """JWT_SECRET_KEY 없으면 에러"""
         import src.api.dependencies as deps
 
-        original_key = deps.JWT_SECRET_KEY
-        deps.JWT_SECRET_KEY = None
+        monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
 
-        try:
-            with pytest.raises(ValueError, match="JWT_SECRET_KEY"):
-                deps.create_email_verification_token("test@example.com")
-        finally:
-            deps.JWT_SECRET_KEY = original_key
+        with pytest.raises(ValueError, match="JWT_SECRET_KEY"):
+            deps.create_email_verification_token("test@example.com")
 
-    def test_verify_token_no_secret(self):
+    def test_verify_token_no_secret(self, monkeypatch):
         """JWT_SECRET_KEY 없으면 invalid 반환"""
         import src.api.dependencies as deps
 
-        original_key = deps.JWT_SECRET_KEY
-        deps.JWT_SECRET_KEY = None
+        monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
 
-        try:
-            result = deps.verify_jwt_email_token("some-token")
-            assert result["valid"] is False
-        finally:
-            deps.JWT_SECRET_KEY = original_key
+        assert deps.verify_jwt_email_token("some-token")["valid"] is False
 
-    def test_verify_invalid_token(self):
+    def test_verify_invalid_token(self, monkeypatch):
         """유효하지 않은 토큰"""
         import src.api.dependencies as deps
 
-        original_key = deps.JWT_SECRET_KEY
-        deps.JWT_SECRET_KEY = "test-secret-key-for-jwt-12345678"  # pragma: allowlist secret
+        monkeypatch.setenv("JWT_SECRET_KEY", self.SECRET)
 
-        try:
-            result = deps.verify_jwt_email_token("invalid-token-string")
-            assert result["valid"] is False
-        finally:
-            deps.JWT_SECRET_KEY = original_key
+        assert deps.verify_jwt_email_token("invalid-token-string")["valid"] is False
 
-    def test_verify_wrong_purpose_token(self):
+    def test_verify_wrong_purpose_token(self, monkeypatch):
         """목적이 다른 토큰"""
+        from datetime import UTC
+
         import jwt as pyjwt
 
         import src.api.dependencies as deps
 
-        original_key = deps.JWT_SECRET_KEY
-        deps.JWT_SECRET_KEY = "test-secret-key-for-jwt-12345678"  # pragma: allowlist secret
+        monkeypatch.setenv("JWT_SECRET_KEY", self.SECRET)
 
-        try:
-            from datetime import UTC
-
-            token = pyjwt.encode(
-                {
-                    "email": "test@example.com",
-                    "purpose": "wrong_purpose",
-                    "exp": datetime.now(UTC) + timedelta(minutes=30),
-                },
-                deps.JWT_SECRET_KEY,
-                algorithm="HS256",
-            )
-            result = deps.verify_jwt_email_token(token)
-            assert result["valid"] is False
-        finally:
-            deps.JWT_SECRET_KEY = original_key
+        token = pyjwt.encode(
+            {
+                "email": "test@example.com",
+                "purpose": "wrong_purpose",
+                "exp": datetime.now(UTC) + timedelta(minutes=30),
+            },
+            self.SECRET,
+            algorithm="HS256",
+        )
+        assert deps.verify_jwt_email_token(token)["valid"] is False
 
 
 class TestVerifyApiKey:

@@ -86,9 +86,13 @@ def inferred_facts(kg: Any, subject: str | None = None) -> list[dict[str, Any]]:
                 }
             )
         elif rel.predicate == RelationType.COMPETES_WITH:
-            facts.append({**base, "type": "competition", "object": rel.object, "relation": "competesWith"})
+            facts.append(
+                {**base, "type": "competition", "object": rel.object, "relation": "competesWith"}
+            )
         elif rel.predicate == RelationType.SIBLING_BRAND:
-            facts.append({**base, "type": "sibling", "object": rel.object, "relation": "siblingBrand"})
+            facts.append(
+                {**base, "type": "sibling", "object": rel.object, "relation": "siblingBrand"}
+            )
         elif rel.predicate == RelationType.PARENT_CATEGORY:
             facts.append(
                 {
@@ -229,7 +233,12 @@ def _extract(abox: Any, engine: str, thresholds) -> dict[tuple, dict[str, Any]]:
     def put(subject: str, predicate: RelationType, obj: str, provenance: str, **props: Any) -> dict:
         key = (subject, predicate, obj)
         fact = facts.setdefault(
-            key, {"provenance": provenance, "reasoner": engine, **{k: v for k, v in props.items() if k != "categories"}}
+            key,
+            {
+                "provenance": provenance,
+                "reasoner": engine,
+                **{k: v for k, v in props.items() if k != "categories"},
+            },
         )
         if "categories" in props:
             fact.setdefault("categories", {}).update(props["categories"])
@@ -281,24 +290,49 @@ def _extract(abox: Any, engine: str, thresholds) -> dict[tuple, dict[str, Any]]:
         for a in members:
             for b in members:
                 if a != b:
-                    put(a, RelationType.SIBLING_BRAND, b, f"{PROVENANCE_PREFIX}siblingBrand", group=label(group))
+                    put(
+                        a,
+                        RelationType.SIBLING_BRAND,
+                        b,
+                        f"{PROVENANCE_PREFIX}siblingBrand",
+                        group=label(group),
+                    )
 
     # --- competesWith symmetric closure ---
     for brand in onto.Brand.instances():
         for other in brand.competes_with:
             for a, b in ((label(brand), label(other)), (label(other), label(brand))):
-                put(a, RelationType.COMPETES_WITH, b, f"{PROVENANCE_PREFIX}competesWith.symmetric", categories={category: True} if category else {})
+                put(
+                    a,
+                    RelationType.COMPETES_WITH,
+                    b,
+                    f"{PROVENANCE_PREFIX}competesWith.symmetric",
+                    categories={category: True} if category else {},
+                )
 
     # --- product states ---
     for product in onto.Product.instances():
         rank = product.rank_value
         state = _classify(rank, product.is_a, engine, onto, "Top10Product", thresholds)
         if state:
-            put(label(product), RelationType.HAS_STATE, state, f"{PROVENANCE_PREFIX}{state}", categories={category: rank} if category else {})
+            put(
+                label(product),
+                RelationType.HAS_STATE,
+                state,
+                f"{PROVENANCE_PREFIX}{state}",
+                categories={category: rank} if category else {},
+            )
         days = product.days_since_first_seen
         state = _classify(days, product.is_a, engine, onto, "NewEntrant", thresholds)
         if state:
-            put(label(product), RelationType.HAS_STATE, state, f"{PROVENANCE_PREFIX}{state}", categories={category: days} if category else {}, days_since_first_seen=days)
+            put(
+                label(product),
+                RelationType.HAS_STATE,
+                state,
+                f"{PROVENANCE_PREFIX}{state}",
+                categories={category: days} if category else {},
+                days_since_first_seen=days,
+            )
     return facts
 
 
@@ -354,7 +388,9 @@ def materialize(owl: Any, kg: Any, *, reasoner: str | None = None) -> int:
                 existing[0].properties.update(props)
                 existing[0].source = SOURCE
             continue
-        rel = Relation(subject=subject, predicate=predicate, object=obj, properties=props, source=SOURCE)
+        rel = Relation(
+            subject=subject, predicate=predicate, object=obj, properties=props, source=SOURCE
+        )
         if kg.add_relation(rel):
             added += 1
 

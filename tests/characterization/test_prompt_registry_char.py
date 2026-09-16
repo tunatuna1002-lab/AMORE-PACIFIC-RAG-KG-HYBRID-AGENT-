@@ -46,7 +46,12 @@ def registry():
 
 
 def test_agent_template_inventory_is_pinned():
-    assert [_agent_name(p) for p in AGENT_FILES] == ["chatbot", "insight", "period_insight", "react"]
+    assert [_agent_name(p) for p in AGENT_FILES] == [
+        "chatbot",
+        "insight",
+        "period_insight",
+        "react",
+    ]
     assert [p.name for p in VARIANT_FILES] == [
         "chatbot_system_v0.txt",
         "chatbot_system_v1.txt",
@@ -154,7 +159,9 @@ def test_version_manager_returns_variant_content_verbatim(version_manager):
         content = version_manager.get_prompt("chatbot", version=version)
         assert content == path.read_text(encoding="utf-8")
         # No formatting happened: the raw placeholders are still present.
-        assert set(PLACEHOLDER_RE.findall(content)) == {f"{{{k}}}" for k in EXPECTED_VARIANT_PLACEHOLDERS}
+        assert set(PLACEHOLDER_RE.findall(content)) == {
+            f"{{{k}}}" for k in EXPECTED_VARIANT_PLACEHOLDERS
+        }
 
 
 def test_version_manager_latest_resolves_to_v4(version_manager):

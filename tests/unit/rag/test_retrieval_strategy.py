@@ -153,8 +153,27 @@ class TestOWLRetrievalStrategyInitialize:
         assert strategy.doc_retriever.initialize.call_count == first_call_count
 
     @pytest.mark.asyncio
-    async def test_initialize_with_owl_reasoner(self):
-        """OWL Reasoner 초기화 및 KG 임포트"""
+    async def test_initialize_does_not_touch_owl_reasoner_by_default(self):
+        """
+        CHANGED (F9-4): reasoning runs offline in the batch (materializer), so the chat
+        path never drives owlready2 at startup. The request-time fallback is off by
+        default, and with it off the reasoner is left completely untouched.
+        """
+        mock_owl = MagicMock()
+        mock_owl.initialize = AsyncMock()
+        strategy = _make_owl_strategy(knowledge_graph=MagicMock(), owl_reasoner=mock_owl)
+        strategy.doc_retriever = AsyncMock()
+
+        await strategy.initialize()
+
+        mock_owl.initialize.assert_not_awaited()
+        mock_owl.import_from_knowledge_graph.assert_not_called()
+        mock_owl.run_reasoner.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_initialize_with_owl_reasoner_request_time_fallback(self, monkeypatch):
+        """OWL Reasoner 초기화 및 KG 임포트 (요청 시 폴백 플래그가 켜진 경우에만)"""
+        monkeypatch.setenv("FF_REASONER_OWL_REQUEST_TIME_FALLBACK", "true")
         # initialize는 async로 호출됨, 나머지는 sync
         mock_owl = MagicMock()
         mock_owl.initialize = AsyncMock()
@@ -553,9 +572,58 @@ class TestInferWithOntology:
         assert result["facts"] == []
 
     @pytest.mark.asyncio
-    async def test_owl_reasoner_fallback(self):
-        """UnifiedReasoner 없으면 OWL reasoner 폴백"""
+    async def test_reads_materialized_facts_from_kg(self):
+        """
+        F9-4: the chat path reads the facts the batch materialized into the JSON KG
+        (``src.ontology.materializer``) instead of running owlready2 per request.
+        """
+        from src.domain.entities.relations import Relation, RelationType
+        from src.ontology.knowledge_graph import KnowledgeGraph
+
+        kg = KnowledgeGraph(auto_load=False)
+        kg.add_relation(
+            Relation(
+                subject="laneige",
+                predicate=RelationType.HAS_POSITION,
+                object="StrongBrand",
+                properties={
+                    "inferred": True,
+                    "provenance": "owl:StrongBrand",
+                    "categories": {"lip_care": 0.2},
+                },
+            )
+        )
+        kg.add_relation(
+            Relation(
+                subject="laneige",
+                predicate=RelationType.COMPETES_WITH,
+                object="cosrx",
+                properties={"inferred": True, "provenance": "owl:competesWith.symmetric"},
+            )
+        )
+
         strategy = _make_owl_strategy()
+        strategy.kg = kg
+        # The reasoner must not be consulted at request time.
+        strategy.owl_reasoner = MagicMock()
+
+        entity = FakeLinkedEntity(text="LANEIGE", entity_type="brand", ontology_id="laneige")
+        result = await strategy._infer_with_ontology([entity], None)
+
+        assert len(result["facts"]) == 2
+        types = {i["type"] for i in result["inferences"]}
+        assert {"market_position", "competition"} <= types
+        strategy.owl_reasoner.get_inferred_facts.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_owl_reasoner_fallback(self, monkeypatch):
+        """
+        CHANGED (F9-4): the request-time owlready2 path is now a feature-flag guarded
+        fallback, reached only when the flag is on AND the KG has nothing materialized.
+        """
+        monkeypatch.setenv("FF_REASONER_OWL_REQUEST_TIME_FALLBACK", "true")
+        strategy = _make_owl_strategy()
+        strategy.kg = None
         strategy.owl_reasoner = MagicMock()
         strategy.owl_reasoner.get_inferred_facts.return_value = [{"fact": "test"}]
         strategy.owl_reasoner.get_brand_info.return_value = {
@@ -568,6 +636,20 @@ class TestInferWithOntology:
         result = await strategy._infer_with_ontology([entity], None)
         assert len(result["facts"]) == 1
         assert len(result["inferences"]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_owl_reasoner_not_called_when_fallback_flag_is_off(self):
+        """F9-4: flag off -> no request-time reasoning even without materialized facts."""
+        strategy = _make_owl_strategy()
+        strategy.kg = None
+        strategy.owl_reasoner = MagicMock()
+
+        entity = FakeLinkedEntity(text="LANEIGE", entity_type="brand", ontology_id="laneige")
+        result = await strategy._infer_with_ontology([entity], None)
+
+        assert result["facts"] == []
+        assert result["inferences"] == []
+        strategy.owl_reasoner.get_inferred_facts.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_inference_exception_handled(self):

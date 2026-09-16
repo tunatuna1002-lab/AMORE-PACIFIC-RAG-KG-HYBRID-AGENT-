@@ -338,20 +338,72 @@ class TestAct:
 
     @pytest.mark.asyncio
     async def test_act_update_kg(self, workflow):
-        mock_kg = MagicMock()
-        mock_kg.load_from_crawl_data.return_value = 10
-        mock_kg.get_stats.return_value = {
-            "total_triples": 100,
-            "unique_subjects": 30,
-            "unique_objects": 40,
-        }
-        workflow._knowledge_graph = mock_kg
+        """
+        CHANGED (F9): the step runs OntologyBuilder + materialize() instead of
+        KnowledgeGraph.load_from_crawl_data, so it is exercised against a real KG.
+        """
+        from src.ontology.knowledge_graph import KnowledgeGraph
 
-        think = ThinkResult(next_action="update_kg", reasoning="", parameters={"crawl_data": {}})
+        kg = KnowledgeGraph(auto_load=False)
+        workflow._knowledge_graph = kg
+
+        crawl_data = {
+            "categories": {
+                "lip_care": {
+                    "rank_records": [
+                        {"brand": "LANEIGE", "asin": "B0LANE1", "rank": 1, "price": 24.0},
+                        {"brand": "COSRX", "asin": "B0COSRX1", "rank": 2, "price": 15.0},
+                    ]
+                }
+            }
+        }
+        think = ThinkResult(
+            next_action="update_kg", reasoning="", parameters={"crawl_data": crawl_data}
+        )
         result = await workflow._act(think)
+
         assert result.success is True
-        assert result.result["relations_added"] == 10
-        assert result.result["total_triples"] == 100
+        assert result.error is None
+        assert "ontology_error" not in result.result
+        assert result.result["relations_added"] > 0
+        assert result.result["owl_individuals"] > 0
+        assert result.result["total_triples"] == kg.get_stats()["total_triples"]
+
+    @pytest.mark.asyncio
+    async def test_act_update_kg_reports_ontology_failure_as_step_error(
+        self, workflow, monkeypatch
+    ):
+        """F9: a build/materialize failure is a step error (never a silent "completed"),
+        and the JSON KG is still filled from the crawl data so the day stays usable."""
+        from src.ontology import builder as builder_module
+        from src.ontology.knowledge_graph import KnowledgeGraph
+
+        kg = KnowledgeGraph(auto_load=False)
+        workflow._knowledge_graph = kg
+
+        def _boom(self, *args, **kwargs):
+            raise RuntimeError("owlready2 exploded")
+
+        monkeypatch.setattr(builder_module.OntologyBuilder, "from_snapshot", _boom)
+
+        crawl_data = {
+            "categories": {
+                "lip_care": {
+                    "rank_records": [
+                        {"brand": "LANEIGE", "asin": "B0LANE1", "rank": 1},
+                    ]
+                }
+            }
+        }
+        think = ThinkResult(
+            next_action="update_kg", reasoning="", parameters={"crawl_data": crawl_data}
+        )
+        result = await workflow._act(think)
+
+        assert result.success is False
+        assert "owlready2 exploded" in (result.error or "")
+        assert "owlready2 exploded" in result.result["ontology_error"]
+        assert kg.get_stats()["total_triples"] > 0  # JSON KG fallback still ran
 
     @pytest.mark.asyncio
     async def test_act_calculate(self, workflow):

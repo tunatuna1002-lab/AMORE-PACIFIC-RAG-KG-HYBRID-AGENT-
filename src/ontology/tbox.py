@@ -87,7 +87,7 @@ def define_tbox(onto: Any, thresholds: Thresholds | None = None) -> Any:
     if not OWLREADY2_AVAILABLE or onto is None:
         return onto
     t = thresholds or get_thresholds()
-    first_time = not getattr(onto, "Group")  # Group is new to this T-Box -> first definition
+    first_time = not onto.Group  # Group is new to this T-Box -> first definition
 
     with onto:
         # ===== Classes =====

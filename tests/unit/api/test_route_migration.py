@@ -246,7 +246,6 @@ class TestAppBootstrap:
 
     def test_app_has_routes(self):
         """app에 최소 20개 라우트가 등록되어 있는지."""
-        from src.api.dashboard_api import app
 
         route_paths = _get_app_paths()
         assert len(route_paths) >= 20, f"Only {len(route_paths)} routes found"

@@ -7,7 +7,8 @@ from typing import Any
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..thresholds import threshold as T
 
 # =========================================================================
 # 헬퍼 함수: 순위-할인 상관관계 분석

@@ -5,7 +5,8 @@ Market Position and Competition Rules
 
 from src.domain.entities.relations import InsightType, MarketPosition
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..thresholds import threshold as T
 
 # =========================================================================
 # 규칙 1: 분산 시장 지배자 (Dominant in Fragmented Market)
@@ -71,7 +72,9 @@ RULE_CHALLENGER_POSITION = InferenceRule(
         StandardConditions.hhi_above("hhi_concentrated"),  # 집중 시장
         RuleCondition(
             name="mid_sos",
-            check=lambda ctx: T("sos_challenger_min") <= ctx_num(ctx, "sos", 0) < T("sos_dominance"),
+            check=lambda ctx: T("sos_challenger_min")
+            <= ctx_num(ctx, "sos", 0)
+            < T("sos_dominance"),
             description="SoS 5~15% (중간 수준)",
         ),
     ],
@@ -167,7 +170,8 @@ RULE_COMPETITIVE_PRESSURE = InferenceRule(
     conditions=[
         RuleCondition(
             name="sos_declining",
-            check=lambda ctx: ctx_num(ctx, "sos_change", 0) < T("sos_decline_pp"),  # SoS 2%p 이상 하락
+            check=lambda ctx: ctx_num(ctx, "sos_change", 0)
+            < T("sos_decline_pp"),  # SoS 2%p 이상 하락
             description="SoS 2%p 이상 하락",
         ),
         StandardConditions.has_competitors("competitor_count_some"),  # 경쟁사 3개 이상

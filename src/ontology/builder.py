@@ -323,10 +323,25 @@ class OntologyBuilder:
                 parent_id = cat_data.get("parent_id")
                 if not parent_id:
                     continue
-                props = {"child_name": cat_data.get("name", ""), "child_level": cat_data.get("level", 0)}
+                props = {
+                    "child_name": cat_data.get("name", ""),
+                    "child_level": cat_data.get("level", 0),
+                }
                 for rel in (
-                    Relation(cat_id, RelationType.PARENT_CATEGORY, parent_id, dict(props), source="config"),
-                    Relation(parent_id, RelationType.HAS_SUBCATEGORY, cat_id, dict(props), source="config"),
+                    Relation(
+                        cat_id,
+                        RelationType.PARENT_CATEGORY,
+                        parent_id,
+                        dict(props),
+                        source="config",
+                    ),
+                    Relation(
+                        parent_id,
+                        RelationType.HAS_SUBCATEGORY,
+                        cat_id,
+                        dict(props),
+                        source="config",
+                    ),
                 ):
                     if kg.add_relation(rel):
                         added += 1
@@ -430,7 +445,7 @@ class OntologyBuilder:
             for cid in chain:
                 abox.categories[cid] = onto.Category(_individual_name(cid))
                 abox.labels[abox.categories[cid].name] = cid
-            for child, parent in zip(chain, chain[1:]):
+            for child, parent in zip(chain, chain[1:], strict=False):
                 abox.categories[child].parent_category = [abox.categories[parent]]
 
             # groups + brands (all snapshot brands so ownership/siblings are complete)

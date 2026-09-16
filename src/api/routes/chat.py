@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 
 from src.api.dependencies import (
     add_to_memory,
-    conversation_memory,
+    clear_session,
     limiter,
     load_dashboard_data,
     log_chat_interaction,
@@ -138,8 +138,7 @@ async def chat(request: Request, body: ChatRequest):
 @router.delete("/api/chat/memory/{session_id}", dependencies=[Depends(verify_api_key)])
 async def clear_memory(session_id: str):
     """세션 대화 기록 초기화"""
-    if session_id in conversation_memory:
-        del conversation_memory[session_id]
+    clear_session(session_id)
     return {"status": "ok", "message": f"Session {session_id} memory cleared"}
 
 

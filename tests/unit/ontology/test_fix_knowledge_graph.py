@@ -50,7 +50,9 @@ def seeded(kg) -> KnowledgeGraph:
         Relation("LANEIGE", RelationType.HAS_PRODUCT, "B0LANE1", properties={"rank": 1})
     )
     kg.add_relation(
-        Relation("LANEIGE", RelationType.DIRECT_COMPETITOR, "COSRX", properties={"category": "lip_care"})
+        Relation(
+            "LANEIGE", RelationType.DIRECT_COMPETITOR, "COSRX", properties={"category": "lip_care"}
+        )
     )
     return kg
 

@@ -226,6 +226,10 @@ class ConversationMemory:
     def has_session(self, session_id: str) -> bool:
         return session_id in self._sessions
 
+    def __contains__(self, session_id: object) -> bool:
+        """``session_id in memory`` - 세션 존재 여부 (라우트/호출부 가독성용)"""
+        return isinstance(session_id, str) and session_id in self._sessions
+
     def clear_session(self, session_id: str) -> None:
         """세션 초기화"""
         self._sessions.pop(session_id, None)

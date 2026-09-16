@@ -62,8 +62,12 @@ async def test_alert_agent_rank_drop_seven_fires_eight_not_six(tmp_path: Path) -
 
 
 def test_metrics_agent_rank_drop_seven_fires_eight_not_six(tmp_path: Path) -> None:
+    agent = MetricsAgent(
+        config_path=str(Path(__file__).resolve().parents[3] / "config" / "thresholds.json")
+    )
+    # Thresholds are process-wide (F4): the agent picks them up at alert time, so the
+    # override applies to an agent that was constructed before it.
     set_thresholds(Thresholds(rank_drop=7))
-    agent = MetricsAgent(config_path=str(Path(__file__).resolve().parents[3] / "config" / "thresholds.json"))
 
     def metric(change: int) -> dict:
         return {

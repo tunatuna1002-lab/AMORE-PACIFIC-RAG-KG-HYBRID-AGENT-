@@ -5,7 +5,8 @@ Growth, Opportunity, and Stability Rules
 
 from src.domain.entities.relations import InsightType, MarketPosition
 
-from ..reasoner import InferenceRule, RuleCondition, StandardConditions, T, ctx_num
+from ..reasoner import InferenceRule, RuleCondition, StandardConditions, ctx_num
+from ..thresholds import threshold as T
 
 # =========================================================================
 # 규칙: 안정적 성장 (Stable Growth)

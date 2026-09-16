@@ -54,9 +54,7 @@ def clear_session(session_id: str) -> bool:
     return existed
 
 
-def get_recent_turns(
-    session_id: str, limit: int = HISTORY_TURNS_FOR_BRAIN
-) -> list[dict[str, str]]:
+def get_recent_turns(session_id: str, limit: int = HISTORY_TURNS_FOR_BRAIN) -> list[dict[str, str]]:
     """최근 ``limit``개 턴 (``{"role", "content"}``) - 브레인/LLM 전달용"""
     return conversation_memory.get_recent_turns(session_id, limit=limit)
 

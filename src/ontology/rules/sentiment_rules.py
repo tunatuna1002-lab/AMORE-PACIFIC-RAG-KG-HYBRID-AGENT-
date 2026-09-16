@@ -5,7 +5,8 @@ Sentiment Analysis Based Rules
 
 from src.domain.entities.relations import InsightType
 
-from ..reasoner import InferenceRule, RuleCondition, T, cluster_size
+from ..reasoner import InferenceRule, RuleCondition, cluster_size
+from ..thresholds import threshold as T
 
 
 def _cluster_value(ctx: dict, cluster: str):

@@ -77,14 +77,9 @@ logger = logging.getLogger(__name__)
 
 # owlready2 선택적 import
 try:
+    # T-Box 공리(클래스/속성 정의)는 src/ontology/tbox.py 가 소유한다.
+    # 여기서는 A-Box 적재·추론 실행에 필요한 것만 import 한다.
     from owlready2 import (
-        AllDisjoint,
-        ConstrainedDatatype,
-        DataProperty,
-        FunctionalProperty,
-        ObjectProperty,
-        SymmetricProperty,
-        Thing,
         destroy_entity,
         get_ontology,
         sync_reasoner_hermit,
