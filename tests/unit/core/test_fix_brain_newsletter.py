@@ -1,7 +1,7 @@
 """
 D1: Insight report email calls a non-existent HybridInsightAgent method
 =======================================================================
-``UnifiedBrain._send_insight_report_email`` called
+``send_insight_report_email`` (Phase 4 전에는 ``UnifiedBrain._send_insight_report_email``) called
 ``insight_agent.generate_insight(...)`` and read ``result["insight"]``.
 ``HybridInsightAgent`` only exposes ``execute(metrics_data, crawl_data, crawl_summary)``
 returning ``daily_insight`` / ``action_items`` / ``highlights``.  The AttributeError was
@@ -10,17 +10,21 @@ swallowed, so every insight email carried the placeholder text.
 Fix contract:
 - call ``execute(...)`` with a metrics/crawl payload built from the products
 - map ``daily_insight`` into the email's ``insight_content`` HTML
+
+CHANGED (Phase 4): the function moved to ``src.tools.intelligence.newsletter``; it never
+touched brain state (``self`` references: 0), so brain now only delegates. The tests call
+the owning module directly instead of a private brain method.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.brain import UnifiedBrain, reset_brain
+from src.core.brain import reset_brain
+from src.tools.intelligence.newsletter import send_insight_report_email
 
 FIXED_INSIGHT = (
     "LANEIGE Lip Sleeping Mask가 Lip Care 1위를 유지했습니다.\n\n경쟁 강도는 완만합니다."
@@ -86,12 +90,9 @@ def _products() -> list[dict[str, Any]]:
 @pytest.mark.asyncio
 async def test_insight_email_contains_generated_daily_insight(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("src.agents.hybrid_insight_agent.HybridInsightAgent", FakeInsightAgent)
-    brain = UnifiedBrain(
-        context_gatherer=MagicMock(), tool_executor=MagicMock(), response_pipeline=MagicMock()
-    )
     sender = FakeSender()
 
-    await brain._send_insight_report_email(_products(), ["a@b.c"], sender)
+    await send_insight_report_email(_products(), ["a@b.c"], sender)
 
     assert sender.kwargs is not None, "send_insight_report was not called"
     html = sender.kwargs["insight_content"]
@@ -105,11 +106,8 @@ async def test_insight_email_contains_generated_daily_insight(monkeypatch: pytes
 @pytest.mark.asyncio
 async def test_insight_agent_execute_receives_products(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("src.agents.hybrid_insight_agent.HybridInsightAgent", FakeInsightAgent)
-    brain = UnifiedBrain(
-        context_gatherer=MagicMock(), tool_executor=MagicMock(), response_pipeline=MagicMock()
-    )
 
-    await brain._send_insight_report_email(_products(), ["a@b.c"], FakeSender())
+    await send_insight_report_email(_products(), ["a@b.c"], FakeSender())
 
     assert len(FakeInsightAgent.calls) == 1
     call = FakeInsightAgent.calls[0]
@@ -131,12 +129,9 @@ async def test_insight_email_falls_back_when_agent_fails(monkeypatch: pytest.Mon
             raise RuntimeError("boom")
 
     monkeypatch.setattr("src.agents.hybrid_insight_agent.HybridInsightAgent", BrokenAgent)
-    brain = UnifiedBrain(
-        context_gatherer=MagicMock(), tool_executor=MagicMock(), response_pipeline=MagicMock()
-    )
     sender = FakeSender()
 
-    await brain._send_insight_report_email(_products(), ["a@b.c"], sender)
+    await send_insight_report_email(_products(), ["a@b.c"], sender)
 
     assert sender.kwargs is not None
     assert "현재 생성된 인사이트가 없습니다" in sender.kwargs["insight_content"]

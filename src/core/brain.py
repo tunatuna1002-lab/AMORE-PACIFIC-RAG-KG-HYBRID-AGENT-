@@ -44,12 +44,10 @@ Usage:
 """
 
 import asyncio
-import heapq
 import json
 import logging
 import os
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -59,6 +57,7 @@ _DATA_DIR = "/data" if os.path.isdir("/data") else "./data"
 
 # SRP 분해된 컴포넌트
 from .alert_manager import AlertManager
+from .brain_scheduler import BrainTask, BrainTaskQueue, TaskHandler, TaskPriority
 from .cache import ResponseCache
 from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
@@ -99,32 +98,8 @@ class BrainMode(Enum):
     ALERTING = "alerting"  # 알림 처리 중
 
 
-class TaskPriority(Enum):
-    """작업 우선순위"""
-
-    USER_REQUEST = 0  # 사용자 요청 (최우선)
-    CRITICAL_ALERT = 1  # 중요 알림
-    SCHEDULED = 2  # 예약 작업
-    BACKGROUND = 3  # 백그라운드 작업
-
-
-@dataclass
-class BrainTask:
-    """두뇌가 처리할 작업"""
-
-    id: str
-    type: str  # query, scheduled, alert, autonomous
-    priority: TaskPriority
-    payload: dict[str, Any]
-    created_at: datetime = field(default_factory=datetime.now)
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    result: Any | None = None
-    error: str | None = None
-
-    def __lt__(self, other):
-        """우선순위 기반 정렬"""
-        return self.priority.value < other.priority.value
+# BrainTask / TaskPriority 의 정의는 ``src.core.brain_scheduler`` 에 있다 (Phase 4).
+# 위에서 import 해 두었으므로 기존 ``from src.core.brain import BrainTask`` 도 그대로 동작한다.
 
 
 # =============================================================================
@@ -196,11 +171,9 @@ class UnifiedBrain:
 
         # 모드 및 상태
         self.mode = BrainMode.IDLE
-        self._current_task: BrainTask | None = None
+        self._tasks = BrainTaskQueue()
 
         # 작업 큐 (우선순위 힙)
-        self._task_queue: list[BrainTask] = []
-        self._task_history: list[BrainTask] = []
 
         # 이벤트 콜백
         self._event_handlers: dict[str, list[Callable]] = {}
@@ -963,38 +936,40 @@ class UnifiedBrain:
             logger.error(f"Scheduled task failed: {e}")
             return {"task": task_name, "status": "failed", "error": str(e)}
 
+    @property
+    def _task_queue(self) -> list[BrainTask]:
+        """대기 중인 작업 (heapq 리스트) — BrainTaskQueue 위임"""
+        return self._tasks.pending
+
+    @property
+    def _task_history(self) -> list[BrainTask]:
+        """완료된 작업 이력 — BrainTaskQueue 위임"""
+        return self._tasks.history
+
+    @property
+    def _current_task(self) -> BrainTask | None:
+        """실행 중인 작업 — BrainTaskQueue 위임"""
+        return self._tasks.current
+
+    @property
+    def _task_handlers(self) -> dict[str, TaskHandler]:
+        """작업 타입 → 처리기. 없는 타입은 결과 없이 완료 처리된다."""
+        return {"alert": self._process_alert}
+
     async def _process_task_queue(self) -> None:
-        """작업 큐 처리"""
-        while self._task_queue:
+        """작업 큐 처리 (사용자 응답 중이면 중단)"""
+        while self._tasks.pending:
             if self.mode == BrainMode.RESPONDING:
                 break
-
-            task = heapq.heappop(self._task_queue)
-            await self._execute_queued_task(task)
+            await self._execute_queued_task(self._tasks.pop())
 
     async def _execute_queued_task(self, task: BrainTask) -> None:
         """큐 작업 실행"""
-        task.started_at = datetime.now()
-        self._current_task = task
-
-        try:
-            if task.type == "alert":
-                await self._process_alert(task.payload)
-                task.result = {"processed": True}
-
-            task.completed_at = datetime.now()
-            self._task_history.append(task)
-
-        except Exception as e:
-            task.error = str(e)
-            logger.error(f"Queued task failed: {e}")
-
-        finally:
-            self._current_task = None
+        await self._tasks.execute(task, self._task_handlers)
 
     def add_task(self, task: BrainTask) -> None:
         """작업 큐에 추가"""
-        heapq.heappush(self._task_queue, task)
+        self._tasks.add(task)
 
     # =========================================================================
     # 알림 처리 (AlertManager에 위임)
@@ -1107,236 +1082,15 @@ class UnifiedBrain:
     # =========================================================================
 
     async def _send_morning_brief(self) -> None:
+        """Morning Brief + 인사이트 리포트 이메일 발송 (매일 08:00 KST 스케줄).
+
+        생성·발송 자체는 ``src.tools.intelligence.newsletter`` 가 담당한다 (Phase 4).
+        brain 은 실패를 자신의 통계에 기록하는 일만 한다.
         """
-        Morning Brief 뉴스레터 생성 및 발송
+        from src.tools.intelligence.newsletter import send_morning_brief
 
-        매일 아침 8시 KST에 자동 실행됩니다.
-        전날 크롤링 데이터를 기반으로 시장 현황을 요약합니다.
-
-        인사이트 리포트 이메일도 함께 발송합니다.
-        """
-
-        logger.info("Generating Morning Brief...")
-
-        try:
-            # 1. 최신 크롤링 데이터 가져오기
-            from src.tools.intelligence.market_intelligence import MarketIntelligenceEngine
-
-            mi = MarketIntelligenceEngine()
-            latest_data = await mi.get_latest_data()
-
-            products = latest_data.get("products", [])
-            crawl_data = {
-                "products": products,
-                "category": "All Categories",
-            }
-
-            # 2. Morning Brief 생성
-            from src.tools.intelligence.morning_brief import (
-                MorningBriefGenerator,
-                render_morning_brief_html,
-            )
-
-            generator = MorningBriefGenerator()
-            brief_data = await generator.generate(
-                crawl_data=crawl_data,
-                metrics_data=latest_data.get("metrics"),
-            )
-
-            # 3. HTML 렌더링
-            html_content = render_morning_brief_html(brief_data)
-
-            # 4. 이메일 발송
-            from src.tools.notifications.email_sender import EmailSender
-
-            sender = EmailSender()
-
-            if not sender.is_enabled():
-                logger.warning("Email sender is disabled, Morning Brief not sent")
-                return
-
-            # 수신자 목록 (환경변수에서)
-            recipients_str = os.getenv("ALERT_RECIPIENTS", "")
-            recipients = [r.strip() for r in recipients_str.split(",") if r.strip()]
-
-            if not recipients:
-                logger.warning("No recipients configured for Morning Brief")
-                return
-
-            # 기존 Morning Brief 발송
-            result = await sender.send_morning_brief(
-                recipients=recipients,
-                html_content=html_content,
-                date_str=brief_data.date,
-            )
-
-            if result.success:
-                logger.info(f"Morning Brief sent successfully to {len(result.sent_to)} recipients")
-            else:
-                logger.error(f"Morning Brief send failed: {result.message}")
-
-            # 5. 인사이트 리포트 이메일도 발송
-            await self._send_insight_report_email(
-                products, recipients, sender, metrics_data=latest_data.get("metrics")
-            )
-
-        except Exception as e:
-            logger.error(f"Morning Brief generation failed: {e}")
+        if not await send_morning_brief():
             self._stats["errors"] += 1
-
-    async def _send_insight_report_email(
-        self,
-        products: list,
-        recipients: list[str],
-        sender,
-        metrics_data: dict[str, Any] | None = None,
-    ) -> None:
-        """
-        인사이트 리포트 이메일 발송 (자동)
-
-        Morning Brief와 함께 발송되는 상세 인사이트 리포트입니다.
-
-        Args:
-            products: 최신 크롤링 제품 목록
-            recipients: 수신자 목록
-            sender: EmailSender (send_insight_report 제공)
-            metrics_data: MetricsAgent 결과 (있으면 인사이트 생성에 전달)
-        """
-        from datetime import datetime
-
-        try:
-            logger.info("Sending Insight Report email...")
-
-            # KPI 계산
-            laneige_products = [p for p in products if is_target_brand(p.get("brand"))]
-            avg_rank = (
-                sum(p.get("rank", 100) for p in laneige_products) / len(laneige_products)
-                if laneige_products
-                else 0
-            )
-
-            # SoS 계산 (Top 100 기준)
-            top100 = products[:100]
-            laneige_in_top100 = len([p for p in top100 if is_target_brand(p.get("brand"))])
-            sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
-
-            # HHI 계산
-            brand_counts = {}
-            for p in top100:
-                brand = p.get("brand", "Unknown")
-                brand_counts[brand] = brand_counts.get(brand, 0) + 1
-            hhi = (
-                sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
-                if top100
-                else 0
-            )
-
-            # 인사이트 생성 (HybridInsightAgent 사용)
-            insight_content = "<p>현재 생성된 인사이트가 없습니다.</p>"
-            try:
-                from src.agents.hybrid_insight_agent import HybridInsightAgent
-
-                insight_agent = HybridInsightAgent()
-                # HybridInsightAgent.execute(metrics_data, crawl_data, crawl_summary)
-                # crawl_data는 categories -> rank_records 구조를 기대한다.
-                sample_products = products[:50]
-                now_iso = datetime.now().isoformat()
-                crawl_summary = {
-                    "total_products": len(sample_products),
-                    "categories": ["All Categories"],
-                }
-                crawl_payload = {
-                    "collected_at": now_iso,
-                    "categories": {"all_categories": {"rank_records": sample_products}},
-                    "summary": crawl_summary,
-                }
-                metrics_payload: dict[str, Any] = dict(metrics_data or {})
-                metrics_payload.setdefault(
-                    "metadata",
-                    {"data_date": datetime.now().strftime("%Y-%m-%d"), "generated_at": now_iso},
-                )
-                insight_result = await insight_agent.execute(
-                    metrics_data=metrics_payload,
-                    crawl_data=crawl_payload,
-                    crawl_summary=crawl_summary,
-                )
-                raw_insight = (insight_result or {}).get("daily_insight") or ""
-                if raw_insight.strip():
-                    insight_content = raw_insight.replace("\n\n", "</p><p>").replace("\n", "<br>")
-                    insight_content = f"<p>{insight_content}</p>"
-            except Exception as e:
-                logger.warning(f"Failed to generate insight for email: {e}")
-
-            # Top 10 제품 데이터
-            top10_products = []
-            for i, p in enumerate(products[:10]):
-                top10_products.append(
-                    {
-                        "rank": i + 1,
-                        "name": p.get("title", "N/A"),
-                        "brand": p.get("brand", "Unknown"),
-                        "change": p.get("rank_change", 0),
-                    }
-                )
-
-            # 브랜드별 변동
-            brand_changes = []
-            for brand in ["LANEIGE", "e.l.f.", "Maybelline", "Summer Fridays", "COSRX"]:
-                brand_products = [p for p in products if p.get("brand") == brand]
-                if brand_products:
-                    avg_change = sum(p.get("rank_change", 0) for p in brand_products) / len(
-                        brand_products
-                    )
-                    if avg_change > 0:
-                        brand_changes.append(
-                            {
-                                "brand": brand,
-                                "change_text": f"평균 ▲{avg_change:.1f} 상승",
-                                "color": "#28a745",
-                            }
-                        )
-                    elif avg_change < 0:
-                        brand_changes.append(
-                            {
-                                "brand": brand,
-                                "change_text": f"평균 ▼{abs(avg_change):.1f} 하락",
-                                "color": "#dc3545",
-                            }
-                        )
-
-            # 리포트 날짜
-            report_date = datetime.now().strftime("%Y년 %m월 %d일")
-
-            # 대시보드 URL (Railway 자동 감지)
-            def get_base_url() -> str:
-                if url := os.getenv("DASHBOARD_URL"):
-                    return url.rstrip("/")
-                if railway_domain := os.getenv("RAILWAY_PUBLIC_DOMAIN"):
-                    return f"https://{railway_domain}"
-                return f"http://localhost:{os.getenv('PORT', '8001')}"
-
-            dashboard_url = get_base_url() + "/dashboard"
-
-            # 이메일 발송
-            result = await sender.send_insight_report(
-                recipients=recipients,
-                report_date=report_date,
-                avg_rank=avg_rank,
-                sos=sos,
-                hhi=hhi,
-                insight_content=insight_content,
-                top10_products=top10_products,
-                brand_changes=brand_changes,
-                dashboard_url=dashboard_url,
-            )
-
-            if result.success:
-                logger.info(f"Insight Report sent successfully to {len(result.sent_to)} recipients")
-            else:
-                logger.error(f"Insight Report send failed: {result.message}")
-
-        except Exception as e:
-            logger.error(f"Insight Report email failed: {e}")
 
     # =========================================================================
     # 스케줄러 관리
@@ -1450,3 +1204,15 @@ def reset_brain() -> None:
     """싱글톤 리셋 (테스트용)"""
     global _brain_instance
     _brain_instance = None
+
+
+__all__ = [
+    "BrainMode",
+    # brain_scheduler 재수출 (기존 ``from src.core.brain import BrainTask`` 호환)
+    "BrainTask",
+    "TaskPriority",
+    "UnifiedBrain",
+    "get_brain",
+    "get_initialized_brain",
+    "reset_brain",
+]

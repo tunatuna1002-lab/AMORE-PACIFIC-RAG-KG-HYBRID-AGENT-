@@ -42,10 +42,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from enum import Enum
 from typing import Any, Literal
 
 from src.domain.brand import is_target_brand
+from src.domain.entities.alert import AlertType
 
 logger = logging.getLogger(__name__)
 
@@ -62,17 +62,6 @@ except ImportError:
 # =============================================================================
 # 타입 정의
 # =============================================================================
-
-
-class AlertType(Enum):
-    """알림 유형"""
-
-    RANK_CHANGE = "rank_change"
-    IMPORTANT_INSIGHT = "important_insight"
-    CRAWL_COMPLETE = "crawl_complete"
-    ERROR = "error"
-    DAILY_SUMMARY = "daily_summary"
-    INSIGHT_REPORT = "insight_report"  # 인사이트 전체 리포트
 
 
 @dataclass

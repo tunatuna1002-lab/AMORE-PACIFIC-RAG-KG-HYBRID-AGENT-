@@ -9,6 +9,10 @@ Domain Entities
 - 불변성 권장
 """
 
+from src.domain.entities.alert import (
+    DEFAULT_SUBSCRIPTION_ALERT_TYPES,
+    AlertType,
+)
 from src.domain.entities.brain_models import (
     ConfidenceLevel,
     ContextBase,
@@ -48,6 +52,8 @@ from src.domain.entities.relations import (
 )
 
 __all__ = [
+    "DEFAULT_SUBSCRIPTION_ALERT_TYPES",
+    "AlertType",
     # Brain Models
     "ConfidenceLevel",
     "KGFact",

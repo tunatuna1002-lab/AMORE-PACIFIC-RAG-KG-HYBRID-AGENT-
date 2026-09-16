@@ -4,7 +4,7 @@ StateManager 단위 테스트
 src/core/state_manager.py 커버리지 22% → 60%+ 목표
 
 테스트 대상:
-- Enum (AlertType, DataFreshness)
+- Enum (DataFreshness; AlertType는 CHANGED (Phase 3)로 src.domain.entities.alert 로 승격)
 - Dataclass (EmailSubscription, AgentHealth)
 
 CHANGED (Phase 3): AgentStatus -> AgentHealth. src.memory.session.AgentStatus is a
@@ -29,13 +29,13 @@ import pytest
 
 from src.core.state_manager import (
     AgentHealth,
-    AlertType,
     DataFreshness,
     EmailSubscription,
     StateManager,
     get_state_manager,
     reset_state_manager,
 )
+from src.domain.entities.alert import AlertType
 
 # =========================================================================
 # Fixtures

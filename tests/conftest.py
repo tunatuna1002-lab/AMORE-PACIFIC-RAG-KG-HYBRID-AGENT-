@@ -25,6 +25,59 @@ def pytest_configure(config):
     # 환경마다 결과가 달라진다(특성화 핀이 흔들림). Java 엔진을 검증하는 테스트는
     # materialize(..., reasoner=...)로 직접 지정한다.
     os.environ.setdefault("AMORE_OWL_REASONER", "python")
+    # LiteLLM 은 import 시점에 원격 모델 비용표를 받아오려 하고, 막힌 환경에서는
+    # 3회 재시도(약 9초)를 기다린 뒤 로컬 백업으로 폴백한다. 단위 테스트는 처음부터
+    # 로컬 백업을 쓰게 한다.
+    os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
+
+
+# ---------------------------------------------------------------------------
+# 네트워크 차단 (Phase 5)
+# ---------------------------------------------------------------------------
+# 단위 테스트는 오프라인이어야 한다. 실제로 RSS/LLM 엔드포인트를 때리던 테스트가
+# 테스트당 ~9초씩 프록시 타임아웃을 기다리고 있었고, 그 시간만큼 "네트워크가 되는
+# 환경에서는 다른 결과가 나올 수 있는" 테스트였다. 여기서 아웃바운드 소켓을 막아
+# 즉시 실패시키고, 진짜로 네트워크가 필요한 테스트는 ``@pytest.mark.allow_network``
+# 로 예외 처리한다. 루프백은 허용한다(로컬 서버·TestClient 호환).
+
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "0.0.0.0", ""})
+
+
+class NetworkBlockedError(RuntimeError):
+    """단위 테스트가 외부 네트워크에 접속하려 했을 때."""
+
+
+def _is_loopback(address) -> bool:
+    if not isinstance(address, tuple) or not address:
+        return True  # AF_UNIX 등 - 로컬
+    host = address[0]
+    return isinstance(host, str) and host in _LOOPBACK_HOSTS
+
+
+@pytest.fixture(autouse=True)
+def _block_outbound_network(request, monkeypatch):
+    """외부 소켓 연결 차단 (``allow_network`` 마커로 해제)."""
+    if request.node.get_closest_marker("allow_network"):
+        return
+
+    import socket
+
+    real_connect = socket.socket.connect
+    real_connect_ex = socket.socket.connect_ex
+
+    def guard(original):
+        def wrapper(self, address, *args, **kwargs):
+            if not _is_loopback(address):
+                raise NetworkBlockedError(
+                    f"outbound network blocked in unit tests: {address!r}. "
+                    "Use a fake collaborator, or mark the test @pytest.mark.allow_network."
+                )
+            return original(self, address, *args, **kwargs)
+
+        return wrapper
+
+    monkeypatch.setattr(socket.socket, "connect", guard(real_connect))
+    monkeypatch.setattr(socket.socket, "connect_ex", guard(real_connect_ex))
 
 
 @pytest.fixture(autouse=True)

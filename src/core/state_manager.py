@@ -53,22 +53,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from src.domain.entities.alert import DEFAULT_SUBSCRIPTION_ALERT_TYPES
+
 logger = logging.getLogger(__name__)
 
 
 # =============================================================================
 # 타입 정의
 # =============================================================================
-
-
-class AlertType(Enum):
-    """알림 유형"""
-
-    RANK_CHANGE = "rank_change"  # 순위 변동
-    IMPORTANT_INSIGHT = "important_insight"  # 중요 인사이트
-    CRAWL_COMPLETE = "crawl_complete"  # 크롤링 완료
-    ERROR = "error"  # 에러
-    DAILY_SUMMARY = "daily_summary"  # 일일 요약
 
 
 class DataFreshness(Enum):
@@ -334,11 +326,7 @@ class StateManager:
 
         # 기본 알림 유형
         if alert_types is None:
-            alert_types = [
-                AlertType.RANK_CHANGE.value,
-                AlertType.IMPORTANT_INSIGHT.value,
-                AlertType.ERROR.value,
-            ]
+            alert_types = [t.value for t in DEFAULT_SUBSCRIPTION_ALERT_TYPES]
 
         subscription = EmailSubscription(
             email=email,

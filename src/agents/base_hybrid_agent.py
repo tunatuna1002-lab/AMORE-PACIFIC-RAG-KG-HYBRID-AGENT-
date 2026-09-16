@@ -13,7 +13,6 @@ Shared components:
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from src.monitoring.logger import AgentLogger
@@ -26,8 +25,6 @@ from src.rag.context_builder import ContextBuilder
 from src.rag.hybrid_retriever import HybridContext, HybridRetriever
 from src.rag.retriever import DocumentRetriever
 from src.rag.templates import ResponseTemplates
-
-logger = logging.getLogger(__name__)
 
 
 class BaseHybridAgent:

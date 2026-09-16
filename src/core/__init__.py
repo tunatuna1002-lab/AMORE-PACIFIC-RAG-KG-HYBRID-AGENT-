@@ -15,6 +15,7 @@ Core 모듈
 - scheduler.py: 자율 작업 스케줄러
 - decision_maker.py / tool_coordinator.py / alert_manager.py: SRP 분해 컴포넌트
 - brain.py: UnifiedBrain (Facade)
+- brain_scheduler.py: BrainTask / TaskPriority / BrainTaskQueue (작업 우선순위 큐)
 - crawl_manager.py: 배치 작업 제어 (단계 실행은 application.workflows.batch_workflow)
 
 패키지 최상위 이름은 지연 로딩된다 (brain ↔ agents ↔ state_manager 순환 import 방지, 경량 import).
@@ -42,7 +43,9 @@ _LAZY: dict[str, str] = {
     "get_brain": ".brain",
     "get_initialized_brain": ".brain",
     "BrainMode": ".brain",
-    "TaskPriority": ".brain",
+    "BrainTask": ".brain_scheduler",
+    "BrainTaskQueue": ".brain_scheduler",
+    "TaskPriority": ".brain_scheduler",
 }
 
 __all__ = list(_LAZY)

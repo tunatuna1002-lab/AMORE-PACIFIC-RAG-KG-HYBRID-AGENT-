@@ -39,23 +39,28 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
+      # Lint is a gate, not a warning: pyproject.toml owns the rule set
+      # (line-length 100, target py311, E501/E402/B008 ignored).
       - name: Run linting (Ruff)
         run: |
           pip install ruff
-          ruff check src/ tests/ --ignore E501,E402
-        continue-on-error: true
+          ruff check src/ tests/ scripts/
+          ruff format --check src/ tests/ scripts/
 
-      - name: Run unit tests with coverage
+      # The offline suite: unit + characterization (동작 보존 핀) + eval + adversarial.
+      # Everything here must pass without network access.
+      - name: Run offline test suite with coverage gate
         run: |
-          python -m pytest tests/unit/ -v --tb=short -x --timeout=60 \
+          python -m pytest tests/unit tests/characterization tests/eval tests/adversarial \
+            -m "not slow" --tb=short --timeout=120 \
             --cov=src \
-            --cov-report=term-missing
+            --cov-report=term-missing \
+            --cov-fail-under=55
 
       - name: Run integration tests (if API key available)
         if: env.OPENAI_API_KEY != ''
         run: |
-          python -m pytest tests/ -v --tb=short -x --timeout=120 \
-            --ignore=tests/unit/ \
+          python -m pytest tests/integration -v --tb=short -x --timeout=120 \
             -k "not slow"
         continue-on-error: true
 

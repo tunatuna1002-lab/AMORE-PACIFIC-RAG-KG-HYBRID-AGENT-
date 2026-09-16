@@ -2,12 +2,36 @@
 TDD Phase 2: HybridChatbotAgent 테스트 (RED → GREEN)
 
 테스트 대상: src/agents/hybrid_chatbot_agent.py
+
+CHANGED (Phase 5): ``chat()`` 이 매번 실제 RSS/뉴스 엔드포인트를 호출해 테스트당 약
+9초를 프록시 타임아웃에 쓰고 있었다. 외부 신호 수집기를 fake 로 주입해 오프라인
+결정성을 확보한다(수집 결과 자체를 검증하는 테스트는 이 파일에 없다).
 """
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+from src.infrastructure.container import Container
+
+
+class _FakeSignalManager:
+    """ExternalSignalManager 대역: 네트워크 없이 빈 신호를 돌려준다."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict | None]] = []
+
+    async def collect(self, query: str, entities=None, signal_types=None) -> list[Any]:
+        self.calls.append((query, entities))
+        return []
+
+
+@pytest.fixture(autouse=True)
+def _no_external_signals():
+    """모든 테스트에서 외부 신호 수집을 fake 로 대체 (루트 conftest 가 override 를 리셋)."""
+    Container.override("external_signal_manager", _FakeSignalManager())
+    yield
 
 
 class TestHybridChatbotAgentInit:
