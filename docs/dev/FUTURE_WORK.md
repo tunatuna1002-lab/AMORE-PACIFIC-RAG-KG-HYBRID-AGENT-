@@ -201,3 +201,16 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - `MetricFactsProvider`가 제품명을 60자로 자르고 ASIN을 넘기지 않아 제품 카드가 KG 제품(ASIN)과 연결되지 않는다.
 - `HybridRetriever._query_knowledge_graph`의 `trend_keywords`가 주어(브랜드/MARKET)를 보존하지 않는다.
 - 1-A가 시험지에서 뺀 23문항은 `gold_source=domain_expectation`(추정 골드)이라 정답 채점이 불가하다 — 골드 보강 필요.
+
+#### 9.9.1 트랙 3-B·2-D·4-B에서 추가로 발견한 항목 (2026-09-18)
+- 엔티티 추출기가 골든 문항의 브랜드 일부를 인식하지 못한다(IT Cosmetics, Jouer, Almay, Charlotte Tilbury, COVERGIRL). Lip Care 질문에서 nivea를 과다 추출한다. 규칙 판단 정답 일치율이 오프라인 측정에서 25/32인데, 골드 브랜드를 직접 넣으면 29/32로 오른다 — 즉 남은 격차의 대부분이 이 결함이다.
+- `HybridRetriever.retrieve`가 마지막에 `context.metadata`를 새로 할당해 `weighted_scores`·`fusion` 메타데이터를 지운다.
+- 프롬프트에 싣는 추론 카드는 신뢰도 상위 5개라, 질문이 겨냥한 규칙이 발화했는데도 프롬프트에서 빠질 수 있다.
+- `dashboard_exporter`는 여전히 `reasoner.infer`와 대시보드 JSON 컨텍스트를 쓴다(v4 검색 경로만 카드 입력으로 바뀜).
+- ReAct 경로(`brain._process_with_react`)와 v1 경로(`HybridChatbotAgent`)는 `ResponsePipeline`을 거치지 않아 답변 수치 검증(2-D)이 적용되지 않는다.
+- 스트림 `done` 이벤트에 `response.metadata`가 실리지 않아 대시보드에서는 `numeric_verification`을 볼 수 없다.
+- 모델이 카드 값으로 계산한 수(`0.5%p`, `2배`, `3계단`)는 카드에 없어 `mismatch`로 분류된다 — 검증기 enforce를 기본값으로 올리기 전에 annotate 비율을 봐야 한다.
+- `DocumentRetriever._search_cache`·`_cache_timestamps`가 클래스 속성이라 persist_dir·코퍼스가 달라도 프로세스 전역으로 공유된다(평가·테스트 오염 위험).
+- `DocumentRetriever.search_bm25`는 `doc_type_filter`를 적용하지 않아 인텐트 문서유형 필터가 dense 검색에만 걸린다. `reciprocal_rank_fusion` 결과에는 최상위 `id`가 없어 BM25 출처 결과는 metadata로만 식별된다.
+- `scripts/start.py`는 `build_index()`만 부르므로 이미 존재하는 미태깅 볼륨 색인은 배포해도 태그가 붙지 않는다(운영에서 `--retag` 1회 필요). `--retag`는 `--prune`과 함께 줘도 prune을 하지 않는다.
+- 로컬 `ruff format`과 pre-commit 훅의 ruff가 일부 파일에서 서로 다른 스타일로 고친다.
