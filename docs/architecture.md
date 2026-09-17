@@ -62,13 +62,20 @@ This bridge ensures consistency between formal reasoning and practical data stor
 
 ### 2.3 Reasoning
 
-#### UnifiedReasoner
+#### UnifiedReasoner — [post-2026-09] deleted
+
+`src/ontology/unified_reasoner.py` had 0 callers (never wired into the live query path) and was deleted as dead code (track 4-C, `docs/experiments/evidence_pipeline_2026-09.md`). The rule engine actually used on the retrieval path is `src/ontology/reasoner.py` (`OntologyReasoner`); its inputs are now evidence cards via `src/ontology/rule_contracts.py`, not the OWL+rules cascade described below (that cascade describes the never-instantiated module).
+
+<details>
+<summary>Original text (kept for history, describes code that was never connected to a live path)</summary>
 
 - **File**: `src/ontology/unified_reasoner.py`
 - **Cascade**: OWL formal reasoning → Business rules → Result fusion
 - **Output**: UnifiedInferenceResult with source attribution
 
 The reasoner combines deductive logic (OWL) with inductive heuristics (business rules).
+
+</details>
 
 **Example reasoning chain:**
 
@@ -78,10 +85,10 @@ The reasoner combines deductive logic (OWL) with inductive heuristics (business 
 
 ### 2.4 Retrieval
 
-#### TrueHybridRetriever
+#### HybridRetriever
 
-- **File**: `src/rag/true_hybrid_retriever.py`
-- **Sources**: RAG (ChromaDB) + KG facts + OWL inferences
+- **File**: `src/rag/hybrid_retriever.py` (this repo has no `true_hybrid_retriever.py` — that filename is not present; verify before citing)
+- **Sources**: RAG (ChromaDB) + KG facts + rule inferences
 - **Entity Linking**: Confidence-scored entity extraction
 - **Context Generation**: Combined multi-source context
 
@@ -96,7 +103,7 @@ RAG search: Top 5 document chunks (cosine similarity)
   ↓
 KG lookup: LANEIGE triples (brand, SoS, rank history)
   ↓
-OWL inference: MarketLeader classification
+Rule inference: MarketLeader classification (OntologyReasoner, business rules — not OWL; OWL is category-hierarchy vocabulary only, [post-2026-09])
   ↓
 Combined context: {documents: [...], facts: [...], inferences: [...]}
 ```
@@ -256,8 +263,8 @@ Reflection: "충분한 데이터를 수집했다. 시장 위치를 분석할 수
 | **ExplainabilityEngine** | `src/core/explainability.py` | Transparency & tracing |
 | **ReActAgent** | `src/core/react_agent.py` | Complex query handling (self-reflection) |
 | **OntologyKnowledgeGraph** | `src/ontology/ontology_knowledge_graph.py` | T-Box/A-Box bridge, validation |
-| **UnifiedReasoner** | `src/ontology/unified_reasoner.py` | Cascaded reasoning (OWL + rules) |
-| **TrueHybridRetriever** | `src/rag/true_hybrid_retriever.py` | Hybrid retrieval (RAG+KG+OWL) |
+| **UnifiedReasoner** | ~~`src/ontology/unified_reasoner.py`~~ | [post-2026-09] deleted, 0 callers. Live reasoning is `OntologyReasoner` (`src/ontology/reasoner.py`) |
+| **HybridRetriever** | `src/rag/hybrid_retriever.py` | Hybrid retrieval (RAG+KG+rules). Note: `true_hybrid_retriever.py` does not exist in this repo — verify before citing |
 | **KnowledgeGraph** | `src/ontology/knowledge_graph.py` | Triple store (subject-predicate-object) |
 | **OWLReasoner** | `src/ontology/owl_reasoner.py` | Formal reasoning (owlready2 + Pellet) |
 

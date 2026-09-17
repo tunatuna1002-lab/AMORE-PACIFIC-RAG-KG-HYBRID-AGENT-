@@ -196,17 +196,17 @@ UnifiedBrain.process_query()
     ├── 복잡도 판단: "경쟁사", "위치", "분석" → Complex!
     │
     ▼
-ReActAgent (Self-Reflection Loop, max 3회)
+ReActAgent (Self-Reflection Loop, max 5회 — `max_iterations` 기본값, [post-2026-09] 정정)
     │
     │  Iteration 1:
     │  ├── Thought: "경쟁사 비교를 위해 KG에서 관계 조회 필요"
-    │  ├── Action: search_knowledge("LANEIGE COMPETES_WITH")
+    │  ├── Action: kg_neighbors(entity="LANEIGE", predicates=["competesWith"])  # [post-2026-09] 도구명 변경
     │  ├── Observation: [COSRX, Neutrogena, CeraVe...]
     │  └── Reflection: confidence=0.5, needs_improvement=true
     │
     │  Iteration 2:
     │  ├── Thought: "SoS/HHI 지표로 정량적 비교 필요"
-    │  ├── Action: calculate_metrics("lip_care")
+    │  ├── Action: get_metrics(category="lip_care")  # [post-2026-09] 도구명 변경 — 아래 참고
     │  ├── Observation: {SoS: 8.3%, HHI: 0.12, rank: 3}
     │  └── Reflection: confidence=0.85, needs_improvement=false
     │
@@ -261,7 +261,7 @@ Response:
 | `batch_workflow.py` | 일일 배치 파이프라인 | CRAWL→STORE→KG→CALCULATE→INSIGHT→EXPORT |
 | `crawl_manager.py` | 크롤링 상태 관리 | `start_crawl()`, `get_status()` |
 | `scheduler.py` | APScheduler 통합 | 매일 22:00 KST (UTC 13:00) |
-| `query_processor.py` | 쿼리 의도 분류 | 키워드/패턴 기반 분류 |
+| ~~`query_processor.py`~~ | [post-2026-09] 삭제(호출처 0건) | 질의 라우팅·신뢰도 분기는 `query_graph.py`의 QueryGraph가 맡는다 |
 | `verification_pipeline.py` | 응답 검증 | Claim 추출 → 사실 검증 |
 | `cache.py` | TTL 기반 캐싱 | 5분 TTL, 자동 만료 |
 
