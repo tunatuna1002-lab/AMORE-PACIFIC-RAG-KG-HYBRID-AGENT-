@@ -29,23 +29,19 @@ class TestContextToDecisionFlow:
             "available_tools": ["direct_answer"],
         }
 
-        # LLM 호출을 모킹
+        # LLM 호출을 모킹 (도구 호출 없음 → direct_answer, 트랙 4-A의 function calling)
         with patch("src.core.decision_maker.acompletion") as mock_llm:
-            mock_llm.return_value = MagicMock(
-                choices=[
-                    MagicMock(
-                        message=MagicMock(
-                            content='{"tool": "direct_answer", "tool_params": {}, "reason": "test", "confidence": 0.8, "key_points": ["SoS data"]}'
-                        )
-                    )
-                ]
-            )
+            message = MagicMock(content="컨텍스트로 충분\n- SoS data")
+            message.tool_calls = None
+            mock_llm.return_value = MagicMock(choices=[MagicMock(message=message)])
 
             decision = await dm.decide("LANEIGE SoS", context, system_state)
 
             assert isinstance(decision, Decision)
             assert decision.tool == "direct_answer"
-            assert decision.confidence == 0.8
+            assert decision.key_points == ["SoS data"]
+            # function calling 응답에는 모델 자기보고 신뢰도 필드가 없다 (미보고 = 0.0)
+            assert decision.confidence == 0.0
 
     @pytest.mark.asyncio
     async def test_decision_maker_with_confidence_level(self):
