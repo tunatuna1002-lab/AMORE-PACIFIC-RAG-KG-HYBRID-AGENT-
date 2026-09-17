@@ -170,3 +170,34 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - `OWLRetrievalStrategy._matches_filters`가 엔티티 링커의 Chroma where 형식 필터(`$or`, brand·category 키)를 처리하지 못하고 문서 메타데이터에도 그 키가 없어, 엔티티가 연결된 질의는 문서를 0건 가져온다(130문항 중 124문항).
 - 규칙 추론(`OntologyReasoner`)이 v4 평가 130문항·전 실행에서 추론 0건이다. `_build_inference_context`가 읽는 키가 운영 데이터와 맞지 않는다(근거 문서 §5.3).
 - 신뢰도 점수가 v4 평가의 172/172문항을 HIGH로 분류해 DecisionMaker(LLM 도구 선택)와 ReAct 분기가 평가에서 한 번도 실행되지 않는다. 임계값·점수 구성을 재검토해야 이 경로들을 측정할 수 있다.
+
+### 9.9 증거 카드·규칙 추론·ReAct 통합 작업(2026-09-17~) 중 발견한 범위 밖 항목
+> 출처: `eval_output/evidence-2026-09/notes/0c_recalc.md`(트랙별 보고), `docs/experiments/evidence_pipeline_2026-09.md`. 이 작업에서 고치지 않았다.
+
+**측정·비용**
+- `eval/judge/llm.py`(`MODEL_PRICING`, 135~140·337행)에 옛 단가가 남아 있다(`get_usage` 호출처 0이라 현재 리포트에는 영향 없음).
+- L2 임베딩(`src/rag/retriever.py`의 openai 직접 호출)과 v4 질의 확장(`DocumentRetriever.expand_query`)의 토큰·비용이 어느 리포트에도 집계되지 않는다(장부는 ×1.1로 보정).
+- judge 호출 시간 초과(60초×3회)가 동시 실행 중 특정 시간대에 몰려 문항이 채점에서 빠진다(2단계 run2 `lg161`, run3 `lg155`). 재시도 간격(backoff) 없음.
+- 골든 문서의 CPI 정의(<1.0 비율)와 코드 CPI(100 기준)가 다르다(lg043, lg056).
+- 골든 엣지는 `ownedBy`인데 KG 술어는 `ownedByGroup`이라 엣지 Recall이 낮게 나올 수 있다(미검증).
+
+**데이터 파이프라인**
+- 2026-08-31 지표 테이블(`brand_metrics`·`market_metrics`, 08-30 18:06 UTC 계산)이 같은 날짜 `raw_data`(08-31 13:03 UTC 교체)와 다른 크롤 상태로 계산됐다(예: lip_care HHI 0.0681 vs raw 0.0637, lip_makeup 21/21 브랜드 SoS 불일치). 지표 재계산 시점 결함.
+- `raw_data.brand` 부분 문자열 오귀속 24/356행·14쌍(lip_care "Hera" ← "Therapy", "CHI" ← KimChiChic, "OPI", "Verb", "elf", skin_care "Fresh" 등). 골든 lip_care 순위·HHI와 KG `competesWith`(system 출처)에 유입.
+- `raw_data.price` 2025-12~2026-01 714행이 1,411~86,377(KRW로 추정)인데 `price_currency=USD`.
+- `raw_data.reviews_count` 8,769행이 빈 문자열(2025-12-16~2026-01-19).
+- `badge` 필드에 평점 문자열("4.6")이 들어 있다 — 스크레이퍼 필드 매핑 결함 추정.
+- 2026-08-31 lip_care SoS가 정수값(제품 수 기반)이다. 다른 날짜·카테고리와 계산 방식 일관성 확인 필요.
+
+**KG·온톨로지**
+- KG 수치 엣지 359개(`hasSoS` 169, price position 124, `hasHHI` 66)가 전부 날짜가 없다. lip_care `hasHHI`는 값이 15개이고 0~10000 스케일이 섞여 있다. 검색 증거에서는 제외했지만(E2) 정리·버전 부여는 하지 않았다.
+- KG 주어 대소문자가 술어마다 다르다(`competesWith` 주어 `laneige`, `ownedByGroup` 주어 `LANEIGE`).
+- KG `TATA HARPER acquiredIn='True'`.
+- `KnowledgeGraph()` 기본 생성이 로드 중 자동 저장으로 KG 파일을 다시 쓴다(0-F의 근본 원인). 테스트는 `persist_path`·`auto_save=False`로 격리했지만 생성자 동작 자체는 그대로다.
+- 규칙 37개 중 입력을 공급할 수 없는 규칙: sentiment 8개 전부, IR 5개, 이력(기간 비교)이 필요한 규칙.
+
+**코드**
+- `src/rag/context_builder.py:599` `churn_rate`를 `:.1f%`로 표시한다(정의는 0~1). 데이터가 전부 NULL이라 아직 드러나지 않음.
+- `MetricFactsProvider`가 제품명을 60자로 자르고 ASIN을 넘기지 않아 제품 카드가 KG 제품(ASIN)과 연결되지 않는다.
+- `HybridRetriever._query_knowledge_graph`의 `trend_keywords`가 주어(브랜드/MARKET)를 보존하지 않는다.
+- 1-A가 시험지에서 뺀 23문항은 `gold_source=domain_expectation`(추정 골드)이라 정답 채점이 불가하다 — 골드 보강 필요.
