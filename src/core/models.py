@@ -62,6 +62,8 @@ class Context(ContextBase):
         system_state: 시스템 상태
         summary: 컨텍스트 요약 문자열 (LLM 프롬프트용)
         gathered_at: 수집 시간
+        evidence: 이번 질의의 전체 증거 카드
+        prompt_evidence: 답변 프롬프트(summary)에 실제로 렌더링된 증거 카드
 
     Usage:
         context = await context_gatherer.gather(query, entities)

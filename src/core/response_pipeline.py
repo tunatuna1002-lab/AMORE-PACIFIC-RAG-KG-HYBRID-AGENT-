@@ -21,6 +21,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from src.rag.evidence_assembly import evidence_source_labels
+from src.rag.evidence_renderer import CITATION_INSTRUCTION, render_for_prompt
 from src.shared.constants import DEFAULT_MODEL
 
 from .confidence import ConfidenceAssessor
@@ -253,6 +255,8 @@ class ResponsePipeline:
             kg_inferences=context.kg_inferences,
             system_state=context.system_state,
             summary=f"{context.summary}\n\n[도구 실행 결과] {tool_summary}",
+            evidence=context.evidence,
+            prompt_evidence=context.prompt_evidence,
         )
 
         return await self.generate(query, enhanced_context, tool_result=tool_result)
@@ -282,9 +286,14 @@ class ResponsePipeline:
         """
         messages = [{"role": "system", "content": self._get_system_prompt()}]
 
-        # 컨텍스트 메시지
+        # 컨텍스트 메시지 (+ 카드가 있으면 인용 규칙 한 번)
         context_content = self._format_context(context)
-        messages.append({"role": "system", "content": f"[분석 컨텍스트]\n{context_content}"})
+        messages.append(
+            {
+                "role": "system",
+                "content": f"[분석 컨텍스트]\n{context_content}{self._citation_block(context)}",
+            }
+        )
 
         # 판단 결과 (있으면) - None-safety 추가
         if decision:
@@ -310,7 +319,7 @@ class ResponsePipeline:
         return messages
 
     def _format_context(self, context: Context) -> str:
-        """컨텍스트 포맷팅"""
+        """컨텍스트 포맷팅 — summary(카드 렌더링)가 없으면 상태 한 줄과 카드만 싣는다 (E1)."""
         if context.summary:
             return context.summary
 
@@ -323,19 +332,18 @@ class ResponsePipeline:
             if state.kg_initialized:
                 parts.append(f"KG: {state.kg_triple_count} 트리플")
 
-        # KG 추론
-        if context.kg_inferences:
-            parts.append("\n인사이트:")
-            for inf in context.kg_inferences[:3]:
-                parts.append(f"- {inf.get('insight', '')}")
+        cards = render_for_prompt(context.prompt_evidence)
+        if cards:
+            parts.append(cards)
 
-        # KG 사실
-        if context.kg_facts:
-            parts.append("\n관련 정보:")
-            for fact in context.kg_facts[:3]:
-                parts.append(f"- {fact.fact_type}: {fact.entity}")
+        return "\n\n".join(parts) if parts else "컨텍스트 없음"
 
-        return "\n".join(parts) if parts else "컨텍스트 없음"
+    @staticmethod
+    def _citation_block(context: Context) -> str:
+        """답변 프롬프트의 인용 규칙 (설계 E8 앞부분). 카드가 없으면 인용할 id도 없다."""
+        if not context.prompt_evidence:
+            return ""
+        return f"\n\n[인용 규칙]\n{CITATION_INSTRUCTION}"
 
     def _format_tool_result(self, tool_result: ToolResult) -> str:
         """도구 결과 포맷팅"""
@@ -438,7 +446,10 @@ class ResponsePipeline:
         )
 
         # 컨텍스트 요약을 사용자 메시지에 직접 포함
-        user_msg = f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
+        user_msg = (
+            f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
+            f"{self._citation_block(context)}"
+        )
 
         try:
             response = await acompletion(
@@ -560,66 +571,13 @@ class ResponsePipeline:
         return suggestions[:3]
 
     def _extract_sources(self, context: Context) -> list[str]:
-        """출처 추출 — SourceProvider(정본)에 위임한다 (§4.5).
+        """출처 = 답변 프롬프트에 실린 증거 카드의 출처 (설계 E1).
 
-        과거에는 여기서 bare 문자열 5개만 뽑아, 어느 응답 경로를 타느냐에 따라
-        인용 품질이 달랐다. 이제 두 경로가 같은 추출기를 쓴다.
-        Response.sources의 계약(list[str])은 유지하고 표시 문자열로 변환한다.
+        문서 제목·``sqlite:<table> (as_of)``·``KG``·``rule:<이름>``을 카드 순서대로 중복 없이
+        돌려준다. ``Response.sources``의 계약(list[str])은 그대로다. 프롬프트에 싣지 않은
+        원자료(rag_docs·kg_facts)는 출처로 내지 않는다 — 모델이 보지 않은 근거이기 때문이다.
         """
-        try:
-            return self._extract_sources_via_provider(context)
-        except Exception as e:
-            logger.warning(f"SourceProvider 출처 추출 실패, 폴백 사용: {e}")
-            return self._extract_sources_fallback(context)
-
-    def _extract_sources_via_provider(self, context: Context) -> list[str]:
-        """SourceProvider로 출처를 뽑아 표시 문자열로 변환."""
-        from src.infrastructure.container import Container
-        from src.rag.hybrid_retriever import HybridContext
-
-        provider = Container.get_source_provider()
-
-        # SourceProvider는 InferenceResult 객체를 기대한다. dict 형태 추론이 섞여 있으면
-        # 그것만 걸러내고 나머지는 리치 추출을 유지한다 (전체 폴백 방지).
-        inferences = [inf for inf in (context.kg_inferences or []) if hasattr(inf, "rule_name")]
-        dropped = len(context.kg_inferences or []) - len(inferences)
-
-        hybrid_context = HybridContext(
-            query=getattr(context, "query", "") or "",
-            entities=getattr(context, "entities", None) or {},
-            ontology_facts=list(context.kg_facts or []),
-            inferences=inferences,
-            rag_chunks=list(context.rag_docs or []),
-        )
-
-        labels = [self._source_label(src) for src in provider.extract_sources(hybrid_context)]
-        if dropped:
-            labels.append("Ontology Reasoning")
-        return labels[:5]
-
-    @staticmethod
-    def _source_label(source: dict[str, Any]) -> str:
-        """리치 출처 dict → 표시 문자열"""
-        description = source.get("description") or source.get("type") or "출처"
-        icon = source.get("icon", "")
-        return f"{icon} {description}".strip()
-
-    def _extract_sources_fallback(self, context: Context) -> list[str]:
-        """SourceProvider를 쓸 수 없을 때의 최소 출처 목록."""
-        sources: list[str] = []
-
-        for doc in context.rag_docs or []:
-            title = doc.get("metadata", {}).get("title", "")
-            if title and title not in sources:
-                sources.append(title)
-
-        if context.kg_facts:
-            sources.append("Knowledge Graph")
-
-        if context.kg_inferences:
-            sources.append("Ontology Reasoning")
-
-        return sources[:5]
+        return evidence_source_labels(context.prompt_evidence)
 
     def _infer_query_type(self, query: str, context: Context) -> str:
         """질문 유형 추론"""

@@ -89,12 +89,16 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
+from src.domain.entities.evidence import Evidence
 from src.domain.entities.relations import InferenceResult, InsightType, RelationType
 from src.monitoring.rag_metrics import RAGMetricsCollector
 from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 
+from .evidence_adapters import EvidenceAdapter
+from .evidence_assembly import EvidenceBundle, assemble_evidence
+from .evidence_renderer import render_for_prompt
 from .query_enhancer import QueryEnhancer
 from .relevance_grader import RelevanceGrader
 from .retriever import DocumentRetriever
@@ -206,7 +210,10 @@ class HybridContext:
         ontology_facts: 지식 그래프에서 조회한 사실
         inferences: 온톨로지 추론 결과
         rag_chunks: RAG 검색 결과 청크
-        combined_context: 통합된 컨텍스트 (LLM 프롬프트용)
+        evidence: 이번 질의에서 만든 전체 증거 카드 (중복 제거, 순서 결정적)
+        prompt_evidence: 답변 프롬프트에 실제로 렌더링된 카드 (``select_cards`` 결과,
+            ``combined_context``의 렌더 입력과 같은 목록)
+        combined_context: 통합된 컨텍스트 (LLM 프롬프트용) = ``render_for_prompt(prompt_evidence)``
         metadata: 추가 메타데이터
     """
 
@@ -218,6 +225,8 @@ class HybridContext:
     # 크롤 DB 수치 사실 (src/rag/metric_facts.py). ontology_facts와 분리한다 — 섞으면
     # 평가 러너가 여기서 엔티티를 뽑아 L3 Hits@k가 KG와 무관하게 오른다.
     metric_facts: list[dict[str, Any]] = field(default_factory=list)
+    evidence: list[Evidence] = field(default_factory=list)
+    prompt_evidence: list[Evidence] = field(default_factory=list)
     combined_context: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -230,6 +239,8 @@ class HybridContext:
             "inferences": [inf.to_dict() for inf in self.inferences],
             "rag_chunks": self.rag_chunks,
             "metric_facts": self.metric_facts,
+            "evidence": [card.model_dump(mode="json") for card in self.evidence],
+            "prompt_evidence": [card.model_dump(mode="json") for card in self.prompt_evidence],
             "combined_context": self.combined_context,
             "metadata": self.metadata,
         }
@@ -359,6 +370,9 @@ class HybridRetriever:
         from src.rag.metric_facts import MetricFactsProvider
 
         self.metric_facts_provider = metric_facts_provider or MetricFactsProvider()
+
+        # 검색 결과 → 증거 카드 (단위·브랜드 정규화, KG 수치 엣지 제외)
+        self.evidence_adapter = EvidenceAdapter()
 
         # 엔티티 추출기
         self.entity_extractor = EntityExtractor()
@@ -645,7 +659,10 @@ class HybridRetriever:
                 context, intent_weights=intent_config.weights, degraded=degraded
             )
 
-            # 6. 통합 컨텍스트 생성
+            # 5.9. 증거 카드 조립 (최종 ontology_facts·inferences·rag_chunks + DB 수치)
+            evidence_bundle = self._assemble_evidence(context, degraded=degraded)
+
+            # 6. 통합 컨텍스트 생성 (프롬프트 카드만 렌더링)
             context.combined_context = self._combine_contexts(context, include_explanations)
 
             # 메타데이터
@@ -662,6 +679,11 @@ class HybridRetriever:
                 "search_method": search_method,
                 "selfrag_confidence": selfrag_confidence,
                 "bm25_available": self._bm25_actually_available(),
+                "evidence_count": len(context.evidence),
+                "prompt_evidence_count": len(context.prompt_evidence),
+                # 어댑터가 증거에서 뺀 KG 항목 수 (날짜 없는 수치 엣지·엔티티 메타데이터 등, E2)
+                "evidence_excluded": len(evidence_bundle.excluded),
+                "evidence_excluded_by_reason": evidence_bundle.excluded_by_reason,
                 # 선택 기능(비핵심) 실패 목록 — 이 재할당이 위에서 누적된 degraded를
                 # 지우지 않도록 여기서 함께 포함한다 (F3)
                 "degraded": degraded,
@@ -752,6 +774,8 @@ class HybridRetriever:
             ontology_facts=ctx.ontology_facts,
             inferences=inferences_dicts,
             rag_chunks=ctx.rag_chunks,
+            evidence=list(ctx.evidence),
+            prompt_evidence=list(ctx.prompt_evidence),
             combined_context=ctx.combined_context,
             confidence=0.0,
             entity_links=[],
@@ -1701,106 +1725,47 @@ class HybridRetriever:
             ],
         }
 
-    def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
+    def _assemble_evidence(
+        self,
+        context: HybridContext,
+        degraded: list[dict[str, Any]] | None = None,
+    ) -> EvidenceBundle:
+        """최종 검색 결과를 증거 카드로 바꿔 ``context.evidence``·``prompt_evidence``에 담는다.
+
+        - metric_facts → metric 카드, ontology_facts → relation 카드(KG 수치 엣지 제외),
+          inferences → inference 카드(``derived_from``은 트랙 3-B가 채운다),
+          최종 rag_chunks → document 카드.
+        - 어댑터 실패는 ``degraded``에 기록하고 나머지 종류는 계속 만든다 (0-B).
         """
-        온톨로지 + RAG 컨텍스트 통합
+        bundle = assemble_evidence(
+            entities=context.entities,
+            metric_facts=context.metric_facts,
+            ontology_facts=context.ontology_facts,
+            inferences=context.inferences,
+            rag_chunks=context.rag_chunks,
+            adapter=self.evidence_adapter,
+        )
+        context.evidence = bundle.evidence
+        context.prompt_evidence = bundle.prompt_evidence
+        if degraded is not None:
+            degraded.extend(bundle.degraded)
+        return bundle
+
+    def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
+        """답변 프롬프트용 컨텍스트 = 프롬프트 카드 렌더링 (설계 E1).
+
+        추론·KG 사실·DB 수치·문서는 모두 카드로만 싣는다 — 같은 정보를 카드 밖 형식으로
+        다시 렌더링하지 않는다. v1 ``ContextBuilder``도 같은 렌더러를 쓴다.
 
         Args:
-            context: HybridContext
-            include_explanations: 추론 설명 포함
+            context: ``_assemble_evidence``를 거친 HybridContext
+            include_explanations: 하위 호환용 인자. 추론의 근거는 카드의
+                ``derived_from``으로 표시되므로 더 이상 출력에 영향을 주지 않는다.
 
         Returns:
-            통합된 컨텍스트 문자열
+            ``render_for_prompt(context.prompt_evidence)`` (카드가 없으면 빈 문자열)
         """
-        parts = []
-
-        # 1. 온톨로지 추론 결과 (구조화된 인사이트)
-        if context.inferences:
-            parts.append("## 분석 결과 (Ontology Reasoning)\n")
-
-            for i, inf in enumerate(context.inferences, 1):
-                parts.append(
-                    f"### 인사이트 {i}: {inf.insight_type.value.replace('_', ' ').title()}"
-                )
-                parts.append(f"- **결론**: {inf.insight}")
-
-                if inf.recommendation:
-                    parts.append(f"- **권장 액션**: {inf.recommendation}")
-
-                parts.append(f"- **신뢰도**: {inf.confidence:.0%}")
-
-                if include_explanations and inf.evidence:
-                    conditions = inf.evidence.get("satisfied_conditions", [])
-                    if conditions:
-                        parts.append(f"- **근거 조건**: {', '.join(conditions)}")
-
-                parts.append("")
-
-        # 2. 지식 그래프 사실 (관련 정보)
-        if context.ontology_facts:
-            parts.append("## 관련 정보 (Knowledge Graph)\n")
-
-            for fact in context.ontology_facts[:5]:  # 상위 5개
-                fact_type = fact.get("type", "unknown")
-                entity = fact.get("entity", "")
-                data = fact.get("data", {})
-
-                if fact_type == "brand_info":
-                    sos = data.get("sos", 0)
-                    if sos:
-                        parts.append(f"- **{entity}** SoS: {sos * 100:.1f}%")
-                    if data.get("avg_rank"):
-                        parts.append(f"  - 평균 순위: {data['avg_rank']:.1f}")
-
-                elif fact_type == "brand_products":
-                    parts.append(f"- **{entity}** 제품 수: {data.get('product_count', 0)}개")
-
-                elif fact_type == "competitors":
-                    competitors = [c.get("brand", "") for c in data[:3]]
-                    parts.append(f"- **{entity}** 주요 경쟁사: {', '.join(competitors)}")
-
-                elif fact_type == "category_brands":
-                    top_brands = [b.get("brand", "") for b in data.get("top_brands", [])[:3]]
-                    parts.append(f"- **{entity}** Top 브랜드: {', '.join(top_brands)}")
-
-                elif fact_type == "category_hierarchy":
-                    level = data.get("level", 0)
-                    path = data.get("path", [])
-                    ancestors = data.get("ancestors", [])
-                    name = data.get("name", entity)
-                    if path:
-                        path_str = " > ".join(
-                            [
-                                a.get("name", a.get("id", "")) if isinstance(a, dict) else a
-                                for a in path
-                            ]
-                        )
-                        parts.append(f"- **{name}** 계층: {path_str} (Level {level})")
-                    if ancestors:
-                        parent_names = [a.get("name", "") for a in ancestors[:2]]
-                        parts.append(f"  - 상위 카테고리: {', '.join(parent_names)}")
-
-            parts.append("")
-
-        # 3. RAG 가이드라인 (비구조화 문서)
-        if context.rag_chunks:
-            parts.append("## 참고 가이드라인 (RAG)\n")
-
-            for chunk in context.rag_chunks[:3]:  # 상위 3개
-                title = chunk.get("metadata", {}).get("title", "")
-                content = chunk.get("content", "")
-
-                if title:
-                    parts.append(f"### {title}")
-
-                # 내용 축약 (500자)
-                if len(content) > 500:
-                    content = content[:500] + "..."
-
-                parts.append(content)
-                parts.append("")
-
-        return "\n".join(parts)
+        return render_for_prompt(context.prompt_evidence)
 
     async def retrieve_for_entity(
         self, entity: str, entity_type: str = "brand", current_metrics: dict[str, Any] | None = None

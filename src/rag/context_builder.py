@@ -3,9 +3,10 @@ Context Builder
 LLM 프롬프트용 컨텍스트 조립기
 
 기능:
-1. 하이브리드 검색 결과를 LLM 프롬프트로 변환
-2. 토큰 제한 고려한 컨텍스트 압축
-3. 우선순위 기반 정보 선택
+1. 하이브리드 검색 결과를 증거 카드로 렌더링 (v4 ``HybridRetriever._combine_contexts``와 같은
+   조립기 ``evidence_assembly``·렌더러 ``evidence_renderer``, 설계 E1·E11)
+2. 카드 밖 정보(사용자 질문·응답 가이드·일일 인사이트용 현재 데이터) 섹션 조립
+3. 토큰 제한 고려한 섹션 선택 (카드 섹션은 잘리지 않는다)
 4. 다양한 출력 포맷 지원
 """
 
@@ -13,7 +14,29 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from src.domain.entities.relations import InferenceResult
+from src.domain.entities.evidence import Evidence
+from src.rag.evidence_assembly import assemble_evidence
+from src.rag.evidence_renderer import render_for_prompt
+
+
+def prompt_cards_for(hybrid_context: Any) -> list[Evidence]:
+    """프롬프트에 실을 카드.
+
+    검색기가 카드를 조립한 컨텍스트(``evidence``나 ``prompt_evidence``가 채워짐)는
+    ``prompt_evidence`` 그대로 쓴다. 카드 조립 전 컨텍스트(직접 만든 HybridContext 등)는
+    원자료 필드로 같은 조립기를 돌린다 — 입력이 같으면 결과도 같다.
+    """
+    cards = getattr(hybrid_context, "prompt_evidence", None)
+    evidence = getattr(hybrid_context, "evidence", None)
+    if isinstance(cards, list) and (cards or evidence):
+        return cards
+    return assemble_evidence(
+        entities=getattr(hybrid_context, "entities", None) or {},
+        metric_facts=getattr(hybrid_context, "metric_facts", None) or [],
+        ontology_facts=getattr(hybrid_context, "ontology_facts", None) or [],
+        inferences=getattr(hybrid_context, "inferences", None) or [],
+        rag_chunks=getattr(hybrid_context, "rag_chunks", None) or [],
+    ).prompt_evidence
 
 
 @dataclass
@@ -64,10 +87,9 @@ class ContextBuilder:
     LLM 프롬프트용 컨텍스트 빌더
 
     역할:
-    1. 온톨로지 추론 결과 포맷팅
-    2. RAG 검색 결과 포맷팅
-    3. 현재 데이터 포맷팅
-    4. 토큰 제한 내 최적 조합
+    1. 증거 카드(추론·DB 수치·KG 관계·문서) 렌더링
+    2. 현재 데이터 포맷팅 (current_metrics를 넘기는 호출자만)
+    3. 토큰 제한 내 섹션 조합
 
     사용 예:
         builder = ContextBuilder(max_tokens=4000)
@@ -336,175 +358,43 @@ class ContextBuilder:
         knowledge_graph: Any = None,
     ) -> str:
         """
-        통합 컨텍스트 구성
+        통합 컨텍스트 구성 — 증거 카드 렌더링 (설계 E1, v4 ``_combine_contexts``와 같은 렌더러)
+
+        추론·DB 수치·KG 관계·문서는 ``prompt_evidence`` 카드로만 싣는다. ``hybrid_context``에
+        카드 필드가 없으면(카드 조립 전 객체) 같은 조립기(``assemble_evidence``)로 만든다.
+        인용 지시(``CITATION_INSTRUCTION``)는 여기서 붙이지 않는다 — 답변 LLM을 부르는
+        프롬프트 조립부가 한 번만 붙인다.
 
         Args:
             hybrid_context: HybridRetriever 결과
-            current_metrics: 현재 지표 데이터
+            current_metrics: 현재 지표 데이터. 주면 카드 밖 "현재 데이터" 섹션을 싣는다
+                (일일 인사이트 경로용 — 챗봇 답변 경로는 넘기지 않는다)
             query: 원본 쿼리
-            knowledge_graph: KnowledgeGraph 인스턴스 (카테고리 계층 조회용)
+            knowledge_graph: 하위 호환용 인자 (카테고리 계층은 relation 카드로 싣는다)
 
         Returns:
             LLM 프롬프트용 컨텍스트 문자열
         """
         self._sources = []
         sections: list[ContextSection] = []
+        entities = getattr(hybrid_context, "entities", None) or {}
 
-        # 1. 카테고리 계층 섹션 (순위 관련 질문 시 우선 배치)
-        entities = hybrid_context.entities if hasattr(hybrid_context, "entities") else {}
-        if knowledge_graph and (entities.get("categories") or entities.get("products")):
-            # 순위 관련 키워드 감지
-            is_ranking_query = False
-            if query:
-                ranking_keywords = ["순위", "rank", "위", "ranking", "등수"]
-                is_ranking_query = any(kw in query.lower() for kw in ranking_keywords)
-
-            if is_ranking_query:
-                hierarchy_section = self._build_category_hierarchy_section(
-                    entities, knowledge_graph
+        evidence_block = render_for_prompt(prompt_cards_for(hybrid_context))
+        if evidence_block:
+            # 카드는 잘리면 prompt_evidence와 렌더 결과가 어긋나므로 토큰 제한에서 빼지 않는다
+            sections.append(
+                ContextSection(
+                    title="증거 카드",
+                    content=evidence_block,
+                    priority=ContextPriority.CRITICAL,
+                    source="evidence",
                 )
-                if hierarchy_section.content.strip():
-                    sections.append(hierarchy_section)
-
-        # 2. 온톨로지 추론 결과 섹션
-        if hasattr(hybrid_context, "inferences") and hybrid_context.inferences:
-            inference_section = self._build_inference_section(hybrid_context.inferences)
-            sections.append(inference_section)
-
-        # 2.5 크롤 DB 수치 섹션 (SQLite 정본, 스냅샷 날짜 포함)
-        metric_facts = getattr(hybrid_context, "metric_facts", None)
-        if isinstance(metric_facts, list) and metric_facts:
-            metric_section = self._build_metric_facts_section(metric_facts)
-            if metric_section.content.strip():
-                sections.append(metric_section)
-
-        # 3. 현재 데이터 섹션
-        if current_metrics:
-            data_section = self._build_data_section(current_metrics, entities)
-            sections.append(data_section)
-
-        # 4. 지식 그래프 사실 섹션
-        if hasattr(hybrid_context, "ontology_facts") and hybrid_context.ontology_facts:
-            facts_section = self._build_facts_section(hybrid_context.ontology_facts)
-            sections.append(facts_section)
-
-        # 5. RAG 가이드라인 섹션
-        if hasattr(hybrid_context, "rag_chunks") and hybrid_context.rag_chunks:
-            rag_section = self._build_rag_section(hybrid_context.rag_chunks)
-            sections.append(rag_section)
-
-        # 6. 토큰 제한 내 조합
-        selected_sections = self._select_within_limit(sections)
-
-        # 7. 최종 조립
-        return self._assemble(selected_sections, query)
-
-    def _build_category_hierarchy_section(
-        self, entities: dict[str, list[str]], knowledge_graph: Any
-    ) -> ContextSection:
-        """카테고리 계층 구조 섹션 구성"""
-        lines = []
-
-        # 카테고리 계층 정보
-        categories = entities.get("categories", [])
-        for category in categories:
-            hierarchy = knowledge_graph.get_category_hierarchy(category)
-            if "error" in hierarchy:
-                continue
-
-            lines.append(f"### {hierarchy.get('name', category)}")
-            lines.append(f"- **레벨**: {hierarchy.get('level', 0)}")
-
-            # 상위 카테고리 경로
-            if hierarchy.get("ancestors"):
-                path_names = [a["name"] for a in reversed(hierarchy["ancestors"])]
-                path_names.append(hierarchy["name"])
-                lines.append(f"- **전체 경로**: {' > '.join(path_names)}")
-
-            # 하위 카테고리
-            if hierarchy.get("descendants"):
-                children = ", ".join([d["name"] for d in hierarchy["descendants"][:5]])
-                if len(hierarchy["descendants"]) > 5:
-                    children += f" 외 {len(hierarchy['descendants']) - 5}개"
-                lines.append(f"- **하위 카테고리**: {children}")
-
-            lines.append("")
-
-        # 제품별 카테고리 순위 컨텍스트
-        products = entities.get("products", [])
-        if products:
-            lines.append("### 제품별 카테고리 순위")
-
-            for product_asin in products[:5]:  # 최대 5개 제품
-                product_ctx = knowledge_graph.get_product_category_context(product_asin)
-                if product_ctx.get("categories"):
-                    # 제품 메타데이터 조회
-                    product_meta = knowledge_graph.get_entity_metadata(product_asin)
-                    product_name = product_meta.get("product_name", product_asin)
-
-                    lines.append(f"\n**{product_name}** (ASIN: {product_asin}):")
-
-                    # 카테고리별 순위 정렬 (계층 레벨 순)
-                    cat_infos = sorted(
-                        product_ctx["categories"],
-                        key=lambda x: x.get("hierarchy", {}).get("level", 99),
-                    )
-
-                    for cat_info in cat_infos:
-                        hierarchy = cat_info.get("hierarchy", {})
-                        cat_name = hierarchy.get("name", cat_info.get("category_id"))
-                        rank = cat_info.get("rank", "N/A")
-                        level = hierarchy.get("level", 0)
-                        lines.append(f"  - [{cat_name}] {rank}위 (Level {level})")
-
-                    lines.append("")
-
-        content = "\n".join(lines)
-
-        return ContextSection(
-            title="카테고리 계층 구조",
-            content=content,
-            priority=ContextPriority.HIGH,
-            source="category_hierarchy",
-        )
-
-    def _build_inference_section(self, inferences: list[InferenceResult]) -> ContextSection:
-        """온톨로지 추론 결과 섹션 구성"""
-        lines = []
-
-        for i, inf in enumerate(inferences, 1):
-            insight_type = inf.insight_type.value.replace("_", " ").title()
-
-            lines.append(f"### 인사이트 {i}: {insight_type}")
-
-            # 출처 등록 및 인용
-            src_idx = self._register_source(
-                source_type="ontology",
-                title=f"Ontology Reasoning: {insight_type}",
-                detail=f"Confidence: {inf.confidence:.0%}",
             )
-            lines.append(f"- **분석 결과**: {inf.insight} [{src_idx}]")
 
-            if inf.recommendation:
-                lines.append(f"- **권장 액션**: {inf.recommendation}")
+        if current_metrics:
+            sections.append(self._build_data_section(current_metrics, entities))
 
-            lines.append(f"- **신뢰도**: {inf.confidence:.0%}")
-
-            # 근거 조건
-            if inf.evidence and inf.evidence.get("satisfied_conditions"):
-                conditions = inf.evidence["satisfied_conditions"]
-                lines.append(f"- **근거**: {', '.join(conditions)}")
-
-            lines.append("")
-
-        content = "\n".join(lines)
-
-        return ContextSection(
-            title="분석 결과 (Ontology Reasoning)",
-            content=content,
-            priority=ContextPriority.CRITICAL,
-            source="ontology",
-        )
+        return self._assemble(self._select_within_limit(sections), query)
 
     def _build_data_section(
         self, metrics: dict[str, Any], entities: dict[str, list[str]]
@@ -571,157 +461,6 @@ class ContextBuilder:
 
         return ContextSection(
             title="현재 데이터", content=content, priority=ContextPriority.HIGH, source="data"
-        )
-
-    @staticmethod
-    def _format_product(product: dict[str, Any]) -> str:
-        text = f"{product.get('rank')}위 {product.get('name', '')}"
-        if product.get("price") is not None:
-            text += f" ${product['price']:.2f}"
-        if product.get("rating") is not None:
-            text += f" 평점 {product['rating']}"
-        if product.get("reviews_count") is not None:
-            text += f" 리뷰 {product['reviews_count']:,}건"
-        return text
-
-    def _build_metric_facts_section(self, facts: list[dict[str, Any]]) -> ContextSection:
-        """크롤 DB 수치 섹션. 값이 없는 필드는 쓰지 않는다 (0으로 채우지 않는다)."""
-        lines: list[str] = []
-        for fact in facts:
-            kind = fact.get("type")
-            category = fact.get("category", "")
-            date = fact.get("snapshot_date", "")
-            if kind == "category_market":
-                parts = []
-                if fact.get("hhi") is not None:
-                    parts.append(f"HHI {fact['hhi']:.4f}")
-                if fact.get("churn_rate") is not None:
-                    parts.append(f"이탈률 {fact['churn_rate']:.1f}%")
-                if fact.get("category_avg_price") is not None:
-                    parts.append(f"Top 100 평균가 ${fact['category_avg_price']:.2f}")
-                if fact.get("category_avg_rating") is not None:
-                    parts.append(f"평균 평점 {fact['category_avg_rating']:.2f}")
-                if parts:
-                    lines.append(f"- {category} 시장 ({date}): " + ", ".join(parts))
-            elif kind == "category_top_brands":
-                ranked = ", ".join(f"{b['brand']} {b['sos']:.1f}%" for b in fact.get("brands", []))
-                lines.append(f"- {category} SoS 상위 브랜드 ({date}): {ranked}")
-            elif kind == "brand_share":
-                if fact.get("present"):
-                    lines.append(
-                        f"- {fact['brand']} {category} SoS ({date}): {fact['sos']:.1f}%"
-                        f" — Top 100 내 {fact.get('product_count')}개, 브랜드 중"
-                        f" {fact.get('brand_rank')}위"
-                    )
-                else:
-                    lines.append(
-                        f"- {fact['brand']} {category} ({date}): Top 100 내 제품 없음 (SoS 0%)"
-                    )
-            elif kind == "category_top_products":
-                products = "; ".join(self._format_product(p) for p in fact.get("products", []))
-                lines.append(f"- {category} Top 제품 ({date}): {products}")
-            elif kind == "brand_products":
-                products = "; ".join(self._format_product(p) for p in fact.get("products", []))
-                lines.append(f"- {fact.get('brand')} {category} 제품 ({date}): {products}")
-
-        if not lines:
-            return ContextSection(
-                title="크롤 DB 지표", content="", priority=ContextPriority.HIGH, source="data"
-            )
-
-        dates = sorted({str(f.get("snapshot_date")) for f in facts if f.get("snapshot_date")})
-        src_idx = self._register_source(
-            source_type="data",
-            title="Amazon US Best Sellers 크롤 DB",
-            detail=f"스냅샷 {', '.join(dates)}",
-        )
-        header = (
-            f"아래 수치는 크롤 DB [{src_idx}]의 표시된 스냅샷 날짜 기준이다. "
-            "여기에 없는 수치는 데이터에 없는 것이다."
-        )
-        return ContextSection(
-            title="크롤 DB 지표",
-            content="\n".join([header, *lines]),
-            priority=ContextPriority.HIGH,
-            source="data",
-        )
-
-    def _build_facts_section(self, facts: list[dict[str, Any]]) -> ContextSection:
-        """지식 그래프 사실 섹션 구성"""
-        lines = []
-
-        for fact in facts[:5]:  # 상위 5개
-            fact_type = fact.get("type", "")
-            entity = fact.get("entity", "")
-            data = fact.get("data", {})
-
-            if fact_type == "brand_info":
-                lines.append(f"**{entity}**:")
-                if data.get("sos"):
-                    lines.append(f"  - 점유율: {data['sos'] * 100:.1f}%")
-                if data.get("avg_rank"):
-                    lines.append(f"  - 평균 순위: {data['avg_rank']:.1f}")
-                if data.get("product_count"):
-                    lines.append(f"  - 제품 수: {data['product_count']}개")
-
-            elif fact_type == "brand_products":
-                lines.append(f"**{entity}** 제품: {data.get('product_count', 0)}개")
-
-            elif fact_type == "competitors":
-                if isinstance(data, list):
-                    competitors = [c.get("brand", "") for c in data[:3]]
-                    lines.append(f"**{entity}** 경쟁사: {', '.join(competitors)}")
-
-            elif fact_type == "category_brands":
-                top_brands = [b.get("brand", "") for b in data.get("top_brands", [])[:3]]
-                if top_brands:
-                    lines.append(f"**{entity}** Top 브랜드: {', '.join(top_brands)}")
-
-            lines.append("")
-
-        content = "\n".join(lines)
-
-        return ContextSection(
-            title="관련 정보 (Knowledge Graph)",
-            content=content,
-            priority=ContextPriority.MEDIUM,
-            source="knowledge_graph",
-        )
-
-    def _build_rag_section(self, chunks: list[dict[str, Any]]) -> ContextSection:
-        """RAG 검색 결과 섹션 구성"""
-        lines = []
-
-        for chunk in chunks[:3]:  # 상위 3개
-            title = chunk.get("metadata", {}).get("title", "")
-            content = chunk.get("content", "")
-            doc_id = chunk.get("metadata", {}).get("doc_id", "")
-
-            # 출처 등록
-            display_title = title or doc_id or "Unknown"
-            src_idx = self._register_source(
-                source_type="rag", title=display_title, detail=f"Document ID: {doc_id}"
-            )
-
-            if title:
-                lines.append(f"### {title} [{src_idx}]")
-            elif doc_id:
-                lines.append(f"### {doc_id} [{src_idx}]")
-
-            # 내용 축약
-            if len(content) > 400:
-                content = content[:400] + "..."
-
-            lines.append(content)
-            lines.append("")
-
-        content = "\n".join(lines)
-
-        return ContextSection(
-            title="참고 가이드라인 (RAG)",
-            content=content,
-            priority=ContextPriority.MEDIUM,
-            source="rag",
         )
 
     def _select_within_limit(self, sections: list[ContextSection]) -> list[ContextSection]:
@@ -827,9 +566,9 @@ class ContextBuilder:
 - 마케터의 의사결정 보조
 
 ## 응답 원칙
-1. 제공된 "분석 결과 (Ontology Reasoning)" 섹션의 인사이트를 우선 활용
-2. "참고 가이드라인 (RAG)" 섹션의 해석 기준 적용
-3. "현재 데이터" 섹션의 수치를 구체적으로 인용
+1. [규칙 추론] 카드의 인사이트를 우선 활용
+2. [문서] 카드의 해석 기준 적용
+3. [DB 수치] 카드의 수치를 날짜와 함께 구체적으로 인용
 4. 추론 근거와 함께 설명
 """
 

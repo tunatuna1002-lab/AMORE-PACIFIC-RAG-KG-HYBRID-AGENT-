@@ -109,9 +109,16 @@ class TestResponsePipeline:
         assert len(suggestions) <= 3
 
     def test_extract_sources(self, pipeline, mock_context):
-        """출처 추출 — SourceProvider 위임 후 라벨에 아이콘이 붙는다 (§4.5)"""
+        """출처 추출 — 프롬프트에 실린 증거 카드에서 만든다 (트랙 2-B)"""
+        from src.rag.evidence_assembly import assemble_evidence
+
+        mock_context.prompt_evidence = assemble_evidence(
+            rag_chunks=mock_context.rag_docs
+        ).prompt_evidence
+
         sources = pipeline._extract_sources(mock_context)
-        assert any("Lip Care Report" in s for s in sources)
+
+        assert sources == ["Lip Care Report"]
 
     def test_infer_query_type(self, pipeline, mock_context):
         """질문 유형 추론"""
@@ -413,7 +420,7 @@ class TestFormatContextWithoutSummary:
         assert "KG: 50 트리플" in result
 
     def test_format_context_with_kg_inferences(self, pipeline):
-        """kg_inferences 있으면 인사이트 표시"""
+        """카드가 없는 kg_inferences 원자료는 렌더링하지 않는다 (E1)"""
         context = Context(
             query="질문",
             kg_inferences=[
@@ -425,26 +432,29 @@ class TestFormatContextWithoutSummary:
 
         result = pipeline._format_context(context)
 
-        assert "인사이트:" in result
-        assert "인사이트 1" in result
+        assert "인사이트 1" not in result
+        assert result == "컨텍스트 없음"
 
     def test_format_context_with_kg_facts(self, pipeline):
-        """kg_facts 있으면 관련 정보 표시"""
+        """summary가 없으면 프롬프트 카드를 렌더링한다 (kg_facts 원자료는 싣지 않는다)"""
         from src.domain.entities.brain_models import KGFact
+        from src.rag.evidence_assembly import assemble_evidence
 
+        facts = [{"type": "competitors", "entity": "LANEIGE", "data": [{"brand": "COSRX"}]}]
         context = Context(
             query="질문",
             kg_facts=[
-                KGFact(fact_type="brand_info", entity="LANEIGE", data={}),
+                KGFact(fact_type="brand_info", entity="LANEIGE", data={"sos": 0.15}),
             ],
             summary="",
+            prompt_evidence=assemble_evidence(ontology_facts=facts).prompt_evidence,
         )
 
         result = pipeline._format_context(context)
 
-        assert "관련 정보:" in result
-        assert "brand_info" in result
-        assert "LANEIGE" in result
+        assert result.startswith("[관계]\n[R-")
+        assert "competesWith" in result
+        assert "brand_info" not in result and "15.0%" not in result
 
     def test_format_context_empty(self, pipeline):
         """빈 컨텍스트는 '컨텍스트 없음'"""
@@ -684,61 +694,76 @@ class TestGenerateSuggestionsExtended:
 
 
 class TestExtractSourcesExtended:
-    """_extract_sources 확장 테스트"""
+    """_extract_sources 확장 테스트 — 출처는 프롬프트 카드에서만 (트랙 2-B)"""
 
     def test_extract_sources_with_kg_facts(self, pipeline):
-        """KG facts 있으면 'Knowledge Graph' 포함"""
-        from src.domain.entities.brain_models import KGFact
+        """관계 카드 → 'KG'"""
+        from src.rag.evidence_assembly import assemble_evidence
 
+        facts = [{"type": "competitors", "entity": "LANEIGE", "data": [{"brand": "COSRX"}]}]
         context = Context(
             query="질문",
-            kg_facts=[
-                KGFact(fact_type="brand_info", entity="LANEIGE", data={}),
-            ],
+            prompt_evidence=assemble_evidence(ontology_facts=facts).prompt_evidence,
         )
 
-        sources = pipeline._extract_sources(context)
-
-        assert any("지식 그래프" in s or "Knowledge Graph" in s for s in sources)
+        assert pipeline._extract_sources(context) == ["KG"]
 
     def test_extract_sources_with_kg_inferences(self, pipeline):
-        """KG 추론 있으면 'Ontology Reasoning' 포함"""
+        """추론 카드 → 'rule:<규칙 이름>'"""
+        from src.domain.entities.relations import InferenceResult, InsightType
+        from src.rag.evidence_assembly import assemble_evidence
+
+        inference = InferenceResult(
+            rule_name="market_dominance",
+            insight_type=InsightType.MARKET_DOMINANCE,
+            insight="인사이트",
+            confidence=0.9,
+        )
+        context = Context(
+            query="질문",
+            prompt_evidence=assemble_evidence(inferences=[inference]).prompt_evidence,
+        )
+
+        assert pipeline._extract_sources(context) == ["rule:market_dominance"]
+
+    def test_extract_sources_without_cards_is_empty(self, pipeline):
+        """프롬프트에 싣지 않은 원자료(kg_facts·kg_inferences·rag_docs)는 출처가 아니다"""
         context = Context(
             query="질문",
             kg_inferences=[{"insight": "인사이트"}],
+            rag_docs=[{"metadata": {"title": "Report A"}}],
         )
 
-        sources = pipeline._extract_sources(context)
-
-        assert "Ontology Reasoning" in sources
+        assert pipeline._extract_sources(context) == []
 
     def test_extract_sources_deduplication(self, pipeline):
-        """중복 제목 제거"""
+        """같은 제목의 문서 카드는 한 번만"""
+        from src.rag.evidence_assembly import assemble_evidence
+
+        docs = [
+            {"id": "a1", "content": "1", "metadata": {"title": "Report A"}},
+            {"id": "a2", "content": "2", "metadata": {"title": "Report A"}},
+            {"id": "b1", "content": "3", "metadata": {"title": "Report B"}},
+        ]
         context = Context(
-            query="질문",
-            rag_docs=[
-                {"metadata": {"title": "Report A"}},
-                {"metadata": {"title": "Report A"}},  # 중복
-                {"metadata": {"title": "Report B"}},
-            ],
+            query="질문", prompt_evidence=assemble_evidence(rag_chunks=docs).prompt_evidence
         )
 
-        sources = pipeline._extract_sources(context)
+        assert pipeline._extract_sources(context) == ["Report A", "Report B"]
 
-        # 중복 제거되어 각 1회
-        assert sum(1 for s in sources if "Report A" in s) == 1
-        assert any("Report B" in s for s in sources)
+    def test_extract_sources_lists_every_prompt_document(self, pipeline):
+        """고정 상한(과거 5개)을 두지 않는다 — 프롬프트에 실린 문서는 모두 출처다"""
+        from src.rag.evidence_assembly import assemble_evidence
 
-    def test_extract_sources_max_five(self, pipeline):
-        """최대 5개 출처"""
+        docs = [
+            {"id": f"r{i}", "content": str(i), "metadata": {"title": f"Report {i}"}}
+            for i in range(8)
+        ]
         context = Context(
-            query="질문",
-            rag_docs=[{"metadata": {"title": f"Report {i}"}} for i in range(10)],
+            query="질문", prompt_evidence=assemble_evidence(rag_chunks=docs).prompt_evidence
         )
 
-        sources = pipeline._extract_sources(context)
-
-        assert len(sources) <= 5
+        assert pipeline._extract_sources(context) == [f"Report {i}" for i in range(8)]
 
 
 class TestAssessConfidenceLevels:

@@ -167,28 +167,36 @@ class TestGuardrails:
 
 
 class TestSourceUnification:
-    def test_uses_source_provider(self, pipeline):
+    """출처는 한 경로 — 프롬프트 증거 카드(evidence_source_labels) (트랙 2-B)"""
+
+    def test_uses_prompt_evidence_cards(self, pipeline):
+        from src.rag.evidence_assembly import assemble_evidence
+
         ctx = _ctx(rag=1, kg=1)
-        ctx.rag_docs = [{"metadata": {"doc_id": "d1", "title": "SoS 정의"}, "score": 0.9}]
-        sources = pipeline._extract_sources(ctx)
-        # SourceProvider는 타입 아이콘이 붙은 리치 출처를 낸다 (bare 문자열이 아님)
-        assert any("🔗" in s or "📄" in s for s in sources)
+        ctx.prompt_evidence = assemble_evidence(
+            rag_chunks=[{"id": "d1_0", "content": "정의", "metadata": {"title": "SoS 정의"}}],
+            ontology_facts=[
+                {"type": "competitors", "entity": "laneige", "data": [{"brand": "cosrx"}]}
+            ],
+        ).prompt_evidence
 
-    def test_falls_back_on_provider_failure(self, pipeline, monkeypatch):
-        def boom(_ctx):
-            raise RuntimeError("provider down")
+        assert pipeline._extract_sources(ctx) == ["KG", "SoS 정의"]
 
-        monkeypatch.setattr(pipeline, "_extract_sources_via_provider", boom)
-        ctx = _ctx(rag=1, kg=1)
-        ctx.rag_docs = [{"metadata": {"title": "SoS 정의"}}]
-        assert pipeline._extract_sources(ctx) == ["SoS 정의", "Knowledge Graph"]
+    def test_single_source_path(self):
+        """SourceProvider 위임·폴백 이중 경로가 없다"""
+        import inspect
 
-    def test_capped_at_five(self, pipeline):
+        source = inspect.getsource(ResponsePipeline._extract_sources)
+        assert "evidence_source_labels" in source
+        assert not hasattr(ResponsePipeline, "_extract_sources_via_provider")
+        assert not hasattr(ResponsePipeline, "_extract_sources_fallback")
+
+    def test_raw_fields_without_cards_give_no_sources(self, pipeline):
         ctx = _ctx(rag=10, kg=3, inf=2)
         ctx.rag_docs = [
             {"metadata": {"doc_id": f"d{i}", "title": f"문서 {i}"}, "score": 0.5} for i in range(10)
         ]
-        assert len(pipeline._extract_sources(ctx)) <= 5
+        assert pipeline._extract_sources(ctx) == []
 
 
 # =============================================================================

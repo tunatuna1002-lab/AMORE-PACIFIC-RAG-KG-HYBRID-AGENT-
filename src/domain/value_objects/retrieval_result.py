@@ -8,6 +8,8 @@ RAG + Ontology 하이브리드 검색 결과를 나타내는 불변 값 객체.
 
 from dataclasses import dataclass, field
 
+from src.domain.entities.evidence import Evidence
+
 
 @dataclass
 class UnifiedRetrievalResult:
@@ -22,6 +24,9 @@ class UnifiedRetrievalResult:
         ontology_facts: Facts retrieved from knowledge graph
         inferences: Reasoning inferences from ontology
         rag_chunks: RAG document chunks
+        evidence: All evidence cards built for this query (legacy path; empty for OWL/skip)
+        prompt_evidence: Cards actually rendered into ``combined_context``
+            (``select_cards`` output — the exact render input)
         combined_context: Merged context string for LLM prompts
         confidence: Overall confidence score (0.0-1.0)
         entity_links: Linked entities (from OWL strategy)
@@ -39,3 +44,5 @@ class UnifiedRetrievalResult:
     entity_links: list = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
     retriever_type: str = "unknown"  # "legacy" | "owl"
+    evidence: list[Evidence] = field(default_factory=list)
+    prompt_evidence: list[Evidence] = field(default_factory=list)

@@ -1194,17 +1194,39 @@ class TestWeightedMerge:
 
 
 class TestCombineContexts:
-    """컨텍스트 통합 포매팅 테스트"""
+    """컨텍스트 통합 = 프롬프트 증거 카드 렌더링 (트랙 2-B).
 
-    def test_combine_contexts_with_inferences(self):
-        """추론 결과 포매팅 테스트"""
-        retriever = HybridRetriever(
+    ``_combine_contexts``는 ``_assemble_evidence``가 고른 ``prompt_evidence``만 렌더링한다.
+    """
+
+    @staticmethod
+    def _retriever():
+        return HybridRetriever(
             knowledge_graph=MagicMock(),
             reasoner=MagicMock(),
             doc_retriever=MagicMock(),
             auto_init_rules=False,
         )
 
+    def _combined(self, context, include_explanations=True):
+        retriever = self._retriever()
+        retriever._assemble_evidence(context)
+        return retriever._combine_contexts(context, include_explanations=include_explanations)
+
+    def test_only_assembled_prompt_cards_are_rendered(self):
+        """카드 조립 전 원자료는 렌더링하지 않는다"""
+        inference = InferenceResult(
+            rule_name="test_rule",
+            insight_type=InsightType.MARKET_POSITION,
+            insight="Dominant position",
+            confidence=0.9,
+        )
+        context = HybridContext(query="test", inferences=[inference])
+
+        assert self._retriever()._combine_contexts(context) == ""
+
+    def test_combine_contexts_with_inferences(self):
+        """추론 결과 → [규칙 추론] 카드 (신뢰도·근거 조건 줄은 싣지 않는다)"""
         inference = InferenceResult(
             rule_name="test_rule",
             insight_type=InsightType.MARKET_POSITION,
@@ -1213,26 +1235,18 @@ class TestCombineContexts:
             recommendation="Maintain leadership",
             evidence={"satisfied_conditions": ["sos > 0.15"]},
         )
-
         context = HybridContext(query="test", inferences=[inference])
 
-        combined = retriever._combine_contexts(context, include_explanations=True)
+        combined = self._combined(context)
 
-        assert "## 분석 결과" in combined
-        assert "Dominant position" in combined
-        assert "Maintain leadership" in combined
-        assert "90%" in combined
-        assert "sos > 0.15" in combined
+        assert combined.startswith("[규칙 추론]\n[I-")
+        assert "Dominant position (rule:test_rule)" in combined
+        assert "권장: Maintain leadership" in combined
+        assert "90%" not in combined
+        assert "sos > 0.15" not in combined
 
     def test_combine_contexts_brand_info_facts(self):
-        """브랜드 정보 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
+        """브랜드 메타데이터의 날짜 없는 SoS·평균 순위는 싣지 않는다 (E2)"""
         context = HybridContext(
             query="test",
             ontology_facts=[
@@ -1244,42 +1258,34 @@ class TestCombineContexts:
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "## 관련 정보" in combined
-        assert "laneige" in combined
-        assert "8.0%" in combined
-        assert "12.5" in combined
+        assert combined == ""
+        assert context.evidence == []
 
     def test_combine_contexts_brand_products_facts(self):
-        """브랜드 제품 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
+        """제품 수(날짜 없는 개수)는 싣지 않고 제품 관계만 싣는다"""
         context = HybridContext(
             query="test",
             ontology_facts=[
-                {"type": "brand_products", "entity": "laneige", "data": {"product_count": 15}}
+                {
+                    "type": "brand_products",
+                    "entity": "laneige",
+                    "data": {
+                        "product_count": 15,
+                        "products": [{"asin": "B0LANEIGE1", "category": "lip_care"}],
+                    },
+                }
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "15개" in combined
+        assert "15개" not in combined
+        assert "laneige hasProduct B0LANEIGE1 (kg)" in combined
+        assert "B0LANEIGE1 belongsToCategory lip_care (kg)" in combined
 
     def test_combine_contexts_competitors_facts(self):
-        """경쟁사 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
         context = HybridContext(
             query="test",
             ontology_facts=[
@@ -1291,20 +1297,13 @@ class TestCombineContexts:
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "경쟁사" in combined
-        assert "cosrx" in combined
+        assert "[관계]" in combined
+        assert "laneige competesWith cosrx" in combined
+        assert "laneige competesWith tirtir" in combined
 
     def test_combine_contexts_category_hierarchy_facts(self):
-        """카테고리 계층 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
         context = HybridContext(
             query="test",
             ontology_facts=[
@@ -1314,69 +1313,53 @@ class TestCombineContexts:
                     "data": {
                         "name": "Lip Care",
                         "level": 2,
-                        "path": [
-                            {"name": "Beauty", "id": "beauty"},
-                            {"name": "Skin Care", "id": "skin_care"},
-                            {"name": "Lip Care", "id": "lip_care"},
+                        "ancestors": [
+                            {"name": "Skin Care", "id": "skin_care", "level": 1},
+                            {"name": "Beauty", "id": "beauty", "level": 0},
                         ],
-                        "ancestors": [{"name": "Skin Care"}],
+                        "descendants": [],
                     },
                 }
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "계층" in combined
-        assert "Beauty > Skin Care > Lip Care" in combined
-        assert "Level 2" in combined
+        assert "lip_care parentCategory skin_care (kg)" in combined
+        assert "skin_care parentCategory beauty (kg)" in combined
 
     def test_combine_contexts_rag_chunks(self):
-        """RAG 청크 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
         context = HybridContext(
             query="test",
             rag_chunks=[
                 {
+                    "id": "sos_guide_0",
                     "metadata": {"title": "SoS 해석 가이드"},
                     "content": "SoS는 시장 점유율을 나타내는 지표입니다.",
                 }
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "## 참고 가이드라인" in combined
-        assert "SoS 해석 가이드" in combined
+        assert combined.startswith("[문서]\n[D-")
+        assert "SoS 해석 가이드 (rag)" in combined
         assert "시장 점유율" in combined
 
     def test_combine_contexts_long_content_truncation(self):
-        """긴 내용 잘림 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
+        """문서 본문은 렌더러 상한(DEFAULT_MAX_DETAIL_CHARS)에서 잘린다"""
+        from src.rag.evidence_renderer import DEFAULT_MAX_DETAIL_CHARS
 
-        long_content = "X" * 600  # 500자 초과
-
+        long_content = "X" * (DEFAULT_MAX_DETAIL_CHARS + 100)
         context = HybridContext(
             query="test",
-            rag_chunks=[{"metadata": {"title": "Test"}, "content": long_content}],
+            rag_chunks=[{"id": "long_0", "metadata": {"title": "Test"}, "content": long_content}],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        # 500자로 잘리고 "..."이 붙어야 함
-        assert "..." in combined
-        assert combined.count("X") <= 510  # 약간의 여유
+        assert "X" * DEFAULT_MAX_DETAIL_CHARS + "…" in combined
+        assert combined.count("X") == DEFAULT_MAX_DETAIL_CHARS
 
 
 # =============================================================================
@@ -2208,10 +2191,9 @@ class TestExpandQueryEdgeCases:
 
 
 class TestCombineContextsNoExplanations:
-    """설명 제외 컨텍스트 통합 테스트"""
+    """include_explanations는 더 이상 출력에 영향을 주지 않는다 (근거는 카드 derived_from)"""
 
     def test_combine_contexts_without_explanations(self):
-        """추론 설명 제외 포매팅 테스트"""
         retriever = HybridRetriever(
             knowledge_graph=MagicMock(),
             reasoner=MagicMock(),
@@ -2228,13 +2210,15 @@ class TestCombineContextsNoExplanations:
         )
 
         context = HybridContext(query="test", inferences=[inference])
+        retriever._assemble_evidence(context)
 
-        combined = retriever._combine_contexts(context, include_explanations=False)
+        without = retriever._combine_contexts(context, include_explanations=False)
+        with_explanations = retriever._combine_contexts(context, include_explanations=True)
 
-        # 인사이트는 포함되어야 하지만 근거 조건은 제외되어야 함
-        assert "Threat detected" in combined
-        assert "condition1" not in combined
-        assert "satisfied_conditions" not in combined
+        assert "Threat detected" in without
+        assert "condition1" not in without
+        assert "satisfied_conditions" not in without
+        assert without == with_explanations
 
 
 # =============================================================================

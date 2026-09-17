@@ -17,6 +17,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 
+from src.domain.entities.evidence import Evidence
+
 # =============================================================================
 # 신뢰도 레벨
 # =============================================================================
@@ -190,6 +192,10 @@ class ContextBase:
     system_state: SystemState | None = None
     summary: str = ""
     gathered_at: datetime | None = None
+    # 증거 카드 (트랙 2-B). evidence = 이번 질의의 전체 카드,
+    # prompt_evidence = 답변 프롬프트에 실제로 렌더링된 카드 (summary의 렌더 입력)
+    evidence: list[Evidence] = field(default_factory=list)
+    prompt_evidence: list[Evidence] = field(default_factory=list)
 
     def __post_init__(self):
         """생성 시 시간 자동 기록"""
@@ -203,6 +209,8 @@ class ContextBase:
             "rag_docs_count": len(self.rag_docs),
             "kg_facts_count": len(self.kg_facts),
             "kg_inferences_count": len(self.kg_inferences),
+            "evidence_count": len(self.evidence),
+            "prompt_evidence_count": len(self.prompt_evidence),
             "system_state": (self.system_state.to_dict() if self.system_state else None),
             "summary": (self.summary[:200] + "..." if len(self.summary) > 200 else self.summary),
             "gathered_at": (self.gathered_at.isoformat() if self.gathered_at else None),

@@ -181,8 +181,8 @@ class TestAisCitationStats:
 
 
 class TestAisSourceRegistration:
-    def test_ais_source_registration(self):
-        """Sources properly registered during build."""
+    def test_build_registers_no_numbered_sources(self):
+        """트랙 2-B: build()는 번호 출처([N])를 등록하지 않는다 — 증거 카드 id가 인용 단위다."""
         builder = _make_builder()
         ctx = _make_context(
             inferences=[_make_inference(insight="SoS 상승", recommendation="마케팅 강화")],
@@ -193,18 +193,21 @@ class TestAisSourceRegistration:
                 }
             ],
         )
-        builder.build(ctx)
+        context_str = builder.build(ctx)
 
-        refs = builder.get_source_references()
-        assert len(refs) >= 1
-        # Ontology and RAG sources registered
-        source_types = {r.source_type for r in refs}
-        assert "ontology" in source_types or "rag" in source_types
+        assert builder.get_source_references() == []
+        assert "## 출처" not in context_str
+        assert "[I-" in context_str and "[D-" in context_str
 
 
 class TestAisWithRealContext:
-    def test_ais_with_real_context(self):
-        """End-to-end: build context, then apply AIS citation."""
+    def test_ais_is_inert_after_card_build(self):
+        """End-to-end: 카드로 만든 컨텍스트 뒤에는 AIS가 [출처N] 태그를 붙이지 않는다.
+
+        AIS 키워드 매칭 인용은 카드 id 인용(CITATION_INSTRUCTION)으로 대체됐다. 명시적으로
+        등록한 출처에 대한 AIS 동작은 위 테스트들과 tests/integration/test_sprint9_integration.py가
+        확인한다.
+        """
         builder = _make_builder()
         ctx = _make_context(
             inferences=[
@@ -221,30 +224,17 @@ class TestAisWithRealContext:
                 }
             ],
         )
-        metrics = {
-            "summary": {
-                "laneige_products_tracked": 5,
-                "alert_count": 0,
-                "critical_alerts": 0,
-                "warning_alerts": 0,
-            }
-        }
-        context_str = builder.build(ctx, current_metrics=metrics, query="LANEIGE SoS 분석")
+        builder.build(ctx, query="LANEIGE SoS 분석")
 
-        # Now apply AIS citation to a simulated LLM response
         llm_response = (
             "LANEIGE의 SoS 점유율이 상승 추세를 보이고 있습니다. "
-            "시장 분석에 따르면 마케팅 강화가 권장됩니다. "
             "SoS 지표 가이드에 따르면 Share of Shelf 점유율은 중요한 지표입니다."
         )
         annotated = builder.build_ais_response(llm_response)
 
-        # Should have at least some citations
-        assert "[출처" in annotated
-
-        stats = builder.get_citation_stats()
-        assert stats["total_sentences"] >= 2
-        assert stats["cited_sentences"] >= 1
+        assert "[출처" not in annotated
+        assert annotated == llm_response
+        assert builder.get_citation_stats()["cited_sentences"] == 0
 
 
 class TestAisKeywordExtraction:
