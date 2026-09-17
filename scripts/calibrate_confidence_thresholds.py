@@ -26,7 +26,7 @@
 -----------
 문항을 id의 sha1로 반씩 나눈다 — ``int(sha1(item_id).hexdigest(), 16) % 2 == 0``이면
 보정(calibration), 아니면 검증(validation). 임계값은 **보정 절반에서만** 고르고, 검증
-절반 수치는 따로 보고한다. 가중치(FIT_WEIGHTS)는 보정하지 않는다 — 설계에서 고정한다.
+절반 수치는 따로 보고한다. 가중치와 조합 구조는 보정하지 않는다 — 설계에서 정한다.
 
 보정 목표
 ---------
@@ -37,19 +37,24 @@
 
 임계값 선택 규칙 (보정 절반, 격자 0.00~1.00 step 0.01)
     THRESHOLD_HIGH   HIGH 묶음이 보정 절반의 25% 이상을 덮는다는 조건 아래
-                     HIGH-but-failed(passed) 비율이 최소인 t. 동률이면 더 넓은 쪽.
-                     25% 하한은 "HIGH가 실용적으로 남아 있어야 한다"는 설계 조건이다
-                     (하한을 0.15~0.30으로 바꿔도 s3 3회 실행 모두 같은 t를 고른다).
+                     HIGH-but-failed(passed) 비율이 최소인 t.
+                     25% 하한은 "HIGH가 실용적으로 남아 있어야 한다"는 설계 조건이다.
+                     격자 상한은 ``MAX_HIGH_THRESHOLD``(0.95) — 이 위로 가면 (a)(b)가
+                     완벽해도 (c) 때문에 HIGH가 막힌다.
+                     최소 실패율과 ``FAIL_TOLERANCE``(0.02) 안쪽인 t들은 결과 데이터가
+                     구별 못 한 것으로 보고 그중 가장 엄격한(큰) t를 쓴다.
     THRESHOLD_LOW    t 미만 묶음이 문항 5개 이상이면서 passed 실패율 0.95 이상인
                      가장 큰 t. 없으면 0.01 (점수 0 = 증거 없음만 UNKNOWN).
-    THRESHOLD_MEDIUM [LOW, HIGH) 구간 문항 점수의 중앙값(격자에 맞춤).
+    THRESHOLD_MEDIUM [LOW, HIGH) 구간 문항 점수의 중앙값(격자에 맞춤). LOW와 겹치면
+                     격자 한 칸 위로 올린다 — 겹치면 LOW 구간이 비어 버린다.
                      MEDIUM과 LOW는 둘 다 LLM 분기로 가므로 이 경계는 라우팅을 바꾸지
                      않는다 — DecisionMaker 프롬프트에 실리는 레벨 문자열만 달라진다.
 
 버린 규칙 (기록)
-    처음에는 J(t) = n_high × (2 × answer_ok_rate(≥t) − 1) 을 최대화했다. 이 데이터에서는
-    answer_ok 비율이 t 전 구간에서 0.50~0.61로 평평해서, J는 사실상 HIGH 묶음을 키우기만
-    한다 (t=0.59, HIGH 비중 90%). "HIGH-but-failed를 줄인다"는 목표를 담지 못해 버렸다.
+    · J(t) = n_high × (2 × answer_ok_rate(≥t) − 1) 최대화 — answer_ok 비율이 t 전 구간에서
+      평평해 J는 HIGH 묶음을 키우기만 한다. 목표 문장을 담지 못해 버렸다.
+    · 동률일 때 더 넓은 t 고르기 — 곡선이 평평하면 임계값이 바닥까지 끌려 내려가 MEDIUM·LOW
+      구간이 사라진다. 구별 못 하는 구간에서는 더 엄격한 쪽이 안전해서 뒤집었다.
 
 사용법:
     python3 scripts/calibrate_confidence_thresholds.py REPORT.json [REPORT.json ...]
@@ -73,6 +78,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.core.confidence import (  # noqa: E402
     FIT_WEIGHTS,
+    MAX_HIGH_THRESHOLD,
+    RETRIEVAL_SWING,
     ConfidenceAssessor,
     score_evidence_fit,
 )
@@ -80,6 +87,7 @@ from src.domain.entities.evidence import Evidence  # noqa: E402
 
 GRID = [round(i / 100, 2) for i in range(101)]
 MIN_HIGH_COVERAGE = 0.25  # HIGH가 실용적으로 남아 있어야 한다는 설계 하한
+FAIL_TOLERANCE = 0.02  # 실패율 차이가 이 안쪽이면 결과 데이터가 구별 못 한 것으로 본다
 MIN_UNKNOWN_BUCKET = 5
 UNKNOWN_FAIL_RATE = 0.95
 
@@ -204,18 +212,23 @@ def _fmt_routes(counts: dict[str, int], total: int) -> str:
 
 def choose_thresholds(rows: list[Replayed]) -> tuple[float, float, float]:
     """보정 절반에서 HIGH/MEDIUM/LOW 임계값을 고른다 (모듈 docstring의 규칙)."""
-    threshold_high, best_fail, best_n = GRID[-1], None, 0
+    # 격자 상한은 MAX_HIGH_THRESHOLD다. 그 위로 올리면 (a)(b)가 완벽해도 검색 점수
+    # 모양 때문에 HIGH가 막히는 첫 판의 결함이 되살아난다.
+    candidates: list[tuple[float, float]] = []
     for t in GRID:
+        if t > MAX_HIGH_THRESHOLD:
+            break
         high = [row for row in rows if row.score >= t]
         if len(high) / len(rows) < MIN_HIGH_COVERAGE:
             continue
-        fail = 1 - _rate(high, "passed")
-        if (
-            best_fail is None
-            or fail < best_fail - 1e-12
-            or (abs(fail - best_fail) < 1e-12 and len(high) > best_n)
-        ):
-            threshold_high, best_fail, best_n = t, fail, len(high)
+        candidates.append((t, 1 - _rate(high, "passed")))
+
+    # 실패율이 최소인 t를 고르되, 최소값과 FAIL_TOLERANCE 안쪽인 t들은 결과 데이터가
+    # 구별하지 못한 것으로 보고 그중 **가장 엄격한(큰)** t를 쓴다. 이 데이터에서는
+    # 곡선이 실제로 평평해서(0.735~0.752, n=120에서 문항 2개 차이) 상한 0.95가 뽑힌다.
+    # 0.95 = "(a)와 (b)가 둘 다 완전히 충족" 지점이므로 설계 정의와도 맞는다.
+    best_fail = min(fail for _, fail in candidates)
+    threshold_high = max(t for t, fail in candidates if fail <= best_fail + FAIL_TOLERANCE)
 
     threshold_low = 0.01
     for t in GRID:
@@ -228,9 +241,11 @@ def choose_thresholds(rows: list[Replayed]) -> tuple[float, float, float]:
     middle = [row.score for row in rows if threshold_low <= row.score < threshold_high]
     if middle:
         threshold_medium = round(statistics.median(middle), 2)
-        threshold_medium = min(max(threshold_medium, threshold_low), threshold_high)
     else:
         threshold_medium = round((threshold_low + threshold_high) / 2, 2)
+    # 중앙값이 LOW와 겹치면 격자 한 칸 위로 올린다 — 겹치면 LOW 구간이 비어 버린다.
+    # MEDIUM과 LOW는 둘 다 LLM 분기라 이 조정은 라우팅을 바꾸지 않는다.
+    threshold_medium = min(max(threshold_medium, round(threshold_low + 0.01, 2)), threshold_high)
 
     return threshold_high, threshold_medium, threshold_low
 
@@ -290,7 +305,8 @@ def build_note(reports: dict[str, list[Replayed]], thresholds: tuple[float, floa
         "## 점수식",
         "",
         "```",
-        "score = " + " + ".join(f"{weight:.2f}×{name}" for name, weight in FIT_WEIGHTS.items()),
+        "base  = " + " + ".join(f"{weight:.2f}×{name}" for name, weight in FIT_WEIGHTS.items()),
+        f"score = clamp(base + {RETRIEVAL_SWING:.2f} × (retrieval_fit − 0.5), 0, 1)",
         "```",
         "",
         "- `entity_coverage` — 질문이 이름을 부른 브랜드·카테고리·제품 중, 증거 카드의",
@@ -311,11 +327,13 @@ def build_note(reports: dict[str, list[Replayed]], thresholds: tuple[float, floa
         "",
         "## 읽을 때 주의",
         "",
-        "1. **이득은 양쪽 꼬리에서만 나온다.** HIGH 묶음의 실패율은 t=0.5~0.98 구간에서",
-        "   거의 평평하다(보정 절반 기준 passed 실패율 0.73~0.76, 전체 평균 0.75와 같다).",
-        "   눈에 띄는 변화는 t≥0.99(실패율 0.63, 비중 41%)와 점수 바닥 구간뿐이다.",
-        "   따라서 중간 임계값(MEDIUM)은 결과 데이터가 뒷받침하지 않는다 — 다만 MEDIUM과",
-        "   LOW는 둘 다 LLM 분기로 가므로 라우팅은 달라지지 않는다.",
+        "1. **믿을 만한 이득은 아래쪽 꼬리(UNKNOWN)뿐이다.** HIGH 묶음의 실패율은 임계값을",
+        "   어디에 두든 0.73~0.75로 평평하다 — 전체 평균과 같다. 233문항 중 184문항이",
+        "   entity_coverage·kind_fit 둘 다 1.0이기 때문이다(검색이 질의마다 카드 ~70장을",
+        "   비슷하게 담아 온다). 즉 이 시험지에서는 요건 신호가 거의 변별하지 못한다.",
+        "   반면 UNKNOWN 묶음은 세 실행 모두 passed 0/n이다.",
+        "   (1차 보정의 HIGH 실패율 0.63은 retrieval_fit 모양으로 자른 결과였고, 그 식은",
+        "    (a)(b)가 완벽해도 HIGH가 불가능한 결함이 있어 폐기했다.)",
         "2. **`passed`의 상당 부분은 런타임 신호로 볼 수 없다.** s3-run1 실패 태그 상위는",
         "   L3_edge_fail 92, L1_concept_fail 86으로, 골드 주석과의 일치를 보는 게이트다.",
         "   적합도 점수로 예측할 수 있는 종류가 아니다. 그래서 `answer_ok`(L5 게이트만)를",

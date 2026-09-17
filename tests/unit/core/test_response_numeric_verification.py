@@ -245,7 +245,9 @@ async def test_brain_stream_emits_enforced_text(monkeypatch, tmp_path):
         chunks = [c async for c in brain.process_query_stream("LANEIGE Lip Care 현황")]
 
     text = "".join(c["content"] for c in chunks if c["type"] == "text")
-    # 답변 1회 + 환각 점검 1회. function calling에는 모델 자기보고 신뢰도가 없어
-    # Decision.confidence가 0.0(미보고)이 됐고, 그래서 환각 점검(< 0.8 조건)이 돈다 (트랙 4-A).
-    assert answer_llm.calls == 2
+    # 답변 1회. 이 질의는 적합도가 HIGH라 direct 경로를 타고, QueryGraph가 그때 만드는
+    # Decision.confidence가 0.9이므로 환각 점검(< 0.8 조건)이 돌지 않는다.
+    # (5-B 1차 식에서는 검색 점수 분포 때문에 HIGH가 막혀 decide 경로 → Decision.confidence
+    #  0.0 → 환각 점검까지 2회였다. 그 결함을 고치면서 direct/1회로 돌아왔다.)
+    assert answer_llm.calls == 1
     assert text == f"HHI는 확인되지 않음[{HHI.id}]이고 SoS는 2%입니다 [{SOS.id}]."

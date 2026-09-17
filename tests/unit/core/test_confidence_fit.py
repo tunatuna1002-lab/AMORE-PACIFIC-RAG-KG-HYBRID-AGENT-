@@ -19,6 +19,8 @@ import pytest
 
 from src.core.confidence import (
     FIT_WEIGHTS,
+    MAX_HIGH_THRESHOLD,
+    RETRIEVAL_SWING,
     ConfidenceAssessor,
     EvidenceFit,
     legacy_count_score_to_fit,
@@ -260,16 +262,93 @@ class TestScoreDistributionEdgeCases:
         assert fit.kind_fit == 1.0
         assert fit.score > 0.9
 
-    def test_components_are_weighted_into_the_total(self):
+    def test_components_are_combined_as_base_plus_bounded_retrieval_swing(self):
         cards = [metric_card("laneige", "sos", 0.12, "lip_care")]
         fit = score_evidence_fit(NUMERIC_Q, NUMERIC_ENTITIES, cards)
-        expected = (
+        base = (
             FIT_WEIGHTS["entity_coverage"] * fit.entity_coverage
             + FIT_WEIGHTS["kind_fit"] * fit.kind_fit
-            + FIT_WEIGHTS["retrieval_fit"] * fit.retrieval_fit
         )
-        assert fit.score == pytest.approx(expected)
+        expected = base + RETRIEVAL_SWING * (fit.retrieval_fit - 0.5)
+        assert fit.score == pytest.approx(max(0.0, min(1.0, expected)))
         assert sum(FIT_WEIGHTS.values()) == pytest.approx(1.0)
+
+
+# =============================================================================
+# 회귀 방지: (c)가 HIGH를 혼자 막지 못한다
+# =============================================================================
+
+
+class TestRetrievalShapeCannotBlockHigh:
+    """첫 판의 결함 회귀 방지.
+
+    0.50/0.35/0.15 가중합 + HIGH 0.99였을 때는 entity_coverage=1.0·kind_fit=1.0이어도
+    retrieval_fit >= 0.933이어야 HIGH였고, 점수가 붙은 문서 카드가 0~1건이면 총점 상한이
+    0.925라 **어떤 질의도 HIGH가 될 수 없었다**. 즉 (c) 혼자 레벨을 갈랐다.
+    """
+
+    @staticmethod
+    def _cards(*documents: Evidence) -> list[Evidence]:
+        return [
+            metric_card("laneige", "sos", 0.12, "lip_care"),
+            metric_card("lip_care", "hhi", 0.07),
+            *documents,
+        ]
+
+    @pytest.mark.parametrize(
+        ("label", "documents"),
+        [
+            ("문서 0건", ()),
+            ("문서 1건", (document_card("d0", 9.0),)),
+            ("문서 2건 평평", (document_card("d0", 9.0), document_card("d1", 9.0))),
+            ("문서 3건 평평", tuple(document_card(f"d{i}", 9.0) for i in range(3))),
+        ],
+    )
+    def test_requirements_met_is_high_whatever_the_document_scores(self, label, documents):
+        fit = score_evidence_fit(NUMERIC_Q, NUMERIC_ENTITIES, self._cards(*documents))
+        assert fit.entity_coverage == 1.0, label
+        assert fit.kind_fit == 1.0, label
+        assert ConfidenceAssessor().assess_fit(fit) == ConfidenceLevel.HIGH, label
+
+    def test_only_unrelated_brand_cards_is_not_high(self):
+        cards = [
+            metric_card("cosrx", "sos", 0.04, "face_powder"),
+            document_card("d0", 20.0),
+            document_card("d1", 1.0),
+            document_card("d2", 1.0),
+        ]
+        fit = score_evidence_fit(NUMERIC_Q, NUMERIC_ENTITIES, cards)
+        assert fit.entity_coverage == 0.0
+        assert ConfidenceAssessor().assess_fit(fit) != ConfidenceLevel.HIGH
+
+    def test_high_threshold_cannot_exceed_the_structural_cap(self):
+        """임계값이 상한을 넘으면 (c)가 다시 HIGH를 막을 수 있다."""
+        assert ConfidenceAssessor.THRESHOLD_HIGH <= MAX_HIGH_THRESHOLD
+        assert MAX_HIGH_THRESHOLD == pytest.approx(1.0 - RETRIEVAL_SWING / 2)
+
+    def test_retrieval_swing_is_bounded_by_construction(self):
+        """base가 같으면 retrieval_fit이 0이든 1이든 총점 차이는 swing을 넘지 않는다."""
+        query = "SoS란 무엇인가요?"  # 문서를 요구하는 질문이라 (c)가 실제로 적용된다
+        entities = {"indicators": ["sos"]}
+        flat = score_evidence_fit(query, entities, [document_card(f"d{i}", 9.0) for i in range(3)])
+        peaked = score_evidence_fit(
+            query,
+            entities,
+            [document_card("d0", 20.0), document_card("d1", 1.0), document_card("d2", 1.0)],
+        )
+        assert flat.retrieval_fit == pytest.approx(0.0)
+        assert peaked.retrieval_fit > 0.9
+        assert peaked.score - flat.score <= RETRIEVAL_SWING + 1e-9
+
+    def test_retrieval_fit_is_neutral_when_the_question_does_not_need_documents(self):
+        """수치 질문의 답은 metric 카드가 한다 — 문서 점수 모양은 무관하다."""
+        fit = score_evidence_fit(
+            NUMERIC_Q,
+            NUMERIC_ENTITIES,
+            self._cards(document_card("d0", 20.0), document_card("d1", 1.0)),
+        )
+        assert "document" not in fit.needs
+        assert fit.retrieval_fit == pytest.approx(0.5)
 
 
 class TestMonotonicity:

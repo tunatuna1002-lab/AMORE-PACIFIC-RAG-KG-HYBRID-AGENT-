@@ -11,7 +11,7 @@
 HIGH는 LLM 판단을 건너뛰라는 뜻이므로 DecisionMaker·ReAct 분기가 한 번도 실행되지
 않았고, 신뢰도는 아무 정보도 나르지 않았다.
 
-이제 점수는 **적합도**다 (설계 E6). 세 성분을 0~1로 재고 가중합한다:
+이제 점수는 **적합도**다 (설계 E6). 세 신호를 0~1로 잰다:
 
 (a) ``entity_coverage`` — 질문이 이름을 부른 엔티티(브랜드·카테고리·제품)가 증거 카드의
     **주어·목적어**로 등장하는 비율. 본문에 단어가 스쳤는지가 아니라 카드가 그 엔티티를
@@ -22,7 +22,28 @@ HIGH는 LLM 판단을 건너뛰라는 뜻이므로 DecisionMaker·ReAct 분기�
     이름 붙은 엔티티가 있으면 그 엔티티에 닻을 내린 카드만 요구를 채운 것으로 센다.
 (c) ``retrieval_fit`` — 문서 카드 검색 점수 분포의 뾰족함 ``(top - median) / top``.
     점수는 검색 경로마다 눈금이 달라 절대값을 쓸 수 없어서 눈금에 무관한 모양만 쓴다.
-    점수가 2개 미만이면 뾰족한지 평평한지 말할 수 없으므로 중립값 0.5.
+    점수가 2개 미만이거나 **질문이 문서를 요구하지 않으면** 중립값 0.5 — 수치 질문의
+    답은 metric 카드가 하므로 문서 점수 모양은 그 질문의 신뢰도와 무관하다.
+
+조합 방식 (세 신호를 대등하게 더하지 않는다)
+---------------------------------------------
+::
+
+    base  = 0.60 × entity_coverage + 0.40 × kind_fit        # 요건: 증거가 질문을 겨냥하는가
+    score = clamp(base + 0.10 × (retrieval_fit − 0.5), 0, 1) # 동점 가르기: ±0.05
+
+(a)(b)는 **요건**이고 (c)는 **동점 가르기**다. 셋을 대등하게 더하면 (c) 혼자 레벨을
+가른다 — 실제로 첫 판(0.50/0.35/0.15 가중합, HIGH 0.99)에서는 (a)=(b)=1.0이어도
+``retrieval_fit ≥ 0.933``이어야 HIGH였고, 점수가 붙은 문서 카드가 0~1건이면 총점 상한이
+0.925라 **어떤 질의도 HIGH가 될 수 없었다**. 설계 E6의 의도와 반대라 바로잡았다.
+
+그래서 ``THRESHOLD_HIGH``는 ``MAX_HIGH_THRESHOLD``(= 1 − swing/2 = 0.95)를 넘을 수 없다.
+이 상한이 "(a)(b)가 충족되면 (c)가 어떻든 HIGH가 될 수 있다"를 구조적으로 보장한다.
+
+버린 대안
+    · 곱셈 ``ent × kind × (0.5 + 0.5·ret)`` — ret=0이면 총점이 반토막이라 (c)가 여전히 막는다.
+    · 가중합은 두고 THRESHOLD_HIGH만 낮추기 — 문서 0~1건일 때의 상한 문제가 그대로 남는다.
+    · (c) 삭제 — 문서가 답하는 질문에서는 실제로 의미가 있어 신호는 남기고 역할만 낮췄다.
 
 임계값은 측정 데이터로 보정했다 — ``scripts/calibrate_confidence_thresholds.py`` 참조.
 사다리는 이 모듈 하나에만 있다. 개수 기반 점수를 쓰는 옛 호출자
@@ -50,6 +71,8 @@ __all__ = [
     "ConfidenceAssessor",
     "EvidenceFit",
     "FIT_WEIGHTS",
+    "MAX_HIGH_THRESHOLD",
+    "RETRIEVAL_SWING",
     "calculate_absolute_score",
     "legacy_count_score_to_fit",
     "required_evidence_kinds",
@@ -115,16 +138,21 @@ _ANCHOR_METADATA_KEYS = (
 )
 _ANCHOR_METADATA_LIST_KEYS = ("categories", "related_entities")
 
-# 성분 가중치. 보정 대상은 임계값이지 가중치가 아니다 — 가중치는 설계에서 정한다.
-# 엔티티 닻이 1순위(증거가 다른 대상을 말하고 있으면 나머지는 의미가 없다),
-# 종류 요구가 2순위, 검색 분포가 3순위.
+# 요건 성분의 가중치. 합이 1.0이라 (a)(b)가 모두 충족되면 base = 1.0이다.
+# 엔티티 닻이 1순위(증거가 다른 대상을 말하고 있으면 종류가 맞아도 소용없다).
 FIT_WEIGHTS: dict[str, float] = {
-    "entity_coverage": 0.50,
-    "kind_fit": 0.35,
-    "retrieval_fit": 0.15,
+    "entity_coverage": 0.60,
+    "kind_fit": 0.40,
 }
 
+# 검색 분포가 총점을 움직일 수 있는 폭. 중립 0.5를 기준으로 ±(swing/2).
+RETRIEVAL_SWING = 0.10
+
 _NEUTRAL_RETRIEVAL_FIT = 0.5
+
+# THRESHOLD_HIGH의 상한. base = 1.0인 질의는 retrieval_fit이 0이어도 이 값 이상이므로,
+# "(a)(b)가 충족되면 (c)와 무관하게 HIGH가 될 수 있다"가 구조적으로 보장된다.
+MAX_HIGH_THRESHOLD = 1.0 - RETRIEVAL_SWING / 2
 
 
 # =============================================================================
@@ -268,13 +296,12 @@ def score_evidence_fit(
     )
     kind_fit = satisfied / len(needs)
 
-    retrieval_fit = _retrieval_fit(card_list)
+    retrieval_fit = _retrieval_fit(card_list, needs)
 
-    score = (
-        FIT_WEIGHTS["entity_coverage"] * entity_coverage
-        + FIT_WEIGHTS["kind_fit"] * kind_fit
-        + FIT_WEIGHTS["retrieval_fit"] * retrieval_fit
-    )
+    # (a)(b)는 요건, (c)는 동점 가르기 — 모듈 docstring "조합 방식" 참조.
+    base = FIT_WEIGHTS["entity_coverage"] * entity_coverage + FIT_WEIGHTS["kind_fit"] * kind_fit
+    score = base + RETRIEVAL_SWING * (retrieval_fit - _NEUTRAL_RETRIEVAL_FIT)
+    score = max(0.0, min(1.0, score))
 
     return EvidenceFit(
         score=score,
@@ -340,12 +367,20 @@ def _need_is_satisfied(
     return False
 
 
-def _retrieval_fit(cards: Sequence[Evidence]) -> float:
+def _retrieval_fit(cards: Sequence[Evidence], needs: Sequence[str]) -> float:
     """문서 카드 검색 점수 분포의 뾰족함 ``(top - median) / top``.
 
     검색 점수는 경로(BM25·벡터·RRF)마다 눈금이 달라 절대값을 비교할 수 없다. 그래서
-    눈금에 무관한 모양만 쓴다. 점수가 2개 미만이면 모양을 말할 수 없으므로 중립값.
+    눈금에 무관한 모양만 쓴다.
+
+    중립값(0.5)을 돌려주는 두 경우:
+    - 질문이 문서를 요구하지 않을 때. 수치 질문의 답은 metric 카드가 하므로 문서 검색이
+      뾰족했는지 평평했는지는 그 질문의 신뢰도와 무관하다.
+    - 점수가 2개 미만일 때. 뾰족한지 평평한지 말할 수 없다.
     """
+    if EvidenceKind.DOCUMENT.value not in needs:
+        return _NEUTRAL_RETRIEVAL_FIT
+
     scores = sorted(
         (
             float(card.metadata["score"])
@@ -381,14 +416,19 @@ class ConfidenceAssessor:
     # (item_id sha1 % 2 == 0, s3-run1)에서 고른 값이다. 검증 절반과 s3 3회 실행 수치는
     # eval_output/evidence-2026-09/notes/5b_confidence_calibration.md 에 있다.
     #
+    # THRESHOLD_HIGH = MAX_HIGH_THRESHOLD = 0.95. 이 지점은 곧 "(a)와 (b)가 둘 다 완전히
+    # 충족"이며, retrieval_fit이 어떤 값이든 HIGH가 될 수 있음을 구조적으로 보장한다.
+    #
     # 측정된 효과 (s3 3회, 검증 절반):
-    #   HIGH 비중 98.7% → 41.6~45.1%, HIGH-but-failed(passed) 0.757~0.766 → 0.653~0.681.
-    #   UNKNOWN 묶음(13문항)은 세 실행 모두 passed 0/13.
-    # 주의: 이 사다리의 이득은 위쪽 꼬리와 아래쪽 꼬리에서만 나온다. 0.5~0.98 구간에서는
-    # HIGH 실패율이 거의 평평해서, 중간 임계값은 결과 데이터로 뒷받침되지 않는다.
-    THRESHOLD_HIGH = 0.99  # 증거로 바로 답한다 (LLM 판단 스킵)
-    THRESHOLD_MEDIUM = 0.91  # LLM에게 도구 선택 위임
-    THRESHOLD_LOW = 0.57  # LLM에게 전체 판단 위임
+    #   HIGH 비중 98.7% → 79.0~80.5%, HIGH-but-failed(passed) 0.757~0.766 → 0.736~0.747.
+    #   UNKNOWN 묶음(11문항)은 세 실행 모두 passed 0/11.
+    # 정직하게: HIGH 묶음의 실패율은 거의 개선되지 않는다. 233문항 중 184문항이
+    # entity_coverage·kind_fit 둘 다 1.0이라(검색이 질의마다 카드 ~70장을 비슷하게 담아
+    # 온다) 요건 신호가 이 시험지에서 거의 변별하지 못하기 때문이다. 믿을 만한 이득은
+    # 아래쪽 꼬리(UNKNOWN)뿐이다. 실질 개선은 임계값이 아니라 증거 선별에서 나온다.
+    THRESHOLD_HIGH = 0.95  # 증거로 바로 답한다 (LLM 판단 스킵)
+    THRESHOLD_MEDIUM = 0.61  # LLM에게 도구 선택 위임
+    THRESHOLD_LOW = 0.60  # LLM에게 전체 판단 위임
     # THRESHOLD_LOW 미만 → UNKNOWN (명확화 요청)
 
     def __init__(
