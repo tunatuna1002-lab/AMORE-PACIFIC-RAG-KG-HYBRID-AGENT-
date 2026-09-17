@@ -9,7 +9,7 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 - cache.py: 응답 캐싱
 - state.py: 오케스트레이터 상태 관리
 - context_gatherer.py: RAG + KG 컨텍스트 수집
-- tools.py: 에이전트 도구 정의
+- tool_registry.py: 읽기 전용 도구 레지스트리 (에이전트가 쓸 수 있는 도구 5종)
 - response_pipeline.py: 응답 생성 파이프라인
 - scheduler.py: 자율 작업 스케줄러
 - decision_maker.py: LLM 의사결정 (SRP 분해)
@@ -38,7 +38,7 @@ from .response_pipeline import ResponsePipeline
 # Autonomous Scheduler
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
-from .tools import AGENT_TOOLS, AgentTool, ToolExecutor
+from .tool_registry import ToolRegistry
 
 # Lazy loading for brain module to prevent circular imports
 _brain_module = None
@@ -78,9 +78,7 @@ __all__ = [
     "ResponseCache",
     "OrchestratorState",
     "ContextGatherer",
-    "AgentTool",
-    "ToolExecutor",
-    "AGENT_TOOLS",
+    "ToolRegistry",
     "ResponsePipeline",
     # Scheduler
     "AutonomousScheduler",

@@ -573,15 +573,23 @@ class ToolRegistry:
         return ToolOutput(cards=cards, meta=meta)
 
     async def _run_search_docs(self, query: str, k: int = DEFAULT_DOC_RESULTS) -> ToolOutput:
+        # 질의 엔티티를 함께 넘겨 검색 경로와 같은 엔티티 태그 재정렬 보너스를 받는다 (E10, 4-B)
         degraded: list[dict[str, Any]] = []
+        rerank_stats: dict[str, Any] = {}
         results, method = await self._retriever._hybrid_search(
-            query, top_k=k, doc_type_filter=None, degraded=degraded
+            query,
+            top_k=k,
+            doc_type_filter=None,
+            degraded=degraded,
+            entities=self._extract(query),
+            rerank_stats=rerank_stats,
         )
         cards = self._select(self._adapter.from_rag_chunks(results))
         meta: dict[str, Any] = {
             "query": query,
             "k": k,
             "search_method": method,
+            "entity_rerank": rerank_stats,
             "degraded": degraded,
         }
         if not cards:
