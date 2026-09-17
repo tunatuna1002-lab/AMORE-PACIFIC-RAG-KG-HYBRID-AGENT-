@@ -411,7 +411,7 @@ class UnifiedBrain:
             )
 
     def _init_react_agent(self) -> None:
-        """ReActAgent를 전용 읽기 전용 도구 실행기와 함께 연결한다.
+        """ReActAgent를 공용 도구 레지스트리(읽기 전용 5종)와 함께 연결한다.
 
         이전 코드는 존재하지 않는 `..agents.react_agent`를 import해 추가된 날(a965437)부터
         항상 None이었고, 예외는 debug 로그로 삼켜졌다.
