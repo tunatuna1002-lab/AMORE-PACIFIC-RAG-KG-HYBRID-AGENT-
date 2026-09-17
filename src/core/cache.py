@@ -85,8 +85,11 @@ class ResponseCache:
                 return None
 
             # TTL 확인
+            # 경과 시간이 TTL과 정확히 같은 경계(예: TTL=0인 경우 set()과 동일한
+            # clock tick에서 조회)에서도 만료로 취급하기 위해 >= 사용 (>이면
+            # 같은 tick에 걸리는 경우 만료되지 않아 타이밍에 따라 결과가 달라짐)
             ttl = self._ttl.get(cache_type, self._ttl["query"])
-            if datetime.now() - cached["timestamp"] > ttl:
+            if datetime.now() - cached["timestamp"] >= ttl:
                 # 만료됨 - 삭제
                 del self._cache[key]
                 self._stats["misses"] += 1
@@ -257,7 +260,8 @@ class ResponseCache:
                 cache_type = cached.get("type", "query")
                 ttl = self._ttl.get(cache_type, self._ttl["query"])
 
-                if now - cached["timestamp"] > ttl:
+                # get()과 동일한 경계 규칙(>=) 적용 — 자세한 이유는 get() 참고
+                if now - cached["timestamp"] >= ttl:
                     expired_keys.append(key)
 
             for key in expired_keys:

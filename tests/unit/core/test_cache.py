@@ -2,9 +2,46 @@
 ResponseCache 단위 테스트
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from src.core.cache import ResponseCache
+
+# =============================================================================
+# 가짜 시계 헬퍼 (F15: TTL 경계 테스트의 실제 wall-clock 의존성 제거)
+#
+# 기존에는 TTL=0 + 즉시 조회로 "만료됨"을 흉내냈는데, set()과 get()/
+# cleanup_expired() 호출이 동일한 datetime.now() clock tick에 걸리면
+# (elapsed == 0 == ttl) 경계 비교에 따라 간헐적으로 "만료되지 않음"으로
+# 판정되어 테스트가 비결정적으로 실패할 수 있었다 (src/core/cache.py의
+# `>` 비교 버그, `>=`로 수정함). 실제 시간이 흐르길 기다리는 대신 가짜
+# 시계로 경과 시간을 명시적으로 제어해 항상 같은 결과가 나오게 한다.
+# =============================================================================
+
+
+class _FakeDateTime(datetime):
+    """src.core.cache.datetime을 대체할 제어 가능한 가짜 시계"""
+
+    _now: datetime = datetime(2026, 1, 1, 12, 0, 0)
+
+    @classmethod
+    def now(cls, tz=None):
+        return cls._now
+
+    @classmethod
+    def set_now(cls, value: datetime) -> None:
+        cls._now = value
+
+
+def _patch_clock(monkeypatch, start: datetime = datetime(2026, 1, 1, 12, 0, 0)):
+    """src.core.cache의 datetime을 가짜 시계로 교체하고, 시간을 전진시키는 콜백을 반환"""
+    _FakeDateTime.set_now(start)
+    monkeypatch.setattr("src.core.cache.datetime", _FakeDateTime)
+
+    def advance(delta: timedelta) -> None:
+        _FakeDateTime.set_now(_FakeDateTime._now + delta)
+
+    return advance
+
 
 # =============================================================================
 # 기본 생성 테스트
@@ -81,27 +118,46 @@ class TestResponseCacheGetSet:
 class TestResponseCacheTTL:
     """ResponseCache TTL 만료 테스트"""
 
-    def test_expired_entry_returns_none(self):
-        """만료된 항목은 None 반환"""
-        cache = ResponseCache(ttl_config={"query": timedelta(seconds=0)})
+    def test_expired_entry_returns_none(self, monkeypatch):
+        """만료된 항목은 None 반환 (가짜 시계로 TTL 경과를 결정적으로 재현)"""
+        advance = _patch_clock(monkeypatch)
+        cache = ResponseCache(ttl_config={"query": timedelta(seconds=30)})
         cache.set("key1", "value1", cache_type="query")
-        # TTL이 0초이므로 즉시 만료
+        advance(timedelta(seconds=30))  # 정확히 TTL만큼 경과 (경계값)
         result = cache.get("key1", cache_type="query")
         assert result is None
 
-    def test_non_expired_entry_returns_value(self):
+    def test_non_expired_entry_returns_value(self, monkeypatch):
         """만료되지 않은 항목은 값 반환"""
+        advance = _patch_clock(monkeypatch)
         cache = ResponseCache(ttl_config={"query": timedelta(hours=24)})
         cache.set("key1", "value1", cache_type="query")
+        advance(timedelta(hours=23, minutes=59))  # TTL 직전
         result = cache.get("key1", cache_type="query")
         assert result == "value1"
 
-    def test_expired_entry_is_deleted(self):
+    def test_expired_entry_is_deleted(self, monkeypatch):
         """만료된 항목 조회 시 삭제됨"""
-        cache = ResponseCache(ttl_config={"query": timedelta(seconds=0)})
+        advance = _patch_clock(monkeypatch)
+        cache = ResponseCache(ttl_config={"query": timedelta(seconds=30)})
         cache.set("key1", "value1")
+        advance(timedelta(seconds=30))  # 정확히 TTL만큼 경과 (경계값)
         cache.get("key1")  # 만료 → 삭제
         assert "key1" not in cache
+
+    def test_ttl_boundary_exact_elapsed_equals_ttl_is_expired(self, monkeypatch):
+        """회귀 테스트: 경과 시간이 TTL과 '정확히' 같을 때도 만료로 취급되어야 한다.
+
+        src/core/cache.py가 `elapsed > ttl`(strict)을 쓰던 시절에는 elapsed == ttl인
+        경계에서 만료로 처리되지 않아, TTL=0 테스트가 set()/get() 호출이 동일한
+        datetime.now() clock tick에 걸리는지 여부에 따라 간헐적으로 실패했다.
+        `elapsed >= ttl`로 수정되어 이 경계에서 항상 만료로 처리됨을 고정한다.
+        """
+        advance = _patch_clock(monkeypatch)
+        cache = ResponseCache(ttl_config={"query": timedelta(seconds=5)})
+        cache.set("key1", "value1", cache_type="query")
+        advance(timedelta(seconds=5))  # elapsed == ttl, 1마이크로초도 더 지나지 않음
+        assert cache.get("key1", cache_type="query") is None
 
 
 # =============================================================================
@@ -289,19 +345,23 @@ class TestResponseCacheMakeKey:
 class TestResponseCacheCleanup:
     """ResponseCache.cleanup_expired 테스트"""
 
-    def test_cleanup_expired_removes_old(self):
-        """만료된 항목 정리"""
-        cache = ResponseCache(ttl_config={"query": timedelta(seconds=0)})
+    def test_cleanup_expired_removes_old(self, monkeypatch):
+        """만료된 항목 정리 (가짜 시계로 결정적 재현: 실제 wall-clock 타이밍에 의존하지 않음)"""
+        advance = _patch_clock(monkeypatch)
+        cache = ResponseCache(ttl_config={"query": timedelta(seconds=30)})
         cache.set("k1", "v1")
         cache.set("k2", "v2")
+        advance(timedelta(seconds=30))  # 정확히 TTL만큼 경과 (경계값)
         count = cache.cleanup_expired()
         assert count == 2
         assert len(cache) == 0
 
-    def test_cleanup_expired_keeps_fresh(self):
+    def test_cleanup_expired_keeps_fresh(self, monkeypatch):
         """신선한 항목 유지"""
+        advance = _patch_clock(monkeypatch)
         cache = ResponseCache(ttl_config={"query": timedelta(hours=24)})
         cache.set("k1", "v1")
+        advance(timedelta(hours=1))
         count = cache.cleanup_expired()
         assert count == 0
         assert len(cache) == 1

@@ -25,6 +25,23 @@ def pytest_configure(config):
     else:
         print(f"[conftest] No {env_file} found, using base environment only")
 
+    # === F15: 실제 OpenAI API 호출 차단 가드 ===
+    # .env에 실제 키가 로드되어 있어도, 테스트 세션 동안에는 절대 실제 OpenAI로
+    # 나가지 못하도록 API 키를 더미 값으로, base URL을 닫힌 로컬 주소로 강제
+    # override한다. litellm은 OPENAI_BASE_URL을 OPENAI_API_BASE보다 우선 사용하므로
+    # (litellm/llms/openai/common_utils.py 등) 둘 다 닫아둔다.
+    # 새는 호출은 로컬의 열려 있지 않은 포트로 연결을 시도하다 즉시
+    # 연결 거부(connection refused)로 실패한다 — 과금 없이, 네트워크 대기 없이.
+    os.environ["OPENAI_API_KEY"] = (
+        "sk-test-dummy-guard-0000000000000000000000"  # pragma: allowlist secret
+    )
+    os.environ["OPENAI_BASE_URL"] = "http://127.0.0.1:9/v1"
+    os.environ["OPENAI_API_BASE"] = "http://127.0.0.1:9/v1"
+    print(
+        "[conftest] OpenAI API guard active: OPENAI_API_KEY/OPENAI_BASE_URL/OPENAI_API_BASE "
+        "forced to dummy/closed values for this test session"
+    )
+
 
 @pytest.fixture
 def results():
