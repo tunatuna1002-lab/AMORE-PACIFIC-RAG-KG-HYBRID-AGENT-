@@ -135,6 +135,17 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
     )
 
     parser.add_argument(
+        "--target",
+        type=str,
+        choices=["v1", "v4"],
+        default="v1",
+        help=(
+            "평가 대상 경로: v1 = HybridChatbotAgent(/api/chat), v4 = UnifiedBrain.process_query "
+            "(대시보드 Brain 경로). 기준선은 경로별로 따로 둔다 (default: v1)"
+        ),
+    )
+
+    parser.add_argument(
         "--data-as-of",
         type=str,
         default=None,
@@ -385,6 +396,7 @@ async def run_evaluation(
     baseline: str | None = None,
     baseline_dir: str = "eval/baselines",
     data_as_of: str | None = None,
+    target: str = "v1",
 ) -> int:
     """
     Run the full evaluation pipeline.
@@ -426,6 +438,8 @@ async def run_evaluation(
         judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
         save_traces=save_traces,
         data_as_of=data_as_of,
+        target=target,
+        git_commit=_git_head(),
     )
 
     if data_as_of:
@@ -436,9 +450,9 @@ async def run_evaluation(
         os.environ[AS_OF_ENV] = data_as_of
 
     # Initialize agent
-    logger.info("Initializing agent...")
+    logger.info(f"Initializing agent (target={target})...")
     try:
-        agent = await _create_agent()
+        agent = await _create_agent(target)
     except Exception as e:
         logger.error(f"Failed to initialize agent: {e}")
         return 1
@@ -672,6 +686,7 @@ async def cmd_ablation(
     use_semantic_similarity: bool,
     concurrency: int,
     configs: list[str] | None = None,
+    target: str = "v1",
 ) -> int:
     """Run ablation study."""
     from eval.ablation import AblationRunner
@@ -681,6 +696,8 @@ async def cmd_ablation(
         top_k=top_k,
         use_judge=use_judge,
         judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
+        target=target,
+        git_commit=_git_head(),
     )
 
     # Initialize judge
@@ -697,6 +714,7 @@ async def cmd_ablation(
         judge=judge,
         use_semantic_similarity=use_semantic_similarity,
         concurrency=concurrency,
+        target=target,
     )
 
     try:
@@ -713,16 +731,30 @@ async def cmd_ablation(
 # =============================================================================
 
 
-async def _create_agent():
-    """Create and initialize the HybridChatbotAgent."""
-    try:
-        from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
+async def _create_agent(target: str = "v1"):
+    """평가 대상 에이전트 생성 (v1 HybridChatbotAgent / v4 UnifiedBrain 어댑터)."""
+    from eval.brain_adapter import create_eval_agent
 
-        agent = HybridChatbotAgent()
-        return agent
-    except ImportError as e:
-        logger.error(f"Could not import HybridChatbotAgent: {e}")
-        raise
+    return await create_eval_agent(target)
+
+
+def _git_head() -> str | None:
+    """평가 대상 코드의 커밋. 작업 트리에 미커밋 변경이 있으면 '-dirty'를 붙인다."""
+    import subprocess
+
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        return f"{head}-dirty" if dirty else head
+    except Exception:
+        return None
 
 
 async def _create_nli_judge():
@@ -811,6 +843,7 @@ def main(argv: list[str] | None = None):
                 baseline=args.baseline,
                 baseline_dir=args.baseline_dir,
                 data_as_of=args.data_as_of,
+                target=args.target,
             )
         )
 
@@ -839,6 +872,7 @@ def main(argv: list[str] | None = None):
                 use_semantic_similarity=args.semantic_similarity,
                 concurrency=args.concurrency,
                 configs=args.configs,
+                target=args.target,
             )
         )
 

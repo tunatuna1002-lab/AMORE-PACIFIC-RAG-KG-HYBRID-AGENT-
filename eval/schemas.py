@@ -486,6 +486,14 @@ class EvalConfig(BaseModel):
             "정해진다 — 골드와 같은 날짜의 데이터를 읽어야 수치 비교가 성립한다."
         ),
     )
+    target: str = Field(
+        default="v1",
+        description=(
+            "평가 대상 경로: v1 = HybridChatbotAgent(/api/chat), v4 = UnifiedBrain.process_query"
+            "(대시보드와 같은 Brain 경로의 비스트림 판). 두 경로의 기준선은 직접 비교하지 않는다."
+        ),
+    )
+    git_commit: str | None = Field(default=None, description="평가 대상 코드의 git HEAD")
     use_judge: bool = Field(default=False, description="Whether to use LLM judge")
     judge_model: str | None = Field(default="gpt-4.1-mini", description="Judge model name")
     save_traces: bool = Field(default=False, description="Save individual traces to files")

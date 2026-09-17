@@ -89,6 +89,7 @@ class AblationRunner:
         judge: Any = None,
         use_semantic_similarity: bool = False,
         concurrency: int = 1,
+        target: str = "v1",
     ) -> None:
         self.dataset_path = dataset_path
         self.out_dir = Path(out_dir) / "ablation"
@@ -96,6 +97,7 @@ class AblationRunner:
         self.judge = judge
         self.use_semantic_similarity = use_semantic_similarity
         self.concurrency = concurrency
+        self.target = target
 
     async def run_all(self, configs: list[str] | None = None) -> AblationReport:
         """Run each config sequentially and collect results."""
@@ -105,8 +107,7 @@ class AblationRunner:
         for name in configs:
             if name not in ABLATION_CONFIGS:
                 raise ValueError(
-                    f"Unknown ablation config: {name}. "
-                    f"Available: {list(ABLATION_CONFIGS.keys())}"
+                    f"Unknown ablation config: {name}. Available: {list(ABLATION_CONFIGS.keys())}"
                 )
 
         items = load_dataset(Path(self.dataset_path))
@@ -120,13 +121,13 @@ class AblationRunner:
 
         for config_name in configs:
             overrides = ABLATION_CONFIGS[config_name]
-            logger.info(f"\n{'='*60}")
+            logger.info(f"\n{'=' * 60}")
             logger.info(f"ABLATION CONFIG: {config_name}")
             if overrides:
                 logger.info(f"  Overrides: {overrides}")
             else:
                 logger.info("  Baseline (no overrides)")
-            logger.info(f"{'='*60}")
+            logger.info(f"{'=' * 60}")
 
             saved_env = self._apply_env_overrides(overrides)
             try:
@@ -166,7 +167,7 @@ class AblationRunner:
 
         FeatureFlags.reset_instance()
 
-        agent = await _create_agent()
+        agent = await _create_agent(self.target)
         runner = EvalRunner(
             agent=agent,
             config=self.eval_config,
@@ -293,11 +294,11 @@ class AblationRunner:
 # ─── Agent factory ───────────────────────────────────────────────────────────
 
 
-async def _create_agent():
-    """Create a fresh HybridChatbotAgent instance."""
-    from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
+async def _create_agent(target: str = "v1"):
+    """Create a fresh eval agent (v1 HybridChatbotAgent / v4 UnifiedBrain adapter)."""
+    from eval.brain_adapter import create_eval_agent
 
-    return HybridChatbotAgent()
+    return await create_eval_agent(target)
 
 
 # ─── Console output ─────────────────────────────────────────────────────────
