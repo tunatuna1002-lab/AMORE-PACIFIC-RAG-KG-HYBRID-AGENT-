@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from src.core.confidence import (
@@ -417,6 +419,9 @@ class TestSingleThresholdLadder:
         offenders = []
         for path in root.rglob("*.py"):
             if path.name == "confidence.py" and path.parent.name == "core":
+                continue
+            # iCloud 충돌 사본(`* 2.py`)은 추적되지 않는 백업이라 검사 대상이 아니다
+            if re.search(r" \d+\.py$", path.name):
                 continue
             text = path.read_text(encoding="utf-8")
             if "THRESHOLD_HIGH" in text or "THRESHOLD_MEDIUM" in text:
