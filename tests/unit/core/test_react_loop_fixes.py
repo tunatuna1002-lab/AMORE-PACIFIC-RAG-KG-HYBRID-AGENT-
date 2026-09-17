@@ -50,9 +50,9 @@ async def test_exhausted_iterations_still_produce_nonempty_answer():
     async def _kg(**kwargs):
         return {"competitors": ["aquaphor"]}
 
-    executor.register_executor("query_knowledge_graph", _kg)
+    executor.register_executor("kg_neighbors", _kg)
     agent.set_tool_executor(executor)
-    step = {"thought": "조회", "action": "query_knowledge_graph", "action_input": {"entity": "x"}}
+    step = {"thought": "조회", "action": "kg_neighbors", "action_input": {"entity": "x"}}
     llm = AsyncMock(
         side_effect=[
             _reply(step),
@@ -76,7 +76,7 @@ async def test_allowed_but_unregistered_tool_records_error_and_continues():
     agent.set_tool_executor(ToolExecutor())  # 실행기 없음
     llm = AsyncMock(
         side_effect=[
-            _reply({"thought": "t", "action": "calculate_metrics", "action_input": {}}),
+            _reply({"thought": "t", "action": "apply_rules", "action_input": {}}),
             _reply({"thought": "t", "action": "final_answer", "action_input": {"answer": "답"}}),
             REFLECTION,
         ]
@@ -115,7 +115,7 @@ async def test_missing_tool_executor_records_error():
     agent = ReActAgent(ircot_enabled=False)
     llm = AsyncMock(
         side_effect=[
-            _reply({"thought": "t", "action": "query_data", "action_input": {}}),
+            _reply({"thought": "t", "action": "get_metrics", "action_input": {}}),
             _reply({"thought": "t", "action": "final_answer", "action_input": {"answer": "답"}}),
             REFLECTION,
         ]

@@ -52,17 +52,16 @@ def _make_reflection_response(quality_score: float = 0.85, needs_improvement: bo
 
 
 def test_allowed_actions_is_frozen():
-    """ALLOWED_ACTIONS가 불변 frozenset인지 확인"""
+    """ALLOWED_ACTIONS는 불변이고 도구 이름은 단일 레지스트리에서 온다 (트랙 4-A)"""
+    from src.core.tool_registry import TOOL_NAMES
+
     assert isinstance(ALLOWED_ACTIONS, frozenset)
-    assert "query_data" in ALLOWED_ACTIONS
-    assert "query_knowledge_graph" in ALLOWED_ACTIONS
-    assert "calculate_metrics" in ALLOWED_ACTIONS
-    assert "final_answer" in ALLOWED_ACTIONS
+    assert ALLOWED_ACTIONS == frozenset({*TOOL_NAMES, "final_answer", "refine_search"})
 
 
 def test_validate_action_allowed():
     """허용된 액션 검증"""
-    is_valid, error = validate_action("query_data", {"brand": "LANEIGE"})
+    is_valid, error = validate_action("get_metrics", {"brand": "LANEIGE"})
     assert is_valid is True
     assert error == ""
 
@@ -77,8 +76,8 @@ def test_validate_action_not_allowed():
 
 def test_validate_action_input_type_check():
     """파라미터 타입 검증"""
-    # limit은 int여야 함
-    is_valid, error = validate_action("query_data", {"limit": "not_a_number"})
+    # k는 int여야 함
+    is_valid, error = validate_action("search_docs", {"k": "not_a_number"})
     assert is_valid is False
     assert "must be int" in error
 
@@ -92,7 +91,7 @@ def test_validate_action_none_input():
 
 def test_validate_action_empty_input():
     """action_input이 빈 dict인 경우"""
-    is_valid, error = validate_action("query_data", {})
+    is_valid, error = validate_action("get_metrics", {})
     assert is_valid is True
     assert error == ""
 
@@ -102,7 +101,7 @@ class MockToolExecutor:
 
     async def execute(self, tool_name: str, params: dict) -> ToolResult:
         """Mock 도구 실행"""
-        if tool_name == "query_data":
+        if tool_name == "get_metrics":
             return ToolResult(
                 tool_name=tool_name, success=True, data={"brand": "LANEIGE", "rank": 5}
             )
@@ -130,14 +129,14 @@ async def test_react_step_parsing():
     content = """```json
 {
     "thought": "현재 상황을 분석합니다",
-    "action": "query_data",
+    "action": "get_metrics",
     "action_input": {"brand": "LANEIGE"}
 }
 ```"""
 
     step = agent._parse_step(content)
     assert step.thought == "현재 상황을 분석합니다"
-    assert step.action == "query_data"
+    assert step.action == "get_metrics"
     assert step.action_input == {"brand": "LANEIGE"}
 
 
@@ -158,7 +157,7 @@ async def test_format_steps():
     agent = ReActAgent()
 
     steps = [
-        ReActStep(thought="첫 번째 생각", action="query_data", observation="결과: LANEIGE 5위"),
+        ReActStep(thought="첫 번째 생각", action="get_metrics", observation="결과: LANEIGE 5위"),
         ReActStep(thought="두 번째 생각", action="final_answer"),
     ]
 
@@ -166,7 +165,7 @@ async def test_format_steps():
     assert "Step 1" in formatted
     assert "Step 2" in formatted
     assert "첫 번째 생각" in formatted
-    assert "query_data" in formatted
+    assert "get_metrics" in formatted
 
 
 @pytest.mark.asyncio
@@ -183,10 +182,10 @@ async def test_react_run(react_agent, monkeypatch):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            # 1st step: 실제 도구 실행(query_data)을 유도
+            # 1st step: 실제 도구 실행(get_metrics)을 유도
             return _make_llm_response(
                 "LANEIGE 순위 데이터를 조회합니다",
-                "query_data",
+                "get_metrics",
                 {"brand": "LANEIGE"},
             )
         elif call_count == 2:
@@ -213,9 +212,9 @@ async def test_react_run(react_agent, monkeypatch):
     # LLM 호출 횟수 검증: step 1회 + step 2회 + reflection 1회 = 3회 (네트워크 호출은 전부 가짜)
     assert call_count == 3
 
-    # 실제 ReAct 루프 로직 검증: 1단계는 query_data 액션이 검증(validate_action)을 통과해
+    # 실제 ReAct 루프 로직 검증: 1단계는 get_metrics 액션이 검증(validate_action)을 통과해
     # MockToolExecutor를 거쳐 실행되고, 그 결과가 observation에 실제로 반영되어야 한다.
-    assert result.steps[0].action == "query_data"
+    assert result.steps[0].action == "get_metrics"
     assert result.steps[0].observation is not None
     assert "LANEIGE" in result.steps[0].observation
 

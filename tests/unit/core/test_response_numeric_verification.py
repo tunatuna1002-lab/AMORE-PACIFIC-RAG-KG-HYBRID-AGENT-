@@ -245,5 +245,7 @@ async def test_brain_stream_emits_enforced_text(monkeypatch, tmp_path):
         chunks = [c async for c in brain.process_query_stream("LANEIGE Lip Care 현황")]
 
     text = "".join(c["content"] for c in chunks if c["type"] == "text")
-    assert answer_llm.calls == 1
+    # 답변 1회 + 환각 점검 1회. function calling에는 모델 자기보고 신뢰도가 없어
+    # Decision.confidence가 0.0(미보고)이 됐고, 그래서 환각 점검(< 0.8 조건)이 돈다 (트랙 4-A).
+    assert answer_llm.calls == 2
     assert text == f"HHI는 확인되지 않음[{HHI.id}]이고 SoS는 2%입니다 [{SOS.id}]."

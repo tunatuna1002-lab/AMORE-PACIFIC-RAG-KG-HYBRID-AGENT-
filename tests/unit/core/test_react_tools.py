@@ -1,140 +1,95 @@
 """
-ReAct 읽기 전용 도구 실행기 검증 (결정 D2)
+ReAct 도구 실행기 어댑터 검증 (트랙 4-A)
 
-실제 SQLite(임시 파일, 운영 스키마)와 실제 KnowledgeGraph(임시 경로)를 쓴다.
+ReAct는 별도 도구 3종(query_data·query_knowledge_graph·calculate_metrics)을 갖고 있었지만
+이제 DecisionMaker와 같은 레지스트리(src/core/tool_registry.py)를 쓴다. 여기서는 어댑터가
+같은 도구 목록을 내고, 관찰이 카드 렌더링 문자열이 되는지 본다.
+
+실제 객체: SQLite·KG(임시 경로)·HybridRetriever·어댑터. 가짜는 문서 검색기뿐이다.
 """
 
-import sqlite3
+from __future__ import annotations
 
 import pytest
 
-from src.core.react_tools import build_react_tool_executor
-from src.domain.entities.relations import Relation, RelationType
-from src.ontology.knowledge_graph import KnowledgeGraph
-from src.tools.storage.sqlite_storage import SQLiteStorage
+from src.core.react_tools import ReActToolExecutor, build_react_tool_executor
+from src.core.tool_registry import TOOL_NAMES, ToolRegistry, tool_evidence
+from src.domain.entities.evidence import EvidenceKind
+from src.infrastructure.feature_flags import FeatureFlags
+from src.rag.hybrid_retriever import HybridRetriever
+from src.rag.metric_facts import MetricFactsProvider
+from tests.unit.rag.evidence_pipeline_fixtures import (
+    AS_OF,
+    FakeDocRetriever,
+    make_kg,
+    make_metrics_db,
+)
+
+
+@pytest.fixture(autouse=True)
+def isolated_flags():
+    FeatureFlags.reset_instance()
+    yield
+    FeatureFlags.reset_instance()
 
 
 @pytest.fixture
-def db_path(tmp_path):
-    path = tmp_path / "amore.db"
-    conn = sqlite3.connect(path)
-    conn.executescript(SQLiteStorage.SCHEMA)
-    rows = [
-        ("2026-09-10", "lip_care", 1, "A1", "Lip Sleeping Mask", "LANEIGE", 24.0),
-        ("2026-09-10", "lip_care", 2, "A2", "Aquaphor Lip Repair", "Aquaphor", 5.0),
-        ("2026-09-10", "lip_care", 3, "A3", "Aquaphor Lip Balm", "Aquaphor", 6.0),
-        ("2026-09-10", "lip_care", 4, "A4", "Burt's Bees Balm", "Burt's Bees", 4.0),
-    ]
-    conn.executemany(
-        "INSERT INTO raw_data (snapshot_date, category_id, rank, asin, product_name, brand, price)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?)",
-        rows,
+def registry(tmp_path) -> ToolRegistry:
+    retriever = HybridRetriever(
+        knowledge_graph=make_kg(tmp_path),
+        doc_retriever=FakeDocRetriever(),
+        metric_facts_provider=MetricFactsProvider(make_metrics_db(tmp_path), as_of=AS_OF),
     )
-    conn.execute(
-        "INSERT INTO brand_metrics (snapshot_date, category_id, brand, sos, product_count)"
-        " VALUES ('2026-09-10', 'lip_care', 'LANEIGE', 25.0, 1)"
-    )
-    conn.execute(
-        "INSERT INTO market_metrics (snapshot_date, category_id, hhi)"
-        " VALUES ('2026-09-10', 'lip_care', 0.375)"
-    )
-    conn.commit()
-    conn.close()
-    return path
+    return ToolRegistry(retriever)
 
 
 @pytest.fixture
-def kg(tmp_path):
-    graph = KnowledgeGraph(persist_path=str(tmp_path / "kg.json"), auto_save=False)
-    graph.add_relation(
-        Relation(subject="laneige", predicate=RelationType.COMPETES_WITH, object="aquaphor")
-    )
-    graph.add_relation(
-        Relation(
-            subject="laneige",
-            predicate=RelationType.HAS_PRODUCT,
-            object="A1",
-            properties={"product_name": "Lip Sleeping Mask", "category": "lip_care"},
-        )
-    )
-    return graph
+def executor(registry) -> ReActToolExecutor:
+    return build_react_tool_executor(registry)
 
 
-@pytest.fixture
-def executor(db_path, kg):
-    return build_react_tool_executor(knowledge_graph=kg, db_path=db_path)
+def test_react_executor_exposes_the_registry_tools(executor, registry):
+    assert executor.get_available_tools() == list(TOOL_NAMES)
+    assert executor.registry is registry
 
 
 @pytest.mark.asyncio
-async def test_registers_exactly_the_read_only_tools(executor):
-    assert set(executor.get_available_tools()) == {
-        "query_data",
-        "query_knowledge_graph",
-        "calculate_metrics",
-        "direct_answer",
-    }
-
-
-@pytest.mark.asyncio
-async def test_query_data_returns_db_facts_for_free_text(executor):
-    result = await executor.execute("query_data", {"category": "Lip Care", "brand": "LANEIGE"})
+async def test_observation_is_the_card_rendering_with_ids(executor):
+    result = await executor.execute("get_metrics", {"brand": "LANEIGE", "category": "lip_care"})
 
     assert result.success, result.error
-    facts = result.data["facts"]
-    assert any(f.get("hhi") == 0.375 for f in facts)
-    assert result.data["entities"]["categories"] == ["lip_care"]
+    observation = str(result.data)  # ReAct 루프가 관찰로 쓰는 문자열
+    assert "[DB 수치]" in observation
+    cards = tool_evidence(result)
+    assert cards and {c.kind for c in cards} == {EvidenceKind.METRIC}
+    for card in cards:
+        assert f"[{card.id}]" in observation
+    assert AS_OF in observation
+    # 구조화된 데이터도 그대로 남는다 (data는 dict이다)
+    assert result.data["as_of"] == AS_OF
 
 
 @pytest.mark.asyncio
-async def test_query_data_without_entities_reports_nothing_found(executor):
-    result = await executor.execute("query_data", {"category": "날씨"})
+async def test_kg_observation_excludes_undated_numeric_edges(executor):
+    result = await executor.execute("kg_neighbors", {"entity": "LANEIGE"})
 
-    assert result.success
-    assert result.data["facts"] == []
-    assert "message" in result.data
-
-
-@pytest.mark.asyncio
-async def test_query_knowledge_graph_competitors_is_case_insensitive(executor):
-    result = await executor.execute(
-        "query_knowledge_graph", {"entity": "LANEIGE", "relation": "competitors"}
-    )
-
-    assert result.success, result.error
-    assert [c["brand"] for c in result.data["competitors"]] == ["aquaphor"]
+    observation = str(result.data)
+    assert "ownedBy" in observation
+    assert "hasSoS" not in observation and "hasHHI" not in observation
 
 
 @pytest.mark.asyncio
-async def test_query_knowledge_graph_products(executor):
-    result = await executor.execute(
-        "query_knowledge_graph", {"entity": "laneige", "relation": "products"}
-    )
+async def test_failure_is_returned_not_raised(executor):
+    result = await executor.execute("get_metrics", {"unknown_param": 1})
 
-    assert result.data["products"][0]["asin"] == "A1"
-
-
-@pytest.mark.asyncio
-async def test_calculate_metrics_uses_metric_calculator_on_latest_snapshot(executor):
-    result = await executor.execute(
-        "calculate_metrics",
-        {"metric_type": "sos", "brands": ["LANEIGE"], "category_id": "lip_care"},
-    )
-
-    assert result.success, result.error
-    data = result.data
-    assert data["snapshot_date"] == "2026-09-10"
-    assert data["categories"]["lip_care"]["brands"]["LANEIGE"]["sos"] == pytest.approx(25.0)
-    # HHI는 브랜드 점유율 제곱합: (1/4)^2 + (2/4)^2 + (1/4)^2
-    assert data["categories"]["lip_care"]["hhi"] == pytest.approx(0.375)
+    assert result.success is False
+    assert "unknown_param" in result.error
 
 
 @pytest.mark.asyncio
-async def test_tools_never_create_missing_db(tmp_path, kg):
-    missing = tmp_path / "nope.db"
-    executor = build_react_tool_executor(knowledge_graph=kg, db_path=missing)
+async def test_unbound_registry_reports_no_tools():
+    executor = build_react_tool_executor(ToolRegistry())
 
-    result = await executor.execute("calculate_metrics", {"category_id": "lip_care"})
-
-    assert result.success
-    assert "message" in result.data
-    assert not missing.exists()
+    assert executor.get_available_tools() == []
+    result = await executor.execute("search_docs", {"query": "HHI"})
+    assert result.success is False

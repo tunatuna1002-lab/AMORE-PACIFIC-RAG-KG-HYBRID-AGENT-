@@ -72,18 +72,24 @@ class TestBrainInitializationWiring:
         brain = await _initialized_brain()
 
         registered = set(brain._react_agent.tool_executor.get_available_tools())
-        # final_answer는 루프 종료, refine_search는 query_data로 실행된다
+        # final_answer는 루프 종료, refine_search는 search_docs로 실행된다
         assert ALLOWED_ACTIONS - {"final_answer", "refine_search"} <= registered
 
     @pytest.mark.asyncio
-    async def test_react_tools_do_not_change_decision_maker_tools(self, flags_env):
-        """ReAct 전용 도구는 DecisionMaker의 도구 목록(대시보드 5종)에 섞이지 않는다."""
+    async def test_react_and_decision_maker_share_one_registry(self, flags_env):
+        """ReAct와 DecisionMaker는 같은 도구 레지스트리를 본다 (트랙 4-A).
+
+        이전에는 ReAct 전용 도구 3종과 대시보드 도구 5종이 따로 있어 경로마다 도구가 달랐다.
+        """
+        from src.core.tool_registry import TOOL_NAMES
+
         flags_env(react=True)
         brain = await _initialized_brain()
 
-        decision_tools = set(brain.tool_coordinator.get_available_tools())
-        assert "query_data" not in decision_tools
-        assert "get_brand_status" in decision_tools
+        decision_tools = brain.tool_coordinator.get_available_tools()
+        react_tools = brain._react_agent.tool_executor.get_available_tools()
+        assert decision_tools == react_tools == list(TOOL_NAMES)
+        assert brain._react_agent.tool_executor.registry is brain.tool_coordinator.tool_executor
 
     @pytest.mark.asyncio
     async def test_flags_off_leaves_components_inactive_without_error(self, flags_env):
@@ -115,7 +121,7 @@ class TestReActServicePath:
                 _llm_reply(
                     {
                         "thought": "경쟁 관계부터 확인",
-                        "action": "query_knowledge_graph",
+                        "action": "kg_neighbors",
                         "action_input": {"entity": "LANEIGE", "relation": "competitors"},
                     }
                 ),
@@ -160,7 +166,7 @@ class TestReActServicePath:
             response = await brain.process_query(self.QUERY, skip_cache=True)
 
         assert response.text == "LANEIGE의 경쟁 구도 분석 결과입니다."
-        assert response.tools_called == ["query_knowledge_graph", "final_answer"]
+        assert response.tools_called == ["kg_neighbors", "final_answer"]
         assert llm.await_count == 3
 
     @pytest.mark.asyncio
