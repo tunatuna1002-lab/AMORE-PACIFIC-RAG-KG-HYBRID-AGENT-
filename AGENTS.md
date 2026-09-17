@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on Amazon US. Daily crawling, KPI analysis (SoS/HHI/CPI), and a hybrid RAG+KG+rule-reasoning chatbot with one LLM tool-selection step. ReAct loop and OWL retrieval strategy are wired behind feature flags that default to OFF (2026-09).
+AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on Amazon US. Daily crawling, KPI analysis (SoS/HHI/CPI), and a hybrid RAG+KG+rule-reasoning chatbot with one LLM tool-selection step (DecisionMaker, native function calling). ReAct loop is wired behind a feature flag that defaults to OFF (`agents.use_react_agent`); it shares the same 5-tool registry (`src/core/tool_registry.py`) as DecisionMaker. [post-2026-09] The OWL retrieval strategy was deleted (dead code, 0 callers) — OWL now serves only as category-hierarchy vocabulary, not a retrieval path.
 
 ## STRUCTURE
 
@@ -49,7 +49,7 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 | Add domain entity | `src/domain/entities/` | Pydantic models |
 | Add workflow | `src/application/workflows/` | Clean Architecture |
 | Modify brain behavior | `src/core/brain.py` | UnifiedBrain facade |
-| Add ReAct tool | `src/core/react_agent.py`, `src/core/react_tools.py` | Add to ALLOWED_ACTIONS and register a read-only executor |
+| Add a tool (DecisionMaker + ReAct) | `src/core/tool_registry.py` | Add a `ToolDefinition`; both `DecisionMaker` (function calling) and `ReActToolExecutor`/`ALLOWED_ACTIONS` read from this one registry |
 | Configure thresholds | `config/thresholds.json` | Category/alert rules |
 
 ## KEY MODULES

@@ -8,8 +8,8 @@ Central orchestration: UnifiedBrain facade, ReAct self-reflection agent, autonom
 
 | Module | File | Role |
 |--------|------|------|
-| UnifiedBrain | `brain.py` | Facade: DecisionMaker + ToolCoordinator + AlertManager + QueryProcessor + ResponsePipeline |
-| ReActAgent | `react_agent.py` | Thought-Action-Observation loop (max 3 iterations) |
+| UnifiedBrain | `brain.py` | Facade: DecisionMaker + ToolCoordinator + AlertManager + ContextGatherer + ResponsePipeline (query classification lives in `query_graph.py`'s QueryGraph, not a separate QueryProcessor — that module was deleted, [post-2026-09]) |
+| ReActAgent | `react_agent.py` | Thought-Action-Observation loop (max 5 iterations, `max_iterations` default). Shares `tool_registry.py`'s 5-tool registry with DecisionMaker via the `react_tools.py` adapter, [post-2026-09] |
 | Scheduler | `scheduler.py` | AutonomousScheduler with persisted state |
 | BatchWorkflow | `batch_workflow.py` | Daily crawl pipeline orchestration |
 
@@ -17,8 +17,8 @@ Central orchestration: UnifiedBrain facade, ReAct self-reflection agent, autonom
 
 | Task | File | Notes |
 |------|------|-------|
-| Add new tool to ReAct | `react_agent.py` | Register in ALLOWED_ACTIONS + ACTION_SCHEMAS |
-| Modify query routing | `brain.py` | DecisionMaker.decide() |
+| Add a tool (ReAct + DecisionMaker) | `tool_registry.py` | Add a `ToolDefinition`; `react_agent.py`'s `ALLOWED_ACTIONS`/`ACTION_SCHEMAS` and DecisionMaker's function-calling schema are both generated from it, [post-2026-09] |
+| Modify confidence/route branching | `query_graph.py` | `QueryGraph`; tool-selection logic itself is `DecisionMaker.decide()` (`decision_maker.py`) |
 | Change schedule times | `scheduler.py` | DEFAULT_SCHEDULES dict |
 | Add brain event handler | `brain.py` | emit_event() supports sync/async handlers |
 
@@ -26,10 +26,10 @@ Central orchestration: UnifiedBrain facade, ReAct self-reflection agent, autonom
 
 ### Brain SRP Components
 ```
-DecisionMaker     → Tool selection logic
-ToolCoordinator   → Tool execution orchestration  
+DecisionMaker     → Tool selection logic (native function calling, [post-2026-09])
+ToolCoordinator   → Tool execution orchestration
 AlertManager      → Event-driven alert dispatch
-QueryProcessor    → Query classification + preprocessing
+QueryGraph        → Query routing + confidence branching (query_graph.py; replaces the deleted QueryProcessor, [post-2026-09])
 ResponsePipeline  → Final response generation
 ContextGatherer   → KG + Ontology + RAG context
 ```
