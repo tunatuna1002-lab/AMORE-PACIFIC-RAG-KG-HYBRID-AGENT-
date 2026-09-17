@@ -19,7 +19,8 @@ def db_path(tmp_path):
     conn.executescript(
         """
         CREATE TABLE brand_metrics (snapshot_date TEXT, category_id TEXT, brand TEXT,
-                                    sos REAL, product_count INTEGER);
+                                    sos REAL, product_count INTEGER, brand_avg_rank REAL,
+                                    cpi REAL, avg_rating_gap REAL);
         CREATE TABLE market_metrics (snapshot_date TEXT, category_id TEXT, hhi REAL,
                                      churn_rate REAL, category_avg_price REAL,
                                      category_avg_rating REAL);
@@ -28,12 +29,12 @@ def db_path(tmp_path):
         """
     )
     conn.executemany(
-        "INSERT INTO brand_metrics VALUES (?,?,?,?,?)",
+        "INSERT INTO brand_metrics VALUES (?,?,?,?,?,?,?,?)",
         [
-            ("2026-08-31", "lip_care", "eos", 9.0, 9),
-            ("2026-08-31", "lip_care", "LANEIGE", 2.0, 2),
-            ("2026-09-11", "lip_care", "eos", 8.0, 8),
-            ("2026-09-11", "lip_care", "LANEIGE", 3.0, 3),
+            ("2026-08-31", "lip_care", "eos", 9.0, 9, 52.89, 80.0, 0.126),
+            ("2026-08-31", "lip_care", "LANEIGE", 2.0, 2, 8.5, None, 0.076),
+            ("2026-09-11", "lip_care", "eos", 8.0, 8, None, None, None),
+            ("2026-09-11", "lip_care", "LANEIGE", 3.0, 3, None, None, None),
         ],
     )
     conn.executemany(
@@ -97,6 +98,26 @@ async def test_as_of_pins_every_table_to_that_snapshot(db_path):
         "rating": 4.6,
         "reviews_count": 37356,
     }
+
+
+async def test_query_brand_share_carries_rank_cpi_and_rating_gap_only_when_present(db_path):
+    # 규칙 입력(평균 순위·CPI·평점 격차)은 질의 브랜드에만, NULL은 키 자체를 넣지 않는다
+    facts = await MetricFactsProvider(db_path, as_of="2026-08-31").collect(
+        {"brands": ["laneige"], "categories": ["lip_care"]}
+    )
+
+    (share,) = _by_type(facts, "brand_share")
+    assert share["brand_avg_rank"] == 8.5
+    assert share["avg_rating_gap"] == 0.076
+    assert "cpi" not in share
+    top = _by_type(facts, "category_top_brands")[0]["brands"]
+    assert all(set(entry) == {"brand", "sos", "product_count"} for entry in top)
+
+    later = await MetricFactsProvider(db_path, as_of="2026-09-11").collect(
+        {"brands": ["laneige"], "categories": ["lip_care"]}
+    )
+    (later_share,) = _by_type(later, "brand_share")
+    assert not {"brand_avg_rank", "cpi", "avg_rating_gap"} & set(later_share)
 
 
 async def test_without_as_of_latest_snapshot_is_used(db_path, monkeypatch):

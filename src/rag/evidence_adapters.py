@@ -101,8 +101,28 @@ _PRODUCT_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("reviews_count", "reviews_count", EvidenceUnit.COUNT),
 )
 
-# 추론 결론 값으로 쓸 규칙 메타데이터 키 (우선순위 순)
-_CONCLUSION_KEYS = ("position", "market_structure", "market_type")
+# 추론 카드 value로 쓸 결론 키 (우선순위 순). ``InferenceResult.conclusion``(규칙 결론 dict)을
+# 먼저 보고, 없으면 metadata를 본다 — metadata의 market_type("fragmented")은 결론이 아니라
+# 시장 유형이라 마지막이다.
+_CONCLUSION_KEYS = (
+    "position",
+    "market_structure",
+    "risk",
+    "threat",
+    "signal",
+    "opportunity",
+    "achievement",
+    "advantage",
+    "verification",
+)
+_METADATA_CONCLUSION_KEYS = ("position", "market_structure", "market_type")
+
+# brand_share 사실의 질의 브랜드 추가 지표 → (술어, 단위). 규칙 입력 계약의 바인딩과 같다.
+_BRAND_EXTRA_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("brand_avg_rank", "brand_avg_rank", EvidenceUnit.RANK),
+    ("cpi", "cpi", EvidenceUnit.INDEX_100),  # DB 100 기준 그대로 (100 = 카테고리 평균가)
+    ("avg_rating_gap", "avg_rating_gap", EvidenceUnit.RATING_POINTS),  # 5점 척도 차이
+)
 
 
 def _collapse(name: str) -> str:
@@ -281,6 +301,7 @@ class EvidenceAdapter:
                             fact.get("sos"),
                             fact.get("product_count"),
                             fact.get("brand_rank"),
+                            extras={key: fact.get(key) for key, _, _ in _BRAND_EXTRA_FIELDS},
                         )
                     )
                 else:
@@ -340,6 +361,7 @@ class EvidenceAdapter:
         sos: Any,
         product_count: Any,
         rank: Any,
+        extras: dict[str, Any] | None = None,
     ) -> list[Evidence]:
         if not brand:
             return []
@@ -350,6 +372,10 @@ class EvidenceAdapter:
             ("sos", _sos_ratio(sos), EvidenceUnit.RATIO),
             ("product_count", _number(product_count), EvidenceUnit.COUNT),
             ("sos_rank", _number(rank), EvidenceUnit.RANK),
+            *(
+                (predicate, _number((extras or {}).get(key)), unit)
+                for key, predicate, unit in _BRAND_EXTRA_FIELDS
+            ),
         )
         for predicate, value, unit in values:
             if value is None:
@@ -482,9 +508,11 @@ class EvidenceAdapter:
         - predicate: 인사이트 유형 (``market_dominance`` 등).
         - object: 적용 범위(브랜드 주어일 때 카테고리). 같은 규칙이 카테고리만 달리 발화해도
           id가 겹치지 않게 결론이 아니라 범위를 둔다.
-        - value: 결론 값 (규칙 메타데이터의 position·market_structure·market_type).
-        - derived_from: ``derived_from_resolver(result)``가 우선, 없으면 ``derived_from``.
-          규칙 입력 계약(3단계)이 생기기 전까지는 호출자가 근거 카드 id를 넘긴다.
+        - value: 결론 값 (``result.conclusion``의 position·market_structure·risk 등, 없으면
+          metadata의 position·market_structure·market_type).
+        - derived_from: ``derived_from_resolver(result)`` → ``derived_from`` →
+          ``result.evidence["derived_from"]``(규칙 입력 계약으로 판정한 결과의 근거 카드 id,
+          ``rule_contracts.evaluate_rules_on_cards``가 채운다) 순.
         """
         cards = EvidenceSet()
         for result in results:
@@ -504,12 +532,19 @@ class EvidenceAdapter:
             else:
                 subject, display, scope = "market", {}, None
 
+            conclusion = getattr(result, "conclusion", None) or {}
             metadata = result.metadata or {}
-            value = next((metadata[k] for k in _CONCLUSION_KEYS if metadata.get(k)), None)
+            value = next((conclusion[k] for k in _CONCLUSION_KEYS if conclusion.get(k)), None)
+            if value is None:
+                value = next(
+                    (metadata[k] for k in _METADATA_CONCLUSION_KEYS if metadata.get(k)), None
+                )
             if derived_from_resolver is not None:
                 basis = list(derived_from_resolver(result))
+            elif derived_from is not None:
+                basis = list(derived_from)
             else:
-                basis = list(derived_from or [])
+                basis = list((result.evidence or {}).get("derived_from") or [])
 
             confidence = float(result.confidence)
             if not 0.0 <= confidence <= 1.0:

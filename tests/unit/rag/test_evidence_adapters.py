@@ -623,7 +623,7 @@ class TestFromInferences:
         assert card.subject == "laneige"
         assert card.predicate == InsightType.MARKET_DOMINANCE.value
         assert card.object == "lip_care"
-        assert card.value == "fragmented"
+        assert card.value == "dominant_in_fragmented"  # 결론 position (metadata market_type 아님)
         assert card.confidence == pytest.approx(0.9)
         assert card.as_of == AS_OF
         assert card.derived_from == ("M-aaaaaa", "M-bbbbbb")

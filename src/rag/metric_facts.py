@@ -44,6 +44,9 @@ BRAND_PRODUCTS = 3
 
 _TABLES = ("brand_metrics", "market_metrics", "raw_data")
 _MARKET_FIELDS = ("hhi", "churn_rate", "category_avg_price", "category_avg_rating")
+# 질의 브랜드의 brand_share에만 싣는 지표 (규칙 입력: strong_avg_rank·price_quality_mismatch·
+# value_position·premium_price_position·strong_rating_position). 상위 브랜드 목록에는 싣지 않는다.
+_BRAND_EXTRA_FIELDS = ("brand_avg_rank", "cpi", "avg_rating_gap")
 
 
 def _product(row: Any) -> dict[str, Any]:
@@ -189,6 +192,7 @@ class MetricFactsProvider:
             cursor = await conn.execute(
                 """
                 SELECT b1.brand, b1.sos, b1.product_count,
+                       b1.brand_avg_rank, b1.cpi, b1.avg_rating_gap,
                        (SELECT COUNT(*) + 1 FROM brand_metrics b2
                          WHERE b2.snapshot_date = b1.snapshot_date
                            AND b2.category_id = b1.category_id AND b2.sos > b1.sos) AS brand_rank
@@ -199,18 +203,20 @@ class MetricFactsProvider:
             )
             row = await cursor.fetchone()
             if row and row["sos"] is not None:
-                facts.append(
-                    {
-                        "type": "brand_share",
-                        "brand": row["brand"],
-                        "category": category,
-                        "snapshot_date": date,
-                        "present": True,
-                        "sos": row["sos"],
-                        "product_count": row["product_count"],
-                        "brand_rank": row["brand_rank"],
-                    }
-                )
+                share: dict[str, Any] = {
+                    "type": "brand_share",
+                    "brand": row["brand"],
+                    "category": category,
+                    "snapshot_date": date,
+                    "present": True,
+                    "sos": row["sos"],
+                    "product_count": row["product_count"],
+                    "brand_rank": row["brand_rank"],
+                }
+                for key in _BRAND_EXTRA_FIELDS:
+                    if row[key] is not None:  # NULL은 넣지 않는다 (0으로 채우지 않음)
+                        share[key] = row[key]
+                facts.append(share)
             else:
                 facts.append(
                     {

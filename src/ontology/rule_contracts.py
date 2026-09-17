@@ -397,10 +397,6 @@ _R = EvidenceKind.RELATION
 _U = EvidenceUnit
 _CU = ContractUnit
 
-_GAP_FACTS_NOT_QUERIED = (
-    "운영 DB brand_metrics.{column}에 값이 있으나({filled}/13,838행 non-null, 2026-09-17) "
-    "MetricFactsProvider가 조회하지 않고 어댑터 매핑도 없어 카드가 만들어지지 않는다"
-)
 _GAP_PRODUCT_METRICS = (
     "product_metrics 테이블 0행(2026-09-17)이고 카드는 단일 스냅샷만 공급 — "
     "다일자 bsr_rank 카드로 유도할 조회가 없다"
@@ -428,6 +424,10 @@ ASIN = InputSpec(
     InputType.STRING,
     None,
     derivation="대표 제품 ASIN (relation hasProduct의 object) — 어느 제품인지는 조립기가 정한다",
+    note=(
+        "build_rule_context는 채우지 않는다: 가격·순위 입력의 대표 제품(metric 카드, 제품명 "
+        "주어)과 hasProduct 카드(ASIN)를 잇는 키가 카드에 없어 같은 제품임을 보장할 수 없다"
+    ),
 )
 
 SOS = InputSpec(
@@ -463,7 +463,7 @@ CPI = InputSpec(
     0.0,
     None,
     binding=EvidenceBinding(_M, "cpi", _U.INDEX_100, Role.BRAND, Role.CATEGORY),
-    gap=_GAP_FACTS_NOT_QUERIED.format(column="cpi", filled="7,286"),
+    note="질의 브랜드 brand_share 사실에만 실린다 (brand_metrics.cpi non-null 7,286/13,838행)",
 )
 RATING_GAP = InputSpec(
     "rating_gap",
@@ -472,8 +472,7 @@ RATING_GAP = InputSpec(
     -4.0,
     4.0,
     binding=EvidenceBinding(_M, "avg_rating_gap", _U.RATING_POINTS, Role.BRAND, Role.CATEGORY),
-    gap=_GAP_FACTS_NOT_QUERIED.format(column="avg_rating_gap", filled="13,735"),
-    note="규칙 키 rating_gap = 카드 술어 avg_rating_gap",
+    note="규칙 키 rating_gap = 카드 술어 avg_rating_gap (질의 브랜드만)",
 )
 AVG_RANK = InputSpec(
     "avg_rank",
@@ -482,8 +481,7 @@ AVG_RANK = InputSpec(
     1.0,
     100.0,
     binding=EvidenceBinding(_M, "brand_avg_rank", _U.RANK, Role.BRAND, Role.CATEGORY),
-    gap=_GAP_FACTS_NOT_QUERIED.format(column="brand_avg_rank", filled="13,838"),
-    note="규칙 키 avg_rank = 카드 술어 brand_avg_rank",
+    note="규칙 키 avg_rank = 카드 술어 brand_avg_rank (질의 브랜드만)",
 )
 CHURN_RATE = InputSpec(
     "churn_rate",
@@ -717,8 +715,8 @@ PARENT_GROUP = InputSpec(
     None,
     binding=EvidenceBinding(_R, "ownedBy", None, Role.BRAND, Role.ENTITY, Reduce.OBJECT),
     note=(
-        "카드 object는 소문자 canonical('amorepacific')인데 규칙은 'AMOREPACIFIC'과 "
-        "대소문자 구분 비교 — 카드 metadata.object_display_name(원표기)을 써야 발화한다"
+        "카드 object(소문자 canonical 'amorepacific')를 그대로 넣는다 — 규칙이 casefold로 "
+        "비교한다(트랙 3-B에서 대소문자 구분 비교 결함 수정)"
     ),
 )
 _GAP_BRAND_PROFILE = "표시용 — 전용 카드 변환 규칙 없음(어댑터 술어 역할 미등록, 미검증)"
@@ -833,8 +831,439 @@ _CONTRACT_LIST: tuple[RuleContract, ...] = (
 
 RULE_CONTRACTS: dict[str, RuleContract] = {c.rule_name: c for c in _CONTRACT_LIST}
 
+
+# =========================================================================
+# 증거 카드 → 규칙 컨텍스트 (트랙 3-B)
+# =========================================================================
+#
+# 입력은 카드뿐이다. KG 수치 엣지·대시보드 JSON은 읽지 않는다(E2·F7). 입력을 채울 카드가
+# 없으면 컨텍스트에 키를 넣지 않는다 — 0이나 기본값으로 채우지 않는다(계약 검사가
+# missing_input으로 기록한다).
+
+TARGET_BRAND = "laneige"  # IS_TARGET 파생 규칙: brand == 'laneige'
+
+# 조합 상한 = MetricFactsProvider.MAX_BRANDS · MAX_CATEGORIES (src/rag/metric_facts.py).
+# 제공자가 브랜드 3개·카테고리 3개까지만 조회하므로 그 밖의 조합에는 metric 카드가 없다 —
+# 평가해도 missing_input만 쌓여 미발화 사유 집계를 부풀린다.
+MAX_RULE_BRANDS = 3
+MAX_RULE_CATEGORIES = 3
+
+# 평가 리포트(트랙 3-C)의 "미발화 사유 상위" 개수
+NON_FIRE_TOP_LIMIT = 10
+
+_BRAND_SCOPED_ROLES = frozenset(
+    {Role.BRAND, Role.PRODUCT, Role.COMPETITOR_BRAND, Role.COMPETITOR_PRODUCT}
+)
+_BRAND_DERIVED_INPUTS = frozenset({"brand", "is_target"})
+_ABSENCE_PREDICATE = "present_in_top100"  # EvidenceAdapter._absent_card
+
+Combination = tuple[str | None, str | None]
+
+
+def _unique(values: Iterable[Any]) -> list[Any]:
+    """빈 값을 빼고 순서를 지키며 중복 제거."""
+    seen: list[Any] = []
+    for value in values:
+        if value and value not in seen:
+            seen.append(value)
+    return seen
+
+
+def _latest_first(cards: list[Evidence]) -> Evidence:
+    """여러 카드가 맞으면 as_of가 가장 늦은 카드, 같으면 먼저 온 카드."""
+    return max(enumerate(cards), key=lambda item: (item[1].as_of or "", -item[0]))[1]
+
+
+class _CardIndex:
+    """(브랜드, 카테고리) 조합 하나에서 카드가 입력 역할에 맞는지 판정한다."""
+
+    def __init__(self, cards: Iterable[Evidence], brand: str | None, category: str | None):
+        self.cards = list(cards)
+        self.brand = brand
+        self.category = category
+        relations = [c for c in self.cards if c.kind is EvidenceKind.RELATION]
+        competitor_predicates = _COMPETITOR_RELATION.predicates
+        self.competitors = frozenset(
+            c.object
+            for c in relations
+            if brand and c.subject == brand and c.predicate in competitor_predicates and c.object
+        )
+        products = [c for c in relations if c.predicate == "hasProduct" and c.object]
+        self.brand_asins = frozenset(c.object for c in products if brand and c.subject == brand)
+        self.competitor_asins = frozenset(
+            c.object for c in products if c.subject in self.competitors
+        )
+        # 대표 제품: 질의 브랜드의 이 카테고리 제품 중 최고 순위 (같은 순위면 먼저 온 카드).
+        # 가격·순위·리뷰 수 입력은 모두 이 제품 하나에서 읽는다 — 서로 다른 제품의 값이
+        # 한 규칙에 섞이지 않게 (RANK.note).
+        ranked = [
+            c
+            for c in self.cards
+            if self._is_brand_product_metric(c)
+            and c.predicate == "bsr_rank"
+            and _is_number(c.value)
+        ]
+        self.product = min(ranked, key=lambda c: c.value).subject if ranked else None
+
+    def _is_brand_product_metric(self, card: Evidence) -> bool:
+        return (
+            card.kind is EvidenceKind.METRIC
+            and self.brand is not None
+            and card.metadata.get("brand") == self.brand
+            and self.category is not None
+            and card.object == self.category
+        )
+
+    def _subject_matches(self, binding: EvidenceBinding, card: Evidence) -> bool:
+        role = binding.subject_role
+        if role == Role.BRAND:
+            return self.brand is not None and card.subject == self.brand
+        if role == Role.CATEGORY:
+            return self.category is not None and card.subject == self.category
+        if role == Role.PRODUCT:
+            if card.kind is EvidenceKind.METRIC:
+                if not self._is_brand_product_metric(card):
+                    return False
+                return binding.reduce is Reduce.MIN_VALUE or card.subject == self.product
+            return card.subject in self.brand_asins
+        if role == Role.COMPETITOR_BRAND:
+            return card.subject in self.competitors
+        if role == Role.COMPETITOR_PRODUCT:
+            return card.subject in self.competitor_asins
+        return False  # ENTITY·RAW 주어를 쓰는 바인딩은 없다
+
+    def _object_matches(self, binding: EvidenceBinding, card: Evidence) -> bool:
+        role = binding.object_role
+        if role is None:
+            return card.object is None
+        if role == Role.CATEGORY:
+            return self.category is not None and card.object == self.category
+        return card.object is not None
+
+    def matching(self, binding: EvidenceBinding) -> list[Evidence]:
+        return [
+            card
+            for card in self.cards
+            if binding.matches(card)
+            and self._subject_matches(binding, card)
+            and self._object_matches(binding, card)
+        ]
+
+
+def _reduce(spec: InputSpec, cards: list[Evidence]) -> tuple[Any, list[Evidence]]:
+    """매칭 카드 → (입력 값, 값을 만든 카드). 값을 만들지 못하면 (None, [])."""
+    binding = spec.binding
+    if binding is None:
+        return None, []
+    reduce = binding.reduce
+    if reduce is Reduce.VALUE:
+        with_value = [c for c in cards if c.value is not None]
+        if not with_value:
+            return None, []
+        card = _latest_first(with_value)
+        return card.value, [card]
+    if reduce is Reduce.MIN_VALUE:
+        numbers = [c for c in cards if _is_number(c.value)]
+        if not numbers:
+            return None, []
+        card = min(numbers, key=lambda c: c.value)  # 같은 값이면 먼저 온 카드
+        return card.value, [card]
+    if reduce is Reduce.OBJECT:
+        with_object = [c for c in cards if c.object is not None]
+        if not with_object:
+            return None, []
+        card = _latest_first(with_object)
+        return card.object, [card]
+    if reduce in (Reduce.OBJECTS, Reduce.COUNT):
+        with_object = [c for c in cards if c.object is not None]
+        objects = _unique(c.object for c in with_object)
+        if not objects:
+            return None, []  # 빈 목록이 아니라 결측 (_ABSENT_NOT_EMPTY)
+        if reduce is Reduce.COUNT:
+            return len(objects), with_object
+        if spec.type is InputType.RECORD_LIST:  # 규칙은 [{'brand': 이름}, ...]을 읽는다
+            return [{"brand": obj} for obj in objects], with_object
+        return objects, with_object
+    if reduce is Reduce.OBJECTS_BY_CLUSTER:
+        clustered = [c for c in cards if c.object is not None and c.metadata.get("cluster")]
+        if not clustered:
+            return None, []
+        clusters: dict[str, list[str]] = {}
+        for card in clustered:
+            tags = clusters.setdefault(str(card.metadata["cluster"]), [])
+            if card.object not in tags:
+                tags.append(card.object)
+        return clusters, clustered
+    if reduce is Reduce.DETAIL:
+        with_detail = [c for c in cards if c.detail]
+        if not with_detail:
+            return None, []
+        return with_detail[0].detail, [with_detail[0]]
+    raise ValueError(f"unknown reduce {reduce!r}")
+
+
+def _derive(name: str, brand: str | None, category: str | None) -> Any:
+    """질의 엔티티에서 파생하는 입력. ``asin``은 만들지 않는다(``ASIN.note``)."""
+    if name == "brand":
+        return brand
+    if name == "category":
+        return category
+    if name == "is_target":
+        return None if brand is None else brand == TARGET_BRAND
+    return None
+
+
+def _unique_specs(contracts: Mapping[str, RuleContract]) -> list[InputSpec]:
+    """입력 이름별 선언 하나 (같은 이름 = 같은 의미 — 계약 테스트가 보장)."""
+    specs: dict[str, InputSpec] = {}
+    for contract in contracts.values():
+        for spec in contract.inputs:
+            specs.setdefault(spec.name, spec)
+    return list(specs.values())
+
+
+def build_rule_context(
+    cards: Iterable[Evidence],
+    brand: str | None,
+    category: str | None,
+    contracts: Mapping[str, RuleContract] | None = None,
+) -> tuple[dict[str, Any], dict[str, tuple[str, ...]]]:
+    """증거 카드 → 규칙 컨텍스트.
+
+    Args:
+        cards: metric·relation 카드 (``EvidenceAdapter`` 출력).
+        brand: 질의 브랜드 canonical id (``EvidenceAdapter.normalize_brand``) 또는 None.
+        category: 카테고리 id 또는 None.
+
+    Returns:
+        (컨텍스트, 입력 이름 → 값을 만든 카드 id). 파생 입력(brand·category·is_target)은
+        카드 id가 없다. 값을 만들지 못한 입력은 둘 다에 없다.
+    """
+    index = _CardIndex(cards, brand, category)
+    context: dict[str, Any] = {}
+    card_ids: dict[str, tuple[str, ...]] = {}
+    for spec in _unique_specs(RULE_CONTRACTS if contracts is None else contracts):
+        if spec.binding is not None:
+            value, used = _reduce(spec, index.matching(spec.binding))
+            if value is None:
+                continue
+            context[spec.name] = value
+            card_ids[spec.name] = tuple(_unique(card.id for card in used))
+        elif spec.derivation is not None:
+            value = _derive(spec.name, brand, category)
+            if value is not None:
+                context[spec.name] = value
+    return context, card_ids
+
+
+def rule_combinations(
+    cards: Iterable[Evidence], brands: Iterable[str], categories: Iterable[str]
+) -> list[Combination]:
+    """평가할 (브랜드, 카테고리) 조합.
+
+    - 브랜드가 없으면 (None, 카테고리)마다.
+    - 질의 카테고리가 없으면 그 브랜드가 진입한 카테고리 — 브랜드 주어 metric 카드의 object
+      (카드 순서 = MetricFactsProvider의 점유율 순). 부재 카드(``present_in_top100``)는 진입이
+      아니다 — 제공자는 브랜드만 링크된 질의에서 브랜드들이 진입한 카테고리의 합집합마다 각
+      브랜드의 점유율·부재를 싣는다. 진입한 카테고리가 없으면 (브랜드, None).
+    - 브랜드 ``MAX_RULE_BRANDS``개 × 카테고리 ``MAX_RULE_CATEGORIES``개까지.
+    """
+    card_list = list(cards)
+    brand_list = _unique(brands)[:MAX_RULE_BRANDS]
+    category_list = _unique(categories)[:MAX_RULE_CATEGORIES]
+    if not brand_list:
+        return [(None, category) for category in category_list]
+    combinations: list[Combination] = []
+    for brand in brand_list:
+        entered = category_list or _unique(
+            c.object
+            for c in card_list
+            if c.kind is EvidenceKind.METRIC
+            and c.subject == brand
+            and c.predicate != _ABSENCE_PREDICATE
+        )
+        entered = entered[:MAX_RULE_CATEGORIES]
+        if entered:
+            combinations.extend((brand, category) for category in entered)
+        else:
+            combinations.append((brand, None))
+    return combinations
+
+
+@dataclass(frozen=True)
+class CardRuleEvaluation:
+    """조합 하나에서 규칙 하나의 판정과 그 근거 카드.
+
+    Attributes:
+        derived_from: 판정에 쓰인 입력(``evaluation.inputs``)의 카드 id — 정렬·중복 제거.
+        scope: 결과가 말하는 대상 (브랜드, 카테고리). 규칙이 브랜드(카테고리) 범위 입력을
+            읽지 않았으면 None — 카테고리를 읽지 않은 규칙의 추론 카드가 그 카테고리의
+            사실처럼 보이지 않게.
+        as_of: 근거 카드 as_of 중 가장 늦은 날짜.
+        identity: 중복 제거 키 (``evaluate_rules_on_cards`` 참고).
+    """
+
+    combination: Combination
+    evaluation: RuleEvaluation
+    derived_from: tuple[str, ...]
+    scope: Combination
+    as_of: str | None
+    identity: tuple[Any, ...]
+
+    def result(self) -> InferenceResult | None:
+        """발화했으면 근거 카드 id·범위·시점을 담은 결과 (규칙 결과의 사본)."""
+        result = self.evaluation.result
+        if result is None:
+            return None
+        snapshot: dict[str, Any] = {
+            name: value
+            for name, value in self.evaluation.inputs.items()
+            if isinstance(value, str | int | float | bool) and name not in ("brand", "category")
+        }
+        brand, category = self.scope
+        if brand is not None:
+            snapshot["brand"] = brand
+        if category is not None:
+            snapshot["category"] = category
+        if self.as_of is not None:
+            snapshot["as_of"] = self.as_of
+        evidence = {
+            **result.evidence,
+            "context_snapshot": snapshot,
+            "derived_from": list(self.derived_from),
+        }
+        return replace(result, evidence=evidence)
+
+
+def _evaluate_on_context(
+    rule: InferenceRule,
+    combination: Combination,
+    context: Mapping[str, Any],
+    card_ids: Mapping[str, tuple[str, ...]],
+    cards_by_id: Mapping[str, Evidence],
+    contracts: Mapping[str, RuleContract],
+) -> CardRuleEvaluation:
+    evaluation = evaluate_rule(rule, context, contracts)
+    contract = contracts.get(rule.name)
+    used = list(evaluation.inputs)
+    derived = sorted({card_id for name in used for card_id in card_ids.get(name, ())})
+
+    brand_scoped = category_scoped = False
+    for name in used:
+        binding = contract.spec(name).binding if contract is not None else None
+        if name in _BRAND_DERIVED_INPUTS or (
+            binding is not None and binding.subject_role in _BRAND_SCOPED_ROLES
+        ):
+            brand_scoped = True
+        if name == "category" or (
+            binding is not None and Role.CATEGORY in (binding.subject_role, binding.object_role)
+        ):
+            category_scoped = True
+    brand, category = combination
+    scope = (brand if brand_scoped else None, category if category_scoped else None)
+
+    dates = [cards_by_id[i].as_of for i in derived if i in cards_by_id and cards_by_id[i].as_of]
+    identity = (
+        rule.name,
+        tuple(
+            sorted(
+                (name, ("cards", card_ids[name]) if name in card_ids else ("value", repr(value)))
+                for name, value in evaluation.inputs.items()
+            )
+        ),
+    )
+    return CardRuleEvaluation(
+        combination=combination,
+        evaluation=evaluation,
+        derived_from=tuple(derived),
+        scope=scope,
+        as_of=max(dates) if dates else None,
+        identity=identity,
+    )
+
+
+@dataclass(frozen=True)
+class RuleRun:
+    """질의 하나의 규칙 평가 (중복 제거 후)."""
+
+    combinations: list[Combination]
+    evaluations: list[CardRuleEvaluation]
+
+    def fired_results(self) -> list[InferenceResult]:
+        """발화 결과 (조합 순 → 규칙 우선순위 순)."""
+        results = (e.result() for e in self.evaluations if e.evaluation.fired)
+        return [result for result in results if result is not None]
+
+    def summary(self) -> dict[str, Any]:
+        """``HybridContext.metadata["rule_evaluation"]`` — 키·모양은 평가 리포트(3-C)가 전제한다.
+
+        - combinations: ``[[brand, category], ...]``
+        - evaluated: 중복 제거 후 판정 수
+        - fired: 발화한 규칙 이름 (중복 없음, 처음 발화한 순서)
+        - non_fire_top: ``[[라벨, 개수], ...]`` 상위 ``NON_FIRE_TOP_LIMIT``개
+        - non_fire_counts_by_kind: ``{사유 종류: 미발화 판정 수}``
+        """
+        evaluations = [e.evaluation for e in self.evaluations]
+        return {
+            "combinations": [[brand, category] for brand, category in self.combinations],
+            "evaluated": len(evaluations),
+            "fired": _unique(e.rule_name for e in evaluations if e.fired),
+            "non_fire_top": [
+                [label, count]
+                for label, count in top_non_fire_reasons(evaluations, NON_FIRE_TOP_LIMIT)
+            ],
+            "non_fire_counts_by_kind": {
+                kind.value: count for kind, count in count_non_fire_kinds(evaluations).items()
+            },
+        }
+
+
+def evaluate_rules_on_cards(
+    rules: Iterable[InferenceRule],
+    cards: Iterable[Evidence],
+    brands: Iterable[str],
+    categories: Iterable[str],
+    contracts: Mapping[str, RuleContract] | None = None,
+) -> RuleRun:
+    """질의 엔티티 조합마다 카드로 컨텍스트를 만들어 규칙을 판정한다 (``rule_combinations``).
+
+    중복 제거: 판정의 정체는 (규칙 이름, 판정에 쓰인 입력마다 근거 카드 id 또는 파생 값)이다.
+    같은 정체는 처음 조합의 판정 하나만 남긴다 — 카테고리를 읽지 않는 규칙(예:
+    brand_ownership_verification)이 브랜드가 진입한 카테고리 수만큼 중복 발화하거나, 같은
+    결측 사유가 조합 수만큼 집계되지 않게. 입력 카드가 다르면(카테고리별 SoS 등) 별개 판정이다.
+    규칙은 입력 이름으로만 컨텍스트를 읽으므로(계약 테스트) 같은 정체는 같은 판정이다.
+
+    Args:
+        brands·categories: canonical id (``EvidenceAdapter`` 정규화와 같은 표기).
+    """
+    card_list = list(cards)
+    rule_list = list(rules)
+    contract_map = RULE_CONTRACTS if contracts is None else contracts
+    cards_by_id = {card.id: card for card in card_list}
+    combinations = rule_combinations(card_list, brands, categories)
+
+    evaluations: list[CardRuleEvaluation] = []
+    seen: set[tuple[Any, ...]] = set()
+    for brand, category in combinations:
+        context, card_ids = build_rule_context(card_list, brand, category, contract_map)
+        for rule in rule_list:
+            evaluated = _evaluate_on_context(
+                rule, (brand, category), context, card_ids, cards_by_id, contract_map
+            )
+            if evaluated.identity in seen:
+                continue
+            seen.add(evaluated.identity)
+            evaluations.append(evaluated)
+    return RuleRun(combinations=combinations, evaluations=evaluations)
+
+
 __all__ = [
+    "MAX_RULE_BRANDS",
+    "MAX_RULE_CATEGORIES",
+    "NON_FIRE_TOP_LIMIT",
     "RULE_CONTRACTS",
+    "TARGET_BRAND",
+    "CardRuleEvaluation",
     "ContractUnit",
     "EvidenceBinding",
     "InputSpec",
@@ -845,8 +1274,12 @@ __all__ = [
     "Role",
     "RuleContract",
     "RuleEvaluation",
+    "RuleRun",
+    "build_rule_context",
     "count_non_fire_kinds",
     "evaluate_all",
     "evaluate_rule",
+    "evaluate_rules_on_cards",
+    "rule_combinations",
     "top_non_fire_reasons",
 ]

@@ -188,6 +188,31 @@ def _convert(
         return default
 
 
+def build_rule_input_cards(
+    *,
+    metric_facts: Iterable[dict[str, Any]] = (),
+    ontology_facts: Iterable[dict[str, Any]] = (),
+    adapter: EvidenceAdapter | None = None,
+    degraded: list[dict[str, Any]] | None = None,
+) -> list[Evidence]:
+    """규칙 추론 입력 카드 (트랙 3-B): DB 수치 → metric 카드, KG 사실 → relation 카드.
+
+    추론 **전에** 만든다. ``_weighted_merge``가 KG 사실을 자르기 전의 사실 전부를 쓴다 —
+    규칙 입력이 프롬프트 선별 상한에 따라 달라지지 않게. 변환 실패는 ``degraded``에 남기고
+    나머지 종류는 계속 만든다 (0-B).
+    """
+    adapter = adapter or EvidenceAdapter()
+    failures = degraded if degraded is not None else []
+    metric_cards = _convert(
+        "rule_input_metric", failures, lambda: adapter.from_metric_facts(metric_facts), []
+    )
+    kg_result = _convert(
+        "rule_input_relation", failures, lambda: adapter.from_kg_facts(ontology_facts), None
+    )
+    relation_cards = kg_result.cards if kg_result is not None else []
+    return EvidenceSet([*metric_cards, *relation_cards]).to_list()
+
+
 def assemble_evidence(
     *,
     entities: Mapping[str, Sequence[str]] | None = None,
@@ -197,11 +222,16 @@ def assemble_evidence(
     rag_chunks: Iterable[dict[str, Any]] = (),
     adapter: EvidenceAdapter | None = None,
     max_per_kind: Mapping[EvidenceKind, int] | None = None,
+    input_cards: Iterable[Evidence] = (),
 ) -> EvidenceBundle:
     """검색 결과 필드 → 카드 전체·프롬프트 카드.
 
     ``evidence`` 순서: metric(그룹 우선순위 순) → relation(술어 우선순위 순) → inference → document.
-    ``inferences``의 ``derived_from``은 비워 둔다 (규칙 입력 계약은 트랙 3-B).
+
+    inference 카드의 ``derived_from``은 추론 결과의 ``evidence["derived_from"]``(규칙 입력
+    카드 id)이다. 그 근거 카드가 ``ontology_facts``(상한으로 잘린 최종 사실)에서 다시 만들어지지
+    않으면 ``input_cards``(추론 전에 만든 입력 카드)에서 가져와 relation·metric 카드에 더한다 —
+    ``evidence`` 안에서 모든 ``derived_from`` id를 찾을 수 있게.
     """
     adapter = adapter or EvidenceAdapter()
     limits = PROMPT_MAX_PER_KIND if max_per_kind is None else max_per_kind
@@ -228,6 +258,15 @@ def assemble_evidence(
     document_cards = _convert(
         "evidence_document", degraded, lambda: adapter.from_rag_chunks(rag_chunks), []
     )
+
+    known_ids = {card.id for card in [*metric_cards, *relation_cards]}
+    needed_ids = {i for card in inference_cards for i in card.derived_from} - known_ids
+    basis_cards = EvidenceSet(card for card in input_cards if card.id in needed_ids).to_list()
+    if basis_cards:
+        metric_cards = [*metric_cards, *(c for c in basis_cards if c.kind is EvidenceKind.METRIC)]
+        relation_cards = order_relation_cards(
+            [*relation_cards, *(c for c in basis_cards if c.kind is EvidenceKind.RELATION)]
+        )
 
     ordered_metrics, capped_metrics = order_metric_cards(metric_cards, query_brands)
 

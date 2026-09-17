@@ -96,6 +96,11 @@ from .relations import InferenceResult, InsightType
 # 로거 설정
 logger = logging.getLogger(__name__)
 
+# 결론 dict 중 InferenceResult의 전용 필드로 옮기는 키. 나머지는 InferenceResult.conclusion.
+_MAPPED_CONCLUSION_KEYS = frozenset(
+    {"insight", "recommendation", "related_entities", "metadata", "confidence_modifier"}
+)
+
 
 @dataclass
 class RuleCondition:
@@ -199,6 +204,13 @@ class InferenceRule:
                     "priority": self.priority,
                     "tags": self.tags,
                     **conclusion_data.get("metadata", {}),
+                },
+                # position·market_structure·risk 같은 결론 값은 예전에 여기서 버려졌다 —
+                # 추론 카드의 value가 결론 대신 metadata의 market_type을 쓰던 원인
+                conclusion={
+                    key: value
+                    for key, value in conclusion_data.items()
+                    if key not in _MAPPED_CONCLUSION_KEYS
                 },
             )
         except Exception as e:
@@ -548,6 +560,11 @@ class OntologyReasoner:
     # =========================================================================
     # 히스토리 관리
     # =========================================================================
+
+    def record_inference(self, context: dict[str, Any], results: list[InferenceResult]) -> None:
+        """``infer`` 밖에서 규칙을 판정한 호출자(계약 래퍼 ``evaluate_all`` 경로)가
+        추론 통계(``get_inference_stats``)에 결과를 남긴다."""
+        self._record_inference(context, results)
 
     def _record_inference(self, context: dict[str, Any], results: list[InferenceResult]) -> None:
         """추론 히스토리 기록"""

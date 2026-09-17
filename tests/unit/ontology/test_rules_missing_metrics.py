@@ -8,10 +8,11 @@ StandardConditions.hhi_below/sos_below가 결측을 0으로 읽어 조건을 통
 (docs/experiments/eval_cycle10_2026-09-12.md §2-d)
 """
 
+from src.ontology.rule_contracts import build_rule_context
 from src.ontology.rules.growth_rules import RULE_CATEGORY_OPPORTUNITY
 from src.ontology.rules.market_rules import RULE_FRAGMENTED_COMPETITION
 from src.ontology.rules.price_rules import RULE_BESTSELLER_BADGE_EFFECT, RULE_PREMIUM_POSITION
-from src.rag.hybrid_retriever import HybridRetriever
+from src.rag.evidence_adapters import EvidenceAdapter
 
 COMPETITORS = [{"brand": f"brand_{i}"} for i in range(13)]
 
@@ -60,33 +61,59 @@ class TestFabricatedMetricsAreNotEmitted:
 
 
 class TestInferenceContextDoesNotInjectDefaults:
+    """추론 컨텍스트는 증거 카드에서만 만든다 (트랙 3-B). 결측 수치는 카드가 없으므로 키도 없다.
+
+    예전에는 ``HybridRetriever._build_inference_context``가 대시보드 JSON에서 읽었고, 같은
+    원칙을 그 함수에 대해 고정했다. 그 함수는 카드 기반 ``build_rule_context``로 바뀌었다.
+    """
+
     @staticmethod
-    def _retriever() -> HybridRetriever:
-        # 브랜드 엔티티가 없으면 KG에 접근하지 않으므로 초기화 없이 쓸 수 있다
-        return HybridRetriever.__new__(HybridRetriever)
+    def _context(facts, brand=None, category="lip_care"):
+        cards = EvidenceAdapter().from_metric_facts(facts)
+        context, _ = build_rule_context(cards, brand, category)
+        return context
 
     def test_null_market_fields_stay_absent(self):
-        metrics = {
-            "market_metrics": [
-                {"category_id": "lip_care", "hhi": None, "cpi": None, "churn_rate_7d": None}
-            ]
-        }
+        facts = [
+            {
+                "type": "category_market",
+                "category": "lip_care",
+                "snapshot_date": "2026-08-31",
+                "hhi": None,
+                "churn_rate": None,
+            }
+        ]
 
-        context = self._retriever()._build_inference_context({"categories": ["lip_care"]}, metrics)
+        context = self._context(facts)
 
         for key in ("hhi", "cpi", "churn_rate", "rating_gap"):
             assert key not in context, f"{key}가 결측인데 기본값으로 채워졌다"
 
     def test_present_market_fields_are_kept(self):
-        metrics = {"market_metrics": [{"category_id": "lip_care", "hhi": 0.0681}]}
+        facts = [
+            {
+                "type": "category_market",
+                "category": "lip_care",
+                "snapshot_date": "2026-08-31",
+                "hhi": 0.0681,
+            }
+        ]
 
-        context = self._retriever()._build_inference_context({"categories": ["lip_care"]}, metrics)
+        context = self._context(facts)
 
         assert context["hhi"] == 0.0681
 
     def test_missing_brand_share_is_not_zero(self):
-        metrics = {"brand_metrics": [{"is_laneige": True, "avg_rank": 8.5}]}
+        facts = [
+            {
+                "type": "brand_share",
+                "brand": "LANEIGE",
+                "category": "lip_care",
+                "snapshot_date": "2026-08-31",
+                "present": False,
+            }
+        ]
 
-        context = self._retriever()._build_inference_context({"categories": ["lip_care"]}, metrics)
+        context = self._context(facts, brand="laneige")
 
         assert "sos" not in context

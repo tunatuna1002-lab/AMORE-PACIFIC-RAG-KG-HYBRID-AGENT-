@@ -337,6 +337,9 @@ class InferenceResult:
         recommendation: 권장 액션
         related_entities: 관련 엔티티들
         metadata: 추가 메타데이터
+        conclusion: 결론 dict에서 위 필드로 옮겨지지 않은 결론 값
+            (``position``·``market_structure``·``risk``·``opportunity`` 등).
+            ``InferenceRule.apply``가 채운다.
     """
 
     rule_name: str
@@ -347,6 +350,7 @@ class InferenceResult:
     recommendation: str | None = None
     related_entities: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    conclusion: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """딕셔너리 변환"""
@@ -359,6 +363,7 @@ class InferenceResult:
             "recommendation": self.recommendation,
             "related_entities": self.related_entities,
             "metadata": self.metadata,
+            "conclusion": self.conclusion,
         }
 
     def __repr__(self):
