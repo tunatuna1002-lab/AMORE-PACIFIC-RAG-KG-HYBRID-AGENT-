@@ -70,7 +70,7 @@ from .response_pipeline import ResponsePipeline
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
 from .tool_coordinator import ToolCoordinator
-from .tools import AGENT_TOOLS, ToolExecutor
+from .tool_registry import ToolRegistry
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
@@ -161,7 +161,7 @@ class UnifiedBrain:
     def __init__(
         self,
         context_gatherer: ContextGatherer | None = None,
-        tool_executor: ToolExecutor | None = None,
+        tool_executor: ToolRegistry | None = None,
         response_pipeline: ResponsePipeline | None = None,
         cache: ResponseCache | None = None,
         model: str = DEFAULT_MODEL,
@@ -170,7 +170,7 @@ class UnifiedBrain:
         """
         Args:
             context_gatherer: 컨텍스트 수집기
-            tool_executor: 도구 실행기
+            tool_executor: 도구 레지스트리 (읽기 전용 도구 5종)
             response_pipeline: 응답 파이프라인
             cache: 응답 캐시
             model: LLM 모델
@@ -187,7 +187,8 @@ class UnifiedBrain:
 
         # 외부 주입 또는 기본 컴포넌트
         self._context_gatherer = context_gatherer
-        self._tool_executor = tool_executor or ToolExecutor()
+        # 읽기 전용 도구 레지스트리 — DecisionMaker·ToolCoordinator·ReAct가 같은 객체를 본다
+        self._tool_executor = tool_executor or ToolRegistry()
         self._response_pipeline = response_pipeline
 
         # SRP 분해된 내부 컴포넌트 (lazy init)
@@ -253,8 +254,8 @@ class UnifiedBrain:
         self._context_gatherer = value
 
     @property
-    def tool_executor(self) -> ToolExecutor:
-        """도구 실행기"""
+    def tool_executor(self) -> ToolRegistry:
+        """도구 레지스트리 (읽기 전용 도구 5종)"""
         return self._tool_executor
 
     @property
@@ -354,6 +355,9 @@ class UnifiedBrain:
         # AlertManager 초기화
         await self.alert_manager.initialize()
 
+        # 도구 레지스트리 배선 (ReAct 실행기가 같은 레지스트리를 쓰므로 먼저 한다)
+        self._bind_tool_registry()
+
         # ReActAgent 초기화 (피처 플래그)
         self._init_react_agent()
 
@@ -373,9 +377,6 @@ class UnifiedBrain:
 
         self.on_event("crawl_complete", _on_crawl_complete)
 
-        # v3 대시보드 도구 등록
-        self._register_dashboard_tools()
-
         # Initialize query processing graph
         self._query_graph = QueryGraph(
             cache=self.cache,
@@ -389,6 +390,25 @@ class UnifiedBrain:
 
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
+
+    def _bind_tool_registry(self) -> None:
+        """읽기 전용 도구 레지스트리를 검색기에 연결한다 (트랙 4-A).
+
+        예전에는 여기서 대시보드 JSON(dashboard_data.json)을 읽는 도구 5종
+        (get_brand_status·get_product_info·get_competitor_analysis·get_category_info·
+        get_action_items)을 등록했다. 그 JSON은 날짜가 없는 캐시라 수치 근거가 될 수 없었고
+        (E2와 같은 이유), ReAct는 또 다른 도구 3종을 따로 갖고 있어 경로마다 도구가 달랐다.
+        이제 도구는 ``tool_registry``의 5종뿐이고, 백엔드는 검색과 같은 HybridRetriever다.
+        """
+        retriever = getattr(self._context_gatherer, "retriever", None)
+        if retriever is None:
+            logger.warning("Tool registry not bound: context gatherer has no retriever")
+            return
+        if isinstance(self._tool_executor, ToolRegistry):
+            self._tool_executor.bind(retriever)
+            logger.info(
+                f"Tool registry bound: {', '.join(self._tool_executor.get_available_tools())}"
+            )
 
     def _init_react_agent(self) -> None:
         """ReActAgent를 전용 읽기 전용 도구 실행기와 함께 연결한다.
@@ -410,16 +430,14 @@ class UnifiedBrain:
             from .react_agent import ALLOWED_ACTIONS, ReActAgent
             from .react_tools import build_react_tool_executor
 
-            executor = build_react_tool_executor(
-                knowledge_graph=getattr(self, "_knowledge_graph", None)
-            )
+            executor = build_react_tool_executor(self._tool_executor)
             missing = (ALLOWED_ACTIONS - {"final_answer", "refine_search"}) - set(
                 executor.get_available_tools()
             )
             if missing:
                 logger.warning(f"ReActAgent: allowed actions without executor: {sorted(missing)}")
 
-            # 싱글톤을 쓰지 않는다: 도구 실행기는 이 Brain의 KG에 묶여 있다
+            # 싱글톤을 쓰지 않는다: 도구 실행기는 이 Brain의 레지스트리(=검색기)에 묶여 있다
             agent = ReActAgent()
             agent.set_tool_executor(executor)
             self._react_agent = agent
@@ -798,116 +816,6 @@ class UnifiedBrain:
             logger.info(f"KG synced: {len(brand_metrics)} brands")
         except Exception as e:
             logger.warning(f"KG sync failed: {e}")
-
-    # =========================================================================
-    # v3 대시보드 도구 등록 (Phase 3)
-    # =========================================================================
-
-    def _register_dashboard_tools(self) -> None:
-        """v3 대시보드 조회 도구를 ToolCoordinator에 등록"""
-        import json
-
-        data_path = os.environ.get("DASHBOARD_DATA_PATH", f"{_DATA_DIR}/dashboard_data.json")
-
-        def _load_dashboard_data() -> dict:
-            """대시보드 데이터 로드"""
-            try:
-                with open(data_path, encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.error(f"Failed to load dashboard data: {e}")
-                return {}
-
-        async def exec_brand_status(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            brand = data.get("brand", {})
-            kpis = brand.get("kpis", {})
-            return {
-                "brand": "LANEIGE",
-                "sos": kpis.get("sos", 0),
-                "sos_change": kpis.get("sos_delta") or "N/A",
-                "top10_products": kpis.get("top10_count", 0),
-                "avg_rank": kpis.get("avg_rank", 0),
-                "hhi": kpis.get("hhi", 0),
-                "total_products": data.get("metadata", {}).get("laneige_products", 0),
-            }
-
-        async def exec_product_info(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            product_name = kwargs.get("product_name", "")
-            products = data.get("products", {})
-
-            # ASIN으로 검색
-            if product_name.upper().startswith("B0"):
-                product = products.get(product_name.upper())
-                if product:
-                    return product
-
-            # 제품명으로 검색
-            for _asin, prod in products.items():
-                name = prod.get("name", "").lower()
-                if product_name.lower() in name:
-                    return prod
-
-            # 모든 LANEIGE 제품 목록
-            laneige_products = [
-                {"asin": k, "name": v.get("name", "")[:50], "rank": v.get("rank")}
-                for k, v in products.items()
-            ]
-            return {
-                "message": f"'{product_name}' 제품을 찾을 수 없습니다.",
-                "available_products": laneige_products,
-            }
-
-        async def exec_competitor_analysis(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            brand_name = kwargs.get("brand_name")
-            competitors = data.get("brand", {}).get("competitors", [])
-
-            if brand_name:
-                for comp in competitors:
-                    if brand_name.lower() in comp.get("brand", "").lower():
-                        return comp
-                return {"message": f"'{brand_name}' 브랜드를 찾을 수 없습니다."}
-
-            return {
-                "competitors": competitors[:10],
-                "laneige_rank": next(
-                    (i + 1 for i, c in enumerate(competitors) if "LANEIGE" in c.get("brand", "")),
-                    "N/A",
-                ),
-            }
-
-        async def exec_category_info(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            category = kwargs.get("category")
-            categories = data.get("categories", {})
-
-            if category:
-                cat_data = categories.get(category) or categories.get(category.lower())
-                if cat_data:
-                    return cat_data
-                return {"message": f"'{category}' 카테고리를 찾을 수 없습니다."}
-
-            return categories
-
-        async def exec_action_items(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            home = data.get("home", {})
-            return {
-                "status": home.get("status", {}),
-                "action_items": home.get("action_items", []),
-            }
-
-        # ToolCoordinator의 ToolExecutor에 등록
-        executor = self.tool_coordinator.tool_executor
-        executor.register_executor("get_brand_status", exec_brand_status)
-        executor.register_executor("get_product_info", exec_product_info)
-        executor.register_executor("get_competitor_analysis", exec_competitor_analysis)
-        executor.register_executor("get_category_info", exec_category_info)
-        executor.register_executor("get_action_items", exec_action_items)
-
-        logger.info("Registered 5 v3 dashboard tools in ToolCoordinator")
 
     # =========================================================================
     # 응답 생성
@@ -1413,16 +1321,6 @@ class UnifiedBrain:
         ]
         if state["failed_tools"]:
             lines.append(f"- 실패 도구: {', '.join(state['failed_tools'])}")
-        return "\n".join(lines)
-
-    def _format_tools_description(self, state: dict[str, Any]) -> str:
-        """도구 설명 포맷"""
-        available = state.get("available_tools", [])
-        lines = []
-        for name, tool in AGENT_TOOLS.items():
-            if name in available:
-                lines.append(f"- {name}: {tool.description}")
-        lines.append("- direct_answer: 컨텍스트만으로 직접 답변")
         return "\n".join(lines)
 
     # =========================================================================

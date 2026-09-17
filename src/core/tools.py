@@ -1,7 +1,15 @@
 """
-에이전트 도구 정의
-==================
+에이전트 도구 정의 (레거시)
+===========================
 OpenAI Function Calling 형식의 도구 정의
+
+.. deprecated:: 트랙 4-A
+   에이전트가 실제로 쓰는 도구는 ``src/core/tool_registry.py``의 읽기 전용 5종뿐이다.
+   UnifiedBrain·DecisionMaker·ToolCoordinator·ReAct는 모두 그 레지스트리를 본다.
+   이 모듈은 레거시 ``core/llm_orchestrator.py``만 쓰고 있어 남겨 두었고, 대시보드 JSON을
+   읽던 도구 5종(get_brand_status·get_product_info·get_competitor_analysis·
+   get_category_info·get_action_items)은 제거했다 — 날짜 없는 캐시 JSON이라 수치 근거가
+   될 수 없었다.
 
 역할:
 - LLM이 호출할 수 있는 도구(함수) 정의
@@ -9,10 +17,8 @@ OpenAI Function Calling 형식의 도구 정의
 - 도구 실행 인터페이스 제공
 
 연결 파일:
-- agents/crawler_agent.py: crawl_amazon 도구
-- agents/metrics_agent.py: calculate_metrics 도구
 - core/models.py: ToolResult
-- core/llm_orchestrator.py: 도구 실행 호출
+- core/llm_orchestrator.py: 도구 실행 호출 (레거시)
 """
 
 import logging
@@ -274,73 +280,6 @@ QUERY_DEALS_SUMMARY_TOOL = AgentTool(
 )
 
 
-# 8. 브랜드 상태 조회 도구 (v3 포팅)
-GET_BRAND_STATUS_TOOL = AgentTool(
-    name="get_brand_status",
-    description="LANEIGE 브랜드의 현재 KPI 상태를 조회합니다. SoS, 순위, Top10 제품 수 등을 확인합니다.",
-    parameters=[],
-    requires_data=True,
-    requires_crawl=False,
-)
-
-# 9. 제품 정보 조회 도구 (v3 포팅)
-GET_PRODUCT_INFO_TOOL = AgentTool(
-    name="get_product_info",
-    description="특정 LANEIGE 제품의 상세 정보를 조회합니다. ASIN 또는 제품명으로 검색합니다.",
-    parameters=[
-        ToolParameter(
-            name="product_name",
-            type="string",
-            description="제품명 또는 ASIN (예: 'Lip Sleeping Mask' 또는 'B09...')",
-            required=True,
-        )
-    ],
-    requires_data=True,
-    requires_crawl=False,
-)
-
-# 10. 경쟁사 분석 도구 (v3 포팅)
-GET_COMPETITOR_ANALYSIS_TOOL = AgentTool(
-    name="get_competitor_analysis",
-    description="경쟁사 대비 LANEIGE의 포지션을 분석합니다. 특정 브랜드 또는 전체 경쟁사 현황을 조회합니다.",
-    parameters=[
-        ToolParameter(
-            name="brand_name",
-            type="string",
-            description="분석할 경쟁 브랜드명 (비우면 전체 경쟁사)",
-            required=False,
-        )
-    ],
-    requires_data=True,
-    requires_crawl=False,
-)
-
-# 11. 카테고리 정보 도구 (v3 포팅)
-GET_CATEGORY_INFO_TOOL = AgentTool(
-    name="get_category_info",
-    description="카테고리별 KPI와 트렌드 정보를 조회합니다.",
-    parameters=[
-        ToolParameter(
-            name="category",
-            type="string",
-            description="카테고리명 (예: 'lip_care', 'skin_care'). 비우면 전체 카테고리.",
-            required=False,
-        )
-    ],
-    requires_data=True,
-    requires_crawl=False,
-)
-
-# 12. 액션 아이템 도구 (v3 포팅)
-GET_ACTION_ITEMS_TOOL = AgentTool(
-    name="get_action_items",
-    description="현재 LANEIGE 브랜드의 액션 아이템 및 상태 요약을 조회합니다.",
-    parameters=[],
-    requires_data=True,
-    requires_crawl=False,
-)
-
-
 # =============================================================================
 # 도구 레지스트리
 # =============================================================================
@@ -354,12 +293,6 @@ AGENT_TOOLS: dict[str, AgentTool] = {
     "direct_answer": DIRECT_ANSWER_TOOL,
     "query_deals": QUERY_DEALS_TOOL,
     "query_deals_summary": QUERY_DEALS_SUMMARY_TOOL,
-    # v3 대시보드 도구 (포팅)
-    "get_brand_status": GET_BRAND_STATUS_TOOL,
-    "get_product_info": GET_PRODUCT_INFO_TOOL,
-    "get_competitor_analysis": GET_COMPETITOR_ANALYSIS_TOOL,
-    "get_category_info": GET_CATEGORY_INFO_TOOL,
-    "get_action_items": GET_ACTION_ITEMS_TOOL,
 }
 
 

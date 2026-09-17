@@ -16,6 +16,10 @@ import re
 logger = logging.getLogger(__name__)
 
 
+# 함수 도구 선언 누출 표기: ``type <이름> = (_: {...}) => ...``
+_TOOL_TYPE_LEAK = re.compile(r"\btype\s+[a-z_][a-z0-9_]*\s*=\s*\(")
+
+
 class PromptGuard:
     """프롬프트 인젝션 방어 시스템"""
 
@@ -212,8 +216,11 @@ class PromptGuard:
             (is_safe, sanitized_text)
         """
         # 시스템 프롬프트 전체 노출 감지 (먼저 체크 — regex 치환 전)
+        # 도구 정의가 새어 나올 때의 표기(OpenAI가 함수 도구를 TypeScript 선언처럼 렌더링한다)를
+        # 도구 이름과 무관하게 잡는다. 예전에는 `type get_brand_status`라는 이름 하나만 막아서
+        # 도구 이름이 바뀌면(트랙 4-A) 보호가 사라졌다.
         text_lower = text.lower()
-        if "namespace functions" in text_lower or "type get_brand_status" in text_lower:
+        if "namespace functions" in text_lower or _TOOL_TYPE_LEAK.search(text_lower):
             logger.warning("System prompt leak detected - blocking response")
             return (
                 False,

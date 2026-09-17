@@ -146,6 +146,19 @@ class BrainEvalAdapter:
         retriever.retrieve = retrieve
         retriever.retrieve_unified = retrieve_unified
 
+        # 도구 실행(DecisionMaker 경로): 결과 카드가 답변 프롬프트에 실리므로 트레이스에도 싣는다
+        coordinator = self.brain.tool_coordinator
+        original_execute = coordinator.execute
+
+        async def execute(*args: Any, **kwargs: Any) -> Any:
+            result = await original_execute(*args, **kwargs)
+            holder = _CURRENT_REQUEST.get()
+            if holder is not None:
+                holder.setdefault("tool_results", []).append(result)
+            return result
+
+        coordinator.execute = execute
+
         react = getattr(self.brain, "_react_agent", None)
         if react is not None:
             original_run = react.run
@@ -204,6 +217,17 @@ class BrainEvalAdapter:
             )
         else:
             trace = V4RetrievalTrace(query=query)
+
+        # DecisionMaker 경로의 도구 결과 카드 (레지스트리 도구는 결과가 전부 카드다, 트랙 4-A).
+        # ResponsePipeline이 이 카드를 답변 프롬프트에 싣는다 → judge 근거성 컨텍스트도 같게.
+        from src.core.tool_registry import tool_evidence
+
+        seen_ids = {card.id for card in trace.prompt_evidence}
+        for tool_result in holder.get("tool_results") or []:
+            for card in tool_evidence(tool_result):
+                if card.id not in seen_ids:
+                    seen_ids.add(card.id)
+                    trace.prompt_evidence.append(card)
 
         # ReAct 도구 관찰도 답변의 근거다 — judge 근거성 컨텍스트에 싣는다.
         # observation 카드로 만들어 prompt_evidence에 싣는다(검색이 만든 evidence와는

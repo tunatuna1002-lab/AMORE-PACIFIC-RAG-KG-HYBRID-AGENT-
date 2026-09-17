@@ -27,51 +27,43 @@ from litellm import acompletion
 
 from src.shared.constants import DEFAULT_MODEL
 
+from .tool_registry import TOOL_DEFINITIONS, TOOL_NAMES, TOOL_SEARCH_DOCS
+
 logger = logging.getLogger(__name__)
 
 
 # _format_steps가 프롬프트에 싣는 관찰 길이 상한
 OBSERVATION_CHARS = 1500
 
-# Security: 허용된 액션 목록
+# 루프 제어 액션 (도구가 아니다): 답을 내거나(final_answer) 추가 조회를 요청한다(refine_search)
+FINAL_ANSWER_ACTION = "final_answer"
+REFINE_SEARCH_ACTION = "refine_search"
+
+# refine_search가 실행하는 도구 — IRCoT의 "추가 검색"은 문서 검색이다 (트랙 4-A).
+# 예전에는 지금은 없는 query_data로 실행했다.
+REFINE_SEARCH_TOOL = TOOL_SEARCH_DOCS
+
+# Security: 허용된 액션 목록 — 도구는 단일 레지스트리(tool_registry)에서 온다
 ALLOWED_ACTIONS: frozenset[str] = frozenset(
-    {
-        "query_data",
-        "query_knowledge_graph",
-        "calculate_metrics",
-        "final_answer",
-        "refine_search",
-    }
+    {*TOOL_NAMES, FINAL_ANSWER_ACTION, REFINE_SEARCH_ACTION}
 )
 
-# Security: 각 액션별 허용 파라미터 스키마
+# Security: 각 액션별 허용 파라미터 스키마 (도구 파라미터는 레지스트리 정의에서 생성)
 ACTION_SCHEMAS: dict[str, dict[str, type]] = {
-    "query_data": {
-        "category": str,
-        "brand": str,
-        "date_range": str,
-        "limit": int,
-    },
-    "query_knowledge_graph": {
-        "entity": str,
-        "relation": str,
-        "depth": int,
-    },
-    "calculate_metrics": {
-        "metric_type": str,
-        "brands": list,
-        "period": str,
-    },
-    "final_answer": {
+    **{d.name: d.parameter_types() for d in TOOL_DEFINITIONS},
+    FINAL_ANSWER_ACTION: {
         "answer": str,
         "confidence": float,
     },
-    "refine_search": {
+    REFINE_SEARCH_ACTION: {
         "refined_query": str,
         "reason": str,
         "focus_entities": list,
     },
 }
+
+# 프롬프트에 싣는 도구 목록 (설명·파라미터 서명은 레지스트리 정의가 정본)
+AVAILABLE_ACTIONS_TEXT = "\n".join(f"- {d.signature()}: {d.description}" for d in TOOL_DEFINITIONS)
 
 
 def validate_action(action: str, action_input: dict[str, Any] | None) -> tuple[bool, str]:
@@ -154,13 +146,13 @@ ReAct 패턴으로 사고하세요:
 3. **Action Input**: 행동에 필요한 파라미터 (JSON)
 
 사용 가능한 행동 (모두 읽기 전용):
-- query_data: 크롤 DB의 SoS·HHI·순위·가격 수치. {{"brand": "LANEIGE", "category": "Lip Care"}}
-- query_knowledge_graph: 경쟁사·제품·카테고리 브랜드 관계.
-  {{"entity": "LANEIGE", "relation": "competitors|products|category|all"}}
-- calculate_metrics: 최신 스냅샷에서 SoS·HHI·CPI 계산.
-  {{"metric_type": "sos", "brands": ["LANEIGE"], "category_id": "lip_care"}}
-- refine_search: 이전 관찰을 바탕으로 추가 조회. {{"refined_query": "...", "reason": "..."}}
+__AVAILABLE_ACTIONS__
+- refine_search: 이전 관찰을 바탕으로 문서를 추가 검색. {{"refined_query": "...", "reason": "..."}}
 - final_answer: 최종 답변. {{"answer": "관찰에 근거한 답변", "confidence": 0.0-1.0}}
+
+Action Input은 위 서명에 있는 파라미터만 쓰세요 (모르는 파라미터는 거부됩니다).
+관찰에는 근거 카드 id가 [M-xxxxxx]처럼 붙습니다. 최종 답변의 수치는 그 카드에서만 가져오고
+문장 끝에 같은 id를 인용하세요.
 
 **Multi-hop 추론**: 복잡한 질문은 여러 단계로 나눠서 해결하세요.
 - 1단계: 핵심 엔티티 정보 수집
@@ -182,7 +174,9 @@ JSON 형식으로 응답:
 }}
 ```
 
-"final_answer" action을 선택하면 루프가 종료됩니다."""
+"final_answer" action을 선택하면 루프가 종료됩니다.""".replace(
+        "__AVAILABLE_ACTIONS__", AVAILABLE_ACTIONS_TEXT
+    )
 
     REFLECTION_PROMPT = """## 자체 평가
 다음 응답의 품질을 평가하세요:
@@ -361,13 +355,13 @@ JSON으로 응답:
             if step.observation and step is not current_step:
                 previous_observations.append(step.observation)
 
-        # refine_search를 query_data로 실행
-        search_params: dict[str, Any] = {"category": refined_query}
-        if focus_entities:
-            search_params["brand"] = ", ".join(str(e) for e in focus_entities)
+        # refine_search는 문서 검색(search_docs)으로 실행한다 — IRCoT의 "추가 검색" (트랙 4-A).
+        # 이전에는 query_data로 실행했는데 그 도구는 레지스트리에서 사라졌다.
+        query_parts = [str(refined_query)] + [str(e) for e in focus_entities]
+        search_params: dict[str, Any] = {"query": " ".join(p for p in query_parts if p)}
 
         try:
-            result = await self.tool_executor.execute("query_data", search_params)
+            result = await self.tool_executor.execute(REFINE_SEARCH_TOOL, search_params)
             new_observation = str(result.data) if result.success else (result.error or "")
         except Exception as e:
             new_observation = f"Error: {e}"
