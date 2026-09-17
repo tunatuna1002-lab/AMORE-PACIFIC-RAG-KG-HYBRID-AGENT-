@@ -274,9 +274,9 @@
 
 | 트랙 | 커밋 | 내용 | 병합 전 리드 확인 |
 |---|---|---|---|
-| 5-A | `d0d0b8b`~`f3df05f`(3개), `03c0026` | 스트리밍을 QueryGraph 한 경로로 통합(E5). brain의 중복 6개(`_generate_response`·`_is_complex_query`·`_process_with_react`·`_assess_confidence_level`·`_assess_query_intent`·`_extract_key_points_from_context`) 삭제. 스트림에 캐시·복합질의·metadata가 생김 | 특성화 테스트 18개를 리팩터 **전** 통과 상태로 커밋한 뒤 후속 변경 확인 |
+| 5-A | `fb14465` `25e44ef` `f3df05f`, `03c0026` | 스트리밍을 QueryGraph 한 경로로 통합(E5). brain의 중복 6개(`_generate_response`·`_is_complex_query`·`_process_with_react`·`_assess_confidence_level`·`_assess_query_intent`·`_extract_key_points_from_context`) 삭제. 스트림에 캐시·복합질의·metadata가 생김 | 특성화 테스트 18개를 리팩터 **전** 통과 상태로 커밋한 뒤 후속 변경 확인 |
 | 5-B | `bb0627f` `450e9d1` `886fd9c` `5fb6030`, `4e59cb4` | 신뢰도를 개수 합 → **적합도**로 교체(E6). 1차 식은 검색 점수 분포가 HIGH를 혼자 결정하는 결함이 있어 재작업(결정 S5-1) → `0.60×엔티티 충족도 + 0.40×증거 종류 충족 ± 0.05×검색 분포`, 임계 0.95/0.61/0.60 | 재작업 지시·회귀 테스트(문서 0·1·2건에서도 HIGH) 확인 |
-| 5-C | `49700ac`~`69c72f0`(5개), `c62b8b1` | 홉 수 라우터 `src/core/router.py`(E7), ReAct를 네이티브 function calling으로 전환 + 문항당 토큰 예산(기본 12,000), ReAct `sources` 형식 버그 수정, 그림자 모드 플래그 `agents.react_shadow_mode`(기본 OFF) | RED 확인, 패리티 테스트의 ReAct 대역을 function calling 모양으로 맞춤 |
+| 5-C | `122f04c` `eaf2894` `2a02958` `ad56659` `d1ceae4`, `f4c8319` | 홉 수 라우터 `src/core/router.py`(E7), ReAct를 네이티브 function calling으로 전환 + 문항당 토큰 예산(기본 12,000), ReAct `sources` 형식 버그 수정, 그림자 모드 플래그 `agents.react_shadow_mode`(기본 OFF) | RED 확인, 패리티 테스트의 ReAct 대역을 function calling 모양으로 맞춤 |
 
 전체 테스트(`ba714eb`): **6,004 passed / 7 skipped / 0 failed**, 커버리지 69.10%.
 
