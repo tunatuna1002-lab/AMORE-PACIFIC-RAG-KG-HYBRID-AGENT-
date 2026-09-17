@@ -1,0 +1,134 @@
+{
+  "item_id": "lg165",
+  "question": "오늘 날씨 어때?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.043478260869565216,
+    "semantic_similarity": 0.44394049048423767,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 1.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7495343542885089,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg165",
+    "timestamp": "2026-09-17T16:32:03.360282",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_3_3",
+        "kbeauty_industry_3_1",
+        "home_insight_rules_10",
+        "home_insight_rules_3_0",
+        "negative_issue_response_table_0",
+        "strategic_indicators_3_1",
+        "home_insight_rules_3_1",
+        "metric_interpretation_4_0"
+      ],
+      "snippets": [
+        " 진정되는 과정을 보여줌.  \n   * **메시지:** \"무너진 피부 장벽, 긴급 구조가 필요할 땐 라네즈 워터 사이언스.\"  \n   * **심리적 트리거:** 피부 트러블에 대한 공포와 해결책(솔루션)에 대한 갈망.20  \n5. **\"Mix Your Flavor\" (참여형 훅 \\- TikTok)**  \n   * **컨셉:** 두 가지 다른 맛의 립 슬리핑",
+        "2. **K-뷰티****의 핵심: 개인 맞춤형 관리 및 일상화된 루틴** \n  1. 덴마크에서 온 K-팝 팬들은 한국 여성들의 피부 비결에 대한 궁금증으로 피부 관리 쇼를 방문한다 \n  2. 피부 관리 쇼에서는 피부 민감도를 측정하여 (1이 가장 강하고, 10이 가장 약함) 개인별 맞춤 처방을 제시한다 \n  3. 필요한 성분을 적정량씩 덜어 현장에서 제품을",
+        "1.8 Chat Entry CTA (Home 전용 챗봇 진입)\n\n### 목표\n- Home 요약을 기반으로 “해석”만 요청하도록 유도\n\n### UI 문구\n- 버튼: “오늘 상황을 어떻게 해석하면 좋을까요?”\n- 안내: “지표 해석과 판단 보조만 제공합니다(결론·예측·원인 확정 없음).”\n\n### 챗봇에 전달할 컨텍스트(권장)\n- 현재 선택한 brand/mar",
+        "1.1 Daily Insight Summary (오늘의 한 줄 요약)\n\n### 목표\n- 1문장으로 “현재 상태”를 요약\n- **리스크가 있으면 리스크 우선**, 없으면 “안정” 중심\n\n### 문장 톤\n- 반드시 완곡 표현 사용:\n  - “~일 수 있습니다”, “~가능성이 있습니다”, “~신호로 해석될 수 있습니다”\n- 금지 표현:\n  - “원인은 ~입니다”",
+        "| 비교 항목 | 한국 오리지널 버전 (Global) | 미국 현지화 버전 (US Official) | 소비자 반응 키워드 |\n| :---- | :---- | :---- | :---- |\n| **표기명** | SPF 50+ PA++++ | SPF 45 Broad Spectrum | \"혼란스럽다\", \"왜 SPF가 줄었나\" |\n| **핵심 필터** | Uvin",
+        "- **주의사항**\n- 원인 확정 불가\n- 단기 노이즈 가능성 존재\n\n---\n\n### 9. Streak Days\n\n- **정의**\n- Top N 랭킹 내 연속 체류 일수\n\n- **산출식**\nStreak Days = Count(Consecutive Days in Top N)\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석 포인트**\n- 제품의",
+        "### 템플릿(예시)\n- 이상 신호 우선:\n  - “오늘은 일부 상품에서 순위 급변 신호가 감지되어, 단기 모니터링이 필요할 수 있습니다.”\n- 가격·품질 불일치:\n  - “프리미엄 가격 포지션 대비 평점 경쟁력이 낮아, 가격-품질 인식 간 불일치 가능성을 점검해볼 수 있습니다.”\n- 시장 맥락:\n  - “시장 집중도가 높아 경쟁 구도가 고착화된 편으로, ",
+        "C. Level 3: Product & Risk\n### (개별 상품 해석)\n\n---\n\n### 7. Rank Volatility\n\n#### 해석 가이드\n- **높음**\n  - 광고, 이벤트, 단기 이슈 영향 가능성\n- **낮음**\n  - 순위가 안정적이거나 정체 상태\n\n#### 함께 봐야 할 지표\n- Rank Shock\n- Streak Days\n\n#### 주"
+      ],
+      "scores": [
+        5.3690781612927125,
+        4.809319892424342,
+        5.120443516023439,
+        0.2989293336868286,
+        0.23189091682434082,
+        0.2723417282104492,
+        0.23266994953155518,
+        0.2184203863143921
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "죄송하지만 제공된 데이터에는 오늘 날씨에 대한 정보가 포함되어 있지 않습니다. 날씨 정보를 확인하려면 기상청이나 날씨 전문 사이트를 참고해 주세요.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 881,
+      "judge_tokens": 1929,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00014969999999999998,
+      "judge_cost_usd": 0.00045989999999999996
+    },
+    "latency_ms": 3730.0000190734863,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "edge",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

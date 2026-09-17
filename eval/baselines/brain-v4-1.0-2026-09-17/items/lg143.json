@@ -1,0 +1,137 @@
+{
+  "item_id": "lg143",
+  "question": "경쟁사 가격 인하가 시장 HHI에 미치는 영향은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.18791946308724836,
+    "semantic_similarity": 0.7850107550621033,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.8888888889,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.48089705297077495,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg143",
+    "timestamp": "2026-09-17T16:30:22.883652",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "competitor_analysis"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_table_1",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "amazon_algorithm_guide_5_3",
+        "amazon_ranking_diagnosis_4_0",
+        "amazon_algorithm_guide_6_2"
+      ],
+      "snippets": [
+        "| 도구 (Tool) | 주요 분석 지표 (Metrics) | 진단 목적 (Diagnostic Goal) |\n| :---- | :---- | :---- |\n| **Seller Central** | Suppressed Listings, Voice of Customer | 리스팅 기술적 오류 및 고객 불만(NCX) 파악 |\n| **Search Query Per",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "### **5.2 시나리오 B: 경쟁사 제품의 랭킹이 급등했을 때 (Ranking Improved)**\n\n1. **IF \\[가격\\] \\< \\[평소 가격\\] (상당한 인하)**  \n   * **THEN:** 쿠폰(초록색 배지) 적용 여부, 취소선 가격(Strike-through Pricing) 여부를 확인하라.  \n   * **가설:** 가격 탄력성을 이용한",
+        "2. 내부 요인 분석\n\n### 2.1 가격, 쿠폰 및 딜\n\n- **가격 변동이 순위에 미치는 영향**: 아마존은 BSR을 판매량 데이터로 산정하며【437377726246902†L408-L415】, 판매 속도가 높아질수록 순위가 개선된다【938139704038251†L59-L79】. 가격을 낮추거나 쿠폰·라이트닝 딜을 진행하면 구매 전환율이 높아져 판매량이 ",
+        "* **Keepa / Helium 10:**  \n  * *활용법:* BSR 그래프와 가격 변동 그래프를 중첩하여 분석합니다. 경쟁사가 가격을 내린 시점과 내 랭킹이 떨어진 시점이 일치하는지 확인합니다. 'Market Tracker' 기능을 통해 시장 전체의 파이 변화와 내 점유율 변화를 비교합니다.17  \n* **SimilarWeb / Ahrefs:**  "
+      ],
+      "scores": [
+        7.341057434278787,
+        1.0,
+        0.9274014432819636,
+        0.7198388534935141,
+        0.7171486715153672,
+        0.4086482524871826,
+        0.4085105061531067,
+        0.40115976333618164
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "경쟁사 가격 인하가 시장 HHI에 미치는 영향은 다음과 같이 요약할 수 있습니다.\n\n1. **HHI 정의 및 의미**  \n   - HHI는 시장 내 브랜드별 점유율(SoS)의 제곱합으로 시장 집중도를 나타냅니다.  \n   - HHI가 높으면 특정 브랜드가 시장을 지배하는 집중도가 높고, 낮으면 경쟁이 치열한 분산된 시장 구조를 의미합니다.\n\n2. **경쟁사 가격 인하 효과**  \n   - 경쟁사가 가격을 인하하면 해당 브랜드 제품의 판매량과 SoS가 증가할 가능성이 큽니다.  \n   - SoS 증가 시 해당 브랜드의 시장 점유율이 높아지므로, HHI 계산 시 이 브랜드의 SoS 제곱값이 커집니다.  \n   - 결과적으로 HHI는 상승하여 시장 집중도가 높아지는 방향으로 변화할 수 있습니다.\n\n3. **시장 구조 변화**  \n   - 가격 인하로 경쟁사 점유율이 커지면, 다른 브랜드들의 SoS가 상대적으로 감소할 수 있습니다.  \n   - 이는 시장 내 점유율 재분배를 초래하며, 일부 브랜드가 시장을 더 장악하는 집중화 현상이 나타날 수 있습니다.\n\n4. **종합적 판단**  \n   - 경쟁사 가격 인하는 단기적으로 해당 브랜드의 SoS 상승과 HHI 증가를 유발해 시장 집중도를 높일 수 있습니다.  \n   - 다만, 장기적으로는 타 브랜드의 대응 전략에 따라 HHI 변동 폭이 달라질 수 있으므로 지속적인 모니터링 필요합니다.\n\n**요약**: 경쟁사 가격 인하는 해당 브랜드의 SoS 증가를 통해 시장 HHI를 상승시키며, 이는 시장 집중도 증가를 의미합니다. (HHI = Σ(브랜드별 SoS²), SoS 증가 → HHI 증가)",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1188,
+      "judge_tokens": 4067,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0003609,
+      "judge_cost_usd": 0.0012684
+    },
+    "latency_ms": 5019.165277481079,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "market",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

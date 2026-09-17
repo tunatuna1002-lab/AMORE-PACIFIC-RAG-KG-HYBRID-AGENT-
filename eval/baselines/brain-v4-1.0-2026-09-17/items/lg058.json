@@ -1,0 +1,140 @@
+{
+  "item_id": "lg058",
+  "question": "순위 변동성이 높은 카테고리와 낮은 카테고리의 차이는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0625,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.2,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 0.6666666666666666
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08433734939759037,
+    "semantic_similarity": 0.21533606946468353,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.2,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.48422060769760467,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg058",
+    "timestamp": "2026-09-17T16:23:29.700003",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "rank_volatility",
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "rank_volatility",
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "chunk_0",
+        "chunk_1",
+        "amazon_algorithm_guide_2_1",
+        "amazon_ranking_diagnosis_3_0",
+        "strategic_indicators_3_0",
+        "strategic_indicators_2_0",
+        "metric_interpretation_3_1",
+        "metric_interpretation_3_0"
+      ],
+      "snippets": [
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **초단기 가중치 (Hourly Weighting):** 아마존 알고리즘은 어제의 판매량보다 지난 1\\~2시간 이내의 판매량에 훨씬 더 큰 가중치를 부여합니다.5 이는 하루 판매량이 5\\~20개 수준인 중소형 제품의 경우, 단 몇 개의 판매만으로도 시간당 랭킹이 20\\~50%까지 등락할 수 있음을 의미합니다.5 따라서 셀러가 하루에 한 번 랭킹을 확인하",
+        "1. 필수 확인 체크리스트\n\n순위 변동 원인을 파악하기 위해 아래 항목들을 **우선적으로 확인**한다. 해당 정보는 모두 날짜 구간 전후로 비교해야 한다.",
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating "
+      ],
+      "scores": [
+        1.0,
+        0.7859336954104004,
+        0.4617955684661865,
+        0.4544379711151123,
+        0.4791010618209839,
+        0.4534056782722473,
+        0.4404994249343872,
+        0.4360167980194092
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "순위 변동성이 높은 카테고리와 낮은 카테고리의 차이는 주로 **판매량 규모와 판매 속도 안정성**에 기인합니다.\n\n1. **순위 변동성이 높은 카테고리**\n   - 중소형 제품군에 속하며, 하루 판매량이 적어(예: 5~20개 수준) 단 몇 개 판매 차이만으로도 시간당 랭킹이 20~50%까지 크게 등락할 수 있습니다.\n   - 초단기 가중치가 높아 최근 1~2시간 내 판매량 변화에 민감하게 반응합니다.\n   - 프로모션, 광고, 외부 트래픽(예: TikTok 바이럴) 등 단기 이벤트에 의해 급격한 순위 상승과 하락이 빈번합니다.\n   - 신제품이나 신규 런칭 제품이 많아 초기 프로모션 종료 후 급락하는 현상이 나타납니다.\n\n2. **순위 변동성이 낮은 카테고리**\n   - 오랜 기간 꾸준히 판매된 제품이 많아 역사적 평활화 효과로 단기 판매 부진에도 랭킹 방어력이 높습니다.\n   - 판매량 규모가 크고 안정적이며, 재고 상태, 리뷰, 콘텐츠 품질 등 기본 요소가 잘 갖춰져 있어 순위가 비교적 안정적입니다.\n   - 가격 경쟁력과 고객 만족도가 일정 수준 이상 유지되어 급격한 순위 변동이 적습니다.\n\n요약하면, **순위 변동성이 높은 카테고리는 판매량이 적고 단기 판매량 변화에 민감한 중소형 제품군이며, 낮은 카테고리는 판매가 꾸준하고 안정적인 대형 제품군**입니다. 이는 아마존 알고리즘이 최근 판매 속도에 높은 가중치를 두고, 판매량 규모가 작을수록 순위 변동 폭이 커지는 구조 때문입니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1342,
+      "judge_tokens": 4778,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00038849999999999996,
+      "judge_cost_usd": 0.00169185
+    },
+    "latency_ms": 5317.481994628906,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

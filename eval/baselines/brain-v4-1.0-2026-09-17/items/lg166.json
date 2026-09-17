@@ -1,0 +1,850 @@
+{
+  "item_id": "lg166",
+  "question": "LANEIGE 주식 가격은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.1111111111111111,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.058823529411764705
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07894736842105264,
+    "semantic_similarity": 0.4423263669013977,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 1.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7654701917375761,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg166",
+    "timestamp": "2026-09-17T16:32:10.979507",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_3_0",
+        "laneige_influencer_map_2_11",
+        "chunk_2",
+        "chunk_3",
+        "laneige_influencer_map_5_3",
+        "laneige_strategy_2026_0",
+        "laneige_influencer_map_0",
+        "ir_2025_q3_0_28"
+      ],
+      "snippets": [
+        "---\n\n**3\\. 라네즈 통합 메시지 전략 및 크리에이티브 훅**\n\n라네즈의 미국 시장 성공을 위해서는 각 채널의 특성에 맞춘 정교한 메시지 믹스가 필요합니다. 아래는 수집된 데이터를 바탕으로 도출한 5가지 크리에이티브 훅입니다.\n\n### **3.1 라네즈 크리에이티브 훅 5선 (Creative Hooks)**",
+        "* **대표 크리에이터:**  \n  * Glow with Ava 13: '젤로 스킨(Jello Skin)' 트렌드의 창시자로서, 라네즈 제품을 활용해 탄력 있고 탱글탱글한 피부 질감을 보여줍니다. 그녀는 제품을 얼굴에 바르는 것뿐만 아니라, 예쁘게 정돈된 화장대를 보여주며 팔로워들의 소장 욕구를 자극합니다.  \n  * Ugly Duckling Skincar",
+        " 진정되는 과정을 보여줌.  \n   * **메시지:** \"무너진 피부 장벽, 긴급 구조가 필요할 땐 라네즈 워터 사이언스.\"  \n   * **심리적 트리거:** 피부 트러블에 대한 공포와 해결책(솔루션)에 대한 갈망.20  \n5. **\"Mix Your Flavor\" (참여형 훅 \\- TikTok)**  \n   * **컨셉:** 두 가지 다른 맛의 립 슬리핑",
+        "* **주요 이슈:** '크림 스킨 리파이너'가 리뉴얼되면서 히알루론산과 나이아신아마이드가 추가된 것에 대해 많은 유저들이 \"끈적임이 심해졌다\", \"예전의 순한 느낌이 사라졌다\"며 불만을 제기했습니다.8 이들은 브랜드가 대중성(Sephora 판매)을 위해 마니아층(K-뷰티 팬덤)을 버렸다고 인식하는 경향이 있습니다.\n\n#### **2.4.2 저렴이 사냥꾼 ",
+        "/us.laneige.com/products/water-bank-blue-hyaluronic-cream-moisturizer)  \n4. Golloria Fully Approves of Laneige's New \"Glaze Craze ... \\- Hypebae, 1월 21, 2026에 액세스, [https://hypebae.com/2025/4/laneige-",
+        "# **2026년 1월 미국 뷰티 트렌드 심층 분석 및 LANEIGE 아마존 판매 전략 보고서**",
+        "# **전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서**",
+        "Laneige Two new types of ‘Sleeping Mask’(APAC, Japan)   \nAestura@cosmepop-up store (Japan) Laneige‘Afternoon Tea Bus Tour’event(Japan) **10**  \n**Financial Summary**\n\nIncome Statement Statement of Fin"
+      ],
+      "scores": [
+        5.581413334824436,
+        4.9150959051374326,
+        0.6052261987231917,
+        0.5832006081005773,
+        0.46594512462615967,
+        0.4643157124519348,
+        0.46107810735702515,
+        0.4624071717262268
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige"
+      ],
+      "kg_edges_found": [
+        "laneige -competesWith-> blistex",
+        "laneige -competesWith-> chapstick",
+        "laneige -competesWith-> sun_bum",
+        "laneige -competesWith-> carmex",
+        "laneige -competesWith-> hera",
+        "laneige -hasProduct-> lip_sleeping_mask",
+        "laneige -hasProduct-> lip_sleeping",
+        "lip_sleeping_mask -belongsToCategory-> lip_care",
+        "laneige -ownedBy-> amorepacific",
+        "laneige -hasSoS-> lip_care",
+        "laneige -hasSoS-> lip_makeup",
+        "laneige -hasSoS-> face_powder",
+        "laneige -rankedIn-> lip_care",
+        "laneige -rankedIn-> lip_makeup",
+        "laneige -rankedIn-> face_powder",
+        "laneige -hasPosition-> premium",
+        "laneige -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "laneige",
+          "data": [
+            {
+              "brand": "blistex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "chapstick",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.3
+        },
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.3
+        },
+        {
+          "type": "brand_products",
+          "entity": "laneige",
+          "data": {
+            "product_count": 6,
+            "products": [
+              {
+                "asin": "B07XXPHQZK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 8,
+                "title": "LANEIGE Lip Sleeping Mask: Korean Overnight Treatment For Dry Lips | Hydrating & Nourishing Overnigh",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07DY2QRF6",
+                "name": "",
+                "category": "lip_care",
+                "rank": 26,
+                "title": "LANEIGE Lip Glowy Balm: Sheer Tinted Lip Treatment Balm Tube with Shea & Murumuru Butters for Hydrat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DT2JNXP2",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 52,
+                "title": "LANEIGE Glaze Craze Tinted Lip Serum: Hydrating Lip Serum for Glossy, Nourished Lips with Plumping P",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0G7NRYFJS",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 98,
+                "title": "LANEIGE JuicePop Box Lip Tint | Long-Lasting Hydrating Lightweight Tint | Buildable Juicy Color & No",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DHWFT182",
+                "name": "",
+                "category": "face_powder",
+                "rank": 11,
+                "title": "LANEIGE Neo Blurring Powder: Korean Oil-Control Compact with Pore Blurring, Smoothing Finish & Trave",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0GXGQL59K",
+                "name": "",
+                "category": "lip_care",
+                "rank": 76,
+                "title": "LANEIGE Lip Glowy Balm: Sheer Tinted Lip Treatment Balm Tube with Shea & Murumuru Butters for Hydrat",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        },
+        {
+          "type": "metric_edges",
+          "entity": "laneige",
+          "data": {
+            "edges": [
+              {
+                "subject": "laneige",
+                "predicate": "hasProduct",
+                "object": "lip_sleeping_mask"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasProduct",
+                "object": "lip_sleeping"
+              },
+              {
+                "subject": "lip_sleeping_mask",
+                "predicate": "belongsToCategory",
+                "object": "lip_care"
+              },
+              {
+                "subject": "LANEIGE",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasSoS",
+                "object": "lip_care"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasSoS",
+                "object": "lip_makeup"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasSoS",
+                "object": "face_powder"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "rankedIn",
+                "object": "lip_care"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "rankedIn",
+                "object": "lip_makeup"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "rankedIn",
+                "object": "face_powder"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasPosition",
+                "object": "premium"
+              },
+              {
+                "subject": "laneige",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.3
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터와 지식 그래프 내에는 LANEIGE(라네즈) 주식 가격에 관한 정보가 포함되어 있지 않습니다. 또한, 최근 0.7시간 전 크롤링된 신선한 데이터에도 주식 가격 관련 내용이 없습니다.\n\n따라서 현재 시점에서 LANEIGE 주식 가격을 알려면 금융 정보 제공 사이트나 증권사 앱을 통해 실시간 확인하시는 것이 정확합니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.1024,
+        "category_avg_rating": 4.26
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "Maybelline",
+            "sos": 11.46,
+            "product_count": 11
+          },
+          {
+            "brand": "NYX",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "Revlon",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 9.38,
+            "product_count": 9
+          },
+          {
+            "brand": "L'Oreal",
+            "sos": 7.29,
+            "product_count": 7
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "LANEIGE",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 2.08,
+        "product_count": 2,
+        "brand_rank": 9
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Sh",
+            "rating": 4.6,
+            "reviews_count": 19849
+          },
+          {
+            "rank": 2,
+            "brand": "NYX",
+            "name": "NYX PROFESSIONAL MAKEUP Butter Gloss, Non-Sticky Lip Gloss -",
+            "rating": 4.5,
+            "reviews_count": 126021
+          },
+          {
+            "rank": 3,
+            "brand": "Sacheu",
+            "name": "Sacheu Lip Liner STAY-N Peel Off Lip Stain, Longwear, p-INKE",
+            "rating": 4.0,
+            "reviews_count": 22850
+          },
+          {
+            "rank": 4,
+            "brand": "Unknown",
+            "name": "Wonderskin Lip Stain – Long Lasting, Waterproof, Lip Tint Pe",
+            "rating": 3.8,
+            "reviews_count": 32729
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted",
+            "rating": 4.6,
+            "reviews_count": 30232
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "LANEIGE",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 45,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Glaze Craze Tinted Lip Serum",
+            "rating": 4.6,
+            "reviews_count": 911
+          },
+          {
+            "rank": 65,
+            "brand": "LANEIGE",
+            "name": "LANEIGE JuicePop Box Lip Tint | Long-Lasting Hydrating Light",
+            "rating": 4.1,
+            "reviews_count": 975
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0681,
+        "category_avg_rating": 4.57
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "eos",
+            "sos": 9.0,
+            "product_count": 9
+          },
+          {
+            "brand": "Burt's Bees",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "Hera",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Aquaphor",
+            "sos": 6.0,
+            "product_count": 6
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "LANEIGE",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 2.0,
+        "product_count": 2,
+        "brand_rank": 9
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Burt's Bees",
+            "name": "Burt's Bees 100% Natural Moisturizing Lip Balm (Original Bee",
+            "price": 10.48,
+            "rating": 4.8,
+            "reviews_count": 121467
+          },
+          {
+            "rank": 2,
+            "brand": "Unknown",
+            "name": "NOONI Korean Lip Oil - Applepeony - pH Color-Changing Plumpi",
+            "price": 15.0,
+            "rating": 4.0,
+            "reviews_count": 25988
+          },
+          {
+            "rank": 3,
+            "brand": "Summer Fridays",
+            "name": "Summer Fridays Lip Butter Balm - Moisturizing Lip Gloss for ",
+            "price": 24.0,
+            "rating": 4.7,
+            "reviews_count": 10594
+          },
+          {
+            "rank": 4,
+            "brand": "eos",
+            "name": "eos 100% Natural Lip Balm - Strawberry Sorbet and Pomegranat",
+            "price": 3.79,
+            "rating": 4.7,
+            "reviews_count": 32621
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Ba",
+            "price": 4.59,
+            "rating": 4.6,
+            "reviews_count": 27228
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "LANEIGE",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 7,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Lip Sleeping Mask",
+            "price": 21.6,
+            "rating": 4.6,
+            "reviews_count": 37356
+          },
+          {
+            "rank": 10,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Lip Glowy Balm",
+            "price": 17.1,
+            "rating": 4.7,
+            "reviews_count": 34473
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0527,
+        "category_avg_price": 17.2,
+        "category_avg_rating": 4.48
+      },
+      {
+        "type": "category_top_brands",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "COVERGIRL",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Clinique",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Maybelline",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Physicians Formula",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "LANEIGE",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.0,
+        "product_count": 1,
+        "brand_rank": 18
+      },
+      {
+        "type": "category_top_products",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 2,
+            "brand": "L'Oreal",
+            "name": "L'Oreal Paris Infallible Blur-fection Longwear Loose Setting",
+            "price": 12.32,
+            "rating": 4.5,
+            "reviews_count": 4673
+          },
+          {
+            "rank": 3,
+            "brand": "COVERGIRL",
+            "name": "Covergirl Clean Invisible Pressed Powder, Lightweight, Breat",
+            "price": 9.99,
+            "rating": 4.5,
+            "reviews_count": 9925
+          },
+          {
+            "rank": 4,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Halo Glow Soft Focus Setting Powder, Silky & Creates ",
+            "price": 8.0,
+            "rating": 4.5,
+            "reviews_count": 20322
+          },
+          {
+            "rank": 5,
+            "brand": "Unknown",
+            "name": "Clean Invisible Loose Powder Translucent Fair",
+            "price": 6.95,
+            "rating": 4.6,
+            "reviews_count": 8523
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "LANEIGE",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 9,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Neo Blurring Powder",
+            "price": 25.0,
+            "rating": 4.3,
+            "reviews_count": 2432
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 737,
+      "judge_tokens": 5562,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00015285,
+      "judge_cost_usd": 0.0010926
+    },
+    "latency_ms": 3208.343982696533,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "edge",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

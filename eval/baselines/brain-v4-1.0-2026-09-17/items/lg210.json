@@ -1,0 +1,138 @@
+{
+  "item_id": "lg210",
+  "question": "AMOREPACIFIC 3Q25 net income",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09836065573770492,
+    "semantic_similarity": 0.5333320498466492,
+    "groundedness_score": 0.2,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.6,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.3585190101692586,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg210",
+    "timestamp": "2026-09-17T16:35:30.123297",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q2_0_26",
+        "ir_2025_q3_0_1",
+        "chunk_2",
+        "chunk_3",
+        "ir_2025_q2_0_1",
+        "ir_2025_q1_0_1",
+        "ir_2025_q1_0_2",
+        "ir_2025_q1_0_24"
+      ],
+      "snippets": [
+        "Income Statement Statement of Financial Position Unit. Bn KRW (%) Unit. Bn KRW   \n2024 2Q 2025 2Q\n\n2024.12 2025.06 \n% of Sales \nRevenue 100.0% Cost of Sales 27.4% Gross Profit 72.6% SG\\&A Expensed 65.",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**Overseas Business Financial Summary**   \n**3Q 2025 Income S",
+        "Laneige Two new types of ‘Sleeping Mask’(APAC, Japan)   \nAestura@cosmepop-up store (Japan) Laneige‘Afternoon Tea Bus Tour’event(Japan) **10**  \n**Financial Summary**\n\nIncome Statement Statement of Fin",
+        "2024 3Q % of Revenue 2025 3Q % of Revenue YoY (%p) YoY (%) Revenue 977.2 100.0% 1,016.9 100.0% \\+0.0 \\+4.1 Cost of Sales 293.9 30.1% 286.7 28.2% \\-1.9 \\-2.5 Gross Profit 683.4 69.9% 730.3 71.8% \\+1.9 ",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**Overseas Business Financial Summary**   \n**2Q 2025 Revenue*",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**1Q 2025 Revenue**\n\nAmorepacific revenue up 17.1% to 1.1 tri",
+        "Overseas Business 336.8 36.9 473.0 44.3 \\+40.5 Western Region 105.1 11.5 212.5 19.9 \\+102.1 Other Asia 83.5 9.2 127.8 12.0 \\+53.0 Greater China 148.2 16.3 132.8 12.4 \\-10.4   \n1\\) Total revenue includ",
+        "\\* Greater China: China Mainland, Hong Kong SAR, Taiwan Region   \nSulwhasooVIP Beauty Class (China) Ryo Launch of ‘Root:Gen’ (China)Laneige‘Bouncy & Firm Serum’(APAC) Aestura‘Atobarrier365 Cream Sakur"
+      ],
+      "scores": [
+        11.435459482075004,
+        4.951633379413883,
+        0.905159270678835,
+        0.7594601726684034,
+        0.6697986721992493,
+        0.6456891894340515,
+        0.6238061189651489,
+        0.567955732345581
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽 2025년 3분기(3Q25) 순이익은 매출의 6.7%입니다.  \n구체적인 금액은 2025년 3분기 매출액 데이터가 명확히 제시되지 않았으나, 3분기 순이익률 6.7%가 공식 발표된 수치임을 참고하시기 바랍니다.  \n\n요약:  \n- 3Q25 순이익률: 6.7% (매출 대비)  \n- 출처: 2025년 3분기 아모레퍼시픽 실적 발표 (2025.11.6)  \n\n정확한 순이익 금액 산출을 위해서는 3분기 매출액 데이터가 추가로 필요합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 803,
+      "judge_tokens": 2705,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00019785,
+      "judge_cost_usd": 0.00088815
+    },
+    "latency_ms": 3482.5220108032227,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

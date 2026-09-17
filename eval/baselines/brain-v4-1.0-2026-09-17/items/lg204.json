@@ -1,0 +1,138 @@
+{
+  "item_id": "lg204",
+  "question": "2025년 1분기 아모레퍼시픽 중화권 실적은 어땠나요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.136986301369863,
+    "semantic_similarity": 0.30071738362312317,
+    "groundedness_score": 0.75,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.6667,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.3875629983160354,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg204",
+    "timestamp": "2026-09-17T16:35:08.289598",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q1_0_10",
+        "ir_2025_q2_0_20",
+        "ir_2025_q2_0_11",
+        "chunk_3",
+        "chunk_4",
+        "ir_2025_q2_0_1",
+        "ir_2025_q1_0_1",
+        "ir_2025_q2_0_26"
+      ],
+      "snippets": [
+        "customers",
+        "\\- \\[Hanyul\\] Newly entered the U.S. market via Sephora and built awareness with its ‘Yuja Brightening’ line products  \\- \\[COSRX\\] Expanded product portfolio in emerging categories by launching new s",
+        " to Luxury business), like-for-like growth for luxury business is 4% increaseYoY    \nSulwhasooGlobal Culture Trip‘HolisticBeautyJourney’ Hera‘Custom Match’ Service![][image2]![][image3]Primera‘Vitatin",
+        "Deep Facial Cleanser' Happy Bath'SkinUDeep Musk Body Oil & Gua Sha'  \n7   \n**1Q 2025 Overseas Business**",
+        "323.1 352.2 \\+9%\n\n2024 1Q 2025 1Q   \n**1Q 2025 Domestic Business LUXURY**\n\n• Luxury accounts for 61% of\n\ntotal domestic revenue\n\n\\-Sulwhasoo30% (vs. 24.1Q 32%)\n\n\\-Hera16%(vs. 24.1Q 16%)\n\n(Unit: bn KRW",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**Overseas Business Financial Summary**   \n**2Q 2025 Revenue*",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**1Q 2025 Revenue**\n\nAmorepacific revenue up 17.1% to 1.1 tri",
+        "Income Statement Statement of Financial Position Unit. Bn KRW (%) Unit. Bn KRW   \n2024 2Q 2025 2Q\n\n2024.12 2025.06 \n% of Sales \nRevenue 100.0% Cost of Sales 27.4% Gross Profit 72.6% SG\\&A Expensed 65."
+      ],
+      "scores": [
+        4.8527701526131235,
+        4.147533704873913,
+        4.103599335775539,
+        0.9603512452712857,
+        0.8405678395919026,
+        0.28744471073150635,
+        0.26825422048568726,
+        0.2385387420654297
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "2025년 1분기 아모레퍼시픽의 중화권 실적에 대한 구체적인 수치나 상세 내용은 제공된 데이터 내에 명확히 나타나 있지 않습니다. 다만, 2025년 2분기 실적 발표 자료에서는 럭셔리 사업 부문이 전년 동기 대비 4% 성장했다는 점이 언급되어 있어, 중화권을 포함한 주요 시장에서 긍정적인 성장세가 이어졌을 가능성이 있습니다. \n\n정확한 1분기 중화권 실적 수치는 추가 공식 발표 자료를 참고할 필요가 있습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 463,
+      "judge_tokens": 2201,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0001302,
+      "judge_cost_usd": 0.00069285
+    },
+    "latency_ms": 5303.439140319824,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

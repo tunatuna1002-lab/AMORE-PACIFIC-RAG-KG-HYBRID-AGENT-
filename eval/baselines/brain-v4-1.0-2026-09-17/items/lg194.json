@@ -1,0 +1,821 @@
+{
+  "item_id": "lg194",
+  "question": "Lip Care 시장에서 LANEIGE의 성장 가능성은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5714285714285715,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.3333333333333333
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09137055837563453,
+    "semantic_similarity": 0.6795441508293152,
+    "groundedness_score": 0.7777777777777778,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.5217632762093979,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg194",
+    "timestamp": "2026-09-17T16:34:19.009166",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige",
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_1_2",
+        "laneige_influencer_map_1_0",
+        "laneige_strategy_2026_7_0",
+        "laneige_influencer_map_5_2",
+        "laneige_influencer_map_0",
+        "laneige_strategy_2026_4_0",
+        "chunk_6",
+        "chunk_7"
+      ],
+      "snippets": [
+        "라네즈의 미국 시장 침투 전략은 철저히 \\*\\*'립 슬리핑 마스크(Lip Sleeping Mask)'\\*\\*를 입문 제품(Gateway Product)으로 활용하는 플라이휠 구조를 따릅니다.1 $24라는 비교적 접근 가능한 가격대와 즉각적인 시각적 만족감을 주는 이 제품은 소비자를 라네즈 생태계로 유입시키는 미끼 역할을 합니다. 이후 소비자는 '크림 스킨(",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "---\n\n**7\\. 결론 및 전략적 제언**\n\n2026년 1월, 미국 뷰티 시장은 '재생'과 '회복'이라는 거대한 테마 아래, 고기능성 성분과 감각적인 텍스처가 결합된 제품을 요구하고 있다. LANEIGE는 PDRN이나 스피큘과 같은 공격적인 바이오 성분 트렌드에는 다소 뒤처져 보일 수 있으나, '편안한 고효능(Comfortable Efficacy)'이라는",
+        "1. Laneige Marketing Strategy: How A Lip Mask Built A Global Hydration Machine, 1월 21, 2026에 액세스, [https://www.brandvm.com/post/laneige-marketing-strategy](https://www.brandvm.com/post/laneige-marketi",
+        "# **전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서**",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "특히 1월이라는 계절적 특성은 이러한 고기능성 제품에 대한 니즈를 증폭시키고 있다. 겨울철의 낮은 습도와 난방으로 인한 건조함은 강력한 피부 장벽 보호(Barrier Repair) 솔루션을 필수재로 만들었으며, 이는 틱톡(TikTok)과 같은 소셜 미디어 플랫폼에서 시각적으로 극적인 효과를 보여주는 '모닝 쉐드(Morning Shed)' 트렌드와 결합하여 ",
+        "• Expanded presence through entry into China’s local MBS channel (Colorist) and proactively responded to  customer demand for global hero products, resulting in robust sales growth of the sleeping mas"
+      ],
+      "scores": [
+        5.521066685049988,
+        0.6673308610916138,
+        0.6358863711357117,
+        0.6313257217407227,
+        0.6173353791236877,
+        0.5787983536720276,
+        0.5046519315488748,
+        0.6028463322068379
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige",
+        "nivea",
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "laneige -competesWith-> blistex",
+        "laneige -competesWith-> chapstick",
+        "laneige -competesWith-> sun_bum",
+        "laneige -competesWith-> carmex",
+        "laneige -competesWith-> hera",
+        "nivea -competesWith-> tree_hut",
+        "nivea -competesWith-> carmex",
+        "nivea -competesWith-> hera",
+        "nivea -competesWith-> sun_bum"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "laneige",
+          "data": [
+            {
+              "brand": "blistex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "chapstick",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "competitors",
+          "entity": "nivea",
+          "data": [
+            {
+              "brand": "tree hut",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 33,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 40,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07X62WVM4",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK",
+                  "B0CLHVCPL5",
+                  "B0CKV7JNFX",
+                  "B01HOU74SO",
+                  "B0DZJM5VPY",
+                  "B0899C4WR8",
+                  "B00CXK623E",
+                  "B0G4NR7BL3",
+                  "B088ZVHX78",
+                  "B01NAI251H",
+                  "B0CP1PW1BD",
+                  "B001AQO9MI",
+                  "B0FB9DNJ9T",
+                  "B0F5XZ8J5X",
+                  "B0CVMYKYZQ"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 10,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP",
+                  "B0DQQNWRQS",
+                  "B00076TOUO",
+                  "B0DQF7FNYC"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 10,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR",
+                  "B0DXRKW3KY"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 10,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J",
+                  "B078YGLMLX"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 8,
+                "products": [
+                  "B0C7W6GW8P",
+                  "B0DZP8PN3N",
+                  "B09JL5PCJ6",
+                  "B0C7WQ3Z6H",
+                  "B0CPYMLVJJ",
+                  "B0FPMHTKCN",
+                  "B0GVG681B5",
+                  "B0B5MGPXPN"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "라네즈(LANEIGE)는 미국 Lip Care 시장에서 독보적인 기술력과 차별화된 브랜드 생태계를 기반으로 성장 가능성이 매우 높습니다. \n\n첫째, 라네즈는 '립 슬리핑 마스크(Lip Sleeping Mask)'를 $24의 접근 가능한 가격대로 입문 제품으로 활용, 소비자를 브랜드 생태계로 유입시키는 플라이휠 전략을 구사합니다. 이는 즉각적인 시각적 만족감과 함께 후속 스킨케어 제품으로의 전이를 유도해 고객 충성도를 높이는 구조입니다.\n\n둘째, 라네즈는 \"블루 히알루론산\"과 \"프로바이오틱스 복합체\" 등 독자적 고기능성 성분을 통해 보습과 피부 장벽 강화에 집중, 단순 립 케어를 넘어 고기능성 솔루션으로 포지셔닝하고 있습니다. 이는 북미 주요 유통 채널에서 '수분 장벽'과 '립 케어' 카테고리 절대 강자로 자리매김한 근거입니다.\n\n셋째, 경쟁사인 blistex, chapstick, sun bum 대비 라네즈는 K-뷰티의 혁신성과 감각적 텍스처, 그리고 '편안한 고효능(Comfortable Efficacy)'이라는 독자적 영역을 구축해 차별화에 성공했습니다. 다만, PDRN, 스피큘 등 바이오 성분 트렌드에는 다소 뒤처질 수 있으나, 현재 시장 요구인 '재생'과 '회복' 테마에 부합하는 고기능성 제품 개발로 보완 가능합니다.\n\n결론적으로, 라네즈는 아마존 Lip Care 시장에서 이미 강력한 브랜드 파워와 기술력을 갖추고 있으며, $24대 립 슬리핑 마스크를 중심으로 한 전략적 생태계 확장과 고기능성 성분 차별화로 향후 지속적인 성장과 시장 점유율 확대가 기대됩니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0681,
+        "category_avg_rating": 4.57
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "eos",
+            "sos": 9.0,
+            "product_count": 9
+          },
+          {
+            "brand": "Burt's Bees",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "Hera",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Aquaphor",
+            "sos": 6.0,
+            "product_count": 6
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "LANEIGE",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 2.0,
+        "product_count": 2,
+        "brand_rank": 9
+      },
+      {
+        "type": "brand_share",
+        "brand": "Nivea",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 2.0,
+        "product_count": 2,
+        "brand_rank": 9
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Burt's Bees",
+            "name": "Burt's Bees 100% Natural Moisturizing Lip Balm (Original Bee",
+            "price": 10.48,
+            "rating": 4.8,
+            "reviews_count": 121467
+          },
+          {
+            "rank": 2,
+            "brand": "Unknown",
+            "name": "NOONI Korean Lip Oil - Applepeony - pH Color-Changing Plumpi",
+            "price": 15.0,
+            "rating": 4.0,
+            "reviews_count": 25988
+          },
+          {
+            "rank": 3,
+            "brand": "Summer Fridays",
+            "name": "Summer Fridays Lip Butter Balm - Moisturizing Lip Gloss for ",
+            "price": 24.0,
+            "rating": 4.7,
+            "reviews_count": 10594
+          },
+          {
+            "rank": 4,
+            "brand": "eos",
+            "name": "eos 100% Natural Lip Balm - Strawberry Sorbet and Pomegranat",
+            "price": 3.79,
+            "rating": 4.7,
+            "reviews_count": 32621
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Ba",
+            "price": 4.59,
+            "rating": 4.6,
+            "reviews_count": 27228
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "LANEIGE",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 7,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Lip Sleeping Mask",
+            "price": 21.6,
+            "rating": 4.6,
+            "reviews_count": 37356
+          },
+          {
+            "rank": 10,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Lip Glowy Balm",
+            "price": 17.1,
+            "rating": 4.7,
+            "reviews_count": 34473
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Nivea",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 55,
+            "brand": "Nivea",
+            "name": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butte",
+            "price": 8.52,
+            "rating": 4.7,
+            "reviews_count": 9218
+          },
+          {
+            "rank": 58,
+            "brand": "Nivea",
+            "name": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.1",
+            "price": 8.52,
+            "rating": 4.6,
+            "reviews_count": 23261
+          },
+          {
+            "rank": 89,
+            "brand": "Nivea",
+            "name": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4",
+            "price": 8.94,
+            "rating": 4.5,
+            "reviews_count": 9841
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1240,
+      "judge_tokens": 7793,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00038445,
+      "judge_cost_usd": 0.0021639
+    },
+    "latency_ms": 5790.5449867248535,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

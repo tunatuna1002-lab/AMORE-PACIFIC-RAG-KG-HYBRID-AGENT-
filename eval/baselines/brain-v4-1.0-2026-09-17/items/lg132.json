@@ -1,0 +1,383 @@
+{
+  "item_id": "lg132",
+  "question": "Skin Care 카테고리 프리미엄화 트렌드는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.09090909090909091,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.25,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12571428571428572,
+    "semantic_similarity": 0.6392244100570679,
+    "groundedness_score": 0.4444444444444444,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.14285714285714285,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6965627365876758,
+  "fail_reason_tags": [
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg132",
+    "timestamp": "2026-09-17T16:29:30.292133",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "price_positioning",
+        "trend_analysis"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_4",
+        "laneige_strategy_2026_7_12",
+        "us_beauty_trends_weekly_table_0",
+        "laneige_strategy_2026_table_0",
+        "chunk_4",
+        "chunk_5",
+        "laneige_strategy_2026_5_0",
+        "negative_issue_response_0"
+      ],
+      "snippets": [
+        "drive/](https://thekit.ca/beauty/face/morning-shed-tiktok-test-drive/)  \n4. Waking Up To Self-Care: The Morning Shed Trend Explained By Experts \\- Haute Living, 1월 20, 2026에 액세스, [https://hauteliving.",
+        "1월 20, 2026에 액세스, [https://www.reddit.com/r/Sephora/comments/1nb5o74/rhode\\_glazing\\_milk\\_vs\\_laneige\\_toner/](https://www.reddit.com/r/Sephora/comments/1nb5o74/rhode_glazing_milk_vs_laneige_toner/) ",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "| 트렌드 요인 | 소비자 행동 변화 | LANEIGE 제품 연관성 | 아마존 판매 영향 |\n| :---- | :---- | :---- | :---- |\n| **비주얼 임팩트** | 아침에 벗겨내거나 닦아냈을 때 즉각적인 광채(Glow)를 확인하고 싶어 함 | **Water Sleeping Mask**, **Lip Sleeping Mask**의 두꺼운 도포",
+        "- **주의사항**\n- 원인 확정 불가\n- 단기 노이즈 가능성 존재\n\n---\n\n### 9. Streak Days\n\n- **정의**\n- Top N 랭킹 내 연속 체류 일수\n\n- **산출식**\nStreak Days = Count(Consecutive Days in Top N)\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석 포인트**\n- 제품의",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati",
+        "---\n\n**5\\. 카테고리별 상세 분석: 페이셜 스킨케어 (토너 & 모이스처라이저)**\n\n### **5.1 '밀키 토너(Milky Toner)'의 전성시대와 경쟁 심화**\n\n겨울철 보습을 위한 핵심 아이템으로 '밀키 토너'가 급부상했다. 이는 물처럼 흐르는 닥토(닦아내는 토너) 대신, 우유처럼 뽀얗고 점성이 있는 토너를 사용하여 피부 장벽을 보호하고 즉각",
+        "# **2026년 1월 미국 시장 내 K-뷰티 및 바이럴 스킨케어 브랜드에 대한 부정 이슈 심층 분석 및 조기 경보 리포트**"
+      ],
+      "scores": [
+        12.39337988329585,
+        8.393176197346786,
+        0.5217400789260864,
+        0.5208652019500732,
+        0.6206302558370747,
+        0.6134729165587213,
+        0.3684641718864441,
+        0.3245124816894531
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 39,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 38,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R",
+                  "B0CNCL35CH",
+                  "B07ZDHQQW1",
+                  "B0DDC3QGJL",
+                  "B084MVWG1F",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B077RTL1HJ",
+                  "B0FX418XT8",
+                  "B08TM8DLFJ",
+                  "B0GQTSGWSG",
+                  "B0G643D8ZG",
+                  "B081KLNHSG",
+                  "B092RB3292"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 16,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9",
+                  "B0GHNDWQFN",
+                  "B0D16L5F2M",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 9,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB",
+                  "B07VWSN95S"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 5,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5",
+                  "B091NJQ29P",
+                  "B0G48T5CM2"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "Skin Care 카테고리의 프리미엄화 트렌드는 다음과 같이 요약할 수 있습니다.\n\n1. **고기능성 및 집중 보습 제품 수요 증가**  \n   - TikTok 등 소셜 미디어에서 #lipcare, #lipoil 해시태그가 수천 건 이상 사용되며, 특히 겨울철 건조한 입술 보습에 대한 소비자 관심이 급증하고 있습니다.  \n   - 소비자는 단순 색조 제품보다 밤 & 오일 기반의 집중 보습 립 트리트먼트를 선호하는 경향이 뚜렷합니다.\n\n2. **프리미엄 브랜드의 기능성 제품 강화**  \n   - LANEIGE의 Lip Sleeping Mask가 미국 시장에서 인기를 끌고 있으며, 보습과 밤 타입 제품의 장점을 강조해 프리미엄 이미지를 구축 중입니다.  \n   - 이는 소비자가 단순한 스킨케어를 넘어, 고기능성·고품질 제품에 프리미엄 가치를 부여하는 현상을 반영합니다.\n\n3. **소비자 니즈 변화와 맞물린 마케팅 전략**  \n   - 소셜 미디어 바이럴 해시태그 활용과 함께, 피부 건강과 집중 케어를 강조하는 콘텐츠가 프리미엄화 트렌드의 핵심입니다.  \n   - 특히, 입술 보습과 같은 세부 카테고리에서 프리미엄 제품이 주목받고 있습니다.\n\n**근거**:  \n- 2025년 12월 Dash Social TikTok 해시태그 랭킹에서 #lipcare, #lipoil이 상위 뷰티 태그로 기록됨(각 2천 건 이상).  \n- LANEIGE Lip Sleeping Mask의 미국 내 인기 및 관련 소비자 리뷰 다수 확인됨.\n\n따라서, Skin Care 카테고리 내 프리미엄화는 고기능성 집중 보습 제품, 특히 밤·오일 타입 트리트먼트를 중심으로 소비자 관심이 집중되고 있으며, LANEIGE 브랜드가 이 트렌드에서 강점을 보이고 있습니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1284,
+      "judge_tokens": 5812,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00039914999999999997,
+      "judge_cost_usd": 0.00159225
+    },
+    "latency_ms": 4844.027757644653,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}

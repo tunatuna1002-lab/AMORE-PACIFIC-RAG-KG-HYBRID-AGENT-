@@ -1,0 +1,331 @@
+{
+  "item_id": "lg089",
+  "question": "COSRX Snail Mucin 96% Essence 순위와 특징은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4444444444444445,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.22222222222222224,
+    "kg_edge_recall": 0.5,
+    "kg_edge_precision": 0.14285714285714285
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.04571428571428571,
+    "semantic_similarity": 0.5869622826576233,
+    "groundedness_score": 0.923,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 1.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6328257059682867,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L5_wrong_answer",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg089",
+    "timestamp": "2026-09-17T16:25:55.244802",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [
+        "snail_mucin_96",
+        "snail_mucin"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_9_2",
+        "chunk_1",
+        "amazon_algorithm_guide_8_1",
+        "chunk_3",
+        "home_insight_rules_13",
+        "chunk_5",
+        "strategic_indicators_1_1",
+        "strategic_indicators_2_1"
+      ],
+      "snippets": [
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "iction/comments/1oe3ije/review\\_i\\_tried\\_tallow\\_balms\\_over\\_the\\_past\\_year/](https://www.reddit.com/r/SkincareAddiction/comments/1oe3ije/review_i_tried_tallow_balms_over_the_past_year/)  \n20. Fake",
+        "1. **\\[ \\] 리스팅 상태 확인:** 검색 억제(Suppressed) 여부 및 카테고리/성인용품 오분류 확인.  \n2. **\\[ \\] 운영 지표 점검:** 재고 수준, 바이박스 점유율, 배송 예정일(FC 이관 여부).  \n3. **\\[ \\] 퍼널(Funnel) 분석:** SQP 리포트를 통한 노출-클릭-전환 단계별 누수 지점 파악.  \n4. **\\[ ",
+        "l mucin cream” 등을 테스트한다. CPC·전환율을 모니터링해 효율적인 키워드를 선별한다.\n5. **Reddit AMA/소셜 리스닝** – 스킨케어 서브레딧에서 **LANEIGE 개발자 AMA**를 개최하여 소비자의 성분 관련 질문에 답변하고 신뢰를 구축한다. 또한 Reddit 및 TikTok 댓글을 분석해 제품에 대한 불만(예: 끈적임, 향)에 ",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "\\- Innisfree sales increased through channel diversification, such as entering new multi-brand shop  channels (Oh My Cream)   \nLaneige'Glaze Craze Tinted Lip Serum'  (Americas, EMEA)\n\nSulwhasooentered",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating "
+      ],
+      "scores": [
+        5.029478932421642,
+        1.0,
+        0.33896028995513916,
+        0.2995560897238084,
+        0.3687404990196228,
+        0.35364431354961434,
+        0.33875030279159546,
+        0.3332240581512451
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx",
+        "snail_mucin_96",
+        "snail_mucin"
+      ],
+      "kg_edges_found": [
+        "cosrx -hasProduct-> snail_mucin_96",
+        "cosrx -hasProduct-> snail_mucin",
+        "snail_mucin_96 -belongsToCategory-> skin_care",
+        "cosrx -ownedBy-> amorepacific",
+        "cosrx -hasSoS-> skin_care",
+        "cosrx -rankedIn-> skin_care",
+        "cosrx -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "brand_products",
+          "entity": "cosrx",
+          "data": {
+            "product_count": 1,
+            "products": [
+              {
+                "asin": "B00PBX3L7K",
+                "name": "",
+                "category": "skin_care",
+                "rank": 85,
+                "title": "COSRX Snail Mucin 96% Repairing Serum for Sooothing & Hydrating 3.38 oz. | Snail Secretion Filtrate ",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "metric_edges",
+          "entity": "cosrx",
+          "data": {
+            "edges": [
+              {
+                "subject": "cosrx",
+                "predicate": "hasProduct",
+                "object": "snail_mucin_96"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasProduct",
+                "object": "snail_mucin"
+              },
+              {
+                "subject": "snail_mucin_96",
+                "predicate": "belongsToCategory",
+                "object": "skin_care"
+              },
+              {
+                "subject": "COSRX",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasSoS",
+                "object": "skin_care"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "rankedIn",
+                "object": "skin_care"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "COSRX Snail Mucin 96% Essence의 아마존 내 순위와 특징에 대해 다음과 같이 분석합니다.\n\n1. **순위 현황**  \n- 제공된 데이터 내에서 COSRX 브랜드 제품은 1개로 확인되나, 구체적인 순위(베스트셀러 랭킹 등) 정보는 별도로 제공되지 않았습니다.  \n- 아마존 순위는 판매 속도, 고객 리뷰, 재고 상태, 외부 트래픽 등 복합 요인에 의해 결정되므로, 현재 재고 및 판매 데이터 확인이 필요합니다.\n\n2. **제품 특징**  \n- COSRX Snail Mucin 96% Essence는 달팽이 점액 여과물이 96% 함유된 에센스로, 피부 재생과 보습에 탁월한 효과가 있습니다.  \n- 고객 리뷰 및 외부 콘텐츠(예: 유튜브, 레딧)에서 진품과 가품 비교, 제품 효과에 대한 긍정적 평가가 다수 존재합니다.  \n- 아마존 내에서 제품 콘텐츠 품질과 키워드 최적화가 잘 되어 있을 경우, 검색 노출과 전환율이 상승하여 순위 향상에 긍정적 영향을 미칩니다.\n\n3. **순위 향상을 위한 제언**  \n- 재고를 충분히 확보하여 판매 속도 저하를 방지할 것(재고 소진 시 순위 하락 위험).  \n- 고객 리뷰 관리 및 긍정적 리뷰 확보에 집중할 것.  \n- 외부 트래픽(소셜 미디어, 인플루언서 마케팅 등)을 적극 활용하여 유입을 늘릴 것.  \n- 백엔드 키워드 및 제품 설명 최적화를 통해 검색 적합성을 높일 것.\n\n요약하면, COSRX Snail Mucin 96% Essence는 아마존에서 인기 있는 K-뷰티 제품 중 하나이며, 정확한 순위는 별도 확인이 필요하나 제품 특성과 고객 반응은 매우 긍정적입니다. 순위 유지 및 상승을 위해서는 재고 관리, 리뷰 관리, 외부 트래픽 유입 강화가 핵심입니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "COSRX",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.04,
+        "product_count": 1,
+        "brand_rank": 15
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "COSRX",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 99,
+            "brand": "COSRX",
+            "name": "COSRX Snail Mucin 96% Repairing Serum for Sooothing & Hydrat",
+            "price": 18.5,
+            "rating": 4.6,
+            "reviews_count": 106338
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 5465,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.0015856499999999999
+    },
+    "latency_ms": 5662.808179855347,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "product",
+    "difficulty": "easy",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

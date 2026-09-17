@@ -163,3 +163,10 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - `tests/unit/core/test_cache.py::test_cleanup_expired_removes_old`가 TTL 0초·동일 시각 비교에 의존해 간헐 실패한다.
 - v4 Brain 경로의 답변 프롬프트(`HybridRetriever._combine_contexts` → `ResponsePipeline`)에는 크롤 DB 수치 사실(`metric_facts`, `3fce8e8`)이 실리지 않는다. v1 `ContextBuilder`만 렌더링한다. 평가 트레이스(judge 컨텍스트)에는 두 경로 모두 들어간다.
 - `eval.cli ablation`은 `run`과 달리 데이터 시점(`AMORE_DATA_AS_OF`)을 고정하지 않는다.
+- `eval/cost_tracker.py:34`의 gpt-4.1-mini 단가가 $0.15/$0.60 per 1M(공시가 $0.40/$1.60)이라 리포트 비용이 약 1/2.67로 과소 집계된다. v1.0~v9.1 기준선의 비용 수치도 같다.
+- `HybridRetriever.retrieve`가 검색 예외를 삼키고 빈 컨텍스트로 답변을 계속 만들어, 평가 하니스가 인프라 실패로 분류하지 못한다(2026-09-17 Chroma 오류 실행 2건이 조용히 채점됨).
+- 평가 프로세스 여러 개를 같은 `data/chroma`로 동시에 띄우면 한쪽의 색인 변경이 다른 쪽 검색을 깨뜨린다. 실행별 `CHROMA_PERSIST_DIR` 복사본이나 읽기 전용 모드가 필요하다.
+- `OWLRetrievalStrategy` 생성자 기본값이 시맨틱 청킹 `DocumentRetriever`를 새로 만들어 초기화 때 공유 컬렉션에 다른 청크를 추가 색인한다(`create_owl_strategy`는 `0669b75`에서 공유 검색기를 넘기게 했지만 생성자 기본값은 그대로).
+- `OWLRetrievalStrategy._matches_filters`가 엔티티 링커의 Chroma where 형식 필터(`$or`, brand·category 키)를 처리하지 못하고 문서 메타데이터에도 그 키가 없어, 엔티티가 연결된 질의는 문서를 0건 가져온다(130문항 중 124문항).
+- 규칙 추론(`OntologyReasoner`)이 v4 평가 130문항·전 실행에서 추론 0건이다. `_build_inference_context`가 읽는 키가 운영 데이터와 맞지 않는다(근거 문서 §5.3).
+- 신뢰도 점수가 v4 평가의 172/172문항을 HIGH로 분류해 DecisionMaker(LLM 도구 선택)와 ReAct 분기가 평가에서 한 번도 실행되지 않는다. 임계값·점수 구성을 재검토해야 이 경로들을 측정할 수 있다.

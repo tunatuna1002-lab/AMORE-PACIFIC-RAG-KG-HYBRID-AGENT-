@@ -1,0 +1,382 @@
+{
+  "item_id": "lg145",
+  "question": "Skin Care vs Makeup 카테고리 성장률 비교는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.09090909090909091,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.2,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.15730337078651688,
+    "semantic_similarity": 0.7230097055435181,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6738948435363696,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg145",
+    "timestamp": "2026-09-17T16:30:41.067470",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_12",
+        "laneige_strategy_2026_7_6",
+        "chunk_2",
+        "us_beauty_trends_weekly_table_0",
+        "laneige_strategy_2026_table_0",
+        "laneige_strategy_2026_5_0",
+        "us_beauty_trends_weekly_4",
+        "chunk_7"
+      ],
+      "snippets": [
+        "1월 20, 2026에 액세스, [https://www.reddit.com/r/Sephora/comments/1nb5o74/rhode\\_glazing\\_milk\\_vs\\_laneige\\_toner/](https://www.reddit.com/r/Sephora/comments/1nb5o74/rhode_glazing_milk_vs_laneige_toner/) ",
+        "t.com/r/AsianBeauty/comments/1mdpd4q/thoughts_on_pdrn_skincare/)  \n8. Shoppers Say This Under-Eye Brightener Feels Like a 'Drink of Water' for Tired Skin — It's Only $8 Today \\- People.com, 1월 20, 202",
+        "drive/](https://thekit.ca/beauty/face/morning-shed-tiktok-test-drive/)  \n4. Waking Up To Self-Care: The Morning Shed Trend Explained By Experts \\- Haute Living, 1월 20, 2026에 액세스, [https://hauteliving.",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "| 트렌드 요인 | 소비자 행동 변화 | LANEIGE 제품 연관성 | 아마존 판매 영향 |\n| :---- | :---- | :---- | :---- |\n| **비주얼 임팩트** | 아침에 벗겨내거나 닦아냈을 때 즉각적인 광채(Glow)를 확인하고 싶어 함 | **Water Sleeping Mask**, **Lip Sleeping Mask**의 두꺼운 도포",
+        "---\n\n**5\\. 카테고리별 상세 분석: 페이셜 스킨케어 (토너 & 모이스처라이저)**\n\n### **5.1 '밀키 토너(Milky Toner)'의 전성시대와 경쟁 심화**\n\n겨울철 보습을 위한 핵심 아이템으로 '밀키 토너'가 급부상했다. 이는 물처럼 흐르는 닥토(닦아내는 토너) 대신, 우유처럼 뽀얗고 점성이 있는 토너를 사용하여 피부 장벽을 보호하고 즉각",
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "![][image5]Second Brand by B.Ready\n\nHanyul‘Pure Artemisia\n\nDeep Clarifying Mask to Foam Cleanser’  ![][image6]  \n‘Sensitive Skin Cosmetics Research Association’ in collaboration with dermatologist pro"
+      ],
+      "scores": [
+        12.271511423054125,
+        7.859066299370001,
+        0.5554640410142117,
+        0.5026302933692932,
+        0.47780144214630127,
+        0.4396289587020874,
+        0.42918288707733154,
+        0.51856283658924
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 39,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 38,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R",
+                  "B0CNCL35CH",
+                  "B07ZDHQQW1",
+                  "B0DDC3QGJL",
+                  "B084MVWG1F",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B077RTL1HJ",
+                  "B0FX418XT8",
+                  "B08TM8DLFJ",
+                  "B0GQTSGWSG",
+                  "B0G643D8ZG",
+                  "B081KLNHSG",
+                  "B092RB3292"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 16,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9",
+                  "B0GHNDWQFN",
+                  "B0D16L5F2M",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 9,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB",
+                  "B07VWSN95S"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 5,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5",
+                  "B091NJQ29P",
+                  "B0G48T5CM2"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 및 관련 정보 내에는 Skin Care와 Makeup 카테고리의 구체적인 성장률 수치가 명시되어 있지 않습니다. 다만, Skin Care 카테고리의 주요 브랜드로 medicube, cerave 등이 언급되어 있으며, Skin Care는 Beauty & Personal Care 상위 카테고리에 속해 있습니다.\n\n따라서, 현재 제공된 데이터만으로는 Skin Care와 Makeup 카테고리의 성장률을 직접 비교하거나 수치를 제시하기 어렵습니다. 추가적인 매출 데이터, 성장률 통계 또는 시장 보고서가 필요합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 841,
+      "judge_tokens": 4191,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00018285,
+      "judge_cost_usd": 0.00106605
+    },
+    "latency_ms": 6551.2518882751465,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}
