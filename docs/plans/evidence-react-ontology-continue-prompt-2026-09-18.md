@@ -24,7 +24,7 @@
 - **중단된 트랙 2개(미커밋, 기준 `b7b3ba5`)** — 사용 한도로 에이전트가 끊김. 작업물은 두 곳에 있다:
   - 3-B: worktree `.claude/worktrees/agent-a62b7fde7422e68c6`(변경이 인덱스에 스테이징됨), 패치 사본 `eval_output/evidence-2026-09/wip/track-3b.patch`(15 files)
   - 2-D: worktree `.claude/worktrees/agent-a3d57bb41e772ffb8`, 패치 사본 `eval_output/evidence-2026-09/wip/track-2d.patch`(9 files)
-- 운영 `data/knowledge_graph.json`에서 테스트가 만든 트리플 6개를 사용자 승인으로 삭제(S2-2). 같은 패턴의 `LANEIGE competesWith` 14개는 **사용자 확인 대기** — 답이 오기 전엔 건드리지 말 것.
+- 운영 `data/knowledge_graph.json`에서 테스트가 만든 트리플 20개(hasProduct 6 + competesWith 14)를 사용자 승인으로 삭제 완료(S2-2, 3,500→3,480). 동결 평가 스냅샷 KG는 그대로.
 
 ## 3. 할 일 (순서대로)
 
@@ -58,4 +58,4 @@
 
 ## 5. 최종 보고에 반드시 포함
 
-지시서 §7 목록 + `LANEIGE competesWith` 14개 처리 결과(사용자 답) + `eval_output/evidence-2026-09/notes/0c_recalc.md`의 범위 밖 발견을 `docs/dev/FUTURE_WORK.md`에 반영했는지.
+지시서 §7 목록 + KG 테스트 트리플 20개 삭제 사실(S2-2) + `eval_output/evidence-2026-09/notes/0c_recalc.md`의 범위 밖 발견을 `docs/dev/FUTURE_WORK.md`에 반영했는지.
