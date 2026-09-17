@@ -224,8 +224,9 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
     Level 4 Brain 기반 SSE 스트리밍 챗봇 API (v4)
 
     v3의 SSE 스트리밍과 동일한 인터페이스로 v4 Brain의 처리 결과를 반환합니다
-    (`brain.process_query_stream`, 대시보드가 쓰는 경로). 분기 규칙은 `/api/v4/chat`과 같지만
-    QueryGraph가 아니라 스트림 메서드 안에 따로 구현돼 있고, 캐시를 쓰지 않습니다.
+    (`brain.process_query_stream`, 대시보드가 쓰는 경로). 분기·캐시는 `/api/v4/chat`과
+    **같은 QueryGraph**를 탑니다 (트랙 5-A: 스트림 전용 복제 구현 삭제). 토큰 단위
+    스트리밍은 아니며, 답변은 생성이 끝난 뒤 한 덩어리로 나갑니다.
     ReAct(`agents.use_react_agent`)는 피처 플래그로만 켜지며 기본은 OFF입니다.
     활성 여부는 `/api/v4/brain/status`의 `components`에서 확인합니다.
 
@@ -233,7 +234,7 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
     - status: 처리 단계 알림
     - tool_call: 도구 호출 정보
     - text: 응답 텍스트
-    - done: 완료 (메타데이터 포함)
+    - done: 완료 (신뢰도·출처·제안 + `metadata`에 route_trace·numeric_verification)
     - error: 오류 발생
     """
     message = body.message.strip()

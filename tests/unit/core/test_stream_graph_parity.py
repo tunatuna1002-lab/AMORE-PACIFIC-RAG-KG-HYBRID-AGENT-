@@ -8,8 +8,11 @@
 (``FakeDocRetriever``)뿐이다. Brain·QueryGraph·ContextGatherer·HybridRetriever·
 KnowledgeGraph(임시 경로, ``auto_save=False``)·규칙 추론기·ResponsePipeline은 실제 객체다.
 
-두 경로가 지금 **다른** 지점은 억지로 같게 만들지 않고 `TestDocumentedDivergence`에
-"현재는 이렇다"로 기록한다. 통합 후 이 클래스는 통합된 동작으로 조인다.
+RED/GREEN 기록: 이 파일은 통합 **전** 코드에서 18개가 모두 통과한 상태로 커밋됐다
+(두 경로가 달랐던 4가지는 `TestDocumentedDivergence`에 "현재는 이렇다"로 기록). 통합 후
+그중 3개가 실패했고 — 캐시·metadata·복잡도 구현 일원화 — 그 실패가 의도한 변경이므로
+`TestUnifiedBehavior`로 조였다. 나머지 15개(라우트·신뢰도·답변 텍스트·SSE 이벤트 시퀀스)는
+통합 전후 그대로 통과한다.
 """
 
 from __future__ import annotations
@@ -326,7 +329,10 @@ class TestStreamEventShape:
 
         assert [c["type"] for c in chunks] == ["text", "done"]
         assert chunks[0]["content"].startswith("죄송합니다. 해당 요청은 처리할 수 없습니다.")
-        assert _done(chunks) | {"processing_time_ms": 0} == {
+
+        done = _done(chunks)
+        # metadata는 통합(트랙 5-A)에서 새로 추가된 키다. 나머지 7개는 v3 계약 그대로.
+        assert {k: v for k, v in done.items() if k != "metadata"} | {"processing_time_ms": 0} == {
             "confidence": 0.0,
             "sources": [],
             "tools_used": [],
@@ -335,6 +341,7 @@ class TestStreamEventShape:
             "mode": "blocked",
             "confidence_level": "unknown",
         }
+        assert done["metadata"]["route_trace"]["route"] == "blocked"
 
     @pytest.mark.asyncio
     async def test_done_content_keys_are_stable(self, make_brain):
@@ -371,51 +378,71 @@ class TestStreamEventShape:
         assert chunks[-2]["content"] == "컨텍스트 수집 실패"
 
 
-# ── 3. 현재 남아 있는 두 경로의 차이 (통합 후 조인다) ──────────────────────
+# ── 3. 통합(트랙 5-A)으로 달라진 동작 ──────────────────────────────────────
 
 
-class TestDocumentedDivergence:
-    """지금 두 경로가 다른 지점. 통합(트랙 5-A) 후 이 클래스는 통합 동작으로 바뀐다."""
+class TestUnifiedBehavior:
+    """통합 전에는 스트림에만 없던 것들. 통합 전 이 클래스는 반대로 기록돼 있었다."""
 
     @pytest.mark.asyncio
-    async def test_stream_path_has_no_cache(self, make_brain):
-        """현재: 스트림은 캐시를 읽지 않아 같은 질문도 매번 다시 계산한다."""
+    async def test_stream_serves_cached_answer(self, make_brain):
+        """통합 후: 스트림도 캐시를 읽는다 (route_trace.route == "cache")."""
         brain = await make_brain()
 
         with _Fakes():
-            await brain.process_query(Q_METRIC)  # 캐시에 기록
+            first = await brain.process_query(Q_METRIC)  # 캐시에 기록
             chunks = [c async for c in brain.process_query_stream(Q_METRIC)]
 
-        # 캐시 히트였다면 "컨텍스트 수집 중..." status가 없었을 것이다
-        assert [c["type"] for c in chunks] == ["status", "status", "text", "done"]
-        assert brain._stats["cache_hits"] == 0
+        # 캐시 히트면 컨텍스트 수집·생성 단계가 통째로 생략된다
+        assert [c["type"] for c in chunks] == ["text", "done"]
+        assert _stream_text(chunks) == first.text
+
+        done = _done(chunks)
+        assert done["metadata"]["route_trace"]["route"] == "cache"
+        assert brain._stats["cache_hits"] == 1
 
     @pytest.mark.asyncio
-    async def test_stream_done_carries_no_response_metadata(self, make_brain):
-        """현재: route_trace·numeric_verification이 스트림에는 실리지 않는다."""
+    async def test_stream_done_carries_response_metadata(self, make_brain):
+        """통합 후: route_trace·numeric_verification이 done 이벤트에도 실린다."""
         brain = await make_brain()
         with _Fakes():
             chunks = [c async for c in brain.process_query_stream(Q_METRIC)]
 
-        assert "metadata" not in _done(chunks)
-        assert "route_trace" not in _done(chunks)
+        metadata = _done(chunks)["metadata"]
+        assert metadata["route_trace"]["route"] == "direct"
+        assert metadata["route_trace"]["confidence_level"] == "high"
+        assert "numeric_verification" in metadata
 
     @pytest.mark.asyncio
-    async def test_stream_mode_collapses_non_react_routes_to_direct(self, make_brain):
-        """현재: clarify 경로도 스트림에서는 mode="direct"로 보고된다."""
+    async def test_stream_mode_still_only_distinguishes_react(self, make_brain):
+        """통합 후에도 ``mode``는 v3 계약 그대로 — 세부 경로는 metadata에 있다."""
         brain = await make_brain()
         response, chunks = await _both_paths(brain, Q_UNKNOWN)
 
         assert _trace(response)["route"] == "clarify"
-        assert _done(chunks)["mode"] == "direct"
+        done = _done(chunks)
+        assert done["mode"] == "direct"
+        assert done["metadata"]["route_trace"]["route"] == "clarify"
 
-    def test_two_complexity_implementations_disagree_on_compound_queries(self):
-        """현재: brain의 복잡도 판정에는 QueryRouter 복합 질의 감지가 빠져 있다."""
-        brain = UnifiedBrain.__new__(UnifiedBrain)
+    def test_single_complexity_implementation_detects_compound_queries(self):
+        """통합 후: 복잡도 판정 구현은 QueryGraph 하나뿐이고 복합 질의를 감지한다."""
+        assert not hasattr(UnifiedBrain, "_is_complex_query")
+
         context = Context(query="q")
         context.rag_docs = [{"content": "a"}, {"content": "b"}]
         context.kg_triples = [("laneige", "competes_with", "cosrx")]
 
-        compound = "LANEIGE 순위와 COSRX 순위 알려줘"
-        assert brain._is_complex_query(compound, context) is False
-        assert QueryGraph._is_complex_query(compound, context) is True
+        assert QueryGraph._is_complex_query("LANEIGE 순위와 COSRX 순위 알려줘", context) is True
+        assert QueryGraph._is_complex_query("LANEIGE 순위", context) is False
+
+    def test_brain_no_longer_duplicates_graph_helpers(self):
+        """통합 후: 그래프와 겹치던 brain 헬퍼들이 모두 사라졌다."""
+        for name in (
+            "_generate_response",
+            "_is_complex_query",
+            "_process_with_react",
+            "_assess_confidence_level",
+            "_assess_query_intent",
+            "_extract_key_points_from_context",
+        ):
+            assert not hasattr(UnifiedBrain, name), name

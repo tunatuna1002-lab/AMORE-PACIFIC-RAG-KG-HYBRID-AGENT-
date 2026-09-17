@@ -13,12 +13,18 @@ Graph Structure:
         → [MEDIUM/LOW + complex] → REACT_AGENT → GENERATE_RESPONSE
         → [MEDIUM/LOW + simple] → DECIDE → EXECUTE_TOOL → GENERATE_RESPONSE
     GENERATE_RESPONSE → OUTPUT_GUARD → DONE
+
+분기 구현은 ``stream()`` 하나뿐이다 (트랙 5-A). ``run()``은 그 제너레이터를 끝까지
+소비하는 얇은 래퍼이고, ``UnifiedBrain.process_query_stream``은 같은 제너레이터가 내보내는
+진행 이벤트를 SSE로 흘려보낸다. 예전에는 brain.py가 이 파이프라인을 통째로 복제해
+스트림 경로에만 캐시·복합 질의 감지·route_trace가 빠져 있었다.
 """
 
 from __future__ import annotations
 
 import copy
 import logging
+from collections.abc import AsyncIterator
 from typing import Any
 
 from .cache import ResponseCache
@@ -33,6 +39,19 @@ from .response_pipeline import ResponsePipeline
 from .tool_coordinator import ToolCoordinator
 
 logger = logging.getLogger(__name__)
+
+# 진행 상태 문구 — SSE `status` 이벤트로 그대로 나간다 (v3 스트림 계약 유지).
+# 분기마다 문구가 다르므로, 분기를 아는 그래프가 소유한다.
+STATUS_GATHER = "컨텍스트 수집 중..."
+STATUS_HIGH_CONFIDENCE = "높은 신뢰도 — 빠른 응답 생성 중..."
+STATUS_CLARIFY = "질문 분석 중..."
+STATUS_REACT = "복잡한 질문 감지 — ReAct 분석 모드 시작..."
+STATUS_DECIDE = "분석 중..."
+STATUS_GENERATE = "응답 생성 중..."
+
+
+def _status(content: str) -> dict[str, Any]:
+    return {"type": "status", "content": content}
 
 
 class QueryGraph:
@@ -125,9 +144,8 @@ class QueryGraph:
         return state
 
     def _node_assess_confidence(self, state: QueryState) -> QueryState:
-        """신뢰도 평가 노드
+        """신뢰도 평가 노드 (유일한 구현 — brain.py의 복제본은 트랙 5-A에서 삭제)
 
-        brain.py의 _assess_confidence_level 로직을 복제.
         컨텍스트 데이터 점수 + 쿼리 의도 명확성 점수를 합산하여
         ConfidenceAssessor에 위임합니다.
         """
@@ -344,7 +362,7 @@ class QueryGraph:
         return "generate_response"
 
     # =========================================================================
-    # Helper Methods (replicated from brain.py for self-containment)
+    # Helper Methods (분기·판정의 유일한 구현 — 트랙 5-A에서 brain.py 복제본 삭제)
     # =========================================================================
 
     @staticmethod
@@ -554,40 +572,62 @@ class QueryGraph:
 
     async def run(self, state: QueryState) -> QueryState:
         """
-        상태 그래프 실행
+        상태 그래프 실행 (진행 이벤트를 버리는 얇은 래퍼)
+
+        분기는 ``stream()`` 하나에만 있다. 여기서는 이벤트를 소비만 한다.
 
         Args:
             state: 초기 QueryState
 
         Returns:
-            최종 QueryState (response 포함)
+            최종 QueryState (response 포함) — 인자로 받은 그 객체
+        """
+        async for _ in self.stream(state):
+            pass
+        return state
+
+    async def stream(self, state: QueryState) -> AsyncIterator[dict[str, Any]]:
+        """
+        상태 그래프를 실행하면서 진행 이벤트를 순서대로 내보낸다
+
+        이벤트는 SSE 청크와 같은 모양이다:
+        ``{"type": "status"|"tool_call", "content": ...}``.
+        최종 텍스트·완료 이벤트는 호출자(``UnifiedBrain.process_query_stream``)가
+        ``state.response``로 조립한다 — 그래야 처리 시간·통계가 한곳에 남는다.
+
+        모든 노드는 받은 state를 **제자리에서** 고치므로, 제너레이터를 끝까지 소비한
+        뒤 호출자가 갖고 있는 state를 그대로 읽으면 된다.
+
+        Args:
+            state: 초기 QueryState (제자리에서 수정된다)
         """
         state.original_query = state.query
 
         # GUARD
-        state = await self._node_guard(state)
-        next_node = self._route_after_guard(state)
-        if next_node == "done":
-            return self._finalize_route_trace(state, "blocked")
+        await self._node_guard(state)
+        if self._route_after_guard(state) == "done":
+            self._finalize_route_trace(state, "blocked")
+            return
 
         # CACHE_CHECK
-        state = await self._node_cache_check(state)
-        next_node = self._route_after_cache(state)
-        if next_node == "done":
+        await self._node_cache_check(state)
+        if self._route_after_cache(state) == "done":
             # route_trace는 _node_cache_check에서 이미 "cache"로 기록됨
-            return state
+            return
 
         # GATHER_CONTEXT
-        state = await self._node_gather_context(state)
+        yield _status(STATUS_GATHER)
+        await self._node_gather_context(state)
 
         # ASSESS_CONFIDENCE
-        state = self._node_assess_confidence(state)
+        self._node_assess_confidence(state)
 
         # ROUTE based on confidence
         next_node = self._route_after_confidence(state)
 
         if next_node == "generate_response":
             # HIGH confidence - direct answer (skip LLM decision)
+            yield _status(STATUS_HIGH_CONFIDENCE)
             logger.info(f"HIGH confidence - skipping LLM decision for: {state.query[:50]}...")
             state.decision = Decision(
                 tool="direct_answer",
@@ -600,27 +640,36 @@ class QueryGraph:
             )
             route = "direct"
         elif next_node == "clarification":
-            state = self._node_clarification(state)
-            state = self._node_output_guard(state)
-            return self._finalize_route_trace(state, "clarify")
+            yield _status(STATUS_CLARIFY)
+            self._node_clarification(state)
+            self._node_output_guard(state)
+            self._finalize_route_trace(state, "clarify")
+            return
         elif next_node == "react":
+            yield _status(STATUS_REACT)
             logger.info(f"Complex query detected, using ReAct mode: {state.query[:50]}...")
-            state = await self._node_react(state)
-            state = self._node_output_guard(state)
-            return self._finalize_route_trace(state, "react")
+            await self._node_react(state)
+            self._node_output_guard(state)
+            self._finalize_route_trace(state, "react")
+            return
         else:
             # DECIDE
             route = "decide"
-            state = await self._node_decide(state)
+            yield _status(STATUS_DECIDE)
+            await self._node_decide(state)
             # ROUTE after decide
-            next_node = self._route_after_decide(state)
-            if next_node == "execute_tool":
-                state = await self._node_execute_tool(state)
+            if self._route_after_decide(state) == "execute_tool":
+                yield {
+                    "type": "tool_call",
+                    "content": {"name": state.decision.tool, "status": "calling"},
+                }
+                await self._node_execute_tool(state)
+            yield _status(STATUS_GENERATE)
 
         # GENERATE_RESPONSE
-        state = await self._node_generate_response(state)
+        await self._node_generate_response(state)
 
         # OUTPUT_GUARD
-        state = self._node_output_guard(state)
+        self._node_output_guard(state)
 
-        return self._finalize_route_trace(state, route)
+        self._finalize_route_trace(state, route)
