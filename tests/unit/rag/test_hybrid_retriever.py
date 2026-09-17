@@ -476,37 +476,6 @@ class TestHybridRetriever:
         assert any(f["type"] == "brand_products" for f in facts)
         assert any(f["type"] == "competitors" for f in facts)
 
-    @pytest.mark.asyncio
-    async def test_retriever_build_inference_context(self):
-        """추론 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = [{"brand": "cosrx", "sos": 0.05}]
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "categories": ["lip_care"], "indicators": ["sos"]}
-
-        current_metrics = {
-            "summary": {"laneige_sos_by_category": {"lip_care": 0.08}},
-            "brand_metrics": [
-                {"is_laneige": True, "share_of_shelf": 0.08, "avg_rank": 15.5, "product_count": 3}
-            ],
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        assert context["brand"] == "laneige"
-        assert context["is_target"] is True
-        assert context["category"] == "lip_care"
-        assert context["sos"] == 0.08
-        assert context["competitor_count"] == 1
-
     def test_retriever_get_stats(self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever):
         """통계 조회 테스트"""
         retriever = HybridRetriever(
@@ -536,15 +505,6 @@ class TestHybridRetriever:
         mock_knowledge_graph.get_category_brands.return_value = []
         mock_knowledge_graph.query.return_value = []
 
-        mock_reasoner.infer.return_value = [
-            InferenceResult(
-                rule_name="test_rule",
-                insight_type=InsightType.MARKET_POSITION,
-                insight="test insight",
-                confidence=0.9,
-            )
-        ]
-
         mock_doc_retriever.search.return_value = [
             {"id": "doc1", "content": "test content", "metadata": {"title": "Test Doc"}}
         ]
@@ -561,7 +521,11 @@ class TestHybridRetriever:
         # 결과 검증
         assert context.query == "LANEIGE Lip Care 분석"
         assert len(context.entities) > 0
-        assert len(context.inferences) == 1
+        # 규칙은 reasoner.infer가 아니라 증거 카드 + 계약 래퍼로 판정한다 (트랙 3-B).
+        # 등록된 규칙이 없는 reasoner면 판정도 발화도 없다.
+        mock_reasoner.infer.assert_not_called()
+        assert context.inferences == []
+        assert context.metadata["rule_evaluation"]["evaluated"] == 0
         assert len(context.rag_chunks) == 1
         assert context.combined_context != ""
         assert "retrieval_time_ms" in context.metadata
@@ -925,127 +889,6 @@ class TestQueryKnowledgeGraphExtended:
         # competitor_network 사실은 없어야 함
         network_facts = [f for f in facts if f["type"] == "competitor_network"]
         assert len(network_facts) == 0
-
-
-# =============================================================================
-# Build Inference Context Sentiment Tests
-# =============================================================================
-
-
-class TestBuildInferenceContextSentiment:
-    """추론 컨텍스트 감성 데이터 테스트"""
-
-    def test_build_context_with_trend_keywords(self):
-        """트렌드 키워드 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_relation = MagicMock()
-        mock_relation.object = "glass_skin"
-        mock_kg.query.return_value = [mock_relation]
-        mock_kg.get_competitors.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"]}
-        context = retriever._build_inference_context(entities, {})
-
-        assert "trend_keywords" in context
-        assert "glass_skin" in context["trend_keywords"]
-
-    def test_build_context_with_brand_sentiment(self):
-        """브랜드 감성 프로필 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.return_value = {
-            "all_tags": ["hydrating", "soothing"],
-            "clusters": {"Hydration": 30, "Effectiveness": 20},
-            "dominant_sentiment": "Hydration",
-        }
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-        context = retriever._build_inference_context(entities, {})
-
-        assert "sentiment_tags" in context
-        assert "hydrating" in context["sentiment_tags"]
-        assert context["dominant_sentiment"] == "Hydration"
-
-    def test_build_context_with_product_sentiment(self):
-        """제품 감성 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.return_value = {}
-        mock_kg.get_product_sentiments.return_value = {
-            "sentiment_tags": ["moisturizing", "gentle"],
-            "ai_summary": "Excellent hydration",
-            "sentiment_clusters": {"Hydration": 5},
-        }
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-        current_metrics = {
-            "product_metrics": [{"asin": "B08TEST123", "current_rank": 10}],
-        }
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        assert "ai_summary" in context
-        assert context["ai_summary"] == "Excellent hydration"
-
-    def test_build_context_with_competitor_sentiment(self):
-        """경쟁사 감성 비교 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = [
-            {"brand": "cosrx"},
-            {"brand": "tirtir"},
-        ]
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.side_effect = [
-            {  # laneige
-                "all_tags": ["hydrating"],
-                "clusters": {"Hydration": 30},
-            },
-            {  # cosrx
-                "all_tags": ["affordable", "gentle"],
-                "clusters": {"Pricing": 25, "Skin_Compatibility": 15},
-            },
-            {  # tirtir
-                "all_tags": ["trendy"],
-                "clusters": {"Effectiveness": 20},
-            },
-        ]
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-        context = retriever._build_inference_context(entities, {})
-
-        assert "competitor_sentiment_tags" in context
-        assert "affordable" in context["competitor_sentiment_tags"]
-        assert "competitor_sentiment_clusters" in context
-        assert context["competitor_sentiment_clusters"]["Pricing"] == 25
 
 
 # =============================================================================
@@ -1617,20 +1460,17 @@ class TestRetrieveEdgeCases:
         mock_doc_retriever.initialize = AsyncMock()
         mock_doc_retriever.search = AsyncMock(return_value=[])
 
-        # 딕셔너리를 반환하는 reasoner
-        mock_reasoner = MagicMock()
-        mock_reasoner.infer.return_value = [
-            {"insight": "test insight", "confidence": 0.9}  # dict 형태
-        ]
-
         retriever = HybridRetriever(
             knowledge_graph=mock_kg,
-            reasoner=mock_reasoner,
+            reasoner=MagicMock(),
             doc_retriever=mock_doc_retriever,
             auto_init_rules=False,
         )
 
-        result = await retriever.retrieve_unified("test query", current_metrics={})
+        # 딕셔너리 추론 결과를 내는 규칙 판정 (retrieve_unified의 dict 변환 분기 검증용)
+        dict_inferences = [{"insight": "test insight", "confidence": 0.9}]
+        with patch.object(retriever, "_evaluate_rules", return_value=(dict_inferences, {})):
+            result = await retriever.retrieve_unified("test query", current_metrics={})
 
         # 딕셔너리가 그대로 포함되어야 함
         assert len(result.inferences) == 1
@@ -1923,118 +1763,6 @@ class TestRelevanceGradingRewrite:
         # 재작성이 트리거되지 않으므로 첫 번째 검색만 수행
         assert mock_doc_retriever.search.call_count == 1
         assert len(context.rag_chunks) == 3
-
-
-# =============================================================================
-# Build Inference Context Edge Cases
-# =============================================================================
-
-
-class TestBuildInferenceContextEdgeCases:
-    """추론 컨텍스트 구성 엣지 케이스 테스트"""
-
-    def test_build_context_without_categories_hhi(self):
-        """카테고리 없이 HHI 할당 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"]}
-        current_metrics = {
-            "market_metrics": [
-                {"category_id": "lip_care", "hhi": 0.15, "cpi": 105, "churn_rate_7d": 0.12}
-            ]
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        # 카테고리 필터 없이 첫 번째 market_metric 적용
-        assert context.get("hhi") == 0.15
-        assert context.get("cpi") == 105
-
-    def test_build_context_sos_fallback(self):
-        """SoS 폴백 로직 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "categories": ["face_powder"]}
-        current_metrics = {
-            "summary": {"laneige_sos_by_category": {"lip_care": 0.08, "face_powder": 0.05}}
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        # face_powder 카테고리의 SoS가 할당되어야 함
-        assert context.get("sos") == 0.05
-
-    def test_build_context_brand_metrics_matching(self):
-        """브랜드 메트릭 매칭 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["cosrx"]}
-        current_metrics = {
-            "summary": {"laneige_sos_by_category": {}},
-            "brand_metrics": [
-                {"brand_name": "LANEIGE", "share_of_shelf": 0.08, "avg_rank": 15},
-                {"brand_name": "COSRX", "share_of_shelf": 0.05, "avg_rank": 22},
-            ],
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        # cosrx 브랜드 메트릭이 매칭되어야 함
-        assert context.get("sos") == 0.05
-        assert context.get("avg_rank") == 22
-
-    def test_build_context_sentiment_exception_handling(self):
-        """감성 조회 예외 처리 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = [{"brand": "cosrx"}]
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.side_effect = [
-            {"all_tags": ["hydrating"]},  # laneige
-            Exception("Sentiment fetch failed"),  # cosrx (예외)
-        ]
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-
-        # 예외가 발생해도 컨텍스트 구성은 성공해야 함
-        context = retriever._build_inference_context(entities, {})
-
-        assert "sentiment_tags" in context
-        # 경쟁사 감성은 빈 리스트여야 함 (예외로 인해)
-        assert context.get("competitor_sentiment_tags", []) == []
 
 
 # =============================================================================
@@ -2372,14 +2100,17 @@ class TestAblationFlagGating:
 
     @pytest.mark.asyncio
     async def test_no_ontology_flag_skips_inference(self, retriever, mock_reasoner, monkeypatch):
-        """FF_REASONER_* 둘 다 false면 reasoner.infer가 호출되지 않아야 함"""
+        """FF_REASONER_* 둘 다 false면 규칙을 판정하지 않아야 함"""
         monkeypatch.setenv("FF_REASONER_USE_UNIFIED_REASONER", "false")
         monkeypatch.setenv("FF_REASONER_USE_OWL_REASONER", "false")
 
-        context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+        with patch.object(retriever, "_evaluate_rules") as rules_spy:
+            context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+            rules_spy.assert_not_called()
 
         mock_reasoner.infer.assert_not_called()
         assert context.inferences == []
+        assert "rule_evaluation" not in context.metadata
 
     @pytest.mark.asyncio
     async def test_no_kg_flag_skips_kg_query(self, retriever, monkeypatch):
@@ -2396,10 +2127,12 @@ class TestAblationFlagGating:
     async def test_default_flags_keep_kg_and_inference(self, retriever, mock_reasoner):
         """기본 플래그(true)에서는 KG 조회와 추론이 모두 수행되어야 함"""
         with patch.object(retriever, "_query_knowledge_graph", return_value=[]) as kg_spy:
-            await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+            context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
             kg_spy.assert_called_once()
 
-        mock_reasoner.infer.assert_called_once()
+        # 규칙 판정은 계약 래퍼 경로 — 추론 통계에는 판정 1회로 남는다
+        assert "rule_evaluation" in context.metadata
+        mock_reasoner.record_inference.assert_called_once()
 
 
 class TestUnifiedSelfRAGGate:

@@ -87,8 +87,11 @@ async def test_all_card_kinds_are_assembled(retrieved):
     }
     relation_texts = [c.text for c in ctx.prompt_evidence if c.kind == EvidenceKind.RELATION]
     assert any("competesWith" in text and "burt's bees" in text for text in relation_texts)
-    # 추론 카드의 derived_from은 이 트랙에서 비워 둔다 (3-B가 채운다)
-    assert all(not c.derived_from for c in ctx.evidence if c.kind == EvidenceKind.INFERENCE)
+    # 추론 카드의 derived_from = 규칙 입력 카드 id (트랙 3-B), 모두 전체 카드 안에 있다
+    evidence_ids = {c.id for c in ctx.evidence}
+    inference_cards = [c for c in ctx.evidence if c.kind == EvidenceKind.INFERENCE]
+    assert inference_cards
+    assert all(c.derived_from and set(c.derived_from) <= evidence_ids for c in inference_cards)
     # 문서는 검색 결과 전부
     documents = [c for c in ctx.prompt_evidence if c.kind == EvidenceKind.DOCUMENT]
     assert [c.metadata["chunk_id"] for c in documents] == [chunk["id"] for chunk in DOC_CHUNKS]
