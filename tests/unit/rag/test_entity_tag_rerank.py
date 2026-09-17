@@ -28,7 +28,7 @@ from src.rag.entity_tags import (
 from src.rag.retriever import DocumentRetriever
 
 QUERY = "LANEIGE Lip Care market position"
-TOP_K = 4
+TOP_K = 5
 MATCHING_CHUNK = "strategic_indicators_3"  # 한국어 별칭으로만 LANEIGE·Lip Care를 언급
 
 # 한국어 별칭 청크는 영어 질의와 BM25 토큰이 겹치지 않는다 — 온톨로지 canonical id
@@ -37,7 +37,7 @@ CORPUS = (
     "## Lip balm routine\nlip moisture and body care tips for winter\n"
     "\n## Lip gloss shine\nlip gloss shine and hair care basics\n"
     "\n## Care instructions\ncare instructions for lip liner storage\n"
-    "\n## 라네즈 립케어 전략\n라네즈 립케어 립 슬리핑 마스크 포지션 메모\n"
+    "\n## 라네즈 립케어 전략\n라네즈 립케어 립 슬리핑 마스크 position 메모\n"
     "\n## COSRX serum\nCOSRX snail serum review\n"
     "\n## Concentration metric\nmarket concentration index overview\n"
 )
@@ -54,6 +54,12 @@ def _fake_embeddings(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
+def _clear_search_cache() -> None:
+    """검색 캐시는 클래스 속성(인스턴스·코퍼스와 무관) — 같은 질의를 두 번 쓰기 전에 비운다."""
+    DocumentRetriever._search_cache.clear()
+    DocumentRetriever._cache_timestamps.clear()
+
+
 def _patch_embed():
     return patch.object(DocumentRetriever, "_embed_texts", AsyncMock(side_effect=_fake_embeddings))
 
@@ -61,11 +67,9 @@ def _patch_embed():
 @pytest.fixture(autouse=True)
 def _isolated_search_cache():
     """DocumentRetriever 검색 캐시는 클래스 속성이라 테스트 간에 새지 않게 비운다."""
-    DocumentRetriever._search_cache.clear()
-    DocumentRetriever._cache_timestamps.clear()
+    _clear_search_cache()
     yield
-    DocumentRetriever._search_cache.clear()
-    DocumentRetriever._cache_timestamps.clear()
+    _clear_search_cache()
 
 
 @pytest.fixture()
@@ -250,7 +254,7 @@ class TestBuildIndexTagging:
 
         assert status["retag"] is True
         assert status["retagged"] == 6
-        assert status["tag_coverage"]["brand_or_category"] == 4
+        assert status["tag_coverage"]["brand_or_category"] == 2
         assert status["tagged_count"] == 6
 
         after = collection.get(include=["documents", "embeddings", "metadatas"])
@@ -273,8 +277,8 @@ class TestBuildIndexTagging:
         assert status["dry_run"] is True
         assert status["retagged"] == 0
         assert status["tag_coverage"]["total"] == 6
-        assert status["tag_coverage"]["brand"] == 2  # LANEIGE 청크, COSRX 청크
-        assert status["tag_coverage"]["category"] == 3  # 립케어·"lip care" 없음 → 1 + ...
+        assert status["tag_coverage"]["brand"] == 2  # 라네즈 청크, COSRX 청크
+        assert status["tag_coverage"]["category"] == 2  # 립케어 청크, COSRX(serum→skin_care)
         assert status["tagged_count"] == 0
 
     @pytest.mark.asyncio
@@ -315,7 +319,7 @@ class TestHybridRetrieverEntityBonus:
 
         with _patch_embed():
             baseline, method0 = await hybrid._hybrid_search(QUERY, top_k=TOP_K)
-            DocumentRetriever._search_cache.clear()
+            _clear_search_cache()
             stats: dict[str, Any] = {}
             boosted, method1 = await hybrid._hybrid_search(
                 QUERY, top_k=TOP_K, entities=entities, rerank_stats=stats
@@ -325,12 +329,14 @@ class TestHybridRetrieverEntityBonus:
         assert len(baseline) == TOP_K
         assert len(boosted) == TOP_K
 
-        # 전제: 보너스 전에는 매칭 청크가 1위가 아니다 (아니면 이 테스트는 아무것도 증명 못 함)
-        baseline_candidates = _ids(baseline)
+        baseline_ids = _ids(baseline)
         boosted_ids = _ids(boosted)
-        assert MATCHING_CHUNK in boosted_ids
-        if MATCHING_CHUNK in baseline_candidates:
-            assert baseline_candidates.index(MATCHING_CHUNK) > boosted_ids.index(MATCHING_CHUNK)
+        # 후보 집합은 그대로고 순서만 바뀐다 (보너스는 필터가 아니다)
+        assert sorted(boosted_ids) == sorted(baseline_ids)
+        # 전제: 보너스 전에는 매칭 청크가 1위가 아니다 (아니면 이 테스트는 아무것도 증명 못 함)
+        assert baseline_ids.index(MATCHING_CHUNK) > 0
+        assert boosted_ids.index(MATCHING_CHUNK) < baseline_ids.index(MATCHING_CHUNK)
+        assert boosted_ids[0] == MATCHING_CHUNK
         # 보너스 결과에는 근거 표기가 붙는다
         matched = next(r for r in boosted if _ids([r])[0] == MATCHING_CHUNK)
         assert matched["entity_bonus"] > 0
@@ -352,7 +358,7 @@ class TestHybridRetrieverEntityBonus:
 
         with _patch_embed():
             baseline, _ = await hybrid._hybrid_search(QUERY, top_k=TOP_K)
-            DocumentRetriever._search_cache.clear()
+            _clear_search_cache()
             stats: dict[str, Any] = {}
             with_entities, _ = await hybrid._hybrid_search(
                 QUERY, top_k=TOP_K, entities=entities, rerank_stats=stats
