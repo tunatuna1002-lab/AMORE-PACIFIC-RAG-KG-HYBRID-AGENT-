@@ -241,7 +241,7 @@
 
 | 트랙 | 커밋 | 내용 | 병합 전 리드 확인 |
 |---|---|---|---|
-| 4-B | `9f3a1ff`~`0d39ef5`(3개) | 색인 시 청크에 엔티티 태그(`brands`·`categories`·`metrics`, 구분자 문자열) + 재임베딩 없는 `--retag`. 조회는 Dense+BM25 RRF 병합 뒤 **가산점**으로만 재정렬(필터 아님, E10), 인텐트 필터로 k개 미만이면 필터 없는 결과로 채움 | RED 9건 확인, 관련 테스트 2,690 통과 |
+| 4-B | `604f4c0` `eb095e0` `0d39ef5` | 색인 시 청크에 엔티티 태그(`brands`·`categories`·`metrics`, 구분자 문자열) + 재임베딩 없는 `--retag`. 조회는 Dense+BM25 RRF 병합 뒤 **가산점**으로만 재정렬(필터 아님, E10), 인텐트 필터로 k개 미만이면 필터 없는 결과로 채움 | RED 9건 확인, 관련 테스트 2,690 통과 |
 | 4-C | `eb5dff2` `f604c13` `167ec1b` `b59beab` | OWL 검색 전략·`use_owl_strategy` 플래그 삭제(결정 S4-1), 호출처 0인 죽은 코드 삭제: `unified_reasoner.py`·`llm_orchestrator.py`·`query_processor.py`·SPARQL 계층. 소스 −2,237줄, 테스트 포함 −5,741줄 | 호출처 확인표 검토, 전체 테스트 5,822 통과 |
 | 4-A | `bdfb187`~`6140254`(10개) | 읽기 전용 도구 5종 레지스트리(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, 반환은 증거 카드), function calling 스키마 자동 생성, DecisionMaker를 네이티브 function calling으로, ReAct도 같은 레지스트리 사용. 대시보드 JSON 도구 5종 + ReAct 전용 3종 제거, 소비처가 사라진 `src/core/tools.py` 삭제 | RED 확인, rebase 후 전체 테스트 5,901 통과 |
 
