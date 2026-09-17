@@ -101,6 +101,16 @@ class TestBrainInitializationWiring:
         assert brain.get_component_status()["owl_strategy"]["active"] is True
 
     @pytest.mark.asyncio
+    async def test_owl_strategy_shares_the_hybrid_doc_retriever(self, flags_env):
+        """OWL 전략이 자체 DocumentRetriever(시맨틱 청킹)를 만들면 초기화 때 같은 Chroma
+        컬렉션에 다른 청크를 추가 색인한다(2026-09-17 실측: 358 → 1,145청크)."""
+        flags_env(react=False, owl=True)
+        brain = await _initialized_brain()
+
+        retriever = brain._context_gatherer.retriever
+        assert retriever.owl_strategy.doc_retriever is retriever.doc_retriever
+
+    @pytest.mark.asyncio
     async def test_flags_off_leaves_components_inactive_without_error(self, flags_env):
         flags_env(react=False, owl=False)
         brain = await _initialized_brain()
@@ -150,6 +160,7 @@ class TestContainerOWLWiring:
         try:
             retriever = Container.get_unified_retriever()
             assert isinstance(retriever.owl_strategy, OWLRetrievalStrategy)
+            assert retriever.owl_strategy.doc_retriever is retriever.doc_retriever
         finally:
             Container.reset()
             FeatureFlags.reset_instance()
@@ -249,3 +260,23 @@ class TestBrainStatusRoute:
 
         assert payload["components"]["react_agent"]["active"] is True
         assert payload["components"]["owl_strategy"]["enabled"] is False
+
+
+class TestSharedDocRetriever:
+    @pytest.mark.asyncio
+    async def test_document_retriever_initialize_is_idempotent(self):
+        from src.rag.retriever import DocumentRetriever
+
+        retriever = DocumentRetriever()
+        with (
+            patch.object(retriever, "_check_vector_search", return_value=True),
+            patch.object(retriever, "_initialize_vector_search", AsyncMock()) as vector_init,
+        ):
+            retriever.collection = object()
+            await retriever.initialize()
+            chunk_count = len(retriever.chunks)
+            await retriever.initialize()
+
+        assert chunk_count > 0
+        assert len(retriever.chunks) == chunk_count
+        assert vector_init.await_count == 1

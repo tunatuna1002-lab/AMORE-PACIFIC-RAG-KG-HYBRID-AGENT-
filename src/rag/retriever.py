@@ -511,6 +511,11 @@ class DocumentRetriever:
         Raises:
             ValueError: 벡터 검색 초기화 실패 시
         """
+        # HybridRetriever와 OWL 전략이 같은 인스턴스를 공유하므로 두 번 불릴 수 있다.
+        # 다시 로드하면 self.chunks가 중복 적재된다.
+        if self._initialized:
+            return True
+
         # 문서 로드
         await self._load_documents()
 

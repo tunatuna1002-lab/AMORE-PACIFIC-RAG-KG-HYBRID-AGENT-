@@ -318,8 +318,9 @@ class UnifiedBrain:
 
             flags = FeatureFlags.get_instance()
             reasoner = OntologyReasoner(kg)
-            owl_strategy = None
             self._owl_reasoner = None
+
+            hybrid_retriever = HybridRetriever(knowledge_graph=kg, reasoner=reasoner)
 
             owl_status = self._component_status["owl_strategy"]
             owl_status["enabled"] = flags.use_owl_strategy()
@@ -327,7 +328,9 @@ class UnifiedBrain:
                 try:
                     from ..rag.retrieval_strategy import create_owl_strategy
 
-                    owl_strategy, self._owl_reasoner = create_owl_strategy(knowledge_graph=kg)
+                    hybrid_retriever.owl_strategy, self._owl_reasoner = create_owl_strategy(
+                        knowledge_graph=kg, doc_retriever=hybrid_retriever.doc_retriever
+                    )
                     owl_status["active"] = True
                     logger.info("UnifiedBrain: OWL strategy enabled")
                 except Exception as e:
@@ -337,11 +340,6 @@ class UnifiedBrain:
                         f"— falling back to legacy retrieval ({owl_status['error']})"
                     )
 
-            hybrid_retriever = HybridRetriever(
-                knowledge_graph=kg,
-                reasoner=reasoner,
-                owl_strategy=owl_strategy,
-            )
             logger.info("UnifiedBrain: HybridRetriever initialized")
 
             self._context_gatherer = ContextGatherer(

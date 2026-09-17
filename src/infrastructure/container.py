@@ -159,6 +159,7 @@ class Container:
             from src.rag.hybrid_retriever import HybridRetriever
 
             kg = cls.get_knowledge_graph()
+            doc_retriever = cls.get_document_retriever()
             owl_strategy = None
 
             flags = FeatureFlags.get_instance()
@@ -166,7 +167,9 @@ class Container:
                 try:
                     from src.rag.retrieval_strategy import create_owl_strategy
 
-                    owl_strategy, _ = create_owl_strategy(knowledge_graph=kg)
+                    owl_strategy, _ = create_owl_strategy(
+                        knowledge_graph=kg, doc_retriever=doc_retriever
+                    )
                 except Exception as e:
                     logger.warning(
                         f"Container: OWL strategy enabled by flag but failed to initialize "
@@ -176,7 +179,7 @@ class Container:
             cls._instances["unified_retriever"] = HybridRetriever(
                 knowledge_graph=kg,
                 reasoner=cls.get_reasoner(),
-                doc_retriever=cls.get_document_retriever(),
+                doc_retriever=doc_retriever,
                 auto_init_rules=True,
                 owl_strategy=owl_strategy,
             )

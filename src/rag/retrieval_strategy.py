@@ -737,14 +737,18 @@ class OWLRetrievalStrategy:
 
 
 def create_owl_strategy(
-    knowledge_graph: Any | None = None,
-    doc_retriever: Any | None = None,
+    knowledge_graph: Any | None,
+    doc_retriever: Any,
 ) -> tuple[OWLRetrievalStrategy, Any]:
     """OWL 검색 전략과 그 추론기를 만든다 (UnifiedBrain·Container 공용).
 
     두 호출처가 생성자에 없는 `docs_path`를 넘겨 2026-02-15(f049cb8)부터 매번 TypeError가
     나고 예외가 삼켜졌다. 생성 규칙을 한 곳에 두고, 실패는 호출처가 warning으로 남기도록
     예외를 그대로 올린다.
+
+    doc_retriever는 HybridRetriever와 같은 인스턴스를 넘겨야 한다. 생략하면
+    OWLRetrievalStrategy가 시맨틱 청킹 DocumentRetriever를 따로 만들어, 초기화 때 같은
+    Chroma 컬렉션(amore_docs)에 다른 청크를 추가 색인한다(2026-09-17 평가 중 358 → 1,145청크).
 
     Returns:
         (OWLRetrievalStrategy, OWLReasoner)
