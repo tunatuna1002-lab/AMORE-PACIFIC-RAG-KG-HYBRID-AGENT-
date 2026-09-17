@@ -23,7 +23,7 @@ async def get_brain_status(request: Request):
         - scheduler: 스케줄러 상태
         - pending_tasks: 대기 중 태스크
         - stats: 통계
-        - components: 선택 컴포넌트(react_agent, owl_strategy)의 플래그·활성·오류
+        - components: 선택 컴포넌트(react_agent)의 플래그·활성·오류
     """
     try:
         brain = await get_initialized_brain()

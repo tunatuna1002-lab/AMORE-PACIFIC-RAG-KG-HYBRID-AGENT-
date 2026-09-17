@@ -11,7 +11,6 @@ Search pipeline (composition, not inheritance):
      │
      ├─ DocumentRetriever     – ChromaDB 벡터 검색 (순수 RAG, Layer 3-B)
      ├─ HybridRetriever       – DocumentRetriever + KG 통합 오케스트레이터
-     ├─ OWLRetrievalStrategy  – EntityLinker + OWLReasoner + ConfidenceFusion
      │
      ├─ CrossEncoderReranker  – 교차 인코더 재순위
      ├─ ConfidenceFusion      – 다중 소스 신뢰도 융합
@@ -55,12 +54,7 @@ from .rag_kg_extractor import RAGKGExtractor
 
 # --- Stage 4: Reranking & fusion ---
 from .reranker import CrossEncoderReranker
-from .retrieval_strategy import (
-    IntentRetrievalConfig,
-    OWLRetrievalStrategy,
-    RetrievalStrategy,
-    get_intent_retrieval_config,
-)
+from .retrieval_strategy import IntentRetrievalConfig, get_intent_retrieval_config
 
 # --- Stage 3: Retrieval ---
 from .retriever import DocumentRetriever
@@ -80,8 +74,6 @@ __all__ = [
     # Stage 3: Retrieval
     "DocumentRetriever",
     "HybridRetriever",
-    "RetrievalStrategy",
-    "OWLRetrievalStrategy",
     "IntentRetrievalConfig",
     "get_intent_retrieval_config",
     "SemanticChunker",

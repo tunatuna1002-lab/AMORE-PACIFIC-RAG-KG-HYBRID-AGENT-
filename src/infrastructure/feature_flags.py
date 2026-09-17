@@ -1,7 +1,7 @@
 """Feature Flags infrastructure for safe, incremental rollout of new features.
 
 Supports three levels of override (highest priority first):
-1. Environment variable: FF_{SECTION}_{KEY} (e.g., FF_RETRIEVER_USE_OWL_STRATEGY=true)
+1. Environment variable: FF_{SECTION}_{KEY} (e.g., FF_RETRIEVER_USE_RERANKER=true)
 2. JSON config file: config/feature_flags.json
 3. Default value passed to get_flag()
 
@@ -9,10 +9,10 @@ Usage:
     from src.infrastructure.feature_flags import FeatureFlags
 
     flags = FeatureFlags()
-    if flags.use_owl_strategy():
-        # OWL strategy path
+    if flags.use_reranker():
+        # reranking path
     else:
-        # legacy path
+        # no reranking
 """
 
 from __future__ import annotations
@@ -73,7 +73,7 @@ class FeatureFlags:
 
         Args:
             section: Config section (e.g., "retriever", "cache")
-            key: Flag key (e.g., "use_owl_strategy")
+            key: Flag key (e.g., "use_reranker")
             default: Default value if not found anywhere
 
         Returns:
@@ -95,20 +95,15 @@ class FeatureFlags:
 
     # ── Convenience methods ──────────────────────────────────────────
 
-    def use_owl_strategy(self) -> bool:
-        """Whether to enable OWL strategy in HybridRetriever.
-
-        기본 OFF (2026-09): 생성자 인자 불일치로 2026-02-15(f049cb8)부터 한 번도 생성되지
-        않던 경로다. 수리 후 평가로 회귀가 없음을 확인하기 전에는 켜지 않는다.
-        """
-        return self.get_flag("retriever", "use_owl_strategy", default=False)
-
     def use_react_agent(self) -> bool:
         """Whether UnifiedBrain routes complex MEDIUM/LOW-confidence queries to ReActAgent.
 
         기본 OFF (2026-09): import 경로 오류로 추가된 날(a965437)부터 미연결이던 경로다.
         """
         return self.get_flag("agents", "use_react_agent", default=False)
+
+    # 아래 두 플래그는 이름과 달리 `HybridRetriever.retrieve`의 규칙 추론 on/off 스위치다
+    # (둘 다 false여야 규칙 판정을 건너뛴다 — 평가 ablation `no-ontology`가 쓰는 스위치).
 
     def use_unified_reasoner(self) -> bool:
         """Whether to run unified/rule-based inference during retrieval (ablation: no-ontology)."""

@@ -1573,90 +1573,6 @@ class TestUpdateKnowledgeGraph:
 
 
 # =============================================================================
-# OWL Strategy Tests
-# =============================================================================
-
-
-class TestOWLStrategy:
-    """OWL 전략 통합 테스트"""
-
-    @pytest.mark.asyncio
-    async def test_retrieve_unified_with_owl_strategy(self):
-        """OWL strategy가 설정된 경우 retrieve_unified 위임 테스트"""
-        from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
-
-        mock_owl_strategy = MagicMock()
-        mock_result = UnifiedRetrievalResult(
-            query="test",
-            entities={},
-            ontology_facts=[],
-            inferences=[],
-            rag_chunks=[],
-            combined_context="OWL result",
-            confidence=0.95,
-            entity_links=[],
-            metadata={},
-            retriever_type="owl",
-        )
-        mock_owl_strategy.retrieve = AsyncMock(return_value=mock_result)
-
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-            owl_strategy=mock_owl_strategy,
-        )
-
-        result = await retriever.retrieve_unified("test query", current_metrics={}, top_k=5)
-
-        assert result.combined_context == "OWL result"
-        assert result.retriever_type == "owl"
-        mock_owl_strategy.retrieve.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_search_with_owl_strategy(self):
-        """OWL strategy가 설정된 경우 search 위임 테스트"""
-        mock_owl_strategy = MagicMock()
-        mock_owl_strategy.search = AsyncMock(return_value=[{"id": "owl_doc", "content": "test"}])
-
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-            owl_strategy=mock_owl_strategy,
-        )
-
-        results = await retriever.search("test query", top_k=5, doc_filter="test")
-
-        assert len(results) == 1
-        assert results[0]["id"] == "owl_doc"
-        mock_owl_strategy.search.assert_called_once_with(
-            query="test query", top_k=5, doc_filter="test"
-        )
-
-    @pytest.mark.asyncio
-    async def test_search_without_owl_strategy(self):
-        """OWL strategy 없이 search 호출 시 doc_retriever 사용 테스트"""
-        mock_doc_retriever = MagicMock()
-        mock_doc_retriever.search = AsyncMock(return_value=[{"id": "doc1", "content": "test"}])
-
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=mock_doc_retriever,
-            auto_init_rules=False,
-            owl_strategy=None,
-        )
-
-        results = await retriever.search("test query", top_k=3)
-
-        assert len(results) == 1
-        mock_doc_retriever.search.assert_called_once()
-
-
-# =============================================================================
 # Relevance Grading and Rewrite Tests
 # =============================================================================
 
@@ -2156,41 +2072,13 @@ class TestUnifiedSelfRAGGate:
         mock_doc_retriever.search.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_greeting_skips_even_with_owl_strategy(
-        self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever
-    ):
-        owl_strategy = MagicMock()
-        owl_strategy.retrieve = AsyncMock()
-        retriever = HybridRetriever(
-            knowledge_graph=mock_knowledge_graph,
-            reasoner=mock_reasoner,
-            doc_retriever=mock_doc_retriever,
-            owl_strategy=owl_strategy,
-            auto_init_rules=False,
-        )
-
-        result = await retriever.retrieve_unified("안녕하세요")
-
-        assert result.metadata.get("self_rag_skip") is True
-        owl_strategy.retrieve.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_analysis_query_passes_gate(
-        self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever
-    ):
-        owl_strategy = MagicMock()
-        owl_strategy.retrieve = AsyncMock(return_value=MagicMock())
-        retriever = HybridRetriever(
-            knowledge_graph=mock_knowledge_graph,
-            reasoner=mock_reasoner,
-            doc_retriever=mock_doc_retriever,
-            owl_strategy=owl_strategy,
-            auto_init_rules=False,
-        )
+    async def test_analysis_query_passes_gate(self, retriever):
+        """게이트를 통과하면 실제 검색 경로(retrieve)가 호출된다."""
+        retriever.retrieve = AsyncMock(return_value=HybridContext(query="LANEIGE SoS 분석해줘"))
 
         await retriever.retrieve_unified("LANEIGE SoS 분석해줘")
 
-        owl_strategy.retrieve.assert_called_once()
+        retriever.retrieve.assert_called_once()
 
 
 class TestMetricEdgeSelection:

@@ -3,7 +3,7 @@
 ================================
 `DocumentRetriever.initialize()`는 Chroma 컬렉션을 **읽기만** 해야 한다.
 쓰기(생성/add/upsert/delete)는 `python -m src.rag.build_index` 전용 경로로
-분리한다 (F1). `OWLRetrievalStrategy`는 이제 `doc_retriever`가 필수다 (F2).
+분리한다 (F1).
 
 가짜로 두는 것: OpenAI 임베딩 API 호출뿐이다 (네트워크 금지, 결정적 가짜
 벡터로 대체). Chroma는 임시 디렉터리를 가리키는 **실제** PersistentClient로
@@ -16,7 +16,7 @@ import hashlib
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -242,28 +242,3 @@ class TestBuildIndexOptions:
         assert status["pruned"] == 1
         assert status["in_sync"] is True
         assert status["indexed_count"] == 1
-
-
-# ---------------------------------------------------------------------------
-# F2: OWLRetrievalStrategy는 doc_retriever가 필수
-# ---------------------------------------------------------------------------
-
-
-class TestOWLStrategyRequiresDocRetriever:
-    def test_missing_doc_retriever_raises(self):
-        from src.rag.retrieval_strategy import OWLRetrievalStrategy
-
-        with pytest.raises(TypeError):
-            OWLRetrievalStrategy()
-
-    def test_doc_retriever_is_used_as_is_no_new_instance_created(self):
-        from src.rag.retrieval_strategy import OWLRetrievalStrategy
-
-        shared_retriever = MagicMock(name="shared_doc_retriever")
-        with (
-            patch("src.rag.entity_linker.EntityLinker"),
-            patch("src.rag.confidence_fusion.ConfidenceFusion"),
-        ):
-            strategy = OWLRetrievalStrategy(doc_retriever=shared_retriever)
-
-        assert strategy.doc_retriever is shared_retriever

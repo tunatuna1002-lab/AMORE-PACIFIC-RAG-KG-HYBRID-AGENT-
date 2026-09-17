@@ -28,7 +28,7 @@ Level 4 Autonomous Agent의 핵심 두뇌
 - Event Management: emit_event() - 이벤트 발생 및 핸들러 호출
 - Component Coordination: Facade 패턴으로 내부 컴포넌트 조율
 - ReAct Integration: 복잡한 질문 감지 및 ReAct 모드 라우팅
-- KG/OWL Sync: Knowledge Graph 및 OWL Ontology 동기화
+- KG Sync: Knowledge Graph 동기화
 - Market Intelligence: collect_market_intelligence() - 시장 정보 수집
 - Newsletter: _send_morning_brief() - 아침 브리핑 이메일 발송
 
@@ -232,8 +232,7 @@ class UnifiedBrain:
 
         # 선택 컴포넌트 활성 상태 (/api/v4/brain/status로 노출)
         self._component_status: dict[str, dict[str, Any]] = {
-            name: {"enabled": False, "active": False, "error": None}
-            for name in ("react_agent", "owl_strategy")
+            name: {"enabled": False, "active": False, "error": None} for name in ("react_agent",)
         }
 
         # 초기화 플래그
@@ -311,34 +310,11 @@ class UnifiedBrain:
             kg = KnowledgeGraph(auto_save=False)
             self._knowledge_graph = kg
 
-            # HybridRetriever with optional OWL strategy
-            from ..infrastructure.feature_flags import FeatureFlags
             from ..ontology.reasoner import OntologyReasoner
             from ..rag.hybrid_retriever import HybridRetriever
 
-            flags = FeatureFlags.get_instance()
             reasoner = OntologyReasoner(kg)
-            self._owl_reasoner = None
-
             hybrid_retriever = HybridRetriever(knowledge_graph=kg, reasoner=reasoner)
-
-            owl_status = self._component_status["owl_strategy"]
-            owl_status["enabled"] = flags.use_owl_strategy()
-            if owl_status["enabled"]:
-                try:
-                    from ..rag.retrieval_strategy import create_owl_strategy
-
-                    hybrid_retriever.owl_strategy, self._owl_reasoner = create_owl_strategy(
-                        knowledge_graph=kg, doc_retriever=hybrid_retriever.doc_retriever
-                    )
-                    owl_status["active"] = True
-                    logger.info("UnifiedBrain: OWL strategy enabled")
-                except Exception as e:
-                    owl_status["error"] = f"{type(e).__name__}: {e}"
-                    logger.warning(
-                        f"UnifiedBrain: OWL strategy enabled by flag but failed to initialize "
-                        f"— falling back to legacy retrieval ({owl_status['error']})"
-                    )
 
             logger.info("UnifiedBrain: HybridRetriever initialized")
 
@@ -456,7 +432,7 @@ class UnifiedBrain:
             )
 
     def get_component_status(self) -> dict[str, dict[str, Any]]:
-        """선택 컴포넌트(ReAct·OWL)의 플래그·활성·오류 상태."""
+        """선택 컴포넌트(ReAct)의 플래그·활성·오류 상태."""
         return {name: dict(status) for name, status in self._component_status.items()}
 
     # =========================================================================
@@ -787,15 +763,15 @@ class UnifiedBrain:
             self.mode = previous_mode
 
     # =========================================================================
-    # KG + OWL 동기화 (Phase 4: v3에서 포팅)
+    # KG 동기화 (Phase 4: v3에서 포팅)
     # =========================================================================
 
     def _sync_knowledge_graph(self, data: dict[str, Any]) -> None:
         """
-        크롤링 데이터 → KG + OWL Ontology 동기화
+        크롤링 데이터 → KG 동기화
 
-        대시보드 데이터의 브랜드 메트릭을 KnowledgeGraph 엔티티 메타데이터와
-        OWL Ontology의 Brand 인스턴스로 동기화합니다.
+        대시보드 데이터의 브랜드 메트릭을 KnowledgeGraph 엔티티 메타데이터로
+        동기화합니다.
 
         Args:
             data: 대시보드 JSON 데이터 (brand.competitors 포함)
@@ -819,24 +795,9 @@ class UnifiedBrain:
                         },
                     )
 
-            # OWL Ontology에도 동기화
-            if hasattr(self, "_owl_reasoner") and self._owl_reasoner:
-                for brand_info in brand_metrics[:20]:  # 상위 20개 브랜드
-                    brand_name = brand_info.get("brand")
-                    if brand_name:
-                        self._owl_reasoner.add_brand(
-                            name=brand_name,
-                            sos=brand_info.get("sos", 0) / 100,
-                            avg_rank=brand_info.get("avg_rank"),
-                            product_count=brand_info.get("products", 0),
-                        )
-
-                # 시장 포지션 추론
-                self._owl_reasoner.infer_market_positions()
-
-            logger.info(f"KG & OWL Ontology synced: {len(brand_metrics)} brands")
+            logger.info(f"KG synced: {len(brand_metrics)} brands")
         except Exception as e:
-            logger.warning(f"KG/Ontology sync failed: {e}")
+            logger.warning(f"KG sync failed: {e}")
 
     # =========================================================================
     # v3 대시보드 도구 등록 (Phase 3)

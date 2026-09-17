@@ -1433,26 +1433,6 @@ class TestKGSync:
 
         assert mock_kg.set_entity_metadata.call_count == 2
 
-    def test_sync_kg_with_owl_reasoner(self):
-        """OWL Reasoner 동기화"""
-        brain = UnifiedBrain()
-        mock_kg = MagicMock()
-        mock_owl = MagicMock()
-        brain._knowledge_graph = mock_kg
-        brain._owl_reasoner = mock_owl
-
-        data = {
-            "brand": {
-                "competitors": [
-                    {"brand": "LANEIGE", "sos": 12.0, "avg_rank": 5, "products": 3},
-                ]
-            }
-        }
-        brain._sync_knowledge_graph(data)
-
-        mock_owl.add_brand.assert_called_once()
-        mock_owl.infer_market_positions.assert_called_once()
-
     def test_sync_kg_error_handling(self):
         """KG 동기화 에러 처리"""
         brain = UnifiedBrain()

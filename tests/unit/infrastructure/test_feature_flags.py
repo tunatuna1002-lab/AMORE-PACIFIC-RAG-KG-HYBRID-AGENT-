@@ -23,7 +23,7 @@ def flags_config(tmp_path: Path) -> Path:
     """Create a temporary feature flags JSON config."""
     config = {
         "retriever": {
-            "use_owl_strategy": True,
+            "use_reranker": True,
         },
         "cache": {
             "use_sqlite_embedding_cache": True,
@@ -42,21 +42,21 @@ class TestFeatureFlagsJSONLoading:
 
     def test_loads_from_json(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
-        assert flags.get_flag("retriever", "use_owl_strategy") is True
+        assert flags.get_flag("retriever", "use_reranker") is True
         assert flags.get_flag("cache", "use_sqlite_embedding_cache") is True
         assert flags.get_flag("prompts", "use_centralized_prompts") is False
 
     def test_missing_file_uses_defaults(self, tmp_path: Path) -> None:
         missing = tmp_path / "nonexistent.json"
         flags = FeatureFlags(config_path=missing)
-        assert flags.get_flag("retriever", "use_owl_strategy", default=True) is True
-        assert flags.get_flag("retriever", "use_owl_strategy", default=False) is False
+        assert flags.get_flag("retriever", "use_reranker", default=True) is True
+        assert flags.get_flag("retriever", "use_reranker", default=False) is False
 
     def test_invalid_json_uses_defaults(self, tmp_path: Path) -> None:
         bad_config = tmp_path / "bad.json"
         bad_config.write_text("not valid json{{{")
         flags = FeatureFlags(config_path=bad_config)
-        assert flags.get_flag("retriever", "use_owl_strategy", default=True) is True
+        assert flags.get_flag("retriever", "use_reranker", default=True) is True
 
     def test_missing_section_uses_default(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
@@ -81,10 +81,10 @@ class TestFeatureFlagsENVOverride:
     def test_env_overrides_json_false(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("FF_RETRIEVER_USE_OWL_STRATEGY", "false")
+        monkeypatch.setenv("FF_RETRIEVER_USE_RERANKER", "false")
         flags = FeatureFlags(config_path=flags_config)
         # JSON says True, but ENV says false
-        assert flags.get_flag("retriever", "use_owl_strategy") is False
+        assert flags.get_flag("retriever", "use_reranker") is False
 
     def test_env_accepts_various_truthy(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
@@ -92,9 +92,9 @@ class TestFeatureFlagsENVOverride:
         for truthy in ("true", "True", "TRUE", "1", "yes", "on"):
             monkeypatch.setenv("FF_CACHE_USE_SQLITE_EMBEDDING_CACHE", truthy)
             flags = FeatureFlags(config_path=flags_config)
-            assert (
-                flags.get_flag("cache", "use_sqlite_embedding_cache") is True
-            ), f"Failed for {truthy}"
+            assert flags.get_flag("cache", "use_sqlite_embedding_cache") is True, (
+                f"Failed for {truthy}"
+            )
 
     def test_env_accepts_various_falsy(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
@@ -102,9 +102,9 @@ class TestFeatureFlagsENVOverride:
         for falsy in ("false", "False", "FALSE", "0", "no", "off", ""):
             monkeypatch.setenv("FF_CACHE_USE_SQLITE_EMBEDDING_CACHE", falsy)
             flags = FeatureFlags(config_path=flags_config)
-            assert (
-                flags.get_flag("cache", "use_sqlite_embedding_cache") is False
-            ), f"Failed for {falsy}"
+            assert flags.get_flag("cache", "use_sqlite_embedding_cache") is False, (
+                f"Failed for {falsy}"
+            )
 
     def test_env_overrides_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("FF_NEW_SECTION_NEW_KEY", "true")
@@ -131,9 +131,9 @@ class TestFeatureFlagsReload:
 class TestFeatureFlagsConvenienceMethods:
     """Test convenience methods."""
 
-    def test_use_owl_strategy(self, flags_config: Path) -> None:
+    def test_use_reranker(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
-        assert flags.use_owl_strategy() is True
+        assert flags.use_reranker() is True
 
     def test_use_sqlite_embedding_cache(self, flags_config: Path) -> None:
         flags = FeatureFlags(config_path=flags_config)
@@ -146,8 +146,7 @@ class TestFeatureFlagsConvenienceMethods:
     def test_convenience_defaults_when_no_config(self, tmp_path: Path) -> None:
         flags = FeatureFlags(config_path=tmp_path / "missing.json")
         # Defaults defined in each convenience method
-        # 2026-09: ReAct·OWL은 수리 후 평가 확인 전까지 기본 OFF (결정 D1)
-        assert flags.use_owl_strategy() is False
+        # 2026-09: ReAct는 수리 후 평가 확인 전까지 기본 OFF (결정 D1)
         assert flags.use_react_agent() is False
         assert flags.use_unified_reasoner() is True  # default True
         assert flags.use_owl_reasoner() is True  # default True
@@ -237,5 +236,22 @@ class TestFeatureFlagsProjectConfig:
         if project_config.exists():
             flags = FeatureFlags(config_path=project_config)
             # Should load without error and have expected sections
-            assert flags.use_owl_strategy() in (True, False)
             assert flags.use_sqlite_embedding_cache() in (True, False)
+
+
+class TestOWLStrategyFlagRemoved:
+    """S4-1(트랙 4-C): OWL 검색 전략 플래그는 삭제됐다."""
+
+    def test_feature_flags_has_no_use_owl_strategy(self) -> None:
+        assert not hasattr(FeatureFlags, "use_owl_strategy")
+
+    def test_project_config_has_no_owl_strategy_key(self) -> None:
+        project_config = Path(__file__).resolve().parents[3] / "config" / "feature_flags.json"
+        config = json.loads(project_config.read_text(encoding="utf-8"))
+        assert "use_owl_strategy" not in config.get("retriever", {})
+
+    def test_rule_inference_flags_are_kept(self, tmp_path: Path) -> None:
+        """규칙 추론 on/off 스위치는 그대로 유지한다 (평가 ablation no-ontology)."""
+        flags = FeatureFlags(config_path=tmp_path / "missing.json")
+        assert flags.use_unified_reasoner() is True
+        assert flags.use_owl_reasoner() is True

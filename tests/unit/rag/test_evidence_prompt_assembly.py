@@ -187,18 +187,11 @@ async def test_retrieve_unified_carries_cards(tmp_path):
     assert HHI_LINE.search(result.combined_context)
 
 
-async def test_owl_strategy_and_skip_paths_default_to_empty_cards(tmp_path):
-    class OwlStrategy:
-        async def retrieve(self, query, current_metrics=None, top_k=5, **kwargs):
-            return UnifiedRetrievalResult(query=query, combined_context="OWL", retriever_type="owl")
-
+async def test_skip_path_defaults_to_empty_cards(tmp_path):
     retriever = make_retriever(tmp_path)
-    retriever.owl_strategy = OwlStrategy()
 
-    owl = await retriever.retrieve_unified(QUERY)
     skipped = await retriever.retrieve_unified("안녕")
 
-    assert (owl.evidence, owl.prompt_evidence) == ([], [])
     assert (skipped.evidence, skipped.prompt_evidence) == ([], [])
 
 

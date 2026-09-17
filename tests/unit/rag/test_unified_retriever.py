@@ -1,8 +1,10 @@
 """
 Unit tests for HybridRetriever.retrieve_unified()
 ===================================================
-Tests the unified retrieval path that returns UnifiedRetrievalResult,
-including OWL strategy delegation and legacy fallback conversion.
+Tests the unified retrieval path that returns UnifiedRetrievalResult
+(HybridContext → UnifiedRetrievalResult 변환).
+
+2026-09: OWL 전략 위임 경로는 삭제됐다 (검색 경로는 HybridRetriever 하나).
 """
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -41,83 +43,6 @@ def mock_doc_retriever():
     return doc
 
 
-@pytest.fixture
-def mock_owl_strategy():
-    """Mock OWLRetrievalStrategy that returns UnifiedRetrievalResult."""
-    strategy = AsyncMock()
-    strategy.retrieve = AsyncMock(
-        return_value=UnifiedRetrievalResult(
-            query="test query",
-            entities={"brands": ["LANEIGE"], "categories": ["lip_care"]},
-            ontology_facts=[
-                {"subject": "LANEIGE", "predicate": "hasProduct", "object": "Lip Mask"}
-            ],
-            inferences=[{"type": "market_leader", "content": "LANEIGE leads"}],
-            rag_chunks=[{"content": "LANEIGE doc", "score": 0.95}],
-            combined_context="OWL combined context",
-            confidence=0.92,
-            entity_links=[{"text": "LANEIGE", "type": "brand"}],
-            metadata={"source": "owl"},
-            retriever_type="owl",
-        )
-    )
-    strategy.search = AsyncMock(return_value=[{"content": "doc1", "score": 0.9}])
-    return strategy
-
-
-class TestRetrieveUnifiedWithOWLStrategy:
-    """Test retrieve_unified() when OWL strategy is provided."""
-
-    @pytest.mark.asyncio
-    async def test_delegates_to_owl_strategy(
-        self, mock_kg, mock_reasoner, mock_doc_retriever, mock_owl_strategy
-    ):
-        """Should delegate to OWL strategy and return its result."""
-        with patch("src.rag.hybrid_retriever.register_all_rules"):
-            from src.rag.hybrid_retriever import HybridRetriever
-
-            retriever = HybridRetriever(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner,
-                doc_retriever=mock_doc_retriever,
-                owl_strategy=mock_owl_strategy,
-            )
-
-            result = await retriever.retrieve_unified("test query", top_k=5)
-
-            assert isinstance(result, UnifiedRetrievalResult)
-            assert result.retriever_type == "owl"
-            assert result.confidence == 0.92
-            assert result.entities == {"brands": ["LANEIGE"], "categories": ["lip_care"]}
-            mock_owl_strategy.retrieve.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_passes_kwargs_to_owl_strategy(
-        self, mock_kg, mock_reasoner, mock_doc_retriever, mock_owl_strategy
-    ):
-        """Should pass all kwargs through to OWL strategy."""
-        with patch("src.rag.hybrid_retriever.register_all_rules"):
-            from src.rag.hybrid_retriever import HybridRetriever
-
-            retriever = HybridRetriever(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner,
-                doc_retriever=mock_doc_retriever,
-                owl_strategy=mock_owl_strategy,
-            )
-
-            # Self-RAG 게이트를 통과하는 도메인 쿼리여야 OWL 전략까지 도달한다
-            await retriever.retrieve_unified(
-                "LANEIGE SoS 분석", current_metrics={"sos": 0.15}, top_k=3
-            )
-
-            mock_owl_strategy.retrieve.assert_awaited_once_with(
-                query="LANEIGE SoS 분석",
-                current_metrics={"sos": 0.15},
-                top_k=3,
-            )
-
-
 class TestRetrieveUnifiedLegacyFallback:
     """Test retrieve_unified() without OWL strategy (legacy path)."""
 
@@ -147,7 +72,6 @@ class TestRetrieveUnifiedLegacyFallback:
                 knowledge_graph=mock_kg,
                 reasoner=mock_reasoner,
                 doc_retriever=mock_doc_retriever,
-                owl_strategy=None,
             )
 
             # Patch retrieve() to return mock context
@@ -168,32 +92,10 @@ class TestRetrieveUnifiedSearch:
     """Test search() method delegation."""
 
     @pytest.mark.asyncio
-    async def test_search_delegates_to_owl_strategy(
-        self, mock_kg, mock_reasoner, mock_doc_retriever, mock_owl_strategy
-    ):
-        """Should delegate search to OWL strategy if available."""
-        with patch("src.rag.hybrid_retriever.register_all_rules"):
-            from src.rag.hybrid_retriever import HybridRetriever
-
-            retriever = HybridRetriever(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner,
-                doc_retriever=mock_doc_retriever,
-                owl_strategy=mock_owl_strategy,
-            )
-
-            results = await retriever.search("test", top_k=3)
-
-            assert len(results) == 1
-            mock_owl_strategy.search.assert_awaited_once_with(
-                query="test", top_k=3, doc_filter=None
-            )
-
-    @pytest.mark.asyncio
-    async def test_search_falls_back_to_doc_retriever(
+    async def test_search_delegates_to_doc_retriever(
         self, mock_kg, mock_reasoner, mock_doc_retriever
     ):
-        """Should fall back to doc_retriever.search if no OWL strategy."""
+        """search()는 DocumentRetriever로 위임한다."""
         mock_doc_retriever.search = AsyncMock(return_value=[{"content": "fallback", "score": 0.7}])
 
         with patch("src.rag.hybrid_retriever.register_all_rules"):
@@ -203,7 +105,6 @@ class TestRetrieveUnifiedSearch:
                 knowledge_graph=mock_kg,
                 reasoner=mock_reasoner,
                 doc_retriever=mock_doc_retriever,
-                owl_strategy=None,
             )
 
             results = await retriever.search("test", top_k=5, doc_filter="brand:LANEIGE")
@@ -230,7 +131,7 @@ class TestUnifiedRetrievalResultValidation:
             confidence=0.8,
             entity_links=[],
             metadata={"key": "value"},
-            retriever_type="owl",
+            retriever_type="legacy",
         )
 
         assert isinstance(result.query, str)

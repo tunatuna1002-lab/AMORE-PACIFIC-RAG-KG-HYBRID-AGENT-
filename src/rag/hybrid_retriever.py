@@ -346,7 +346,6 @@ class HybridRetriever:
         reasoner: OntologyReasoner | None = None,
         doc_retriever: DocumentRetriever | None = None,
         auto_init_rules: bool = True,
-        owl_strategy: Any | None = None,
         metric_facts_provider: Any | None = None,
     ):
         """
@@ -355,17 +354,12 @@ class HybridRetriever:
             reasoner: 온톨로지 추론기
             doc_retriever: RAG 문서 검색기
             auto_init_rules: 비즈니스 규칙 자동 등록
-            owl_strategy: OWLRetrievalStrategy 인스턴스 (옵션).
-                          설정되면 retrieve_unified()에서 OWL 파이프라인을 사용.
         """
         # 컴포넌트 초기화
         # fallback 인스턴스는 읽기 전용 (정식 기록자는 daily_crawl의 exporter)
         self.kg = knowledge_graph or KnowledgeGraph(auto_save=False)
         self.reasoner = reasoner or OntologyReasoner(self.kg)
         self.doc_retriever = doc_retriever or DocumentRetriever()
-
-        # OWL retrieval strategy (optional)
-        self.owl_strategy = owl_strategy
 
         # 크롤 DB 수치 사실 제공자 (SQLite 정본, 스냅샷 날짜 포함)
         from src.rag.metric_facts import MetricFactsProvider
@@ -757,7 +751,7 @@ class HybridRetriever:
         """
         from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
-        # Self-RAG 게이트 — OWL 경로 포함 모든 unified 검색에 적용
+        # Self-RAG 게이트 — 모든 unified 검색에 적용
         # (인사/도움말 등 검색 불필요 쿼리는 검색 자체를 생략)
         should, reason, selfrag_confidence = self.should_retrieve(query)
         if not should:
@@ -779,16 +773,7 @@ class HybridRetriever:
                 retriever_type="selfrag_skip",
             )
 
-        # OWL strategy가 있으면 위임
-        if self.owl_strategy is not None:
-            return await self.owl_strategy.retrieve(
-                query=query,
-                current_metrics=current_metrics,
-                top_k=top_k,
-                **kwargs,
-            )
-
-        # Legacy path: retrieve() → HybridContext → UnifiedRetrievalResult 변환
+        # retrieve() → HybridContext → UnifiedRetrievalResult 변환
         ctx = await self.retrieve(
             query=query,
             current_metrics=current_metrics,
@@ -834,8 +819,6 @@ class HybridRetriever:
         Returns:
             검색된 문서 목록
         """
-        if self.owl_strategy is not None and hasattr(self.owl_strategy, "search"):
-            return await self.owl_strategy.search(query=query, top_k=top_k, doc_filter=doc_filter)
         return await self.doc_retriever.search(query=query, top_k=top_k, doc_filter=doc_filter)
 
     def _bm25_actually_available(self) -> bool:

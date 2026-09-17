@@ -1,6 +1,5 @@
 {
   "retriever": {
-    "use_owl_strategy": false,
     "use_reranker": false,
     "use_confidence_fusion": true,
     "use_db_metric_facts": true

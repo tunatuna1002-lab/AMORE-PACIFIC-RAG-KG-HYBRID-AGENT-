@@ -140,9 +140,8 @@ class Container:
     @classmethod
     def get_unified_retriever(cls, docs_path: str = "./docs"):
         """
-        HybridRetriever (OWL strategy 포함) 싱글톤 반환.
+        HybridRetriever 싱글톤 반환.
 
-        Feature flag에 따라 OWL strategy를 주입합니다.
         이전 UnifiedRetriever facade를 대체합니다.
 
         Args:
@@ -155,33 +154,13 @@ class Container:
             return cls._overrides["unified_retriever"]
 
         if "unified_retriever" not in cls._instances:
-            from src.infrastructure.feature_flags import FeatureFlags
             from src.rag.hybrid_retriever import HybridRetriever
 
-            kg = cls.get_knowledge_graph()
-            doc_retriever = cls.get_document_retriever()
-            owl_strategy = None
-
-            flags = FeatureFlags.get_instance()
-            if flags.use_owl_strategy():
-                try:
-                    from src.rag.retrieval_strategy import create_owl_strategy
-
-                    owl_strategy, _ = create_owl_strategy(
-                        knowledge_graph=kg, doc_retriever=doc_retriever
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Container: OWL strategy enabled by flag but failed to initialize "
-                        f"— falling back to legacy retrieval ({type(e).__name__}: {e})"
-                    )
-
             cls._instances["unified_retriever"] = HybridRetriever(
-                knowledge_graph=kg,
+                knowledge_graph=cls.get_knowledge_graph(),
                 reasoner=cls.get_reasoner(),
-                doc_retriever=doc_retriever,
+                doc_retriever=cls.get_document_retriever(),
                 auto_init_rules=True,
-                owl_strategy=owl_strategy,
             )
 
         return cls._instances["unified_retriever"]
