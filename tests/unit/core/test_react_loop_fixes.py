@@ -10,7 +10,6 @@ LLM 호출만 가짜로 두고 도구 실행기는 실제 객체를 쓴다 — �
 문서 검색기만 가짜다.
 """
 
-import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -21,6 +20,7 @@ from src.core.react_tools import build_react_tool_executor
 from src.core.tool_registry import ToolRegistry
 from src.rag.hybrid_retriever import HybridRetriever
 from src.rag.metric_facts import MetricFactsProvider
+from tests.unit.core.react_fc_fixtures import reply, text_reply
 from tests.unit.rag.evidence_pipeline_fixtures import (
     AS_OF,
     FakeDocRetriever,
@@ -30,8 +30,8 @@ from tests.unit.rag.evidence_pipeline_fixtures import (
 
 
 def _reply(payload: dict) -> SimpleNamespace:
-    content = json.dumps(payload, ensure_ascii=False)
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+    """5-C: action이 있으면 tool_call 응답, 없으면(reflection) 본문 JSON 응답."""
+    return reply(payload)
 
 
 REFLECTION = _reply({"quality_score": 0.7, "needs_improvement": False})
@@ -71,9 +71,7 @@ async def test_exhausted_iterations_still_produce_nonempty_answer(tmp_path):
         side_effect=[
             _reply(step),
             _reply(step),
-            SimpleNamespace(
-                choices=[SimpleNamespace(message=SimpleNamespace(content="관찰 기반 요약 답변"))]
-            ),
+            text_reply("관찰 기반 요약 답변"),
             REFLECTION,
         ]
     )

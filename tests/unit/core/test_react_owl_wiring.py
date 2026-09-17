@@ -18,11 +18,14 @@ import pytest
 
 from src.core.models import Context
 from src.infrastructure.feature_flags import FeatureFlags
+from tests.unit.core.react_fc_fixtures import reply, text_reply
 
 
 def _llm_reply(payload: dict | str) -> SimpleNamespace:
-    content = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=False)
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+    """5-C: action이 있으면 tool_call 응답, 문자열/그 외는 본문 응답."""
+    if isinstance(payload, str):
+        return text_reply(payload)
+    return reply(payload)
 
 
 @pytest.fixture

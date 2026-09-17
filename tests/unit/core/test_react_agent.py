@@ -2,9 +2,6 @@
 ReAct Agent 단위 테스트
 """
 
-import json
-from unittest.mock import MagicMock
-
 import pytest
 
 from src.core.models import ToolResult
@@ -15,35 +12,26 @@ from src.core.react_agent import (
     ReActStep,
     validate_action,
 )
+from tests.unit.core.react_fc_fixtures import json_reply, text_reply, tool_call_reply
 
 
 def _make_llm_response(thought: str, action: str | None = None, action_input: dict | None = None):
-    """LLM 응답 Mock 생성 헬퍼 (실제 네트워크 호출 없이 _parse_step의 JSON 파싱 흐름을 그대로 검증)"""
-    payload: dict = {"thought": thought}
-    if action is not None:
-        payload["action"] = action
-    if action_input is not None:
-        payload["action_input"] = action_input
-    content = f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
-    response = MagicMock()
-    response.choices = [MagicMock()]
-    response.choices[0].message.content = content
-    return response
+    """LLM 응답 Mock 헬퍼 (5-C: 네이티브 function calling 모양. 네트워크 호출 없음)"""
+    if action is None:
+        return text_reply(thought)
+    return tool_call_reply(thought, action, action_input)
 
 
 def _make_reflection_response(quality_score: float = 0.85, needs_improvement: bool = False):
-    """Self-Reflection 응답 Mock 생성 헬퍼"""
-    payload = {
-        "quality_score": quality_score,
-        "missing_info": [],
-        "needs_improvement": needs_improvement,
-        "improvement_suggestion": "",
-    }
-    content = f"```json\n{json.dumps(payload)}\n```"
-    response = MagicMock()
-    response.choices = [MagicMock()]
-    response.choices[0].message.content = content
-    return response
+    """Self-Reflection 응답 Mock 생성 헬퍼 (도구 호출 없는 본문 JSON)"""
+    return json_reply(
+        {
+            "quality_score": quality_score,
+            "missing_info": [],
+            "needs_improvement": needs_improvement,
+            "improvement_suggestion": "",
+        }
+    )
 
 
 # ============================================================
@@ -121,34 +109,34 @@ def react_agent():
 
 
 @pytest.mark.asyncio
-async def test_react_step_parsing():
-    """ReAct Step 파싱 테스트"""
+async def test_tool_call_is_read_from_the_function_calling_response(monkeypatch):
+    """5-C: 도구 선택은 tool_calls에서 읽는다 (프롬프트 JSON 파싱 없음)."""
     agent = ReActAgent()
 
-    # Valid JSON
-    content = """```json
-{
-    "thought": "현재 상황을 분석합니다",
-    "action": "get_metrics",
-    "action_input": {"brand": "LANEIGE"}
-}
-```"""
+    async def mock_acompletion(**kwargs):
+        return _make_llm_response("현재 상황을 분석합니다", "get_metrics", {"brand": "LANEIGE"})
 
-    step = agent._parse_step(content)
-    assert step.thought == "현재 상황을 분석합니다"
-    assert step.action == "get_metrics"
-    assert step.action_input == {"brand": "LANEIGE"}
+    monkeypatch.setattr("src.core.react_agent.acompletion", mock_acompletion)
+
+    content, call = await agent._next_move([], agent.tool_schemas())
+    assert content == "현재 상황을 분석합니다"
+    assert call[0] == "get_metrics"
+    assert call[1] == {"brand": "LANEIGE"}
 
 
 @pytest.mark.asyncio
-async def test_react_step_invalid_json():
-    """잘못된 JSON 처리 테스트"""
+async def test_plain_content_without_tool_calls_has_no_action(monkeypatch):
+    """도구 호출이 없으면 본문만 돌아온다 — 문자열을 억지로 파싱하지 않는다."""
     agent = ReActAgent()
 
-    content = "Just plain text without JSON"
-    step = agent._parse_step(content)
-    assert step.thought == content
-    assert step.action is None
+    async def mock_acompletion(**kwargs):
+        return text_reply("Just plain text without JSON")
+
+    monkeypatch.setattr("src.core.react_agent.acompletion", mock_acompletion)
+
+    content, call = await agent._next_move([], agent.tool_schemas())
+    assert content == "Just plain text without JSON"
+    assert call is None
 
 
 @pytest.mark.asyncio

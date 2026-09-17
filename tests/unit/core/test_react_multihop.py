@@ -2,9 +2,6 @@
 ReAct Agent Multi-hop & IRCoT 단위 테스트
 """
 
-import json
-from unittest.mock import MagicMock
-
 import pytest
 
 from src.core.models import ToolResult
@@ -12,6 +9,7 @@ from src.core.react_agent import (
     ReActAgent,
     ReActResult,
 )
+from tests.unit.core.react_fc_fixtures import json_reply, tool_call_reply
 
 # ============================================================
 # Fixtures
@@ -19,30 +17,20 @@ from src.core.react_agent import (
 
 
 def _make_llm_response(thought, action, action_input=None):
-    """LLM 응답 Mock 생성 헬퍼"""
-    payload = {"thought": thought, "action": action}
-    if action_input is not None:
-        payload["action_input"] = action_input
-    content = f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
-    response = MagicMock()
-    response.choices = [MagicMock()]
-    response.choices[0].message.content = content
-    return response
+    """LLM 응답 Mock 생성 헬퍼 (5-C: 네이티브 function calling 모양)"""
+    return tool_call_reply(thought, action, action_input)
 
 
 def _make_reflection_response(quality_score=0.8, needs_improvement=False):
-    """Reflection 응답 Mock 생성 헬퍼"""
-    payload = {
-        "quality_score": quality_score,
-        "needs_improvement": needs_improvement,
-        "missing_info": [],
-        "improvement_suggestion": "",
-    }
-    content = f"```json\n{json.dumps(payload)}\n```"
-    response = MagicMock()
-    response.choices = [MagicMock()]
-    response.choices[0].message.content = content
-    return response
+    """Reflection 응답 Mock 생성 헬퍼 (도구 호출 없는 본문 JSON)"""
+    return json_reply(
+        {
+            "quality_score": quality_score,
+            "needs_improvement": needs_improvement,
+            "missing_info": [],
+            "improvement_suggestion": "",
+        }
+    )
 
 
 class MockToolExecutor:

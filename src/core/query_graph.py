@@ -260,7 +260,7 @@ class QueryGraph:
             state.response = Response(
                 text=react_result.final_answer,
                 confidence_score=react_result.confidence,
-                sources=context.rag_docs[:3] if context and context.rag_docs else [],
+                sources=self._react_sources(react_result, context),
                 tools_called=[step.action for step in react_result.steps if step.action],
             )
 
@@ -326,6 +326,27 @@ class QueryGraph:
             state.response.metadata["react_shadow"] = shadow
 
         return state
+
+    @staticmethod
+    def _react_sources(react_result: Any, context: Context | None) -> list[str]:
+        """ReAct 답변의 출처 라벨 (``list[str]``).
+
+        예전에는 ``context.rag_docs[:3]``(dict 목록)을 그대로 실었다. ``Response.sources``와
+        ``BrainChatResponse.sources``는 ``list[str]``이라 ReAct 경로로 답한 질문은
+        ``/api/v4/chat``에서 응답 모델 검증에 걸렸다 (트랙 5-C).
+
+        1순위는 ReAct가 **실제로 본** 도구 관찰의 근거 카드다. 도구를 하나도 부르지 않았으면
+        답변 프롬프트에 실린 검색 카드로 떨어진다 — 파이프라인 경로와 같은 기준이다.
+        """
+        sources = [str(s) for s in (getattr(react_result, "sources", None) or [])]
+        if sources or context is None:
+            return sources
+        cards = getattr(context, "prompt_evidence", None) or getattr(context, "evidence", None)
+        if not cards:
+            return []
+        from src.rag.evidence_assembly import evidence_source_labels
+
+        return evidence_source_labels(cards)
 
     async def _node_generate_response(self, state: QueryState) -> QueryState:
         """응답 생성 노드"""
