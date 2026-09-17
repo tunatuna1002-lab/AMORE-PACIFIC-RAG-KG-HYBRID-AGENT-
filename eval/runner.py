@@ -414,7 +414,17 @@ class EvalRunner:
             evidence_all_count=self._extract_evidence_all_count(hybrid_ctx),
             judge_context_source=judge_context_source,
             rule_evaluation=self._extract_rule_evaluation(hybrid_ctx),
+            numeric_verification=self._extract_numeric_verification(result),
         )
+
+    @staticmethod
+    def _extract_numeric_verification(result: dict[str, Any]) -> dict[str, Any] | None:
+        """에이전트 결과에서 답변 수치 검증 결과(트랙 2-D)를 꺼낸다.
+
+        v4 어댑터만 채운다. 키가 없거나(v1, 플래그 off) dict가 아니면 None.
+        """
+        numeric_verification = result.get("numeric_verification")
+        return numeric_verification if isinstance(numeric_verification, dict) else None
 
     @staticmethod
     def _extract_rule_evaluation(hybrid_ctx: Any) -> dict[str, Any] | None:

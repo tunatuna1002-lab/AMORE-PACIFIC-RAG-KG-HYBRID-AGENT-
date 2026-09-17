@@ -388,6 +388,15 @@ class EvalTrace(BaseModel):
             "metadata에 키가 없으면(3-B 미병합, v1 구형, 구형 report.json) None."
         ),
     )
+    numeric_verification: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "답변 수치 검증 결과 (트랙 2-D, Response.metadata['numeric_verification']을 그대로 "
+            "복사): mode/skipped/checked/verified/mismatch/no_citation/unknown_card/"
+            "found_in_other_cards/replaced/details. 스키마는 src/core/numeric_verifier.py "
+            "docstring. 플래그 off·v1·구형 report.json이면 None."
+        ),
+    )
 
 
 # =============================================================================
@@ -614,6 +623,24 @@ class AggregateMetrics(BaseModel):
             "채점된 문항의 rule_evaluation.non_fire_top을 라벨별로 합산한 상위 15개 "
             "[(label, count), ...] — 예: missing_input:sos, conditions_not_met:hhi_below_0.15"
         ),
+    )
+    # 답변 수치 검증 관측 (트랙 2-D). 채점된 문항만 합산. 구형 report.json은 기본값.
+    numeric_verification_items: int = Field(
+        default=0, description="trace.numeric_verification이 있는(검증기가 실행된) 문항 수"
+    )
+    numeric_verification_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "skipped가 아닌 문항의 checked/verified/mismatch/no_citation/unknown_card/"
+            "replaced/found_in_other_cards 합계"
+        ),
+    )
+    numeric_verification_skipped: dict[str, int] = Field(
+        default_factory=dict, description="skipped 사유별 문항 수 (no_evidence/error)"
+    )
+    numeric_verification_items_with_unverified: int = Field(
+        default=0,
+        description="mismatch 또는 unknown_card가 1개 이상인 문항 수 (enforce였다면 치환 대상)",
     )
 
 

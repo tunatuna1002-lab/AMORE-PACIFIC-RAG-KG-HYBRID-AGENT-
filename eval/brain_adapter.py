@@ -252,6 +252,8 @@ class BrainEvalAdapter:
             # QueryGraph._finalize_route_trace(31040bf)가 남기는 문항별 경로 관측.
             # v1(HybridChatbotAgent) 경로는 이 키를 채우지 않는다 — v4 전용.
             "route_trace": (response.metadata or {}).get("route_trace"),
+            # ResponsePipeline(트랙 2-D)이 남기는 답변 수치 검증 결과. 플래그 off면 없음.
+            "numeric_verification": (response.metadata or {}).get("numeric_verification"),
         }
 
 

@@ -43,6 +43,8 @@ TRACKED = [
     ("l5_numeric_accuracy", "L5 수치 정확도", 0.05),
     ("rule_agreement", "규칙 정답 일치율", 0.05),
     ("rule_fired_rate", "규칙 발화 문항 비율", 0.05),
+    # 답변 수치 검증(트랙 2-D): 검사한 수치 중 인용 카드와 일치한 비율. 노이즈 기준은 수치 정확도와 같게.
+    ("numeric_verified_rate", "수치 검증 일치율", 0.05),
 ]
 
 
@@ -120,6 +122,10 @@ def _summarize(items: list, generator) -> dict:
     scored = [i for i in items if i.trace is None or not i.trace.error]
     values["rule_agreement"] = _rule_agreement(scored)
     values["rule_fired_rate"] = agg.rule_fired_items / len(scored) if scored else None
+    nv_counts = agg.numeric_verification_counts
+    values["numeric_verified_rate"] = (
+        nv_counts["verified"] / nv_counts["checked"] if nv_counts.get("checked") else None
+    )
     return {
         "values": values,
         "total": agg.total,
@@ -129,6 +135,7 @@ def _summarize(items: list, generator) -> dict:
         "rule_fired_items": agg.rule_fired_items,
         "rule_inferences": agg.rule_inference_total,
         "non_fire_top5": _non_fire_top(scored, 5),
+        "numeric_verification": dict(agg.numeric_verification_counts),
         "cost": sum((i.trace.cost.total_cost_usd if i.trace else 0.0) for i in items),
     }
 
@@ -250,6 +257,25 @@ def main() -> int:
                 for r in runs
             )
             print(f"| {name} | {routes} | {conf} | {fired} | {non_fire} |")
+
+        nv_rows = [
+            (name, [r[type_name]["numeric_verification"] for r in runs])
+            for name, runs in configs
+            if any(r[type_name]["numeric_verification"] for r in runs)
+        ]
+        if nv_rows:
+            print(
+                "\n| 구성 | 수치 검증 (실행별 verified / mismatch / no_citation / unknown_card "
+                "/ replaced, 검사 수) |"
+            )
+            print("|---|---|")
+            for name, per_run in nv_rows:
+                cells = "; ".join(
+                    f"{c.get('verified', 0)}/{c.get('mismatch', 0)}/{c.get('no_citation', 0)}/"
+                    f"{c.get('unknown_card', 0)}/{c.get('replaced', 0)} ({c.get('checked', 0)})"
+                    for c in per_run
+                )
+                print(f"| {name} | {cells} |")
 
     total_routes: Counter = Counter()
     for _, runs in configs:

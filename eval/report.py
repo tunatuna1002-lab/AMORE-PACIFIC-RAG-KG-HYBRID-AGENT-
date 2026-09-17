@@ -151,6 +151,14 @@ class ReportGenerator:
         rule_agreement_rate, rule_agreement_items = self._compute_rule_agreement_rate(results)
         non_fire_reason_top = self._compute_non_fire_reasons(results)
 
+        # 답변 수치 검증 관측 (트랙 2-D) — 채점된 문항만
+        (
+            nv_items,
+            nv_counts,
+            nv_skipped,
+            nv_items_unverified,
+        ) = self._compute_numeric_verification(results)
+
         # Cost aggregation
         total_tokens = 0
         total_cost_usd = 0.0
@@ -197,7 +205,48 @@ class ReportGenerator:
             rule_agreement_rate=rule_agreement_rate,
             rule_agreement_items=rule_agreement_items,
             non_fire_reason_top=non_fire_reason_top,
+            numeric_verification_items=nv_items,
+            numeric_verification_counts=nv_counts,
+            numeric_verification_skipped=nv_skipped,
+            numeric_verification_items_with_unverified=nv_items_unverified,
         )
+
+    NUMERIC_VERIFICATION_KEYS = (
+        "checked",
+        "verified",
+        "mismatch",
+        "no_citation",
+        "unknown_card",
+        "replaced",
+        "found_in_other_cards",
+    )
+
+    @classmethod
+    def _compute_numeric_verification(
+        cls, results: list[ItemResult]
+    ) -> tuple[int, dict[str, int], dict[str, int], int]:
+        """trace.numeric_verification(트랙 2-D)을 합산한다.
+
+        반환: (검증기가 실행된 문항 수, skipped 아닌 문항의 개수 합계, skipped 사유별 문항 수,
+        mismatch·unknown_card가 있는 문항 수). 결과가 없는 문항(v1, 플래그 off)은 건너뛴다.
+        """
+        items = 0
+        counts: dict[str, int] = dict.fromkeys(cls.NUMERIC_VERIFICATION_KEYS, 0)
+        skipped: dict[str, int] = defaultdict(int)
+        with_unverified = 0
+        for r in results:
+            nv = r.trace.numeric_verification if r.trace is not None else None
+            if not isinstance(nv, dict):
+                continue
+            items += 1
+            if nv.get("skipped"):
+                skipped[str(nv["skipped"])] += 1
+                continue
+            for key in cls.NUMERIC_VERIFICATION_KEYS:
+                counts[key] += int(nv.get(key) or 0)
+            if int(nv.get("mismatch") or 0) or int(nv.get("unknown_card") or 0):
+                with_unverified += 1
+        return items, counts, dict(skipped), with_unverified
 
     @staticmethod
     def _compute_route_distribution(
@@ -499,6 +548,23 @@ class ReportGenerator:
                 ):
                     lines.append(f"| {level} | {count} |")
                 lines.append("")
+
+        # Numeric Verification (트랙 2-D, 검증기가 실행된 문항이 없으면 생략)
+        if report.aggregates.numeric_verification_items:
+            agg_nv = report.aggregates
+            lines.append("## Numeric Verification")
+            lines.append("")
+            lines.append(
+                f"Items verified: {agg_nv.numeric_verification_items} "
+                f"(with mismatch/unknown_card: {agg_nv.numeric_verification_items_with_unverified}"
+                f", skipped: {dict(agg_nv.numeric_verification_skipped) or 0})"
+            )
+            lines.append("")
+            lines.append("| Class | Count |")
+            lines.append("|-------|-------|")
+            for key, count in agg_nv.numeric_verification_counts.items():
+                lines.append(f"| {key} | {count} |")
+            lines.append("")
 
         # Rules (규칙 엔진 추론 관측 — 발화 여부는 v1/v4 공통, 정답 일치는 rule_gold가
         # 있는 문항만. 데이터가 전혀 없으면(비-rule 데이터셋) 섹션을 생략한다)
