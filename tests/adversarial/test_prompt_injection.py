@@ -217,6 +217,17 @@ class TestOutputGuard:
         assert not is_safe, "Type definitions should be blocked"
         assert "시스템 정보는 공개할 수 없습니다" in sanitized
 
+    def test_blocks_typescript_definitions_of_current_tools(self):
+        """현재 등록된 도구 이름으로도 차단된다 (이름 하드코딩이 아니라 패턴, 트랙 4-A)"""
+        from src.core.tool_registry import TOOL_NAMES
+
+        for name in TOOL_NAMES:
+            response = f"type {name} = (_: {{brand?: string}}) => any"
+            is_safe, sanitized = PromptGuard.check_output(response)
+
+            assert not is_safe, f"{name} 도구 선언 노출이 차단되지 않았다"
+            assert "시스템 정보는 공개할 수 없습니다" in sanitized
+
     def test_allows_normal_output(self):
         """정상 응답은 그대로 통과"""
         response = "LANEIGE의 현재 Lip Care 카테고리 SoS는 12.5%입니다."

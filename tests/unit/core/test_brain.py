@@ -931,7 +931,7 @@ class TestStateManagement:
         state = {
             "data_status": "최신",
             "mode": "idle",
-            "available_tools": ["get_brand_status"],
+            "available_tools": ["get_metrics"],
             "failed_tools": [],
         }
 
@@ -1177,9 +1177,9 @@ class TestResponseGeneration:
         from src.core.models import Decision
 
         context = Context(query="test", entities={}, rag_docs=[], kg_facts=[])
-        decision = Decision(tool="get_brand_status", confidence=0.8, reason="test", key_points=[])
+        decision = Decision(tool="get_metrics", confidence=0.8, reason="test", key_points=[])
         tool_result = ToolResult(
-            tool_name="get_brand_status",
+            tool_name="get_metrics",
             success=True,
             data={"brand": "LANEIGE", "sos": 12.5},
         )
