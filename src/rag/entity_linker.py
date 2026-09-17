@@ -1087,7 +1087,12 @@ class EntityLinker:
 
     def get_ontology_filters(self, entities: list[LinkedEntity]) -> dict[str, Any]:
         """
-        연결된 엔티티로부터 ChromaDB 필터 조건 생성
+        연결된 엔티티로부터 ChromaDB 필터 조건 생성 — **검색에 쓰지 말 것** (결함 F9).
+
+        이 조건은 실제 색인에서 항상 0건이다: (1) 키 `brand`·`category`가 색인 메타데이터에
+        없고, (2) 값이 canonical id가 아니라 표기 그대로이며(`LANEIGE`·`lip care`),
+        (3) OWL 전략의 매칭 함수는 `$or`를 메타데이터 키로 취급했다. 엔티티 신호는 필터가
+        아니라 재정렬 보너스로 쓴다 — `src/rag/entity_tags.py` (트랙 4-B, 설계 E10).
 
         Args:
             entities: LinkedEntity 리스트
