@@ -16,7 +16,8 @@ from collections.abc import Iterable, Mapping
 from src.domain.entities.evidence import Evidence, EvidenceKind, EvidenceUnit, EvidenceValue
 
 CITATION_INSTRUCTION = (
-    "각 문장 끝에 근거 카드 id를 [M-xxxxxx] 형식으로 인용하라. 카드에 없는 수치는 쓰지 말라."
+    "각 문장 끝에 근거 카드 id를 [M-xxxxxx]처럼 인용하라. 수치(M)뿐 아니라 관계(R)·추론(I)·"
+    "문서(D)·관찰(O) 카드도 같은 형식으로 인용한다. 카드에 없는 수치는 쓰지 말라."
 )
 
 SECTION_ORDER: tuple[EvidenceKind, ...] = (

@@ -210,3 +210,15 @@ class TestRenderForPrompt:
 def test_citation_instruction_mentions_format():
     assert "[M-" in CITATION_INSTRUCTION
     assert "카드에 없는 수치" in CITATION_INSTRUCTION
+
+
+def test_citation_instruction_asks_for_every_card_kind():
+    # 수치 카드만 언급하면 관계·추론·문서 카드 인용이 유도되지 않는다 (트랙 2-D)
+    for label in ("수치(M)", "관계(R)", "추론(I)", "문서(D)", "관찰(O)"):
+        assert label in CITATION_INSTRUCTION
+    assert len(CITATION_INSTRUCTION) < 120  # 매 답변 프롬프트에 붙으므로 짧게 유지
+
+
+def test_judge_render_does_not_carry_citation_instruction():
+    card = _metric("laneige", "sos", 0.032, EvidenceUnit.RATIO, display="LANEIGE")
+    assert CITATION_INSTRUCTION not in render_for_judge([card])
