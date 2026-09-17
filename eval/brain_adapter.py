@@ -233,6 +233,9 @@ class BrainEvalAdapter:
             "is_fallback": response.is_fallback,
             "hybrid_context": self._build_trace(question, holder),
             "llm_usage": dict(holder["usage"]),
+            # QueryGraph._finalize_route_trace(31040bf)가 남기는 문항별 경로 관측.
+            # v1(HybridChatbotAgent) 경로는 이 키를 채우지 않는다 — v4 전용.
+            "route_trace": (response.metadata or {}).get("route_trace"),
         }
 
 

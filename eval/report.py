@@ -140,6 +140,13 @@ class ReportGenerator:
         # Top fail reasons
         top_fail_reasons = self._compute_fail_reason_counts(results)
 
+        # Route / confidence distribution (route_trace, v4 전용 — 커밋 31040bf)
+        route_counts, confidence_level_counts = self._compute_route_distribution(results)
+        react_items = route_counts.get("react", 0)
+
+        # 규칙 추론 발동 분포 (l4_ontology.inferences, v1/v4 공통)
+        rule_fired_items, rule_inference_total = self._compute_rule_distribution(results)
+
         # Cost aggregation
         total_tokens = 0
         total_cost_usd = 0.0
@@ -178,7 +185,53 @@ class ReportGenerator:
             avg_tokens_per_item=total_tokens / cost_items if cost_items else 0.0,
             avg_cost_per_item_usd=total_cost_usd / cost_items if cost_items else 0.0,
             cost_by_layer=dict(cost_by_layer),
+            route_counts=route_counts,
+            confidence_level_counts=confidence_level_counts,
+            react_items=react_items,
+            rule_fired_items=rule_fired_items,
+            rule_inference_total=rule_inference_total,
         )
+
+    @staticmethod
+    def _compute_route_distribution(
+        results: list[ItemResult],
+    ) -> tuple[dict[str, int], dict[str, int]]:
+        """trace.route_trace에서 route·confidence_level 분포를 센다.
+
+        route_trace가 없는 문항(v1 경로, 구형 트레이스)은 조용히 건너뛴다 —
+        인프라 실패 제외는 호출부(scored된 results만 넘어옴)에서 이미 처리됐다.
+        """
+        route_counts: dict[str, int] = defaultdict(int)
+        confidence_level_counts: dict[str, int] = defaultdict(int)
+
+        for r in results:
+            trace = r.trace.route_trace if r.trace is not None else None
+            if not isinstance(trace, dict):
+                continue
+            route = trace.get("route")
+            if route:
+                route_counts[route] += 1
+            level = trace.get("confidence_level")
+            if level:
+                confidence_level_counts[level] += 1
+
+        return dict(route_counts), dict(confidence_level_counts)
+
+    @staticmethod
+    def _compute_rule_distribution(results: list[ItemResult]) -> tuple[int, int]:
+        """l4_ontology.inferences가 비어있지 않은 문항 수와 총 inferences 개수."""
+        fired_items = 0
+        total_inferences = 0
+
+        for r in results:
+            if r.trace is None:
+                continue
+            inferences = r.trace.l4_ontology.inferences
+            if inferences:
+                fired_items += 1
+                total_inferences += len(inferences)
+
+        return fired_items, total_inferences
 
     def _compute_layer_averages(self, results: list[ItemResult]) -> dict[str, float]:
         """Compute average metrics for each layer."""
@@ -390,6 +443,29 @@ class ReportGenerator:
                 f"({int(by_layer['l5_numeric_accuracy_items'])} items) |"
             )
         lines.append("")
+
+        # Route / Confidence (route_trace 기반, v4 전용 — 데이터 없으면 생략)
+        if report.aggregates.route_counts:
+            lines.append("## Route / Confidence")
+            lines.append("")
+            lines.append("| Route | Count |")
+            lines.append("|-------|-------|")
+            for route, count in sorted(report.aggregates.route_counts.items(), key=lambda x: -x[1]):
+                lines.append(f"| {route} | {count} |")
+            lines.append("")
+            if report.aggregates.confidence_level_counts:
+                lines.append("| Confidence Level | Count |")
+                lines.append("|------------------|-------|")
+                for level, count in sorted(
+                    report.aggregates.confidence_level_counts.items(), key=lambda x: -x[1]
+                ):
+                    lines.append(f"| {level} | {count} |")
+                lines.append("")
+            lines.append(
+                f"Rule inferences fired: {report.aggregates.rule_fired_items} items, "
+                f"{report.aggregates.rule_inference_total} total inferences"
+            )
+            lines.append("")
 
         # Cost Summary (only if cost data exists)
         if report.aggregates.total_tokens > 0:

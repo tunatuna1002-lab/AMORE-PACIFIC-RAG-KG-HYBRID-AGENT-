@@ -329,6 +329,15 @@ class EvalTrace(BaseModel):
             "채점은 계속하되 어떤 하위 조회가 저하됐는지 노출한다."
         ),
     )
+    route_trace: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "문항별 질의 경로 관측 (QueryGraph._finalize_route_trace, 커밋 31040bf). "
+            "route/confidence_level/confidence_score/confidence_components/tools_used/"
+            "decision_tool/is_complex를 담는다. v1(HybridChatbotAgent) 경로나 구형 "
+            "report.json에는 없으므로 기본값 None으로 하위 호환한다."
+        ),
+    )
 
 
 # =============================================================================
@@ -507,6 +516,27 @@ class AggregateMetrics(BaseModel):
     # By domain
     by_domain: dict[str, dict[str, float]] = Field(
         default_factory=dict, description="Metrics by domain"
+    )
+
+    # Route / confidence distribution (trace.route_trace 기반, v4 전용 — 커밋 31040bf).
+    # 구형 report.json에는 이 필드들이 없으므로 기본값(빈 dict/0)으로 하위 호환한다.
+    route_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="문항별 경로(route) 분포: direct/clarify/decide/react/blocked/cache별 개수",
+    )
+    confidence_level_counts: dict[str, int] = Field(
+        default_factory=dict, description="문항별 신뢰도 레벨(confidence_level) 분포"
+    )
+    react_items: int = Field(
+        default=0,
+        description="route_trace.route == 'react'로 관측된 문항 수 (route_counts 동일 값)",
+    )
+    rule_fired_items: int = Field(
+        default=0,
+        description="trace.l4_ontology.inferences가 비어있지 않은 문항 수 (규칙 추론 발동)",
+    )
+    rule_inference_total: int = Field(
+        default=0, description="채점된 전체 문항의 inferences 총 개수 합"
     )
 
 

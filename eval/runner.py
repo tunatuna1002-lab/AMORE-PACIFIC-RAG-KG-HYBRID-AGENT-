@@ -397,7 +397,18 @@ class EvalRunner:
             error=None,
             retrieval_error=retrieval_error,
             degraded=degraded,
+            route_trace=self._extract_route_trace(result),
         )
+
+    @staticmethod
+    def _extract_route_trace(result: dict[str, Any]) -> dict[str, Any] | None:
+        """에이전트 결과에서 문항별 경로 관측(route_trace, 커밋 31040bf)을 꺼낸다.
+
+        v4(BrainEvalAdapter)만 이 키를 채운다. v1이나 구형 에이전트는 키가
+        없거나 dict가 아니므로 조용히 None을 돌려준다.
+        """
+        route_trace = result.get("route_trace")
+        return route_trace if isinstance(route_trace, dict) else None
 
     @staticmethod
     def _extract_retrieval_health(hybrid_ctx: Any) -> tuple[str | None, list[dict[str, Any]]]:
