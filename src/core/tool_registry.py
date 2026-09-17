@@ -249,10 +249,6 @@ TOOL_NAMES: tuple[str, ...] = tuple(d.name for d in TOOL_DEFINITIONS)
 _BY_NAME: dict[str, ToolDefinition] = {d.name: d for d in TOOL_DEFINITIONS}
 
 
-def get_tool_definition(name: str) -> ToolDefinition | None:
-    return _BY_NAME.get(name)
-
-
 def function_schemas(names: Iterable[str] | None = None) -> list[dict[str, Any]]:
     """LiteLLM ``tools=``에 그대로 넣는 스키마 목록 (정의 순서)."""
     if names is None:
@@ -340,11 +336,6 @@ class ToolRegistry:
 
     def is_tool_available(self, tool_name: str) -> bool:
         return tool_name in self.get_available_tools()
-
-    def function_schemas(self, names: Iterable[str] | None = None) -> list[dict[str, Any]]:
-        available = self.get_available_tools()
-        wanted = available if names is None else [n for n in names if n in available]
-        return function_schemas(wanted)
 
     # ── 실행 ─────────────────────────────────────────────────────
 
@@ -617,13 +608,6 @@ def render_tool_observation(result: Any) -> str:
     return str(message or "결과 없음")
 
 
-def tool_result_summary(result: Any) -> str:
-    """도구 결과 한 줄 요약 (로그·트레이스용)."""
-    data = getattr(result, "data", None) or {}
-    cards = len(data.get(EVIDENCE_KEY) or []) if isinstance(data, dict) else 0
-    return f"{getattr(result, 'tool_name', '?')}: 카드 {cards}장"
-
-
 __all__ = [
     "EVIDENCE_KEY",
     "TOOL_APPLY_RULES",
@@ -637,8 +621,6 @@ __all__ = [
     "ToolParam",
     "ToolRegistry",
     "function_schemas",
-    "get_tool_definition",
     "render_tool_observation",
     "tool_evidence",
-    "tool_result_summary",
 ]
