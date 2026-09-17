@@ -11,7 +11,6 @@ v4 Brain 평가 어댑터 검증 (결정 D3)
 
 import asyncio
 import json
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import litellm
@@ -143,9 +142,8 @@ async def test_react_observations_become_prompt_evidence_cards(flags):
     brain = adapter.brain
     question = "LANEIGE 경쟁사와 비교해서 점유율이 왜 달라졌는지 분석해줘"
 
-    def reply(payload):
-        content = json.dumps(payload, ensure_ascii=False)
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+    # 5-C: ReAct가 네이티브 function calling을 쓰므로 가짜 응답도 tool_calls 모양이다
+    from tests.unit.core.react_fc_fixtures import reply
 
     llm = AsyncMock(
         side_effect=[
