@@ -17,6 +17,7 @@ Graph Structure:
 
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Any
 
@@ -101,8 +102,18 @@ class QueryGraph:
             cached = self._cache.get(state.query, "query")
             if cached:
                 logger.info(f"Cache hit: {state.query[:30]}...")
-                state.response = cached
+                # 캐시에 저장된 원본 객체는 변경하지 않고 얕은 복사본에
+                # route_trace만 "cache"로 덮어써서 반환한다 (다음 문항 오염 방지).
+                cached_metadata = getattr(cached, "metadata", None) or {}
+                trace = dict(cached_metadata.get("route_trace") or {})
+                trace["route"] = "cache"
+
+                response = copy.copy(cached)
+                response.metadata = {**cached_metadata, "route_trace": trace}
+
+                state.response = response
                 state.metadata["cache_hit"] = True
+                state.metadata["route_trace"] = trace
 
         return state
 
@@ -132,26 +143,36 @@ class QueryGraph:
             "query_type": "unknown",
         }
 
-        # --- 1) 컨텍스트 데이터 점수 ---
-        score = 0.0
+        # --- 1) 컨텍스트 데이터 점수 (컴포넌트별로 분해하여 관측용으로 기록) ---
+        components: dict[str, float] = {
+            "kg_facts": 0.0,
+            "rag_docs": 0.0,
+            "inferences": 0.0,
+            "entities": 0.0,
+            "query_intent": 0.0,
+        }
         if context.kg_facts:
-            score += min(len(context.kg_facts), 3) * 1.5
+            components["kg_facts"] = min(len(context.kg_facts), 3) * 1.5
         if context.rag_docs:
-            score += min(len(context.rag_docs), 3) * 1.0
+            components["rag_docs"] = min(len(context.rag_docs), 3) * 1.0
         if context.kg_inferences:
-            score += min(len(context.kg_inferences), 2) * 2.0
+            components["inferences"] = min(len(context.kg_inferences), 2) * 2.0
         if context.entities:
             entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
-            score += min(entity_count, 3) * 1.0
+            components["entities"] = min(entity_count, 3) * 1.0
 
         # --- 2) 쿼리 의도 명확성 점수 (최소 바닥 보장) ---
         query = context.query if hasattr(context, "query") else ""
-        query_intent_score = self._assess_query_intent(query)
-        score += query_intent_score
+        components["query_intent"] = self._assess_query_intent(query)
 
+        score = sum(components.values())
         rule_result["max_score"] = score
 
         state.confidence_level = self._confidence_assessor.assess(rule_result, context)
+
+        # 관측용 기록 (분기 로직에는 영향 없음)
+        state.metadata["confidence_score"] = score
+        state.metadata["confidence_components"] = components
         return state
 
     async def _node_decide(self, state: QueryState) -> QueryState:
@@ -307,9 +328,12 @@ class QueryGraph:
         if self._confidence_assessor.should_request_clarification(state.confidence_level):
             return "clarification"
 
-        # MEDIUM/LOW: 복잡도 판단
-        if self._react_agent and self._is_complex_query(state.query, state.context):
-            return "react"
+        # MEDIUM/LOW: 복잡도 판단 (react_agent가 있을 때만 계산 — 기존 분기 유지)
+        if self._react_agent:
+            is_complex = self._is_complex_query(state.query, state.context)
+            state.metadata["is_complex"] = is_complex
+            if is_complex:
+                return "react"
 
         return "decide"
 
@@ -474,6 +498,56 @@ class QueryGraph:
                 points.append(inf["insight"])
         return points
 
+    def _finalize_route_trace(self, state: QueryState, route: str) -> QueryState:
+        """문항별 경로 관측 기록 (분기 로직에는 영향 없는 순수 관측 노드)
+
+        state.metadata["route_trace"]와 (있다면) response.metadata["route_trace"]에
+        동일한 dict를 기록한다.
+
+        Args:
+            state: 현재 QueryState
+            route: "direct" | "clarify" | "decide" | "react" | "blocked" | "cache"
+
+        Returns:
+            state (route_trace가 기록된 상태)
+        """
+        confidence_level = state.confidence_level
+        tools_used: list[dict[str, Any]] = []
+        decision_tool: str | None = None
+
+        if route == "decide":
+            decision_tool = state.decision.tool if state.decision else None
+            if state.decision and state.decision.requires_tool():
+                tools_used = [
+                    {
+                        "tool": state.decision.tool,
+                        "executed": bool(state.tool_result and state.tool_result.success),
+                    }
+                ]
+        elif route == "react" and state.response is not None:
+            tools_used = [
+                {"tool": action, "executed": True} for action in (state.response.tools_called or [])
+            ]
+
+        trace: dict[str, Any] = {
+            "route": route,
+            "confidence_level": confidence_level.value if confidence_level else None,
+            "confidence_score": state.metadata.get("confidence_score"),
+            "confidence_components": state.metadata.get("confidence_components"),
+            "tools_used": tools_used,
+            "decision_tool": decision_tool,
+            "is_complex": state.metadata.get("is_complex"),
+        }
+
+        state.metadata["route_trace"] = trace
+
+        if state.response is not None:
+            if state.response.metadata is None:
+                state.response.metadata = {}
+            state.response.metadata["route_trace"] = trace
+
+        return state
+
     # =========================================================================
     # Graph Execution
     # =========================================================================
@@ -494,12 +568,13 @@ class QueryGraph:
         state = await self._node_guard(state)
         next_node = self._route_after_guard(state)
         if next_node == "done":
-            return state
+            return self._finalize_route_trace(state, "blocked")
 
         # CACHE_CHECK
         state = await self._node_cache_check(state)
         next_node = self._route_after_cache(state)
         if next_node == "done":
+            # route_trace는 _node_cache_check에서 이미 "cache"로 기록됨
             return state
 
         # GATHER_CONTEXT
@@ -523,17 +598,19 @@ class QueryGraph:
                 confidence=0.9,
                 key_points=self._extract_key_points(state.context),
             )
+            route = "direct"
         elif next_node == "clarification":
             state = self._node_clarification(state)
             state = self._node_output_guard(state)
-            return state
+            return self._finalize_route_trace(state, "clarify")
         elif next_node == "react":
             logger.info(f"Complex query detected, using ReAct mode: {state.query[:50]}...")
             state = await self._node_react(state)
             state = self._node_output_guard(state)
-            return state
+            return self._finalize_route_trace(state, "react")
         else:
             # DECIDE
+            route = "decide"
             state = await self._node_decide(state)
             # ROUTE after decide
             next_node = self._route_after_decide(state)
@@ -546,4 +623,4 @@ class QueryGraph:
         # OUTPUT_GUARD
         state = self._node_output_guard(state)
 
-        return state
+        return self._finalize_route_trace(state, route)

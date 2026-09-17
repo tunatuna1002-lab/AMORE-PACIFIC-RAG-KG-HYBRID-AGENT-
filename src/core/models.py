@@ -177,7 +177,16 @@ class Response(ResponseBase):
         is_clarification: 명확화 요청 여부
         processing_time_ms: 처리 시간
         created_at: 생성 시간
+        metadata: 추가 메타데이터 (route_trace 등 관측용 정보)
     """
+
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """직렬화. 기존 ResponseBase.to_dict() 출력에 metadata 키만 추가."""
+        data = super().to_dict()
+        data["metadata"] = self.metadata
+        return data
 
     @classmethod
     def clarification(cls, message: str, suggestions: list[str] = None) -> "Response":
