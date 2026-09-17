@@ -90,11 +90,12 @@ class TestCostTracker:
 
     def test_get_l5_cost(self, tracker):
         """Test L5 cost calculation."""
-        # gpt-4.1-mini: $0.15/1M input, $0.60/1M output
+        # gpt-4.1-mini published price: $0.40/1M input, $1.60/1M output
+        # (corrected 2026-09, F4; was wrongly $0.15/$0.60 before)
         tracker.track_l5_tokens(1_000_000, 1_000_000)
 
         cost = tracker.get_l5_cost()
-        assert cost == pytest.approx(0.15 + 0.60, rel=0.01)
+        assert cost == pytest.approx(0.40 + 1.60, rel=0.01)
 
     def test_get_l2_cost(self, tracker):
         """Test L2 embedding cost calculation."""

@@ -417,6 +417,28 @@ class ReportGenerator:
             )
             lines.append("")
 
+            # Pricing used (same for the whole run; pulled from the first item
+            # that carries pricing metadata). Source is "litellm" or
+            # "fallback_table" — see eval/cost_tracker.py resolve_llm_pricing.
+            pricing = next(
+                (
+                    r.trace.cost.pricing
+                    for r in report.items
+                    if r.trace and r.trace.cost and r.trace.cost.pricing
+                ),
+                {},
+            )
+            if pricing:
+                lines.append("Pricing used (USD per 1M tokens):")
+                lines.append("")
+                for model, rates in pricing.items():
+                    lines.append(
+                        f"- `{model}`: input ${rates.get('input_per_1m_usd', 0):.4f}, "
+                        f"output ${rates.get('output_per_1m_usd', 0):.4f} "
+                        f"(source: {rates.get('source', 'unknown')})"
+                    )
+                lines.append("")
+
         # Regression Analysis (only if baseline provided)
         if baseline_path:
             self._write_regression_section(lines, report, baseline_path)

@@ -242,6 +242,21 @@ class CostTrace(BaseModel):
     l5_tokens: int = Field(default=0, description="Tokens used in L5 (answer generation)")
     judge_tokens: int = Field(default=0, description="Tokens used in judge scoring")
 
+    # Granular per-layer token breakdown (prompt/completion for LLM layers,
+    # embedding for L2). Added 2026-09 (F4 cost pricing fix). All default to 0
+    # so older report.json/baseline files without these fields still load.
+    l1_prompt_tokens: int = Field(default=0, description="L1 prompt tokens")
+    l1_completion_tokens: int = Field(default=0, description="L1 completion tokens")
+    l2_embedding_tokens: int = Field(default=0, description="L2 embedding tokens")
+    l3_prompt_tokens: int = Field(default=0, description="L3 prompt tokens")
+    l3_completion_tokens: int = Field(default=0, description="L3 completion tokens")
+    l4_prompt_tokens: int = Field(default=0, description="L4 prompt tokens")
+    l4_completion_tokens: int = Field(default=0, description="L4 completion tokens")
+    l5_prompt_tokens: int = Field(default=0, description="L5 prompt tokens")
+    l5_completion_tokens: int = Field(default=0, description="L5 completion tokens")
+    judge_prompt_tokens: int = Field(default=0, description="Judge prompt tokens")
+    judge_completion_tokens: int = Field(default=0, description="Judge completion tokens")
+
     # Cost estimates (USD)
     l1_cost_usd: float = Field(default=0.0, description="Cost for L1 in USD")
     l2_cost_usd: float = Field(default=0.0, description="Cost for L2 in USD")
@@ -249,6 +264,14 @@ class CostTrace(BaseModel):
     l4_cost_usd: float = Field(default=0.0, description="Cost for L4 in USD")
     l5_cost_usd: float = Field(default=0.0, description="Cost for L5 in USD")
     judge_cost_usd: float = Field(default=0.0, description="Cost for judge in USD")
+
+    # Unit prices actually used to compute the costs above, keyed by model name,
+    # e.g. {"gpt-4.1-mini": {"input_per_1m_usd": 0.40, "output_per_1m_usd": 1.60,
+    # "source": "litellm" | "fallback_table"}}. Added 2026-09 (F4). Defaults to
+    # {} so older report.json/baseline files without this field still load.
+    pricing: dict[str, dict[str, Any]] = Field(
+        default_factory=dict, description="Unit prices used per model, with their source"
+    )
 
     @property
     def total_tokens(self) -> int:
