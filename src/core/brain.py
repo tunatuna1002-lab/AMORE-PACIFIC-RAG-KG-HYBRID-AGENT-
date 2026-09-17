@@ -230,6 +230,12 @@ class UnifiedBrain:
             "errors": 0,
         }
 
+        # 선택 컴포넌트 활성 상태 (/api/v4/brain/status로 노출)
+        self._component_status: dict[str, dict[str, Any]] = {
+            name: {"enabled": False, "active": False, "error": None}
+            for name in ("react_agent", "owl_strategy")
+        }
+
         # 초기화 플래그
         self._initialized = False
 
@@ -315,22 +321,21 @@ class UnifiedBrain:
             owl_strategy = None
             self._owl_reasoner = None
 
-            if flags.use_owl_strategy():
+            owl_status = self._component_status["owl_strategy"]
+            owl_status["enabled"] = flags.use_owl_strategy()
+            if owl_status["enabled"]:
                 try:
-                    from ..ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
+                    from ..rag.retrieval_strategy import create_owl_strategy
 
-                    if OWLREADY2_AVAILABLE:
-                        from ..rag.retrieval_strategy import OWLRetrievalStrategy
-
-                        self._owl_reasoner = OWLReasoner()
-                        owl_strategy = OWLRetrievalStrategy(
-                            knowledge_graph=kg,
-                            owl_reasoner=self._owl_reasoner,
-                            docs_path="./docs",
-                        )
-                        logger.info("UnifiedBrain: OWL strategy enabled")
+                    owl_strategy, self._owl_reasoner = create_owl_strategy(knowledge_graph=kg)
+                    owl_status["active"] = True
+                    logger.info("UnifiedBrain: OWL strategy enabled")
                 except Exception as e:
-                    logger.info(f"UnifiedBrain: OWL strategy unavailable ({e})")
+                    owl_status["error"] = f"{type(e).__name__}: {e}"
+                    logger.warning(
+                        f"UnifiedBrain: OWL strategy enabled by flag but failed to initialize "
+                        f"— falling back to legacy retrieval ({owl_status['error']})"
+                    )
 
             hybrid_retriever = HybridRetriever(
                 knowledge_graph=kg,
@@ -375,16 +380,8 @@ class UnifiedBrain:
         # AlertManager 초기화
         await self.alert_manager.initialize()
 
-        # ReActAgent 초기화 (있으면)
-        try:
-            from ..agents.react_agent import get_react_agent
-
-            self._react_agent = get_react_agent()
-            self._react_agent.set_tool_executor(self._tool_executor)
-            logger.info("ReActAgent initialized")
-        except Exception as e:
-            logger.debug(f"ReActAgent not available: {e}")
-            self._react_agent = None
+        # ReActAgent 초기화 (피처 플래그)
+        self._init_react_agent()
 
         # crawl_complete 이벤트 시 KG 동기화
         async def _on_crawl_complete(event_data: dict[str, Any]) -> None:
@@ -418,6 +415,51 @@ class UnifiedBrain:
 
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
+
+    def _init_react_agent(self) -> None:
+        """ReActAgent를 전용 읽기 전용 도구 실행기와 함께 연결한다.
+
+        이전 코드는 존재하지 않는 `..agents.react_agent`를 import해 추가된 날(a965437)부터
+        항상 None이었고, 예외는 debug 로그로 삼켜졌다.
+        """
+        from ..infrastructure.feature_flags import FeatureFlags
+
+        status = self._component_status["react_agent"]
+        status.update(
+            enabled=FeatureFlags.get_instance().use_react_agent(), active=False, error=None
+        )
+        self._react_agent = None
+        if not status["enabled"]:
+            return
+
+        try:
+            from .react_agent import ALLOWED_ACTIONS, ReActAgent
+            from .react_tools import build_react_tool_executor
+
+            executor = build_react_tool_executor(
+                knowledge_graph=getattr(self, "_knowledge_graph", None)
+            )
+            missing = (ALLOWED_ACTIONS - {"final_answer", "refine_search"}) - set(
+                executor.get_available_tools()
+            )
+            if missing:
+                logger.warning(f"ReActAgent: allowed actions without executor: {sorted(missing)}")
+
+            # 싱글톤을 쓰지 않는다: 도구 실행기는 이 Brain의 KG에 묶여 있다
+            agent = ReActAgent()
+            agent.set_tool_executor(executor)
+            self._react_agent = agent
+            status["active"] = True
+            logger.info("ReActAgent initialized with read-only tools")
+        except Exception as e:
+            status["error"] = f"{type(e).__name__}: {e}"
+            logger.warning(
+                f"ReActAgent enabled by flag but failed to initialize: {status['error']}"
+            )
+
+    def get_component_status(self) -> dict[str, dict[str, Any]]:
+        """선택 컴포넌트(ReAct·OWL)의 플래그·활성·오류 상태."""
+        return {name: dict(status) for name, status in self._component_status.items()}
 
     # =========================================================================
     # 이벤트 시스템
@@ -991,6 +1033,10 @@ class UnifiedBrain:
             react_result = await self._react_agent.run(
                 query=query, context=context.summary or "컨텍스트 없음"
             )
+
+            if not react_result.final_answer:
+                logger.warning("ReAct returned an empty final answer")
+                return Response.fallback("ReAct 분석이 답변을 만들지 못했습니다.")
 
             # 응답 생성
             response = Response(

@@ -93,8 +93,19 @@ class FeatureFlags:
     # ── Convenience methods ──────────────────────────────────────────
 
     def use_owl_strategy(self) -> bool:
-        """Whether to enable OWL strategy in HybridRetriever."""
-        return self.get_flag("retriever", "use_owl_strategy", default=True)
+        """Whether to enable OWL strategy in HybridRetriever.
+
+        기본 OFF (2026-09): 생성자 인자 불일치로 2026-02-15(f049cb8)부터 한 번도 생성되지
+        않던 경로다. 수리 후 평가로 회귀가 없음을 확인하기 전에는 켜지 않는다.
+        """
+        return self.get_flag("retriever", "use_owl_strategy", default=False)
+
+    def use_react_agent(self) -> bool:
+        """Whether UnifiedBrain routes complex MEDIUM/LOW-confidence queries to ReActAgent.
+
+        기본 OFF (2026-09): import 경로 오류로 추가된 날(a965437)부터 미연결이던 경로다.
+        """
+        return self.get_flag("agents", "use_react_agent", default=False)
 
     def use_unified_reasoner(self) -> bool:
         """Whether to run unified/rule-based inference during retrieval (ablation: no-ontology)."""

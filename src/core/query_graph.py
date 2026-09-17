@@ -187,6 +187,11 @@ class QueryGraph:
                 context=context.summary or "컨텍스트 없음" if context else "컨텍스트 없음",
             )
 
+            if not react_result.final_answer:
+                logger.warning("ReAct returned an empty final answer")
+                state.response = Response.fallback("ReAct 분석이 답변을 만들지 못했습니다.")
+                return state
+
             state.response = Response(
                 text=react_result.final_answer,
                 confidence_score=react_result.confidence,

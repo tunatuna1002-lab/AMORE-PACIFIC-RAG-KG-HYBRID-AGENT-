@@ -734,3 +734,36 @@ class OWLRetrievalStrategy:
                 parts.append("")
 
         return "\n".join(parts)
+
+
+def create_owl_strategy(
+    knowledge_graph: Any | None = None,
+    doc_retriever: Any | None = None,
+) -> tuple[OWLRetrievalStrategy, Any]:
+    """OWL 검색 전략과 그 추론기를 만든다 (UnifiedBrain·Container 공용).
+
+    두 호출처가 생성자에 없는 `docs_path`를 넘겨 2026-02-15(f049cb8)부터 매번 TypeError가
+    나고 예외가 삼켜졌다. 생성 규칙을 한 곳에 두고, 실패는 호출처가 warning으로 남기도록
+    예외를 그대로 올린다.
+
+    Returns:
+        (OWLRetrievalStrategy, OWLReasoner)
+
+    Raises:
+        ImportError: owlready2 미설치
+    """
+    from src.infrastructure.feature_flags import FeatureFlags
+    from src.ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
+
+    if not OWLREADY2_AVAILABLE:
+        raise ImportError("owlready2 not installed")
+
+    owl_reasoner = OWLReasoner()
+    strategy = OWLRetrievalStrategy(
+        knowledge_graph=knowledge_graph,
+        owl_reasoner=owl_reasoner,
+        doc_retriever=doc_retriever,
+        # reranker는 순손실로 판정돼 기본 OFF(7d8725b). OWL 경로도 같은 플래그를 따른다.
+        use_reranking=FeatureFlags.get_instance().use_reranker(),
+    )
+    return strategy, owl_reasoner

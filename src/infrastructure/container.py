@@ -20,6 +20,7 @@ DI (Dependency Injection) 컨테이너
     Container.reset()
 """
 
+import logging
 from contextlib import contextmanager
 from typing import Any
 
@@ -27,6 +28,8 @@ from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.rag.hybrid_retriever import HybridRetriever
 from src.rag.retriever import DocumentRetriever
+
+logger = logging.getLogger(__name__)
 
 
 class Container:
@@ -161,19 +164,14 @@ class Container:
             flags = FeatureFlags.get_instance()
             if flags.use_owl_strategy():
                 try:
-                    from src.ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
+                    from src.rag.retrieval_strategy import create_owl_strategy
 
-                    if OWLREADY2_AVAILABLE:
-                        from src.rag.retrieval_strategy import OWLRetrievalStrategy
-
-                        owl_reasoner = OWLReasoner()
-                        owl_strategy = OWLRetrievalStrategy(
-                            knowledge_graph=kg,
-                            owl_reasoner=owl_reasoner,
-                            docs_path=docs_path,
-                        )
-                except Exception:
-                    pass  # fall back to legacy
+                    owl_strategy, _ = create_owl_strategy(knowledge_graph=kg)
+                except Exception as e:
+                    logger.warning(
+                        f"Container: OWL strategy enabled by flag but failed to initialize "
+                        f"— falling back to legacy retrieval ({type(e).__name__}: {e})"
+                    )
 
             cls._instances["unified_retriever"] = HybridRetriever(
                 knowledge_graph=kg,

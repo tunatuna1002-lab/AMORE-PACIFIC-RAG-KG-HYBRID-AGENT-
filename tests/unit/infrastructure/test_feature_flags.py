@@ -146,7 +146,9 @@ class TestFeatureFlagsConvenienceMethods:
     def test_convenience_defaults_when_no_config(self, tmp_path: Path) -> None:
         flags = FeatureFlags(config_path=tmp_path / "missing.json")
         # Defaults defined in each convenience method
-        assert flags.use_owl_strategy() is True  # default True
+        # 2026-09: ReAct·OWL은 수리 후 평가 확인 전까지 기본 OFF (결정 D1)
+        assert flags.use_owl_strategy() is False
+        assert flags.use_react_agent() is False
         assert flags.use_unified_reasoner() is True  # default True
         assert flags.use_owl_reasoner() is True  # default True
         assert flags.use_ontology_kg() is True  # default True

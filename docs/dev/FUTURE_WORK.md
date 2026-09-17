@@ -157,3 +157,7 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - **기준선/현재 L1 `concept_map_f1` 임계값 불일치** — v8.1 기준선의 4문항
   (lg059·lg080·lg156·lg179)이 현재 로직으로는 통과하지 않는다.
   baseline 저장 시 임계값을 함께 고정할 것.
+
+### 9.8 위험 지점 보완 작업(2026-09-17) 중 발견한 범위 밖 항목
+- `tests/unit/core/test_react_agent.py::test_react_run`이 `acompletion`을 가짜로 두지 않아 전체 테스트마다 실제 OpenAI를 호출한다.
+- `tests/unit/core/test_cache.py::test_cleanup_expired_removes_old`가 TTL 0초·동일 시각 비교에 의존해 간헐 실패한다.

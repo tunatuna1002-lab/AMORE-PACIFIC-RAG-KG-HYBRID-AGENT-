@@ -30,6 +30,9 @@ from src.shared.constants import DEFAULT_MODEL
 logger = logging.getLogger(__name__)
 
 
+# _format_steps가 프롬프트에 싣는 관찰 길이 상한
+OBSERVATION_CHARS = 1500
+
 # Security: 허용된 액션 목록
 ALLOWED_ACTIONS: frozenset[str] = frozenset(
     {
@@ -148,8 +151,16 @@ ReAct 패턴으로 사고하세요:
 
 1. **Thought**: 현재 상황을 분석하세요. 무엇을 알고 있고, 무엇이 필요한가요?
 2. **Action**: 필요한 행동을 선택하세요
-   (query_data, query_knowledge_graph, calculate_metrics, refine_search, final_answer)
 3. **Action Input**: 행동에 필요한 파라미터 (JSON)
+
+사용 가능한 행동 (모두 읽기 전용):
+- query_data: 크롤 DB의 SoS·HHI·순위·가격 수치. {{"brand": "LANEIGE", "category": "Lip Care"}}
+- query_knowledge_graph: 경쟁사·제품·카테고리 브랜드 관계.
+  {{"entity": "LANEIGE", "relation": "competitors|products|category|all"}}
+- calculate_metrics: 최신 스냅샷에서 SoS·HHI·CPI 계산.
+  {{"metric_type": "sos", "brands": ["LANEIGE"], "category_id": "lip_care"}}
+- refine_search: 이전 관찰을 바탕으로 추가 조회. {{"refined_query": "...", "reason": "..."}}
+- final_answer: 최종 답변. {{"answer": "관찰에 근거한 답변", "confidence": 0.0-1.0}}
 
 **Multi-hop 추론**: 복잡한 질문은 여러 단계로 나눠서 해결하세요.
 - 1단계: 핵심 엔티티 정보 수집
@@ -240,10 +251,14 @@ JSON으로 응답:
             step = await self._execute_step(query, context, steps)
             steps.append(step)
 
-            # 2. Final Answer 체크
+            # 2. Final Answer 체크 — 답은 LLM이 action_input.answer에 쓴다.
+            # (_parse_step은 observation을 채우지 않으므로 observation에서 읽으면 항상 빈 답)
             if step.action == "final_answer":
-                final_answer = step.observation or ""
-                break
+                final_answer = str((step.action_input or {}).get("answer") or "").strip()
+                if final_answer:
+                    break
+                step.observation = "Error: final_answer에는 action_input.answer가 필요합니다"
+                continue
 
             # 3. IRCoT: 자동 refine_search 주입
             if (
@@ -261,7 +276,11 @@ JSON으로 응답:
                     "focus_entities": [],
                 }
 
-            # 4. 도구 실행 (있다면) - Security: 허용 액션 및 파라미터 검증
+            # 4. 도구 실행 - Security: 허용 액션 및 파라미터 검증
+            if step.action and not self.tool_executor:
+                step.observation = "Error: 도구 실행기가 연결되지 않았습니다"
+                continue
+
             if step.action and self.tool_executor:
                 # Security: 액션 검증
                 is_valid, error_msg = validate_action(step.action, step.action_input)
@@ -284,7 +303,11 @@ JSON으로 응답:
                     except Exception as e:
                         step.observation = f"Error: {e}"
 
-        # 5. Self-Reflection
+        # 5. 반복 한도에 걸려 final_answer가 없으면 관찰을 근거로 답을 한 번 더 요청한다
+        if not final_answer:
+            final_answer = await self._force_final_answer(query, context, steps)
+
+        # 6. Self-Reflection
         reflection_result = await self._reflect(query, final_answer)
 
         return ReActResult(
@@ -295,6 +318,26 @@ JSON으로 응답:
             needs_improvement=reflection_result.get("needs_improvement", False),
             hop_count=hop_count,
         )
+
+    async def _force_final_answer(self, query: str, context: str, steps: list[ReActStep]) -> str:
+        """final_answer 없이 루프가 끝났을 때 지금까지의 관찰로 최종 답을 만든다."""
+        prompt = (
+            "지금까지의 컨텍스트와 도구 관찰만 근거로 질문에 한국어로 답하세요. "
+            "근거가 없는 내용은 추측하지 말고 확인되지 않았다고 쓰세요.\n\n"
+            f"## 컨텍스트\n{context}\n\n## 질문\n{query}\n\n"
+            f"## 단계\n{self._format_steps(steps) or '없음'}"
+        )
+        try:
+            response = await acompletion(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=700,
+                temperature=0.2,
+            )
+            return (response.choices[0].message.content or "").strip()
+        except Exception as e:
+            logger.error(f"ReAct forced final answer failed: {e}")
+            return ""
 
     def _needs_retrieval(self, thought: str) -> bool:
         """IRCoT: thought에서 추가 검색 필요 여부 판단"""
@@ -393,7 +436,11 @@ JSON으로 응답:
             if step.action:
                 lines.append(f"Action: {step.action}")
             if step.observation:
-                lines.append(f"Observation: {step.observation[:200]}...")
+                # 관찰이 잘리면 LLM이 최종 답에 수치를 옮길 수 없다
+                observation = step.observation
+                if len(observation) > OBSERVATION_CHARS:
+                    observation = observation[:OBSERVATION_CHARS] + "..."
+                lines.append(f"Observation: {observation}")
 
         return "\n".join(lines)
 
