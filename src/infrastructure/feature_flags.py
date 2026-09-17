@@ -102,6 +102,23 @@ class FeatureFlags:
         """
         return self.get_flag("agents", "use_react_agent", default=False)
 
+    def react_shadow_mode(self) -> bool:
+        """ReAct를 섀도 모드로 돌린다: 답변은 파이프라인 것을 쓰고 ReAct 결과는 기록만 한다.
+
+        ``use_react_agent``가 OFF일 때만 의미가 있다 (둘 다 켜지면 ReAct가 실제 경로다).
+        기본 OFF — 켜면 2홉 이상 문항마다 LLM 호출이 추가로 발생한다. 섀도 토큰 사용량은
+        응답 metadata의 ``react_shadow.token_usage``에 따로 적힌다 (트랙 5-C).
+        """
+        return self.get_flag("agents", "react_shadow_mode", default=False)
+
+    def use_router_llm_fallback(self) -> bool:
+        """홉 수 라우터가 규칙으로 판정하지 못한 질문을 LLM에게 물어볼지 여부.
+
+        기본 OFF — 라우팅은 규칙이 정본이고, LLM은 표지가 하나도 없는 질문에만 쓰는
+        보조 수단이다. 판정 결과는 질문별로 캐시된다 (``src/core/router.py``).
+        """
+        return self.get_flag("router", "use_llm_fallback", default=False)
+
     # 아래 두 플래그는 이름과 달리 `HybridRetriever.retrieve`의 규칙 추론 on/off 스위치다
     # (둘 다 false여야 규칙 판정을 건너뛴다 — 평가 ablation `no-ontology`가 쓰는 스위치).
 
