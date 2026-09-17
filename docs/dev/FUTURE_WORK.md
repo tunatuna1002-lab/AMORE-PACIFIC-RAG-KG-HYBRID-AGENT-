@@ -159,17 +159,17 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
   baseline 저장 시 임계값을 함께 고정할 것.
 
 ### 9.8 위험 지점 보완 작업(2026-09-17) 중 발견한 범위 밖 항목
-- `tests/unit/core/test_react_agent.py::test_react_run`이 `acompletion`을 가짜로 두지 않아 전체 테스트마다 실제 OpenAI를 호출한다.
-- `tests/unit/core/test_cache.py::test_cleanup_expired_removes_old`가 TTL 0초·동일 시각 비교에 의존해 간헐 실패한다.
-- v4 Brain 경로의 답변 프롬프트(`HybridRetriever._combine_contexts` → `ResponsePipeline`)에는 크롤 DB 수치 사실(`metric_facts`, `3fce8e8`)이 실리지 않는다. v1 `ContextBuilder`만 렌더링한다. 평가 트레이스(judge 컨텍스트)에는 두 경로 모두 들어간다.
+- (해소 — 2026-09-18 트랙 0-E `c9db4e9`가 `acompletion`을 가짜로 둠) `tests/unit/core/test_react_agent.py::test_react_run`이 `acompletion`을 가짜로 두지 않아 전체 테스트마다 실제 OpenAI를 호출한다.
+- (해소 — 2026-09-18 트랙 0-E `c9db4e9`가 가짜 시계(`_patch_clock`)로 결정적 재현으로 바꿈) `tests/unit/core/test_cache.py::test_cleanup_expired_removes_old`가 TTL 0초·동일 시각 비교에 의존해 간헐 실패한다.
+- (해소 — 2026-09-18 증거 카드 재작업. `HybridRetriever._combine_contexts`가 이제 `render_for_prompt(context.prompt_evidence)`이고 `metric_facts`가 metric 카드로 변환돼 실린다) v4 Brain 경로의 답변 프롬프트(`HybridRetriever._combine_contexts` → `ResponsePipeline`)에는 크롤 DB 수치 사실(`metric_facts`, `3fce8e8`)이 실리지 않는다. v1 `ContextBuilder`만 렌더링한다. 평가 트레이스(judge 컨텍스트)에는 두 경로 모두 들어간다.
 - `eval.cli ablation`은 `run`과 달리 데이터 시점(`AMORE_DATA_AS_OF`)을 고정하지 않는다.
-- `eval/cost_tracker.py:34`의 gpt-4.1-mini 단가가 $0.15/$0.60 per 1M(공시가 $0.40/$1.60)이라 리포트 비용이 약 1/2.67로 과소 집계된다. v1.0~v9.1 기준선의 비용 수치도 같다.
-- `HybridRetriever.retrieve`가 검색 예외를 삼키고 빈 컨텍스트로 답변을 계속 만들어, 평가 하니스가 인프라 실패로 분류하지 못한다(2026-09-17 Chroma 오류 실행 2건이 조용히 채점됨).
-- 평가 프로세스 여러 개를 같은 `data/chroma`로 동시에 띄우면 한쪽의 색인 변경이 다른 쪽 검색을 깨뜨린다. 실행별 `CHROMA_PERSIST_DIR` 복사본이나 읽기 전용 모드가 필요하다.
+- (해소 — 2026-09-18 트랙 0-C `f7d9bcd`가 litellm `model_cost` 우선 조회로 바꿈, `eval/cost_tracker.py`에 gpt-4.1-mini $0.40/$1.60 확인됨) `eval/cost_tracker.py:34`의 gpt-4.1-mini 단가가 $0.15/$0.60 per 1M(공시가 $0.40/$1.60)이라 리포트 비용이 약 1/2.67로 과소 집계된다. v1.0~v9.1 기준선의 비용 수치도 같다. **단, v1.0~v9.1 기준선 리포트 자체의 저장된 수치는 재계산하지 않았다** — `docs/experiments/evidence_pipeline_2026-09.md` 0단계의 "비용 재계산" 표(×2.667) 참고.
+- (해소 — 2026-09-18 트랙 0-B `024ad89`·`f083519`가 핵심 검색 실패를 `context.metadata["retrieval_error"]`에 남기도록 바꿈) `HybridRetriever.retrieve`가 검색 예외를 삼키고 빈 컨텍스트로 답변을 계속 만들어, 평가 하니스가 인프라 실패로 분류하지 못한다(2026-09-17 Chroma 오류 실행 2건이 조용히 채점됨).
+- (해소 — 2026-09-18 트랙 0-A가 `DocumentRetriever.initialize()`를 읽기 전용(`get_collection`만)으로 바꾸고 색인은 `python -m src.rag.build_index` 전용 CLI로 분리) 평가 프로세스 여러 개를 같은 `data/chroma`로 동시에 띄우면 한쪽의 색인 변경이 다른 쪽 검색을 깨뜨린다. 실행별 `CHROMA_PERSIST_DIR` 복사본이나 읽기 전용 모드가 필요하다.
 - (해소 — 2026-09-18 트랙 4-C가 OWL 검색 전략을 삭제) `OWLRetrievalStrategy` 생성자 기본값이 시맨틱 청킹 `DocumentRetriever`를 새로 만들어 초기화 때 공유 컬렉션에 다른 청크를 추가 색인한다(`create_owl_strategy`는 `0669b75`에서 공유 검색기를 넘기게 했지만 생성자 기본값은 그대로).
 - (해소 — 2026-09-18 트랙 4-C가 OWL 검색 전략을 삭제. 엔티티 신호는 색인 태그 기반 재정렬 가산점으로 대체(4-B)) `OWLRetrievalStrategy._matches_filters`가 엔티티 링커의 Chroma where 형식 필터(`$or`, brand·category 키)를 처리하지 못하고 문서 메타데이터에도 그 키가 없어, 엔티티가 연결된 질의는 문서를 0건 가져온다(130문항 중 124문항).
-- 규칙 추론(`OntologyReasoner`)이 v4 평가 130문항·전 실행에서 추론 0건이다. `_build_inference_context`가 읽는 키가 운영 데이터와 맞지 않는다(근거 문서 §5.3).
-- 신뢰도 점수가 v4 평가의 172/172문항을 HIGH로 분류해 DecisionMaker(LLM 도구 선택)와 ReAct 분기가 평가에서 한 번도 실행되지 않는다. 임계값·점수 구성을 재검토해야 이 경로들을 측정할 수 있다.
+- (해소 — 2026-09-18 규칙이 증거 카드를 입력으로 받도록 재작업(`src/ontology/rule_contracts.py`) 이후 233문항 시험지 3단계 측정에서 규칙 발화 문항 비율 0.568, 규칙 정답 일치율 0.779로 나옴. 근거: `docs/experiments/evidence_pipeline_2026-09.md` 3단계) 규칙 추론(`OntologyReasoner`)이 v4 평가 130문항·전 실행에서 추론 0건이다. `_build_inference_context`가 읽는 키가 운영 데이터와 맞지 않는다(근거 문서 §5.3).
+- (부분 해소 — 2026-09-18 트랙 5-B가 신뢰도 점수를 증거 적합도 기반으로 교체해 검색 점수 분포 하나가 HIGH를 막던 구조를 없앴다(`src/core/confidence.py`, 커밋 `bb0627f`·`450e9d1`·`5fb6030`). **다만 이 재작업 이후 172문항 재평가는 아직 없다** — `docs/experiments/evidence_pipeline_2026-09.md`는 트랙 4까지만 기록돼 있어, HIGH 편중이 실제로 줄었는지는 미측정이다) 신뢰도 점수가 v4 평가의 172/172문항을 HIGH로 분류해 DecisionMaker(LLM 도구 선택)와 ReAct 분기가 평가에서 한 번도 실행되지 않는다. 임계값·점수 구성을 재검토해야 이 경로들을 측정할 수 있다.
 
 ### 9.9 증거 카드·규칙 추론·ReAct 통합 작업(2026-09-17~) 중 발견한 범위 밖 항목
 > 출처: `eval_output/evidence-2026-09/notes/0c_recalc.md`(트랙별 보고), `docs/experiments/evidence_pipeline_2026-09.md`. 이 작업에서 고치지 않았다.
@@ -215,5 +215,5 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - `scripts/start.py`는 `build_index()`만 부르므로 이미 존재하는 미태깅 볼륨 색인은 배포해도 태그가 붙지 않는다(운영에서 `--retag` 1회 필요). `--retag`는 `--prune`과 함께 줘도 prune을 하지 않는다.
 - 로컬 `ruff format`과 pre-commit 훅의 ruff가 일부 파일에서 서로 다른 스타일로 고친다.
 - (트랙 4-C, 2026-09-18) `Container.get_unified_retriever`는 OWL 전략 주입이 존재 이유였는데 전략 삭제 후에도 서비스 호출처가 0건이다(사용하는 곳은 없고 `HybridRetriever` 싱글톤만 만든다). 삭제 여부는 Container 전반 정리와 함께 판단 필요.
-- (트랙 4-C, 2026-09-18) OWL 검색 전략·`llm_orchestrator`·`query_processor`·`unified_reasoner`·SPARQL 계층 삭제 후 남은 문서 표기: `CLAUDE.md`(모듈 표·디렉터리 트리), `README.md`(rdflib SPARQL·`use_owl_strategy`), `src/core/AGENTS.md`(QueryProcessor), `src/core/tools.py`·`src/core/confidence.py` 주석의 `llm_orchestrator.py` 언급, `docs/architecture.md`·`docs/SYSTEM_ARCHITECTURE.md`. 소유 경계 밖이라 이번 트랙에서 고치지 않았다.
+- (해소 — 2026-09-18 문서 갱신 트랙) OWL 검색 전략·`llm_orchestrator`·`query_processor`·`unified_reasoner`·SPARQL 계층 삭제 후 남은 문서 표기: `CLAUDE.md`(모듈 표·디렉터리 트리), `README.md`(rdflib SPARQL·`use_owl_strategy`), `src/core/AGENTS.md`(QueryProcessor), `AGENTS.md`(루트), `src/rag/AGENTS.md`, `docs/architecture.md`·`docs/SYSTEM_ARCHITECTURE.md`를 코드 기준으로 고쳤다. **확인 결과**: `src/core/tools.py`는 이미 삭제돼 존재하지 않고, `src/core/confidence.py`에는 `llm_orchestrator.py`를 언급하는 주석이 없었다(grep 0건) — 이 항목의 원래 서술은 그 시점에도 부정확했을 수 있다. `src/rag/AGENTS.md`는 이미 갱신돼 있어 손대지 않았다.
 - (트랙 4-C, 2026-09-18) SPARQL 계층 삭제로 `rdflib`를 import하는 `src/` 코드가 없어졌다(`requirements.txt`의 의존성 정리 후보).
