@@ -17,7 +17,6 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 - alert_manager.py: 알림 관리 (SRP 분해)
 - brain.py: Level 4 자율 에이전트 두뇌 (LLM-First Facade)
 - batch_workflow.py: 배치 워크플로우 오케스트레이터 (Think-Act-Observe)
-- llm_orchestrator.py: 메인 오케스트레이터 (Legacy)
 
 주요 클래스:
 - UnifiedBrain: 통합 두뇌 (Facade) - 모든 컴포넌트 조율
@@ -33,7 +32,6 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 from .cache import ResponseCache
 from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
-from .llm_orchestrator import LLMOrchestrator
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 from .response_pipeline import ResponsePipeline
 
@@ -84,7 +82,6 @@ __all__ = [
     "ToolExecutor",
     "AGENT_TOOLS",
     "ResponsePipeline",
-    "LLMOrchestrator",
     # Scheduler
     "AutonomousScheduler",
     # Level 4 Brain (lazy loaded)
