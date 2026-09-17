@@ -50,17 +50,22 @@ class FakeRankedDoc:
 
 
 def _make_owl_strategy(**kwargs):
-    """OWLRetrievalStrategy 생성 헬퍼 (lazy import를 mock)"""
+    """OWLRetrievalStrategy 생성 헬퍼 (lazy import를 mock)
+
+    F2(2026-09-17): doc_retriever가 필수 인자로 바뀌어(생략 시 내부에서
+    새 DocumentRetriever를 만드는 코드 제거) 기존처럼 인자 없이 호출하면
+    TypeError가 난다. 테스트는 doc_retriever의 구체적인 동작을 검증하지
+    않으므로, 호출자가 명시하지 않았을 때만 MagicMock을 기본으로 채운다.
+    """
     with (
         patch("src.rag.entity_linker.EntityLinker") as mock_el,
         patch("src.rag.confidence_fusion.ConfidenceFusion") as mock_cf,
-        patch("src.rag.retriever.DocumentRetriever") as mock_dr,
         patch("src.rag.reranker.get_reranker") as mock_rr,
     ):
-        mock_dr.return_value = MagicMock()
         mock_el.return_value = MagicMock()
         mock_cf.return_value = MagicMock()
         mock_rr.return_value = MagicMock()
+        kwargs.setdefault("doc_retriever", MagicMock())
         strategy = OWLRetrievalStrategy(**kwargs)
     return strategy
 

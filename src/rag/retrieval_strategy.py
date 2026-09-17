@@ -250,29 +250,43 @@ class OWLRetrievalStrategy:
 
     def __init__(
         self,
+        *,
+        doc_retriever: Any,
         knowledge_graph: Any | None = None,
         owl_reasoner: Any | None = None,
-        doc_retriever: Any | None = None,
         ontology_kg: Any | None = None,
         unified_reasoner: Any | None = None,
         use_reranking: bool = True,
         use_query_expansion: bool = True,
     ):
+        """
+        Args:
+            doc_retriever: 주입할 DocumentRetriever 인스턴스 (필수).
+                이전에는 생략 시 내부에서 새 DocumentRetriever를 생성했는데,
+                이 새 인스턴스가 자신만의 `initialize()`를 호출하면서 공유
+                Chroma 컬렉션에 증분 색인을 써서, 동시에 돌던 다른 프로세스의
+                조회 결과를 오염시켰다 (2026-09-17 F2). `create_owl_strategy`
+                (모듈 하단)가 호출부의 표준 생성 경로이며, 항상 호출부의
+                기존 DocumentRetriever를 공유 주입한다. 생성자 자체도 같은
+                규칙을 강제해 `create_owl_strategy`를 거치지 않는 직접 생성도
+                동일하게 안전하게 만든다.
+            knowledge_graph: KG 인스턴스.
+            owl_reasoner: OWL 추론기.
+            ontology_kg: OntologyKnowledgeGraph 인스턴스.
+            unified_reasoner: 통합 추론기.
+            use_reranking: 크로스인코더 재랭킹 사용 여부.
+            use_query_expansion: 쿼리 확장 사용 여부.
+        """
         from .confidence_fusion import ConfidenceFusion
         from .entity_linker import EntityLinker
         from .reranker import get_reranker
-        from .retriever import DocumentRetriever
 
         self.kg = knowledge_graph
         self.owl_reasoner = owl_reasoner
         self.ontology_kg = ontology_kg
         self.unified_reasoner = unified_reasoner
 
-        self.doc_retriever = doc_retriever or DocumentRetriever(
-            use_semantic_chunking=True,
-            use_reranker=use_reranking,
-            use_query_expansion=use_query_expansion,
-        )
+        self.doc_retriever = doc_retriever
 
         self.entity_linker = EntityLinker(knowledge_graph=self.kg)
         self.confidence_fusion = ConfidenceFusion()
