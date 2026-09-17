@@ -234,3 +234,105 @@ async def test_shadow_mode_never_routes_to_react():
 
     assert state.metadata["route_trace"]["route"] != "react"
     assert state.response.text != SHADOW_TEXT
+
+
+# =============================================================================
+# 서비스 경로 배선: 플래그 → Brain → QueryGraph
+# =============================================================================
+
+
+class TestShadowModeWiring:
+    """agents.react_shadow_mode 플래그가 실제로 섀도 모드를 켜는지 (Brain 배선).
+
+    문서 색인 I/O(HybridRetriever.initialize)와 LLM 호출만 가짜다.
+    """
+
+    QUERY = Q_MULTI_HOP
+
+    @pytest.fixture
+    def flags(self, monkeypatch, tmp_path):
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        data_path = tmp_path / "dashboard_data.json"
+        data_path.write_text('{"brand": {"competitors": []}}', encoding="utf-8")
+        monkeypatch.setenv("DASHBOARD_DATA_PATH", str(data_path))
+
+        def _set(*, react: bool, shadow: bool) -> None:
+            monkeypatch.setenv("FF_AGENTS_USE_REACT_AGENT", "true" if react else "false")
+            monkeypatch.setenv("FF_AGENTS_REACT_SHADOW_MODE", "true" if shadow else "false")
+            FeatureFlags.reset_instance()
+
+        yield _set
+        FeatureFlags.reset_instance()
+
+    async def _brain(self):
+        from unittest.mock import AsyncMock, patch
+
+        from src.core.brain import UnifiedBrain
+        from src.rag.hybrid_retriever import HybridRetriever
+
+        brain = UnifiedBrain()
+        with patch.object(HybridRetriever, "initialize", AsyncMock()):
+            await brain.initialize()
+        return brain
+
+    @pytest.mark.asyncio
+    async def test_shadow_flag_builds_the_agent_without_routing_to_it(self, flags):
+        flags(react=False, shadow=True)
+        brain = await self._brain()
+
+        assert brain._react_agent is not None
+        assert brain._react_mode == REACT_MODE_SHADOW
+        status = brain.get_component_status()["react_agent"]
+        assert status["enabled"] is False  # 답변 경로로는 쓰지 않는다
+        assert status["mode"] == "shadow"
+
+    @pytest.mark.asyncio
+    async def test_both_flags_off_leaves_react_absent(self, flags):
+        flags(react=False, shadow=False)
+        brain = await self._brain()
+
+        assert brain._react_agent is None
+        assert brain._react_mode == "off"
+
+    @pytest.mark.asyncio
+    async def test_shadow_run_records_react_without_changing_the_answer(self, flags):
+        from unittest.mock import AsyncMock, patch
+
+        from src.core.models import Response as CoreResponse
+        from tests.unit.core.react_fc_fixtures import json_reply, tool_call_reply
+
+        flags(react=False, shadow=True)
+        brain = await self._brain()
+
+        react_llm = AsyncMock(
+            side_effect=[
+                tool_call_reply(
+                    "관계 확인", "kg_neighbors", {"entity": "LANEIGE"}, total_tokens=30
+                ),
+                tool_call_reply("정리", "final_answer", {"answer": SHADOW_TEXT}, total_tokens=20),
+                json_reply({"quality_score": 0.8, "needs_improvement": False}, total_tokens=10),
+            ]
+        )
+        pipeline_answer = CoreResponse(text=PIPELINE_TEXT, confidence_score=0.5, sources=[])
+
+        with (
+            patch.object(
+                brain._context_gatherer, "gather", AsyncMock(return_value=_thin_context(self.QUERY))
+            ),
+            patch.object(brain.decision_maker, "decide", AsyncMock(return_value=None)),
+            patch.object(
+                brain._response_pipeline, "generate", AsyncMock(return_value=pipeline_answer)
+            ),
+            patch("src.core.react_agent.acompletion", react_llm),
+        ):
+            response = await brain.process_query(self.QUERY, skip_cache=True)
+
+        assert response.text == PIPELINE_TEXT
+        shadow = response.metadata["react_shadow"]
+        assert shadow["ran"] is True
+        assert shadow["answer"] == SHADOW_TEXT
+        assert shadow["tools"] == ["kg_neighbors", "final_answer"]
+        # 섀도 토큰은 따로 적힌다 (파이프라인 비용과 섞이지 않는다)
+        assert shadow["token_usage"]["total_tokens"] == 60
+        assert response.metadata["route_trace"]["hops"] >= 2
