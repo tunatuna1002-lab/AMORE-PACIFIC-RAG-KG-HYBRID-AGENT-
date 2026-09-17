@@ -1,0 +1,351 @@
+{
+  "item_id": "rl012",
+  "question": "아모레퍼시픽이 COSRX를 인수한 연도는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0,
+    "semantic_similarity": 0.7249674201011658,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.3333333333,
+    "numeric_accuracy": 1.0
+  },
+  "overall_score": 0.6949137344727716,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "rl012",
+    "timestamp": "2026-09-17T21:55:48.656151",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx",
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_7_14",
+        "chunk_1",
+        "chunk_2",
+        "ir_2025_q1_0_1",
+        "ir_2025_q1_0_6",
+        "ir_2025_q1_0_2",
+        "ir_2025_q1_0_3",
+        "ir_2025_q3_0_5"
+      ],
+      "snippets": [
+        "iction/comments/1oe3ije/review\\_i\\_tried\\_tallow\\_balms\\_over\\_the\\_past\\_year/](https://www.reddit.com/r/SkincareAddiction/comments/1oe3ije/review_i_tried_tallow_balms_over_the_past_year/)  \n20. Fake",
+        "• Western region (Americas, EMEA) achieved a double-digit  operating profit margin by expanding its operating profit  through continued revenue growth from major brands and  consolidation of COSRX ear",
+        "customers",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**1Q 2025 Revenue**\n\nAmorepacific revenue up 17.1% to 1.1 tri",
+        "Personnel expenses increased 29% byrecognizing one-off incentive provisions for domestic business, and depreciation cost increased 29%  due to the amortization of COSRX intangible assets. Gross profit",
+        "Overseas Business 336.8 36.9 473.0 44.3 \\+40.5 Western Region 105.1 11.5 212.5 19.9 \\+102.1 Other Asia 83.5 9.2 127.8 12.0 \\+53.0 Greater China 148.2 16.3 132.8 12.4 \\-10.4   \n1\\) Total revenue includ",
+        "Cosmetics business operating profit slightly increased while Daily Beauty business operating profit decreased\n\nOverseas operating profit increased 120% driven by strong sales of major brands in Wester",
+        "Overseas   \n• Western region: Delivered growth by reinforcing brand presence and diversifying  channels for recently launched brands   \nOverseas   \n• Western Region: Profitability moderated due to inc"
+      ],
+      "scores": [
+        3.4882478377176103,
+        1.0,
+        0.8115535783990417,
+        0.4449031352996826,
+        0.4398841857910156,
+        0.43756037950515747,
+        0.40929174423217773,
+        0.4023149013519287
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx",
+        "amorepacific"
+      ],
+      "kg_edges_found": [
+        "cosrx -ownedBy-> amorepacific",
+        "cosrx -hasSoS-> skin_care",
+        "cosrx -rankedIn-> skin_care",
+        "cosrx -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "brand_products",
+          "entity": "cosrx",
+          "data": {
+            "product_count": 1,
+            "products": [
+              {
+                "asin": "B00PBX3L7K",
+                "name": "",
+                "category": "skin_care",
+                "rank": 85,
+                "title": "COSRX Snail Mucin 96% Repairing Serum for Sooothing & Hydrating 3.38 oz. | Snail Secretion Filtrate ",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        },
+        {
+          "type": "metric_edges",
+          "entity": "cosrx",
+          "data": {
+            "edges": [
+              {
+                "subject": "COSRX",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasSoS",
+                "object": "skin_care"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "rankedIn",
+                "object": "skin_care"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽이 COSRX를 인수한 연도는 명확히 제공된 데이터에 나타나 있지 않습니다. 다만, 2025년 1분기 실적 발표(2025.4.30)에서 COSRX의 실적이 아모레퍼시픽의 전체 영업이익에 포함되어 있다는 점으로 미루어 보아, 인수는 2025년 이전에 이루어진 것으로 추정됩니다. 정확한 인수 연도는 추가 확인이 필요합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "COSRX",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.04,
+        "product_count": 1,
+        "brand_rank": 15
+      },
+      {
+        "type": "brand_share",
+        "brand": "amorepacific",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "COSRX",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 99,
+            "brand": "COSRX",
+            "name": "COSRX Snail Mucin 96% Repairing Serum for Sooothing & Hydrat",
+            "price": 18.5,
+            "rating": 4.6,
+            "reviews_count": 106338
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 579,
+      "judge_tokens": 2981,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 468,
+      "l5_completion_tokens": 111,
+      "judge_prompt_tokens": 2234,
+      "judge_completion_tokens": 747,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0003648,
+      "judge_cost_usd": 0.0020888,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 3356.037139892578,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 9.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

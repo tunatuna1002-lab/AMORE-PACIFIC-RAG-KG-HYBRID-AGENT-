@@ -1,0 +1,174 @@
+{
+  "item_id": "rl005",
+  "question": "AESTURA의 모회사(소속 그룹)는 어디인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.125,
+    "semantic_similarity": 0.7823343873023987,
+    "groundedness_score": 0.8333,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 1.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.5829904281905491,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "rl005",
+    "timestamp": "2026-09-17T21:55:33.305571",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q2_0_12",
+        "chunk_1",
+        "ir_2025_q3_0_27",
+        "ir_2025_q3_0_11",
+        "ir_2025_q2_0_25",
+        "ir_2025_q3_0_14",
+        "ir_2025_q2_0_22",
+        "ir_2025_q2_0_24"
+      ],
+      "snippets": [
+        "5\n\n121.7\n\n\\-17%   \n**2Q 2025 Domestic Business PREMIUM**\n\n101.1 • Premium accounts for 18% of    \ntotal domestic revenue\n\n\\-Aestura7% (vs. 24.2Q 5%)\n\n\\-Laneige6% (vs. 24.2Q 6%)\n\n2024 2Q 2025 2Q\n\n(Unit",
+        "SulwhasooAmbassador‘YoonaLim’ Hera‘Reflection Skin Glow Cushion Foundation’ ![][image2]![][image3]![][image4]Primera ‘Nia CicaSoothing Glow Watery Cream＇ Iope‘VitaminCExpert 40% Mask Concentrate’\n\n5\n\n",
+        "• Continued improving business structure in APAC. Completed restructuring in Japan and turned to growth  \\-Closed offline stores, expanded MBS stores; reinforced e-commerce and achieved strong sales o",
+        "**Sulwhasoo** •Overall sales posted growth across department store, online, and travel retail channels • Enhanced customer experience through omni-marketing linked to the Ginseng pop-up  **APBeauty** ",
+        "\\- \\[Japan\\] Enhanced brand appeal of Laneige(‘Neo Cushion Mewy’, ‘Gel Cream Skin’) and Aestura(‘Theracne365’)  through innovative products and achieved strong sales growth for major brands (Laneige/A",
+        "\\* COSMETICS Business: Sulwhasoo,Hera,Iope,Primera,AP Beauty, Laneige, Aestura, Illiyoon, Mamonde, Hanyul, B.Ready, Vital Beautieetc. \\* HAIR & BEAUTY Business:Ryo, Mise-en-scene, Labo-H, Happy Bath, ",
+        "Hanyul‘Yuja Brightening Sleeping Mask/Toner Pads’(US)  \n\\- \\[COSRX\\] Diversified channels across key markets (Germany, Italy, and France) and strengthened marketing for its  new product (‘Ceramide Moi",
+        "\\- \\[APAC\\] Sulwhasooincreased customer purchase with its global campaign (‘First Care Activating Serum’), Laneige enhanced brand attractiveness and drove sales growth for its ‘Bouncy and Firm’ line t"
+      ],
+      "scores": [
+        3.0523378821854683,
+        0.8449598095807849,
+        0.36361658573150635,
+        0.35309624671936035,
+        0.3512653112411499,
+        0.33920514583587646,
+        0.32678669691085815,
+        0.3146038055419922
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### 인사이트\n- AESTURA는 LANEIGE와 함께 동일 문서 내에서 자주 언급되고 있습니다.\n- LANEIGE는 아모레퍼시픽 그룹 소속 브랜드로 알려져 있습니다.\n- 따라서 AESTURA도 아모레퍼시픽 그룹 소속일 가능성이 높아 보입니다.\n\n### 근거\n- 2025년 2분기 및 1분기 실적 발표에서 AESTURA와 LANEIGE가 함께 프리미엄 브랜드로 분류되어 언급됨 [출처: 현재 데이터]\n- 동일 문서 내에서 두 브랜드가 함께 다뤄지는 점은 같은 그룹 소속일 가능성을 시사함 [출처: 현재 데이터]\n\n### 권장\n- 현재 확인된 데이터 기준으로 AESTURA가 아모레퍼시픽 그룹 소속일 가능성이 높으나, 공식 확인을 위해 아모레퍼시픽의 공식 자료나 공시를 참고하는 것이 바람직합니다.",
+      "citations": [],
+      "confidence": 3.15,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3765,
+      "judge_tokens": 2713,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 3379,
+      "l5_completion_tokens": 386,
+      "judge_prompt_tokens": 1625,
+      "judge_completion_tokens": 1088,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0019692,
+      "judge_cost_usd": 0.0023907999999999998,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 8704.871892929077,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "decide",
+      "confidence_level": "medium",
+      "confidence_score": 4.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 0.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": "direct_answer",
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

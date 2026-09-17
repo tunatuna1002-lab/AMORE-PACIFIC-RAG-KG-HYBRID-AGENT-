@@ -1,0 +1,424 @@
+{
+  "item_id": "lg147",
+  "question": "Amazon 뷰티 시장에서 중소 브랜드의 성장 가능성은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10062893081761007,
+    "semantic_similarity": 0.6176400780677795,
+    "groundedness_score": 0.2857,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.125,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.34160721079968503,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg147",
+    "timestamp": "2026-09-17T21:47:05.911217",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "kbeauty_industry_2_1",
+        "kbeauty_industry_5_1",
+        "kbeauty_industry_5_3",
+        "chunk_3",
+        "chunk_4",
+        "laneige_strategy_2026_6_0",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_6_1"
+      ],
+      "snippets": [
+        "k-뷰티가 어떻게 세계의 뷰티 수도가 되었는지 그 **초격차****의 비밀**을 심층 분석합니다. 단순한 유행을 넘어, 110년간의 분투와 **odm****(제조자 개발 생산) 시스템**이 만들어낸 혁신적인 산업 생태계를 통해 k-뷰티의 구조적 성장 동력을 파악할 수 있습니다. 특히, **초개인화 맞춤 화장품**과 미용 기기 결합 등 미래 기술을 선도하는 ",
+        "2. **화장품 전문 편집숍의 역할**:\n  1. 한겨울 이른 아침에도 외국인들이 줄을 서서 기다릴 정도로 인기가 높다 \n  2. 다양한 화장품을 써보고 체험하는 공간은 여행자들에게 새로운 경험을 제공한다 \n  3. 이 편집숍 체인의 2025년 외국인 매출은 <mark>1조 원</mark>을 돌파했으며, 이는 2022년 대비 <mark>26% 증가</mar",
+        "2. **아마존****과의 협력 및 성과**:\n  1. 아마존은 젊은 사용자들을 끌어들이기 위해 K-뷰티 다큐멘터리를 제작해 공개했으며, 언론 노출을 꺼리는 신생 업체 창업자도 출연했다 \n  2. 한 신생 업체는 나흘간 진행되는 이벤트 기간에 <mark>140억 원어치</mark>를 팔자는 목표(10 밀리언 달러)를 세웠고, 직원들은 놀랐으나 촬영에 들어갔",
+        "결론\n\n최근 한 달간 미국 스킨케어 시장은 **과학적 효능과 부드러운 사용감의 균형**을 추구하는 방향으로 이동하고 있다. 펩타이드·나이아신아마이드·PDRN·스네일 뮤신 같은 **재생 성분**과 세라마이드·히알루론산 같은 **장벽 보습 성분**, 그리고 립케어 및 글래스 스킨 루틴의 **K‑뷰티** 요소가 주목받는다. LANEIGE는 이러한 트렌드에 적합한",
+        "📌 K-뷰티가 세계 시장을 선도하는 '초격차'를 달성한 비결은 무엇인가?\n k-뷰티는 odm(제조자 개발 생산) 시스템을 통한 <mark>빠른 </mark>혁신<mark>과 유연한 생산</mark>, 그리고 <mark>K-콘텐츠와의 시너지</mark>를 바탕으로 세계 시장에서 독보적인 경쟁력을 확보했습니다.",
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "2. **하이엔드 브랜드 서사의 빈약**:\n  1. 소비자들이 기억하는 브랜드가 되려면 다양한 좋은 제품의 **서사(이야기)**가 더해져야 한다 \n  2. K-뷰티 제품은 **기초 중심**이며, 고부가 가치 제품에서는 아직 약세이다 \n  1. 향수나 화장수 분야에서는 세계 <mark>32위권</mark>에 그치는 수준이다 \n  2. 기초 제품 경쟁력은 확실"
+      ],
+      "scores": [
+        7.083966399072931,
+        6.886692202112256,
+        6.5504559216372025,
+        0.9275617074025035,
+        0.9521492342988938,
+        0.43301713466644287,
+        0.45967233180999756,
+        0.41655564308166504
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 44,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 51,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B",
+                  "B09SGLQNS5",
+                  "B00TZUJW6O"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 6,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B07PBQZ3KF",
+                  "B0F3J6W5KW",
+                  "B0GVG4S4X9",
+                  "B075DB13ZT",
+                  "B088W7L534"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아마존 뷰티 시장에서 중소 K-뷰티 브랜드의 성장 가능성은 매우 높습니다. \n\n근거는 다음과 같습니다.  \n1. 아마존 내 K-뷰티 판매량이 2023년 대비 70% 이상 성장했고, 2025년 9월 기준 1,900만 명의 고객이 K-뷰티 제품을 구매하고 있습니다.  \n2. K-뷰티 관련 검색량도 매년 20% 이상 증가하는 추세입니다.  \n3. 아마존 프라임데이 등 프로모션을 통해 신생 중소 브랜드가 목표 매출을 220% 초과 달성하는 사례가 나타나고 있습니다.  \n4. 국내 화장품 전문 편집숍은 2025년 외국인 매출 1조 원(2022년 대비 26% 증가)을 기록하며, 천 개 넘는 중소 화장품 기업을 인큐베이터 역할로 육성하고 있습니다. 이들 중소기업은 2026년 미국 본토 진출을 준비 중입니다.  \n5. 아마존과 K-뷰티 업체 간 협력 강화 및 라이징 스타 프로그램 등 지원책이 중소 브랜드의 글로벌 진출과 인지도 확대를 돕고 있습니다.\n\n따라서, 아마존 뷰티 시장에서 K-뷰티 중소 브랜드는 빠른 성장과 글로벌 확장 가능성을 갖추고 있으며, 특히 ODM 기반 혁신과 초개인화 맞춤 화장품 등 기술력과 차별화된 브랜드 서사를 통해 지속 가능한 경쟁력을 확보할 것으로 전망됩니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1291,
+      "judge_tokens": 5718,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 945,
+      "l5_completion_tokens": 346,
+      "judge_prompt_tokens": 4116,
+      "judge_completion_tokens": 1602,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0009316,
+      "judge_cost_usd": 0.0042096,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5231.296062469482,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 8.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 1.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "market",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

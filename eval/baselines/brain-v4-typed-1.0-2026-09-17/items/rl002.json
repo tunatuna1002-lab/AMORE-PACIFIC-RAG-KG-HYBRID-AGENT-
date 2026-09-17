@@ -1,0 +1,193 @@
+{
+  "item_id": "rl002",
+  "question": "Sulwhasoo의 모회사(소속 그룹)는 어디인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14814814814814814,
+    "semantic_similarity": 0.9152857661247253,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7562646078401141,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "rl002",
+    "timestamp": "2026-09-17T21:55:17.566449",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "sulwhasoo"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q1_0_8",
+        "ir_2025_q2_0_8",
+        "ir_2025_q1_0_10",
+        "chunk_3",
+        "ir_2025_q3_0_11",
+        "ir_2025_q3_0_14",
+        "ir_2025_q3_0_27",
+        "ir_2025_q3_0_25"
+      ],
+      "snippets": [
+        "323.1 352.2 \\+9%\n\n2024 1Q 2025 1Q   \n**1Q 2025 Domestic Business LUXURY**\n\n• Luxury accounts for 61% of\n\ntotal domestic revenue\n\n\\-Sulwhasoo30% (vs. 24.1Q 32%)\n\n\\-Hera16%(vs. 24.1Q 16%)\n\n(Unit: bn KRW",
+        "3\\) Commission: Service Fees and Distribution Commission   \n4  \n4)Depreciation Cost: Depreciation and Amortization    \n**2Q 2025 Domestic Business**\n\n**LUXURY**\n\n281.1 329.6   \n\\+17%\n\n• Luxury account",
+        "customers",
+        "• OtherAsia(APAC, Japan)revenue increased53%\n\n\\- \\[APAC\\]Overall sales increased with roll out of Sulwhasoo’sglobal campaign(‘First Care Activating Serum’ ),  Laneige’snew launch of ‘Bouncy & Firm Ser",
+        "**Sulwhasoo** •Overall sales posted growth across department store, online, and travel retail channels • Enhanced customer experience through omni-marketing linked to the Ginseng pop-up  **APBeauty** ",
+        "\\* COSMETICS Business: Sulwhasoo,Hera,Iope,Primera,AP Beauty, Laneige, Aestura, Illiyoon, Mamonde, Hanyul, B.Ready, Vital Beautieetc. \\* HAIR & BEAUTY Business:Ryo, Mise-en-scene, Labo-H, Happy Bath, ",
+        "• Continued improving business structure in APAC. Completed restructuring in Japan and turned to growth  \\-Closed offline stores, expanded MBS stores; reinforced e-commerce and achieved strong sales o",
+        "• Entered the Chinese derma cosmetics market by opening an official brand store on major online platforms  • Enhanced recognition through sampling and trial programs of the ‘Atobarrier’ line, and rein"
+      ],
+      "scores": [
+        3.158226916031055,
+        3.043632944902481,
+        3.031588363504485,
+        0.9046326364927951,
+        0.5284171104431152,
+        0.5217093825340271,
+        0.4997519850730896,
+        0.4637260437011719
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "sulwhasoo"
+      ],
+      "kg_edges_found": [
+        "sulwhasoo -ownedBy-> amorepacific"
+      ],
+      "ontology_facts": [
+        {
+          "type": "metric_edges",
+          "entity": "sulwhasoo",
+          "data": {
+            "edges": [
+              {
+                "subject": "Sulwhasoo",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "Sulwhasoo의 모회사(소속 그룹)는 아모레퍼시픽입니다. 2025년 1분기 및 2분기 실적 자료에서 Sulwhasoo가 아모레퍼시픽의 럭셔리 브랜드 중 하나로 명확히 언급되고 있습니다.",
+      "citations": [],
+      "confidence": 4.95,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 521,
+      "judge_tokens": 1817,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 456,
+      "l5_completion_tokens": 65,
+      "judge_prompt_tokens": 1204,
+      "judge_completion_tokens": 613,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00028639999999999997,
+      "judge_cost_usd": 0.0014624,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 3996.3462352752686,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 7.0,
+      "confidence_components": {
+        "kg_facts": 1.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 1.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

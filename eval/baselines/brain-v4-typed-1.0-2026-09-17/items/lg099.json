@@ -1,0 +1,426 @@
+{
+  "item_id": "lg099",
+  "question": "K-Beauty 브랜드 중 Amazon US에서 가장 강한 브랜드는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.07692307692307693,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.14285714285714285,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 0.3333333333333333
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.12280701754385964,
+    "semantic_similarity": 0.7624900341033936,
+    "groundedness_score": 0.2,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.39184340131491946,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg099",
+    "timestamp": "2026-09-17T21:42:32.623922",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_11",
+        "negative_issue_response_7_1",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "negative_issue_response_table_0",
+        "laneige_strategy_2026_3_1",
+        "laneige_strategy_2026_7_6"
+      ],
+      "snippets": [
+        "tps://us.laneige.com/products/lip-sleeping-mask)  \n20. Sali Hughes on beauty: the new crop of milky toners are a game-changer \\- The Guardian, 1월 20, 2026에 액세스, [https://www.theguardian.com/fashion/20",
+        "1. **라운드랩**은 '규제 준수'라는 방어 논리를 넘어, 미국 소비자를 위한 텍스처 개선(2.0 버전)을 서둘러야 하며, 오리지널과 미국 버전의 차이를 솔직하게 커뮤니케이션해야 한다.  \n2. **아누아**는 '모공 마케팅'의 수위를 조절하고, 트러블 발생 시 책임 있는 환불/케어 정책을 통해 '먹튀 브랜드'라는 오명을 씻어내야 한다.  \n3. **티르",
+        "이러한 제품 구조는 인플루언서 맵핑에도 직접적인 영향을 미칩니다. 틱톡(TikTok)과 같은 발견형 플랫폼에서는 시각적 임팩트가 강한 립 제품이 주를 이루고, 유튜브(YouTube)와 레딧(Reddit) 같은 탐색형 플랫폼에서는 성분 분석이 동반되는 워터뱅크 크림이나 크림 스킨의 비중이 높아집니다.",
+        "beauty-new-years-sale-amazon-11877082](https://www.instyle.com/best-skin-hair-beauty-new-years-sale-amazon-11877082)",
+        "---\n\n**6\\. 데이터 검증 소스 및 분석 도구 활용 가이드**\n\n가설을 검증하고 팩트 체크를 수행하기 위해 활용해야 할 필수 데이터 소스와 도구들입니다.\n\n### **6.1 아마존 내부 데이터 (First-Party Data) \\- 가장 정확함**\n\n가장 신뢰할 수 있는 데이터는 아마존이 직접 제공하는 브랜드 분석 데이터입니다.",
+        "| 비교 항목 | 한국 오리지널 버전 (Global) | 미국 현지화 버전 (US Official) | 소비자 반응 키워드 |\n| :---- | :---- | :---- | :---- |\n| **표기명** | SPF 50+ PA++++ | SPF 45 Broad Spectrum | \"혼란스럽다\", \"왜 SPF가 줄었나\" |\n| **핵심 필터** | Uvin",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "t.com/r/AsianBeauty/comments/1mdpd4q/thoughts_on_pdrn_skincare/)  \n8. Shoppers Say This Under-Eye Brightener Feels Like a 'Drink of Water' for Tired Skin — It's Only $8 Today \\- People.com, 1월 20, 202"
+      ],
+      "scores": [
+        6.566690758368539,
+        6.486593901413185,
+        0.7710740841789561,
+        0.6931425565922574,
+        0.726017102424029,
+        0.47383350133895874,
+        0.4666735529899597,
+        0.42221957445144653
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 44,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 51,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B",
+                  "B09SGLQNS5",
+                  "B00TZUJW6O"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 6,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B07PBQZ3KF",
+                  "B0F3J6W5KW",
+                  "B0GVG4S4X9",
+                  "B075DB13ZT",
+                  "B088W7L534"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "Amazon US에서 K-Beauty 브랜드 중 가장 강한 브랜드는 라네즈(LANEIGE)로 판단됩니다. \n\n근거는 다음과 같습니다.  \n- 제공된 데이터 내에서 K-Beauty 브랜드 중 아모레퍼시픽 계열인 라네즈가 언급되었고, 특히 2026년 상반기 전망에서 라네즈의 브랜드 생태계와 시장 포지셔닝에 대한 상세 분석이 포함되어 있습니다.  \n- 틱톡, 유튜브, 레딧 등 주요 플랫폼에서 라네즈의 대표 제품(립 슬리핑 마스크, 워터뱅크 크림 등)이 강한 소비자 반응과 인플루언서 영향력을 보이고 있습니다.  \n- 반면, beauty 카테고리 내 Amazon US 상위 브랜드로는 medicube, cerave 등이 있으나, 이들은 K-Beauty 브랜드가 아니며, K-Beauty 내 최상위 브랜드로는 라네즈가 가장 두드러집니다.\n\n따라서, Amazon US에서 K-Beauty 브랜드 중 가장 강력한 브랜드는 라네즈임을 확신할 수 있습니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 942,
+      "judge_tokens": 4869,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 700,
+      "l5_completion_tokens": 242,
+      "judge_prompt_tokens": 3546,
+      "judge_completion_tokens": 1323,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0006672,
+      "judge_cost_usd": 0.0035351999999999996,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 4357.142925262451,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 9.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "product",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

@@ -1,0 +1,176 @@
+{
+  "item_id": "lg069",
+  "question": "이탈률 계산 공식과 모니터링 주기는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.6,
+    "context_precision_at_k": 0.375,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.20754716981132076,
+    "semantic_similarity": 0.7178332805633545,
+    "groundedness_score": 0.25,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.6,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7382564627559429,
+  "fail_reason_tags": [
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg069",
+    "timestamp": "2026-09-17T21:40:16.367139",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "churn_rate",
+        "calculation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_3_0",
+        "strategic_indicators_3_2",
+        "strategic_indicators_0",
+        "chunk_3",
+        "chunk_4",
+        "home_insight_rules_1",
+        "metric_interpretation_4_1",
+        "strategic_indicators_2_1"
+      ],
+      "snippets": [
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석",
+        "- **주의사항**\n- 리뷰 수 급증/급감은 반영하지 않음\n- 단기 변동은 과대 해석 주의\n\n---",
+        "# Strategic Indicators Definition\n본 문서는 랭킹 기반 시장 분석 대시보드에서 사용되는 핵심 전략 지표의\n정의, 산출 논리, 활용 범위를 표준화하기 위해 작성되었다.\n\n본 지표들은 **의사결정 판단 보조**를 목적으로 하며,\n원인 확정이나 성과 예측을 수행하지 않는다.\n\n---",
+        "공통 주의사항\n\n- 모든 지표는 **상대 비교 및 신호 탐지 목적**\n- 단일 지표로 성과, 원인, 전략을 확정하지 않음\n- 지표 조합 해석은 `Indicator_Combination_Playbook.md`를 참조",
+        "C. Level 3: Product & Risk\n### (개별 상품 해석)\n\n---\n\n### 7. Rank Volatility\n\n#### 해석 가이드\n- **높음**\n  - 광고, 이벤트, 단기 이슈 영향 가능성\n- **낮음**\n  - 순위가 안정적이거나 정체 상태\n\n#### 함께 봐야 할 지표\n- Rank Shock\n- Streak Days\n\n#### 주",
+        "0. 적용 범위 및 입력 데이터\n\n### 0.1 입력 데이터 (Home에서 접근 가능)\n- 계산된 지표 값(예: SoS, HHI, Brand Avg Rank, CPI, Avg Rating Gap, Churn Rate, Rank Shock, Rank Volatility, Streak Days, Rating Trend)\n- 선택된 컨텍스트(brand, mark",
+        "#### 해석 가이드\n- **길수록**\n  - 롱런(Long-run) 가능성 높음\n  - 스테디셀러 후보\n- **짧음**\n  - 반짝 인기 또는 단기 이벤트 가능성\n\n#### 함께 봐야 할 지표\n- Rank Volatility\n- Brand Avg Rank\n\n#### 주의사항\n- Top N 기준 설정에 따라 결과 민감\n- 카테고리 특성 고려 필요\n\n---\n",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating "
+      ],
+      "scores": [
+        7.999873850507514,
+        5.349672678637497,
+        4.582185514098913,
+        0.6127396185719699,
+        0.5493557182771313,
+        0.3519667387008667,
+        0.34010636806488037,
+        0.3335738182067871
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "이탈률(Churn Rate) 계산 공식은 일반적으로 다음과 같습니다.\n\n- 이탈률 = (특정 기간 내 이탈한 고객 수) ÷ (기간 시작 시점의 전체 고객 수) × 100(%)\n\n모니터링 주기는 비즈니스 특성에 따라 다르나, Amazon 마켓 분석에서는 주간 단위(7일) 모니터링이 일반적입니다. 이는 Rank Volatility 산출 기준(기본 7일)과도 일치하여, 고객 이탈 추세를 안정적으로 파악할 수 있기 때문입니다.\n\n요약:\n- 이탈률 공식: (이탈 고객 수 ÷ 전체 고객 수) × 100%\n- 모니터링 주기: 주간(7일) 권장\n\n참고로, Rank Volatility(7일간 순위 표준편차)와 Rank Shock(전일 대비 순위 급변 이벤트) 지표는 이탈률과 직접적 공식은 다르나, 고객 행동 변화 및 시장 반응 모니터링에 보조적으로 활용할 수 있습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 731,
+      "judge_tokens": 3157,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 499,
+      "l5_completion_tokens": 232,
+      "judge_prompt_tokens": 1958,
+      "judge_completion_tokens": 1199,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0005708,
+      "judge_cost_usd": 0.0027015999999999997,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5403.62811088562,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 7.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

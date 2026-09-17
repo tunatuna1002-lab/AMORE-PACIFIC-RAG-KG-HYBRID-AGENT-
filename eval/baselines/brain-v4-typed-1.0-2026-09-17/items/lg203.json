@@ -1,0 +1,180 @@
+{
+  "item_id": "lg203",
+  "question": "2025년 1분기 아모레퍼시픽 서구권 매출 성장률은 얼마인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.030303030303030304,
+    "semantic_similarity": 0.5349761247634888,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.3537640128478756,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg203",
+    "timestamp": "2026-09-17T21:51:36.538724",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "data_query"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "kbeauty_industry_6_4",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "negative_issue_response_7_1",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_5_3"
+      ],
+      "snippets": [
+        "### 4.3. 미래 초격차 전략: 미용 기기, 초개인화, 원료 혁신 \n![image]()\n1. **미용 기기****와의 결합을 통한 ****초격차**:\n  1. K-뷰티가 보여주는 초격차는 시장을 새로 만들어내는 **창조적 ****혁신**에 있다 \n  2. 화장품 효과를 극대화하기 위해 **미용 기기**를 활용하며, 피부과나 병원 접근이 쉽지 않은 해외에",
+        "customers",
+        "Deep Facial Cleanser' Happy Bath'SkinUDeep Musk Body Oil & Gua Sha'  \n7   \n**1Q 2025 Overseas Business**",
+        "\\- \\[Hanyul\\] Newly entered the U.S. market via Sephora and built awareness with its ‘Yuja Brightening’ line products  \\- \\[COSRX\\] Expanded product portfolio in emerging categories by launching new s",
+        " to Luxury business), like-for-like growth for luxury business is 4% increaseYoY    \nSulwhasooGlobal Culture Trip‘HolisticBeautyJourney’ Hera‘Custom Match’ Service![][image2]![][image3]Primera‘Vitatin",
+        "1. **라운드랩**은 '규제 준수'라는 방어 논리를 넘어, 미국 소비자를 위한 텍스처 개선(2.0 버전)을 서둘러야 하며, 오리지널과 미국 버전의 차이를 솔직하게 커뮤니케이션해야 한다.  \n2. **아누아**는 '모공 마케팅'의 수위를 조절하고, 트러블 발생 시 책임 있는 환불/케어 정책을 통해 '먹튀 브랜드'라는 오명을 씻어내야 한다.  \n3. **티르",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "2. **아마존****과의 협력 및 성과**:\n  1. 아마존은 젊은 사용자들을 끌어들이기 위해 K-뷰티 다큐멘터리를 제작해 공개했으며, 언론 노출을 꺼리는 신생 업체 창업자도 출연했다 \n  2. 한 신생 업체는 나흘간 진행되는 이벤트 기간에 <mark>140억 원어치</mark>를 팔자는 목표(10 밀리언 달러)를 세웠고, 직원들은 놀랐으나 촬영에 들어갔"
+      ],
+      "scores": [
+        1.5710064798487342,
+        1.0,
+        0.9493568185046924,
+        0.8504024160343407,
+        0.8411240190890639,
+        0.29637497663497925,
+        0.2785041332244873,
+        0.26310986280441284
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내에 2025년 1분기 아모레퍼시픽의 서구권 매출 성장률에 대한 구체적인 수치나 명확한 언급은 없습니다. 다만, K-뷰티의 해외 시장, 특히 서구권에서 미용 기기와 화장품 결합을 통한 혁신이 매년 두 배 이상 성장하고 있다는 점이 언급되어 있습니다. 이를 통해 아모레퍼시픽도 해외 매출 비중과 성장률이 크게 증가하고 있을 가능성이 높으나, 정확한 1분기 서구권 매출 성장률 수치는 제공된 자료에서 확인되지 않습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 656,
+      "judge_tokens": 2516,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 515,
+      "l5_completion_tokens": 141,
+      "judge_prompt_tokens": 1632,
+      "judge_completion_tokens": 884,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0004316,
+      "judge_cost_usd": 0.0020672,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 6355.449914932251,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 6.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

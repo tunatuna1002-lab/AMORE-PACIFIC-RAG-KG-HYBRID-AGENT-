@@ -1,0 +1,178 @@
+{
+  "item_id": "lg061",
+  "question": "이탈률이 높으면 SoS에 어떤 영향을 미치나요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 1.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5555555555555556,
+    "context_precision_at_k": 0.625,
+    "mrr": 0.5,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.16528925619834708,
+    "semantic_similarity": 0.7650495171546936,
+    "groundedness_score": 0.444,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.6666666667,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7449404896047735,
+  "fail_reason_tags": [
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg061",
+    "timestamp": "2026-09-17T21:39:34.147500",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "churn_rate",
+        "correlation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_6_1",
+        "strategic_indicators_3_2",
+        "metric_interpretation_2_0",
+        "strategic_indicators_1_0",
+        "metric_interpretation_2_1",
+        "indicator_combination_2_0",
+        "strategic_indicators_1_1",
+        "chunk_7"
+      ],
+      "snippets": [
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타",
+        "- **주의사항**\n- 리뷰 수 급증/급감은 반영하지 않음\n- 단기 변동은 과대 해석 주의\n\n---",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "| 도구 (Tool) | 주요 분석 지표 (Metrics) | 진단 목적 (Diagnostic Goal) |\n| :---- | :---- | :---- |\n| **Seller Central** | Suppressed Listings, Voice of Customer | 리스팅 기술적 오류 및 고객 불만(NCX) 파악 |\n| **Search Query Per"
+      ],
+      "scores": [
+        19.425140525201627,
+        13.32650361716384,
+        0.5477082133293152,
+        0.5191839933395386,
+        0.47231125831604004,
+        0.45477205514907837,
+        0.43069231510162354,
+        0.3757402676784954
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "이탈률이 높으면 SoS(Share of Shelf)에 부정적 영향을 미칠 수 있습니다.  \n\n이유는 다음과 같습니다.  \n- SoS는 해당 카테고리 내에서 브랜드가 차지하는 노출 공간 비중을 의미합니다.  \n- 이탈률이 높다는 것은 고객이 제품 페이지를 떠나는 비율이 높다는 뜻으로, 이는 클릭 후 구매 전환이 낮거나 장바구니 이탈이 많다는 신호입니다.  \n- 결과적으로, 아마존 알고리즘은 이탈률이 높은 제품에 대해 노출 우선순위를 낮출 가능성이 큽니다.  \n- SoS가 낮아지면 브랜드가 시장 내에서 차지하는 ‘진열 공간’이 줄어들어 신규 고객 노출과 유입이 감소합니다.  \n\n따라서, 이탈률 증가는 SoS 감소로 이어져 브랜드의 시장 내 존재감 약화로 연결될 수 있습니다.  \n\n요약:  \n- 이탈률↑ → 구매 전환율↓ → 아마존 노출 감소 → SoS↓  \n- SoS 감소는 브랜드 노출력 및 시장 점유 공간 축소를 의미함  \n\n(참고: SoS는 매출이나 판매량이 아닌 ‘진열 공간 점유율’임을 감안)",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 898,
+      "judge_tokens": 3785,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 619,
+      "l5_completion_tokens": 279,
+      "judge_prompt_tokens": 2158,
+      "judge_completion_tokens": 1627,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.000694,
+      "judge_cost_usd": 0.0034664,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 4466.3801193237305,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 7.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "metric",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

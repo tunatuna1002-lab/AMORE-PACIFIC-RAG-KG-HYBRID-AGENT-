@@ -1,0 +1,785 @@
+{
+  "item_id": "rg027",
+  "question": "2026-08-31 기준 Face Powder 1위 제품(Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeup)은 규칙 premium_defense_success(가격이 카테고리 평균가보다 20% 초과 비싸고 Top 10 이내) 조건에 해당하나요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5714285714285715,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.3207547169811321,
+    "semantic_similarity": 0.7936825156211853,
+    "groundedness_score": 0.571,
+    "answer_relevance_score": 0.8,
+    "factuality_score": 0.5,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.7877369699818277,
+  "fail_reason_tags": [
+    "L5_numeric_mismatch",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "rg027",
+    "timestamp": "2026-09-17T21:54:44.353879",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "maybelline"
+      ],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [
+        "fit_me_matte",
+        "fit_me",
+        "B00PFCSNWA"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_4_1",
+        "chunk_1",
+        "chunk_2",
+        "amazon_algorithm_guide_5_3",
+        "amazon_algorithm_guide_2_2",
+        "home_insight_rules_8",
+        "strategic_indicators_2_1",
+        "strategic_indicators_2_0"
+      ],
+      "snippets": [
+        "#### 해석 가이드\n- **길수록**\n  - 롱런(Long-run) 가능성 높음\n  - 스테디셀러 후보\n- **짧음**\n  - 반짝 인기 또는 단기 이벤트 가능성\n\n#### 함께 봐야 할 지표\n- Rank Volatility\n- Brand Avg Rank\n\n#### 주의사항\n- Top N 기준 설정에 따라 결과 민감\n- 카테고리 특성 고려 필요\n\n---\n",
+        "1. Experts Predict the Five Biggest Skincare Trends of 2026, 1월 20, 2026에 액세스, [https://www.cosmopolitan.com/style-beauty/beauty/a69757862/2026-skincare-trend-predictions/](https://www.cosmopolitan.co",
+        "drive/](https://thekit.ca/beauty/face/morning-shed-tiktok-test-drive/)  \n4. Waking Up To Self-Care: The Morning Shed Trend Explained By Experts \\- Haute Living, 1월 20, 2026에 액세스, [https://hauteliving.",
+        "### **5.2 시나리오 B: 경쟁사 제품의 랭킹이 급등했을 때 (Ranking Improved)**\n\n1. **IF \\[가격\\] \\< \\[평소 가격\\] (상당한 인하)**  \n   * **THEN:** 쿠폰(초록색 배지) 적용 여부, 취소선 가격(Strike-through Pricing) 여부를 확인하라.  \n   * **가설:** 가격 탄력성을 이용한",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "1.6 Issue Preview (Top 이슈 미리보기)\n\n### 목표\n- Home에서 “최상위 3개”만 미리 노출하고 상세는 L3에서 확인\n\n### 구성(권장)\n- Rank Shock Top 3 (제품명 + 변화폭/날짜)\n- Streak Days Top 3 (제품명 + 연속 체류일)\n\n### 정렬 규칙\n- Rank Shock 리스트: 하락 폭 큰 순(또는",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- "
+      ],
+      "scores": [
+        13.47764275528589,
+        1.0,
+        0.7415943478815041,
+        0.3875275254249573,
+        0.3630448579788208,
+        0.3845348358154297,
+        0.35890769958496094,
+        0.35052722692489624
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "maybelline",
+        "face_powder",
+        "fit_me_matte",
+        "fit_me",
+        "B00PFCSNWA"
+      ],
+      "kg_edges_found": [
+        "maybelline -competesWith-> wet_n_wild",
+        "maybelline -competesWith-> clinique",
+        "maybelline -competesWith-> revlon",
+        "maybelline -competesWith-> covergirl",
+        "maybelline -competesWith-> loreal",
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "maybelline",
+          "data": [
+            {
+              "brand": "wet n wild",
+              "type": "competesWith",
+              "category": "face_powder",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "clinique",
+              "type": "competesWith",
+              "category": "lip_makeup",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "revlon",
+              "type": "competesWith",
+              "category": "lip_makeup",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "covergirl",
+              "type": "competesWith",
+              "category": "lip_makeup",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "l'oreal",
+              "type": "competesWith",
+              "category": "lip_makeup",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "competitor_network",
+          "entity": "maybelline",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ],
+              [
+                "competesWith",
+                "covergirl"
+              ],
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "chi"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "sacheu"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 32,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 45,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ",
+                  "B004QCT9HI",
+                  "B00MQBSRZG",
+                  "B001QHFXQM",
+                  "B09VYV9HW2",
+                  "B0DN6TZT6N",
+                  "B08G1Z1LNH",
+                  "B09VYT9FYN",
+                  "B0FR4795PK",
+                  "B002HSM6BO",
+                  "B07PT8VBTX",
+                  "B0DPMBFY6M",
+                  "B0BBSMWHWH",
+                  "B0D4M5YG9R",
+                  "B01ACPSI9M",
+                  "B00G4UC9SG"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 9,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6",
+                  "B08L98T4N5"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "clinique",
+                "product_count": 7,
+                "products": [
+                  "B000ALBLXE",
+                  "B0B5T5YVTJ",
+                  "B0050BRO30",
+                  "B015CXN8M6",
+                  "B002HF07MC",
+                  "B015CXN72C",
+                  "B0B5T4JN5N"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 6,
+                "products": [
+                  "B08GR6B8HN",
+                  "B004X8M59E",
+                  "B0DZZ6QS6H",
+                  "B09S8N5WV8",
+                  "B08GR514T1",
+                  "B0DZYP2495"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "brand_products",
+          "entity": "maybelline",
+          "data": {
+            "product_count": 23,
+            "products": [
+              {
+                "asin": "B08H3JPH74",
+                "name": "",
+                "category": "beauty",
+                "rank": 10,
+                "title": "Maybelline Lash Sensational Sky High Washable Mascara Makeup, Volumizing, Lengthening, Defining, Cur",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0F1DK5CGT",
+                "name": "",
+                "category": "lip_care",
+                "rank": 18,
+                "title": "Maybelline Lifter Glaze Oil Balm with Hyaluronic Acid and Hydrating Oil Blend, Lip Balm with 24HRs o",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07W59CNXQ",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 6,
+                "title": "Maybelline Super Stay Matte Ink Liquid Lipstick Makeup, Long Lasting High Impact Color, Up to 16H We",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0046VESH0",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 19,
+                "title": "Maybelline Super Stay 24, 2-Step Liquid Lipstick Makeup, Long Lasting Highly Pigmented Color with Mo",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B085S9N6JP",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 22,
+                "title": "Maybelline Lifter Gloss, Hydrating Lip Gloss with Hyaluronic Acid, Ice, Pink Neutral, 0.18 Ounce",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07PGQDWMT",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 23,
+                "title": "Maybelline Super Stay Ink Crayon Lipstick Makeup, Precision Tip Matte Lip Crayon with Built-in Sharp",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B00N6YEI6O",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 35,
+                "title": "Maybelline New York Color Sensational Lipstick, Lip Makeup, Matte Finish, Hydrating Lipstick, Nude, ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B09QH8148N",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 24,
+                "title": "Maybelline Super Stay Vinyl Ink Longwear No-Budge Liquid Lipcolor Makeup, Highly Pigmented Color and",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DHF9X19V",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 32,
+                "title": "Maybelline Super Stay Teddy Lip Tint, Long Lasting Matte Lipstick For Up To 12HR Wear, Kneehigh, 1 C",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0CZB39JH7",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 30,
+                "title": "Maybelline Lifter Liner Lip Liner Pencil with Hyaluronic Acid, Big Lift, 1 Count",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "maybelline",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ],
+              [
+                "competesWith",
+                "covergirl"
+              ],
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "chi"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "sacheu"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "2026-08-31 기준 Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeup은 Face Powder 카테고리에서 1위 제품입니다. \n\n질문은 이 제품이 premium_defense_success 규칙에 해당하는지 여부인데, 규칙 조건은 다음과 같습니다:  \n- 가격이 카테고리 평균가보다 20% 초과 비쌀 것  \n- Top 10 이내 랭크일 것\n\n현재 제공된 데이터에는 해당 제품의 정확한 가격 정보와 Face Powder 카테고리 평균 가격이 명시되어 있지 않습니다. 또한, Top 10 이내 랭크 여부는 1위 제품으로 명확히 충족합니다.\n\n따라서,  \n- 랭크 조건(Top 10 이내)은 충족  \n- 가격 조건(카테고리 평균가 대비 20% 초과 여부)은 데이터 부족으로 판단 불가\n\n결론적으로, Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeup은 2026-08-31 기준 Top 10 이내 제품으로서 premium_defense_success 규칙의 랭크 조건은 만족하지만, 가격 조건에 대한 정보가 없어 규칙 전체 충족 여부는 확인 불가합니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0527,
+        "category_avg_price": 17.2,
+        "category_avg_rating": 4.48
+      },
+      {
+        "type": "category_top_brands",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "COVERGIRL",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Clinique",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Maybelline",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Physicians Formula",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Maybelline",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 4.0,
+        "product_count": 4,
+        "brand_rank": 3
+      },
+      {
+        "type": "category_top_products",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 2,
+            "brand": "L'Oreal",
+            "name": "L'Oreal Paris Infallible Blur-fection Longwear Loose Setting",
+            "price": 12.32,
+            "rating": 4.5,
+            "reviews_count": 4673
+          },
+          {
+            "rank": 3,
+            "brand": "COVERGIRL",
+            "name": "Covergirl Clean Invisible Pressed Powder, Lightweight, Breat",
+            "price": 9.99,
+            "rating": 4.5,
+            "reviews_count": 9925
+          },
+          {
+            "rank": 4,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Halo Glow Soft Focus Setting Powder, Silky & Creates ",
+            "price": 8.0,
+            "rating": 4.5,
+            "reviews_count": 20322
+          },
+          {
+            "rank": 5,
+            "brand": "Unknown",
+            "name": "Clean Invisible Loose Powder Translucent Fair",
+            "price": 6.95,
+            "rating": 4.6,
+            "reviews_count": 8523
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Maybelline",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 12,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Loose Setting Powder, Face Powder and Fini",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 40482
+          },
+          {
+            "rank": 36,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Loose Setting Powder, Face Powder and Fini",
+            "price": 8.98,
+            "rating": 4.7,
+            "reviews_count": 13084
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1067,
+      "judge_tokens": 6471,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 802,
+      "l5_completion_tokens": 265,
+      "judge_prompt_tokens": 5260,
+      "judge_completion_tokens": 1211,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0007447999999999999,
+      "judge_cost_usd": 0.004041599999999999,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 8247.013092041016,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 12.5,
+      "confidence_components": {
+        "kg_facts": 4.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 2.0
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "product",
+    "difficulty": "hard",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

@@ -1,0 +1,893 @@
+{
+  "item_id": "rl003",
+  "question": "HERA의 모회사(소속 그룹)는 어디인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.24242424242424243,
+    "semantic_similarity": 0.8325490951538086,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7123031559375801,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "rl003",
+    "timestamp": "2026-09-17T21:55:18.978642",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "hera"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q1_0_23",
+        "ir_2025_q2_0_11",
+        "ir_2025_q1_0_8",
+        "ir_2025_q2_0_24",
+        "ir_2025_q1_0_9",
+        "ir_2025_q2_0_10",
+        "ir_2025_q3_0_14",
+        "ir_2025_q3_0_12"
+      ],
+      "snippets": [
+        "• OtherAsia(APAC, Japan)revenue increased53%\n\n\\- \\[APAC\\]Overall sales increased with roll out of Sulwhasoo’sglobal campaign(‘First Care Activating Serum’ ),  Laneige’snew launch of ‘Bouncy & Firm Ser",
+        " to Luxury business), like-for-like growth for luxury business is 4% increaseYoY    \nSulwhasooGlobal Culture Trip‘HolisticBeautyJourney’ Hera‘Custom Match’ Service![][image2]![][image3]Primera‘Vitatin",
+        "323.1 352.2 \\+9%\n\n2024 1Q 2025 1Q   \n**1Q 2025 Domestic Business LUXURY**\n\n• Luxury accounts for 61% of\n\ntotal domestic revenue\n\n\\-Sulwhasoo30% (vs. 24.1Q 32%)\n\n\\-Hera16%(vs. 24.1Q 16%)\n\n(Unit: bn KRW",
+        "\\- \\[APAC\\] Sulwhasooincreased customer purchase with its global campaign (‘First Care Activating Serum’), Laneige enhanced brand attractiveness and drove sales growth for its ‘Bouncy and Firm’ line t",
+        "• Elevated brand equity of Sulwhasooand Hera by operating global campaigns for key products \\- \\[Sulwhasoo\\] Reinforced holistic beauty philosophy by appointing brand ambassador(‘Yoona Lim’)and  launc",
+        "• Sharpened market responsiveness by strengthening customer engagement and channel expansion \\- \\[Sulwhasoo\\] Enhanced product competitiveness with luxury gift sets(‘First care activating serum’, ‘Con",
+        "\\* COSMETICS Business: Sulwhasoo,Hera,Iope,Primera,AP Beauty, Laneige, Aestura, Illiyoon, Mamonde, Hanyul, B.Ready, Vital Beautieetc. \\* HAIR & BEAUTY Business:Ryo, Mise-en-scene, Labo-H, Happy Bath, ",
+        "**Illiyoon** •Delivered strong cross-border sales , fueled by high performance during Amazon Prime Day •Generated buzz among young customers by launching collaborative products with ‘Sanrio’  **Mamond"
+      ],
+      "scores": [
+        4.658297587489144,
+        4.086338720060358,
+        3.689495995428044,
+        3.6696970631958354,
+        0.39994919300079346,
+        0.36924099922180176,
+        0.36382853984832764,
+        0.30320847034454346
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "hera"
+      ],
+      "kg_edges_found": [
+        "hera -competesWith-> fresh",
+        "hera -competesWith-> nivea",
+        "hera -competesWith-> tree_hut",
+        "hera -competesWith-> carmex",
+        "hera -competesWith-> revlon",
+        "hera -ownedBy-> amorepacific",
+        "hera -hasSoS-> beauty",
+        "hera -hasSoS-> skin_care",
+        "hera -hasSoS-> lip_care",
+        "hera -rankedIn-> beauty",
+        "hera -rankedIn-> skin_care",
+        "hera -rankedIn-> lip_care",
+        "hera -hasPosition-> mid_range",
+        "hera -hasPosition-> premium"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "hera",
+          "data": [
+            {
+              "brand": "fresh",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "nivea",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "tree hut",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "revlon",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.3
+        },
+        {
+          "type": "competitor_network",
+          "entity": "hera",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.3
+        },
+        {
+          "type": "brand_products",
+          "entity": "hera",
+          "data": {
+            "product_count": 11,
+            "products": [
+              {
+                "asin": "B0DG4WXBCF",
+                "name": "",
+                "category": "skin_care",
+                "rank": 43,
+                "title": "MEDITHERAPY Retinal Skin Booster Face&Body Serum for Uneven Skin 5.07 fl.oz | Retinal, Niacinamide -",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07QYWXCCT",
+                "name": "",
+                "category": "lip_care",
+                "rank": 36,
+                "title": "Jack Black Intense Therapy Lip Balm – SPF 25 Sun Protection, Lip Moisturizer",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07LHBLVYJ",
+                "name": "",
+                "category": "lip_care",
+                "rank": 31,
+                "title": "Vaseline Lip Therapy Cocoa Butter Twin Pack",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0BBPS73TD",
+                "name": "",
+                "category": "lip_care",
+                "rank": 37,
+                "title": "Vaseline Lip Therapy Original Mini Lip Balm, Hydrating Dry Lips 0.5oz 2ct | Lip treatment helps heal",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B00C2IVGSS",
+                "name": "",
+                "category": "lip_care",
+                "rank": 85,
+                "title": "Vaseline Lip Therapy Advanced Healing Lip Moisturizer 3-Pack, 0.35 Oz Ea | #1 Dermatologist-Recommen",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0C1TFHMCT",
+                "name": "",
+                "category": "lip_care",
+                "rank": 45,
+                "title": "Vaseline Lip Therapy Care Original, Fast-Acting Nourishment, Ideal for Chapped, Dry, Cracked, or Dam",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0BBWCZLYY",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "Vaseline Lip Therapy Rosy Lips Tinted Lip Balm, Moisturizing 0.5oz 2ct | Lip treatment helps heal dr",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0BZQP7V3B",
+                "name": "",
+                "category": "lip_care",
+                "rank": 70,
+                "title": "Vaseline Lip Therapy Care Rosy, Fast-Acting Nourishment, Ideal for Chapped, Dry, Cracked, or Damaged",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0F5HTSWW3",
+                "name": "",
+                "category": "lip_care",
+                "rank": 94,
+                "title": "Vaseline Lip Therapy Cocoa Butter Mini Lip Balm For Dry Lips 0.5oz 2ct | Lip treatment helps heal ch",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B08G51PM4J",
+                "name": "",
+                "category": "lip_care",
+                "rank": 100,
+                "title": "Neosporin Lip Health Overnight Renewal Therapy, Twin Pack, 0.27 oz | White Petrolatum Lip Protectant",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        },
+        {
+          "type": "metric_edges",
+          "entity": "hera",
+          "data": {
+            "edges": [
+              {
+                "subject": "HERA",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "hera",
+                "predicate": "hasSoS",
+                "object": "beauty"
+              },
+              {
+                "subject": "hera",
+                "predicate": "hasSoS",
+                "object": "skin_care"
+              },
+              {
+                "subject": "hera",
+                "predicate": "hasSoS",
+                "object": "lip_care"
+              },
+              {
+                "subject": "hera",
+                "predicate": "rankedIn",
+                "object": "beauty"
+              },
+              {
+                "subject": "hera",
+                "predicate": "rankedIn",
+                "object": "skin_care"
+              },
+              {
+                "subject": "hera",
+                "predicate": "rankedIn",
+                "object": "lip_care"
+              },
+              {
+                "subject": "hera",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              },
+              {
+                "subject": "hera",
+                "predicate": "hasPosition",
+                "object": "premium"
+              },
+              {
+                "subject": "hera",
+                "predicate": "competesWith",
+                "object": "fresh"
+              },
+              {
+                "subject": "hera",
+                "predicate": "competesWith",
+                "object": "nivea"
+              },
+              {
+                "subject": "hera",
+                "predicate": "competesWith",
+                "object": "tree hut"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "hera",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.3
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "HERA의 모회사(소속 그룹)는 아모레퍼시픽(Amorepacific)입니다.  \n근거: 2025년 1분기 실적 발표에서 HERA가 아모레퍼시픽의 럭셔리 브랜드 중 하나로 언급되었으며, 신규 진입 브랜드로서 아모레퍼시픽 그룹에 속해 있음이 확인됩니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0681,
+        "category_avg_rating": 4.57
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "eos",
+            "sos": 9.0,
+            "product_count": 9
+          },
+          {
+            "brand": "Burt's Bees",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "Hera",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Aquaphor",
+            "sos": 6.0,
+            "product_count": 6
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Hera",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 8.0,
+        "product_count": 8,
+        "brand_rank": 2
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Burt's Bees",
+            "name": "Burt's Bees 100% Natural Moisturizing Lip Balm (Original Bee",
+            "price": 10.48,
+            "rating": 4.8,
+            "reviews_count": 121467
+          },
+          {
+            "rank": 2,
+            "brand": "Unknown",
+            "name": "NOONI Korean Lip Oil - Applepeony - pH Color-Changing Plumpi",
+            "price": 15.0,
+            "rating": 4.0,
+            "reviews_count": 25988
+          },
+          {
+            "rank": 3,
+            "brand": "Summer Fridays",
+            "name": "Summer Fridays Lip Butter Balm - Moisturizing Lip Gloss for ",
+            "price": 24.0,
+            "rating": 4.7,
+            "reviews_count": 10594
+          },
+          {
+            "rank": 4,
+            "brand": "eos",
+            "name": "eos 100% Natural Lip Balm - Strawberry Sorbet and Pomegranat",
+            "price": 3.79,
+            "rating": 4.7,
+            "reviews_count": 32621
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Ba",
+            "price": 4.59,
+            "rating": 4.6,
+            "reviews_count": 27228
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Hera",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 26,
+            "brand": "Hera",
+            "name": "Jack Black Intense Therapy Lip Balm – SPF 25 Sun Protection,",
+            "price": 24.0,
+            "rating": 4.6,
+            "reviews_count": 25420
+          },
+          {
+            "rank": 37,
+            "brand": "Hera",
+            "name": "Vaseline Lip Therapy Cocoa Butter Twin Pack",
+            "price": 2.99,
+            "rating": 4.6,
+            "reviews_count": 4262
+          },
+          {
+            "rank": 42,
+            "brand": "Hera",
+            "name": "Vaseline Lip Therapy Original Mini Lip Balm, Hydrating Dry L",
+            "price": 6.44,
+            "rating": 4.7,
+            "reviews_count": 785
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Hera",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.04,
+        "product_count": 1,
+        "brand_rank": 15
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Hera",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 32,
+            "brand": "Hera",
+            "name": "MEDITHERAPY Retinal Skin Booster Serum 5.07 fl oz | Retinald",
+            "price": 19.99,
+            "rating": 4.3,
+            "reviews_count": 11091
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Hera",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.0,
+        "product_count": 1,
+        "brand_rank": 15
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Hera",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 45,
+            "brand": "Hera",
+            "name": "MEDITHERAPY Retinal Skin Booster Serum 5.07 fl oz | Retinald",
+            "price": 19.99,
+            "rating": 4.3,
+            "reviews_count": 11091
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 619,
+      "judge_tokens": 5503,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 534,
+      "l5_completion_tokens": 85,
+      "judge_prompt_tokens": 4956,
+      "judge_completion_tokens": 547,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00034959999999999993,
+      "judge_cost_usd": 0.0028576,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 3239.5060062408447,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 10.0,
+      "confidence_components": {
+        "kg_facts": 4.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 1.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

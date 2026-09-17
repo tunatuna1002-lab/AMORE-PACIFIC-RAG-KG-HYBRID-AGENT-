@@ -1,0 +1,180 @@
+{
+  "item_id": "lg171",
+  "question": "랜지 립스틱 순위가 왜 이렇게 낮아?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.024844720496894408,
+    "semantic_similarity": 0.27860450744628906,
+    "groundedness_score": 0.7777777777777778,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.48064376384821983,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_kg_fail",
+    "L5_wrong_answer",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg171",
+    "timestamp": "2026-09-17T21:48:54.699703",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_4_0",
+        "metric_interpretation_2_0",
+        "chunk_2",
+        "amazon_algorithm_guide_4_0",
+        "amazon_ranking_diagnosis_1",
+        "amazon_algorithm_guide_3_2",
+        "strategic_indicators_3_0",
+        "strategic_indicators_1_1"
+      ],
+      "snippets": [
+        "C. Level 3: Product & Risk\n### (개별 상품 해석)\n\n---\n\n### 7. Rank Volatility\n\n#### 해석 가이드\n- **높음**\n  - 광고, 이벤트, 단기 이슈 영향 가능성\n- **낮음**\n  - 순위가 안정적이거나 정체 상태\n\n#### 함께 봐야 할 지표\n- Rank Shock\n- Streak Days\n\n#### 주",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "### 템플릿(예시)\n- 이상 신호 우선:\n  - “오늘은 일부 상품에서 순위 급변 신호가 감지되어, 단기 모니터링이 필요할 수 있습니다.”\n- 가격·품질 불일치:\n  - “프리미엄 가격 포지션 대비 평점 경쟁력이 낮아, 가격-품질 인식 간 불일치 가능성을 점검해볼 수 있습니다.”\n- 시장 맥락:\n  - “시장 집중도가 높아 경쟁 구도가 고착화된 편으로, ",
+        "---\n\n**4\\. 상황별 심층 분석 II: 랭킹 급등(Sudden Spike)의 원인 역추적**\n\n경쟁사 제품의 BSR이 뚜렷한 이유(가격 인하, 딜 배지 등) 없이 급격히 상승했다면, 이는 외부 트래픽 캠페인이나 정교한 알고리즘 공략 전략이 작동하고 있음을 시사합니다.\n\n### **4.1 외부 트래픽 포렌식 (TikTok & Social Media)**",
+        "개요\n\n특정 ASIN(제품)이 일정 기간 동안 아마존 베스트셀러 순위(Best Sellers Rank, BSR)나 검색 순위에서 급상승했거나 급락했다면, 이는 대개 **판매량 변동**과 관련이 있다. 아마존은 최근 판매량에 더 높은 가중치를 두어 BSR을 계산하며【437377726246902†L408-L415】, **판매 속도(sales velocity)*",
+        "* **지식 그래프의 모순:** 리스팅에서는 \"조립이 쉽다\"고 주장하지만, 최근 리뷰 데이터에서 \"조립이 악몽 같다\"는 텍스트가 반복되면, 루퍼스는 이를 감지하고 해당 제품의 추천 순위를 낮춥니다.1 이는 별점이 4.5점으로 높더라도 발생할 수 있는 현상입니다.  \n* **진단 조치:** 최근 등록된 10\\~20개의 리뷰를 전수 조사하여, 리스팅의 핵심 소",
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식"
+      ],
+      "scores": [
+        8.911370920387368,
+        6.882703484934256,
+        0.6190982239841808,
+        0.35694313049316406,
+        0.3562363386154175,
+        0.3355838656425476,
+        0.37048864364624023,
+        0.36222898960113525
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "랜지 립스틱 순위가 낮은 이유는 다음과 같이 분석할 수 있습니다.\n\n1. **SoS(Share of Shelf) 관점**  \n   - 만약 SoS가 높으면서도 평균 순위가 낮다면, 시장 내에서 제품 노출은 많지만 소비자 선호나 매출 경쟁력은 상대적으로 약하다는 의미입니다.  \n   - 즉, ‘많이 깔려 있지만 강하지는 않은’ 상태일 수 있습니다.\n\n2. **Rank Volatility 및 Rank Shock 여부**  \n   - 현재 데이터에서 순위 변동성(Rank Volatility)이 높다면, 광고나 이벤트 등 단기 이슈에 따른 변동 가능성이 있습니다.  \n   - 반대로 변동성이 낮다면, 순위가 안정적이지만 낮은 상태로 정체되어 있다는 뜻입니다.  \n   - Rank Shock 신호가 있다면 재고, 가격, 외부 이슈 점검이 필요하지만, 단기 노이즈일 가능성도 있습니다.\n\n3. **시장 경쟁 및 브랜드 포지션**  \n   - HHI(시장 집중도)가 높다면 경쟁이 치열해 구조적 경쟁 구도 내에서 순위가 낮을 수 있습니다.  \n   - 프리미엄 가격 대비 평점 경쟁력이 낮으면 가격-품질 인식 불일치로 인해 소비자 선택이 줄어들 수 있습니다.\n\n종합하면, 랜지 립스틱 순위가 낮은 것은  \n- 시장 내 노출은 있으나 소비자 선호도나 매출 경쟁력이 상대적으로 약하거나,  \n- 단기 이벤트나 외부 이슈에 따른 변동성 영향,  \n- 혹은 가격 대비 평점 경쟁력 부족 등으로 인한 구조적 경쟁 약세 때문일 가능성이 큽니다.\n\n따라서, 구체적 원인 파악을 위해서는 SoS, Rank Volatility, Rank Shock, 평점 추이 등을 함께 모니터링하며 재고 및 가격 정책, 마케팅 전략 점검이 필요합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1201,
+      "judge_tokens": 4095,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 774,
+      "l5_completion_tokens": 427,
+      "judge_prompt_tokens": 2761,
+      "judge_completion_tokens": 1334,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0009927999999999998,
+      "judge_cost_usd": 0.0032388,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5862.537145614624,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 8.0,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 2.0
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "edge",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

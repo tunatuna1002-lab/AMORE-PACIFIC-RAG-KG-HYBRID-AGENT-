@@ -1,0 +1,460 @@
+{
+  "item_id": "mh006",
+  "question": "Sulwhasoo와 같은 그룹에 속한 브랜드(Sulwhasoo 포함) 중 2026-08-31 Lip Makeup Top 100에 제품이 있는 브랜드는 몇 개인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.3466666666666666,
+    "semantic_similarity": 0.8738508820533752,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.7298465793848037,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "mh006",
+    "timestamp": "2026-09-17T21:56:41.726125",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "sulwhasoo"
+      ],
+      "extracted_categories": [
+        "lip_makeup"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "data_query"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "chunk_0",
+        "chunk_1",
+        "chunk_2",
+        "strategic_indicators_1_0",
+        "indicator_combination_2_0",
+        "strategic_indicators_1_1",
+        "metric_interpretation_2_1",
+        "strategic_indicators_2_0"
+      ],
+      "snippets": [
+        "1. **라운드랩**은 '규제 준수'라는 방어 논리를 넘어, 미국 소비자를 위한 텍스처 개선(2.0 버전)을 서둘러야 하며, 오리지널과 미국 버전의 차이를 솔직하게 커뮤니케이션해야 한다.  \n2. **아누아**는 '모공 마케팅'의 수위를 조절하고, 트러블 발생 시 책임 있는 환불/케어 정책을 통해 '먹튀 브랜드'라는 오명을 씻어내야 한다.  \n3. **티르",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는",
+        "이러한 제품 구조는 인플루언서 맵핑에도 직접적인 영향을 미칩니다. 틱톡(TikTok)과 같은 발견형 플랫폼에서는 시각적 임팩트가 강한 립 제품이 주를 이루고, 유튜브(YouTube)와 레딧(Reddit) 같은 탐색형 플랫폼에서는 성분 분석이 동반되는 워터뱅크 크림이나 크림 스킨의 비중이 높아집니다.",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- "
+      ],
+      "scores": [
+        1.0,
+        0.9034112897739627,
+        0.8329537028350011,
+        0.3470402956008911,
+        0.342068612575531,
+        0.3359653949737549,
+        0.3076503276824951,
+        0.28196781873703003
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_makeup",
+        "sulwhasoo"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> lip_makeup",
+        "sulwhasoo -ownedBy-> amorepacific"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "lip_makeup",
+          "data": {
+            "brand_count": 24,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 43,
+                "products": [
+                  "B0B9YHX8DX",
+                  "B0GF21LCW2",
+                  "B0CN1D9C6Q",
+                  "B004BCT7G6",
+                  "B007OAFJ5U",
+                  "B06XTPX8B2",
+                  "B0GWPHKD43",
+                  "B00I6DV3UO",
+                  "B007O9Y8TE",
+                  "B0D35YXWZ4",
+                  "B09Z2K8726",
+                  "B0CCDG5NHJ",
+                  "B0DKJ5MSTB",
+                  "B0G43TQ9VG",
+                  "B0CWN3MD25",
+                  "B015RPE14S",
+                  "B0F13H2319",
+                  "B0F7XJ73MD",
+                  "B0FRLBNPY6",
+                  "B093L9K6J8",
+                  "B0HCJQ79R8",
+                  "B083QNQQP9",
+                  "B07CKFQXNZ",
+                  "B0DSJ9CBWB",
+                  "B0CHJ8R113",
+                  "B0F7XFXQ2S",
+                  "B0F1F4MD13",
+                  "B00CSME112",
+                  "B08BK3MJX5",
+                  "B094LT5LM4",
+                  "B0FCZFZ26L",
+                  "B07DGXJ6NG",
+                  "B0BYD846XK",
+                  "B0DZNWSFJV",
+                  "B0CX5F9SGF",
+                  "B0DQWD3JY4",
+                  "B0HFWGZZ8L",
+                  "B07DGWPH1X",
+                  "B0B1M5X88Z",
+                  "B0D6Z6MXHM",
+                  "B0G43SM6RS",
+                  "B07DBS1RV9",
+                  "B089FBPMC6"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 18,
+                "products": [
+                  "B07XTTHXND",
+                  "B01LTI19EM",
+                  "B001P2JZBC",
+                  "B00392C96Y",
+                  "B00VRAJT7M",
+                  "B0DHYCZX5S",
+                  "B002H988FQ",
+                  "B0BHKFXXL8",
+                  "B0CGCH8JGX",
+                  "B0DHYFX26G",
+                  "B0FSP9P54P",
+                  "B000OF9ATI",
+                  "B002H96420",
+                  "B08MRXHC4K",
+                  "B08MS77KPC",
+                  "B00005320H",
+                  "B07QGXCG6W",
+                  "B09HXYBYL7"
+                ]
+              },
+              {
+                "brand": "nyx",
+                "product_count": 15,
+                "products": [
+                  "B09SP2XHKT",
+                  "B079ZX2QBD",
+                  "B0DK7TXTGY",
+                  "B07GXGLQQ7",
+                  "B0BL8HY2QP",
+                  "B0FT51CZS6",
+                  "B09XGXXGD1",
+                  "B09ZKLYPVZ",
+                  "B005G9LPDQ",
+                  "B0DKKRZGNY",
+                  "B00LMPYYPO",
+                  "B005G9LPG8",
+                  "B005G9LPNQ",
+                  "B08WBMR6G6",
+                  "B004LXJOEK"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 14,
+                "products": [
+                  "B07W59CNXQ",
+                  "B0046VESH0",
+                  "B085S9N6JP",
+                  "B07PGQDWMT",
+                  "B00N6YEI6O",
+                  "B09QH8148N",
+                  "B0DHF9X19V",
+                  "B0CZB39JH7",
+                  "B0FTT9WMD9",
+                  "B08H3TSP2X",
+                  "B0GSWMK4NY",
+                  "B002LFNOVY",
+                  "B002LFLPQA",
+                  "B0GWNQ3TT4"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 13,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B0CL8W1HZQ",
+                  "B0BSR85M24",
+                  "B0GVG87QVL",
+                  "B08S57F6JH",
+                  "B0G1H1NQY8",
+                  "B0B4F9PBQB",
+                  "B0DH62626H",
+                  "B0BSP3ZM2J",
+                  "B09XMWCY5L",
+                  "B0GVG2ZVX1",
+                  "B0CMJXGCFQ",
+                  "B0F8VKQKJT"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_makeup",
+          "data": {
+            "name": "Lip Makeup",
+            "level": 2,
+            "path": [
+              "beauty",
+              "makeup",
+              "lip_makeup"
+            ],
+            "ancestors": [
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "metric_edges",
+          "entity": "sulwhasoo",
+          "data": {
+            "edges": [
+              {
+                "subject": "Sulwhasoo",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "Sulwhasoo와 같은 그룹에 속한 브랜드(즉, 아모레퍼시픽 그룹 내 브랜드) 중 2026-08-31 기준으로 Lip Makeup Top 100에 제품이 있는 브랜드 수에 대한 직접적인 데이터는 제공되지 않았습니다.\n\n다만, 제공된 정보에 따르면 Lip Makeup Top 브랜드로는 unknown, revlon, nyx가 언급되어 있으며, Sulwhasoo나 같은 그룹 브랜드는 Top 100 내에 포함되었다는 명확한 언급이 없습니다.\n\n따라서, 현재 데이터와 Knowledge Graph 상으로는 Sulwhasoo를 포함한 아모레퍼시픽 그룹 브랜드 중 2026-08-31 Lip Makeup Top 100에 제품이 있는 브랜드는 **0개**로 판단됩니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.1024,
+        "category_avg_rating": 4.26
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "Maybelline",
+            "sos": 11.46,
+            "product_count": 11
+          },
+          {
+            "brand": "NYX",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "Revlon",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 9.38,
+            "product_count": 9
+          },
+          {
+            "brand": "L'Oreal",
+            "sos": 7.29,
+            "product_count": 7
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "sulwhasoo",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Sh",
+            "rating": 4.6,
+            "reviews_count": 19849
+          },
+          {
+            "rank": 2,
+            "brand": "NYX",
+            "name": "NYX PROFESSIONAL MAKEUP Butter Gloss, Non-Sticky Lip Gloss -",
+            "rating": 4.5,
+            "reviews_count": 126021
+          },
+          {
+            "rank": 3,
+            "brand": "Sacheu",
+            "name": "Sacheu Lip Liner STAY-N Peel Off Lip Stain, Longwear, p-INKE",
+            "rating": 4.0,
+            "reviews_count": 22850
+          },
+          {
+            "rank": 4,
+            "brand": "Unknown",
+            "name": "Wonderskin Lip Stain – Long Lasting, Waterproof, Lip Tint Pe",
+            "rating": 3.8,
+            "reviews_count": 32729
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted",
+            "rating": 4.6,
+            "reviews_count": 30232
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 933,
+      "judge_tokens": 4437,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 769,
+      "l5_completion_tokens": 164,
+      "judge_prompt_tokens": 3702,
+      "judge_completion_tokens": 735,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00057,
+      "judge_cost_usd": 0.0026568,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 10550.926923751831,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 12.5,
+      "confidence_components": {
+        "kg_facts": 4.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 2.0
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "multi_hop",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

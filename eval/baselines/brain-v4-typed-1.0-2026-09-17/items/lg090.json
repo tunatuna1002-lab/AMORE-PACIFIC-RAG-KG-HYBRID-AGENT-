@@ -1,0 +1,178 @@
+{
+  "item_id": "lg090",
+  "question": "TIRTIR Mask Fit Red Cushion 성공 요인은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.5,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.06666666666666667,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.25,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08620689655172414,
+    "semantic_similarity": 0.7456030249595642,
+    "groundedness_score": 0.6,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.4,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6227795596026826,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg090",
+    "timestamp": "2026-09-17T21:41:41.466743",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "tirtir"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "success_factors"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_4_0",
+        "negative_issue_response_7_10",
+        "negative_issue_response_7_9",
+        "laneige_strategy_2026_table_0",
+        "negative_issue_response_7_8",
+        "us_beauty_trends_weekly_3_1",
+        "chunk_6",
+        "chunk_7"
+      ],
+      "snippets": [
+        "---\n\n**4\\. 위기 벡터 III: 색채의 배신 \\- 티르티르(Tirtir) 마스크 핏 레드 쿠션**\n\n### **4.1. 이슈의 발단: 포용성의 이면**\n\n티르티르의 레드 쿠션은 다양한 쉐이드(색상)를 출시하며 '포용적 뷰티(Inclusive Beauty)'의 아이콘으로 부상했다. 그러나 실제 사용자들 사이에서는 시간이 지날수록 색상이 어둡고 붉게 변",
+        "/r/AsianBeauty/comments/1o4bcf8/sigh_tirtir_oxidization_strikes_again/)  \n13. Tirtir Red Cushion Foundation : r/AsianBeauty \\- Reddit, 1월 20, 2026에 액세스, [https://www.reddit.com/r/AsianBeauty/comments/",
+        "oxidation in TirTir cushion\\! : r/AsianBeauty \\- Reddit, 1월 20, 2026에 액세스, [https://www.reddit.com/r/AsianBeauty/comments/1ed4r84/warning\\_about\\_the\\_oxidation\\_in\\_tirtir\\_cushion/](https://www.redd",
+        "| 트렌드 요인 | 소비자 행동 변화 | LANEIGE 제품 연관성 | 아마존 판매 영향 |\n| :---- | :---- | :---- | :---- |\n| **비주얼 임팩트** | 아침에 벗겨내거나 닦아냈을 때 즉각적인 광채(Glow)를 확인하고 싶어 함 | **Water Sleeping Mask**, **Lip Sleeping Mask**의 두꺼운 도포",
+        "routine\\_help\\_anua\\_oil\\_cleanser\\_is\\_giving\\_me/](https://www.reddit.com/r/SkincareAddiction/comments/1l8qupg/routine_help_anua_oil_cleanser_is_giving_me/)  \n10. TirTir Red Cushion Foundation in th",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "### **5.2 시나리오 B: 경쟁사 제품의 랭킹이 급등했을 때 (Ranking Improved)**\n\n1. **IF \\[가격\\] \\< \\[평소 가격\\] (상당한 인하)**  \n   * **THEN:** 쿠폰(초록색 배지) 적용 여부, 취소선 가격(Strike-through Pricing) 여부를 확인하라.  \n   * **가설:** 가격 탄력성을 이용한",
+        "\\- \\[Mamonde\\] Reinforced brand awareness as the go-to skincare brand for base makeup via ‘\\#1 Make Up Boost  Campaign,’ with its hero product ‘Flora Glow Rose Liquid Mask’ achieving highest-ever sale"
+      ],
+      "scores": [
+        0.48018592596054077,
+        0.40627336502075195,
+        0.4043523669242859,
+        0.39149731397628784,
+        0.3662818670272827,
+        0.3627662658691406,
+        0.25630446077755303,
+        0.277033913107172
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "tirtir"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "TIRTIR 마스크 핏 레드 쿠션의 성공 요인은 '포용적 뷰티(Inclusive Beauty)'를 지향하며 다양한 쉐이드(색상)를 출시해 소비자들에게 폭넓은 선택지를 제공한 점입니다. 이는 다양한 피부 톤을 아우르는 제품으로 인식되어 초기에는 긍정적인 반응을 얻었습니다. \n\n다만, 데이터에 따르면 시간이 지날수록 제품의 산화(oxidation) 현상으로 인해 색상이 어둡고 붉게 변하는 문제가 심각하게 지적되고 있습니다. 이로 인해 소비자들은 자연스러운 피부 표현 대신 '오렌지색 가면' 같은 부자연스러운 결과에 당혹감을 느끼고 있습니다. \n\n즉, 성공 요인은 포용적 색상 구성과 자연스러운 피부 표현에 대한 소비자 기대 충족에 있었으나, 산화 문제라는 제품 결함이 장기적인 만족도를 저해하는 주요 이슈로 작용하고 있습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 943,
+      "judge_tokens": 3094,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 726,
+      "l5_completion_tokens": 217,
+      "judge_prompt_tokens": 1973,
+      "judge_completion_tokens": 1121,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0006375999999999999,
+      "judge_cost_usd": 0.0025827999999999997,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 4309.952020645142,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 6.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "product",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}
