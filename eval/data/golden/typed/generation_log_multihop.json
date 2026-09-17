@@ -2,6 +2,11 @@
   "as_of": "2026-08-31",
   "generator": "scripts/generate_multihop_questions.py",
   "generated": 10,
+  "max_relative_diff": {
+    "n": 10,
+    "max": 0.0693,
+    "median": 0.0
+  },
   "excluded": [
     {
       "candidate": "group_brands_sos/lip_care",
@@ -13,7 +18,7 @@
     },
     {
       "candidate": "laneige_best_rank_category_brands_above",
-      "reason": "개수 불일치 raw=['Aquaphor', 'Blistex', \"Burt's Bees\", 'Carmex', 'Chapstick', 'Hera', 'Nivea', 'e.l.f.', 'eos'] 표=['Aquaphor', 'Blistex', \"Burt's Bees\", 'Carmex', 'Chapstick', 'Hera', 'e.l.f.', 'eos']"
+      "reason": "결론 불일치(상위 브랜드 수) 지표테이블=['Aquaphor', 'Blistex', \"Burt's Bees\", 'Carmex', 'Chapstick', 'Hera', 'e.l.f.', 'eos'] raw재계산=['Aquaphor', 'Blistex', \"Burt's Bees\", 'Carmex', 'Chapstick', 'Hera', 'Nivea', 'e.l.f.', 'eos']"
     }
   ]
 }

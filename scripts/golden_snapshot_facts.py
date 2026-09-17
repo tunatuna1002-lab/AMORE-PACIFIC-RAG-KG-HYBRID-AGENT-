@@ -259,6 +259,27 @@ def rel_diff(a: float | None, b: float | None) -> float | None:
     return abs(a - b) / denom if denom else 0.0
 
 
+def relative_diff(gold: float | None, other: float | None) -> float | None:
+    """|other − gold| / |gold| (정답 기준 상대 차이, 소수 4자리). gold가 0이고 다르면 None."""
+    if gold is None or other is None:
+        return None
+    if gold == other:
+        return 0.0
+    if gold == 0:
+        return None
+    return round(abs(other - gold) / abs(gold), 4)
+
+
+def distribution(values: list[float]) -> dict[str, float | int | None]:
+    """개수·최대·중앙값."""
+    if not values:
+        return {"n": 0, "max": None, "median": None}
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    median = ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+    return {"n": len(ordered), "max": ordered[-1], "median": round(median, 4)}
+
+
 def within_tolerance(gold: float | None, other: float | None) -> bool:
     """numeric_accuracy와 같은 판정(상대 오차 10%, 0은 절대 비교)을 두 출처 사이에 적용."""
     if gold is None or other is None:

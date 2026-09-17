@@ -1,6 +1,7 @@
 {
   "as_of": "2026-08-31",
   "generator": "scripts/generate_rule_questions.py",
+  "gold_policy": "정답 수치 = 지표 테이블(brand_metrics·market_metrics). 테이블이 없는 순위·제품 가격은 raw_data 기록값. raw_data 독립 재계산은 교차 확인 전용 — 결론이 다르면 제외.",
   "rule_input_availability": {
     "bestseller_badge_effect": {
       "family": "price",
@@ -309,6 +310,7 @@
     "category_avg_price": "category_market.category_avg_price",
     "current_rank": "brand_products.products[0].rank (브랜드 상위 3개 제품)",
     "price": "category_top_products/brand_products 의 price (상위 5·3개 제품만)",
+    "rank": "category_top_products/brand_products 의 rank (상위 5·3개 제품만)",
     "avg_rank": null,
     "cpi": null,
     "rating_gap": null,
@@ -316,42 +318,6 @@
   },
   "excluded": [
     {
-      "kind": "E_strong_avg_rank",
-      "subject": "LANEIGE",
-      "category": "face_powder",
-      "reason": "avg_rank 값 불일치 raw=9.0 지표테이블=12.0 (>10%)",
-      "raw": {
-        "avg_rank": 9.0
-      },
-      "metric_tables": {
-        "avg_rank": 12.0
-      }
-    },
-    {
-      "kind": "H_strong_rating",
-      "subject": "LANEIGE",
-      "category": "lip_care",
-      "reason": "rating_gap 값 불일치 raw=0.087 지표테이블=0.076 (>10%)",
-      "raw": {
-        "rating_gap": 0.087
-      },
-      "metric_tables": {
-        "rating_gap": 0.076
-      }
-    },
-    {
-      "kind": "H_strong_rating",
-      "subject": "LANEIGE",
-      "category": "lip_makeup",
-      "reason": "rating_gap 값 불일치 raw=0.079 지표테이블=0.095 (>10%)",
-      "raw": {
-        "rating_gap": 0.079
-      },
-      "metric_tables": {
-        "rating_gap": 0.095
-      }
-    },
-    {
       "kind": "I_price_quality_mismatch",
       "subject": "CHI",
       "category": "face_powder",
@@ -371,380 +337,30 @@
     },
     {
       "kind": "I_price_quality_mismatch",
-      "subject": "Charlotte Tilbury",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 282.5,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 290.6,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "Charlotte Tilbury",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 282.5,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 290.6,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "Charlotte Tilbury",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 282.5,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 290.6,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "Clinique",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.217 지표테이블=0.144 (>10%)",
-      "raw": {
-        "cpi": 207.4,
-        "rating_gap": 0.217
-      },
-      "metric_tables": {
-        "cpi": 222.1,
-        "rating_gap": 0.144
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "Clinique",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.217 지표테이블=0.144 (>10%)",
-      "raw": {
-        "cpi": 207.4,
-        "rating_gap": 0.217
-      },
-      "metric_tables": {
-        "cpi": 222.1,
-        "rating_gap": 0.144
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "Clinique",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.217 지표테이블=0.144 (>10%)",
-      "raw": {
-        "cpi": 207.4,
-        "rating_gap": 0.217
-      },
-      "metric_tables": {
-        "cpi": 222.1,
-        "rating_gap": 0.144
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "Fresh",
-      "category": "face_powder",
-      "reason": "cpi 값 불일치 raw=68.3 지표테이블=61.1 (>10%); rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 68.3,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 61.1,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "Fresh",
-      "category": "face_powder",
-      "reason": "cpi 값 불일치 raw=68.3 지표테이블=61.1 (>10%); rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 68.3,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 61.1,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "Fresh",
-      "category": "face_powder",
-      "reason": "cpi 값 불일치 raw=68.3 지표테이블=61.1 (>10%); rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 68.3,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 61.1,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "IT Cosmetics",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=-0.016 지표테이블=-0.014 (>10%)",
-      "raw": {
-        "cpi": 159.7,
-        "rating_gap": -0.016
-      },
-      "metric_tables": {
-        "cpi": 164.3,
-        "rating_gap": -0.014
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "IT Cosmetics",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=-0.016 지표테이블=-0.014 (>10%)",
-      "raw": {
-        "cpi": 159.7,
-        "rating_gap": -0.016
-      },
-      "metric_tables": {
-        "cpi": 164.3,
-        "rating_gap": -0.014
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "IT Cosmetics",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=-0.016 지표테이블=-0.014 (>10%)",
-      "raw": {
-        "cpi": 159.7,
-        "rating_gap": -0.016
-      },
-      "metric_tables": {
-        "cpi": 164.3,
-        "rating_gap": -0.014
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "LANEIGE",
-      "category": "face_powder",
-      "reason": "cpi 값 불일치 raw=141.3 지표테이블=111.1 (>10%)",
-      "raw": {
-        "cpi": 141.3,
-        "rating_gap": -0.183
-      },
-      "metric_tables": {
-        "cpi": 111.1,
-        "rating_gap": -0.181
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "LANEIGE",
-      "category": "face_powder",
-      "reason": "cpi 값 불일치 raw=141.3 지표테이블=111.1 (>10%)",
-      "raw": {
-        "cpi": 141.3,
-        "rating_gap": -0.183
-      },
-      "metric_tables": {
-        "cpi": 111.1,
-        "rating_gap": -0.181
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "LANEIGE",
-      "category": "face_powder",
-      "reason": "cpi 값 불일치 raw=141.3 지표테이블=111.1 (>10%)",
-      "raw": {
-        "cpi": 141.3,
-        "rating_gap": -0.183
-      },
-      "metric_tables": {
-        "cpi": 111.1,
-        "rating_gap": -0.181
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "Neutrogena",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 62.0,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 63.8,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "Neutrogena",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 62.0,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 63.8,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "Neutrogena",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 62.0,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 63.8,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
       "subject": "Tarte",
       "category": "face_powder",
-      "reason": "결론 불일치 raw=True 지표테이블=False; rating_gap 값 불일치 raw=-0.083 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 209.1,
-        "rating_gap": -0.083
-      },
+      "reason": "결론 불일치 지표테이블=False raw재계산=True",
       "metric_tables": {
         "cpi": 215.1,
         "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "Tarte",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=-0.083 지표테이블=0.019 (>10%)",
-      "raw": {
+      },
+      "raw_recomputed": {
         "cpi": 209.1,
         "rating_gap": -0.083
-      },
-      "metric_tables": {
-        "cpi": 215.1,
-        "rating_gap": 0.019
       }
     },
     {
       "kind": "K_premium_position",
       "subject": "Tarte",
       "category": "face_powder",
-      "reason": "결론 불일치 raw=False 지표테이블=True; rating_gap 값 불일치 raw=-0.083 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 209.1,
-        "rating_gap": -0.083
-      },
+      "reason": "결론 불일치 지표테이블=True raw재계산=False",
       "metric_tables": {
         "cpi": 215.1,
         "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "Wet n Wild",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 30.0,
-        "rating_gap": 0.017
       },
-      "metric_tables": {
-        "cpi": 30.8,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "Wet n Wild",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 30.0,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 30.8,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "Wet n Wild",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 30.0,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 30.8,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "I_price_quality_mismatch",
-      "subject": "e.l.f.",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 46.8,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 48.2,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "J_value_position",
-      "subject": "e.l.f.",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 46.8,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 48.2,
-        "rating_gap": 0.019
-      }
-    },
-    {
-      "kind": "K_premium_position",
-      "subject": "e.l.f.",
-      "category": "face_powder",
-      "reason": "rating_gap 값 불일치 raw=0.017 지표테이블=0.019 (>10%)",
-      "raw": {
-        "cpi": 46.8,
-        "rating_gap": 0.017
-      },
-      "metric_tables": {
-        "cpi": 48.2,
-        "rating_gap": 0.019
+      "raw_recomputed": {
+        "cpi": 209.1,
+        "rating_gap": -0.083
       }
     },
     {
@@ -809,7 +425,25 @@
     },
     {
       "kind": "I_price_quality_mismatch",
+      "subject": "Charlotte Tilbury",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Clinique",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
       "subject": "ETUDE",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Fresh",
       "category": "face_powder",
       "reason": "종류별 상한 3 초과(유효 후보)"
     },
@@ -822,6 +456,12 @@
     {
       "kind": "I_price_quality_mismatch",
       "subject": "L'Oreal",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "LANEIGE",
       "category": "face_powder",
       "reason": "종류별 상한 3 초과(유효 후보)"
     },
@@ -852,6 +492,12 @@
     {
       "kind": "I_price_quality_mismatch",
       "subject": "NYX",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Neutrogena",
       "category": "face_powder",
       "reason": "종류별 상한 3 초과(유효 후보)"
     },
@@ -881,7 +527,25 @@
     },
     {
       "kind": "I_price_quality_mismatch",
+      "subject": "Supergoop",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
       "subject": "Urban Decay",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Wet n Wild",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "e.l.f.",
       "category": "face_powder",
       "reason": "종류별 상한 3 초과(유효 후보)"
     },
@@ -899,7 +563,31 @@
     },
     {
       "kind": "J_value_position",
+      "subject": "Charlotte Tilbury",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Clinique",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
       "subject": "ETUDE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Fresh",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "IT Cosmetics",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -918,6 +606,12 @@
     {
       "kind": "J_value_position",
       "subject": "L'Oreal",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "LANEIGE",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -948,6 +642,12 @@
     {
       "kind": "J_value_position",
       "subject": "NYX",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Neutrogena",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -983,7 +683,25 @@
     },
     {
       "kind": "J_value_position",
+      "subject": "Tarte",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
       "subject": "Urban Decay",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Wet n Wild",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "e.l.f.",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -1007,7 +725,25 @@
     },
     {
       "kind": "K_premium_position",
+      "subject": "Clinique",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
       "subject": "ETUDE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Fresh",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "IT Cosmetics",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -1026,6 +762,18 @@
     {
       "kind": "K_premium_position",
       "subject": "L'Oreal",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "LANEIGE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Laura Mercier",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -1050,6 +798,12 @@
     {
       "kind": "K_premium_position",
       "subject": "NYX",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Neutrogena",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -1086,6 +840,18 @@
     {
       "kind": "K_premium_position",
       "subject": "Urban Decay",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Wet n Wild",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "e.l.f.",
       "category": "face_powder",
       "reason": "종류별 상한 2 초과(유효 후보)"
     },
@@ -1127,7 +893,7 @@
     }
   ],
   "counts": {
-    "generated": 29,
+    "generated": 32,
     "by_rule": {
       "brand_ownership_verification": 3,
       "category_entry_opportunity": 6,
@@ -1138,10 +904,15 @@
       "premium_defense_success": 3,
       "premium_price_position": 2,
       "price_quality_mismatch": 3,
-      "strong_avg_rank": 2,
-      "strong_rating_position": 1,
+      "strong_avg_rank": 3,
+      "strong_rating_position": 3,
       "top3_achievement": 2,
       "value_position": 2
+    },
+    "max_relative_diff": {
+      "n": 29,
+      "max": 0.25,
+      "median": 0.0646
     }
   }
 }

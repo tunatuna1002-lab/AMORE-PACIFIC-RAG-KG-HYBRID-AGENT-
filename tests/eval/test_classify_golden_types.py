@@ -215,7 +215,23 @@ def fixture_db(tmp_path: Path) -> Path:
             " :hhi, :churn_rate, :category_avg_price, :category_avg_rating)",
             market_rows,
         )
+        # 지표 테이블을 raw_data와 일부러 어긋나게 한다(실데이터의 08-30 크롤 기준 테이블 재현):
+        # (1) 수치만 다르고 결론은 같은 경우, (2) 결론이 뒤집히는 경우, (3) 테이블 값이 없는 경우
+        conn.execute(
+            "UPDATE market_metrics SET hhi = ROUND(hhi * 1.05, 4) WHERE category_id = 'lip_care'"
+        )
+        conn.execute(
+            "UPDATE brand_metrics SET sos = 3.5 WHERE category_id = 'lip_care' AND brand = 'LANEIGE'"
+        )
+        conn.execute(
+            "UPDATE brand_metrics SET cpi = NULL WHERE category_id = 'face_powder' AND brand = 'Face0'"
+        )
     return db
+
+
+def _table_value(db: Path, sql: str) -> float:
+    with sqlite3.connect(db) as conn:
+        return conn.execute(sql).fetchone()[0]
 
 
 @pytest.fixture
@@ -319,8 +335,57 @@ class TestRuleGenerator:
         assert dominance
         for r in dominance:
             gold = r["metadata"]["rule_gold"]
-            assert gold["rule_context"]["sos"] == pytest.approx(gold["inputs"]["sos"] / 100)
+            assert gold["rule_context"]["sos"] == pytest.approx(gold["inputs"]["sos_ratio"])
+            assert gold["inputs"]["sos_ratio"] == pytest.approx(
+                r["gold"]["expected_values"]["sos"] / 100
+            )
+            assert gold["units"]["sos_ratio"].startswith("0~1")
             assert "conclusion_if_sos_unconverted" in gold
+
+    def test_gold_is_metric_table_value_raw_kept_as_cross_check(self, fixture_db, fixture_kg):
+        records, _ = rule_gen.build(fixture_db, fixture_kg)
+        table_hhi = _table_value(
+            fixture_db, "SELECT hhi FROM market_metrics WHERE category_id = 'lip_care'"
+        )
+        raw_hhi = gf.category_facts(gf.connect_ro(fixture_db), "lip_care").hhi
+        assert table_hhi != raw_hhi
+        rec = next(
+            r
+            for r in records
+            if r["metadata"]["rule_gold"]["condition"] == "hhi_below_0.15"
+            and "lip_care" in r["gold"]["kg_entities"]
+        )
+        assert rec["gold"]["expected_values"] == {"hhi": table_hhi}
+        assert f"{table_hhi:.4f}" in rec["gold"]["answer"]
+        check = rec["metadata"]["rule_gold"]["cross_check"]
+        assert check["raw_recomputed"] == {"hhi_ratio": raw_hhi}
+        assert check["conclusion_agrees"] is True
+        assert check["relative_diff"]["hhi_ratio"] == pytest.approx(
+            abs(raw_hhi - table_hhi) / table_hhi, abs=1e-4
+        )
+
+    def test_conclusion_disagreement_excluded(self, fixture_db, fixture_kg):
+        """LANEIGE lip_care SoS: 테이블 3.5%(기회 아님) vs raw 2%(기회) → 싣지 않는다."""
+        records, log = rule_gen.build(fixture_db, fixture_kg)
+        assert not any(
+            r["metadata"]["rule_gold"]["rule_ids"] == ["category_entry_opportunity"]
+            and "lip_care" in r["gold"]["kg_entities"]
+            for r in records
+        )
+        excluded = [
+            e
+            for e in log["excluded"]
+            if e["kind"] == "F_category_entry_opportunity" and e["category"] == "lip_care"
+        ]
+        assert excluded and "결론 불일치" in excluded[0]["reason"]
+
+    def test_missing_table_value_excluded_and_system_access_marked(self, fixture_db, fixture_kg):
+        records, log = rule_gen.build(fixture_db, fixture_kg)
+        face0 = [e for e in log["excluded"] if e["subject"] == "Face0"]
+        assert face0 and all("정답 값 없음" in e["reason"] for e in face0)
+        for r in records:
+            if "cpi" in r["gold"]["expected_values"]:
+                assert r["metadata"]["system_access"] == "not_in_metric_facts"
 
     def test_misattributed_brand_never_a_subject(self, fixture_db, fixture_kg):
         records, log = rule_gen.build(fixture_db, fixture_kg)

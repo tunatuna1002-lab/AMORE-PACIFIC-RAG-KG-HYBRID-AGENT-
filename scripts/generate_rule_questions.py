@@ -7,9 +7,12 @@
 임계값을 코드에서 읽고, 입력값은 `raw_data`에서 정본 공식으로 독립 계산해(scripts/
 golden_snapshot_facts.py) 정답 결론을 만든다. LLM·유료 API를 쓰지 않는다.
 
-정답 결론을 정하는 방법
-----------------------
-1. 입력값: raw_data 독립 계산 (golden_snapshot_facts.category_facts).
+정답 결론을 정하는 방법 (리드 결정 2026-09-17: 지표 테이블 정본)
+----------------------------------------------------------------
+1. 정답 입력값: **지표 테이블(brand_metrics·market_metrics)** 값. 기존 골든 snapshot 문항과
+   챗봇 경로(MetricFactsProvider)가 읽는 값과 같게 하기 위해서다. 테이블이 따로 없는 입력
+   (브랜드 최고 순위·제품 순위·제품 가격)은 raw_data 기록값을 쓴다. 필요한 값이 없으면
+   (예: category_avg_price NULL) 그 후보는 싣지 않는다.
 2. 결론: 규칙이 **의도한 단위**로 문맥을 만든 뒤 실제 규칙 객체의 `evaluate_conditions`
    (조건 하나만 묻는 문항은 해당 `RuleCondition.evaluate`)로 판정한다. 같은 판정을 문항
    정의의 임계값 산술로도 따로 계산해 둘이 다르면 생성을 중단한다(해석 오류 방지).
@@ -17,11 +20,13 @@ golden_snapshot_facts.py) 정답 결론을 만든다. LLM·유료 API를 쓰지 
      그래서 문맥에는 sos/100을 넣는다. DB 값을 그대로 넣었을 때의 결론도
      `conclusion_if_sos_unconverted`로 남긴다(스케일 불일치의 영향 기록 — 고치지 않는다).
    - HHI: DB·규칙 모두 0~1. CPI: DB·규칙 모두 100 기준. 평점 갭: 평점 차(점).
-3. 교차 확인: 같은 입력을 지표 테이블(brand_metrics·market_metrics)에서 읽어 결론을 다시
-   내고, `MetricFactsProvider`(챗봇이 실제로 받는 DB 사실)가 무엇을 주는지 기록한다.
-   **두 출처의 결론이 다르거나 기대 수치가 10%를 넘게 어긋나면 그 후보는 싣지 않고**
-   generation_log_rule.json의 excluded에 이유와 함께 남긴다 — 어느 출처를 믿느냐에 따라
-   정답이 달라지는 문항은 분모로 쓸 수 없다.
+   - gold.expected_values는 기존 골든·채점기 단위(sos %), rule_gold.inputs는 규칙 단위
+     (`sos_ratio` 등 키에 단위 표시, `units` 필드).
+3. 교차 확인(순환 검증 방지): raw_data에서 정본 공식으로 독립 재계산한 입력으로 결론을 다시
+   낸다. **결론이 다르면 제외**하고, 수치 차이만 있으면 포함하되
+   `rule_gold.cross_check = {raw_recomputed, relative_diff, conclusion_agrees}`로 남긴다.
+   챗봇 경로(MetricFactsProvider)가 입력을 받지 못하면 `metadata.system_access =
+   "not_in_metric_facts"`로 표시한다(제외하지 않는다).
 
 규칙별 입력 가용성
 ------------------
@@ -40,7 +45,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -218,11 +223,43 @@ METRIC_FACTS_SERVES = {
     "category_avg_price": "category_market.category_avg_price",
     "current_rank": "brand_products.products[0].rank (브랜드 상위 3개 제품)",
     "price": "category_top_products/brand_products 의 price (상위 5·3개 제품만)",
+    "rank": "category_top_products/brand_products 의 rank (상위 5·3개 제품만)",
     "avg_rank": None,
     "cpi": None,
     "rating_gap": None,
     "parent_group": None,
 }
+
+# 지표 테이블이 따로 없는 입력 — raw_data 기록값 자체가 시스템이 읽는 정본이다
+RECORD_ONLY_INPUTS = {"current_rank", "rank", "price"}
+
+# rule_gold.inputs / cross_check.raw_recomputed 키(규칙 정본 단위, 이름에 단위 표시)
+INPUT_KEY = {
+    "sos": "sos_ratio",
+    "hhi": "hhi_ratio",
+    "cpi": "cpi_index100",
+    "rating_gap": "rating_gap_points",
+    "avg_rank": "avg_rank",
+    "current_rank": "best_rank",
+    "price": "price_usd",
+    "category_avg_price": "category_avg_price_usd",
+    "rank": "rank",
+}
+UNITS = {
+    "sos_ratio": "0~1 (DB sos % / 100)",
+    "hhi_ratio": "0~1",
+    "cpi_index100": "카테고리 평균가=100",
+    "rating_gap_points": "평점 차(점)",
+    "avg_rank": "순위",
+    "best_rank": "순위",
+    "price_usd": "USD",
+    "category_avg_price_usd": "USD",
+    "rank": "순위",
+}
+EXPECTED_VALUE_UNITS_NOTE = (
+    "gold.expected_values는 기존 골든·채점기(eval/metrics/l5_answer.py _unit_for) 관례: "
+    "sos는 %(0~100), hhi 0~1, cpi 100 기준, 순위는 '위', 가격은 '$'"
+)
 
 
 def rules_by_name() -> dict[str, Any]:
@@ -237,20 +274,12 @@ def rules_by_name() -> dict[str, Any]:
 
 
 @dataclass
-class Inputs:
-    """한 출처(raw 또는 지표 테이블)에서 읽은 규칙 입력."""
-
-    source: str
-    values: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
 class Candidate:
     kind: str
     rule_ids: list[str]
     condition: str | None  # 조건 하나만 묻는 문항이면 RuleCondition.name
     category: str
-    subject: str  # 브랜드명(raw_data 표기) 또는 카테고리 id 또는 "rank:<n>"
+    subject: str  # 브랜드명(DB 표기) 또는 카테고리 id 또는 "rank:<n>"
     question: str
     thresholds: dict[str, Any]
     expected: Callable[[dict[str, Any]], bool]  # 규칙 의도 단위 문맥 → 임계 산술 판정
@@ -263,24 +292,63 @@ class Candidate:
     extra_inputs: tuple[str, ...] = ()  # 기대값에는 없지만 판정에 쓰는 입력
 
 
-def raw_inputs(facts: gf.CategoryFacts, subject: str) -> dict[str, Any] | None:
+def _product(facts: gf.CategoryFacts, rank: int) -> dict[str, Any] | None:
+    return next((p for p in facts.products if p["rank"] == rank), None)
+
+
+def table_inputs(table: dict, facts: gf.CategoryFacts, subject: str) -> dict[str, Any] | None:
+    """정답 입력: 지표 테이블 값. 테이블이 없는 입력(순위·제품 가격)은 raw_data 기록값."""
+    market = table["market"] or {}
     values: dict[str, Any] = {
-        "hhi": facts.hhi,
-        "category_avg_price": (round(facts.avg_price, 2) if facts.avg_price is not None else None),
+        "hhi": market.get("hhi"),
+        "category_avg_price": market.get("category_avg_price"),
     }
     if subject.startswith("rank:"):
-        rank = int(subject.split(":")[1])
-        product = next((p for p in facts.products if p["rank"] == rank), None)
+        product = _product(facts, int(subject.split(":")[1]))
         if product is None:
             return None
         values.update(
             {
-                "rank": rank,
+                "rank": product["rank"],
                 "price": product["price"],
                 "brand": product["brand"],
                 "asin": product["asin"],
                 "product_name": product["product_name"],
             }
+        )
+        return values
+    if subject == facts.category:
+        return values
+    row = table["brands"].get(subject)
+    if row is None:
+        return None
+    record = facts.brands.get(subject)
+    values.update(
+        {
+            "brand": subject,
+            "sos": row["sos"],
+            "avg_rank": row["brand_avg_rank"],
+            "cpi": row["cpi"],
+            "rating_gap": row["avg_rating_gap"],
+            "product_count": row["product_count"],
+            "current_rank": record.best_rank if record else None,
+        }
+    )
+    return values
+
+
+def raw_inputs(facts: gf.CategoryFacts, subject: str) -> dict[str, Any] | None:
+    """교차 확인 입력: raw_data 독립 재계산."""
+    values: dict[str, Any] = {
+        "hhi": facts.hhi,
+        "category_avg_price": (round(facts.avg_price, 2) if facts.avg_price is not None else None),
+    }
+    if subject.startswith("rank:"):
+        product = _product(facts, int(subject.split(":")[1]))
+        if product is None:
+            return None
+        values.update(
+            {"rank": product["rank"], "price": product["price"], "brand": product["brand"]}
         )
         return values
     if subject == facts.category:
@@ -297,27 +365,6 @@ def raw_inputs(facts: gf.CategoryFacts, subject: str) -> dict[str, Any] | None:
             "cpi": brand.cpi,
             "rating_gap": brand.rating_gap,
             "product_count": brand.count,
-        }
-    )
-    return values
-
-
-def table_inputs(table: dict, raw: dict[str, Any], subject: str) -> dict[str, Any]:
-    """지표 테이블 값으로 같은 입력을 만든다. 테이블에 없는 입력(순위·제품 가격)은 raw와 같다."""
-    market = table["market"] or {}
-    values = dict(raw)
-    values["hhi"] = market.get("hhi")
-    values["category_avg_price"] = market.get("category_avg_price")
-    if subject.startswith("rank:") or "brand" not in raw or "sos" not in raw:
-        return values
-    row = table["brands"].get(subject)
-    values.update(
-        {
-            "sos": row["sos"] if row else None,
-            "avg_rank": row["brand_avg_rank"] if row else None,
-            "cpi": row["cpi"] if row else None,
-            "rating_gap": row["avg_rating_gap"] if row else None,
-            "product_count": row["product_count"] if row else None,
         }
     )
     return values
@@ -342,6 +389,14 @@ def rule_context(values: dict[str, Any], category: str, convert_sos: bool = True
     }
 
 
+def to_rule_units(values: dict[str, Any], keys: list[str]) -> dict[str, Any]:
+    out = {}
+    for k in keys:
+        v = values.get(k)
+        out[INPUT_KEY[k]] = v / 100 if (k == "sos" and v is not None) else v
+    return out
+
+
 def engine_verdict(rules: dict, cand: Candidate, ctx: dict) -> bool:
     if cand.condition:
         rule = rules[cand.rule_ids[0]]
@@ -358,7 +413,15 @@ L = gf.CATEGORY_LABEL
 D = gf.AS_OF
 
 
-def build_candidates(facts: dict[str, gf.CategoryFacts], kg_brands_ap: set[str]) -> list[Candidate]:
+def _table_ranked(table: dict) -> list[dict[str, Any]]:
+    """지표 테이블 브랜드 행, SoS 내림차순·브랜드명 오름차순."""
+    rows = [r for r in table["brands"].values() if r["sos"] is not None]
+    return sorted(rows, key=lambda r: (-r["sos"], r["brand"]))
+
+
+def build_candidates(
+    facts: dict[str, gf.CategoryFacts], tables: dict[str, dict]
+) -> list[Candidate]:
     c: list[Candidate] = []
 
     # A. 분산 시장 조건 (HHI < 0.15) — 조건을 쓰는 규칙 3개
@@ -401,12 +464,12 @@ def build_candidates(facts: dict[str, gf.CategoryFacts], kg_brands_ap: set[str])
                 concepts=["hhi", "market_concentration"],
             )
         )
-    # C. 분산 시장 지배자 — 카테고리 SoS 1위 브랜드
+    # C. 분산 시장 지배자 — 지표 테이블 기준 카테고리 SoS 1위 브랜드
     for cat in ("lip_care", "skin_care", "face_powder", "lip_makeup"):
-        ranked = facts[cat].ranked_brands()
-        if len(ranked) < 2 or ranked[0].sos == ranked[1].sos:
+        ranked = _table_ranked(tables[cat])
+        if len(ranked) < 2 or ranked[0]["sos"] == ranked[1]["sos"]:
             continue  # 1위가 동률이면 "1위 브랜드"가 모호하다
-        top = ranked[0].brand
+        top = ranked[0]["brand"]
         c.append(
             Candidate(
                 kind="C_dominance_fragmented",
@@ -428,10 +491,10 @@ def build_candidates(facts: dict[str, gf.CategoryFacts], kg_brands_ap: set[str])
         )
     # D. 도전자 포지션 — SoS 5~15% 브랜드
     for cat in ("skin_care", "lip_makeup"):
-        mid = [b for b in facts[cat].ranked_brands() if b.sos is not None and 5 <= b.sos < 15]
+        mid = [r for r in _table_ranked(tables[cat]) if 5 <= r["sos"] < 15]
         if not mid:
             continue
-        b = mid[0].brand
+        b = mid[0]["brand"]
         c.append(
             Candidate(
                 kind="D_challenger",
@@ -454,7 +517,7 @@ def build_candidates(facts: dict[str, gf.CategoryFacts], kg_brands_ap: set[str])
     laneige_cats = [
         cat
         for cat in ("lip_care", "lip_makeup", "face_powder", "skin_care", "beauty")
-        if "LANEIGE" in facts[cat].brands
+        if "LANEIGE" in tables[cat]["brands"]
     ]
     # E. 평균 순위 우위
     for cat in laneige_cats:
@@ -540,9 +603,8 @@ def build_candidates(facts: dict[str, gf.CategoryFacts], kg_brands_ap: set[str])
                 concepts=["review_rating", "competitor_analysis"],
             )
         )
-    # I~K. 가격 포지션 (CPI) — face_powder 브랜드, 이름순
-    fp = facts["face_powder"]
-    for b in sorted(fp.brands):
+    # I~K. 가격 포지션 (CPI) — face_powder 브랜드(지표 테이블), 이름순
+    for b in sorted(tables["face_powder"]["brands"]):
         c.append(
             Candidate(
                 kind="I_price_quality_mismatch",
@@ -683,31 +745,43 @@ INPUT_LABEL = {
 }
 
 
-def materialize(cand: Candidate, raw: dict[str, Any], fires: bool, order: int) -> dict[str, Any]:
+def materialize(cand: Candidate, gold: dict[str, Any], fires: bool, order: int) -> dict[str, Any]:
     used = sorted(set(cand.ev_keys.values()) | set(cand.extra_inputs))
-    facts_txt = ", ".join(f"{INPUT_LABEL[k]} {fmt_value(k, raw[k])}" for k in used)
+    facts_txt = ", ".join(f"{INPUT_LABEL[k]} {fmt_value(k, gold[k])}" for k in used)
     verdict = "네" if fires else "아니요"
     question = cand.question
-    subject_txt = f"{L[cand.category]} {raw['brand']}" if raw.get("brand") else L[cand.category]
+    subject_txt = f"{L[cand.category]} {gold['brand']}" if gold.get("brand") else L[cand.category]
     if cand.kind == "L_premium_defense":
-        name = (raw["product_name"] or "").split(",")[0].split(":")[0].strip()
-        if name.lower().startswith(raw["brand"].lower()):
-            name = name[len(raw["brand"]) :].strip()
+        name = (gold["product_name"] or "").split(",")[0].split(":")[0].strip()
+        if name.lower().startswith(gold["brand"].lower()):
+            name = name[len(gold["brand"]) :].strip()
         name = name[:50]
         question = (
-            f"{D} 기준 Face Powder {raw['rank']}위 제품({raw['brand']} {name})은 규칙 "
+            f"{D} 기준 Face Powder {gold['rank']}위 제품({gold['brand']} {name})은 규칙 "
             "premium_defense_success(가격이 카테고리 평균가보다 20% 초과 비싸고 Top 10 이내) "
             "조건에 해당하나요?"
         )
-        premium = (raw["price"] - raw["category_avg_price"]) / raw["category_avg_price"] * 100
+        premium = (gold["price"] - gold["category_avg_price"]) / gold["category_avg_price"] * 100
         facts_txt += f", 평균 대비 {premium:+.1f}%"
-        subject_txt = f"Face Powder {raw['rank']}위 {raw['brand']} 제품"
+        subject_txt = f"Face Powder {gold['rank']}위 {gold['brand']} 제품"
     rule_txt = cand.condition or ", ".join(cand.rule_ids)
     answer = (
         f"{verdict}. {D} 스냅샷에서 {subject_txt} 기준 {facts_txt}입니다. 따라서 "
         f"{rule_txt} 조건을 {'충족합니다' if fires else '충족하지 않습니다'}."
     )
     return {"question": question, "answer": answer, "order": order}
+
+
+def _exclude(excluded: list[dict], cand: Candidate, reason: str, **extra: Any) -> None:
+    excluded.append(
+        {
+            "kind": cand.kind,
+            "subject": cand.subject,
+            "category": cand.category,
+            "reason": reason,
+            **extra,
+        }
+    )
 
 
 def build(db_path: Path, kg_path: Path) -> tuple[list[dict], dict]:
@@ -720,89 +794,70 @@ def build(db_path: Path, kg_path: Path) -> tuple[list[dict], dict]:
     facts = {cat: gf.category_facts(conn, cat) for cat in gf.CATEGORIES}
     tables = {cat: gf.metric_table_facts(conn, cat) for cat in gf.CATEGORIES}
     triples = gf.load_curated_triples(kg_path)
-    ap_brands = set(gf.subjects(triples, "ownedByGroup", "AMOREPACIFIC"))
 
     accepted: dict[str, list[dict]] = {}
     excluded: list[dict] = []
-    for order, cand in enumerate(build_candidates(facts, ap_brands)):
-        raw = raw_inputs(facts[cand.category], cand.subject)
-        if raw is None:
-            excluded.append(
-                {
-                    "kind": cand.kind,
-                    "subject": cand.subject,
-                    "category": cand.category,
-                    "reason": "raw_data에 대상 없음",
-                }
+    for order, cand in enumerate(build_candidates(facts, tables)):
+        cat_facts = facts[cand.category]
+        gold = table_inputs(tables[cand.category], cat_facts, cand.subject)
+        if gold is None:
+            _exclude(excluded, cand, "지표 테이블(또는 raw_data 기록)에 대상 없음")
+            continue
+        brand = gold.get("brand")
+        failures = cat_facts.attribution_failures()
+        if brand and brand in failures:
+            _exclude(
+                excluded,
+                cand,
+                f"브랜드 귀속 검증 실패: '{brand}' 행의 제품명에 브랜드명 없음 {failures[brand][:2]}",
             )
             continue
-        brand = raw.get("brand")
-        if brand and brand in facts[cand.category].attribution_failures():
-            excluded.append(
-                {
-                    "kind": cand.kind,
-                    "subject": cand.subject,
-                    "category": cand.category,
-                    "reason": f"브랜드 귀속 검증 실패: '{brand}' 행의 제품명에 브랜드명 없음 "
-                    f"{facts[cand.category].attribution_failures()[brand][:2]}",
-                }
-            )
-            continue
-        tab = table_inputs(tables[cand.category], raw, cand.subject)
         needed = sorted(set(cand.ev_keys.values()) | set(cand.extra_inputs))
-        if any(raw.get(k) is None for k in needed):
-            excluded.append(
-                {
-                    "kind": cand.kind,
-                    "subject": cand.subject,
-                    "category": cand.category,
-                    "reason": f"raw 입력 결측 {[k for k in needed if raw.get(k) is None]}",
-                }
+        gold_missing = [k for k in needed if gold.get(k) is None]
+        if gold_missing:
+            _exclude(
+                excluded,
+                cand,
+                f"정답 값 없음(지표 테이블/raw_data 기록) {gold_missing} — 시스템이 접근할 수 없는 "
+                "값으로 정답을 "
+                "만들지 않음",
             )
             continue
-        ctx = rule_context(raw, cand.category)
+        ctx = rule_context(gold, cand.category)
         fires = engine_verdict(rules, cand, ctx)
         if fires != bool(cand.expected(ctx)):
             raise AssertionError(f"{cand.kind}/{cand.subject}: 규칙 엔진 판정과 임계 산술 불일치")
 
-        reasons = []
-        tab_missing = [k for k in needed if tab.get(k) is None]
-        if tab_missing:
-            reasons.append(f"지표 테이블 입력 결측 {tab_missing}")
-        else:
-            tab_fires = engine_verdict(rules, cand, rule_context(tab, cand.category))
-            if tab_fires != fires:
-                reasons.append(f"결론 불일치 raw={fires} 지표테이블={tab_fires}")
-            for k in needed:
-                if not gf.within_tolerance(raw[k], tab[k]):
-                    reasons.append(f"{k} 값 불일치 raw={raw[k]} 지표테이블={tab[k]} (>10%)")
-        if reasons:
-            excluded.append(
-                {
-                    "kind": cand.kind,
-                    "subject": cand.subject,
-                    "category": cand.category,
-                    "reason": "; ".join(reasons),
-                    "raw": {k: raw[k] for k in needed},
-                    "metric_tables": {k: tab.get(k) for k in needed},
-                }
+        raw = raw_inputs(cat_facts, cand.subject)
+        raw_missing = needed if raw is None else [k for k in needed if raw.get(k) is None]
+        if raw_missing:
+            _exclude(excluded, cand, f"raw 재계산 불가 {raw_missing} — 결론 교차 확인 불가")
+            continue
+        raw_fires = engine_verdict(rules, cand, rule_context(raw, cand.category))
+        if raw_fires != fires:
+            _exclude(
+                excluded,
+                cand,
+                f"결론 불일치 지표테이블={fires} raw재계산={raw_fires}",
+                metric_tables={k: gold[k] for k in needed},
+                raw_recomputed={k: raw[k] for k in needed},
             )
             continue
 
         unconverted = None
         if "sos" in needed:
-            unconverted = engine_verdict(rules, cand, rule_context(raw, cand.category, False))
+            unconverted = engine_verdict(rules, cand, rule_context(gold, cand.category, False))
         accepted.setdefault(cand.kind, []).append(
             {
                 "cand": cand,
+                "gold": gold,
                 "raw": raw,
-                "tab": tab,
                 "ctx": ctx,
                 "fires": fires,
                 "unconverted": unconverted,
                 "order": order,
                 "needed": needed,
-                "attribution_failures": facts[cand.category].attribution_failures(),
+                "attribution_failures": failures,
             }
         )
 
@@ -813,23 +868,25 @@ def build(db_path: Path, kg_path: Path) -> tuple[list[dict], dict]:
             picked.extend(chosen)
             for extra in accepted[kind]:
                 if extra not in chosen:
-                    excluded.append(
-                        {
-                            "kind": kind,
-                            "subject": extra["cand"].subject,
-                            "category": extra["cand"].category,
-                            "reason": f"종류별 상한 {cap} 초과(유효 후보)",
-                        }
-                    )
+                    _exclude(excluded, extra["cand"], f"종류별 상한 {cap} 초과(유효 후보)")
 
     records: list[dict] = []
     for a in picked:
         records.append(_record(len(records) + 1, a, db_path))
     records.extend(_ownership_records(len(records) + 1, triples, kg_path))
 
+    diffs = [
+        r["metadata"]["rule_gold"]["cross_check"]["max_relative_diff"]
+        for r in records
+        if "max_relative_diff" in r["metadata"]["rule_gold"].get("cross_check", {})
+    ]
     log = {
         "as_of": gf.AS_OF,
         "generator": GENERATOR,
+        "gold_policy": (
+            "정답 수치 = 지표 테이블(brand_metrics·market_metrics). 테이블이 없는 순위·제품 가격은 "
+            "raw_data 기록값. raw_data 독립 재계산은 교차 확인 전용 — 결론이 다르면 제외."
+        ),
         "rule_input_availability": {
             name: {
                 **spec,
@@ -842,6 +899,7 @@ def build(db_path: Path, kg_path: Path) -> tuple[list[dict], dict]:
         "counts": {
             "generated": len(records),
             "by_rule": _count_by_rule(records),
+            "max_relative_diff": gf.distribution([d for d in diffs if d is not None]),
         },
     }
     return records, log
@@ -857,47 +915,61 @@ def _count_by_rule(records: list[dict]) -> dict[str, int]:
 
 def _record(n: int, a: dict, db_path: Path) -> dict:
     cand: Candidate = a["cand"]
-    raw, tab = a["raw"], a["tab"]
-    text = materialize(cand, raw, a["fires"], a["order"])
-    brand = raw.get("brand")
-    mf_brands = [brand] if brand and "sos" in raw else []
+    gold, raw, needed = a["gold"], a["raw"], a["needed"]
+    text = materialize(cand, gold, a["fires"], a["order"])
+    brand = gold.get("brand")
+    mf_brands = [brand] if brand and "sos" in gold else []
     mf = gf.metric_facts_provider_view(db_path, mf_brands, [cand.category])
     served = _metric_facts_values(mf, brand)
+    not_served = [k for k in needed if not METRIC_FACTS_SERVES.get(k)]
     params = {"d": gf.AS_OF, "c": cand.category}
-    sql = [
+    gold_sql = [{"query": gf.SQL_METRIC_TABLE_MARKET, "params": params}]
+    if "sos" in gold:
+        gold_sql.append({"query": gf.SQL_METRIC_TABLE_BRAND, "params": params})
+    if set(needed) & RECORD_ONLY_INPUTS:
+        gold_sql.append({"query": gf.SQL_PRODUCTS, "params": params})
+    raw_sql = [
         {"query": gf.SQL_TOTAL, "params": params},
         {"query": gf.SQL_BRAND_COUNTS, "params": params},
         {"query": gf.SQL_CATEGORY_PRICE_RATING, "params": params},
     ]
-    if "sos" in raw:
-        sql.append({"query": gf.SQL_BRAND_DETAIL, "params": {**params, "b": brand}})
-    if cand.subject.startswith("rank:"):
-        sql.append({"query": gf.SQL_PRODUCTS, "params": params})
+    if "sos" in gold:
+        raw_sql.append({"query": gf.SQL_BRAND_DETAIL, "params": {**params, "b": brand}})
 
-    ev = {key: raw[inp] for key, inp in cand.ev_keys.items()}
+    relative = {INPUT_KEY[k]: gf.relative_diff(gold[k], raw[k]) for k in needed}
+    finite = [v for v in relative.values() if v is not None]
+    ev = {key: gold[inp] for key, inp in cand.ev_keys.items()}
     entities = [gf.norm_id(brand)] if brand else []
     entities.append(cand.category)
     rule_gold = {
         "rule_ids": cand.rule_ids,
         "condition": cand.condition,
         "expected_conclusion": {"fires": a["fires"]},
-        "inputs": {k: raw[k] for k in a["needed"]},
+        "inputs": to_rule_units(gold, needed),
+        "units": {INPUT_KEY[k]: UNITS[INPUT_KEY[k]] for k in needed},
+        "expected_values_units": EXPECTED_VALUE_UNITS_NOTE,
         "rule_context": {k: v for k, v in a["ctx"].items() if v is not None},
         "thresholds": cand.thresholds,
-        "formula": "scripts/golden_snapshot_facts.py 모듈 docstring의 정본 공식",
-        "sql": sql,
+        "gold_source_detail": {
+            k: ("raw_data 기록값" if k in RECORD_ONLY_INPUTS else "지표 테이블") for k in needed
+        },
+        "sql": {"gold": gold_sql, "cross_check_raw": raw_sql},
         "as_of": gf.AS_OF,
         "cross_check": {
-            "metric_tables": {k: tab.get(k) for k in a["needed"]},
+            "raw_recomputed": to_rule_units(raw, needed),
+            "relative_diff": relative,
+            "max_relative_diff": max(finite) if finite else None,
+            "conclusion_agrees": True,
+            "raw_formula": "scripts/golden_snapshot_facts.py 모듈 docstring의 정본 공식",
             "metric_facts_provider": served,
-            "metric_facts_not_served": [k for k in a["needed"] if not METRIC_FACTS_SERVES.get(k)],
+            "metric_facts_not_served": not_served,
         },
     }
     if a["unconverted"] is not None:
         rule_gold["conclusion_if_sos_unconverted"] = {"fires": a["unconverted"]}
         rule_gold["scale_note"] = SOS_SCALE_NOTE
-    if raw.get("asin"):
-        rule_gold["product"] = {"asin": raw["asin"], "brand": raw["brand"], "rank": raw["rank"]}
+    if gold.get("asin"):
+        rule_gold["product"] = {"asin": gold["asin"], "brand": gold["brand"], "rank": gold["rank"]}
     failures = a["attribution_failures"]
     rule_gold["category_brand_attribution_failures"] = {
         "rows": sum(len(v) for v in failures.values()),
@@ -918,7 +990,10 @@ def _record(n: int, a: dict, db_path: Path) -> dict:
         expected_values=ev,
         kg_entities=entities,
         concepts=cand.concepts,
-        extra_metadata={"rule_gold": rule_gold},
+        extra_metadata={
+            "system_access": "not_in_metric_facts" if not_served else "metric_facts",
+            "rule_gold": rule_gold,
+        },
     )
 
 
@@ -1003,7 +1078,7 @@ def _ownership_records(start: int, triples: list[dict], kg_path: Path) -> list[d
                 kg_edges=[gf.edge(brand, "ownedByGroup", "AMOREPACIFIC")] if fires else [],
                 concepts=["brand_portfolio", "corporate_structure"],
                 as_of=None,
-                extra_metadata={"rule_gold": rule_gold},
+                extra_metadata={"system_access": "not_in_metric_facts", "rule_gold": rule_gold},
             )
         )
     return out
