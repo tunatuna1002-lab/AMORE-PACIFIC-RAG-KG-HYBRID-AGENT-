@@ -146,9 +146,11 @@ async def test_route_direct_high_confidence_records_score():
     trace = result_state.metadata["route_trace"]
     assert trace["route"] == "direct"
     assert trace["confidence_level"] == "high"
+    # 점수는 0~1 적합도 눈금 (트랙 5-B). 증거 카드가 없는 컨텍스트라 개수 폴백을 탄다.
     assert trace["confidence_score"] is not None
-    assert trace["confidence_score"] >= 5.0
-    assert trace["confidence_components"]["kg_facts"] > 0
+    assert trace["confidence_score"] >= ConfidenceAssessor.THRESHOLD_HIGH
+    assert trace["confidence_components"]["basis"] == "legacy"
+    assert trace["confidence_components"]["legacy_counts"]["kg_facts"] > 0
     assert trace["tools_used"] == []
     assert trace["decision_tool"] is None
 
@@ -364,7 +366,7 @@ async def test_brain_process_query_preserves_route_trace():
     trace = response.metadata["route_trace"]
     assert trace["route"] == "direct"
     assert trace["confidence_level"] == "high"
-    assert trace["confidence_score"] >= 5.0
+    assert trace["confidence_score"] >= ConfidenceAssessor.THRESHOLD_HIGH
 
     # 캐시에 저장된 응답도 동일한 route_trace를 보존해야 한다 (다음 문항과 섞이지 않음)
     cached = brain.cache.get("라네즈 립케어 카테고리 분석해줘", "query")

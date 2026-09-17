@@ -28,7 +28,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from .cache import ResponseCache
-from .confidence import ConfidenceAssessor
+from .confidence import ConfidenceAssessor, legacy_count_score_to_fit, score_evidence_fit
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
 from .graph_state import QueryState
@@ -144,51 +144,61 @@ class QueryGraph:
         return state
 
     def _node_assess_confidence(self, state: QueryState) -> QueryState:
-        """신뢰도 평가 노드 (유일한 구현 — brain.py의 복제본은 트랙 5-A에서 삭제)
+        """신뢰도 평가 노드 (적합도 기반, 트랙 5-B — 유일한 구현. brain.py 복제본은 5-A에서 삭제)
 
-        컨텍스트 데이터 점수 + 쿼리 의도 명확성 점수를 합산하여
-        ConfidenceAssessor에 위임합니다.
+        증거 카드가 이 질문에 맞는지를 재서 0~1 점수를 만들고 ConfidenceAssessor에
+        위임한다 (``src.core.confidence.score_evidence_fit``). 예전처럼 컨텍스트 개수를
+        더하지 않는다 — 검색이 질문마다 비슷한 양을 담아 오면 개수 합은 항상 높아져서
+        233문항 중 230문항이 HIGH로 나왔다.
+
+        카드가 하나도 없는 구형 경로(v1 retriever, 카드 미병합 컨텍스트)에서는 옛 개수
+        점수로 폴백한 뒤 ``legacy_count_score_to_fit()``으로 같은 사다리에 올린다.
         """
         context = state.context
         if context is None:
             state.confidence_level = ConfidenceLevel.UNKNOWN
             return state
 
-        # Build rule_result from context signals
-        rule_result: dict[str, Any] = {
-            "max_score": 0.0,
-            "confidence": 0.0,
-            "query_type": "unknown",
-        }
-
-        # --- 1) 컨텍스트 데이터 점수 (컴포넌트별로 분해하여 관측용으로 기록) ---
-        components: dict[str, float] = {
-            "kg_facts": 0.0,
-            "rag_docs": 0.0,
-            "inferences": 0.0,
-            "entities": 0.0,
-            "query_intent": 0.0,
-        }
-        if context.kg_facts:
-            components["kg_facts"] = min(len(context.kg_facts), 3) * 1.5
-        if context.rag_docs:
-            components["rag_docs"] = min(len(context.rag_docs), 3) * 1.0
-        if context.kg_inferences:
-            components["inferences"] = min(len(context.kg_inferences), 2) * 2.0
-        if context.entities:
-            entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
-            components["entities"] = min(entity_count, 3) * 1.0
-
-        # --- 2) 쿼리 의도 명확성 점수 (최소 바닥 보장) ---
         query = context.query if hasattr(context, "query") else ""
-        components["query_intent"] = self._assess_query_intent(query)
+        cards = getattr(context, "prompt_evidence", None) or getattr(context, "evidence", None)
 
-        score = sum(components.values())
-        rule_result["max_score"] = score
+        if cards:
+            fit = score_evidence_fit(query, context.entities, cards)
+            score = fit.score
+            components: dict[str, Any] = fit.to_dict()
+        else:
+            # 폴백: 카드 파이프라인을 타지 않는 경로(v1 HybridContext, 최소 컨텍스트)에서
+            # 신뢰도가 전부 UNKNOWN으로 무너지지 않게 옛 개수 점수를 같은 사다리에 올린다.
+            counts: dict[str, float] = {
+                "kg_facts": 0.0,
+                "rag_docs": 0.0,
+                "inferences": 0.0,
+                "entities": 0.0,
+                "query_intent": 0.0,
+            }
+            if context.kg_facts:
+                counts["kg_facts"] = min(len(context.kg_facts), 3) * 1.5
+            if context.rag_docs:
+                counts["rag_docs"] = min(len(context.rag_docs), 3) * 1.0
+            if context.kg_inferences:
+                counts["inferences"] = min(len(context.kg_inferences), 2) * 2.0
+            if context.entities:
+                entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
+                counts["entities"] = min(entity_count, 3) * 1.0
+            counts["query_intent"] = self._assess_query_intent(query)
 
-        state.confidence_level = self._confidence_assessor.assess(rule_result, context)
+            raw_score = sum(counts.values())
+            score = legacy_count_score_to_fit(raw_score)
+            components = {
+                "basis": "legacy",
+                "legacy_count_score": raw_score,
+                "legacy_counts": counts,
+                "card_count": 0,
+            }
 
-        # 관측용 기록 (분기 로직에는 영향 없음)
+        state.confidence_level = self._confidence_assessor.assess({"fit_score": score}, context)
+
+        # 관측용 기록 (분기 로직에는 영향 없음). confidence_score는 0~1 적합도 눈금이다.
         state.metadata["confidence_score"] = score
         state.metadata["confidence_components"] = components
         return state

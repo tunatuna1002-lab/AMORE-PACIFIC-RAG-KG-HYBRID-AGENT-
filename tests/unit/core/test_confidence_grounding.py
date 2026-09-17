@@ -102,7 +102,8 @@ class TestConfidenceLadderUnified:
 
     def test_custom_thresholds_are_honoured(self, pipeline):
         """사다리가 한 곳에만 있으므로 임계값 변경이 그대로 반영된다"""
-        pipeline._confidence_assessor = ConfidenceAssessor(threshold_high=1.0)
+        # 임계값은 0~1 적합도 눈금이다 (트랙 5-B). 바닥까지 낮추면 무엇이든 HIGH가 된다.
+        pipeline._confidence_assessor = ConfidenceAssessor(threshold_high=0.1)
         assert pipeline._assess_confidence(_ctx(rag=2)) == ConfidenceLevel.HIGH
 
     def test_no_inline_ladder_in_source(self):
