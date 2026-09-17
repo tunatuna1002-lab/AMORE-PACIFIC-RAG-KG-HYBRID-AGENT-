@@ -34,6 +34,7 @@ from src.core.context_gatherer import ContextGatherer
 from src.core.models import Context, Response
 from src.core.query_graph import QueryGraph
 from src.infrastructure.feature_flags import FeatureFlags
+from tests.unit.core.react_fc_fixtures import tool_call_reply
 from tests.unit.rag.evidence_pipeline_fixtures import FakeDocRetriever, make_retriever
 
 ANSWER = "LANEIGE의 Lip Care SoS는 2%입니다."
@@ -129,14 +130,11 @@ class FakeReactLLM:
     async def __call__(self, **_: Any) -> SimpleNamespace:
         self.calls += 1
         if self.calls == 1:
-            payload = {
-                "thought": "컨텍스트만으로 충분",
-                "action": "final_answer",
-                "action_input": {"answer": REACT_ANSWER},
-            }
-        else:
-            payload = {"quality_score": 0.8, "needs_improvement": False}
-        message = SimpleNamespace(content=json.dumps(payload, ensure_ascii=False))
+            # 트랙 5-C 이후 ReAct는 네이티브 function calling을 쓴다 — 첫 턴에 final_answer
+            # 도구 호출로 답을 낸다 (예전 JSON 본문 파싱 경로는 사라졌다).
+            return tool_call_reply("컨텍스트만으로 충분", "final_answer", {"answer": REACT_ANSWER})
+        payload = {"quality_score": 0.8, "needs_improvement": False}
+        message = SimpleNamespace(content=json.dumps(payload, ensure_ascii=False), tool_calls=None)
         return SimpleNamespace(choices=[SimpleNamespace(message=message)])
 
 
