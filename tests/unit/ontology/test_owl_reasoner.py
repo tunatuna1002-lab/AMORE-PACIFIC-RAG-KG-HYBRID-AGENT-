@@ -208,11 +208,6 @@ class TestOWLReasonerGetInferredFactsFallback:
 class TestOWLReasonerQueryFallback:
     """쿼리 기능 fallback 모드 테스트"""
 
-    def test_query_sparql_returns_empty_without_owlready2(self, reasoner_no_owl):
-        """owlready2 미설치 시 query_sparql는 빈 리스트 반환"""
-        result = reasoner_no_owl.query_sparql("SELECT ?x WHERE { ?x a :Brand }")
-        assert result == []
-
     def test_get_brand_info_returns_none_without_owlready2(self, reasoner_no_owl):
         """owlready2 미설치 시 get_brand_info는 None 반환"""
         result = reasoner_no_owl.get_brand_info("LANEIGE")

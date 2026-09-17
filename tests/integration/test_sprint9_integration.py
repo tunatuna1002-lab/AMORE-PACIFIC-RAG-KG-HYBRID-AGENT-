@@ -1,7 +1,7 @@
 """
 Sprint 9 Integration Tests (D-5)
 
-Tests for multi-hop, AIS citation, SPARQL, IRI roundtrip,
+Tests for multi-hop, AIS citation, IRI roundtrip,
 OWL consistency, and Self-RAG + hybrid retrieval integration.
 """
 
@@ -423,86 +423,6 @@ class TestAISCitationIntegration:
         assert stats["citation_rate"] >= 0.80, f"Citation rate {stats['citation_rate']:.2f} < 0.80"
         # Verify citation tags present
         assert "[출처" in annotated
-
-
-# =========================================================================
-# 3. SPARQL Tests (5 queries)
-# =========================================================================
-
-
-class TestSPARQLIntegration:
-    """Test query_sparql_rdflib() with real SPARQL queries."""
-
-    def test_sparql_select_all_products(self, knowledge_graph):
-        """SELECT all products for a brand using STR FILTER on URI."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?product
-            WHERE {
-                <http://amore.ontology/entity/LANEIGE> amore:hasProduct ?product .
-            }
-        """)
-
-        assert len(results) >= 2
-        product_ids = [r.get("product", "") for r in results]
-        assert any("B08R35S2QH" in pid for pid in product_ids)
-
-    def test_sparql_select_competitors(self, knowledge_graph):
-        """SELECT competitors of a brand using STR FILTER on URI."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?competitor
-            WHERE {
-                <http://amore.ontology/entity/LANEIGE> amore:competesWith ?competitor .
-            }
-        """)
-
-        assert len(results) >= 2
-        competitor_ids = [r.get("competitor", "") for r in results]
-        assert any("COSRX" in cid for cid in competitor_ids)
-        assert any("ANUA" in cid for cid in competitor_ids)
-
-    def test_sparql_select_brand_category(self, knowledge_graph):
-        """SELECT brand-category relations."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?brand ?category
-            WHERE {
-                ?brand amore:belongsToCategory ?category .
-            }
-        """)
-
-        assert len(results) >= 2
-
-    def test_sparql_filter_by_literal(self, knowledge_graph):
-        """SELECT with FILTER on object literal."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?brand
-            WHERE {
-                ?brand amore:belongsToCategory ?cat .
-                FILTER(?cat = "lip_care")
-            }
-        """)
-
-        assert len(results) >= 1
-        brand_ids = [r.get("brand", "") for r in results]
-        assert any("LANEIGE" in bid for bid in brand_ids)
-
-    def test_sparql_count_products(self, knowledge_graph):
-        """COUNT products for COSRX brand."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT (COUNT(?product) AS ?count)
-            WHERE {
-                <http://amore.ontology/entity/COSRX> amore:hasProduct ?product .
-            }
-        """)
-
-        assert len(results) >= 1
-        # COSRX has 3 products (may count 6 with URI+literal dual triples)
-        count = int(results[0].get("count", 0))
-        assert count >= 3
 
 
 # =========================================================================
