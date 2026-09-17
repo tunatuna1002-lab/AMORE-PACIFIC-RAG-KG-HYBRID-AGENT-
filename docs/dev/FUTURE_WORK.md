@@ -166,8 +166,8 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - `eval/cost_tracker.py:34`의 gpt-4.1-mini 단가가 $0.15/$0.60 per 1M(공시가 $0.40/$1.60)이라 리포트 비용이 약 1/2.67로 과소 집계된다. v1.0~v9.1 기준선의 비용 수치도 같다.
 - `HybridRetriever.retrieve`가 검색 예외를 삼키고 빈 컨텍스트로 답변을 계속 만들어, 평가 하니스가 인프라 실패로 분류하지 못한다(2026-09-17 Chroma 오류 실행 2건이 조용히 채점됨).
 - 평가 프로세스 여러 개를 같은 `data/chroma`로 동시에 띄우면 한쪽의 색인 변경이 다른 쪽 검색을 깨뜨린다. 실행별 `CHROMA_PERSIST_DIR` 복사본이나 읽기 전용 모드가 필요하다.
-- `OWLRetrievalStrategy` 생성자 기본값이 시맨틱 청킹 `DocumentRetriever`를 새로 만들어 초기화 때 공유 컬렉션에 다른 청크를 추가 색인한다(`create_owl_strategy`는 `0669b75`에서 공유 검색기를 넘기게 했지만 생성자 기본값은 그대로).
-- `OWLRetrievalStrategy._matches_filters`가 엔티티 링커의 Chroma where 형식 필터(`$or`, brand·category 키)를 처리하지 못하고 문서 메타데이터에도 그 키가 없어, 엔티티가 연결된 질의는 문서를 0건 가져온다(130문항 중 124문항).
+- (해소 — 2026-09-18 트랙 4-C가 OWL 검색 전략을 삭제) `OWLRetrievalStrategy` 생성자 기본값이 시맨틱 청킹 `DocumentRetriever`를 새로 만들어 초기화 때 공유 컬렉션에 다른 청크를 추가 색인한다(`create_owl_strategy`는 `0669b75`에서 공유 검색기를 넘기게 했지만 생성자 기본값은 그대로).
+- (해소 — 2026-09-18 트랙 4-C가 OWL 검색 전략을 삭제. 엔티티 신호는 색인 태그 기반 재정렬 가산점으로 대체(4-B)) `OWLRetrievalStrategy._matches_filters`가 엔티티 링커의 Chroma where 형식 필터(`$or`, brand·category 키)를 처리하지 못하고 문서 메타데이터에도 그 키가 없어, 엔티티가 연결된 질의는 문서를 0건 가져온다(130문항 중 124문항).
 - 규칙 추론(`OntologyReasoner`)이 v4 평가 130문항·전 실행에서 추론 0건이다. `_build_inference_context`가 읽는 키가 운영 데이터와 맞지 않는다(근거 문서 §5.3).
 - 신뢰도 점수가 v4 평가의 172/172문항을 HIGH로 분류해 DecisionMaker(LLM 도구 선택)와 ReAct 분기가 평가에서 한 번도 실행되지 않는다. 임계값·점수 구성을 재검토해야 이 경로들을 측정할 수 있다.
 
@@ -214,3 +214,6 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - `DocumentRetriever.search_bm25`는 `doc_type_filter`를 적용하지 않아 인텐트 문서유형 필터가 dense 검색에만 걸린다. `reciprocal_rank_fusion` 결과에는 최상위 `id`가 없어 BM25 출처 결과는 metadata로만 식별된다.
 - `scripts/start.py`는 `build_index()`만 부르므로 이미 존재하는 미태깅 볼륨 색인은 배포해도 태그가 붙지 않는다(운영에서 `--retag` 1회 필요). `--retag`는 `--prune`과 함께 줘도 prune을 하지 않는다.
 - 로컬 `ruff format`과 pre-commit 훅의 ruff가 일부 파일에서 서로 다른 스타일로 고친다.
+- (트랙 4-C, 2026-09-18) `Container.get_unified_retriever`는 OWL 전략 주입이 존재 이유였는데 전략 삭제 후에도 서비스 호출처가 0건이다(사용하는 곳은 없고 `HybridRetriever` 싱글톤만 만든다). 삭제 여부는 Container 전반 정리와 함께 판단 필요.
+- (트랙 4-C, 2026-09-18) OWL 검색 전략·`llm_orchestrator`·`query_processor`·`unified_reasoner`·SPARQL 계층 삭제 후 남은 문서 표기: `CLAUDE.md`(모듈 표·디렉터리 트리), `README.md`(rdflib SPARQL·`use_owl_strategy`), `src/core/AGENTS.md`(QueryProcessor), `src/core/tools.py`·`src/core/confidence.py` 주석의 `llm_orchestrator.py` 언급, `docs/architecture.md`·`docs/SYSTEM_ARCHITECTURE.md`. 소유 경계 밖이라 이번 트랙에서 고치지 않았다.
+- (트랙 4-C, 2026-09-18) SPARQL 계층 삭제로 `rdflib`를 import하는 `src/` 코드가 없어졌다(`requirements.txt`의 의존성 정리 후보).
