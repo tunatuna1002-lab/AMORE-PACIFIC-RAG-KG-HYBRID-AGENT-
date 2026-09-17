@@ -288,22 +288,30 @@ flowchart TD
 
 측정(`docs/experiments/kg_ablation_2026-09.md` §6, v4 경로, 130문항 1회, 두 플래그 ON): **ReAct 발동 0건.** 평가 문항이 v4 기준선 172/172, KG 실험 130/130 모두 신뢰도 HIGH로 분류돼 **DecisionMaker와 ReAct 분기에 한 번도 도달하지 않았다.** 즉 위 "LLM이 행동을 고르는 유일한 지점"도 이 평가 데이터에서는 실행되지 않았다(대시보드 실제 트래픽의 분포는 미측정). OWL 검색은 `_matches_filters`가 엔티티 링커의 `$or` 필터를 처리하지 못해 엔티티가 연결된 124/130문항에서 문서를 0건 가져왔다(수리하지 않음, FUTURE_WORK 9.8). 판정(결정 D1): 두 플래그 **OFF 유지**.
 
-> 정확한 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인". "자율 에이전트"·"ReAct 자기성찰"은 구현 코드는 있으나 서비스 경로에서 동작하지 않는다. `chat.py:154-158, 226`의 docstring("모든 판단을 LLM이 수행", "ReAct + OWL 지원")은 코드와 다르다. **[2026-09 사후]** 실제 분기와 플래그 기본값에 맞게 고쳤다(`26cd8e6`). 2026-09 이후 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인. ReAct 루프와 OWL 검색 전략은 연결돼 있으나 기본 비활성."
+**[2026-09-18 사후] 트랙 4 — OWL 검색 전략 자체를 삭제, 도구 레지스트리 통합** (`docs/experiments/evidence_pipeline_2026-09.md` 4단계). 위 표의 "OWL 전략 생성"·"ReAct 도구 3종"은 이후 다시 바뀌었다:
+
+- **OWL 검색 전략 삭제**: `OWLRetrievalStrategy`·`create_owl_strategy`·플래그 `retriever.use_owl_strategy`가 코드에서 사라졌다(결정 S4-1, 커밋 `eb5dff2`·`f604c13`·`167ec1b`·`b59beab`). 위에서 "연결, 플래그 기본 OFF"라고 적은 전략 자체가 더는 존재하지 않는다 — "플래그를 켜면 동작하는 미완성 기능"에서 "설계상 없는 기능"으로 바뀌었다. OWL은 이제 카테고리 계층 어휘로만 쓰이고(`src/ontology/owl_reasoner.py`), 온톨로지 신호(엔티티·카테고리 일치)는 legacy 검색 경로(Dense+BM25 RRF) 결과 위의 재정렬 가산점으로 흡수했다(트랙 4-B). 같은 커밋에서 호출처가 없던 `unified_reasoner.py`·`llm_orchestrator.py`(603줄)·`query_processor.py`·SPARQL 계층(`kg_query.py`)도 함께 삭제했다(소스 −2,237줄, 테스트 포함 −5,741줄).
+- **ReAct 전용 도구 3종 폐지**: `query_data`·`query_knowledge_graph`·`calculate_metrics`(읽기 전용 실행기 3종)는 DecisionMaker와 완전히 같은 단일 레지스트리 5종(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, 모두 증거 카드 반환)으로 교체됐다(트랙 4-A, 커밋 `bdfb187`~`6140254`, `src/core/tool_registry.py`). DecisionMaker 자신도 `{"tool", "tool_params"}` JSON을 텍스트에서 잘라내던 방식에서 OpenAI 네이티브 function calling(`tools=`, `tool_choice="auto"`)으로 바뀌었다. 대시보드 JSON 전용 도구, ReAct 전용 3종, 소비처가 사라진 `src/core/tools.py`는 모두 삭제됐다.
+- 게이트: 전체 테스트 `6140254`에서 5,901 passed, 엔티티 연결 질의 문서 0건 문항이 0으로 해소(위 문단의 124/130 결함 해소). 통합 시험지 231문항 1회 측정에서 종합 점수 0.676→0.682(차이 없음), L2 개념 Recall 0.634→0.669(+0.035, 차이 있음). 단일 실행이라 판정 임계는 이전 3회 측정 폭을 빌려 썼다(한계는 실험 문서에 명시).
+
+위 문단 "평가 문항이 …모두 신뢰도 HIGH로 분류돼 …분기에 한 번도 도달하지 않았다"는 트랙 5-B(신뢰도 점수를 증거 적합도 기반으로 교체 — 엔티티 충족도 0.60 + 카드 종류 충족 0.40, 검색 점수 분포는 ±0.05 동점 가르기로만 반영, 임계값 HIGH 0.95/MEDIUM 0.61/LOW 0.60, `src/core/confidence.py`, 커밋 `bb0627f`·`450e9d1`·`5fb6030`)가 정면으로 겨냥한 문제다. 이전 점수(개수 가중합)는 검색이 항상 비슷한 양을 담아 와 233문항 중 230문항이 HIGH였다. **다만 이 재작업 이후의 172문항(또는 233문항) 재평가는 `docs/experiments/evidence_pipeline_2026-09.md`에 아직 없다** — HIGH 편중이 실제로 줄어 DecisionMaker·ReAct 분기가 평가에서 실행되는지는 **미측정**이다.
+
+> 정확한 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인". "자율 에이전트"·"ReAct 자기성찰"은 구현 코드는 있으나 서비스 경로에서 동작하지 않는다. `chat.py:154-158, 226`의 docstring("모든 판단을 LLM이 수행", "ReAct + OWL 지원")은 코드와 다르다. **[2026-09 사후]** 실제 분기와 플래그 기본값에 맞게 고쳤다(`26cd8e6`). 2026-09 이후 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인. ReAct 루프는 연결돼 있으나 기본 비활성." **[2026-09-18 사후 추가 정정]** "OWL 검색 전략은 연결돼 있으나 기본 비활성"이라는 표현은 더 이상 맞지 않는다 — 그 전략 자체가 삭제됐다. "OWL은 카테고리 계층 어휘로만 쓰고, 검색 전략이 아니다"로 쓸 것.
 
 ### 3.4 사용하지 않는 코드·계획 단계 기능
 
 | 대상 | 판정 | 근거 |
 |---|---|---|
-| `src/core/react_agent.py` (ReAct, IRCoT, multi-hop) | [미연결] → **[2026-09 사후] [연결, 플래그 기본 OFF]** | §3.3 |
-| `OWLRetrievalStrategy`, `Container.get_unified_retriever` | [미연결] → **[2026-09 사후] 전략은 [연결, 플래그 기본 OFF], 검색 필터 결함 있음**. `get_unified_retriever` 호출처 0건은 그대로 | §3.3 |
-| `src/ontology/unified_reasoner.py` | [미연결] | 인스턴스화 0건. 플래그 `use_unified_reasoner`는 실제로 `OntologyReasoner` on/off로만 쓰임(`hybrid_retriever.py:536`) |
-| SPARQL (`src/ontology/kg_query.py:499, 771`) | [미연결] | 호출 0건 |
+| `src/core/react_agent.py` (ReAct, IRCoT, multi-hop) | [미연결] → **[2026-09 사후] [연결, 플래그 기본 OFF]** → **[2026-09-18 사후]** DecisionMaker와 같은 `tool_registry` 5종 공유(트랙 4-A) | §3.3 |
+| `OWLRetrievalStrategy`, `Container.get_unified_retriever` | [미연결] → **[2026-09 사후] 전략은 [연결, 플래그 기본 OFF], 검색 필터 결함 있음** → **[2026-09-18 사후] 전략 자체 삭제**(`OWLRetrievalStrategy`·`create_owl_strategy`·플래그 `retriever.use_owl_strategy`, 트랙 4-C, 커밋 `eb5dff2` 등). OWL은 카테고리 계층 어휘로만 남음. `Container.get_unified_retriever` 호출처 0건 문제는 미해결로 남음(§9.9.1) | §3.3 |
+| `src/ontology/unified_reasoner.py` | [미연결] → **[2026-09-18 사후] 파일 삭제**(트랙 4-C, 호출처 0건 죽은 코드) | 인스턴스화 0건이었다. 플래그 `use_unified_reasoner`는 이름과 달리 실제로는 `OntologyReasoner` on/off로만 쓰인다(`hybrid_retriever.py:577`) — 삭제된 파일과 동명이 아니라 혼동 주의 |
+| SPARQL (`src/ontology/kg_query.py:499, 771`) | [미연결] → **[2026-09-18 사후] 삭제**(트랙 4-C, SPARQL 계층 전체 제거) | 호출 0건이었다 |
 | CrossEncoder reranker, RelevanceGrader | [구현, 플래그 OFF] | `config/feature_flags.json:4` `"use_reranker": false` |
-| `src/core/llm_orchestrator.py`(603줄), `src/core/query_processor.py` | [미연결] | import 0건 |
+| `src/core/llm_orchestrator.py`(603줄), `src/core/query_processor.py` | [미연결] → **[2026-09-18 사후] 둘 다 삭제**(트랙 4-C) | import 0건이었다. `query_processor.py`가 하던 질의 분기는 `query_graph.py`의 `QueryGraph`가 맡는다 |
 | `InsightWorkflow`, `AlertWorkflow`, `CategoryService`, `SentimentService` | [미연결] | container getter뿐 |
 | `src/adapters/*`, `src/application/orchestrators` | 빈 패키지 | `__init__.py`만 |
 | `src/core/batch_workflow.py`, `true_hybrid_insight_agent.py`, `crawl_workflow.py` | [문서]에만 → **[2026-09 사후] CLAUDE.md 구조도에서 제거**(`1c34d28`) | 파일 없음 |
-| 도구 `crawl_amazon`, `calculate_metrics`, `query_data`, `query_knowledge_graph`, `query_deals*` | 정의만 | 실행기 미등록. **[2026-09 사후]** `calculate_metrics`·`query_data`·`query_knowledge_graph`는 ReAct 전용 읽기 전용 실행기를 구현(DecisionMaker에는 미등록). `crawl_amazon`·`query_deals*`는 그대로 |
+| 도구 `crawl_amazon`, `calculate_metrics`, `query_data`, `query_knowledge_graph`, `query_deals*` | 정의만 | 실행기 미등록. **[2026-09 사후]** `calculate_metrics`·`query_data`·`query_knowledge_graph`는 ReAct 전용 읽기 전용 실행기를 구현(DecisionMaker에는 미등록). `crawl_amazon`·`query_deals*`는 그대로. **[2026-09-18 사후]** 이 이름들 자체가 사라졌다 — DecisionMaker·ReAct가 공유하는 단일 레지스트리 5종(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, 모두 증거 카드 반환)으로 교체(트랙 4-A). `crawl_amazon`·`query_deals*`는 이 레지스트리 밖으로 변화 없음 |
 | RelationType 36종 중 26종 | 정의만 | 로컬 KG에 저장된 predicate는 10종 |
 | `product_metrics`, `deals*` 테이블 | 스키마만 | 로컬 DB 0행 |
 | `scripts/docker-entrypoint.sh` | 잔존 파일 | `60fae41`에서 참조 제거 |
@@ -447,6 +455,11 @@ flowchart TD
 - 따라서 위 (d) "규칙으로 새 진술을 도출"은 **2026-09 평가 데이터에서 실효 0**이다.
 - 한계: 구성당 3회, judge와 답변 모델이 같음, 모든 문항이 신뢰도 HIGH, KG off는 검색 시 KG 조회만 끔.
 
+**[2026-09-18 사후]** 위 "규칙 추론 0건"은 이후 해소됐다(`docs/experiments/evidence_pipeline_2026-09.md` 3단계). 규칙이 증거 카드를 입력으로 받도록 재작업한 뒤(`src/ontology/rule_contracts.py`, 트랙 2-A) 233문항 시험지 3단계 측정(각 3회)에서 **규칙 발화 문항 비율 0.568, 규칙 정답 일치율 0.779**(규칙 off 0.469 대비 +0.310, 실행 범위 비겹침 — "차이 있음")로 나왔다. 오프라인(LLM 없이) 측정 규칙 일치율 25/32=0.781과도 일치한다. 다만:
+- 같은 측정에서 **judge 종합 점수는 규칙 off가 0.022 더 높았다**(0.800 vs 0.822, 범위 비겹침) — 원인은 확인하지 않았다(가설: 규칙 발화가 만드는 추가 문장이 관련성·F1 채점에서 손해를 볼 수 있음).
+- **부작용**: 규칙 추론 결과가 질의 확장(`_expand_query`)에 개입해 문서 검색이 바뀌었다(발화 문항 132개의 문서 겹침 0.472, 비발화 101개는 0.906) — 규칙과 무관한 유형(예: multihop)의 L2 개념 Recall도 −0.036 하락. 이 부작용은 트랙 4-B(색인 태그 가산점)가 대부분 되돌렸다(기준선 0.668 → 3단계 0.634 → 4단계 0.669).
+- 즉 위 (d) "규칙으로 새 진술을 도출"의 실효는 **2026-09-18 이후 측정에서는 확인된다** — 다만 judge 종합 점수 기준으로는 방향이 갈린다는 점을 함께 적어야 한다. 위 단락(규칙 추론 0건)은 2026-09-17 측정 시점 기준 서술로 남겨 둔다.
+
 ---
 
 ## 6. 트러블슈팅 사례 (근거가 가장 강한 3건)
@@ -545,7 +558,13 @@ flowchart TD
 - 평가 문항 172/172가 신뢰도 HIGH로 분류돼 DecisionMaker·ReAct 분기가 실행되지 않았다.
 - v4 답변 프롬프트에는 DB 수치 사실(`3fce8e8`)이 실리지 않는다(v1만 렌더링). snapshot 문항 통과 0건.
 - **비용 수치 과소 집계**: `eval/cost_tracker.py`의 gpt-4.1-mini 단가가 공시가의 약 1/2.67이다. 위 표와 사이클 문서의 비용(예: 분산 3회 $1.13, 172문항 1회 $0.38)은 실제보다 낮다.
-- 평가 중 검색 예외가 삼켜지면 하니스가 인프라 실패로 분류하지 못한다(2026-09-17 Chroma 오염 때 확인, §4.3).
+- 평가 중 검색 예외가 삼켜지면 하니스가 인프라 실패로 분류하지 못한다(2026-09-17 Chroma 오염 때 확인, §4.3). **[2026-09-18 사후]** 트랙 0-B(`024ad89`·`f083519`)에서 해소 — 핵심 검색 실패는 `context.metadata["retrieval_error"]`로 남아 하니스가 인프라 실패로 구분한다(`docs/dev/FUTURE_WORK.md` 9.8).
+
+**[2026-09-18 사후] 증거 카드·규칙·도구 레지스트리 재작업 이후 v4 재측정** (`docs/experiments/evidence_pipeline_2026-09.md`, 공모전 이후 작업 — 위 baseline들과는 별도 계열):
+- 규칙 재작업 직후(3단계, 233문항 각 3회, 규칙 on vs off): 규칙 정답 일치율 0.779 vs 0.469(+0.310, 차이 있음), 규칙 발화 문항 비율 0.568, **종합 점수는 규칙 on이 0.022 낮음**(0.800 vs 0.822, 차이 있음 — 방향이 엇갈림을 그대로 적는다), L5 수치 정확도 0.777 vs 0.790(차이 없음). 답변 수치 검증(annotate, 3회 합계 6,419개 수치): verified 31.9%, no_citation 61.5%(이 중 97.9%는 프롬프트의 다른 카드에는 있는 값), mismatch 6.1%, unknown_card 0.5%.
+- 도구 레지스트리 통합 직후(4단계, 통합 시험지 231문항 1회, 판정은 3단계 3회의 폭을 빌림 — 단일 실행 비교의 한계 있음): 종합 점수 0.676→0.682(차이 없음), **L2 개념 Recall 0.634→0.669(+0.035, 차이 있음)** — 3단계에서 규칙 결과가 질의 확장에 개입해 생긴 검색 회귀(기준선 0.668 → 3단계 0.634)가 트랙 4-B(색인 태그 가산점)로 대부분 되돌아왔다. 규칙 정답 일치율 0.779→0.781(차이 없음). 엔티티 연결 질의 문서 0건 문항이 0으로 해소(§3.3의 124/130 결함).
+- 비용 재계산(트랙 0-C, `f7d9bcd`)으로 `eval/cost_tracker.py`의 gpt-4.1-mini 단가를 공시가($0.40/$1.60)로 교정했다 — 아래 "비용 수치 과소 집계" 지적은 이 커밋 이후 실행된 위 두 측정에는 적용되지 않는다(단, 위 표의 기존 baseline 리포트 저장값 자체는 재계산하지 않았다).
+- 트랙 5-B(신뢰도 점수 재작업)는 이 문서가 다루는 4단계 이후에 커밋됐다 — **위 172/172 HIGH 편중 재측정은 아직 없다**(§3.3).
 
 **테스트·커버리지**(이번에 실행하지 않음): README(`5cd04a7`, 08-30) 5,242개 수집/5,235 통과/7 skip, 커버리지 72.19% — 로컬 `pytest --cov=src` 측정값이며 CI 산출물은 없다. "60% 목표"는 강제되지 않는다(`pyproject.toml:59`).
 
@@ -624,15 +643,18 @@ flowchart TD
 | **[2026-09 사후]** 사후 감사에서 "구현했지만 연결되지 않은" ReAct·OWL을 찾아 배선을 수리하고, 검증 전에는 켜지지 않게 플래그 기본 OFF로 두었다. 켜서 측정해 보니 효과가 없거나 결함이 드러나 OFF를 유지했다 | `26cd8e6`, `0669b75`, `docs/experiments/kg_ablation_2026-09.md` §6 — **공모전 이후 작업임을 명시** |
 | **[2026-09 사후]** 평가가 서비스 경로와 다른 경로를 재고 있음을 발견해 서비스(v4) 경로 평가를 추가하고 기준선을 새로 세웠다 | `3c5af51`, `brain-v4-1.0-2026-09-17` |
 | **[2026-09 사후]** KG 효과를 requires_kg 130문항·구성당 3회로 측정하고, 채점 컨텍스트 효과를 교차 채점으로 분리해 과대 해석을 막았다. 규칙 추론은 추론 0건이라 효과를 측정할 수 없음을 확인했다 | `docs/experiments/kg_ablation_2026-09.md` |
+| **[2026-09-18 사후]** 규칙 추론이 증거를 지어내던 구조를 증거 카드 계약(입력·발화 근거 추적)으로 재작업했고, 233문항 측정으로 규칙이 실제로 발화(0.568)하고 정답 일치율을 0.469→0.779로 올리는 것을 확인했다(judge 종합 점수는 반대 방향이라는 사실도 함께 기록) | `docs/experiments/evidence_pipeline_2026-09.md` 3단계 |
+| **[2026-09-18 사후]** ReAct·DecisionMaker가 쓰던 두 갈래 도구 정의(대시보드 JSON 5종 + ReAct 전용 3종)를 증거 카드를 반환하는 단일 레지스트리로 통합하고, DecisionMaker를 텍스트 JSON 파싱에서 네이티브 function calling으로 옮겼다. 전체 테스트 5,901 통과로 확인 | `src/core/tool_registry.py`, 트랙 4-A |
+| **[2026-09-18 사후]** "구현했으나 검증 없이 기본 ON이던" OWL 검색 전략이 실제로는 검색 필터 결함으로 대부분의 질의에서 문서를 못 가져온다는 것을 확인한 뒤, 되살리는 대신 죽은 코드로 판단해 삭제하고 온톨로지 신호는 기존 경로의 재정렬 가산점으로 흡수했다(소스 −2,237줄) | `docs/plans/evidence-react-ontology-decisions-2026-09.md` S4-1, 트랙 4-C |
 
 ### 10.2 그대로 쓰면 위험한 주장
 
 | 주장 | 문제 | 대안 |
 |---|---|---|
 | "ReAct 에이전트가 복잡한 질문을 자기성찰로 처리한다" | 서비스 경로 [미연결](§3.3). 처음부터 import 경로 오류. **[2026-09 사후]** 연결은 수리했으나 기본 OFF이고, 켜고 측정한 평가에서 발동 0건 | "ReAct 루프를 구현했으나 공모전 당시 서비스 경로에 연결되지 않았고, 사후 분석(2026-09)에서 찾아 연결했지만 효과가 확인되지 않아 기본 비활성으로 두었다" 또는 언급하지 않기 |
-| "OWL 온톨로지 추론으로 검색한다" | OWL 전략 [미연결]. 실제 추론은 Python 규칙 엔진. **[2026-09 사후]** 연결 후 측정에서 필터 결함으로 124/130문항 문서 0건, 기본 OFF | "규칙 기반 추론기(37개 규칙)를 검색 컨텍스트에 연결" — 단 2026-09 평가에서 규칙 추론 0건이었으므로 "추론 결과가 답변에 기여"로는 쓰지 말 것 |
+| "OWL 온톨로지 추론으로 검색한다" | OWL 전략 [미연결]. 실제 추론은 Python 규칙 엔진. **[2026-09 사후]** 연결 후 측정에서 필터 결함으로 124/130문항 문서 0건, 기본 OFF. **[2026-09-18 사후]** 전략 자체를 삭제했다 — 이제 OWL은 카테고리 계층 어휘로만 쓰이고 검색에 관여하지 않는다 | "규칙 기반 추론기(37개 규칙, 증거 카드 입력)를 검색 컨텍스트에 연결했다. OWL 스키마는 카테고리 계층 검증에 쓴다" — 2026-09-17 측정 시점(규칙 추론 0건)과 2026-09-18 재작업 이후(발화 0.568, 정답 일치율 0.779, 단 judge 종합 점수는 규칙 off가 더 높음)를 구분해서 쓸 것(§5.5) |
 | "자율 AI 에이전트", "LLM이 모든 판단을 수행" | LLM 선택 지점은 단발 도구 선택 1곳 | "LLM 라우팅이 포함된 RAG 파이프라인" |
-| "KG·온톨로지로 부족한 데이터를 보완했다 / 성능을 높였다" | 데이터 양은 늘지 않았고 비교 실험상 효과는 노이즈 범위(§5.5). **[2026-09 사후]** 재실험에서 KG off 시 근거성 하락은 있으나 일부는 채점 효과, 정답성 지표는 차이 없음, 규칙 추론은 추론 0건 | "같은 데이터를 관계 구조로 재표현하고 개념을 정규화했다" + (쓴다면) "사후 실험에서 KG 사실이 답변을 검색 근거에 더 붙게 하는 정황을 확인했으나 정답성 개선은 확인되지 않았다" |
+| "KG·온톨로지로 부족한 데이터를 보완했다 / 성능을 높였다" | 데이터 양은 늘지 않았고 비교 실험상 효과는 노이즈 범위(§5.5). **[2026-09 사후]** 재실험에서 KG off 시 근거성 하락은 있으나 일부는 채점 효과, 정답성 지표는 차이 없음, 규칙 추론은 추론 0건. **[2026-09-18 사후]** 규칙 추론 0건은 그 뒤 해소됐다(발화 0.568, 정답 일치율 0.779) — 단 같은 측정에서 judge 종합 점수는 규칙 off가 더 높았다(§5.5) | "같은 데이터를 관계 구조로 재표현하고 개념을 정규화했다" + (쓴다면) "사후 실험에서 KG 사실이 답변을 검색 근거에 더 붙게 하는 정황을 확인했으나 정답성 개선은 확인되지 않았다. 규칙 추론은 이후 재작업에서 실제로 발화하고 규칙 판단 정답률을 올리는 것을 확인했지만, 전체 답변 품질(judge 종합 점수)에는 되레 불리했다" |
 | "Google Sheets에서 SQLite로 교체했다" | 병행 + 동기화 | §4.2 |
 | "근거성 +35% / +78% 개선" | 오염 구간 포함, 기준 변경(§7) | "클린 측정 이후 v4.0 0.630 → v9.1 0.699, 단 채점 정의가 중간에 바뀜" 정도로만 |
 | "healthcheck 타임아웃을 비동기 전환으로 해결" | 메시지의 진단이 당시 코드와 불일치(§6 부록) | 기본값 변경 사실만, 또는 사용하지 않기 |
