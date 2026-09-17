@@ -18,6 +18,7 @@ RAG + KG 컨텍스트 기반 LLM 응답 생성
 
 import json
 import logging
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 
@@ -143,6 +144,10 @@ class ResponsePipeline:
         start_time = datetime.now()
 
         try:
+            # 도구 결과도 증거 카드다 — 프롬프트·인용·출처·수치 검증이 검색 카드와 같은 경로를
+            # 타도록 컨텍스트에 합친다 (트랙 4-A). 호출자의 Context는 바꾸지 않는다.
+            context = self._with_tool_evidence(context, tool_result)
+
             # 프롬프트 구성
             messages = self._build_messages(query, context, decision, tool_result)
 
@@ -354,10 +359,37 @@ class ResponsePipeline:
             return ""
         return f"\n\n[인용 규칙]\n{CITATION_INSTRUCTION}"
 
+    @staticmethod
+    def _with_tool_evidence(context: Context, tool_result: ToolResult | None) -> Context:
+        """도구 결과의 증거 카드를 컨텍스트 카드에 합친 사본을 돌려준다 (트랙 4-A).
+
+        레지스트리 도구(``src/core/tool_registry.py``)의 결과는 전부 카드다. 카드를 합치면
+        답변 프롬프트의 인용 규칙·출처 표시(``_extract_sources``)·답변 수치 검증(E8)이
+        검색 카드와 똑같이 도구 카드에도 적용된다. 카드가 없는 결과(옛 도구·실패)는 그대로 둔다.
+        """
+        from src.core.tool_registry import tool_evidence
+        from src.domain.entities.evidence import EvidenceSet
+
+        cards = tool_evidence(tool_result)
+        if not cards:
+            return context
+
+        return replace(
+            context,
+            evidence=EvidenceSet([*context.evidence, *cards]).to_list(),
+            prompt_evidence=EvidenceSet([*context.prompt_evidence, *cards]).to_list(),
+        )
+
     def _format_tool_result(self, tool_result: ToolResult) -> str:
         """도구 결과 포맷팅"""
         if not tool_result.success:
             return f"실행 실패: {tool_result.error}"
+
+        from src.core.tool_registry import render_tool_observation, tool_evidence
+
+        if tool_evidence(tool_result):
+            # 레지스트리 도구: 카드를 프롬프트와 같은 형식(``[id] 내용 (as_of, source)``)으로
+            return render_tool_observation(tool_result)
 
         data = tool_result.data
 
