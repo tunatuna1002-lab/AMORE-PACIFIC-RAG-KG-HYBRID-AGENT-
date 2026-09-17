@@ -276,6 +276,11 @@ JSON만 출력하세요: {{"hops": 1-4, "reason": "한 줄 근거"}}"""
         if judgement_hits:
             stages.append(STAGE_JUDGEMENT)
             evidence[STAGE_JUDGEMENT] = judgement_hits
+            if stages == [STAGE_JUDGEMENT]:
+                # "왜 그런지 분석해줘"처럼 판정만 남은 질문. 판정은 허공에서 나오지 않는다 —
+                # 근거를 먼저 모아야 하므로 조회 한 단계가 앞에 붙는다.
+                stages.append(STAGE_METRIC)
+                evidence[STAGE_METRIC] = ["판정 전 근거 조회"]
 
         ordered = tuple(s for s in STAGE_ORDER if s in stages)
         hops = max(len(ordered), MIN_HOPS)

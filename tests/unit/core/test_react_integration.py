@@ -40,6 +40,29 @@ class TestReActIntegration:
         assert hasattr(QueryGraph, "_is_complex_query")
         assert not hasattr(UnifiedBrain, "_is_complex_query")
 
+    def test_routing_uses_the_hop_router_not_the_keyword_heuristic(self):
+        """5-C: 경로 판정은 홉 수 라우터가 한다. 옛 키워드 휴리스틱은 분기에서 빠졌다."""
+        from src.core.query_graph import QueryGraph
+        from src.core.router import HopRouter
+
+        route_source = inspect.getsource(QueryGraph._route_after_confidence)
+        assert "_is_complex_query" not in route_source
+        assert isinstance(
+            QueryGraph._router_decision(  # noqa: SLF001
+                QueryGraph(
+                    cache=None,
+                    context_gatherer=None,
+                    confidence_assessor=None,
+                    decision_maker=None,
+                    tool_coordinator=None,
+                    response_pipeline=None,
+                    router=HopRouter(),
+                ),
+                _state("LANEIGE 제품이 속한 카테고리의 HHI는?"),
+            ).hops,
+            int,
+        )
+
     def test_react_execution_lives_in_query_graph(self):
         """ReAct 실행 노드도 QueryGraph에만 있다 (5-A: brain의 복제본 삭제)"""
         from src.core.brain import UnifiedBrain
@@ -57,9 +80,10 @@ class TestReActIntegration:
         """
         from src.core.query_graph import QueryGraph
 
-        # QueryGraph의 라우팅에서 ReAct 경로 확인
+        # QueryGraph의 라우팅에서 ReAct 경로 확인 (5-C: 홉 수 라우터가 판정한다)
         route_source = inspect.getsource(QueryGraph._route_after_confidence)
-        assert "_is_complex_query" in route_source
+        assert "_router_decision" in route_source
+        assert "use_react" in route_source
 
         # QueryGraph.stream에서 ReAct 노드 호출 확인 (run은 stream을 소비만 한다)
         stream_source = inspect.getsource(QueryGraph.stream)
@@ -77,10 +101,16 @@ class TestReActIntegration:
         source = inspect.getsource(QueryGraph._route_after_confidence)
         # HIGH confidence path (should_skip_llm_decision) should come before ReAct check
         high_pos = source.find("should_skip_llm_decision")
-        react_pos = source.find("_is_complex_query")
+        react_pos = source.find("_router_decision")
         if high_pos >= 0 and react_pos >= 0:
             # HIGH confidence check should appear before ReAct
             assert high_pos < react_pos, "HIGH confidence should be checked before ReAct"
+
+
+def _state(query: str):
+    from src.core.graph_state import QueryState
+
+    return QueryState(query=query)
 
 
 class TestComplexQueryDetection:

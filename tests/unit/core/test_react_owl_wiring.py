@@ -62,7 +62,12 @@ class TestBrainInitializationWiring:
         assert isinstance(brain._react_agent, ReActAgent)
         assert brain._react_agent.tool_executor is not None
         status = brain.get_component_status()
-        assert status["react_agent"] == {"enabled": True, "active": True, "error": None}
+        assert status["react_agent"] == {
+            "enabled": True,
+            "active": True,
+            "error": None,
+            "mode": "on",
+        }
 
     @pytest.mark.asyncio
     async def test_react_tools_cover_allowed_actions(self, flags_env):
@@ -98,7 +103,12 @@ class TestBrainInitializationWiring:
 
         assert brain._react_agent is None
         status = brain.get_component_status()
-        assert status["react_agent"] == {"enabled": False, "active": False, "error": None}
+        assert status["react_agent"] == {
+            "enabled": False,
+            "active": False,
+            "error": None,
+            "mode": "off",
+        }
 
     def test_default_config_keeps_react_off(self, monkeypatch):
         """수리 직후 기본값은 비활성 (결정 D1: 평가 전 검증 없이 켜지지 않게)."""

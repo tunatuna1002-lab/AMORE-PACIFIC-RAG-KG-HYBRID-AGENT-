@@ -63,8 +63,9 @@ from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
 from .models import Response
-from .query_graph import QueryGraph
+from .query_graph import REACT_MODE_OFF, REACT_MODE_ON, REACT_MODE_SHADOW, QueryGraph
 from .response_pipeline import ResponsePipeline
+from .router import HopRouter
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
 from .tool_coordinator import ToolCoordinator
@@ -218,6 +219,9 @@ class UnifiedBrain:
         self._workflow_agent = None
         self._alert_agent = None
         self._react_agent = None
+        # 홉 수 라우터 — LLM 폴백 캐시를 공유하려고 Brain 수명 동안 하나만 둔다
+        self._router = HopRouter()
+        self._react_mode = REACT_MODE_OFF
 
         # Market Intelligence Engine (lazy init)
         self._market_intelligence: MarketIntelligenceEngine | None = None
@@ -412,15 +416,24 @@ class UnifiedBrain:
 
         이전 코드는 존재하지 않는 `..agents.react_agent`를 import해 추가된 날(a965437)부터
         항상 None이었고, 예외는 debug 로그로 삼켜졌다.
+
+        섀도 모드(``agents.react_shadow_mode``, 트랙 5-C)에서도 에이전트는 만들어야 한다 —
+        답변은 파이프라인이 내지만 ReAct를 같이 돌려 기록을 남기기 때문이다. 이때 모드는
+        ``shadow``이고 QueryGraph는 ReAct 경로로 분기하지 않는다.
         """
         from ..infrastructure.feature_flags import FeatureFlags
 
-        status = self._component_status["react_agent"]
-        status.update(
-            enabled=FeatureFlags.get_instance().use_react_agent(), active=False, error=None
+        flags = FeatureFlags.get_instance()
+        use_react = bool(flags.use_react_agent())
+        shadow = bool(flags.react_shadow_mode()) and not use_react
+        self._react_mode = (
+            REACT_MODE_ON if use_react else (REACT_MODE_SHADOW if shadow else REACT_MODE_OFF)
         )
+
+        status = self._component_status["react_agent"]
+        status.update(enabled=use_react, active=False, error=None, mode=self._react_mode)
         self._react_agent = None
-        if not status["enabled"]:
+        if not (use_react or shadow):
             return
 
         try:
@@ -506,6 +519,8 @@ class UnifiedBrain:
                 tool_coordinator=self.tool_coordinator,
                 response_pipeline=self._response_pipeline,
                 react_agent=self._react_agent,
+                router=self._router,
+                react_mode=self._react_mode,
             )
         return self._query_graph
 
