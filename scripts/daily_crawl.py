@@ -39,19 +39,21 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 # 로깅 설정
 LOG_DIR = PROJECT_ROOT / "logs"
-LOG_DIR.mkdir(exist_ok=True)
-
-log_file = LOG_DIR / f"daily_crawl_{datetime.now().strftime('%Y-%m-%d')}.log"
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    handlers=[
-        logging.FileHandler(log_file, encoding="utf-8"),
-        logging.StreamHandler(sys.stdout),
-    ],
-)
 logger = logging.getLogger("daily_crawl")
+
+
+def _configure_logging() -> None:
+    """파일 + stdout 로깅 설정 (main에서만 호출 — import 시 로그 파일을 만들지 않는다)"""
+    LOG_DIR.mkdir(exist_ok=True)
+    log_file = LOG_DIR / f"daily_crawl_{datetime.now().strftime('%Y-%m-%d')}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        handlers=[
+            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
 
 
 # ── macOS 알림 ──────────────────────────────────────────────
@@ -79,8 +81,9 @@ async def run_pipeline(crawl_only: bool = False, dry_run: bool = False) -> dict:
     Steps:
         1. Amazon BSR 크롤링 (5개 카테고리 × Top 100)
         2. SQLite 저장
-        3. Google Sheets 저장
-        4. Dashboard JSON 생성
+        3. Google Sheets 저장 (StorageAgent — raw_data SQLite 쓰기도 여기서 일어난다)
+        4. 지표 저장 (raw_data → brand_metrics / market_metrics)
+        5. Dashboard JSON 생성
 
     Returns:
         실행 결과 dict
@@ -112,7 +115,7 @@ async def run_pipeline(crawl_only: bool = False, dry_run: bool = False) -> dict:
         logger.warning("OPENAI_API_KEY not set — insight 생성 건너뜀")
 
     # ── STEP 1: 크롤링 ──
-    logger.info("[1/4] Amazon BSR 크롤링 시작...")
+    logger.info("[1/5] Amazon BSR 크롤링 시작...")
 
     if dry_run:
         logger.info("[DRY RUN] 크롤링 건너뜀")
@@ -136,12 +139,12 @@ async def run_pipeline(crawl_only: bool = False, dry_run: bool = False) -> dict:
             result["categories_done"] = len(crawl_result.get("categories", {}))
 
             logger.info(
-                f"[1/4] 완료: {result['products_collected']}개 제품, "
+                f"[1/5] 완료: {result['products_collected']}개 제품, "
                 f"{result['categories_done']}개 카테고리"
             )
 
         except Exception as e:
-            logger.error(f"[1/4] 크롤링 실패: {e}", exc_info=True)
+            logger.error(f"[1/5] 크롤링 실패: {e}", exc_info=True)
             result["errors"].append(f"crawl: {e}")
             result["status"] = "failed"
             return result
@@ -155,30 +158,50 @@ async def run_pipeline(crawl_only: bool = False, dry_run: bool = False) -> dict:
         return result
 
     # ── STEP 2: SQLite 저장 ──
-    logger.info("[2/4] SQLite 저장 시작...")
+    logger.info("[2/5] SQLite 저장 시작...")
     try:
         sqlite_count = await _save_to_sqlite(crawl_result, snapshot_date)
-        logger.info(f"[2/4] SQLite 저장 완료: {sqlite_count}건")
+        logger.info(f"[2/5] SQLite 저장 완료: {sqlite_count}건")
     except Exception as e:
-        logger.error(f"[2/4] SQLite 저장 실패: {e}", exc_info=True)
+        logger.error(f"[2/5] SQLite 저장 실패: {e}", exc_info=True)
         result["errors"].append(f"sqlite: {e}")
 
     # ── STEP 3: Google Sheets 저장 ──
-    logger.info("[3/4] Google Sheets 저장 시작...")
+    logger.info("[3/5] Google Sheets 저장 시작...")
     try:
         sheets_count = await _save_to_sheets(crawl_result)
-        logger.info(f"[3/4] Google Sheets 저장 완료: {sheets_count}건")
+        logger.info(f"[3/5] Google Sheets 저장 완료: {sheets_count}건")
     except Exception as e:
-        logger.warning(f"[3/4] Google Sheets 저장 실패 (non-fatal): {e}")
+        logger.warning(f"[3/5] Google Sheets 저장 실패 (non-fatal): {e}")
         result["errors"].append(f"sheets: {e}")
 
-    # ── STEP 4: Dashboard 데이터 생성 ──
-    logger.info("[4/4] Dashboard 데이터 생성 시작...")
+    # ── STEP 4: 지표 저장 ──
+    # raw_data가 STEP 2/3에서 쓰인 뒤에 실행해야 한다. 대시보드가 지표 테이블을
+    # 먼저 읽으므로 STEP 5보다 앞선다.
+    logger.info("[4/5] 지표 저장 시작 (brand_metrics / market_metrics)...")
+    try:
+        metrics_summary = await _store_metrics(crawl_result)
+        result["metrics"] = metrics_summary
+        if not metrics_summary:
+            logger.warning("[4/5] 크롤 결과에 스냅샷 날짜가 없어 지표 저장을 건너뜀")
+        for date, counts in metrics_summary.items():
+            if counts["market_rows"] == 0:
+                result["errors"].append(f"metrics: {date} raw_data 0행 — 지표 미저장")
+            logger.info(
+                f"[4/5] 지표 저장 완료: {date} brand={counts['brand_rows']}, "
+                f"market={counts['market_rows']} (raw={counts['raw_rows']})"
+            )
+    except Exception as e:
+        logger.error(f"[4/5] 지표 저장 실패: {e}", exc_info=True)
+        result["errors"].append(f"metrics: {e}")
+
+    # ── STEP 5: Dashboard 데이터 생성 ──
+    logger.info("[5/5] Dashboard 데이터 생성 시작...")
     try:
         await _export_dashboard()
-        logger.info("[4/4] Dashboard 데이터 생성 완료")
+        logger.info("[5/5] Dashboard 데이터 생성 완료")
     except Exception as e:
-        logger.warning(f"[4/4] Dashboard 생성 실패 (non-fatal): {e}")
+        logger.warning(f"[5/5] Dashboard 생성 실패 (non-fatal): {e}")
         result["errors"].append(f"dashboard: {e}")
 
     # ── 완료 ──
@@ -298,6 +321,36 @@ async def _save_to_sheets(crawl_result: dict) -> int:
     return storage_result.get("raw_records", 0)
 
 
+def _crawl_snapshot_dates(crawl_result: dict) -> set[str]:
+    """크롤 결과의 rank_records에 실제로 찍힌 snapshot_date 집합.
+
+    RankRecord.snapshot_date는 카테고리별 수집 시각(KST) 기준이라, 자정을 넘긴 크롤은
+    파이프라인 시작 날짜와 다른 날짜로 raw_data에 저장된다 (예: 2026-09-16 22:02 시작 →
+    2026-09-17로 저장). 지표는 raw_data에 저장된 날짜 기준으로 계산해야 한다.
+    """
+    dates: set[str] = set()
+    for cat_data in crawl_result.get("categories", {}).values():
+        for record in cat_data.get("rank_records", []):
+            value = record.get("snapshot_date")
+            if value:
+                dates.add(str(value)[:10])
+    return dates
+
+
+async def _store_metrics(crawl_result: dict) -> dict[str, dict[str, int]]:
+    """이번 크롤이 쓴 날짜의 지표를 raw_data에서 재계산해 날짜 단위로 교체 저장"""
+    from src.tools.calculators.metric_snapshot import persist_metrics_for_dates
+    from src.tools.storage.sqlite_storage import get_sqlite_storage
+
+    dates = _crawl_snapshot_dates(crawl_result)
+    if not dates:
+        return {}
+
+    storage = get_sqlite_storage()
+    await storage.initialize()
+    return await persist_metrics_for_dates(storage, dates)
+
+
 async def _export_dashboard():
     """대시보드 JSON 데이터 생성"""
     from src.tools.exporters.dashboard_exporter import DashboardExporter
@@ -332,6 +385,8 @@ def main():
     )
     parser.add_argument("--dry-run", action="store_true", help="실제 크롤링 없이 파이프라인 테스트")
     args = parser.parse_args()
+
+    _configure_logging()
 
     # 파이프라인 실행
     result = asyncio.run(run_pipeline(crawl_only=args.crawl_only, dry_run=args.dry_run))
