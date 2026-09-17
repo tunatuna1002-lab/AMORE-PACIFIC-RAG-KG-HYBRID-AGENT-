@@ -156,6 +156,64 @@ class TestFeatureFlagsConvenienceMethods:
         assert flags.use_centralized_prompts() is False  # default False
 
 
+class TestNumericVerificationMode:
+    """response.numeric_verification_mode: off | annotate | enforce (기본 annotate)."""
+
+    def test_default_is_annotate(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", raising=False)
+        flags = FeatureFlags(config_path=tmp_path / "missing.json")
+        assert flags.numeric_verification_mode() == "annotate"
+
+    def test_json_value(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"response": {"numeric_verification_mode": "enforce"}}))
+        assert FeatureFlags(config_path=path).numeric_verification_mode() == "enforce"
+
+    def test_env_overrides_json(self, tmp_path: Path, monkeypatch) -> None:
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"response": {"numeric_verification_mode": "enforce"}}))
+        monkeypatch.setenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", " OFF ")
+        assert FeatureFlags(config_path=path).numeric_verification_mode() == "off"
+
+    def test_invalid_env_value_falls_back_to_annotate_with_warning(
+        self, tmp_path: Path, monkeypatch, caplog
+    ) -> None:
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"response": {"numeric_verification_mode": "enforce"}}))
+        monkeypatch.setenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", "strict")
+        flags = FeatureFlags(config_path=path)
+        with caplog.at_level("WARNING", logger="src.infrastructure.feature_flags"):
+            # JSON 값(enforce)이 아니라 기본값으로 — 잘못 쓴 ENV가 조용히 무시되지 않게
+            assert flags.numeric_verification_mode() == "annotate"
+        assert "strict" in caplog.text
+        assert "FF_RESPONSE_NUMERIC_VERIFICATION_MODE" in caplog.text
+
+    def test_invalid_json_value_falls_back_with_warning(
+        self, tmp_path: Path, monkeypatch, caplog
+    ) -> None:
+        monkeypatch.delenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"response": {"numeric_verification_mode": True}}))
+        with caplog.at_level("WARNING", logger="src.infrastructure.feature_flags"):
+            assert FeatureFlags(config_path=path).numeric_verification_mode() == "annotate"
+        assert "response.numeric_verification_mode" in caplog.text
+
+    def test_malformed_response_section_uses_default(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"response": "enforce"}))
+        assert FeatureFlags(config_path=path).numeric_verification_mode() == "annotate"
+
+    def test_repository_config_default(self, monkeypatch) -> None:
+        monkeypatch.delenv("FF_RESPONSE_NUMERIC_VERIFICATION_MODE", raising=False)
+        config = Path(__file__).resolve().parents[3] / "config" / "feature_flags.json"
+        assert FeatureFlags(config_path=config).numeric_verification_mode() == "annotate"
+        assert json.loads(config.read_text())["response"]["numeric_verification_mode"] == (
+            "annotate"
+        )
+
+
 class TestFeatureFlagsSingleton:
     """Test singleton pattern."""
 

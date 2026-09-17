@@ -28,6 +28,7 @@ from src.shared.constants import DEFAULT_MODEL
 from .confidence import ConfidenceAssessor
 from .hallucination_detector import HallucinationDetector
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
+from .numeric_verifier import MODE_OFF, apply_numeric_verification, skipped_summary
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,9 @@ class ResponsePipeline:
             # 응답 후처리
             processed_text = self._post_process(response_text, context)
 
+            # 답변 수치 검증 (설계 E8) — 이 답변 프롬프트에 실린 카드와 대조
+            processed_text, numeric_verification = self._verify_numbers(processed_text, context)
+
             # 환각 감지 (low confidence 응답만)
             hallucination_penalty = 1.0
             grounding_warning = False
@@ -221,6 +225,11 @@ class ResponsePipeline:
                 else [],
                 suggestions=suggestions,
                 processing_time_ms=processing_time,
+                metadata=(
+                    {"numeric_verification": numeric_verification}
+                    if numeric_verification is not None
+                    else {}
+                ),
             )
 
         except Exception as e:
@@ -541,6 +550,29 @@ class ResponsePipeline:
             parts.append("추가 데이터가 필요합니다. 크롤링 및 지표 계산을 실행해주세요.")
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _verify_numbers(text: str, context: Context) -> tuple[str, dict[str, Any] | None]:
+        """플래그 모드로 답변 수치를 검증한다 → (답변, ``metadata["numeric_verification"]``).
+
+        ``generate``의 모든 생성 분기(일반 LLM·HIGH 신뢰도 fast path·LLM 없는 기본 응답)와
+        ``generate_with_tool_result``가 후처리 직후 이 한 곳을 지난다. 이 파이프라인에는
+        스트리밍 생성이 없다 — ``UnifiedBrain.process_query_stream``은 ``generate``로 답을 다
+        만든 뒤 한 번에 내보내므로 enforce 치환도 스트림 텍스트에 그대로 반영된다.
+
+        스키마는 ``src/core/numeric_verifier.py`` 모듈 docstring. ``off``면 메타데이터 없음.
+        검증기 오류는 답변을 막지 않는다(``skipped: "error"``).
+        """
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        mode = FeatureFlags.get_instance().numeric_verification_mode()
+        if mode == MODE_OFF:
+            return text, None
+        try:
+            return apply_numeric_verification(text, context.prompt_evidence, mode)
+        except Exception:
+            logger.warning("Numeric verification failed; answer kept as generated", exc_info=True)
+            return text, skipped_summary(mode, "error")
 
     # =========================================================================
     # 메타데이터 생성

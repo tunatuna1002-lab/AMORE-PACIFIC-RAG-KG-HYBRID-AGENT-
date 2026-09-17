@@ -18,9 +18,12 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class FeatureFlags:
@@ -150,6 +153,32 @@ class FeatureFlags:
     def use_external_signals(self) -> bool:
         """Whether to fetch external signals (Tavily, RSS, Reddit) per query."""
         return self.get_flag("agents", "use_external_signals", default=True)
+
+    def numeric_verification_mode(self) -> str:
+        """답변 수치 검증 모드 (설계 E8): ``off`` | ``annotate`` | ``enforce``.
+
+        문자열 플래그라 ``get_flag``(bool)을 쓰지 않는다. 우선순위는 같다:
+        ENV ``FF_RESPONSE_NUMERIC_VERIFICATION_MODE`` > JSON ``response.numeric_verification_mode``
+        > 기본 ``annotate``. 알 수 없는 값은 경고를 남기고 기본값으로 둔다 — annotate는 답변을
+        바꾸지 않는다. 기본값은 리드가 annotate로 효과를 측정한 뒤 정한다.
+        """
+        default = "annotate"
+        env_name = "FF_RESPONSE_NUMERIC_VERIFICATION_MODE"
+        raw = os.environ.get(env_name)
+        source = env_name
+        if raw is None:
+            section = self._config.get("response")
+            raw = section.get("numeric_verification_mode") if isinstance(section, dict) else None
+            source = "config response.numeric_verification_mode"
+        if raw is None:
+            return default
+        mode = str(raw).strip().lower()
+        if mode in ("off", "annotate", "enforce"):
+            return mode
+        logger.warning(
+            "Invalid numeric verification mode %r from %s; using %r", raw, source, default
+        )
+        return default
 
     # ── Singleton access ─────────────────────────────────────────────
 

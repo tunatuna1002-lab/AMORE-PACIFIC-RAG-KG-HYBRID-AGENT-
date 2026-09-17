@@ -22,5 +22,8 @@
     "use_query_rewriter": true,
     "use_external_signals": true,
     "use_react_agent": false
+  },
+  "response": {
+    "numeric_verification_mode": "annotate"
   }
 }
