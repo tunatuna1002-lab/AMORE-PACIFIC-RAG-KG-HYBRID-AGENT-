@@ -18,12 +18,12 @@
 
 | 항목 | 수치 |
 |------|------|
-| src/ Python 파일 | 214개 |
-| src/ 코드 라인 | ~75,700 lines |
-| tests/ 파일 | 184개 |
-| tests/ 코드 라인 | ~74,000 lines |
+| src/ Python 파일 | 213개 (git 추적 기준, 2026-09-17) |
+| src/ 코드 라인 | 76,235 lines |
+| tests/ 파일 | 200개 |
+| tests/ 코드 라인 | 77,868 lines |
 | src/api/dashboard_api.py | 195 lines (진입점, 라우트는 routes/ 분리) |
-| 커버리지 목표 | 60% (pytest-cov) |
+| 커버리지 | 목표 60%이나 강제되지 않음 (`pyproject.toml` `fail_under = 0`) |
 
 ---
 
@@ -36,7 +36,7 @@
 | LLM | OpenAI GPT-4.1-mini via LiteLLM |
 | Scraping | Playwright, playwright-stealth, browserforge, fake-useragent |
 | Storage | SQLite (aiosqlite), Google Sheets API |
-| RAG | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) |
+| RAG | ChromaDB + OpenAI `text-embedding-3-small` 임베딩 + BM25/RRF (reranker 플래그 기본 OFF) |
 | Ontology | owlready2, rdflib, Rule-based Reasoner |
 | NLP | spaCy (NER/Entity Linking) |
 | Data | pandas, numpy, matplotlib |
@@ -52,7 +52,7 @@
 
 | 파일 | 역할 | 실행 방법 |
 |------|------|-----------|
-| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 12개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
+| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 14개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
 | `scripts/start.py` | Railway 배포용 시작 스크립트 | `python scripts/start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
 | `src/core/orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from src.core.orchestrator import Orchestrator` |
@@ -95,8 +95,8 @@
 │   │
 │   ├── core/                     # 핵심 오케스트레이션
 │   │   ├── brain.py              # UnifiedBrain - 자율 스케줄러
-│   │   ├── react_agent.py        # ReAct Self-Reflection Agent
-│   │   ├── batch_workflow.py     # 배치 워크플로우 (=Orchestrator)
+│   │   ├── react_agent.py        # ReAct 루프 (agents.use_react_agent 플래그, 기본 OFF)
+│   │   ├── react_tools.py        # ReAct 읽기 전용 도구 3종
 │   │   ├── orchestrator.py       # BatchWorkflow 하위 호환 래퍼 (루트에서 이동)
 │   │   ├── query_router.py       # 쿼리 라우팅
 │   │   ├── query_processor.py    # 쿼리 처리
@@ -118,8 +118,7 @@
 │   │   ├── suggestion_engine.py      # 후속 질문 생성 엔진
 │   │   ├── source_provider.py        # 출처 추출 및 포매팅
 │   │   ├── external_signal_manager.py # 외부 신호 수집 관리
-│   │   ├── period_insight_agent.py   # 기간별 인사이트
-│   │   └── true_hybrid_insight_agent.py
+│   │   └── period_insight_agent.py   # 기간별 인사이트
 │   │
 │   ├── rag/                      # RAG 시스템
 │   │   ├── hybrid_retriever.py   # KG + RAG 통합 검색
@@ -218,7 +217,6 @@
 │   ├── application/              # Clean Architecture Layer 2
 │   │   ├── workflows/            # 유스케이스
 │   │   │   ├── chat_workflow.py
-│   │   │   ├── crawl_workflow.py
 │   │   │   ├── insight_workflow.py
 │   │   │   ├── alert_workflow.py
 │   │   │   └── batch_workflow.py
@@ -260,7 +258,6 @@
 ├── config/                       # 설정 파일
 │   ├── thresholds.json           # 시스템 설정 + 카테고리 URL
 │   ├── category_hierarchy.json   # Amazon 카테고리 트리
-│   ├── competitors.json          # 경쟁사 정보
 │   ├── tracked_competitors.json
 │   ├── brands.json               # 브랜드 매핑
 │   ├── asin_brand_mapping.json
@@ -392,8 +389,10 @@ python3 -m pytest tests/ -v                    # 전체 (커버리지 포함)
 python3 -m pytest tests/unit/domain/ -v        # Domain 레이어만
 python3 -m pytest tests/ -m "not slow" -v      # 느린 테스트 제외
 
-# 골든셋 평가
+# 골든셋 평가 (172문항). --target v4 = 대시보드 Brain 경로, 기본 v1 = /api/chat 경로
 python3 scripts/evaluate_golden.py --verbose
+.venv/bin/python -m eval.cli run --dataset eval/data/golden/laneige_golden_v2.jsonl --target v4 \
+  --data-as-of 2026-08-31 --judge llm --semantic-similarity --concurrency 4
 
 # KG 백업
 python3 -m src.tools.utilities.kg_backup backup
@@ -419,7 +418,7 @@ OPENAI_API_KEY=sk-...
 
 # 서버
 API_KEY=...                        # 보호 엔드포인트 인증
-AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작
+AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작 (미설정 시 기본 false)
 
 # Google Sheets
 GOOGLE_SPREADSHEET_ID=...
@@ -487,9 +486,9 @@ class MyWorkflow:
 |------|------|------|
 | DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 |
 | Orchestrator | `src/core/orchestrator.py` | BatchWorkflow 하위 호환 래퍼 |
-| UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
-| ReActAgent | `src/core/react_agent.py` | Self-Reflection (복잡한 질문) |
-| BatchWorkflow | `src/core/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
+| UnifiedBrain | `src/core/brain.py` | 스케줄러 + 질의 처리. ReAct·OWL 활성 여부는 `/api/v4/brain/status`의 `components` |
+| ReActAgent | `src/core/react_agent.py` | Thought-Action 루프(최대 5회). 플래그 `agents.use_react_agent` 기본 OFF |
+| BatchWorkflow | `src/application/workflows/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
 | HybridChatbot | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
 | HybridInsight | `src/agents/hybrid_insight_agent.py` | 인사이트 생성 |
 | AlertAgent | `src/agents/alert_agent.py` | 순위 변동 알림 |
@@ -497,12 +496,12 @@ class MyWorkflow:
 | SourceProvider | `src/agents/source_provider.py` | 출처 추출 및 포매팅 |
 | ExternalSignalManager | `src/agents/external_signal_manager.py` | 외부 신호 수집 관리 |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
-| RetrievalStrategy | `src/rag/retrieval_strategy.py` | OWL + 인텐트 기반 전략 패턴 |
+| RetrievalStrategy | `src/rag/retrieval_strategy.py` | OWL 전략(플래그 `retriever.use_owl_strategy` 기본 OFF) + 인텐트 설정 |
 | ConfidenceFusion | `src/rag/confidence_fusion.py` | 다중 소스 신뢰도 융합 엔진 |
 | Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
 | EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |
-| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 (OWL + Rules) |
+| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 — 인스턴스화하는 곳 없음(미연결). 검색 경로의 추론은 `OntologyReasoner` |
 | PromptRegistry | `prompts/registry.py` | 프롬프트 중앙 관리 |
 | FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default) |
 | MetricCalculator | `src/tools/calculators/metric_calculator.py` | SoS, HHI, CPI |
@@ -519,9 +518,9 @@ class MyWorkflow:
 
 | 저장소 | 위치 | 역할 |
 |--------|------|------|
-| SQLite (Railway) | `/data/amore_data.db` | Source of Truth |
+| SQLite (Railway) | `/data/amore_data.db` | 읽기 정본 (exporter·지표·API가 읽음) |
 | SQLite (로컬) | `./data/amore_data.db` | 개발용 |
-| Google Sheets | 스프레드시트 | 백업 |
+| Google Sheets | 스프레드시트 | 병행 저장. 서버 경로(`StorageAgent`)는 Sheets를 먼저 쓰고 SQLite를 다음에 쓰며, 자동 동기화는 Sheets→SQLite 단방향 |
 | KG JSON | `data/knowledge_graph.json` | Triple Store |
 | ChromaDB | `data/chroma/` | 벡터 스토어 |
 | Dashboard JSON | `data/dashboard_data.json` | 캐시 |

@@ -21,7 +21,7 @@ playwright install chromium
 # 환경 변수 (.env)
 OPENAI_API_KEY=sk-...
 API_KEY=your-api-key
-AUTO_START_SCHEDULER=true
+AUTO_START_SCHEDULER=true   # 미설정 시 기본 false
 
 # 실행
 uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
@@ -59,9 +59,9 @@ uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
 | 컴포넌트 | 역할 |
 |---------|------|
 | **RAG** | ChromaDB 벡터 검색 + Embedding 캐시 (hit-rate 계측 내장) |
-| **Knowledge Graph** | 브랜드-제품-카테고리 관계 Triple Store (1,000+ 트리플, 일일 크롤링으로 누적) |
-| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개 + OWL 스키마 (owlready2) |
-| **ReAct Agent** | 복잡한 질문 자기반성 루프 (최대 3회) |
+| **Knowledge Graph** | 브랜드-제품-카테고리 관계 Triple Store (로컬 3,500 트리플, 2026-09-17 실측. 크롤 파생 2,479 + 수작업 시드 1,000 + 시스템 21) |
+| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개 + OWL 스키마 (owlready2). OWL 검색 전략은 플래그 `retriever.use_owl_strategy` 기본 OFF |
+| **ReAct Agent** | 복잡한 질문 Thought-Action 루프 (최대 5회, 읽기 전용 도구 3종). 플래그 `agents.use_react_agent` 기본 OFF |
 | **크롤링 데이터** | 실시간 Amazon 베스트셀러 (매일 22:00 KST) |
 
 ---
@@ -73,13 +73,13 @@ Amazon Bestsellers (Top 100 × 5 categories)
          ↓
     CrawlerAgent (Playwright + Stealth)
          ↓
-    StorageAgent (SQLite + Google Sheets)
+    StorageAgent (Google Sheets + SQLite 병행 저장)
          ↓
-    KnowledgeGraph + OWL Ontology
+    KnowledgeGraph + 규칙 기반 추론 (OWL 전략은 플래그, 기본 OFF)
          ↓
-    HybridRetriever (RAG + KG + Ontology)
+    HybridRetriever (RAG + KG + DB 지표 + 규칙 추론)
          ↓
-    ReAct Agent (복잡한 질문 자기반성)
+    신뢰도 분기 → LLM 도구 선택 1회 → 답변 생성 (ReAct는 플래그, 기본 OFF)
          ↓
     Dashboard + AI Chatbot + IR-Style Report Export
 ```
@@ -120,14 +120,15 @@ Amazon Bestsellers (Top 100 × 5 categories)
 |------|------|
 | **SoS** | Share of Shelf - 브랜드 점유율 |
 | **HHI** | Herfindahl-Hirschman Index - 시장 집중도 |
-| **CPI** | Competitive Position Index - 경쟁 포지션 |
+| **CPI** | Category Price Index - 카테고리 평균가 대비 브랜드 가격 (100 기준) |
 | **TAM/SAM/SOM** | 시장 규모 분석 |
 
 ### 3.3 AI 챗봇
 
 - **API**: `POST /api/v4/chat` (스트리밍: `POST /api/v4/chat/stream`)
 - RAG + KG + Ontology 통합 컨텍스트
-- ReAct Self-Reflection: 복잡한 질문 자동 감지 및 자기반성 루프
+- 신뢰도 MEDIUM/LOW일 때 LLM이 조회 도구 1개 또는 직접 답변을 선택
+- ReAct 루프(복잡한 질문): `agents.use_react_agent` 플래그로만 켜짐, 기본 OFF. 활성 여부는 `/api/v4/brain/status`의 `components`
 - 다중 소스 출처 추출 및 참고자료 표시 (크롤링 데이터·KG·온톨로지 추론·RAG 문서·외부 신호 등 10종)
 
 ### 3.4 IR-Style 리포트 생성 (NEW)
@@ -185,13 +186,13 @@ python scripts/test_report_generator.py
 |------|------|
 | **Backend** | Python 3.11+, FastAPI, Uvicorn |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
-| **RAG** | ChromaDB (OpenAI text-embedding-3-small) + BM25/RRF (rank-bm25) + CrossEncoder 리랭킹 + Self-RAG 게이트 |
+| **RAG** | ChromaDB (OpenAI text-embedding-3-small) + BM25/RRF (rank-bm25) + Self-RAG 게이트. 리랭킹은 구현돼 있으나 플래그 `use_reranker` 기본 OFF |
 | **Ontology** | owlready2 (OWL DL), rdflib (SPARQL), Rule-based Reasoner |
 | **크롤링** | Playwright, playwright-stealth, browserforge |
 | **리포트** | python-docx, python-pptx |
-| **데이터** | SQLite, Google Sheets, Pandas |
+| **데이터** | SQLite(읽기 정본) + Google Sheets(병행 저장, Sheets→SQLite 동기화), Pandas |
 | **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (커버리지 72.19%, 2026-08-30 실측, 목표 60% 달성) |
+| **테스트** | pytest, pytest-cov (커버리지 72.19%, 2026-08-30 로컬 실측. CI 게이트 없음: `fail_under = 0`) |
 
 ---
 
@@ -205,7 +206,7 @@ python scripts/test_report_generator.py
 | POST | `/api/v4/chat` | AI 챗봇 (스트리밍: `/api/v4/chat/stream`) | API Key |
 | POST | `/api/chat` | AI 챗봇 v1 (RAG) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
-| GET | `/api/v4/brain/status` | 스케줄러 상태 | - |
+| GET | `/api/v4/brain/status` | 스케줄러 상태 + ReAct·OWL 활성 여부(`components`) | - |
 | POST | `/api/export/docx` | DOCX 리포트 생성 | - |
 | POST | `/api/export/pptx` | PPTX 리포트 생성 | - |
 
@@ -219,7 +220,7 @@ python scripts/test_report_generator.py
 # 필수 환경 변수
 OPENAI_API_KEY=sk-...
 API_KEY=your-api-key
-AUTO_START_SCHEDULER=true
+AUTO_START_SCHEDULER=true       # 미설정 시 기본 false
 
 # Google Sheets (선택)
 GOOGLE_SHEETS_SPREADSHEET_ID=...
@@ -268,8 +269,9 @@ python -m pytest tests/unit/ -v --tb=short -x --timeout=60
 # 커버리지 리포트
 open coverage_html/index.html
 
-# 골든셋 평가
+# 골든셋 평가 (172문항). --target v4 = 대시보드 Brain 경로, 기본 v1 = /api/chat
 python scripts/evaluate_golden.py --verbose
+python -m eval.cli run --dataset eval/data/golden/laneige_golden_v2.jsonl --target v4 --data-as-of 2026-08-31 --judge llm
 
 # KG 백업
 python -m src.tools.kg_backup backup
@@ -285,7 +287,7 @@ python scripts/test_report_generator.py
 |------|------|
 | 총 테스트 수 | **5,242개** (5,235 passed / 7 skipped) |
 | 통과율 | 100% (0 failed, 일부 외부 의존 테스트 skip) |
-| 커버리지 | **72.19%** (2026-08-30 `pytest --cov=src` 실측, 목표 60% 달성) |
+| 커버리지 | **72.19%** (2026-08-30 `pytest --cov=src` 로컬 실측. 60%는 목표일 뿐 `fail_under = 0`이라 강제되지 않음) |
 | 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
 
 ### 레이어별 커버리지
