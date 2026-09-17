@@ -34,6 +34,9 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.domain.entities.evidence import Evidence
+from src.rag.evidence_adapters import EvidenceAdapter
+
 logger = logging.getLogger(__name__)
 
 _CURRENT_REQUEST: ContextVar[dict[str, Any] | None] = ContextVar(
@@ -55,6 +58,10 @@ class V4RetrievalTrace:
     # 검색 오류 가시화(F3) — HybridRetriever.retrieve()가 HybridContext.metadata에
     # 남기는 retrieval_error/degraded와 같은 계약. 러너의 EvalTrace가 여기서 읽는다.
     metadata: dict[str, Any] = field(default_factory=dict)
+    # 증거 카드 (설계 E1, 트랙 2-C). 검색이 만든 전체 카드와, 답변 프롬프트에 실제로
+    # 실린 카드(선별 후)를 구분한다 — judge 컨텍스트는 후자만 봐야 한다.
+    evidence: list[Evidence] = field(default_factory=list)
+    prompt_evidence: list[Evidence] = field(default_factory=list)
 
 
 def _record_usage(prompt_tokens: int, completion_tokens: int) -> None:
@@ -178,6 +185,8 @@ class BrainEvalAdapter:
                 metric_facts=list(getattr(ctx, "metric_facts", None) or []),
                 retriever_type="legacy",
                 metadata=dict(ctx_metadata) if isinstance(ctx_metadata, dict) else {},
+                evidence=list(getattr(ctx, "evidence", None) or []),
+                prompt_evidence=list(getattr(ctx, "prompt_evidence", None) or []),
             )
         elif unified is not None:
             # OWL 전략 또는 Self-RAG 생략: HybridContext가 없다
@@ -190,21 +199,28 @@ class BrainEvalAdapter:
                 rag_chunks=list(unified.rag_chunks or []),
                 retriever_type=unified.retriever_type,
                 metadata=dict(unified_metadata) if isinstance(unified_metadata, dict) else {},
+                evidence=list(getattr(unified, "evidence", None) or []),
+                prompt_evidence=list(getattr(unified, "prompt_evidence", None) or []),
             )
         else:
             trace = V4RetrievalTrace(query=query)
 
-        # ReAct 도구 관찰도 답변의 근거다 — judge 근거성 컨텍스트에 싣는다
-        for step in holder.get("react_steps") or []:
-            if step.get("observation") and step.get("action") != "final_answer":
-                trace.metric_facts.append(
-                    {
-                        "type": "react_observation",
-                        "action": step["action"],
-                        "action_input": step.get("action_input"),
-                        "observation": step["observation"][:1500],
-                    }
+        # ReAct 도구 관찰도 답변의 근거다 — judge 근거성 컨텍스트에 싣는다.
+        # observation 카드로 만들어 prompt_evidence에 싣는다(검색이 만든 evidence와는
+        # 별개 출처이므로 evidence 전체 집합에는 넣지 않는다).
+        if holder.get("react_steps"):
+            adapter = EvidenceAdapter()
+            for step in holder["react_steps"]:
+                if not step.get("observation") or not step.get("action"):
+                    continue
+                if step["action"] == "final_answer":
+                    continue
+                card = adapter.from_tool_observation(
+                    tool_name=step["action"],
+                    tool_input=step.get("action_input"),
+                    observation=step["observation"][:1500],
                 )
+                trace.prompt_evidence.append(card)
         return trace
 
     async def chat(self, question: str) -> dict[str, Any]:

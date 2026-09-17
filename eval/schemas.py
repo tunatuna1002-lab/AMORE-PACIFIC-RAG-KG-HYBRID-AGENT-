@@ -338,6 +338,32 @@ class EvalTrace(BaseModel):
             "report.json에는 없으므로 기본값 None으로 하위 호환한다."
         ),
     )
+    evidence: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "답변 프롬프트에 실제로 실린 증거 카드(prompt_evidence)를 "
+            "Evidence.model_dump(mode='json')한 목록 — judge 컨텍스트를 그대로 재구성하는 데 "
+            "쓴다 (트랙 2-C). 검색기가 evidence/prompt_evidence 속성을 아직 주지 않는 "
+            "경로(2-B 미병합, v1 구형)나 구형 report.json에는 없으므로 기본값 빈 리스트로 "
+            "하위 호환한다 — 그때는 judge_context_source가 'legacy'가 된다."
+        ),
+    )
+    evidence_all_count: int = Field(
+        default=0,
+        description=(
+            "검색이 만든 전체 증거 카드 수(prompt_evidence로 선별되기 전). evidence(선별 후) "
+            "길이와 비교하면 judge가 보지 못한 채 버려진 근거가 얼마나 되는지 드러난다."
+        ),
+    )
+    judge_context_source: str = Field(
+        default="legacy",
+        description=(
+            "judge 근거성 컨텍스트를 만든 방식. 'evidence' = evidence 필드의 카드를 "
+            "render_for_judge로 렌더 (답변 프롬프트와 같은 집합·같은 내용). "
+            "'legacy' = 구형 로직(문서 스니펫 + KG 사실 + data_facts 전부) — 카드가 없는 "
+            "경로에서만 쓴다."
+        ),
+    )
 
 
 # =============================================================================

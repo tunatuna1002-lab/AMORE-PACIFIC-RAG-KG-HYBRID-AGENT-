@@ -50,8 +50,12 @@ from eval.schemas import (
     OntologyReasoningTrace,
 )
 from eval.validators.ontology_validator import OntologyValidator
+from src.domain.entities.evidence import Evidence
+from src.rag.evidence_renderer import render_for_judge
 
 logger = logging.getLogger(__name__)
+
+_MISSING = object()
 
 
 # 채점 중인 문항의 비용 버킷. 문항마다 별도 asyncio 태스크에서 실행되므로
@@ -383,6 +387,12 @@ class EvalRunner:
         # .metadata에 담는다. metadata가 없는 구형/가짜 컨텍스트에서는 조용히 빈 값.
         retrieval_error, degraded = self._extract_retrieval_health(hybrid_ctx)
 
+        # 증거 카드 (트랙 2-C) — prompt_evidence 속성이 있으면(트랙 2-B 병합 후) 그 카드
+        # 집합을 그대로 트레이스에 남긴다. 속성 자체가 없는 경로(2-B 미병합, v1 구형)는
+        # None으로 구분해 _build_context_string이 레거시 로직으로 폴백하게 한다.
+        prompt_evidence = self._extract_prompt_evidence(hybrid_ctx)
+        judge_context_source = "evidence" if prompt_evidence is not None else "legacy"
+
         return EvalTrace(
             item_id=item_id,
             timestamp=datetime.now(),
@@ -398,7 +408,31 @@ class EvalRunner:
             retrieval_error=retrieval_error,
             degraded=degraded,
             route_trace=self._extract_route_trace(result),
+            evidence=[card.model_dump(mode="json") for card in (prompt_evidence or [])],
+            evidence_all_count=self._extract_evidence_all_count(hybrid_ctx),
+            judge_context_source=judge_context_source,
         )
+
+    @staticmethod
+    def _extract_prompt_evidence(hybrid_ctx: Any) -> list[Evidence] | None:
+        """hybrid_ctx.prompt_evidence를 읽는다.
+
+        속성 자체가 없으면(트랙 2-B 미병합, v1 구형 HybridContext) None을 돌려준다 —
+        이것이 레거시 judge 컨텍스트로 폴백하라는 신호다. 속성이 있으면(빈 리스트 포함)
+        그 리스트를 그대로 돌려준다 — 이번 문항이 실제로 증거를 찾지 못했을 수도 있다.
+        """
+        if hybrid_ctx is None:
+            return None
+        raw = getattr(hybrid_ctx, "prompt_evidence", _MISSING)
+        if raw is _MISSING:
+            return None
+        return list(raw or [])
+
+    @staticmethod
+    def _extract_evidence_all_count(hybrid_ctx: Any) -> int:
+        """검색이 만든 전체 증거 카드 수 (선별 전). 속성이 없으면 0."""
+        raw = getattr(hybrid_ctx, "evidence", None) if hybrid_ctx is not None else None
+        return len(raw) if isinstance(raw, list) else 0
 
     @staticmethod
     def _extract_route_trace(result: dict[str, Any]) -> dict[str, Any] | None:
@@ -604,7 +638,18 @@ class EvalRunner:
         )
 
     def _build_context_string(self, trace: EvalTrace) -> str:
-        """Build context string for groundedness checking."""
+        """judge 근거성 채점용 컨텍스트 문자열을 만든다.
+
+        trace.judge_context_source == "evidence"이면(트랙 2-C) trace.evidence(=
+        prompt_evidence를 model_dump한 카드 목록)를 Evidence로 복원해 render_for_judge로
+        렌더한다 — 답변 프롬프트에 실제로 실린 것과 정확히 같은 카드·같은 내용이다.
+        그 외(레거시 — 트랙 2-B 미병합, v1 구형, 구형 report.json)는 예전 로직을 그대로
+        쓴다: 문서 스니펫 + KG 사실 전부 + 크롤 DB 수치 사실 전부.
+        """
+        if trace.judge_context_source == "evidence":
+            cards = [Evidence(**card) for card in trace.evidence]
+            return render_for_judge(cards)
+
         parts = []
 
         # Add document snippets

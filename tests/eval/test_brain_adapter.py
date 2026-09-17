@@ -3,7 +3,7 @@ v4 Brain 평가 어댑터 검증 (결정 D3)
 
 - 동시 실행에서도 문항별 검색 트레이스가 섞이지 않는다
 - litellm 사용량이 문항별로 적립된다 (mock_response — 네트워크 없음)
-- ReAct 도구 관찰이 judge 근거성 컨텍스트(data_facts)로 넘어간다
+- ReAct 도구 관찰이 observation 증거 카드로 만들어져 prompt_evidence로 넘어간다 (트랙 2-C)
 - CLI --target 인자와 리포트 설정 기록
 
 실제 UnifiedBrain·QueryGraph·EvalRunner를 쓰고, 검색 백엔드와 LLM 호출 지점만 가짜로 둔다.
@@ -21,6 +21,7 @@ from eval.brain_adapter import BrainEvalAdapter
 from eval.runner import EvalRunner
 from eval.schemas import EvalConfig
 from src.core.models import Decision, Response
+from src.domain.entities.evidence import EvidenceKind
 from src.infrastructure.feature_flags import FeatureFlags
 from src.rag.hybrid_retriever import HybridContext, HybridRetriever
 
@@ -136,7 +137,7 @@ async def test_runner_scores_v4_trace_with_same_schema(flags):
 
 
 @pytest.mark.asyncio
-async def test_react_observations_are_passed_as_grounding_facts(flags):
+async def test_react_observations_become_prompt_evidence_cards(flags):
     flags(react=True)
     adapter = await _adapter()
     brain = adapter.brain
@@ -172,10 +173,12 @@ async def test_react_observations_are_passed_as_grounding_facts(flags):
 
     assert result["query_type"] == "react"
     assert result["response"] == "답"
-    observations = [
-        f for f in result["hybrid_context"].metric_facts if f["type"] == "react_observation"
-    ]
-    assert [o["action"] for o in observations] == ["query_knowledge_graph"]
+    trace = result["hybrid_context"]
+    # 옛 dict 삽입은 더 이상 없다 — observation은 증거 카드로만 실린다 (트랙 2-C)
+    assert [f for f in trace.metric_facts if f.get("type") == "react_observation"] == []
+    observation_cards = [c for c in trace.prompt_evidence if c.kind == EvidenceKind.OBSERVATION]
+    assert [c.subject for c in observation_cards] == ["query_knowledge_graph"]
+    assert "LANEIGE" in observation_cards[0].text
 
 
 def test_cli_target_argument_defaults_to_v1():
