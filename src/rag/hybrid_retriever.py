@@ -429,6 +429,20 @@ class HybridRetriever:
 
         return False, "short_non_domain_query", 0.0
 
+    @staticmethod
+    def _record_degraded(
+        degraded: list[dict[str, Any]] | None, component: str, exc: Exception
+    ) -> None:
+        """선택 기능(비핵심) 실패를 degraded 목록에 기록한다.
+
+        호출자가 소유한 요청-로컬 리스트에만 쓰며 ``self``에는 아무것도
+        남기지 않는다 — 동시 요청 간 공유 상태로 트레이스가 오염됐던
+        ``_last_hybrid_context`` 사례(F3 배경)를 반복하지 않기 위함이다.
+        ``degraded``가 None이면(호출자가 추적하지 않는 경로) 조용히 무시한다.
+        """
+        if degraded is not None:
+            degraded.append({"component": component, "error": f"{type(exc).__name__}: {exc}"})
+
     async def retrieve(
         self,
         query: str,
@@ -473,6 +487,10 @@ class HybridRetriever:
         # 결과 객체 초기화
         context = HybridContext(query=query)
 
+        # 선택 기능(비핵심 하위 조회) 실패 기록 — 요청 로컬 리스트라 동시 요청 간
+        # 공유 상태가 아니다 (F3: _last_hybrid_context 경쟁 상태 교훈 적용)
+        degraded: list[dict[str, Any]] = []
+
         try:
             # 0. 쿼리 의도 분류 + 인텐트 기반 전략 선택
             query_intent = classify_intent(query)
@@ -514,7 +532,7 @@ class HybridRetriever:
 
             # 2. 지식 그래프에서 사실 조회 (ablation no-kg: FF_ONTOLOGY_USE_ONTOLOGY_KG=false)
             if flags.use_ontology_kg():
-                ontology_facts = self._query_knowledge_graph(entities)
+                ontology_facts = self._query_knowledge_graph(entities, degraded=degraded)
             else:
                 logger.info("KG query disabled by feature flag (use_ontology_kg=false)")
                 ontology_facts = []
@@ -525,12 +543,15 @@ class HybridRetriever:
             if flags.use_db_metric_facts():
                 try:
                     context.metric_facts = await self.metric_facts_provider.collect(entities)
-                except Exception:
+                except Exception as e:
                     logger.warning("DB 지표 사실 조회 실패", exc_info=True)
                     context.metric_facts = []
+                    self._record_degraded(degraded, "db_metric_facts", e)
 
             # 3. 추론 컨텍스트 구성
-            inference_context = self._build_inference_context(entities, current_metrics or {})
+            inference_context = self._build_inference_context(
+                entities, current_metrics or {}, degraded=degraded
+            )
 
             # 4. 온톨로지 추론 실행 (ablation no-ontology: reasoner 플래그 둘 다 false)
             if flags.use_unified_reasoner() or flags.use_owl_reasoner():
@@ -545,7 +566,10 @@ class HybridRetriever:
             #    Uses hybrid (dense + BM25 RRF) when BM25 is available
             expanded_query = self._expand_query(search_query, inferences, entities)
             rag_results, search_method = await self._hybrid_search(
-                expanded_query, top_k=intent_top_k, doc_type_filter=doc_type_filter
+                expanded_query,
+                top_k=intent_top_k,
+                doc_type_filter=doc_type_filter,
+                degraded=degraded,
             )
 
             # 필터링된 결과가 부족하면 전체 문서에서 추가 검색
@@ -554,6 +578,7 @@ class HybridRetriever:
                     expanded_query,
                     top_k=intent_top_k - len(rag_results),
                     doc_type_filter=None,  # 전체 문서에서 검색
+                    degraded=degraded,
                 )
                 # 중복 제거하며 추가
                 existing_ids = {r["id"] for r in rag_results}
@@ -568,36 +593,37 @@ class HybridRetriever:
                 from src.infrastructure.feature_flags import FeatureFlags
 
                 if not FeatureFlags.get_instance().use_reranker():
+                    # reranker 비활성화는 실패가 아니라 정상 분기 — degraded에 넣지 않는다
                     logger.info("Reranker disabled by feature flag, skipping relevance grading")
-                    raise RuntimeError("reranker disabled")  # jump to except → keep originals
-
-                relevant_docs, irrelevant_docs = await self.relevance_grader.grade_documents(
-                    query, rag_results
-                )
-                if self.relevance_grader.needs_rewrite(len(relevant_docs)):
-                    # 관련 문서 부족 → 쿼리 재작성 후 재검색 (최대 1회)
-                    logger.info(
-                        f"Relevance grading: only {len(relevant_docs)} relevant docs, "
-                        f"attempting query rewrite"
+                else:
+                    relevant_docs, irrelevant_docs = await self.relevance_grader.grade_documents(
+                        query, rag_results
                     )
-                    rewritten_query = self._rewrite_for_relevance(query, entities)
-                    if rewritten_query != query:
-                        additional_results = await self.doc_retriever.search(
-                            rewritten_query,
-                            top_k=intent_top_k,
-                            doc_type_filter=doc_type_filter,
+                    if self.relevance_grader.needs_rewrite(len(relevant_docs)):
+                        # 관련 문서 부족 → 쿼리 재작성 후 재검색 (최대 1회)
+                        logger.info(
+                            f"Relevance grading: only {len(relevant_docs)} relevant docs, "
+                            f"attempting query rewrite"
                         )
-                        # 기존 관련 문서 + 새 검색 결과 병합
-                        existing_ids = {r.get("id") for r in relevant_docs}
-                        for result in additional_results:
-                            if result.get("id") not in existing_ids:
-                                relevant_docs.append(result)
-                        logger.info(f"After rewrite: {len(relevant_docs)} relevant docs")
+                        rewritten_query = self._rewrite_for_relevance(query, entities)
+                        if rewritten_query != query:
+                            additional_results = await self.doc_retriever.search(
+                                rewritten_query,
+                                top_k=intent_top_k,
+                                doc_type_filter=doc_type_filter,
+                            )
+                            # 기존 관련 문서 + 새 검색 결과 병합
+                            existing_ids = {r.get("id") for r in relevant_docs}
+                            for result in additional_results:
+                                if result.get("id") not in existing_ids:
+                                    relevant_docs.append(result)
+                            logger.info(f"After rewrite: {len(relevant_docs)} relevant docs")
 
-                context.rag_chunks = relevant_docs
+                    context.rag_chunks = relevant_docs
             except Exception as e:
                 logger.warning(f"Relevance grading skipped: {e}")
-                # 실패 시 원본 결과 유지
+                # 실패 시 원본 결과 유지 — 선택 기능 실패로 기록
+                self._record_degraded(degraded, "relevance_grading", e)
 
             # 5.8. RAG 메트릭 기록
             try:
@@ -612,9 +638,12 @@ class HybridRetriever:
                 )
             except Exception as e:
                 logger.debug(f"RAG metrics recording failed: {e}")
+                self._record_degraded(degraded, "rag_metrics_recording", e)
 
             # 5.7. 가중치 기반 병합 (인텐트 전략 가중치 적용)
-            context = self._weighted_merge(context, intent_weights=intent_config.weights)
+            context = self._weighted_merge(
+                context, intent_weights=intent_config.weights, degraded=degraded
+            )
 
             # 6. 통합 컨텍스트 생성
             context.combined_context = self._combine_contexts(context, include_explanations)
@@ -633,11 +662,17 @@ class HybridRetriever:
                 "search_method": search_method,
                 "selfrag_confidence": selfrag_confidence,
                 "bm25_available": self._bm25_actually_available(),
+                # 선택 기능(비핵심) 실패 목록 — 이 재할당이 위에서 누적된 degraded를
+                # 지우지 않도록 여기서 함께 포함한다 (F3)
+                "degraded": degraded,
             }
 
         except Exception as e:
             logger.error(f"Hybrid retrieval failed: {e}")
-            context.metadata["error"] = str(e)
+            # 핵심 검색 실패 — 서비스 동작(빈 컨텍스트 반환)은 그대로 유지하고
+            # 평가 하니스가 인프라 실패로 분류할 수 있도록 원인을 남긴다 (F3)
+            context.metadata["retrieval_error"] = f"{type(e).__name__}: {e}"
+            context.metadata["error"] = str(e)  # 기존 소비자 호환용 키 유지
 
         return context
 
@@ -760,6 +795,7 @@ class HybridRetriever:
         query: str,
         top_k: int = 5,
         doc_type_filter: list[str] | None = None,
+        degraded: list[dict[str, Any]] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
         """
         Dense + BM25 hybrid search with RRF fusion.
@@ -768,23 +804,27 @@ class HybridRetriever:
             query: Search query
             top_k: Number of results to return
             doc_type_filter: Optional document type filter
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             (results, search_method) where search_method is
             "hybrid_rrf" or "dense_only"
         """
-        # 1. Dense search via doc_retriever.search()
+        # 1. Dense search via doc_retriever.search() — 핵심 검색 경로.
+        # 여기서 발생하는 예외는 의도적으로 잡지 않고 retrieve()의 바깥
+        # except로 전파시켜 retrieval_error로 분류한다 (F3)
         dense_results = await self.doc_retriever.search(
             query, top_k=top_k, doc_type_filter=doc_type_filter
         )
 
-        # 2. BM25 search (if available)
+        # 2. BM25 search (if available) — 선택 기능, 실패해도 dense 결과로 계속
         bm25_results = []
         if hasattr(self.doc_retriever, "search_bm25"):
             try:
                 bm25_results = self.doc_retriever.search_bm25(query, top_k=top_k)
             except Exception as e:
                 logger.debug(f"BM25 search failed in _hybrid_search: {e}")
+                self._record_degraded(degraded, "bm25_search", e)
 
         # 3. RRF fusion
         if bm25_results:
@@ -806,15 +846,21 @@ class HybridRetriever:
                 return fused, "hybrid_rrf"
             except (ImportError, Exception) as e:
                 logger.debug(f"Confidence fusion RRF fallback failed: {e}")
+                self._record_degraded(degraded, "rrf_fusion_fallback", e)
 
         return dense_results, "dense_only"
 
-    def _query_knowledge_graph(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
+    def _query_knowledge_graph(
+        self,
+        entities: dict[str, list[str]],
+        degraded: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         지식 그래프에서 관련 사실 조회
 
         Args:
             entities: 추출된 엔티티
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             사실 리스트
@@ -875,8 +921,9 @@ class HybridRetriever:
                             },
                         }
                     )
-            except Exception:
+            except Exception as e:
                 logger.warning("브랜드 관계 네트워크 조회 실패", exc_info=True)
+                self._record_degraded(degraded, "kg_competitor_network", e)
 
             # 메트릭/관계 엣지 (kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등)
             try:
@@ -975,8 +1022,9 @@ class HybridRetriever:
                     facts.append(
                         {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
                     )
-            except Exception:
+            except Exception as e:
                 logger.debug("metric edge query failed", exc_info=True)
+                self._record_degraded(degraded, "kg_metric_edges", e)
 
             # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
             trend_relations = self.kg.query(subject=brand, predicate=RelationType.HAS_TREND)
@@ -1025,8 +1073,9 @@ class HybridRetriever:
                             },
                         }
                     )
-            except Exception:
+            except Exception as e:
                 logger.warning("카테고리 계층 조회 실패", exc_info=True)
+                self._record_degraded(degraded, "kg_category_hierarchy", e)
 
         # 감성 관련 사실 조회
         sentiment_clusters = entities.get("sentiment_clusters", [])
@@ -1045,8 +1094,9 @@ class HybridRetriever:
                                 "data": product_sentiments,
                             }
                         )
-                except Exception:
+                except Exception as e:
                     logger.warning("제품 감성 조회 실패", exc_info=True)
+                    self._record_degraded(degraded, "kg_product_sentiment", e)
 
             # 브랜드가 지정된 경우 브랜드 감성 프로필 조회
             for brand in entities.get("brands", []):
@@ -1056,8 +1106,9 @@ class HybridRetriever:
                         facts.append(
                             {"type": "brand_sentiment", "entity": brand, "data": brand_sentiment}
                         )
-                except Exception:
+                except Exception as e:
                     logger.warning("브랜드 감성 프로필 조회 실패", exc_info=True)
+                    self._record_degraded(degraded, "kg_brand_sentiment", e)
 
             # 특정 감성 클러스터로 제품 검색
             for cluster in sentiment_clusters:
@@ -1083,13 +1134,17 @@ class HybridRetriever:
                                     }
                                 )
                                 break
-                    except Exception:
+                    except Exception as e:
                         logger.warning("감성 클러스터 제품 조회 실패", exc_info=True)
+                        self._record_degraded(degraded, "kg_sentiment_cluster_products", e)
 
         return facts
 
     def _build_inference_context(
-        self, entities: dict[str, list[str]], current_metrics: dict[str, Any]
+        self,
+        entities: dict[str, list[str]],
+        current_metrics: dict[str, Any],
+        degraded: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """
         추론용 컨텍스트 구성
@@ -1097,6 +1152,7 @@ class HybridRetriever:
         Args:
             entities: 추출된 엔티티
             current_metrics: 현재 지표 데이터
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             추론 컨텍스트
@@ -1192,8 +1248,9 @@ class HybridRetriever:
                     context["sentiment_tags"] = brand_sentiment.get("all_tags", [])
                     context["sentiment_clusters"] = brand_sentiment.get("clusters", {})
                     context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
-                except Exception:
+                except Exception as e:
                     logger.warning("자사 브랜드 감성 프로필 조회 실패", exc_info=True)
+                    self._record_degraded(degraded, "inference_brand_sentiment", e)
 
             # 제품별 감성 데이터
             if context.get("asin"):
@@ -1205,8 +1262,9 @@ class HybridRetriever:
                         context["sentiment_clusters"] = product_sentiment.get(
                             "sentiment_clusters", {}
                         )
-                except Exception:
+                except Exception as e:
                     logger.warning("제품 감성 요약 조회 실패", exc_info=True)
+                    self._record_degraded(degraded, "inference_product_sentiment", e)
 
             # 경쟁사 감성 데이터 (비교용)
             if context.get("competitors"):
@@ -1221,8 +1279,9 @@ class HybridRetriever:
                             competitor_clusters[cluster] = (
                                 competitor_clusters.get(cluster, 0) + count
                             )
-                    except Exception:
+                    except Exception as e:
                         logger.warning("경쟁사 감성 프로필 조회 실패", exc_info=True)
+                        self._record_degraded(degraded, "inference_competitor_sentiment", e)
                 context["competitor_sentiment_tags"] = list(set(competitor_tags))
                 context["competitor_sentiment_clusters"] = competitor_clusters
 
@@ -1374,6 +1433,7 @@ class HybridRetriever:
         self,
         context: HybridContext,
         intent_weights: dict[str, float] | None = None,
+        degraded: list[dict[str, Any]] | None = None,
     ) -> HybridContext:
         """
         가중치 기반 컨텍스트 병합
@@ -1389,6 +1449,7 @@ class HybridRetriever:
         Args:
             context: 병합 전 HybridContext
             intent_weights: 인텐트 기반 가중치 (optional override)
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             가중치 적용된 HybridContext
@@ -1476,7 +1537,7 @@ class HybridRetriever:
         context.metadata["weighted_scores"] = weighted_scores
 
         # ConfidenceFusion: 전체 신뢰도 계산 + 충돌 감지
-        fusion_meta = self._compute_fusion_confidence(context, intent_weights)
+        fusion_meta = self._compute_fusion_confidence(context, intent_weights, degraded=degraded)
         context.metadata["fusion"] = fusion_meta
 
         logger.info(
@@ -1496,6 +1557,7 @@ class HybridRetriever:
         self,
         context: HybridContext,
         intent_weights: dict[str, float] | None = None,
+        degraded: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """
         ConfidenceFusion을 사용해 전체 신뢰도를 계산하고 소스 간 충돌을 감지합니다.
@@ -1506,6 +1568,7 @@ class HybridRetriever:
         Args:
             context: 가중 병합 완료된 HybridContext
             intent_weights: 인텐트별 가중치 (kg/rag/inference)
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             dict with confidence, strategy, warnings, source_scores, explanation
@@ -1552,6 +1615,7 @@ class HybridRetriever:
         except Exception as e:
             # 무기록으로 weighted_sum 폴백하면 융합 전략이 바뀐 사실이 드러나지 않는다
             logger.warning(f"인텐트 분류 실패, fusion_strategy=weighted_sum 폴백: {e}")
+            self._record_degraded(degraded, "fusion_strategy_selection", e)
 
         strategy_map = {
             "weighted_sum": FusionStrategy.WEIGHTED_SUM,
