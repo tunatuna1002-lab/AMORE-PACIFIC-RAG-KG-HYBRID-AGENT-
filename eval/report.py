@@ -117,6 +117,10 @@ class ReportGenerator:
         passed = sum(1 for r in results if r.passed)
         failed = total - passed
 
+        # 선택 기능(비핵심) 실패는 채점을 막지 않는다 — errored와 달리 채점된
+        # 문항에 포함되므로 몇 개가 저하된 채로 채점됐는지만 집계한다 (F3)
+        degraded_items = sum(1 for r in results if r.trace is not None and r.trace.degraded)
+
         # Average overall score
         avg_score = sum(r.overall_score for r in results) / total
 
@@ -161,6 +165,7 @@ class ReportGenerator:
             failed=failed,
             errored=len(errored_results),
             error_item_ids=error_item_ids,
+            degraded_items=degraded_items,
             pass_rate=passed / total,
             avg_overall_score=avg_score,
             avg_latency_ms=avg_latency,
@@ -316,6 +321,10 @@ class ReportGenerator:
                 f"**Excluded (infra failure)**: {report.aggregates.errored} "
                 f"— {', '.join(report.aggregates.error_item_ids[:10])}"
             )
+        if report.aggregates.degraded_items:
+            lines.append(
+                f"**Degraded (scored, optional feature failed)**: {report.aggregates.degraded_items}"
+            )
         lines.append(f"**Pass Rate**: {report.aggregates.pass_rate:.1%}")
         lines.append(f"**Avg Score**: {report.aggregates.avg_overall_score:.3f}")
         lines.append("")
@@ -336,6 +345,10 @@ class ReportGenerator:
         lines.append(f"| Failed | {report.aggregates.failed} |")
         if report.aggregates.errored:
             lines.append(f"| Excluded (infra) | {report.aggregates.errored} |")
+        if report.aggregates.degraded_items:
+            lines.append(
+                f"| Degraded (optional feature failed) | {report.aggregates.degraded_items} |"
+            )
         lines.append(f"| Pass Rate | {report.aggregates.pass_rate:.1%} |")
         lines.append(f"| Avg Score | {report.aggregates.avg_overall_score:.3f} |")
         lines.append(f"| Avg Latency | {report.aggregates.avg_latency_ms:.0f}ms |")

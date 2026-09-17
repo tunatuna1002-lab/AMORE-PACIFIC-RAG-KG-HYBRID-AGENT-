@@ -52,6 +52,9 @@ class V4RetrievalTrace:
     rag_chunks: list[dict[str, Any]] = field(default_factory=list)
     metric_facts: list[dict[str, Any]] = field(default_factory=list)
     retriever_type: str = "none"
+    # 검색 오류 가시화(F3) — HybridRetriever.retrieve()가 HybridContext.metadata에
+    # 남기는 retrieval_error/degraded와 같은 계약. 러너의 EvalTrace가 여기서 읽는다.
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 def _record_usage(prompt_tokens: int, completion_tokens: int) -> None:
@@ -165,6 +168,7 @@ class BrainEvalAdapter:
         ctx = holder.get("hybrid_context")
         unified = holder.get("unified")
         if ctx is not None:
+            ctx_metadata = getattr(ctx, "metadata", None)
             trace = V4RetrievalTrace(
                 query=query,
                 entities=ctx.entities or {},
@@ -173,9 +177,11 @@ class BrainEvalAdapter:
                 rag_chunks=list(ctx.rag_chunks or []),
                 metric_facts=list(getattr(ctx, "metric_facts", None) or []),
                 retriever_type="legacy",
+                metadata=dict(ctx_metadata) if isinstance(ctx_metadata, dict) else {},
             )
         elif unified is not None:
             # OWL 전략 또는 Self-RAG 생략: HybridContext가 없다
+            unified_metadata = getattr(unified, "metadata", None)
             trace = V4RetrievalTrace(
                 query=query,
                 entities=unified.entities or {},
@@ -183,6 +189,7 @@ class BrainEvalAdapter:
                 inferences=list(unified.inferences or []),
                 rag_chunks=list(unified.rag_chunks or []),
                 retriever_type=unified.retriever_type,
+                metadata=dict(unified_metadata) if isinstance(unified_metadata, dict) else {},
             )
         else:
             trace = V4RetrievalTrace(query=query)

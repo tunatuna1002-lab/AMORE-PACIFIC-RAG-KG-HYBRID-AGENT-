@@ -315,6 +315,20 @@ class EvalTrace(BaseModel):
     cost: CostTrace = Field(default_factory=CostTrace, description="Cost tracking")
     latency_ms: float = Field(default=0.0, description="Total latency in milliseconds")
     error: str | None = Field(default=None, description="Error message if any")
+    retrieval_error: str | None = Field(
+        default=None,
+        description=(
+            "핵심 검색 실패 원인 (HybridContext.metadata['retrieval_error'] 또는 "
+            "V4RetrievalTrace 동등 필드). 채워지면 run_item이 인프라 실패로 분리한다."
+        ),
+    )
+    degraded: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "선택 기능(비핵심) 실패 목록: [{'component':..., 'error':...}, ...]. "
+            "채점은 계속하되 어떤 하위 조회가 저하됐는지 노출한다."
+        ),
+    )
 
 
 # =============================================================================
@@ -457,6 +471,11 @@ class AggregateMetrics(BaseModel):
     # 이 문항들은 total/passed/failed·평균 지표 어디에도 들어가지 않는다.
     errored: int = Field(default=0, description="답변을 얻지 못해 채점에서 분리된 문항 수")
     error_item_ids: list[str] = Field(default_factory=list, description="채점에서 분리된 문항 ID")
+    # 선택 기능(비핵심) 실패는 채점을 막지 않는다 — 몇 문항이 저하된 채로
+    # 채점됐는지만 드러낸다 (F3). errored와 달리 total/평균 지표에서 빠지지 않는다.
+    degraded_items: int = Field(
+        default=0, description="선택 기능이 하나 이상 저하된 채로 채점된 문항 수"
+    )
     pass_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     avg_overall_score: float = Field(default=0.0, ge=0.0, le=1.0)
     avg_latency_ms: float = Field(default=0.0, ge=0.0)

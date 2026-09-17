@@ -172,6 +172,14 @@ class EvalRunner:
             try:
                 trace = await self._capture_trace(item.id, result, start_time, item_cost)
 
+                if trace.retrieval_error:
+                    # 검색기가 핵심 검색 실패를 삼키고 빈 컨텍스트로 계속 진행한 경우
+                    # (F3) — 에이전트는 예외를 던지지 않았지만 채점하면 안 된다.
+                    # 답변이 근거 없이 생성됐을 수 있어 0점이 아니라 인프라 실패로 뺀다.
+                    return self._infrastructure_failure(
+                        item, start_time, f"retrieval_error: {trace.retrieval_error}", item_cost
+                    )
+
                 l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
                 l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
                 l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
@@ -371,6 +379,10 @@ class EvalRunner:
         # L5: Answer trace
         l5_trace = self._extract_l5_trace(result)
 
+        # 핵심/선택 검색 실패 (F3) — v1 HybridContext와 v4 V4RetrievalTrace 모두
+        # .metadata에 담는다. metadata가 없는 구형/가짜 컨텍스트에서는 조용히 빈 값.
+        retrieval_error, degraded = self._extract_retrieval_health(hybrid_ctx)
+
         return EvalTrace(
             item_id=item_id,
             timestamp=datetime.now(),
@@ -383,7 +395,26 @@ class EvalRunner:
             cost=(item_cost or self._new_item_cost_tracker()).to_cost_trace(),
             latency_ms=latency_ms,
             error=None,
+            retrieval_error=retrieval_error,
+            degraded=degraded,
         )
+
+    @staticmethod
+    def _extract_retrieval_health(hybrid_ctx: Any) -> tuple[str | None, list[dict[str, Any]]]:
+        """hybrid_ctx.metadata에서 검색 오류 가시화(F3) 정보를 꺼낸다.
+
+        hybrid_ctx가 없거나 metadata 속성이 없으면(구형 에이전트, 테스트용
+        SimpleNamespace 등) 조용히 (None, [])를 돌려준다 — 검색 오류
+        가시화는 이 정보가 있을 때만 부가하는 기능이지 필수 계약이 아니다.
+        """
+        metadata = getattr(hybrid_ctx, "metadata", None) if hybrid_ctx is not None else None
+        if not isinstance(metadata, dict):
+            return None, []
+        retrieval_error = metadata.get("retrieval_error")
+        degraded = metadata.get("degraded") or []
+        if not isinstance(degraded, list):
+            degraded = []
+        return retrieval_error, degraded
 
     @staticmethod
     def _extract_data_facts(hybrid_ctx: Any) -> list[dict[str, Any]]:
