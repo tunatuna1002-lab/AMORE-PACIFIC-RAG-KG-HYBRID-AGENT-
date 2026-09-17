@@ -216,7 +216,7 @@ class EvalRunner:
         self._merge_cost(item_cost)
 
         # Aggregate results
-        return self.aggregator.aggregate(
+        item_result = self.aggregator.aggregate(
             item_id=item.id,
             l1=l1,
             l2=l2,
@@ -227,6 +227,8 @@ class EvalRunner:
             metadata=item.metadata,
             question=item.question,
         )
+        item_result.rule_agreement = self._compute_rule_agreement(item.metadata, trace)
+        return item_result
 
     def _merge_cost(self, item_cost: CostTracker) -> None:
         """문항 버킷을 실행 전체 버킷에 합산 (요약 출력용)."""
@@ -411,7 +413,42 @@ class EvalRunner:
             evidence=[card.model_dump(mode="json") for card in (prompt_evidence or [])],
             evidence_all_count=self._extract_evidence_all_count(hybrid_ctx),
             judge_context_source=judge_context_source,
+            rule_evaluation=self._extract_rule_evaluation(hybrid_ctx),
         )
+
+    @staticmethod
+    def _extract_rule_evaluation(hybrid_ctx: Any) -> dict[str, Any] | None:
+        """hybrid_ctx.metadata['rule_evaluation']을 읽는다 (트랙 3-B 계약).
+
+        {'combinations':..., 'evaluated': int, 'fired': [...], 'non_fire_top': [...],
+        'non_fire_counts_by_kind': {...}} 모양. metadata가 없거나 키가 없으면(3-B
+        미병합, v1 구형, 테스트용 가짜 컨텍스트) None — 필수 계약이 아니다.
+        """
+        metadata = getattr(hybrid_ctx, "metadata", None) if hybrid_ctx is not None else None
+        if not isinstance(metadata, dict):
+            return None
+        rule_evaluation = metadata.get("rule_evaluation")
+        return rule_evaluation if isinstance(rule_evaluation, dict) else None
+
+    @staticmethod
+    def _compute_rule_agreement(metadata: Any, trace: EvalTrace) -> bool | None:
+        """규칙 정답 일치 여부 (트랙 3-C).
+
+        metadata.rule_gold에 rule_ids·expected_conclusion.fires가 모두 있어야
+        판정한다. applied_rules는 trace.l4_ontology.applied_rules를 우선 쓰고,
+        비어 있으면 trace.rule_evaluation.fired로 대체한다.
+        """
+        rule_gold = getattr(metadata, "rule_gold", None) if metadata is not None else None
+        if not rule_gold:
+            return None
+        expected = (rule_gold.get("expected_conclusion") or {}).get("fires")
+        rule_ids = set(rule_gold.get("rule_ids") or [])
+        if expected is None or not rule_ids:
+            return None
+        applied = set(trace.l4_ontology.applied_rules or [])
+        if not applied and trace.rule_evaluation:
+            applied = set(trace.rule_evaluation.get("fired") or [])
+        return bool(applied & rule_ids) == bool(expected)
 
     @staticmethod
     def _extract_prompt_evidence(hybrid_ctx: Any) -> list[Evidence] | None:

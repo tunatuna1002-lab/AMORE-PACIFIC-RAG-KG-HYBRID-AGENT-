@@ -98,6 +98,21 @@ class ItemMetadata(BaseModel):
         default="document", description="골드 수치의 검증 근거"
     )
     as_of: str | None = Field(default=None, description="snapshot 문항의 기준 시점 (YYYY-MM-DD)")
+    # 유형별 시험지·규칙 관측 관련 필드 (트랙 3-C, 2026-09-17). 로더가 기본적으로
+    # 버리던 키들 중 리포트만으로 분석하는 데 필요한 것만 보존한다. 없으면 None —
+    # 구형 골든셋/리포트와 하위 호환.
+    question_type: str | None = Field(
+        default=None, description="유형별 시험지 분류 (numeric/relation/rule/multihop 등)"
+    )
+    generated: bool | None = Field(default=None, description="생성 문항 여부 (스크립트 생성)")
+    rule_gold: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "rule 유형 문항의 규칙 정답: {'rule_ids': [...], 'expected_conclusion': "
+            "{'fires': bool, ...}, ...} (scripts/generate_rule_questions.py). "
+            "리포트의 ItemResult.rule_agreement 계산에 쓴다. 없으면 규칙 정답 판정 불가."
+        ),
+    )
 
 
 class EvalItem(BaseModel):
@@ -364,6 +379,15 @@ class EvalTrace(BaseModel):
             "경로에서만 쓴다."
         ),
     )
+    rule_evaluation: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "규칙 엔진 추론 관측 (트랙 3-B, HybridContext.metadata['rule_evaluation']을 "
+            "그대로 복사): {'combinations': [...], 'evaluated': int, 'fired': [rule_name,...], "
+            "'non_fire_top': [[label, count], ...], 'non_fire_counts_by_kind': {...}}. "
+            "metadata에 키가 없으면(3-B 미병합, v1 구형, 구형 report.json) None."
+        ),
+    )
 
 
 # =============================================================================
@@ -494,6 +518,15 @@ class ItemResult(BaseModel):
     fail_reason_tags: list[str] = Field(default_factory=list, description="Failure reason tags")
     trace: EvalTrace | None = Field(default=None, description="Full evaluation trace")
     metadata: ItemMetadata = Field(default_factory=ItemMetadata)
+    rule_agreement: bool | None = Field(
+        default=None,
+        description=(
+            "규칙 정답 일치 여부 (트랙 3-C). metadata.rule_gold가 있고 "
+            "rule_ids·expected_conclusion.fires가 모두 있을 때만 계산: "
+            "bool(applied_rules ∩ rule_ids) == fires. 판정 불가하면 None "
+            "(rule_gold 없음, 구형 리포트 등)."
+        ),
+    )
 
 
 class AggregateMetrics(BaseModel):
@@ -563,6 +596,24 @@ class AggregateMetrics(BaseModel):
     )
     rule_inference_total: int = Field(
         default=0, description="채점된 전체 문항의 inferences 총 개수 합"
+    )
+    # 규칙 정답 일치 관측 (트랙 3-C). rule_gold가 있는 문항(judged)만 대상 —
+    # rule_fired_items/rule_inference_total(0-D2, 발화 여부만 봄)과는 다른 지표다.
+    rule_agreement_rate: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="rule_agreement 판정 가능한 문항 중 일치 비율. 판정 가능 문항 0이면 None",
+    )
+    rule_agreement_items: int = Field(
+        default=0, description="rule_agreement가 판정된(None이 아닌) 문항 수"
+    )
+    non_fire_reason_top: list[tuple[str, int]] = Field(
+        default_factory=list,
+        description=(
+            "채점된 문항의 rule_evaluation.non_fire_top을 라벨별로 합산한 상위 15개 "
+            "[(label, count), ...] — 예: missing_input:sos, conditions_not_met:hhi_below_0.15"
+        ),
     )
 
 

@@ -147,6 +147,10 @@ class ReportGenerator:
         # 규칙 추론 발동 분포 (l4_ontology.inferences, v1/v4 공통)
         rule_fired_items, rule_inference_total = self._compute_rule_distribution(results)
 
+        # 규칙 정답 일치 관측 (트랙 3-C) — rule_gold가 있는 문항만 대상
+        rule_agreement_rate, rule_agreement_items = self._compute_rule_agreement_rate(results)
+        non_fire_reason_top = self._compute_non_fire_reasons(results)
+
         # Cost aggregation
         total_tokens = 0
         total_cost_usd = 0.0
@@ -190,6 +194,9 @@ class ReportGenerator:
             react_items=react_items,
             rule_fired_items=rule_fired_items,
             rule_inference_total=rule_inference_total,
+            rule_agreement_rate=rule_agreement_rate,
+            rule_agreement_items=rule_agreement_items,
+            non_fire_reason_top=non_fire_reason_top,
         )
 
     @staticmethod
@@ -232,6 +239,37 @@ class ReportGenerator:
                 total_inferences += len(inferences)
 
         return fired_items, total_inferences
+
+    @staticmethod
+    def _compute_rule_agreement_rate(results: list[ItemResult]) -> tuple[float | None, int]:
+        """ItemResult.rule_agreement(트랙 3-C)가 판정된 문항 중 일치 비율과 판정 문항 수.
+
+        rule_agreement가 None인 문항(rule_gold 없음, 구형 리포트)은 제외한다.
+        판정 가능한 문항이 하나도 없으면 (None, 0).
+        """
+        judged = [r.rule_agreement for r in results if r.rule_agreement is not None]
+        if not judged:
+            return None, 0
+        return sum(1 for v in judged if v) / len(judged), len(judged)
+
+    @staticmethod
+    def _compute_non_fire_reasons(
+        results: list[ItemResult], top_n: int = 15
+    ) -> list[tuple[str, int]]:
+        """채점된 문항의 trace.rule_evaluation.non_fire_top을 라벨별로 합산해 상위 top_n개.
+
+        rule_evaluation이 없는 문항(3-B 미병합, v1 구형)은 조용히 건너뛴다.
+        """
+        counts: dict[str, int] = defaultdict(int)
+        for r in results:
+            rule_evaluation = r.trace.rule_evaluation if r.trace is not None else None
+            if not isinstance(rule_evaluation, dict):
+                continue
+            for entry in rule_evaluation.get("non_fire_top") or []:
+                if isinstance(entry, list | tuple) and len(entry) == 2:
+                    label, count = entry
+                    counts[str(label)] += int(count)
+        return sorted(counts.items(), key=lambda kv: -kv[1])[:top_n]
 
     def _compute_layer_averages(self, results: list[ItemResult]) -> dict[str, float]:
         """Compute average metrics for each layer."""
@@ -461,11 +499,34 @@ class ReportGenerator:
                 ):
                     lines.append(f"| {level} | {count} |")
                 lines.append("")
-            lines.append(
-                f"Rule inferences fired: {report.aggregates.rule_fired_items} items, "
-                f"{report.aggregates.rule_inference_total} total inferences"
-            )
+
+        # Rules (규칙 엔진 추론 관측 — 발화 여부는 v1/v4 공통, 정답 일치는 rule_gold가
+        # 있는 문항만. 데이터가 전혀 없으면(비-rule 데이터셋) 섹션을 생략한다)
+        agg = report.aggregates
+        if agg.rule_fired_items or agg.rule_agreement_items or agg.non_fire_reason_top:
+            lines.append("## Rules")
             lines.append("")
+            lines.append("| Metric | Value |")
+            lines.append("|--------|-------|")
+            lines.append(f"| Rule-fired items | {agg.rule_fired_items} |")
+            lines.append(f"| Rule inferences (total) | {agg.rule_inference_total} |")
+            if agg.rule_agreement_rate is not None:
+                lines.append(
+                    f"| Rule agreement rate | {agg.rule_agreement_rate:.1%} "
+                    f"({agg.rule_agreement_items} judged) |"
+                )
+            else:
+                lines.append("| Rule agreement rate | — (no judged items) |")
+            lines.append("")
+
+            if agg.non_fire_reason_top:
+                lines.append("**Top non-fire reasons** (top 10)")
+                lines.append("")
+                lines.append("| Reason | Count |")
+                lines.append("|--------|-------|")
+                for label, count in agg.non_fire_reason_top[:10]:
+                    lines.append(f"| {label} | {count} |")
+                lines.append("")
 
         # Cost Summary (only if cost data exists)
         if report.aggregates.total_tokens > 0:

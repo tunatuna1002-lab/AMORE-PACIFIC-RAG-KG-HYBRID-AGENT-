@@ -74,10 +74,21 @@ RULE_GOLD: dict[str, dict] = {}
 
 
 def _rule_agreement(items: list) -> float | None:
+    """문항별 규칙 정답 일치율.
+
+    리포트가 트랙 3-C 필드(ItemResult.rule_agreement)를 채운 경우 그것을 그대로
+    쓴다. 없으면(구형 report.json) 예전처럼 시험지의 rule_gold + 트레이스의
+    applied_rules로 다시 계산한다 — 하위 호환 폴백.
+    """
     judged = 0
     agree = 0
     for item in items:
-        rule_gold = RULE_GOLD.get(item.item_id) or {}
+        if item.rule_agreement is not None:
+            judged += 1
+            agree += int(bool(item.rule_agreement))
+            continue
+
+        rule_gold = (getattr(item.metadata, "rule_gold", None)) or RULE_GOLD.get(item.item_id) or {}
         expected = (rule_gold.get("expected_conclusion") or {}).get("fires")
         rule_ids = set(rule_gold.get("rule_ids") or [])
         if expected is None or not rule_ids or item.trace is None:
@@ -86,6 +97,20 @@ def _rule_agreement(items: list) -> float | None:
         judged += 1
         agree += int(bool(applied & rule_ids) == bool(expected))
     return agree / judged if judged else None
+
+
+def _non_fire_top(items: list, top_n: int = 5) -> list[tuple[str, int]]:
+    """채점된 문항들의 rule_evaluation.non_fire_top을 라벨별로 합산한 상위 top_n."""
+    counts: Counter = Counter()
+    for item in items:
+        rule_evaluation = item.trace.rule_evaluation if item.trace is not None else None
+        if not isinstance(rule_evaluation, dict):
+            continue
+        for entry in rule_evaluation.get("non_fire_top") or []:
+            if isinstance(entry, list | tuple) and len(entry) == 2:
+                label, count = entry
+                counts[str(label)] += int(count)
+    return counts.most_common(top_n)
 
 
 def _summarize(items: list, generator) -> dict:
@@ -103,6 +128,7 @@ def _summarize(items: list, generator) -> dict:
         "confidence": dict(agg.confidence_level_counts),
         "rule_fired_items": agg.rule_fired_items,
         "rule_inferences": agg.rule_inference_total,
+        "non_fire_top5": _non_fire_top(scored, 5),
         "cost": sum((i.trace.cost.total_cost_usd if i.trace else 0.0) for i in items),
     }
 
@@ -200,8 +226,11 @@ def main() -> int:
                 row += f" {' | '.join(verdicts)} |"
             print(row)
 
-        print("\n| 구성 | 경로 분포(실행별) | 신뢰도 분포(실행별) | 규칙 발화 문항 / 추론 수 |")
-        print("|---|---|---|---|")
+        print(
+            "\n| 구성 | 경로 분포(실행별) | 신뢰도 분포(실행별) | 규칙 발화 문항 / 추론 수 "
+            "| 미발화 사유 상위 5 |"
+        )
+        print("|---|---|---|---|---|")
         for name, runs in configs:
             routes = "; ".join(
                 ", ".join(f"{k} {v}" for k, v in sorted(r[type_name]["routes"].items()))
@@ -215,7 +244,12 @@ def main() -> int:
                 f"{r[type_name]['rule_fired_items']}/{r[type_name]['rule_inferences']}"
                 for r in runs
             )
-            print(f"| {name} | {routes} | {conf} | {fired} |")
+            non_fire = "; ".join(
+                ", ".join(f"{label} {count}" for label, count in r[type_name]["non_fire_top5"])
+                or "—"
+                for r in runs
+            )
+            print(f"| {name} | {routes} | {conf} | {fired} | {non_fire} |")
 
     total_routes: Counter = Counter()
     for _, runs in configs:
