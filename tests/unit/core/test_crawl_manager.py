@@ -41,6 +41,21 @@ from src.core.crawl_manager import (
 KST = timezone(timedelta(hours=9))
 
 
+@pytest.fixture(autouse=True)
+def _isolate_crawl_manager_data_dir(tmp_path, monkeypatch):
+    """실제 data/latest_crawl_result.json·raw_products/ 오염 방지.
+
+    CrawlManager._run_crawl()은 크롤링 완료 시 `_get_data_dir()`
+    (RAILWAY_ENVIRONMENT 미설정이면 "./data", CWD 상대경로)로 계산한 경로에
+    latest_crawl_result.json과 raw_products/{date}.json을 직접 저장한다
+    (생성자 인자·환경변수 등 주입 수단 없음). STATE_FILE/DATA_FILE은 manager
+    fixture가 tmp_path로 patch하지만 이 경로는 별개라 CWD를 tmp_path로 돌려
+    격리한다.
+    """
+    (tmp_path / "data").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def manager(tmp_path):
     """CrawlManager with tmp state/data files"""

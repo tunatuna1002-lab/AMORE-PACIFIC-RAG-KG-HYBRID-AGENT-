@@ -180,7 +180,10 @@ class TestOntologyIntegration:
         from src.ontology.unified_reasoner import UnifiedReasoner
 
         # OntologyKG requires a KnowledgeGraph instance
-        kg = KnowledgeGraph()
+        # auto_save=False: 실제 data/knowledge_graph.json 오염 방지
+        # (KnowledgeGraph.__init__ -> _load()가 add_relation()을 호출하므로
+        #  로드 중 배치 임계값에 도달하면 자동 저장이 발생함)
+        kg = KnowledgeGraph(auto_save=False)
         okg = OntologyKnowledgeGraph(knowledge_graph=kg)
 
         # UnifiedReasoner can work standalone

@@ -10,6 +10,30 @@ from src.agents.external_signal_manager import ExternalSignalManager
 class TestExternalSignalManager:
     """Test ExternalSignalManager functionality"""
 
+    @pytest.fixture(autouse=True)
+    def _isolate_external_signal_collector(self, tmp_path, monkeypatch):
+        """실제 data/external_signals/signals.json 오염 방지.
+
+        ExternalSignalManager.collect()는 self._collector가 없으면
+        (주입 수단 없이) 기본 경로로 ExternalSignalCollector()를 생성한다.
+        test_lazy_initialization/test_failed_collector_tracking처럼
+        lazy-init 자체를 검증하는 테스트를 위해 real collector 생성은 그대로 두되,
+        저장 경로만 임시 디렉토리로 리다이렉트한다.
+        """
+        # ExternalSignalManager.collect()는 함수 내부에서
+        # `from src.tools.collectors.external_signal_collector import ExternalSignalCollector`
+        # 를 매번 로컬로 import하므로, 그 정의 모듈(external_signal_collector) 쪽의
+        # 클래스 속성을 패치해야 실제로 적용된다.
+        import src.tools.collectors.external_signal_collector as collector_module
+
+        real_collector_cls = collector_module.ExternalSignalCollector
+
+        def _tmp_collector(*args, **kwargs):
+            kwargs.setdefault("data_dir", str(tmp_path / "external_signals"))
+            return real_collector_cls(*args, **kwargs)
+
+        monkeypatch.setattr(collector_module, "ExternalSignalCollector", _tmp_collector)
+
     @pytest.fixture
     def manager(self):
         """Create ExternalSignalManager instance"""

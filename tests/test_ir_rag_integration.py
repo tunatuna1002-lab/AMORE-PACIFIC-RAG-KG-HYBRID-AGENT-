@@ -301,7 +301,9 @@ def test_knowledge_graph_brand_ownership(results: TestResult):
     try:
         from src.ontology.knowledge_graph import KnowledgeGraph
 
-        kg = KnowledgeGraph()
+        # auto_save=False: 실제 data/knowledge_graph.json 오염 방지
+        # (로드 중 add_relation()이 배치 임계값에 도달하면 자동 저장됨)
+        kg = KnowledgeGraph(auto_save=False)
 
         # 브랜드 소유권 데이터 로드
         loaded_count = kg.load_brand_ownership()

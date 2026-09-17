@@ -10,6 +10,27 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _isolate_external_signal_manager():
+    """실제 data/external_signals·market_intelligence 오염 방지.
+
+    HybridChatbotAgent.__init__은 `self.signal_manager =
+    Container.get_external_signal_manager()`로 DI 컨테이너의 싱글턴을 사용한다.
+    chat()가 실제 신호 수집(네트워크 I/O + 실제 data/ 저장, 테스트당 ~10초)을
+    시도하지 않도록 Container의 공식 테스트 오버라이드 메커니즘으로 가짜
+    매니저를 주입한다. chat() 응답 형태만 검증하는 테스트들이라 외부 신호
+    수집 결과 자체를 검증하는 곳은 없어 약화 없음.
+    """
+    from src.infrastructure.container import Container
+
+    fake_manager = MagicMock()
+    fake_manager.collect = AsyncMock(return_value=[])
+    fake_manager.get_failed_collectors = MagicMock(return_value=[])
+
+    with Container.test_override("external_signal_manager", fake_manager):
+        yield
+
+
 class TestHybridChatbotAgentInit:
     """HybridChatbotAgent 초기화 테스트"""
 
@@ -36,7 +57,10 @@ class TestHybridChatbotAgentInit:
         from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
         from src.ontology.knowledge_graph import KnowledgeGraph
 
-        mock_kg = KnowledgeGraph()
+        # auto_save=False: 실제 data/knowledge_graph.json 오염 방지
+        # (KnowledgeGraph.__init__ -> _load()가 add_relation()을 호출하므로
+        #  로드 중 배치 임계값에 도달하면 자동 저장이 발생함)
+        mock_kg = KnowledgeGraph(auto_save=False)
         agent = HybridChatbotAgent(knowledge_graph=mock_kg)
 
         assert agent.kg is mock_kg

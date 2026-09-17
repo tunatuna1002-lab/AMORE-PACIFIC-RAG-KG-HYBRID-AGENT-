@@ -9,6 +9,20 @@ import pytest
 from src.agents.storage_agent import StorageAgent
 
 
+@pytest.fixture(autouse=True)
+def _isolate_competitor_json(tmp_path, monkeypatch):
+    """실제 data/competitor_products.json 오염 방지.
+
+    StorageAgent.execute()는 경쟁사 데이터가 있으면
+    `Path("./data/competitor_products.json")`에 하드코딩된 상대경로로 직접
+    json.dump()한다 (생성자 인자·환경변수 등 주입 수단 없음). sheets/sqlite는
+    이미 mock 처리되지만 이 raw file write는 별개 경로라 CWD를 임시
+    디렉토리로 돌려 격리한다.
+    """
+    (tmp_path / "data").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def mock_sheets():
     """Mock SheetsWriter"""

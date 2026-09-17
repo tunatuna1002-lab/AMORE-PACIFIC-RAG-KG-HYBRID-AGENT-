@@ -12,6 +12,29 @@ import pytest
 from src.tools.exporters.dashboard_exporter import DashboardExporter
 
 
+@pytest.fixture(autouse=True)
+def _isolate_ontology_kg(monkeypatch):
+    """실제 data/knowledge_graph.json 오염 방지.
+
+    DashboardExporter(enable_ontology=True, 기본값)는 _init_ontology()에서
+    (주입 수단 없이) 기본 KnowledgeGraph()를 생성한다.
+    KnowledgeGraph.__init__ -> _load()가 내부적으로 add_relation()을 호출하므로,
+    로드 중 배치 임계값(save_batch_threshold)에 도달하면 자동 저장이 발생해
+    add_relation을 한 번도 호출하지 않아도 실제 파일이 다시 쓰여질 수 있다.
+    test_init_with_ontology_enabled처럼 _init_ontology 자체를 patch하는 테스트도
+    있지만, test_init_default/test_init_with_spreadsheet_id는 실제 lazy-init 결과
+    (enable_ontology 플래그 등)를 검증하므로 KnowledgeGraph 생성 자체는 그대로 두고
+    auto_save만 끈다.
+    """
+    from src.ontology.knowledge_graph import KnowledgeGraph as RealKnowledgeGraph
+
+    def _no_autosave_kg(*args, **kwargs):
+        kwargs.setdefault("auto_save", False)
+        return RealKnowledgeGraph(*args, **kwargs)
+
+    monkeypatch.setattr("src.tools.exporters.dashboard_exporter.KnowledgeGraph", _no_autosave_kg)
+
+
 @pytest.fixture
 def mock_sheets_writer():
     """Mock SheetsWriter"""

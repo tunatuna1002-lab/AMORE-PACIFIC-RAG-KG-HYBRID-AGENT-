@@ -6,6 +6,8 @@ import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 
+_CHROMA_TMP_DIR: str | None = None
+
 
 def pytest_configure(config):
     """테스트 시작 전 환경 설정 로드"""
@@ -41,6 +43,32 @@ def pytest_configure(config):
         "[conftest] OpenAI API guard active: OPENAI_API_KEY/OPENAI_BASE_URL/OPENAI_API_BASE "
         "forced to dummy/closed values for this test session"
     )
+
+    # === Track 0-F: ChromaDB 쓰기 격리 (전역 안전망) ===
+    # src/rag/retriever.py는 `os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")`로
+    # 컬렉션 경로를 읽으므로, 실제 data/chroma/를 세션 임시 디렉토리로 복사한 뒤
+    # 이 환경변수로 리다이렉트한다. 실제 인덱싱된 문서(358+82개 임베딩)를 그대로
+    # 복사하므로 검색 결과를 검증하는 기존 테스트는 그대로 통과하고, chromadb가
+    # 열람 시 남기는 내부 부기(sqlite WAL/HNSW 메타데이터 등) 쓰기만 임시 경로로
+    # 격리되어 실제 data/chroma/는 전혀 건드리지 않는다.
+    import shutil
+    import tempfile
+
+    global _CHROMA_TMP_DIR
+    real_chroma_dir = project_root / "data" / "chroma"
+    if real_chroma_dir.exists() and "CHROMA_PERSIST_DIR" not in os.environ:
+        _CHROMA_TMP_DIR = tempfile.mkdtemp(prefix="amore-test-chroma-")
+        shutil.copytree(real_chroma_dir, _CHROMA_TMP_DIR, dirs_exist_ok=True)
+        os.environ["CHROMA_PERSIST_DIR"] = _CHROMA_TMP_DIR
+        print(f"[conftest] CHROMA_PERSIST_DIR isolated to: {_CHROMA_TMP_DIR}")
+
+
+def pytest_unconfigure(config):
+    """테스트 세션 종료 시 임시 Chroma 복사본 정리"""
+    import shutil
+
+    if _CHROMA_TMP_DIR:
+        shutil.rmtree(_CHROMA_TMP_DIR, ignore_errors=True)
 
 
 @pytest.fixture

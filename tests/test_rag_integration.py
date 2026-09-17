@@ -321,7 +321,9 @@ async def test_hybrid_retriever_integration(results: TestResult):
         from src.rag.hybrid_retriever import HybridRetriever, QueryIntent
 
         # 컴포넌트 초기화
-        kg = KnowledgeGraph()
+        # auto_save=False: 실제 data/knowledge_graph.json 오염 방지
+        # (로드 중 add_relation()이 배치 임계값에 도달하면 자동 저장됨)
+        kg = KnowledgeGraph(auto_save=False)
         reasoner = OntologyReasoner()
         register_all_rules(reasoner)
 
