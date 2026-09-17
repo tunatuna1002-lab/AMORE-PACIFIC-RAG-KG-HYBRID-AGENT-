@@ -108,6 +108,8 @@ class Replayed:
     answer_ok: bool
     half: str
     old_level: str | None
+    old_route: str | None
+    rag_doc_ids: tuple[str, ...]
 
 
 def split_half(item_id: str) -> str:
@@ -144,13 +146,60 @@ def replay_report(path: Path) -> list[Replayed]:
                 answer_ok=not any(tag.startswith("L5_") for tag in tags),
                 half=split_half(item["item_id"]),
                 old_level=route_trace.get("confidence_level"),
+                old_route=route_trace.get("route"),
+                rag_doc_ids=tuple((trace.get("l2_doc_retrieval") or {}).get("chunk_ids") or ()),
             )
         )
     return rows
 
 
+def project_routes(rows: list[Replayed], thresholds: tuple[float, float, float]) -> dict[str, Any]:
+    """새 임계값으로 각 문항이 어느 경로로 갔을지 센다.
+
+    ``QueryGraph``의 실제 분기 규칙을 그대로 쓴다: HIGH → direct, UNKNOWN → clarify,
+    나머지는 ReAct 에이전트가 붙어 있고 복잡한 질문이면 react, 아니면 decide.
+    ``agents.use_react_agent`` 플래그가 기본 OFF이므로 두 경우를 모두 센다.
+
+    주의: 이것은 **투영**이다. 실제로 경로가 갈리면 그 문항의 증거와 답변 자체가
+    달라지므로, 성적까지 이 표로 예측할 수는 없다.
+    """
+    high, medium, low = thresholds
+    try:
+        from src.core.models import Context
+        from src.core.query_graph import QueryGraph
+
+        is_complex = QueryGraph._is_complex_query
+    except (ImportError, AttributeError):  # pragma: no cover - 분기 헬퍼가 바뀐 경우
+        return {}
+
+    react_off: dict[str, int] = {}
+    react_on: dict[str, int] = {}
+    for row in rows:
+        level = level_of(row.score, high, medium, low)
+        if level == "HIGH":
+            route_off = route_on = "direct"
+        elif level == "UNKNOWN":
+            route_off = route_on = "clarify"
+        else:
+            route_off = "decide"
+            context = Context(
+                query=row.question, rag_docs=[{"id": doc_id} for doc_id in row.rag_doc_ids]
+            )
+            route_on = "react" if is_complex(row.question, context) else "decide"
+        react_off[route_off] = react_off.get(route_off, 0) + 1
+        react_on[route_on] = react_on.get(route_on, 0) + 1
+    return {"react_off": react_off, "react_on": react_on}
+
+
 def _rate(rows: list[Replayed], attribute: str) -> float:
     return (sum(getattr(row, attribute) for row in rows) / len(rows)) if rows else 0.0
+
+
+def _fmt_routes(counts: dict[str, int], total: int) -> str:
+    return ", ".join(
+        f"{name} {count} ({count / total:.1%})"
+        for name, count in sorted(counts.items(), key=lambda kv: -kv[1])
+    )
 
 
 def choose_thresholds(rows: list[Replayed]) -> tuple[float, float, float]:
@@ -301,6 +350,20 @@ def build_note(reports: dict[str, list[Replayed]], thresholds: tuple[float, floa
             f"그중 passed 실패율 {1 - _rate(old_high, 'passed'):.3f}, "
             f"answer 실패율 {1 - _rate(old_high, 'answer_ok'):.3f}\n"
         )
+
+        routes = project_routes(rows, thresholds)
+        if routes:
+            old_routes: dict[str, int] = {}
+            for row in rows:
+                key = row.old_route or "(없음)"
+                old_routes[key] = old_routes.get(key, 0) + 1
+            total = len(rows)
+            parts.append("경로 투영 (실제 분기 규칙 적용, 성적 예측 아님 — 주의 4 참조)\n")
+            parts.append(f"- 변경 전(실측): {_fmt_routes(old_routes, total)}")
+            parts.append(
+                f"- 변경 후, ReAct OFF(기본 플래그): {_fmt_routes(routes['react_off'], total)}"
+            )
+            parts.append(f"- 변경 후, ReAct ON: {_fmt_routes(routes['react_on'], total)}\n")
     return "\n".join(parts)
 
 
