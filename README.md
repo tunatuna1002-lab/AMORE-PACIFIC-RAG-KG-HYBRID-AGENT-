@@ -60,8 +60,8 @@ uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
 |---------|------|
 | **RAG** | ChromaDB 벡터 검색 + Embedding 캐시 (hit-rate 계측 내장) |
 | **Knowledge Graph** | 브랜드-제품-카테고리 관계 Triple Store (로컬 3,500 트리플, 2026-09-17 실측. 크롤 파생 2,479 + 수작업 시드 1,000 + 시스템 21) |
-| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개 + OWL 스키마 (owlready2). OWL 검색 전략은 플래그 `retriever.use_owl_strategy` 기본 OFF |
-| **ReAct Agent** | 복잡한 질문 Thought-Action 루프 (최대 5회, 읽기 전용 도구 3종). 플래그 `agents.use_react_agent` 기본 OFF |
+| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개(증거 카드 입력, [2026-09 사후]) + OWL 스키마 (owlready2, 카테고리 계층 어휘로만 사용). OWL 검색 전략(`OWLRetrievalStrategy`)은 [2026-09 사후] 삭제됨 |
+| **ReAct Agent** | 복잡한 질문 Thought-Action 루프 (최대 5회, DecisionMaker와 같은 도구 레지스트리 5종 사용, [2026-09 사후]). 플래그 `agents.use_react_agent` 기본 OFF |
 | **크롤링 데이터** | 실시간 Amazon 베스트셀러 (매일 22:00 KST) |
 
 ---
@@ -75,7 +75,7 @@ Amazon Bestsellers (Top 100 × 5 categories)
          ↓
     StorageAgent (Google Sheets + SQLite 병행 저장)
          ↓
-    KnowledgeGraph + 규칙 기반 추론 (OWL 전략은 플래그, 기본 OFF)
+    KnowledgeGraph + 규칙 기반 추론 (OWL은 검색 전략이 아닌 카테고리 계층 어휘, [2026-09 사후])
          ↓
     HybridRetriever (RAG + KG + DB 지표 + 규칙 추론)
          ↓
@@ -187,7 +187,7 @@ python scripts/test_report_generator.py
 | **Backend** | Python 3.11+, FastAPI, Uvicorn |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
 | **RAG** | ChromaDB (OpenAI text-embedding-3-small) + BM25/RRF (rank-bm25) + Self-RAG 게이트. 리랭킹은 구현돼 있으나 플래그 `use_reranker` 기본 OFF |
-| **Ontology** | owlready2 (OWL DL), rdflib (SPARQL), Rule-based Reasoner |
+| **Ontology** | owlready2 (OWL DL, 카테고리 계층 어휘), Rule-based Reasoner. rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) |
 | **크롤링** | Playwright, playwright-stealth, browserforge |
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite(읽기 정본) + Google Sheets(병행 저장, Sheets→SQLite 동기화), Pandas |
@@ -206,7 +206,7 @@ python scripts/test_report_generator.py
 | POST | `/api/v4/chat` | AI 챗봇 (스트리밍: `/api/v4/chat/stream`) | API Key |
 | POST | `/api/chat` | AI 챗봇 v1 (RAG) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
-| GET | `/api/v4/brain/status` | 스케줄러 상태 + ReAct·OWL 활성 여부(`components`) | - |
+| GET | `/api/v4/brain/status` | 스케줄러 상태 + ReAct 활성 여부(`components`, [2026-09 사후] OWL 검색 전략 삭제로 이 필드에서 제외) | - |
 | POST | `/api/export/docx` | DOCX 리포트 생성 | - |
 | POST | `/api/export/pptx` | PPTX 리포트 생성 | - |
 
