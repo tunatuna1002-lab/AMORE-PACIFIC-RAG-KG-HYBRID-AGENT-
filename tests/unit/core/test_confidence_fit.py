@@ -412,6 +412,7 @@ class TestAssessConfidenceNode:
                 metric_card("lip_care", "hhi", 0.07),
                 document_card("d0", 20.0),
                 document_card("d1", 1.0),
+                document_card("d2", 1.0),
             ],
         )
 
@@ -451,3 +452,42 @@ class TestAssessConfidenceNode:
         result = graph._node_assess_confidence(state)
 
         assert result.confidence_level == ConfidenceLevel.UNKNOWN
+
+
+# =============================================================================
+# 보정 스크립트가 프로덕션 사다리에서 떨어져 나가지 않게 고정
+# =============================================================================
+
+
+class TestCalibrationScriptStaysInSync:
+    @staticmethod
+    def _module():
+        import importlib
+
+        return importlib.import_module("scripts.calibrate_confidence_thresholds")
+
+    def test_split_rule_is_deterministic_and_documented(self):
+        """보정/검증 분할은 id의 sha1 최하위 비트로만 정해진다 (실행·순서와 무관)."""
+        import hashlib
+
+        module = self._module()
+        for item_id in ("lg041", "lg201", "rg032", "rl017"):
+            expected = (
+                "calibration"
+                if int(hashlib.sha1(item_id.encode("utf-8")).hexdigest(), 16) % 2 == 0
+                else "validation"
+            )
+            assert module.split_half(item_id) == expected
+            assert module.split_half(item_id) == module.split_half(item_id)
+
+    def test_script_level_mapping_matches_the_assessor(self):
+        """스크립트가 자기만의 사다리를 쓰지 않는다 — 같은 점수면 같은 레벨."""
+        module = self._module()
+        assessor = ConfidenceAssessor()
+        high = ConfidenceAssessor.THRESHOLD_HIGH
+        medium = ConfidenceAssessor.THRESHOLD_MEDIUM
+        low = ConfidenceAssessor.THRESHOLD_LOW
+        for score in (0.0, 0.3, low, 0.8, medium, 0.95, high, 1.0):
+            assert module.level_of(score, high, medium, low) == (
+                assessor.assess({"fit_score": score}).value.upper()
+            )

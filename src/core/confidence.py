@@ -378,11 +378,17 @@ class ConfidenceAssessor:
     # 임계값 (0~1 적합도 눈금) — 측정 보정값
     # =========================================================================
     # scripts/calibrate_confidence_thresholds.py 가 233문항 타입 시험지의 보정 절반
-    # (item_id sha1 % 2 == 0)에서 고른 값이다. 검증 절반 수치는
+    # (item_id sha1 % 2 == 0, s3-run1)에서 고른 값이다. 검증 절반과 s3 3회 실행 수치는
     # eval_output/evidence-2026-09/notes/5b_confidence_calibration.md 에 있다.
-    THRESHOLD_HIGH = 0.85  # 증거로 바로 답한다 (LLM 판단 스킵)
-    THRESHOLD_MEDIUM = 0.70  # LLM에게 도구 선택 위임
-    THRESHOLD_LOW = 0.50  # LLM에게 전체 판단 위임
+    #
+    # 측정된 효과 (s3 3회, 검증 절반):
+    #   HIGH 비중 98.7% → 41.6~45.1%, HIGH-but-failed(passed) 0.757~0.766 → 0.653~0.681.
+    #   UNKNOWN 묶음(13문항)은 세 실행 모두 passed 0/13.
+    # 주의: 이 사다리의 이득은 위쪽 꼬리와 아래쪽 꼬리에서만 나온다. 0.5~0.98 구간에서는
+    # HIGH 실패율이 거의 평평해서, 중간 임계값은 결과 데이터로 뒷받침되지 않는다.
+    THRESHOLD_HIGH = 0.99  # 증거로 바로 답한다 (LLM 판단 스킵)
+    THRESHOLD_MEDIUM = 0.91  # LLM에게 도구 선택 위임
+    THRESHOLD_LOW = 0.57  # LLM에게 전체 판단 위임
     # THRESHOLD_LOW 미만 → UNKNOWN (명확화 요청)
 
     def __init__(
