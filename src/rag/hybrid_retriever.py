@@ -590,28 +590,44 @@ class HybridRetriever:
 
             # 5. RAG 문서 검색 (추론 결과로 쿼리 확장 + 의도 기반 필터링)
             #    Uses hybrid (dense + BM25 RRF) when BM25 is available
+            #    질의 엔티티(원 질의 기준)와 색인 태그가 겹치는 청크는 재정렬 보너스를 받는다
+            #    — 필터가 아니라 순서만 바뀐다 (E10, F9)
+            from .entity_tags import result_chunk_id
+
             expanded_query = self._expand_query(search_query, inferences, entities)
+            entity_rerank: dict[str, Any] = {}
             rag_results, search_method = await self._hybrid_search(
                 expanded_query,
                 top_k=intent_top_k,
                 doc_type_filter=doc_type_filter,
                 degraded=degraded,
+                entities=entities,
+                rerank_stats=entity_rerank,
             )
 
-            # 필터링된 결과가 부족하면 전체 문서에서 추가 검색
-            if len(rag_results) < 3 and doc_type_filter:
+            # 필터링된 결과가 k개보다 적으면 전체 문서(필터 없음)에서 채운다
+            if len(rag_results) < intent_top_k and doc_type_filter:
                 additional_results, _fallback_method = await self._hybrid_search(
                     expanded_query,
-                    top_k=intent_top_k - len(rag_results),
+                    top_k=intent_top_k,
                     doc_type_filter=None,  # 전체 문서에서 검색
                     degraded=degraded,
+                    entities=entities,
+                    rerank_stats=entity_rerank,
                 )
-                # 중복 제거하며 추가
-                existing_ids = {r["id"] for r in rag_results}
+                # 중복 제거하며 추가 (BM25 결과는 최상위 id가 없어 청크 id로 비교)
+                existing_ids = {result_chunk_id(r) for r in rag_results}
                 for result in additional_results:
-                    if result["id"] not in existing_ids:
+                    if len(rag_results) >= intent_top_k:
+                        break
+                    rid = result_chunk_id(result)
+                    if rid not in existing_ids:
                         rag_results.append(result)
+                        existing_ids.add(rid)
 
+            entity_rerank["bonus_chunks"] = sum(
+                1 for r in rag_results if r.get("entity_bonus", 0) > 0
+            )
             context.rag_chunks = rag_results
 
             # 5.5. 관련성 검증 (Relevance Grading)
@@ -692,6 +708,8 @@ class HybridRetriever:
                 "intent_strategy": intent_config.description,
                 "intent_weights": intent_config.weights,
                 "search_method": search_method,
+                # 엔티티 태그 재정렬: 질의 대상·후보/태그된 후보/보너스 후보 수·최종 보너스 청크 수
+                "entity_rerank": entity_rerank,
                 "selfrag_confidence": selfrag_confidence,
                 "bm25_available": self._bm25_actually_available(),
                 "evidence_count": len(context.evidence),
@@ -837,15 +855,23 @@ class HybridRetriever:
         top_k: int = 5,
         doc_type_filter: list[str] | None = None,
         degraded: list[dict[str, Any]] | None = None,
+        entities: dict[str, Any] | None = None,
+        rerank_stats: dict[str, Any] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
         """
-        Dense + BM25 hybrid search with RRF fusion.
+        Dense + BM25 hybrid search with RRF fusion, then entity-tag re-rank bonus.
+
+        RRF 병합은 후보 전체(dense ∪ BM25)에 대해 하고, 엔티티 태그 보너스로 재정렬한 뒤
+        top_k로 자른다. 보너스는 필터가 아니다 — 후보 수는 줄지 않고, 보너스가 하나도 없으면
+        기존(top_k로 바로 자른 RRF) 결과와 같다 (설계 E10).
 
         Args:
             query: Search query
             top_k: Number of results to return
             doc_type_filter: Optional document type filter
             degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
+            entities: 질의 엔티티 (``EntityExtractor.extract`` 형식). None이면 보너스 없음
+            rerank_stats: 재정렬 통계 누적 대상 (호출자 소유 dict)
 
         Returns:
             (results, search_method) where search_method is
@@ -867,13 +893,16 @@ class HybridRetriever:
                 logger.debug(f"BM25 search failed in _hybrid_search: {e}")
                 self._record_degraded(degraded, "bm25_search", e)
 
-        # 3. RRF fusion
+        # 3. RRF fusion — 후보 전체를 병합해 둔다 (보너스 재정렬 후 top_k로 자른다)
+        candidate_limit = len(dense_results) + len(bm25_results)
         if bm25_results:
             if hasattr(self.doc_retriever, "reciprocal_rank_fusion"):
                 fused = self.doc_retriever.reciprocal_rank_fusion(
-                    dense_results, bm25_results, k=60, top_k=top_k
+                    dense_results, bm25_results, k=60, top_k=candidate_limit
                 )
-                return fused, "hybrid_rrf"
+                return self._rerank_by_entity_tags(
+                    fused, top_k, entities, rerank_stats, degraded
+                ), "hybrid_rrf"
             # Fallback: try confidence_fusion.fuse_documents_rrf
             try:
                 from src.rag.confidence_fusion import ConfidenceFusion
@@ -882,14 +911,66 @@ class HybridRetriever:
                 fused = fusion.fuse_documents_rrf(
                     {"dense": dense_results, "bm25": bm25_results},
                     k=60,
-                    top_n=top_k,
+                    top_n=candidate_limit,
                 )
-                return fused, "hybrid_rrf"
+                return self._rerank_by_entity_tags(
+                    fused, top_k, entities, rerank_stats, degraded
+                ), "hybrid_rrf"
             except (ImportError, Exception) as e:
                 logger.debug(f"Confidence fusion RRF fallback failed: {e}")
                 self._record_degraded(degraded, "rrf_fusion_fallback", e)
 
-        return dense_results, "dense_only"
+        return self._rerank_by_entity_tags(
+            dense_results, top_k, entities, rerank_stats, degraded
+        ), "dense_only"
+
+    def _rerank_by_entity_tags(
+        self,
+        results: list[dict[str, Any]],
+        top_k: int,
+        entities: dict[str, Any] | None,
+        rerank_stats: dict[str, Any] | None,
+        degraded: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """질의 엔티티와 색인 태그가 겹치는 청크에 가산 보너스를 주고 top_k로 자른다.
+
+        보너스 = Σ w_f · 1[질의 f ∩ 청크 태그 f ≠ ∅], f ∈ {brands, categories}.
+        가중치는 ``config/retrieval_weights.json``의 ``entity_tag_bonus``. 태그가 없는 색인·
+        엔티티 없는 질의·가중치 0이면 순서를 바꾸지 않는다. 태그 조회 실패는 선택 기능
+        실패로 기록하고 보너스 없이 계속한다.
+        """
+        from .entity_tags import (
+            apply_entity_bonus,
+            query_tag_targets,
+            resolve_bonus_weights,
+            result_chunk_id,
+        )
+
+        targets = query_tag_targets(entities)
+        weights_config = getattr(self, "_retrieval_weights", {}) or {}
+        weights = resolve_bonus_weights(weights_config.get("entity_tag_bonus"))
+
+        stats = {"candidates": len(results), "tagged_candidates": 0, "bonus_candidates": 0}
+        reranked = results
+        if targets and any(weights.get(field, 0) > 0 for field in targets) and results:
+            tags_by_id: dict[str, Any] = {}
+            get_tags = getattr(self.doc_retriever, "get_entity_tags", None)
+            if callable(get_tags):
+                try:
+                    looked_up = get_tags([result_chunk_id(r) for r in results])
+                    tags_by_id = looked_up if isinstance(looked_up, dict) else {}
+                except Exception as e:
+                    logger.warning("엔티티 태그 조회 실패 — 보너스 없이 진행", exc_info=True)
+                    self._record_degraded(degraded, "entity_tag_lookup", e)
+            reranked, stats = apply_entity_bonus(results, tags_by_id, targets, weights)
+
+        if rerank_stats is not None:
+            rerank_stats["query_targets"] = {f: sorted(v) for f, v in targets.items()}
+            rerank_stats["weights"] = weights
+            for key, value in stats.items():
+                rerank_stats[key] = rerank_stats.get(key, 0) + value
+
+        return reranked[:top_k]
 
     def _query_knowledge_graph(
         self,
@@ -1332,6 +1413,8 @@ class HybridRetriever:
             "weights": {"kg": 0.4, "rag": 0.4, "inference": 0.2},
             "freshness": {"weekly": 1.0, "quarterly": 0.9, "static": 0.8},
             "max_context_items": {"ontology_facts": 5, "inferences": 5, "rag_chunks": 8},
+            # 엔티티 태그 재정렬 보너스 (RRF 점수에 가산, src/rag/entity_tags.py)
+            "entity_tag_bonus": {"brands": 0.001, "categories": 0.001},
         }
 
         config_path = Path(__file__).parent.parent.parent / "config" / "retrieval_weights.json"

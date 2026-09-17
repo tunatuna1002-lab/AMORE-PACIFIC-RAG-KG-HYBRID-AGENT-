@@ -829,6 +829,7 @@ class DocumentRetriever:
 
         missing = expected_ids - indexed_ids
         extra = indexed_ids - expected_ids
+        tagged_count = self._count_tagged_chunks()
 
         return {
             "persist_dir": str(persist_dir),
@@ -840,7 +841,43 @@ class DocumentRetriever:
             "in_sync": not missing and not extra,
             "missing_sample": sorted(missing)[:10],
             "extra_sample": sorted(extra)[:10],
+            # 엔티티 태그(트랙 4-B) — 미태깅 색인도 조회는 되고 재정렬 보너스만 0이다.
+            # `python -m src.rag.build_index --retag`로 재임베딩 없이 태깅한다.
+            "tagged_count": tagged_count,
+            "tagged": bool(indexed_ids) and tagged_count == len(indexed_ids),
         }
+
+    def _count_tagged_chunks(self) -> int:
+        """엔티티 태그가 붙은 색인 청크 수 (읽기 전용)."""
+        if self.collection is None:
+            return 0
+        from src.rag.entity_tags import TAG_VERSION_KEY
+
+        try:
+            got = self.collection.get(where={TAG_VERSION_KEY: {"$gte": 1}}, include=[])
+            return len(got["ids"])
+        except Exception:
+            logger.warning("Failed to count entity-tagged chunks", exc_info=True)
+            return 0
+
+    def get_entity_tags(self, chunk_ids: list[str]) -> dict[str, dict[str, list[str]]]:
+        """색인 메타데이터에서 청크별 엔티티 태그를 읽는다 (읽기 전용).
+
+        태그가 없는(트랙 4-B 이전에 색인된) 청크는 결과에서 빠진다 — 호출부는 보너스 0으로
+        취급한다. 컬렉션이 없거나 조회에 실패하면 빈 dict.
+        """
+        ids = list(dict.fromkeys(cid for cid in chunk_ids if cid))
+        if self.collection is None or not ids:
+            return {}
+        from src.rag.entity_tags import read_tags
+
+        got = self.collection.get(ids=ids, include=["metadatas"])
+        tags_by_id: dict[str, dict[str, list[str]]] = {}
+        for chunk_id, metadata in zip(got["ids"], got["metadatas"] or [], strict=False):
+            tags = read_tags(metadata)
+            if tags is not None:
+                tags_by_id[chunk_id] = tags
+        return tags_by_id
 
     def _get_text_hash(self, text: str) -> str:
         """텍스트 해시 생성"""
@@ -961,6 +998,8 @@ Do not include any explanation."""
         if not self.collection or not self.openai_client:
             return
 
+        from src.rag.entity_tags import build_tag_metadata
+
         try:
             already_indexed = set(self.collection.get(include=[])["ids"])
         except Exception:
@@ -984,6 +1023,8 @@ Do not include any explanation."""
                     "description": chunk["description"],
                     "content_type": chunk.get("content_type", "text"),
                     "source_filename": chunk.get("source_filename", ""),
+                    # 엔티티 태그 (브랜드·카테고리·지표 canonical id, 트랙 4-B)
+                    **build_tag_metadata(chunk["title"], chunk["content"]),
                 }
             )
 
