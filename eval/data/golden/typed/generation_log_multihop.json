@@ -1,0 +1,19 @@
+{
+  "as_of": "2026-08-31",
+  "generator": "scripts/generate_multihop_questions.py",
+  "generated": 10,
+  "excluded": [
+    {
+      "candidate": "group_brands_sos/lip_care",
+      "reason": "lip_care: KG 'HERA'와 매칭된 raw_data 'Hera' 행이 오귀속 ['Jack Black Intense Therapy Lip Balm – SPF 25 Sun Protection,', 'Vaseline Lip Therapy Cocoa Butter Twin Pack']"
+    },
+    {
+      "candidate": "group_brands_sos/skin_care",
+      "reason": "skin_care: KG 'HERA'와 매칭된 raw_data 'Hera' 행이 오귀속 ['MEDITHERAPY Retinal Skin Booster Serum 5.07 fl oz | Retinald']"
+    },
+    {
+      "candidate": "laneige_best_rank_category_brands_above",
+      "reason": "개수 불일치 raw=['Aquaphor', 'Blistex', \"Burt's Bees\", 'Carmex', 'Chapstick', 'Hera', 'Nivea', 'e.l.f.', 'eos'] 표=['Aquaphor', 'Blistex', \"Burt's Bees\", 'Carmex', 'Chapstick', 'Hera', 'e.l.f.', 'eos']"
+    }
+  ]
+}
