@@ -1,0 +1,1845 @@
+{
+  "version": "1.0.0",
+  "as_of": "2026-09-18",
+  "_meta": {
+    "brands_total": 119,
+    "brands_real": 116,
+    "placeholders": [
+      "chi",
+      "fresh",
+      "unknown"
+    ],
+    "with_group": 31,
+    "with_segment": 51,
+    "with_origin": 28,
+    "with_acquired": 1,
+    "kg_brand_strings": 125,
+    "kg_brand_strings_casefolded": 109,
+    "kg_enricher_brand_strings_casefolded": 83,
+    "kg_brand_strings_excluded": [],
+    "kg_brand_strings_excluded_reason": "none excluded: every KG brand string maps to one registry entry (case variants such as 'Hera'/'hera' and 'e.l.f.'/'elf' merge); the three fake subjects are kept as is_placeholder entries so that normalization can flag them",
+    "policy": [
+      "Only facts stated in a source file are recorded. Unknown group/segment/origin/acquired stay null (OE4: registry brand with null group is 'not a member'; brand outside the registry is 'unknown').",
+      "origin: taken from config/brands.json (target_brand.country, amorepacific_brands[].country, competitor_brands[].country, korean_brands list, brand_ownership). The KG snapshot's originatesFrom=Korea for 30 AP brands is NOT used: it comes from the default country='Korea' in src/ontology/kg_updater.py (load_brand_ownership), not from a stated fact.",
+      "segment: amorepacific_brands[].segment and competitor_brands[].tier / tracked_competitors tier, mapped to the unified vocabulary in schema.json 'segments'. config/brands.json 'segments' block disagrees with the per-brand entries for HERA (+Makeup), ETUDE (+Makeup), HOLITUAL (Health vs Wellness), OSULLOC (Lifestyle vs Tea); the per-brand entry wins and the block is not used.",
+      "placeholders: unknown/fresh/chi are KG artifacts (docs/analysis/ontology-review-2026-09-18.md section 3.2).",
+      "name: canonical display spelling from config files; for KG-only brands the KG spelling (cased variant if one exists, otherwise the lowercase string) until someone edits it."
+    ]
+  },
+  "groups": [
+    {
+      "id": "amorepacific",
+      "name": "AMOREPACIFIC",
+      "aliases": [
+        "AmorePacific",
+        "Amorepacific",
+        "amorepacific",
+        "아모레",
+        "아모레퍼시픽"
+      ],
+      "sources": [
+        "config/brands.json#target_brand",
+        "config/brands.json#amorepacific_brands",
+        "config/entities.json"
+      ]
+    }
+  ],
+  "brands": [
+    {
+      "id": "abib",
+      "name": "abib",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "aestura",
+      "name": "AESTURA",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "derma",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "almay",
+      "name": "almay",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "amore_pacific",
+      "name": "Amore Pacific",
+      "aliases": [
+        "AP"
+      ],
+      "group": "amorepacific",
+      "segment": "luxury",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ],
+      "notes": [
+        "alias '아모레퍼시픽' kept only on the corporate group (listed for both in config/brands.json and config/entities.json)"
+      ]
+    },
+    {
+      "id": "amos_professional",
+      "name": "AMOS Professional",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "hair_pro",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "anua",
+      "name": "Anua",
+      "aliases": [
+        "ANUA",
+        "anua",
+        "아누아"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "aquaphor",
+      "name": "Aquaphor",
+      "aliases": [
+        "aquaphor"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "aveeno",
+      "name": "aveeno",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "ayunche",
+      "name": "AYUNCHE",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "premium",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "banana_boat",
+      "name": "banana boat",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "beauty_of_joseon",
+      "name": "Beauty of Joseon",
+      "aliases": [
+        "beauty of joseon",
+        "BOJ",
+        "조선미녀"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "biodance",
+      "name": "BIODANCE",
+      "aliases": [
+        "biodance",
+        "바이오댄스",
+        "바이오던스"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "blistex",
+      "name": "blistex",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "blue_lizard",
+      "name": "blue lizard",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "bready",
+      "name": "B.Ready",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "mass",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "burts_bees",
+      "name": "Burt's Bees",
+      "aliases": [
+        "burt's bees"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "carmex",
+      "name": "carmex",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "catrice",
+      "name": "catrice",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "cerave",
+      "name": "CeraVe",
+      "aliases": [
+        "cerave",
+        "세라비"
+      ],
+      "group": null,
+      "segment": "mass",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "cetaphil",
+      "name": "cetaphil",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "chapstick",
+      "name": "chapstick",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "charlotte_tilbury",
+      "name": "charlotte tilbury",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "chi",
+      "name": "chi",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": true,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ],
+      "notes": [
+        "KG enricher matched 'chi' inside other names (e.g. KimChiChic)"
+      ]
+    },
+    {
+      "id": "clean_skin_club",
+      "name": "clean skin club",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "clinique",
+      "name": "clinique",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "cosrx",
+      "name": "COSRX",
+      "aliases": [
+        "CosRx",
+        "cosrx",
+        "코스아르엑스",
+        "코스알엑스"
+      ],
+      "group": "amorepacific",
+      "segment": "k_beauty",
+      "origin": "south_korea",
+      "acquired": 2024,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#brand_ownership",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "covergirl",
+      "name": "covergirl",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "differin",
+      "name": "differin",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "dove",
+      "name": "dove",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "drunk_elephant",
+      "name": "Drunk Elephant",
+      "aliases": [
+        "드렁크엘리펀트"
+      ],
+      "group": null,
+      "segment": "premium",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json"
+      ]
+    },
+    {
+      "id": "elf",
+      "name": "e.l.f.",
+      "aliases": [
+        "ELF",
+        "elf",
+        "엘프"
+      ],
+      "group": null,
+      "segment": "affordable",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "eltamd",
+      "name": "eltamd",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "eos",
+      "name": "eos",
+      "aliases": [
+        "이오에스"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "espoir",
+      "name": "espoir",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "makeup",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "essence",
+      "name": "essence",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "etude",
+      "name": "ETUDE",
+      "aliases": [
+        "etude",
+        "에뛰드",
+        "에뛰드하우스"
+      ],
+      "group": "amorepacific",
+      "segment": "mass",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "eucerin",
+      "name": "eucerin",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "fresh",
+      "name": "Fresh",
+      "aliases": [
+        "fresh"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": true,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ],
+      "notes": [
+        "KG enricher attributed products to 'Fresh' from title words (e.g. eos titles); not the Fresh brand"
+      ]
+    },
+    {
+      "id": "garnier",
+      "name": "garnier",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "gentist",
+      "name": "GENTIST",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "oral",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "gillette",
+      "name": "gillette",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "glossier",
+      "name": "glossier",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "glow_recipe",
+      "name": "Glow Recipe",
+      "aliases": [
+        "글로우레시피"
+      ],
+      "group": null,
+      "segment": "premium",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json"
+      ]
+    },
+    {
+      "id": "gold_bond",
+      "name": "gold bond",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "hanyul",
+      "name": "Hanyul",
+      "aliases": [
+        "한율"
+      ],
+      "group": "amorepacific",
+      "segment": "premium",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "happy_bath",
+      "name": "Happy Bath",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "body",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "haruharu",
+      "name": "haruharu",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "hera",
+      "name": "HERA",
+      "aliases": [
+        "Hera",
+        "hera",
+        "헤라"
+      ],
+      "group": "amorepacific",
+      "segment": "luxury",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "hero_cosmetics",
+      "name": "hero cosmetics",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "holitual",
+      "name": "HOLITUAL",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "wellness",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "illiyoon",
+      "name": "Illiyoon",
+      "aliases": [
+        "일리윤"
+      ],
+      "group": "amorepacific",
+      "segment": "body",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "innisfree",
+      "name": "innisfree",
+      "aliases": [
+        "INNISFREE",
+        "Innisfree",
+        "이니스프리"
+      ],
+      "group": "amorepacific",
+      "segment": "premium",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "iope",
+      "name": "IOPE",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "luxury",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "it_cosmetics",
+      "name": "it cosmetics",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "jouer",
+      "name": "jouer",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "kenra",
+      "name": "kenra",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "la_roche_posay",
+      "name": "La Roche-Posay",
+      "aliases": [
+        "la roche-posay",
+        "LRP",
+        "라로슈포제"
+      ],
+      "group": null,
+      "segment": "premium",
+      "origin": "france",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "labo_h",
+      "name": "LABO-H",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "scalp",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "laneige",
+      "name": "LANEIGE",
+      "aliases": [
+        "Laneige",
+        "laneige",
+        "라네이지",
+        "라네쥬",
+        "라네즈",
+        "라네지"
+      ],
+      "group": "amorepacific",
+      "segment": "premium",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#korean_brands",
+        "config/brands.json#target_brand",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "laura_mercier",
+      "name": "laura mercier",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "longtake",
+      "name": "Longtake",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "hair",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "loreal",
+      "name": "L'Oreal",
+      "aliases": [
+        "l'oreal"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "make_on",
+      "name": "make ON",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "tools",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "mamonde",
+      "name": "MAMONDE",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "premium",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "mario_badescu",
+      "name": "mario badescu",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "matrix",
+      "name": "matrix",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "maybelline",
+      "name": "Maybelline",
+      "aliases": [
+        "maybelline",
+        "메이블린"
+      ],
+      "group": null,
+      "segment": "mass",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "median",
+      "name": "Median",
+      "aliases": [
+        "메디안"
+      ],
+      "group": "amorepacific",
+      "segment": "oral",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "medicube",
+      "name": "MEDICUBE",
+      "aliases": [
+        "medicube",
+        "메디큐브"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "milani",
+      "name": "milani",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "mise_en_scene",
+      "name": "Mise-en-scène",
+      "aliases": [
+        "미쟝센"
+      ],
+      "group": "amorepacific",
+      "segment": "hair",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "missha",
+      "name": "MISSHA",
+      "aliases": [
+        "missha",
+        "미샤"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#korean_brands",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "mixsoon",
+      "name": "mixsoon",
+      "aliases": [
+        "MIXSOON",
+        "믹순"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json"
+      ]
+    },
+    {
+      "id": "morphe",
+      "name": "morphe",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "neutrogena",
+      "name": "Neutrogena",
+      "aliases": [
+        "neutrogena"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "nivea",
+      "name": "nivea",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "numbuzin",
+      "name": "Numbuzin",
+      "aliases": [
+        "NUMBUZIN",
+        "넘버진"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json"
+      ]
+    },
+    {
+      "id": "nutrafol",
+      "name": "nutrafol",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "nyx",
+      "name": "NYX",
+      "aliases": [
+        "nyx",
+        "닉스"
+      ],
+      "group": null,
+      "segment": "affordable",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "odyssey",
+      "name": "ODYSSEY",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "men",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "olay",
+      "name": "olay",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "opi",
+      "name": "opi",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "osulloc",
+      "name": "OSULLOC",
+      "aliases": [
+        "오설록"
+      ],
+      "group": "amorepacific",
+      "segment": "tea",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "paulas_choice",
+      "name": "paula's choice",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "peripera",
+      "name": "peripera",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "physicians_formula",
+      "name": "physicians formula",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "primera",
+      "name": "primera",
+      "aliases": [
+        "프리메라"
+      ],
+      "group": "amorepacific",
+      "segment": "premium",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "pureology",
+      "name": "pureology",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "rare_beauty",
+      "name": "Rare Beauty",
+      "aliases": [
+        "rare beauty",
+        "레어 뷰티",
+        "레어뷰티"
+      ],
+      "group": null,
+      "segment": "premium",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "revlon",
+      "name": "Revlon",
+      "aliases": [
+        "revlon"
+      ],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "rhode",
+      "name": "Rhode",
+      "aliases": [
+        "로드"
+      ],
+      "group": null,
+      "segment": "premium",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json"
+      ]
+    },
+    {
+      "id": "rimmel",
+      "name": "rimmel",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "ryo",
+      "name": "RYO",
+      "aliases": [
+        "려"
+      ],
+      "group": "amorepacific",
+      "segment": "hair",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "sacheu",
+      "name": "sacheu",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "sheamoisture",
+      "name": "sheamoisture",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "skin1004",
+      "name": "SKIN1004",
+      "aliases": [
+        "skin1004",
+        "스킨1004"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "skin_u",
+      "name": "SKIN U",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "body",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "skinfood",
+      "name": "skinfood",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "sol_de_janeiro",
+      "name": "sol de janeiro",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "starface",
+      "name": "starface",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "sulwhasoo",
+      "name": "Sulwhasoo",
+      "aliases": [
+        "SULWHASOO",
+        "sulwhasoo",
+        "설화수"
+      ],
+      "group": "amorepacific",
+      "segment": "luxury",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "summer_fridays",
+      "name": "Summer Fridays",
+      "aliases": [
+        "summer fridays",
+        "썸머프라이데이즈"
+      ],
+      "group": null,
+      "segment": "premium",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "config/tracked_competitors.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "sun_bum",
+      "name": "sun bum",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "supergoop",
+      "name": "supergoop",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "tarte",
+      "name": "tarte",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "tata_harper",
+      "name": "TATA HARPER",
+      "aliases": [],
+      "group": "amorepacific",
+      "segment": "clean_beauty",
+      "origin": "usa",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "config/brands.json#brand_ownership",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ],
+      "notes": [
+        "config/brands.json states acquired=true without a year"
+      ]
+    },
+    {
+      "id": "the_ordinary",
+      "name": "The Ordinary",
+      "aliases": [
+        "the ordinary",
+        "디오디너리"
+      ],
+      "group": null,
+      "segment": "affordable",
+      "origin": "canada",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/entities.json",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "tirtir",
+      "name": "TIRTIR",
+      "aliases": [
+        "tirtir",
+        "티르티르"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json",
+        "src/rag/entity_linker.py#KNOWN_BRANDS"
+      ]
+    },
+    {
+      "id": "too_faced",
+      "name": "too faced",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "torriden",
+      "name": "Torriden",
+      "aliases": [
+        "TORRIDEN",
+        "토리든"
+      ],
+      "group": null,
+      "segment": "mid",
+      "origin": "south_korea",
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#competitor_brands",
+        "config/brands.json#korean_brands",
+        "config/entities.json"
+      ]
+    },
+    {
+      "id": "tower_28",
+      "name": "tower 28",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "tree_hut",
+      "name": "tree hut",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "truskin",
+      "name": "truskin",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "unknown",
+      "name": "unknown",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": true,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ],
+      "notes": [
+        "KG catch-all subject for products whose brand was not recognized"
+      ]
+    },
+    {
+      "id": "urban_decay",
+      "name": "urban decay",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "vanicream",
+      "name": "vanicream",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "verb",
+      "name": "verb",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "vital_beautie",
+      "name": "Vital Beautie",
+      "aliases": [
+        "바이탈뷰티"
+      ],
+      "group": "amorepacific",
+      "segment": "health",
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "config/brands.json#amorepacific_brands",
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    },
+    {
+      "id": "wet_n_wild",
+      "name": "wet n wild",
+      "aliases": [],
+      "group": null,
+      "segment": null,
+      "origin": null,
+      "acquired": null,
+      "is_placeholder": false,
+      "sources": [
+        "kg_snapshot:eval_output/evidence-2026-09/eval_data_snapshot_tagged/knowledge_graph.json"
+      ]
+    }
+  ]
+}
