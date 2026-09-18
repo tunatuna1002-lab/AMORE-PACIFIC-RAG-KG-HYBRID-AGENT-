@@ -67,6 +67,13 @@ from typing import Any
 from .kg_iri import KGIRIMixin
 from .kg_query import KGQueryMixin
 from .kg_updater import KGUpdaterMixin
+from .kg_write_validation import (
+    WriteValidationStats,
+    check_triple,
+    get_write_validation_mode,
+    normalize_triple,
+    record_types,
+)
 from .relations import Relation, RelationType
 
 logger = logging.getLogger(__name__)
@@ -194,6 +201,11 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
 
         self._write_lock = threading.Lock()
 
+        # 쓰기 검증 (트랙 O5, OA-7): 모드는 kg.write_validation 플래그, 기본 warn.
+        # _load() 중에는 검증하지 않는다(파일에 있던 내용을 그대로 읽는다).
+        self._write_validation_stats = WriteValidationStats()
+        self._write_validation_suspended = False
+
         # 통계
         self._stats = {
             "total_triples": 0,
@@ -316,8 +328,14 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
             relation: 추가할 관계
 
         Returns:
-            성공 여부 (중복 시 False)
+            성공 여부 (중복 시 False, enforce 모드에서 막힌 경우 False)
         """
+        if not self._write_validation_suspended:
+            checked = self._validate_write(relation)
+            if checked is None:
+                return False
+            relation = checked
+
         # 중복 체크
         if relation in self.triples:
             # 기존 관계 업데이트 (properties, confidence 등)
@@ -349,6 +367,93 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
         self._maybe_auto_save()
 
         return True
+
+    # =========================================================================
+    # 쓰기 검증 (트랙 O5, 결정 OA-7) — 규칙은 kg_write_validation.py
+    # =========================================================================
+
+    def _validate_write(self, relation: Relation) -> Relation | None:
+        """모드에 따라 검사(warn)·정규화(enforce). None이면 저장하지 않는다.
+
+        off/warn은 입력 relation 객체를 그대로 돌려준다 — 저장 내용이 바뀌지 않는다.
+        검증 중 예외는 쓰기를 막지 않는다(원래 relation을 그대로 저장).
+        """
+        try:
+            mode = get_write_validation_mode()
+            if mode == "off":
+                return relation
+            from .ontology import get_ontology
+
+            onto = get_ontology()
+            pred = relation.predicate.value
+            stats = self._write_validation_stats
+            if mode == "warn":
+                codes = [
+                    c
+                    for c in check_triple(
+                        onto, relation.subject, pred, relation.object, relation.properties
+                    )
+                    if c != "outside_ontology"
+                ]
+                for code in stats.record(codes, repr(relation)):
+                    logger.warning(
+                        "KG write validation (warn): %s %r",
+                        code,
+                        relation,
+                        extra={"kg_write_validation": code, "mode": "warn"},
+                    )
+                return relation
+
+            norm = normalize_triple(
+                onto, relation.subject, pred, relation.object, relation.properties
+            )
+            if norm.blocked:
+                for code in stats.record([f"blocked:{norm.blocked}"], repr(relation)):
+                    logger.warning(
+                        "KG write validation (enforce): %s %r",
+                        code,
+                        relation,
+                        extra={"kg_write_validation": code, "mode": "enforce"},
+                    )
+                return None
+            record_types(self.entity_metadata, norm.types)
+            if not norm.changes:
+                return relation
+            try:
+                predicate = RelationType(norm.predicate)
+            except ValueError:
+                stats.record(["rename_unsupported"], repr(relation))
+                predicate = relation.predicate
+            stats.record([f"changed:{c}" for c in norm.changes], repr(relation))
+            return Relation(
+                subject=norm.subject,
+                predicate=predicate,
+                object=norm.object,
+                properties=norm.properties,
+                confidence=relation.confidence,
+                source=relation.source,
+                created_at=relation.created_at,
+                valid_from=relation.valid_from,
+                valid_to=relation.valid_to,
+            )
+        except Exception:
+            logger.debug("KG write validation failed; storing relation as-is", exc_info=True)
+            return relation
+
+    def get_write_validation_summary(self) -> dict[str, Any]:
+        """쓰기 검증 누적 건수·예시 (이 인스턴스 기준)."""
+        return {"mode": get_write_validation_mode(), **self._write_validation_stats.summary()}
+
+    def log_write_validation_summary(self) -> None:
+        """누적 건수를 한 줄로 남긴다(위반이 있을 때만)."""
+        counts = self._write_validation_stats.summary()["counts"]
+        if counts:
+            logger.info(
+                "KG write validation summary (%s): %s",
+                get_write_validation_mode(),
+                counts,
+                extra={"kg_write_validation_counts": counts},
+            )
 
     def add_relations(self, relations: list[Relation]) -> int:
         """
@@ -509,9 +614,13 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
             version = data.get("version", "1.0")
             logger.info(f"Loading KnowledgeGraph v{version} from {self.persist_path}")
 
-            for triple_dict in data.get("triples", []):
-                relation = Relation.from_dict(triple_dict)
-                self.add_relation(relation)
+            self._write_validation_suspended = True
+            try:
+                for triple_dict in data.get("triples", []):
+                    relation = Relation.from_dict(triple_dict)
+                    self.add_relation(relation)
+            finally:
+                self._write_validation_suspended = False
 
             self.entity_metadata = data.get("entity_metadata", {})
             self._dirty = False  # 로드 직후에는 dirty 아님

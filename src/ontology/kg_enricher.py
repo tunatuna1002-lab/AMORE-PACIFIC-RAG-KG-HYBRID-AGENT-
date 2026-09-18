@@ -16,6 +16,7 @@ import logging
 from typing import Any
 
 from src.domain.entities.relations import Relation, RelationType
+from src.ontology.kg_write_validation import get_write_validation_mode
 from src.tools.calculators.metric_calculator import (
     UNKNOWN_BRAND_LABELS,
     calculate_hhi_from_counts,
@@ -23,6 +24,21 @@ from src.tools.calculators.metric_calculator import (
 )
 
 logger = logging.getLogger(__name__)
+
+# 관측 날짜(as_of)가 필요한 수치 트리플 (enforce 모드에서만 날짜를 붙인다)
+NUMERIC_TRIPLE_PREDICATES = frozenset({"hasSoS", "hasHHI", "PRICE_POSITION", "DOMINATES_CATEGORY"})
+
+
+def _crawl_date(crawl_data: dict[str, Any]) -> str | None:
+    """크롤 데이터에서 날짜를 찾는다. 모르면 None (지어내지 않는다)."""
+    for key in ("as_of", "snapshot_date"):
+        if crawl_data.get(key):
+            return str(crawl_data[key])
+    dates = {p.get("snapshot_date") for p in crawl_data.get("products", []) or []}
+    if len(dates) == 1:
+        (only,) = dates
+        return str(only) if only else None
+    return None
 
 
 class Triple:
@@ -349,12 +365,16 @@ class KGEnricher:
 
         return triples
 
-    def store_triples(self, triples: list[Triple]) -> int:
+    def store_triples(self, triples: list[Triple], as_of: str | None = None) -> int:
         """
         트리플을 KG에 저장
 
         Args:
             triples: 저장할 Triple 리스트
+            as_of: 크롤 날짜(YYYY-MM-DD). ``kg.write_validation=enforce``일 때만 수치 트리플
+                (SoS·HHI·가격 포지션)의 ``as_of`` 속성으로 붙는다. warn/off에서는 저장 내용이
+                예전과 같도록 붙이지 않는다(OA-7). enforce에서 날짜가 없으면 KG가 수치
+                트리플을 막고 센다.
 
         Returns:
             저장된 트리플 수
@@ -362,6 +382,8 @@ class KGEnricher:
         if not self.kg:
             logger.warning("No knowledge graph available for storing triples")
             return 0
+
+        stamp = as_of if as_of and get_write_validation_mode() == "enforce" else None
 
         stored = 0
         for triple in triples:
@@ -372,6 +394,8 @@ class KGEnricher:
             try:
                 # Triple을 Relation으로 변환
                 relation = self._triple_to_relation(triple)
+                if stamp and triple.predicate in NUMERIC_TRIPLE_PREDICATES:
+                    relation.properties["as_of"] = stamp
                 self.kg.add_relation(relation)
                 stored += 1
             except Exception as e:
@@ -379,6 +403,9 @@ class KGEnricher:
 
         self._stats["triples_stored"] += stored
         logger.info(f"Stored {stored}/{len(triples)} triples to KG")
+        log_summary = getattr(self.kg, "log_write_validation_summary", None)
+        if callable(log_summary):
+            log_summary()
         return stored
 
     def _triple_to_relation(self, triple: Triple) -> Relation:
@@ -409,10 +436,16 @@ class KGEnricher:
             source="kg_enricher",
         )
 
-    def enrich_and_store(self, crawl_data: dict[str, Any]) -> dict[str, int]:
-        """추출 + 저장 일괄 실행"""
+    def enrich_and_store(
+        self, crawl_data: dict[str, Any], as_of: str | None = None
+    ) -> dict[str, int]:
+        """추출 + 저장 일괄 실행
+
+        ``as_of``가 없으면 ``crawl_data["as_of"]``/``["snapshot_date"]``, 그다음 제품들의
+        ``snapshot_date``가 모두 같을 때 그 값을 크롤 날짜로 쓴다(``store_triples`` 참고).
+        """
         triples = self.enrich_from_crawl(crawl_data)
-        stored = self.store_triples(triples)
+        stored = self.store_triples(triples, as_of=as_of or _crawl_date(crawl_data))
         return {
             "extracted": len(triples),
             "stored": stored,
