@@ -1,0 +1,271 @@
+{
+  "version": "1.0.0",
+  "as_of": "2026-09-18",
+  "iri": "http://amore.ai/ontology/core#",
+  "description": "Single source ontology (decision OA-1). Classes, predicates and static individuals. Brands and corporate groups live in brands.json; categories are read from config/category_hierarchy.json (OA-2). Loader: src/ontology/ontology.py. The only axiom forms are: subClassOf, defined_by (== OWL hasValue restriction, OA-3), disjoint_sets, inverse_of, symmetric, transitive, domain, range. Any other form makes the loader fail.",
+  "classes": {
+    "Brand": {
+      "label": "Brand",
+      "subClassOf": []
+    },
+    "AmorepacificBrand": {
+      "label": "Amorepacific group brand",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "ownedByGroup", "value": "amorepacific"}
+    },
+    "KBeautyBrand": {
+      "label": "K-Beauty brand (originates from South Korea)",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "originatesFrom", "value": "south_korea"}
+    },
+    "LuxuryBrand": {
+      "label": "Luxury segment brand",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "hasSegment", "value": "luxury"}
+    },
+    "PremiumBrand": {
+      "label": "Premium segment brand",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "hasSegment", "value": "premium"}
+    },
+    "MidTierBrand": {
+      "label": "Mid-tier segment brand",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "hasSegment", "value": "mid"}
+    },
+    "AffordableBrand": {
+      "label": "Affordable segment brand",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "hasSegment", "value": "affordable"}
+    },
+    "MassBrand": {
+      "label": "Mass segment brand",
+      "subClassOf": ["Brand"],
+      "defined_by": {"predicate": "hasSegment", "value": "mass"}
+    },
+    "PlaceholderBrand": {
+      "label": "Placeholder brand string (KG artifact, not a real brand)",
+      "subClassOf": []
+    },
+    "CorporateGroup": {
+      "label": "Corporate group",
+      "subClassOf": []
+    },
+    "Category": {
+      "label": "Amazon category (individuals from config/category_hierarchy.json)",
+      "subClassOf": []
+    },
+    "Product": {
+      "label": "Product (ASIN). No individuals in the static source",
+      "subClassOf": []
+    },
+    "Metric": {
+      "label": "Market metric",
+      "subClassOf": []
+    },
+    "Segment": {
+      "label": "Brand segment (unified segment/tier vocabulary)",
+      "subClassOf": []
+    },
+    "Country": {
+      "label": "Country of origin",
+      "subClassOf": []
+    }
+  },
+  "disjoint_sets": [
+    ["Brand", "PlaceholderBrand", "CorporateGroup", "Category", "Product", "Metric", "Segment", "Country"]
+  ],
+  "predicates": {
+    "ownedByGroup": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "CorporateGroup",
+      "inverse_of": "ownsBrand",
+      "static": true,
+      "aliases": ["ownedBy", "OWNED_BY_GROUP"],
+      "comment": "Runtime evidence cards and rule_contracts use 'ownedBy' for brand->group, so it is an alias here. Note: src/domain/entities/relations.py documents OWNED_BY='ownedBy' as Product->Brand; that reading is hasBrand and is not used by the KG snapshot."
+    },
+    "ownsBrand": {
+      "kind": "object",
+      "domain": "CorporateGroup",
+      "range": "Brand",
+      "inverse_of": "ownedByGroup",
+      "static": true,
+      "aliases": ["OWNS_BRAND"]
+    },
+    "siblingBrand": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Brand",
+      "symmetric": true,
+      "static": true,
+      "aliases": ["SIBLING_BRAND"],
+      "comment": "Derived by the loader from shared ownedByGroup (a != b). OWL export asserts one direction; the other follows from symmetry."
+    },
+    "hasSegment": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Segment",
+      "static": true,
+      "aliases": ["HAS_SEGMENT"]
+    },
+    "originatesFrom": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Country",
+      "static": true,
+      "aliases": ["ORIGINATES_FROM"]
+    },
+    "acquiredIn": {
+      "kind": "data",
+      "domain": "Brand",
+      "range": "xsd:integer",
+      "static": true,
+      "aliases": ["ACQUIRED_IN"],
+      "comment": "Acquisition year. KG snapshot has 'TATA HARPER acquiredIn True' (no year) which is not a valid value."
+    },
+    "hasProduct": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Product",
+      "inverse_of": "hasBrand",
+      "static": false,
+      "aliases": ["HAS_PRODUCT"]
+    },
+    "hasBrand": {
+      "kind": "object",
+      "domain": "Product",
+      "range": "Brand",
+      "inverse_of": "hasProduct",
+      "static": false,
+      "aliases": []
+    },
+    "belongsToCategory": {
+      "kind": "object",
+      "domain": "Product",
+      "range": "Category",
+      "static": false,
+      "aliases": ["BELONGS_TO_CATEGORY"],
+      "comment": "Product -> Category only. KG triples with a Brand subject and original_predicate=rankedIn are rankedIn (see kg_legacy_predicates)."
+    },
+    "rankedIn": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Category",
+      "static": false,
+      "aliases": []
+    },
+    "hasSoS": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Category",
+      "static": false,
+      "numeric": true,
+      "requires_as_of": true,
+      "value_attrs": ["sos_pct", "share"],
+      "aliases": [],
+      "comment": "Share of Shelf of a brand in one category. The value lives in the triple attributes."
+    },
+    "hasHHI": {
+      "kind": "data",
+      "domain": "Category",
+      "range": "xsd:decimal",
+      "static": false,
+      "numeric": true,
+      "requires_as_of": true,
+      "value_attrs": ["hhi"],
+      "aliases": []
+    },
+    "hasPricePosition": {
+      "kind": "data",
+      "domain": "Brand",
+      "range": "xsd:string",
+      "allowed_values": ["budget", "mid_range", "premium"],
+      "static": false,
+      "numeric": true,
+      "requires_as_of": true,
+      "value_attrs": ["avg_price", "market_avg"],
+      "aliases": ["PRICE_POSITION"],
+      "comment": "Price band computed from avg_price vs market_avg for one category (attribute 'category'). Treated as numeric: it changes with every crawl."
+    },
+    "competesWith": {
+      "kind": "object",
+      "domain": "Brand",
+      "range": "Brand",
+      "symmetric": true,
+      "static": false,
+      "aliases": ["COMPETES_WITH"]
+    },
+    "subCategoryOf": {
+      "kind": "object",
+      "domain": "Category",
+      "range": "Category",
+      "transitive": true,
+      "inverse_of": "hasSubCategory",
+      "static": true,
+      "aliases": ["parentCategory"],
+      "comment": "Built from parent_id in config/category_hierarchy.json. Scope expansion only (OE3): numeric predicates are never summed or carried along it."
+    },
+    "hasSubCategory": {
+      "kind": "object",
+      "domain": "Category",
+      "range": "Category",
+      "transitive": true,
+      "inverse_of": "subCategoryOf",
+      "static": true,
+      "aliases": ["hasSubcategory"]
+    }
+  },
+  "kg_legacy_predicates": {
+    "description": "KG predicate names that are NOT one alias. They must be split by properties.original_predicate (planned for later tracks; the loader exposes resolve_kg_predicate).",
+    "hasPosition": {
+      "split_by": "original_predicate",
+      "map": {"hasSoS": "hasSoS", "hasHHI": "hasHHI", "PRICE_POSITION": "hasPricePosition"}
+    },
+    "belongsToCategory": {
+      "split_by": "original_predicate",
+      "map": {"rankedIn": "rankedIn", "BELONGS_TO_CATEGORY": "belongsToCategory"},
+      "default": "belongsToCategory"
+    }
+  },
+  "category_inclusion": {
+    "use": "scope_expansion_only",
+    "numeric_propagation": false,
+    "comment": "OE3. subCategoryOf widens which cards/documents a query may fetch. SoS, rank and HHI are never aggregated or converted to a parent category (config/category_hierarchy.json category_rank_context; golden lg155)."
+  },
+  "individuals": {
+    "Segment": {
+      "luxury": {"label": "Luxury", "kind": "price_tier", "source_values": ["config/brands.json segment 'Luxury'"]},
+      "premium": {"label": "Premium", "kind": "price_tier", "source_values": ["config/brands.json segment 'Premium'", "config/brands.json tier 'premium'", "config/tracked_competitors.json tier 'premium'"]},
+      "mid": {"label": "Mid", "kind": "price_tier", "source_values": ["config/brands.json tier 'mid'"]},
+      "affordable": {"label": "Affordable", "kind": "price_tier", "source_values": ["config/brands.json tier 'affordable'"]},
+      "mass": {"label": "Mass", "kind": "price_tier", "source_values": ["config/brands.json segment 'Mass'", "config/brands.json tier 'mass'"]},
+      "k_beauty": {"label": "K-Beauty", "kind": "line", "source_values": ["config/brands.json segment 'K-Beauty'"], "comment": "Segment label only (COSRX). Origin-based membership is the class KBeautyBrand."},
+      "derma": {"label": "Derma", "kind": "line", "source_values": ["config/brands.json segment 'Derma'"]},
+      "makeup_line": {"label": "Makeup", "kind": "line", "source_values": ["config/brands.json segment 'Makeup'"], "comment": "id differs from the label because 'makeup' is a Category id; individual ids are unique across kinds."},
+      "hair": {"label": "Hair", "kind": "line", "source_values": ["config/brands.json segment 'Hair'"]},
+      "hair_pro": {"label": "Hair Pro", "kind": "line", "source_values": ["config/brands.json segment 'Hair Pro'"]},
+      "scalp": {"label": "Scalp", "kind": "line", "source_values": ["config/brands.json segment 'Scalp'"]},
+      "body": {"label": "Body", "kind": "line", "source_values": ["config/brands.json segment 'Body'"]},
+      "clean_beauty": {"label": "Clean Beauty", "kind": "line", "source_values": ["config/brands.json segment 'Clean Beauty'"]},
+      "wellness": {"label": "Wellness", "kind": "line", "source_values": ["config/brands.json segment 'Wellness'"]},
+      "men": {"label": "Men", "kind": "line", "source_values": ["config/brands.json segment 'Men'"]},
+      "oral": {"label": "Oral", "kind": "line", "source_values": ["config/brands.json segment 'Oral'"]},
+      "health": {"label": "Health", "kind": "line", "source_values": ["config/brands.json segment 'Health'"]},
+      "tea": {"label": "Tea", "kind": "line", "source_values": ["config/brands.json segment 'Tea'"]},
+      "tools": {"label": "Tools", "kind": "line", "source_values": ["config/brands.json segment 'Tools'"]}
+    },
+    "Country": {
+      "south_korea": {"label": "South Korea", "source_values": ["Korea"]},
+      "usa": {"label": "United States", "source_values": ["USA"]},
+      "france": {"label": "France", "source_values": ["France"]},
+      "canada": {"label": "Canada", "source_values": ["Canada"]}
+    },
+    "Metric": {
+      "sos": {"label": "Share of Shelf"},
+      "hhi": {"label": "Herfindahl-Hirschman Index"},
+      "cpi": {"label": "Competitive Price Index"}
+    }
+  },
+  "segment_vocabulary_note": "config/brands.json uses 'segment' (title case) for Amorepacific brands and 'tier' (lower case) for competitors. Both map to one Segment vocabulary: price tiers (kind=price_tier: luxury, premium, mid, affordable, mass; no order is asserted) and product lines (kind=line). A brand has one segment value in the registry; see individuals.Segment[*].source_values for the mapping."
+}
