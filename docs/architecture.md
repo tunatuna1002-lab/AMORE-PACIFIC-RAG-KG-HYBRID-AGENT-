@@ -176,9 +176,17 @@ The decision maker determines whether to answer directly or invoke specialized t
 }
 ```
 
-### 2.9 ReAct Agent
+### 2.9 ReAct Agent — [2026-09 사후] 도구·활성화 방식 갱신
 
 - **File**: `src/core/react_agent.py`
+- **Loop**: Thought → Action(네이티브 function calling, `tools=`/`tool_choice="auto"`) → Observation → Self-Reflection (기본 `max_iterations=5`)
+- **Activation**: 키워드 기반 자동 트리거가 아니라 ① 홉 카운트 라우터(`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)가 먼저 판단하고 ② 플래그 `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제로 ReAct 경로를 탄다. OFF 상태에서는 `agents.react_shadow_mode`(기본 OFF)로 그림자 실행만 가능하다.
+- **Tools**: ReAct 전용 도구 3종·대시보드 JSON 도구 5종은 폐지되었다. 지금은 DecisionMaker와 공유하는 5종 레지스트리(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, `src/core/tool_registry.py`)만 호출하고, 결과는 증거 카드로 돌아온다.
+- **Token budget**: 질문당 기본 12,000 토큰(`DEFAULT_TOKEN_BUDGET`), 초과 시 `ReActResult.budget_exceeded=True`
+
+<details>
+<summary>Original text (kept for history, describes the ReAct loop before the 2026-09 rework — tool names below no longer exist)</summary>
+
 - **Loop**: Thought → Action → Observation → Reflection (max 3 iterations)
 - **Activation**: Auto-triggered for complex queries (analysis keywords, multi-step)
 
@@ -204,6 +212,8 @@ Observation 2: {LANEIGE: [3, 4, 3], CeraVe: [5, 6, 7]}
 Reflection: "충분한 데이터를 수집했다. 시장 위치를 분석할 수 있다"
 → Final Response
 ```
+
+</details>
 
 ---
 
