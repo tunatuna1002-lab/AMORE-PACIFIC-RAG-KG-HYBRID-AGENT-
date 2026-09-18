@@ -18,10 +18,10 @@
 
 | 항목 | 수치 |
 |------|------|
-| src/ Python 파일 | 213개 (git 추적 기준, 2026-09-17) |
-| src/ 코드 라인 | 76,235 lines |
-| tests/ 파일 | 200개 |
-| tests/ 코드 라인 | 77,868 lines |
+| src/ Python 파일 | 220개 (git 추적 기준, 2026-09-18) |
+| src/ 코드 라인 | 80,233 lines |
+| tests/ 파일 | 246개 (`.py`) |
+| tests/ 코드 라인 | 86,961 lines |
 | src/api/dashboard_api.py | 195 lines (진입점, 라우트는 routes/ 분리) |
 | 커버리지 | 목표 60%이나 강제되지 않음 (`pyproject.toml` `fail_under = 0`) |
 
@@ -137,7 +137,7 @@
 │   │   ├── reranker.py           # 재순위화 (플래그 `retriever.use_reranker` 기본 OFF)
 │   │   ├── entity_linker.py      # 엔티티 링킹
 │   │   ├── entity_tags.py        # 색인 태그 기반 재정렬 가산점, [2026-09 사후]
-│   │   ├── ontology_context.py   # 질의 경로 온톨로지 추론(그룹·클래스 전개·정적 사실 카드), 플래그 `ontology.use_class_reasoning` 기본 OFF, [2026-09 사후]
+│   │   ├── ontology_context.py   # 온톨로지(클래스·그룹·세그먼트·원산지) 기반 질의 확장·정적 사실 카드, 플래그 `ontology.use_class_reasoning` O7 측정 후 기본 ON, [2026-09 사후]
 │   │   ├── chunker.py            # 문서 청킹
 │   │   ├── query_rewriter.py     # 쿼리 리라이팅
 │   │   ├── context_builder.py    # 컨텍스트 빌더
@@ -516,7 +516,7 @@ class MyWorkflow:
 | Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
 | EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON). 쓰기 검증은 `kg_write_validation.py`(플래그 `kg.write_validation`, 기본 `warn` = 로그만) [2026-09 사후] |
-| Ontology | `src/ontology/ontology.py` | [2026-09 사후] 온톨로지 단일 원본 로더. 원본은 JSON(`config/ontology/schema.json`·`brands.json`) + 카테고리 계층(`config/category_hierarchy.json`). 런타임 추론은 Python 폐포만(Java 없음). OWL 내보내기·Pellet 교차 검증은 개발 전용(`scripts/export_ontology_owl.py`·`scripts/check_ontology_owl.py`, owlready2는 `requirements-dev.txt`). 질의 경로 사용은 `src/rag/ontology_context.py`, 플래그 `ontology.use_class_reasoning` 기본 OFF(O7 측정 전, 효과 미측정). 옛 `owl_reasoner.py`·`ontology_knowledge_graph.py`는 삭제(서비스 호출처 0건, 트랙 O6) |
+| Ontology | `src/ontology/ontology.py` | [2026-09 사후] 온톨로지 단일 원본 로더. 원본은 JSON(`config/ontology/schema.json`·`brands.json`) + 카테고리 계층(`config/category_hierarchy.json`). 런타임 추론은 Python 폐포만(Java 없음). OWL 내보내기·Pellet 교차 검증은 개발 전용(`scripts/export_ontology_owl.py`·`scripts/check_ontology_owl.py`, owlready2는 `requirements-dev.txt`, Python 폐포와 불일치 0). 질의 경로 사용은 `src/rag/ontology_context.py`: 온톨로지(클래스·그룹·세그먼트·원산지) 기반 질의 확장·정적 사실 카드. 플래그 `ontology.use_class_reasoning`은 [2026-09-18 사후] O7 측정 후 **기본 ON**(`config/feature_flags.json`, 코드 기본값은 False, 결정 OA-10). 54문항 3회 OFF→ON: 종합 0.692→0.745, L3 골드 엣지 recall(canonical) 0.301→0.582, 근거성 0.867→0.968; rule 42문항 규칙 정답 일치율 0.781→0.906. 대가: 프롬프트 카드 평균 58.1→69.9장(한계선 ~70장), 파이프라인 비용 +9%. 근거 `docs/experiments/ontology_activation_2026-09.md` §O7. 옛 `owl_reasoner.py`·`ontology_knowledge_graph.py`는 삭제(서비스 호출처 0건, 트랙 O6) |
 | OntologyReasoner | `src/ontology/reasoner.py` | 검색 경로에서 쓰는 규칙 기반 추론 엔진. [2026-09 사후] 입력을 증거 카드로 받도록 재작업(`rule_contracts.py`). 호출처 0건이던 `src/ontology/unified_reasoner.py`는 삭제됨(트랙 4-C) |
 | PromptRegistry | `prompts/registry.py` | 프롬프트 중앙 관리 |
 | FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default). [2026-09 사후] 이름 바로잡기: 규칙 추론 on/off `reasoner.enabled`(옛 `reasoner.use_owl_reasoner` — OWL과 무관했음), KG 조회 on/off `kg.enabled`(옛 `ontology.use_ontology_kg`). 옛 JSON 키·ENV(`FF_REASONER_USE_OWL_REASONER`·`FF_ONTOLOGY_USE_ONTOLOGY_KG`)는 별칭으로 계속 동작(1회 경고). 우선순위 ENV 새 > ENV 옛 > JSON 새 > JSON 옛 > 기본 |
