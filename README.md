@@ -1,493 +1,234 @@
 # AMORE Pacific RAG-Ontology Hybrid Agent
 
-> **Amazon US 시장에서 LANEIGE 브랜드 경쟁력을 분석하는 자율 AI 에이전트**
+> Amazon US 베스트셀러를 매일 수집해 LANEIGE 브랜드의 경쟁력을 지표·챗봇·인사이트·알림으로 보여 주는 에이전트
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+## 무엇을 하나
 
-## 🚀 Quick Start
+| 기능 | 내용 |
+|------|------|
+| 일일 크롤링 | 매일 22:00 KST, Amazon Best Sellers 5개 카테고리 × Top 100 (Playwright + stealth) |
+| KPI 계산 | SoS(Share of Shelf), HHI(시장 집중도), CPI(카테고리 평균가 대비 가격 지수, 100 기준) |
+| AI 챗봇 | 문서·지식 그래프(KG)·크롤 DB 수치·온톨로지 사실을 증거 카드로 모아 답한다 (`POST /api/v4/chat`) |
+| 인사이트·리포트 | LLM 기반 인사이트, DOCX 리포트·Excel 내보내기 (`/api/export/*`) |
+| 알림 | 순위·SoS 급변 시 이메일(Gmail SMTP)·Telegram |
+
+모니터링 카테고리: Beauty & Personal Care(`beauty`, L0) · Skin Care(`11060451`, L1) · Lip Care(`3761351`, L2) · Lip Makeup(`11059031`, L2) · Face Powder(`11058971`, L3). LANEIGE Lip Sleeping Mask는 Lip Makeup이 아니라 **Lip Care**(Skin Care 하위)다.
+
+## Quick Start
 
 ```bash
-# 설치
-git clone https://github.com/your-repo/AMORE-RAG-ONTOLOGY-HYBRID-AGENT.git
-cd AMORE-RAG-ONTOLOGY-HYBRID-AGENT
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt          # 런타임 + pytest
+pip install -r requirements-dev.txt      # 선택: owlready2 (OWL 내보내기·Pellet 교차 검증 스크립트용)
 playwright install chromium
 
-# 환경 변수 (.env)
+# .env (최소)
 OPENAI_API_KEY=sk-...
-API_KEY=your-api-key
-AUTO_START_SCHEDULER=true   # 미설정 시 기본 false
+API_KEY=your-api-key                     # 보호 엔드포인트(챗봇·크롤 시작) 인증
+AUTO_START_SCHEDULER=true                # 미설정 시 false → 22:00 자동 크롤 안 함
 
-# 실행
-uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
+# API 서버 + 대시보드
+uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload
+# → http://localhost:8001/dashboard
+
+# CLI
+python3 main.py                          # 일일 워크플로우 1회 (크롤 → 저장 → 지표)
+python3 main.py --categories lip_care    # 일부 카테고리만
+python3 main.py --chat                   # 대화형 챗봇
+python3 main.py --dry-run                # Google Sheets 저장 없이 실행
 ```
 
-**접속:** http://localhost:8001/dashboard
-
----
-
-## 📑 목차
-
-1. [핵심 가치](#1-핵심-가치)
-2. [시스템 아키텍처](#2-시스템-아키텍처)
-3. [주요 기능](#3-주요-기능)
-4. [기술 스택](#4-기술-스택)
-5. [API 레퍼런스](#5-api-레퍼런스)
-6. [배포](#6-배포)
-7. [테스트](#7-테스트)
-8. [문서](#8-문서)
-9. [리팩토링 & CI/CD 개선 (2026-02)](#9-리팩토링--cicd-개선-2026-02)
-10. [업데이트 히스토리](#10-업데이트-히스토리)
-
----
-
-## 1. 핵심 가치
-
-### 추론 기반 전략적 인사이트
-
-| 기존 방식 | 이 에이전트 |
-|----------|------------|
-| "LANEIGE SoS 5.2%, COSRX 8.1%" | **"LANEIGE는 K-Beauty 프리미엄 세그먼트 1위. SoS 2.8%로 3분기 연속 상승세. 권고: Prime Day 대비 재고 확보 및 Skin Care 카테고리 확장"** |
-
-### 5대 핵심 컴포넌트
-
-| 컴포넌트 | 역할 |
-|---------|------|
-| **RAG** | ChromaDB 벡터 검색 + Embedding 캐시 (hit-rate 계측 내장) |
-| **Knowledge Graph** | 브랜드-제품-카테고리 관계 Triple Store (로컬 3,500 트리플, 2026-09-17 실측. 크롤 파생 2,479 + 수작업 시드 1,000 + 시스템 21) |
-| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개(증거 카드 입력, [2026-09 사후]) + 온톨로지 원본 JSON(`config/ontology/`, 클래스·술어·브랜드 등록부) + Python 폐포 로더(`src/ontology/ontology.py`). 질의 경로 사용은 온톨로지(클래스·그룹·세그먼트·원산지) 기반 질의 확장·정적 사실 카드이고, 플래그 `ontology.use_class_reasoning` 뒤에 있다. [2026-09-18 사후] 측정 후 **기본 ON**(`config/feature_flags.json`). 54문항(multihop+relation) 3회 OFF→ON: 종합 0.692→0.745, L3 골드 엣지 recall(canonical) 0.301→0.582, 근거성 0.867→0.968. rule 42문항 규칙 정답 일치율 0.781→0.906. 대가로 프롬프트 카드가 평균 58.1→69.9장, 파이프라인 비용이 +9% 늘었다(`docs/experiments/ontology_activation_2026-09.md` §O7). 런타임 추론은 Python 폐포만 쓰고 Java를 부르지 않는다. KG 쓰기 검증 `kg.write_validation`은 기본 `warn`(로그만). 규칙 추론·KG 조회 플래그 이름은 `reasoner.enabled`·`kg.enabled`로 바로잡았다(옛 이름은 별칭). [2026-09 사후 정정] 예전 문구 "OWL 스키마, 카테고리 계층 어휘로만 사용"은 사실과 달랐다 — 카테고리 계층은 `config/category_hierarchy.json`에서 오며, OWL 모듈(`owl_reasoner.py` 등)은 서비스에 연결된 적이 없어 삭제됐다. OWL은 개발용 내보내기·Pellet 교차 검증(`scripts/check_ontology_owl.py`)에만 쓴다 |
-| **ReAct Agent** | 복잡한 질문 Thought-Action 루프 (최대 5회, DecisionMaker와 같은 도구 레지스트리 5종 사용, [2026-09 사후]). 플래그 `agents.use_react_agent` 기본 OFF |
-| **크롤링 데이터** | 실시간 Amazon 베스트셀러 (매일 22:00 KST) |
-
----
-
-## 2. 시스템 아키텍처
-
-```
-Amazon Bestsellers (Top 100 × 5 categories)
-         ↓
-    CrawlerAgent (Playwright + Stealth)
-         ↓
-    StorageAgent (Google Sheets + SQLite 병행 저장)
-         ↓
-    KnowledgeGraph + 규칙 기반 추론 + 온톨로지 로더(JSON 원본, 질의 확장은 플래그 기본 ON, [2026-09-18 사후])
-         ↓
-    HybridRetriever (RAG + KG + DB 지표 + 규칙 추론)
-         ↓
-    신뢰도 분기 → LLM 도구 선택 1회 → 답변 생성 (ReAct는 플래그, 기본 OFF)
-         ↓
-    Dashboard + AI Chatbot + IR-Style Report Export
-```
-
-### 모니터링 카테고리
-
-| 카테고리 | Amazon Node ID | Level |
-|----------|----------------|-------|
-| Beauty & Personal Care | beauty | L0 |
-| Skin Care | 11060451 | L1 |
-| Lip Care | 3761351 | L2 |
-| Lip Makeup | 11059031 | L2 |
-| Face Powder | 11058971 | L3 |
-
-### 핵심 모듈
-
-| 모듈 | 파일 | 역할 |
-|------|------|------|
-| UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
-| ReActAgent | `src/core/react_agent.py` | 복잡한 질문 자기반성 루프 |
-| KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store |
-| Ontology | `src/ontology/ontology.py` | 온톨로지 원본(JSON) 로더 + Python 폐포 ([2026-09 사후]) |
-| HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG + Ontology 통합 |
-| ReportGenerator | `src/tools/report_generator.py` | IR-Style DOCX/PPTX 리포트 |
-
----
-
-## 3. 주요 기능
-
-### 3.1 자동 크롤링 (22:00 KST)
-
-- 5개 카테고리 × 100개 제품 = **500개 제품/일**
-- Stealth 모드: playwright-stealth, browserforge, fake-useragent
-- AWS WAF 대응: 지수 백오프, 디버그 스크린샷
-
-### 3.2 KPI 분석
-
-| 지표 | 설명 |
-|------|------|
-| **SoS** | Share of Shelf - 브랜드 점유율 |
-| **HHI** | Herfindahl-Hirschman Index - 시장 집중도 |
-| **CPI** | Category Price Index - 카테고리 평균가 대비 브랜드 가격 (100 기준) |
-| **TAM/SAM/SOM** | 시장 규모 분석 |
-
-### 3.3 AI 챗봇
-
-- **API**: `POST /api/v4/chat` (스트리밍: `POST /api/v4/chat/stream`)
-- RAG + KG + Ontology 통합 컨텍스트
-- 신뢰도 MEDIUM/LOW일 때 LLM이 조회 도구 1개 또는 직접 답변을 선택
-- ReAct 루프(복잡한 질문): `agents.use_react_agent` 플래그로만 켜짐, 기본 OFF. 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3). 활성 여부는 `/api/v4/brain/status`의 `components`
-- 다중 소스 출처 추출 및 참고자료 표시 (크롤링 데이터·KG·온톨로지 추론·RAG 문서·외부 신호 등 10종)
-
-### 3.4 IR-Style 리포트 생성 (NEW)
-
-**AMOREPACIFIC 디자인 시스템 적용 전문 애널리스트 리포트**
-
-| 기능 | 설명 |
-|------|------|
-| **표지** | AMOREPACIFIC 로고 + Pacific Blue 컬러 |
-| **목차** | 자동 생성, 하이퍼링크 |
-| **섹션** | Executive Summary, 심층 분석, 경쟁 환경, 시장 동향, 전략 제언 |
-| **참고자료** | URL 포함 12개+ 소스 |
-| **폰트** | 아리따 돋움 (제목), 아리따 부리 (본문) |
-
-```bash
-# 리포트 생성 테스트
-python scripts/test_report_generator.py
-```
-
-**출력 포맷**: DOCX, PPTX (PDF 확장 예정)
-
-### 3.5 외부 신호 수집
-
-| 소스 | 기술 | 비용 |
-|------|------|------|
-| **Tavily 뉴스** | API | 월 1,000건 무료 |
-| **GNews** | API | 일 100건 무료 |
-| **RSS** | feedparser | 무료 |
-
-### 3.6 소셜 미디어 수집
-
-| 플랫폼 | 기술 | 수집 대상 | 상태 |
-|--------|------|----------|------|
-| **Reddit** | JSON API | r/AsianBeauty | 파이프라인 연동 (ExternalSignalCollector 내장) |
-| **Google Trends** | trendspyg | 브랜드 검색 관심도 | 파이프라인 연동 (인사이트 배치) |
-
-### 3.7 공공데이터 API
-
-| API | 용도 |
-|-----|------|
-| **관세청 수출입통계** | 화장품 HS 3304 수출입 |
-| **식약처 기능성화장품** | 신규 등록 현황 |
-
-### 3.8 이메일 알림
-
-- Gmail SMTP 연동
-- 순위 변동 (±10위), SoS 급변동 시 자동 알림
-- 담당자 다중 수신 지원
-
----
-
-## 4. 기술 스택
-
-| 분류 | 기술 |
-|------|------|
-| **Backend** | Python 3.11+, FastAPI, Uvicorn |
-| **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
-| **RAG** | ChromaDB (OpenAI text-embedding-3-small) + BM25/RRF (rank-bm25) + Self-RAG 게이트. 리랭킹은 구현돼 있으나 플래그 `use_reranker` 기본 OFF |
-| **Ontology** | JSON 원본 + Python 폐포 로더, Rule-based Reasoner. owlready2는 [2026-09 사후] 개발 전용(`requirements-dev.txt`, OWL 내보내기·Pellet 교차 검증, 폐포와 불일치 0). rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) |
-| **크롤링** | Playwright, playwright-stealth, browserforge |
-| **리포트** | python-docx, python-pptx |
-| **데이터** | SQLite(읽기 정본) + Google Sheets(병행 저장, Sheets→SQLite 동기화), Pandas |
-| **배포** | Docker, Railway |
-| **테스트** | pytest, pytest-cov (커버리지 72.19%, 2026-08-30 로컬 실측. CI 게이트 없음: `fail_under = 0`) |
-
----
-
-## 5. API 레퍼런스
+### 주요 API
 
 | Method | Endpoint | 설명 | 인증 |
 |--------|----------|------|------|
-| GET | `/api/health` | 헬스 체크 | - |
-| GET | `/api/data` | 대시보드 데이터 | - |
+| GET | `/api/health` | 헬스체크 | - |
+| GET | `/api/data` | 대시보드 데이터 JSON | - |
 | GET | `/dashboard` | 대시보드 UI | - |
-| POST | `/api/v4/chat` | AI 챗봇 (스트리밍: `/api/v4/chat/stream`) | API Key |
-| POST | `/api/chat` | AI 챗봇 v1 (RAG) | API Key |
+| POST | `/api/v4/chat` | 챗봇 (권장 경로, SSE: `/api/v4/chat/stream`) | API Key |
+| POST | `/api/chat` | 챗봇 v1 (`HybridChatbotAgent`) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
-| GET | `/api/v4/brain/status` | 스케줄러 상태 + ReAct 활성 여부(`components`, [2026-09 사후] OWL 검색 전략 삭제로 이 필드에서 제외) + `ontology`(버전·기준일·클래스 수·브랜드 수·플래그, [2026-09 사후]) | - |
-| POST | `/api/export/docx` | DOCX 리포트 생성 | - |
-| POST | `/api/export/pptx` | PPTX 리포트 생성 | - |
+| GET | `/api/v4/brain/status` | 스케줄러 상태, ReAct 활성 여부(`components`), 온톨로지 상태(`ontology`) | - |
 
----
+## 아키텍처
 
-## 6. 배포
+### 데이터 흐름 (배치)
 
-### Railway
-
-```bash
-# 필수 환경 변수
-OPENAI_API_KEY=sk-...
-API_KEY=your-api-key
-AUTO_START_SCHEDULER=true       # 미설정 시 기본 false
-
-# Google Sheets (선택)
-GOOGLE_SHEETS_SPREADSHEET_ID=...
-GOOGLE_SHEETS_CREDENTIALS_JSON=...
-
-# 뉴스 수집 (선택)
-TAVILY_API_KEY=tvly-...         # 월 1,000건 무료
-GNEWS_API_KEY=...               # 일 100건 무료
-
-# 공공데이터 (선택)
-DATA_GO_KR_API_KEY=...          # 관세청/식약처 API
-
-# 이메일 알림 (선택)
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SENDER_EMAIL=your@gmail.com
-SENDER_PASSWORD=xxxx xxxx xxxx xxxx  # Gmail 앱 비밀번호
-ALERT_RECIPIENTS=alert@email.com
+```
+Amazon Best Sellers (5 카테고리 × Top 100, 22:00 KST)
+  → CrawlerAgent (Playwright)
+  → StorageAgent: Google Sheets 먼저, SQLite 다음 (병행 저장, 자동 동기화는 Sheets→SQLite 단방향)
+  → MetricCalculator (SoS·HHI·CPI) → KG 갱신 (data/knowledge_graph.json) → 알림
 ```
 
-### Docker
+SQLite(`data/amore_data.db`, Railway는 `/data/amore_data.db`)가 읽기 정본이다. exporter·지표·API는 SQLite를 읽는다.
+
+### 질의 경로 (`/api/v4/chat` → `UnifiedBrain` → `QueryGraph`)
+
+```
+GUARD → CACHE_CHECK → GATHER_CONTEXT → ASSESS_CONFIDENCE
+   ├─ HIGH                    → GENERATE_RESPONSE
+   ├─ UNKNOWN                 → CLARIFICATION (되묻기)
+   ├─ MEDIUM/LOW + 1홉        → DECIDE (DecisionMaker) → EXECUTE_TOOL → GENERATE_RESPONSE
+   └─ MEDIUM/LOW + 2홉 이상   → REACT_AGENT (플래그 OFF면 DECIDE 경로)
+GENERATE_RESPONSE → 수치 검증(annotate) → OUTPUT_GUARD → DONE
+```
+
+`GATHER_CONTEXT`는 `HybridRetriever.retrieve()`가 맡는다 (`src/rag/hybrid_retriever.py`).
+
+1. **엔티티 연결**: 브랜드·카테고리·제품·지표 추출 (`entity_linker.py`). 온톨로지 플래그 ON이면 브랜드 등록부 사전을 더해 쓴다.
+2. **온톨로지 질의 해석**: 그룹 → 소속 브랜드 전개, 세그먼트·원산지 등 정적 사실 카드 (`ontology_context.py`, 원본 `config/ontology/*.json` + `config/category_hierarchy.json`, 로더 `src/ontology/ontology.py`).
+3. **KG 사실 조회**: JSON Triple Store (`src/ontology/knowledge_graph.py`).
+4. **DB 지표 사실**: 크롤 SQLite의 날짜가 붙은 수치 (`metric_facts.py`).
+5. **규칙 추론**: 위 사실을 증거 카드로 받아 규칙을 판정 (`src/ontology/reasoner.py` + `rule_contracts.py`, 규칙 37개).
+6. **문서 검색**: ChromaDB Dense(`text-embedding-3-small`) + BM25 RRF, 추론 결과로 질의 확장.
+7. **증거 카드 조립·선별** → 프롬프트 렌더링 (`evidence_assembly.py`, `evidence_renderer.py`, 모델 `src/domain/entities/evidence.py`).
+
+그 뒤 단계:
+
+- **신뢰도** (`src/core/confidence.py`): 엔티티 충족도 0.60 + 카드 종류 충족 0.40, 검색 분포는 ±0.05 동점 가르기. HIGH ≥ 0.95, MEDIUM ≥ 0.61, LOW ≥ 0.60, 그 아래는 UNKNOWN.
+- **DecisionMaker** (`src/core/decision_maker.py`): MEDIUM/LOW일 때 네이티브 function calling으로 도구 1개를 고르거나 바로 답한다. 도구는 `src/core/tool_registry.py`의 5종(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`)이고 ReAct와 공유한다.
+- **수치 검증** (`src/core/numeric_verifier.py`): 답변 속 수치를 인용 카드와 대조한다. 기본 `annotate`는 결과를 메타데이터에 기록만 하고 답변은 바꾸지 않는다. ReAct·v1 경로는 이 단계를 거치지 않는다.
+
+**표현 주의**: 런타임 추론은 Python 규칙 엔진과 JSON 온톨로지 로더(Python 폐포)다. OWL 추론기는 서비스에 연결된 적이 없어 삭제했고, OWL은 개발용 내보내기·Pellet 교차 검증(`scripts/export_ontology_owl.py`, `scripts/check_ontology_owl.py`)에만 쓴다. 규칙 37개 중 조사 시점에 발화 가능한 규칙은 13개였다(이력·감성·IR 입력 부족, [`docs/analysis/ontology-review-2026-09-18.md`](docs/analysis/ontology-review-2026-09-18.md) §3.3).
+
+### 레이어
+
+Clean Architecture: `src/domain`(엔티티·프로토콜) → `src/application`(워크플로우) → `src/adapters` → `src/infrastructure`(DI 컨테이너·설정·기능 플래그). 에이전트·RAG·온톨로지·도구는 `src/agents`, `src/rag`, `src/ontology`, `src/tools`에 있다. 전체 구조는 [`CLAUDE.md`](CLAUDE.md) §4.
+
+## 기능 플래그
+
+우선순위는 `ENV(FF_{SECTION}_{KEY})` > `config/feature_flags.json` > 코드 기본값이다 (`src/infrastructure/feature_flags.py`). 아래 "기본"은 저장소의 `config/feature_flags.json` 값이다.
+
+| 플래그 | 기본 | 의미 | 근거 |
+|--------|------|------|------|
+| `ontology.use_class_reasoning` | **ON** | 온톨로지 질의 확장·정적 사실 카드·등록부 사전 (코드 기본값은 False) | OA-10, 측정 후 켬 |
+| `agents.use_react_agent` | OFF | MEDIUM/LOW + 2홉 이상 질문을 ReAct 루프(최대 5회)로 처리 | S6-3, 비교 후 OFF 유지 |
+| `agents.react_shadow_mode` | OFF | 답은 파이프라인이 만들고 ReAct는 기록만 | S6-3 |
+| `agents.react_bypass_confidence` | OFF | 측정용: HIGH 관문을 건너뛰고 ReAct 진입 | S6-3 |
+| `response.numeric_verification_mode` | `annotate` | `off` / `annotate`(기록만) / `enforce`(불일치 수치 표시) | S6-4, enforce 보류 |
+| `kg.write_validation` | `warn` | KG 쓰기 검증 `off` / `warn`(로그만) / `enforce`(차단) | OA-7 |
+| `reasoner.enabled` | ON | 규칙 추론 on/off. 옛 이름 `reasoner.use_owl_reasoner` (별칭, 1회 경고) | §O6-3 |
+| `reasoner.use_unified_reasoner` | ON | 이것 또는 `reasoner.enabled`가 켜져 있으면 규칙을 판정한다 | — |
+| `kg.enabled` | ON | KG 조회 on/off. 옛 이름 `ontology.use_ontology_kg` (별칭) | §O6-3 |
+| `retriever.use_db_metric_facts` | ON | 크롤 DB 수치를 증거 카드로 싣기 | — |
+| `retriever.use_confidence_fusion` | ON | 다중 소스 신뢰도 융합 | — |
+| `retriever.use_reranker` | OFF | 재순위화 (코드 기본값은 True, JSON이 끔) | — |
+| `agents.use_query_rewriter` / `agents.use_external_signals` | ON | 질의 재작성 / 외부 신호(뉴스 등) 사용 | — |
+| `prompts.use_centralized_prompts` | ON | `prompts/registry.py`에서 프롬프트 로드 | — |
+| `cache.use_sqlite_embedding_cache` | OFF | 임베딩 캐시를 SQLite에 영속화 | — |
+| `router.use_llm_fallback` | OFF | 라우터 LLM 폴백 | — |
+
+결정 문서: S6-x는 [`docs/plans/evidence-react-ontology-decisions-2026-09.md`](docs/plans/evidence-react-ontology-decisions-2026-09.md), OA-x는 [`docs/plans/ontology-activation-decisions-2026-09.md`](docs/plans/ontology-activation-decisions-2026-09.md), §O6-3은 [`docs/experiments/ontology_activation_2026-09.md`](docs/experiments/ontology_activation_2026-09.md).
+
+## 평가와 측정 결과
+
+골든셋 + 유형별 시험지(numeric·relation·rule·multihop)를 LLM judge로 채점한다. 판정은 "평균 차이가 노이즈 기준 이상이고 반복 실행 범위가 겹치지 않을 때만 차이 있음"이다.
+
+| 실험 | 비교 | 대표 결과 | 문서 |
+|------|------|-----------|------|
+| 온톨로지 플래그 (O7) | 54문항(multihop+relation) × 3회, OFF → ON | 종합 0.692 → 0.745, L3 골드 엣지 recall(canonical) 0.301 → 0.582, 근거성 0.867 → 0.968, 수치 정확도 0.601 → 0.733. 나머지 29문항 회귀 없음 | [`ontology_activation_2026-09.md`](docs/experiments/ontology_activation_2026-09.md) §O7·§요약 |
+| 온톨로지 플래그 (O7) | rule 42문항 × 2회 | 규칙 정답 일치율 0.781 → 0.906 | 같은 문서 §O7-5 |
+| 온톨로지 비용 | 같은 54문항 | 프롬프트 카드 58.1 → 69.9장/문항, 파이프라인 비용 +9%, 지연 차이 없음 | 같은 문서 §O7-8 |
+| 증거 카드 (2단계) | 233문항 × 3회, 기준선 → 2단계 | numeric 수치 정확도 0.000 → 0.700, 전체 종합 0.656 → 0.698. 대가: 답변 입력 토큰 ×4.5, 지연 +30% | [`evidence_pipeline_2026-09.md`](docs/experiments/evidence_pipeline_2026-09.md) 2단계 |
+| 규칙 추론 (3단계) | rule 42문항, 규칙 on vs off × 3회 | 규칙 정답 일치율 0.469 → 0.779. 반면 judge 종합 점수는 규칙 off가 0.022 높음 | 같은 문서 3단계 |
+| KG 제거 | 130문항 × 3회, full vs KG off | KG off 시 근거성 0.717 → 0.541. 일부는 채점 컨텍스트 영향(교차 채점으로 분해). 관련성·토큰 F1·수치 정확도는 차이 없음 | [`kg_ablation_2026-09.md`](docs/experiments/kg_ablation_2026-09.md) |
+
+ReAct는 6단계 비교에서 켜기 조건을 채우지 못했다(관련성 하락, 비용 +46%, 지연 +13%) → S6-3.
+
+### 평가 실행
+
+```bash
+# v4 = 대시보드 Brain 경로 (기본 target v1 = /api/chat)
+.venv/bin/python -m eval.cli run --dataset eval/data/golden/laneige_golden_v2.jsonl --target v4 \
+  --data-as-of 2026-08-31 --judge llm --semantic-similarity --concurrency 4
+
+python3 scripts/evaluate_golden.py --verbose   # 기존 골든셋 스크립트
+```
+
+`eval.cli`에는 `run` 외에 `compare`·`set-baseline`·`portfolio`·`ablation` 하위 명령이 있다 (`eval/cli.py`). OpenAI API 비용이 든다.
+
+## 테스트
+
+```bash
+python3 -m pytest tests/ -q --no-cov          # 전체
+python3 -m pytest tests/unit/ -v              # 단위 테스트만
+python3 -m pytest tests/ -m "not slow" -v     # 느린 테스트 제외
+```
+
+- 최신 전체 실행: **6,361 passed / 8 skipped / 0 failed** (2026-09-18, 로컬 전체 실행).
+- 테스트 환경 변수는 `ENV_FILE`(기본 `.env.test`)로 분리한다 (`tests/conftest.py`).
+- CI(`.github/workflows/test.yml`): Python 3.11에서 Ruff(실패 허용) → 단위 테스트 + 커버리지 → API 키가 있을 때 통합 테스트(실패 허용), 별도 job으로 Bandit·pip-audit. `main`의 `b7f7450` 실행은 통과했다.
+- 커버리지는 측정하지만 강제하지 않는다 (`pyproject.toml` `fail_under = 0`).
+- CI는 `requirements-dev.txt`를 설치하지 않아 Pellet 교차 검증 테스트는 skip된다.
+
+## 배포 (Railway / Docker)
+
+- `Dockerfile`: `python:3.11-slim` + Playwright Chromium + 한글 폰트, `CMD ["python", "scripts/start.py"]`.
+- `scripts/start.py`: 온톨로지 원본을 먼저 로드(형식 오류면 종료) → Chroma 색인 빌드(실패해도 계속) → `PORT` 환경변수(기본 8001)로 uvicorn 시작.
+- `railway.toml`: healthcheck `/api/health`(300초), 재시작 `on_failure` 최대 3회. Volume `/data`에 SQLite·KG를 둔다.
 
 ```bash
 docker build -t amore-agent .
-docker run -p 8001:8001 -e OPENAI_API_KEY=sk-... amore-agent
+docker run -p 8001:8001 -e OPENAI_API_KEY=sk-... -e API_KEY=... amore-agent
 ```
 
-### 로컬 데이터 동기화
+| 환경 변수 | 용도 |
+|-----------|------|
+| `OPENAI_API_KEY` | 필수 (LLM·임베딩) |
+| `API_KEY`, `AUTO_START_SCHEDULER` | 보호 엔드포인트 인증, 스케줄러 자동 시작 |
+| `ALLOWED_HOSTS` | TrustedHost 허용 목록 (기본 `localhost,127.0.0.1,.railway.app`). Railway healthcheck는 내부 IP로 오므로 `*` 필요 |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` / `GOOGLE_SPREADSHEET_ID`, `GOOGLE_SHEETS_CREDENTIALS_JSON` | Sheets 저장. 모듈마다 ID 변수 이름이 다르다(`sheets_writer.py`는 앞, `config_manager.py`·`sheets_repository.py`는 뒤) |
+| `TAVILY_API_KEY`, `GNEWS_API_KEY`, `DATA_GO_KR_API_KEY` | 외부 신호(뉴스·관세청/식약처), 선택 |
+| `SMTP_SERVER`, `SMTP_PORT`, `SENDER_EMAIL`, `SENDER_PASSWORD`, `ALERT_RECIPIENTS` | 이메일 알림, 선택 |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID` | Telegram 알림, 선택 |
+
+운영 명령:
 
 ```bash
-python scripts/sync_from_railway.py        # Railway → 로컬
-python scripts/sync_sheets_to_sqlite.py    # Sheets → SQLite
+python3 scripts/sync_from_railway.py              # Railway → 로컬
+python3 scripts/sync_sheets_to_sqlite.py          # Sheets → SQLite
+python3 -m src.tools.utilities.kg_backup backup   # KG 백업 (data/backups/kg/, 7일 롤링)
+python3 -m src.tools.utilities.kg_backup list
 ```
 
----
+## 문서 지도
 
-## 7. 테스트
-
-```bash
-# 전체 테스트 (커버리지 포함)
-python -m pytest tests/ -v
-
-# 단위 테스트만
-python -m pytest tests/unit/ -v --tb=short -x --timeout=60
-
-# 커버리지 리포트
-open coverage_html/index.html
-
-# 골든셋 평가 (172문항). --target v4 = 대시보드 Brain 경로, 기본 v1 = /api/chat
-python scripts/evaluate_golden.py --verbose
-python -m eval.cli run --dataset eval/data/golden/laneige_golden_v2.jsonl --target v4 --data-as-of 2026-08-31 --judge llm
-
-# KG 백업
-python -m src.tools.kg_backup backup
-python -m src.tools.kg_backup list
-
-# 리포트 생성 테스트
-python scripts/test_report_generator.py
-```
-
-### 테스트 현황 (2026-08-30 실측)
-
-| 항목 | 수치 |
+| 문서 | 내용 |
 |------|------|
-| 총 테스트 수 | **5,242개** (5,235 passed / 7 skipped) |
-| 통과율 | 100% (0 failed, 일부 외부 의존 테스트 skip) |
-| 커버리지 | **72.19%** (2026-08-30 `pytest --cov=src` 로컬 실측. 60%는 목표일 뿐 `fail_under = 0`이라 강제되지 않음) |
-| 테스트 구조 | `tests/unit/` (14개 서브디렉토리), `tests/eval/`, `tests/integration/`, `tests/adversarial/` |
+| [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) | 개발 컨텍스트, 전체 디렉토리 구조, 모듈 참조 |
+| [`docs/portfolio/amore_architecture_evidence.md`](docs/portfolio/amore_architecture_evidence.md) | 주장별 근거(과장 금지 항목 포함) |
+| [`docs/analysis/ontology-review-2026-09-18.md`](docs/analysis/ontology-review-2026-09-18.md) | 온톨로지 현황 검토 (규칙 발화 가능성, KG 품질) |
+| [`docs/experiments/ontology_activation_2026-09.md`](docs/experiments/ontology_activation_2026-09.md) | 온톨로지 작동 O0~O7 측정 |
+| [`docs/experiments/evidence_pipeline_2026-09.md`](docs/experiments/evidence_pipeline_2026-09.md) | 증거 카드·규칙 추론·ReAct 0~6단계 |
+| [`docs/experiments/kg_ablation_2026-09.md`](docs/experiments/kg_ablation_2026-09.md) | KG·규칙 추론 제거 실험 |
+| [`docs/experiments/eval_v4_baseline_2026-09-17.md`](docs/experiments/eval_v4_baseline_2026-09-17.md) | v4 경로 평가 기준선 |
+| [`docs/plans/evidence-react-ontology-decisions-2026-09.md`](docs/plans/evidence-react-ontology-decisions-2026-09.md), [`docs/plans/ontology-activation-decisions-2026-09.md`](docs/plans/ontology-activation-decisions-2026-09.md), [`docs/plans/risk-remediation-decisions-2026-09-17.md`](docs/plans/risk-remediation-decisions-2026-09-17.md) | 결정 기록 |
+| [`docs/dev/FUTURE_WORK.md`](docs/dev/FUTURE_WORK.md) | 남은 일 (9.9·9.10이 최신) |
+| [`docs/REFACTORING_RESULTS.md`](docs/REFACTORING_RESULTS.md) | 2026-02 리팩토링 결과 |
+| [`docs/guides/react_agent_guide.md`](docs/guides/react_agent_guide.md), [`docs/embedding_cache_guide.md`](docs/embedding_cache_guide.md), [`docs/AMOREPACIFIC_DESIGN_SYSTEM.md`](docs/AMOREPACIFIC_DESIGN_SYSTEM.md) | 모듈·디자인 가이드 |
 
-### 레이어별 커버리지
+## 한계와 남은 일
 
-| 레이어 | 커버리지 | 주요 모듈 |
-|--------|----------|----------|
-| **domain/** | 70-100% | entities, value objects, interfaces |
-| **core/** | 42-100% | cache 95%, rules_engine 95%, explainability 95% |
-| **rag/** | 56-98% | retrieval_strategy 90%, reranker 86%, relevance_grader 98% |
-| **ontology/** | 42-100% | category/sentiment 100%, kg_query 98% |
-| **tools/** | 10-99% | metric_calculator 98%, period_analyzer 97%, job_queue 99% |
-| **memory/** | 97-99% | conversation_memory, session, context |
-| **monitoring/** | 86-98% | logger, metrics, tracer |
+자세한 목록은 [`docs/dev/FUTURE_WORK.md`](docs/dev/FUTURE_WORK.md) 9.9·9.10.
 
-### 남은 Low Coverage 모듈 (< 30%)
+- **프롬프트 카드 수가 한계선(~70장/문항)에 닿았다.** 온톨로지 ON에서 평균 69.9장. 증거 선별을 좁히기 전에는 신뢰도 신호의 변별력도 낮다(5단계 게이트에서 HIGH·LOW 실패율 차이 없음).
+- **ReAct는 구현돼 있지만 기본 OFF다.** 신뢰도 관문 뒤에 있어 2홉 질문 대부분이 진입하지 않고, 토큰 예산(12,000)이 실제 사용량보다 작다.
+- **수치 검증기는 기록만 한다(annotate).** 인용 파싱 결함(`[M-a], [M-b]`)과 계산값 처리 때문에 enforce는 보류했다. ReAct·v1 경로에는 적용되지 않는다.
+- **스크레이퍼 브랜드 오귀속**: 일부 제품에 가짜 브랜드(`unknown`·`fresh`·`chi` 등)가 붙어 KG `competesWith`에 섞인다. 조회 쪽에서 placeholder 브랜드만 거른다.
+- **날짜 없는 KG 수치 엣지**가 남아 있다(평가 스냅샷 기준 333건). 날짜를 지어내지 않기로 했고, 이 때문에 `kg.write_validation=enforce`를 켜지 못한다.
+- **KG 효과는 일부만 입증됐다.** KG 제거 시 근거성 하락은 확인했지만 일부는 채점 방식 영향이며, 관련성·수치 정확도 차이는 없었다.
 
-| 모듈 | 커버리지 | 사유 |
-|------|----------|------|
-| `telegram_bot.py` | 12.8% | 실제 Telegram API 의존 |
-| `amazon_product_scraper.py` | 12.5% | Playwright 브라우저 자동화 |
-| `chart_generator.py` | 7.9% | matplotlib 렌더링 |
-| `sheets_writer.py` | 9.6% | Google Sheets API 의존 |
-| `bootstrap.py` | 0% | 앱 시작 와이어링 |
-| `exchange_rate.py` | 13.5% | 외부 환율 API |
-| `deals_scraper.py` | 27.3% | Playwright 크롤링 |
+## 변경 이력 요약
 
-> 이 모듈들은 외부 I/O(네트워크, 브라우저, API)에 강하게 의존하여 단위 테스트 한계가 있습니다. 통합 테스트로 보완 예정.
-
-### 테스트 환경 분리
-
-```bash
-ENV_FILE=.env.test python -m pytest tests/
-```
-
----
-
-## 8. 문서
-
-| 문서 | 설명 |
-|------|------|
-| [`CLAUDE.md`](CLAUDE.md) | 개발 가이드 (Claude Code용) |
-| [`docs/analysis/rag-ontology-kg-deep-analysis.md`](docs/analysis/rag-ontology-kg-deep-analysis.md) | RAG + Ontology + KG 하이브리드 시스템 심층 분석 |
-| [`docs/guides/react_agent_guide.md`](docs/guides/react_agent_guide.md) | ReAct Agent 가이드 |
-| [`docs/embedding_cache_guide.md`](docs/embedding_cache_guide.md) | Embedding 캐시 가이드 |
-| [`docs/AMOREPACIFIC_DESIGN_SYSTEM.md`](docs/AMOREPACIFIC_DESIGN_SYSTEM.md) | 디자인 시스템 가이드 |
-
----
-
-## 9. 리팩토링 & CI/CD 개선 (2026-02)
-
-2026-02-10 ~ 02-16, 6개 Phase에 걸쳐 코드 품질 및 테스트 인프라를 대폭 개선했습니다.
-자세한 내용은 [`docs/REFACTORING_RESULTS.md`](docs/REFACTORING_RESULTS.md) 참조.
-
-### 9.1 Before / After
-
-| 지표 | Before (02-09) | 현재 | 변화 |
-|------|----------------|---------------|------|
-| 프로덕션 코드 (테스트 제외) | ~73,300 lines / 170개 파일 | ~75,700 lines / 214개 파일 | 모놀리스 분해 + 기능 추가 (git 히스토리 실측) |
-| dashboard_api.py | 5,634줄 monolith | 195줄 진입점 + `src/api/routes/` 12개 모듈 | **모듈화 완료** |
-| 순환 의존성 | 23 cycles | 0 cycles | **완전 제거** |
-| 테스트 수 | 238개 | 5,200+개 | **+2,000%↑** |
-| 테스트 커버리지 | 10.11% | 72.19% | **+62.08%p** |
-| DI Container | 11 get_ 메서드 | 22 get_ 메서드 | +11 컴포넌트 |
-
-### 9.2 Phase별 주요 변경
-
-| Phase | 작업 | 문제 | 해결 |
-|-------|------|------|------|
-| **0** | Dead Code 삭제 | 미사용 코드 ~2,000줄 잔존 | 삭제 + 안전망 테스트 650개 작성 |
-| **1-2** | Retriever 통합 | 4개 Retriever 분산, 순환 의존 | Strategy Pattern으로 2개로 통합, Domain Layer 순수성 확보 |
-| **3** | dashboard_api 모듈화 | 5,634줄 monolith | `src/api/routes/` 12개 모듈로 분리 (-43%) |
-| **4** | BatchWorkflow 이동 | core/에 위치한 Application 로직 | `src/application/workflows/`로 이동, 하위 호환 유지 |
-| **5** | DI Container 완성 | 직접 import 의존 | Container 기반 DI 전환, 7개 컴포넌트 추가 등록 |
-| **6** | 테스트 보강 | 238개, 10% 커버리지 | 5개 미테스트 모듈에 60개 테스트 추가, stale 4개 수정 |
-
-### 9.3 CI/CD 파이프라인
-
-GitHub Actions 워크플로우 (`.github/workflows/test.yml`)를 2-job 구조로 개선:
-
-| Job | 내용 |
-|-----|------|
-| **test** | Ruff lint → 단위 테스트 (pytest + coverage) → 통합 테스트 (API key 있을 때만) |
-| **security** | Bandit 보안 스캔 (`-ll -ii`) + pip-audit 취약 의존성 검사 |
-
-주요 설정:
-- Python 3.11, Playwright Chromium 설치 포함
-- 커버리지: `--cov=src --cov-report=term-missing` (branch coverage 활성화)
-- `fail_under = 0` (임시 — 안정화 후 점진적 상향 예정)
-
-### 9.4 커버리지 달성 (완료)
-
-10.11% → **72.76%** (목표 60% 초과 달성).
-
-| Wave | 대상 | 테스트 수 | 결과 |
-|------|------|----------|------|
-| 1 | Quick Wins (cache, rules, explainability 등) | 202 | 6개 신규 파일 |
-| 2 | RAG Layer (retrieval_strategy, reranker 등) | 171 | 2개 신규 + 2개 확장 |
-| 3 | Ontology + Intelligence (owl_reasoner, metric 등) | 224 | 1개 재작성 + 3개 확장 + 1개 신규 |
-| 4 | Complex Modules (brain, insight_verifier 등) | 166 | 2개 신규 + 1개 확장 |
-| 5 | Utilities (job_queue, brand_resolver 등) | 261 | 4개 신규 |
-| 6 | Services + Exporters (alert_service, dependencies 등) | 215 | 4개 신규 |
-| **합계** | | **~3,900+** | **26개 파일** |
-
----
-
-## 10. 업데이트 히스토리
-
-### 2026-08-30 - 사실 검증 감사 반영 (문서 정합성 + 기능 복구)
-
-리포 전체 사실 검증(`PORTFOLIO_FACTS.md`)에서 발견된 문제를 일괄 수정:
-
-| 분류 | 수정 내용 |
-|------|----------|
-| **검색** | `rank-bm25` 의존성 추가로 BM25/RRF 하이브리드 검색 활성화 (구현만 있고 미설치였음) |
-| **검색** | Self-RAG 게이트를 v4 통합 검색 경로(`retrieve_unified`)에도 적용 |
-| **Ablation** | `no-kg`/`no-ontology` 피처 플래그가 실제 분기를 제어하도록 배선 (기존엔 no-op) + 게이팅 회귀 테스트 추가 |
-| **스케줄러** | `brain.collect_market_intelligence()`의 깨진 임포트 수정 (시장정보 수집 침묵 실패 복구) |
-| **챗봇 v1** | `ChatWorkflow` ↔ `HybridChatbotAgent` 시그니처 불일치로 죽어 있던 `/api/chat` 경로 복구 |
-| **품질** | 환각 감지 결과를 응답 신뢰도에 반영 (`grounding_warning` 필드 추가, 기존엔 로깅만) |
-| **출처** | `external_source` 타입 인용 번호 누락 결함 수정 |
-| **정리** | dead feature flag 2종 제거, orphan 프롬프트 파일 3종 삭제, `python -m eval` 진입점 추가 |
-| **문서** | KG 트리플·테스트 수·라인 수 등 과장/낡은 수치를 실측값으로 교정 |
-
-### 2026-02-19 - 10-Sprint 마스터 로드맵 완료
-
-**Sprint 7~10 (2026-02-17 ~ 02-19) 주요 변경:**
-
-| Sprint | 주제 | 핵심 변경 |
-|--------|------|----------|
-| **Sprint 7** | Eval Harness 고도화 | LLM/NLI Judge, Cost Tracking, Regression 감지, CLI compare |
-| **Sprint 8** | OWL Ontology + BM25/RRF | OWL Class Restriction, inverseOf, Disjointness, BM25 Sparse + RRF 병합, Self-RAG 게이트 |
-| **Sprint 9** | Multi-hop + SPARQL | IRCoT 멀티홉, rdflib SPARQL, AIS 인라인 인용, IRI 체계, OWL Consistency Check |
-| **Sprint 10** | God Object 분할 + 보안 P3 | chatbot 1353→798줄, KG 1514→550줄, TrustedHost/CSRF 미들웨어, Fernet 세션 암호화, pip-audit/bandit |
-
-**최종 수치:**
-- 테스트: 5,200+개 (100% 통과), 커버리지 72.76% (2026-02 측정)
-- God Objects: business_rules 1540→54줄, knowledge_graph 1514→550줄, chatbot 1353→798줄
-- 보안: P0~P3 전체 완료 (TrustedHost, CSRF, Fernet, pip-audit, bandit)
-- DI Container: 22 get_ 메서드 (전체 전환 완료)
-
----
-
-### 2026-02-10 - Amazon 크롤러 Top 100 수집 복구
-
-**문제**: 카테고리당 100개가 아닌 60개만 수집 (전체 300개/500개)
-
-**원인**: Amazon이 베스트셀러 페이지에 **lazy loading**을 도입하여 초기 로드 시 30개만 표시. 스크롤해야 나머지 20개가 추가 로드됨 (페이지당 50개). 기존 크롤러는 스크롤 없이 바로 파싱하여 30개 x 2페이지 = 60개만 수집.
-
-**진단 과정**: Railway 환경에서 Playwright 디버그 스크립트를 실행하여 `[data-asin]` 카드 수, `span.zg-bdg-text` 순위 배지, 페이지네이션 구조를 확인. 스크롤 전 30개 → 스크롤 후 50개로 증가하는 것을 확인.
-
-**해결**:
-- `_scroll_to_load_all()`: 페이지 끝까지 스크롤하여 lazy-loaded 카드 전체 로드
-- `_parse_bestseller_page()`: `[data-asin]` 순회 + 자체 rank 관리 대신 `span.zg-bdg-text` 순위 배지 기반 파싱으로 변경. 광고/스폰서 카드 자동 제외.
-- `#zg-right-col` 컨테이너 내부만 파싱하여 정확도 향상
-
-**결과**: 카테고리당 100개 (rank 1~100) 정상 수집 확인
-
-### 2026-01-28 (v4) - IR-Style Report Generator
-
-- **전문 애널리스트 리포트**: AMOREPACIFIC 디자인 시스템 적용
-- **아리따 폰트**: 돋움 (제목/목차), 부리 (본문) 적용
-- **7개 섹션 템플릿**: Executive Summary, 심층 분석, 경쟁 환경, 시장 동향, 외부 신호, 리스크/기회, 전략 제언
-- **12개+ 참고자료**: URL 포함, 소스별 용도 설명
-
-### 2026-01-28 (v3) - ReAct Self-Reflection Agent
-
-- **ReAct Loop**: Thought → Action → Observation → Reflection (최대 3회)
-- **Self-Reflection**: 응답 품질 자체 평가
-- **자동 활성화**: 복잡한 질문 감지 시 ReAct 모드 전환
-
-### 2026-01-28 (v2) - Embedding 캐시
-
-- **MD5 해시 기반 캐시**: 동일 텍스트 재임베딩 방지
-- **FIFO Eviction**: 최대 1,000개 항목
-- **비용 절감**: 캐시 적중 시 임베딩 API 호출 생략 (hit/miss 통계 내장)
-
-### 2026-01-28 (v1) - 카테고리 계층 구조
-
-- **URL 형식 통일**: `zgbs/beauty/{node_id}`
-- **계층 구조 정의**: `config/category_hierarchy.json`
-- **AWS WAF 대응**: Stealth 컨텍스트, 지수 백오프
-
-### 2026-01-27 (v3) - 이메일 알림
-
-- **Gmail SMTP**: AlertAgent → EmailSender 통합
-- **알림 조건**: 순위 ±10, SoS 급변동
-
-### 2026-01-27 (v2) - 소셜 미디어 수집기
-
-- **TikTok/Instagram/YouTube/Reddit**: 모두 무료
-- **Google Trends**: trendspyg 지원
-
-### 2026-01-27 (v1)
-
-- **KG Railway Volume**: 자동 백업 (7일 보관)
-- **테스트 환경 분리**: `.env.test`
-- **골든셋 평가**: `scripts/evaluate_golden.py`
-
----
+- 2026-01: 크롤러·KG·규칙 추론·하이브리드 검색·대시보드 초기 구축.
+- 2026-02: 10-스프린트 로드맵(모놀리스 분해, 순환 의존성 제거, DI, 보안) — [`docs/REFACTORING_RESULTS.md`](docs/REFACTORING_RESULTS.md), [`docs/plans/roadmap-progress.md`](docs/plans/roadmap-progress.md).
+- 2026-08: 사실 검증 감사, 평가 하네스 사이클 — [`docs/experiments/`](docs/experiments/).
+- 2026-09: 증거 카드 파이프라인, 규칙 추론 연결, 신뢰도 재설계, 온톨로지 JSON 원본화·OWL 모듈 삭제, 온톨로지 플래그 기본 ON — 위 실험·결정 문서.
 
 ## 라이선스
 
