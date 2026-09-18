@@ -1,0 +1,10 @@
+# 개발 전용 의존성 — 배포 이미지(Dockerfile)는 requirements.txt만 설치한다.
+# 설치: pip install -r requirements.txt -r requirements-dev.txt
+#
+# owlready2 [2026-09 사후, 트랙 O6]
+#   서비스 질의 경로는 온톨로지 JSON 원본(config/ontology/) + Python 폐포(src/ontology/ontology.py)만
+#   쓴다(설계 OE2, 결정 OA-1). owlready2는 아래 개발·검증 스크립트에서만 import한다.
+#   - scripts/export_ontology_owl.py : JSON 원본 → OWL 내보내기 (Protégé 열람용)
+#   - scripts/check_ontology_owl.py  : Pellet 일관성·교차 검증 (Java 25 이상 필요)
+#   관련 테스트(tests/unit/ontology/test_ontology_owl_check.py)는 미설치 시 skip한다.
+owlready2>=0.45

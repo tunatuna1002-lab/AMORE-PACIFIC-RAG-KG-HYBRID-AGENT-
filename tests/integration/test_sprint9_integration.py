@@ -2,7 +2,8 @@
 Sprint 9 Integration Tests (D-5)
 
 Tests for multi-hop, AIS citation, IRI roundtrip,
-OWL consistency, and Self-RAG + hybrid retrieval integration.
+and Self-RAG + hybrid retrieval integration.
+(OWL consistency tests were removed with `owl_reasoner.py` in O6, 2026-09-18.)
 """
 
 from __future__ import annotations
@@ -444,68 +445,6 @@ class TestIRIRoundtrip:
 
         iri_count = sum(1 for t in export["triples"] if t.get("subject", "").startswith("amore:"))
         assert iri_count > 0
-
-
-# =========================================================================
-# 5. OWL Consistency Test
-# =========================================================================
-
-
-class TestOWLConsistencyIntegration:
-    """Test OWL consistency checking."""
-
-    def test_clean_ontology_is_consistent(self):
-        """A fresh OWL reasoner should report consistency."""
-        from src.ontology.owl_reasoner import ConsistencyReport, OWLReasoner
-
-        reasoner = OWLReasoner.__new__(OWLReasoner)
-        reasoner.onto = None
-        reasoner.reasoner_type = "hermit"
-
-        report = reasoner.check_consistency()
-
-        assert isinstance(report, ConsistencyReport)
-        assert report.is_consistent is True
-        assert report.checked_at != ""
-
-    def test_consistency_report_fields(self):
-        """ConsistencyReport has expected fields."""
-        from src.ontology.owl_reasoner import ConsistencyReport
-
-        report = ConsistencyReport(
-            is_consistent=True,
-            violations=[],
-            warnings=["test warning"],
-            check_method="test",
-        )
-
-        assert report.is_consistent is True
-        assert report.violations == []
-        assert len(report.warnings) == 1
-        assert report.check_method == "test"
-        assert report.checked_at != ""
-
-    def test_consistency_report_with_violation(self):
-        """ConsistencyReport correctly reports violations."""
-        from src.ontology.owl_reasoner import ConsistencyReport
-
-        report = ConsistencyReport(
-            is_consistent=False,
-            violations=[
-                {
-                    "type": "disjointness",
-                    "entity": "TestBrand",
-                    "description": "Brand in multiple disjoint classes",
-                    "severity": "error",
-                }
-            ],
-            warnings=[],
-            check_method="rule_based_fallback",
-        )
-
-        assert report.is_consistent is False
-        assert len(report.violations) == 1
-        assert report.violations[0]["severity"] == "error"
 
 
 # =========================================================================

@@ -22,9 +22,6 @@ from .business_rules import (
 # Knowledge Graph (신규)
 from .knowledge_graph import KnowledgeGraph
 
-# Ontology Knowledge Graph (T-Box + A-Box 통합)
-from .ontology_knowledge_graph import OntologyKnowledgeGraph
-
 # Reasoner (신규)
 from .reasoner import InferenceRule, OntologyReasoner, RuleCondition, StandardConditions
 
@@ -71,7 +68,6 @@ __all__ = [
     "create_competition_relation",
     # Knowledge Graph
     "KnowledgeGraph",
-    "OntologyKnowledgeGraph",
     # Reasoner
     "OntologyReasoner",
     "InferenceRule",

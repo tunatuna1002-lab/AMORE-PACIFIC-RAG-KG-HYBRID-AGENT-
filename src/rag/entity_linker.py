@@ -34,7 +34,6 @@ entities = linker.link("LANEIGE Lip Care 경쟁력 분석해줘")
 
 ## 통합
 - EntityExtractor (hybrid_retriever.py)와 호환
-- OWLReasoner 통합 지원
 - KnowledgeGraph 연동
 """
 
@@ -481,15 +480,13 @@ class EntityLinker:
     _config_loaded_at: float | None = None
     _CONFIG_TTL_SECONDS: int = 300
 
-    def __init__(self, knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True):
+    def __init__(self, knowledge_graph=None, use_spacy: bool = True):
         """
         Args:
             knowledge_graph: KnowledgeGraph 인스턴스 (개념 검증용)
-            owl_reasoner: OWLReasoner 인스턴스 (온톨로지 쿼리용)
             use_spacy: spaCy NER 사용 여부
         """
         self.kg = knowledge_graph
-        self.owl_reasoner = owl_reasoner
         self.use_spacy = use_spacy and SPACY_AVAILABLE
 
         # spaCy 모델 로드
@@ -1441,15 +1438,12 @@ class EntityLinker:
 _linker_instance: EntityLinker | None = None
 
 
-def get_entity_linker(
-    knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True
-) -> EntityLinker:
+def get_entity_linker(knowledge_graph=None, use_spacy: bool = True) -> EntityLinker:
     """
     EntityLinker 싱글톤 인스턴스 반환
 
     Args:
         knowledge_graph: KnowledgeGraph 인스턴스
-        owl_reasoner: OWLReasoner 인스턴스
         use_spacy: spaCy 사용 여부
 
     Returns:
@@ -1457,7 +1451,5 @@ def get_entity_linker(
     """
     global _linker_instance
     if _linker_instance is None:
-        _linker_instance = EntityLinker(
-            knowledge_graph=knowledge_graph, owl_reasoner=owl_reasoner, use_spacy=use_spacy
-        )
+        _linker_instance = EntityLinker(knowledge_graph=knowledge_graph, use_spacy=use_spacy)
     return _linker_instance
