@@ -602,6 +602,10 @@ class Ontology:
         """OE3: 항상 False. 수치는 카테고리 포함 관계를 따라 전파하지 않는다."""
         return False
 
+    @property
+    def disjoint_sets(self) -> tuple[tuple[str, ...], ...]:
+        return tuple(self._disjoint_sets)
+
     def class_spec(self, cls: str) -> ClassSpec:
         self._require_class(cls)
         return self._classes[cls]
