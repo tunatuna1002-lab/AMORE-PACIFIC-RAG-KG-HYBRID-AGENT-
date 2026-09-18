@@ -8,8 +8,11 @@ Measures how well the system retrieves KG information:
 - KG Edge F1: F1 between retrieved and gold edges
 """
 
+from typing import Any
+
 from eval.metrics.base import MetricCalculator
 from eval.schemas import GoldEvidence, KGQueryTrace, L3Metrics
+from eval.validators.ontology_validator import parse_edge
 
 
 class L3KGMetrics(MetricCalculator):
@@ -52,12 +55,56 @@ class L3KGMetrics(MetricCalculator):
         edge_recall = self._compute_kg_edge_recall(trace, gold)
         edge_precision = self._compute_kg_edge_precision(trace, gold)
 
+        gold_only = self.compute_gold_edge_breakdown(trace, gold)
+
         return L3Metrics(
             hits_at_k=hits,
             kg_edge_f1=edge_f1,
             kg_edge_recall=edge_recall,
             kg_edge_precision=edge_precision,
+            **gold_only,
         )
+
+    def compute_gold_edge_breakdown(
+        self, trace: KGQueryTrace, gold: GoldEvidence
+    ) -> dict[str, Any]:
+        """[2026-09 사후] O0-A: 골드 엣지가 있는 문항만의 recall과 술어별 일치 수.
+
+        - ``kg_edge_recall_gold_only``: 골드 엣지가 1개 이상이면 ``kg_edge_recall``과 같은 값,
+          없으면 None (1.0으로 채우지 않는다 — 집계에서 빠진다).
+        - ``edge_recall_by_predicate``: 골드 술어(골드 표기 그대로)별 {matched, total}.
+          일치 판정은 ``kg_edge_recall``과 같은 정규화(소문자·앞뒤 공백 제거) 문자열 일치다.
+          별칭(ownedBy ↔ ownedByGroup)은 맞춰 주지 않는다 — 이름이 달라 놓치는 것도
+          지금 시스템의 실제 결과로 센다.
+        """
+        gold_edges = self._norm_edges(gold.kg_edges)
+        retrieved = self._norm_edges(trace.kg_edges_found)
+        by_predicate: dict[str, dict[str, int]] = {}
+        for edge in sorted(gold_edges):
+            parsed = parse_edge(edge)
+            # 정규화로 소문자가 됐으므로 술어는 원 골드 표기에서 다시 찾는다
+            predicate = self._gold_predicate(gold.kg_edges, edge) if parsed else "(unparsed)"
+            bucket = by_predicate.setdefault(predicate, {"matched": 0, "total": 0})
+            bucket["total"] += 1
+            if edge in retrieved:
+                bucket["matched"] += 1
+        matched = len(gold_edges & retrieved)
+        return {
+            "kg_edge_recall_gold_only": (matched / len(gold_edges)) if gold_edges else None,
+            "gold_edge_count": len(gold_edges),
+            "gold_edge_matched": matched,
+            "edge_recall_by_predicate": by_predicate,
+        }
+
+    @staticmethod
+    def _gold_predicate(raw_edges: list[str], normalized_edge: str) -> str:
+        for raw in raw_edges:
+            if str(raw).lower().strip() == normalized_edge:
+                parsed = parse_edge(raw)
+                if parsed:
+                    return parsed[1]
+        parsed = parse_edge(normalized_edge)
+        return parsed[1] if parsed else "(unparsed)"
 
     def _compute_hits_at_k(self, trace: KGQueryTrace, gold: GoldEvidence, k: int) -> float:
         """
@@ -185,3 +232,37 @@ def kg_entity_precision(trace: KGQueryTrace, gold: GoldEvidence) -> float:
         return 1.0 if not gold_entities else 0.0
 
     return MetricCalculator.set_precision(found_entities, gold_entities)
+
+
+def aggregate_l3_extended(metrics: list[L3Metrics]) -> dict[str, Any]:
+    """[2026-09 사후] O0-A: 문항별 L3Metrics를 리포트 요약용으로 집계한다.
+
+    - ``kg_edge_recall_all``: 기존 ``kg_edge_recall`` 평균(골드 엣지 없는 문항 = 1.0 포함)
+    - ``kg_edge_recall_gold_only``: 골드 엣지 있는 문항만의 문항 평균(macro). 해당 문항 0이면 None
+    - ``kg_edge_recall_micro``: 전체 골드 엣지 중 일치 비율(엣지 단위)
+    - ``recall_by_predicate``: 술어별 {matched, total, recall}
+    """
+    n = len(metrics)
+    gold_only = [
+        m.kg_edge_recall_gold_only for m in metrics if m.kg_edge_recall_gold_only is not None
+    ]
+    total_edges = sum(m.gold_edge_count for m in metrics)
+    total_matched = sum(m.gold_edge_matched for m in metrics)
+    by_predicate: dict[str, dict[str, float]] = {}
+    for m in metrics:
+        for predicate, counts in m.edge_recall_by_predicate.items():
+            bucket = by_predicate.setdefault(predicate, {"matched": 0, "total": 0})
+            bucket["matched"] += counts.get("matched", 0)
+            bucket["total"] += counts.get("total", 0)
+    for bucket in by_predicate.values():
+        bucket["recall"] = bucket["matched"] / bucket["total"] if bucket["total"] else None
+    return {
+        "items": n,
+        "kg_edge_recall_all": (sum(m.kg_edge_recall for m in metrics) / n) if n else None,
+        "gold_edge_items": len(gold_only),
+        "kg_edge_recall_gold_only": (sum(gold_only) / len(gold_only)) if gold_only else None,
+        "gold_edges_total": total_edges,
+        "gold_edges_matched": total_matched,
+        "kg_edge_recall_micro": (total_matched / total_edges) if total_edges else None,
+        "recall_by_predicate": dict(sorted(by_predicate.items())),
+    }

@@ -187,7 +187,12 @@ class EvalRunner:
                 l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
                 l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
                 l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
-                l4 = self.l4_metrics.compute(trace.l4_ontology, trace.l3_kg_query, item.gold)
+                l4 = self.l4_metrics.compute(
+                    trace.l4_ontology,
+                    trace.l3_kg_query,
+                    item.gold,
+                    rule_evaluation=trace.rule_evaluation,
+                )
 
                 # L5 metrics (with optional judge)
                 context = self._build_context_string(trace)

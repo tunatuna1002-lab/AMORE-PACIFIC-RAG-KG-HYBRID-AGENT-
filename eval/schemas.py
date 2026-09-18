@@ -63,6 +63,12 @@ class GoldEvidence(BaseModel):
         default_factory=dict,
         description="Expected numerical KPI values for accuracy checking",
     )
+    # [2026-09 사후] O0-A. 골든셋 233문항에는 아직 이 필드가 없다 — 비어 있으면 L4가
+    # 골드 엣지 시그니처·등록부로 타입을 정하고 L4Metrics.types_registry_derived로 표시한다.
+    kg_entity_types: dict[str, str] = Field(
+        default_factory=dict,
+        description="골드 엔티티 → 타입 (brand·corporate_group·category·product·segment·country)",
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -458,6 +464,20 @@ class L3Metrics(BaseModel):
     kg_edge_precision: float = Field(
         default=0.0, ge=0.0, le=1.0, description="Precision of emitted KG edges (남용 감시용)"
     )
+    # [2026-09 사후] O0-A. kg_edge_recall은 골드 엣지가 없는 문항을 1.0으로 넣어 평균이
+    # 부풀려진다(233문항 중 103). 아래 필드는 골드 엣지가 있는 문항만 본다.
+    kg_edge_recall_gold_only: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="골드 엣지가 있는 문항의 엣지 recall (없으면 None)",
+    )
+    gold_edge_count: int = Field(default=0, description="골드 엣지 수 (정규화 후 중복 제거)")
+    gold_edge_matched: int = Field(default=0, description="방출 엣지와 일치한 골드 엣지 수")
+    edge_recall_by_predicate: dict[str, dict[str, int]] = Field(
+        default_factory=dict,
+        description="골드 술어별 {'matched': m, 'total': t} (골드 표기 그대로, 별칭 정규화 없음)",
+    )
 
 
 class L4Metrics(BaseModel):
@@ -475,6 +495,39 @@ class L4Metrics(BaseModel):
         le=1.0,
         description="1 - inconsistent_types / total_entities",
     )
+    # [2026-09 사후] O0-A. 위 두 필드는 과거 비교용으로 계산식을 그대로 둔다(게이트·
+    # overall_score도 그대로 이 두 필드를 쓴다). 새 지표는 아래 필드다 — 정의는
+    # eval/validators/ontology_validator.py check_rule_inferences·check_trace_types.
+    rule_constraint_violation_rate: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="발화 규칙 추론 중 제약 위반 비율 (검사한 추론이 없으면 None)",
+    )
+    rule_checked_inferences: int = Field(default=0, description="검사한 발화 추론 수")
+    rule_violating_inferences: int = Field(default=0, description="위반이 하나 이상인 추론 수")
+    rule_fired_unchecked: int = Field(
+        default=0, description="rule_evaluation.fired에 있으나 추론 본문이 없어 검사 못 한 규칙 수"
+    )
+    rule_violation_kinds: dict[str, int] = Field(default_factory=dict)
+    typed_consistency_rate: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="기대 타입이 정해진 타입 주장 중 일치 비율 (검사 0건이면 None)",
+    )
+    type_checks: int = Field(default=0, description="타입 검사 건수 (끝점 단위)")
+    type_violations: int = Field(default=0)
+    type_untyped: int = Field(default=0, description="기대 타입을 정할 수 없어 건너뛴 끝점 수")
+    type_source: str = Field(
+        default="none",
+        description="검사에 쓰인 기대 타입 출처 (gold·ontology·registry·pattern·trace를 '+'로 연결)",
+    )
+    types_registry_derived: bool = Field(
+        default=False,
+        description="골드에 명시 타입이 없어 골드 엣지 시그니처·등록부·온톨로지에서 타입을 끌어왔는지",
+    )
+    type_violation_kinds: dict[str, int] = Field(default_factory=dict)
 
 
 class L5Metrics(BaseModel):
@@ -625,6 +678,10 @@ class AggregateMetrics(BaseModel):
         ),
     )
     # 답변 수치 검증 관측 (트랙 2-D). 채점된 문항만 합산. 구형 report.json은 기본값.
+    # [2026-09 사후] O0-A. 골드 엣지 있는 문항만의 L3 recall·술어별 recall과 새 L4 지표 집계.
+    # 구형 report.json은 빈 dict. 형식은 eval/metrics/l3_kg.py aggregate_l3_extended,
+    # eval/metrics/l4_ontology.py aggregate_l4_extended.
+    ontology_metrics: dict[str, Any] = Field(default_factory=dict)
     numeric_verification_items: int = Field(
         default=0, description="trace.numeric_verification이 있는(검증기가 실행된) 문항 수"
     )
