@@ -171,10 +171,16 @@ class EntityTypeRegistry:
         except (OSError, ValueError):
             logger.warning("category_hierarchy.json을 읽지 못함", exc_info=True)
             hierarchy = {}
+        # 카테고리 ID는 세그먼트 이름보다 우선한다: 'makeup'은 KG 계층의 카테고리 노드이고,
+        # brands.json의 세그먼트 'Makeup'과 철자가 같을 뿐이다.
         for cat_id, info in (hierarchy.get("categories") or {}).items():
-            put(cat_id, "category")
+            node_ids = [cat_id]
             if isinstance(info, dict) and info.get("amazon_node_id"):
-                put(info["amazon_node_id"], "category")
+                node_ids.append(info["amazon_node_id"])
+            for node_id in node_ids:
+                for variant in _key_variants(node_id):
+                    if types.get(variant) in (None, "segment"):
+                        types[variant] = "category"
 
         for metric in _METRIC_NAMES:
             put(metric, "metric")

@@ -39,6 +39,8 @@ class TestRealConfigRegistry:
         assert reg.type_of("lip_care")[0] == "category"
         assert reg.type_of("3761351")[0] == "category"
         assert reg.type_of("Premium")[0] == "segment"
+        # 'Makeup'은 brands.json 세그먼트이기도 하지만 카테고리 ID가 우선한다
+        assert reg.type_of("makeup")[0] == "category"
         assert reg.type_of("unknown")[0] == "placeholder"
         assert reg.type_of("fresh")[0] == "placeholder"
         assert reg.type_of("B0BZGRCBY4") == ("product", "pattern")
