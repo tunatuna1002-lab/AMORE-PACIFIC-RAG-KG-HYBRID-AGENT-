@@ -317,20 +317,39 @@ def read_source_constants(path: Path, names: set[str]) -> dict[str, set[str]]:
 
 
 def retriever_predicate_filters(src_root: Path) -> dict[str, Any]:
-    retriever = read_source_constants(src_root / "rag" / "hybrid_retriever.py", {"priority_preds"})
+    """검색기가 버리는/내보내는 술어를 소스에서 읽는다.
+
+    [2026-09 사후] O3(플래그 ``ontology.use_class_reasoning``)부터 ``priority_preds``가
+    ``hybrid_retriever.py``의 지역 변수(``_PRIORITY_PREDS_CANONICAL if canonical else
+    _PRIORITY_PREDS``)가 돼 더는 단순 대입으로 ast에 안 잡힌다. 대신 그 두 모듈 상수를
+    직접 읽어 플래그 OFF(레거시)·ON(정식 술어) 결과를 따로 낸다. 하위 호환을 위해
+    최상위 키(``priority_preds``·``runtime_emitted_predicates``)는 OFF 값을 그대로 유지한다.
+    """
+    retriever = read_source_constants(
+        src_root / "rag" / "hybrid_retriever.py",
+        {"_PRIORITY_PREDS", "_PRIORITY_PREDS_CANONICAL"},
+    )
     adapters = read_source_constants(
         src_root / "rag" / "evidence_adapters.py",
         {"KG_NUMERIC_PREDICATES", "EXCLUDED_METADATA", "EXCLUDED_NUMERIC", "PLACEHOLDER_ENTITIES"},
     )
-    priority = sorted(retriever.get("priority_preds", set()))
+    ontology_ctx = read_source_constants(
+        src_root / "rag" / "ontology_context.py", {"STATIC_BRAND_PREDICATES"}
+    )
+    priority_off = sorted(retriever.get("_PRIORITY_PREDS", set()))
+    priority_on = sorted(retriever.get("_PRIORITY_PREDS_CANONICAL", set()))
+    static_on = sorted(ontology_ctx.get("STATIC_BRAND_PREDICATES", set()))
     # 런타임 방출 술어 이름: metric_edges(priority_preds + 제품 슬러그 엣지) + competitors
     # fact의 competesWith + category_hierarchy의 hasSubcategory (eval/runner.py _extract_l3_trace).
-    emitted = sorted(
-        set(priority) | {"hasProduct", "belongsToCategory", "competesWith", "hasSubcategory"}
-    )
+    # ON은 추가로 ontology_static 카드(정적 정의 술어, src/rag/ontology_context.py)를 낸다 —
+    # 등록부 브랜드는 metric_edges 대신 이 카드로 실린다(hybrid_retriever.py의 "continue" 분기).
+    common_extra = {"hasProduct", "belongsToCategory", "competesWith", "hasSubcategory"}
+    emitted_off = sorted(set(priority_off) | common_extra)
+    emitted_on = sorted(set(priority_on) | set(static_on) | common_extra)
     return {
-        "priority_preds": priority,
-        "runtime_emitted_predicates": emitted,
+        # 하위 호환 (기본값 = 플래그 OFF/레거시)
+        "priority_preds": priority_off,
+        "runtime_emitted_predicates": emitted_off,
         "retriever_renames": {"ownedByGroup": "ownedBy"},
         "kg_numeric_predicates_excluded_from_cards": sorted(
             adapters.get("KG_NUMERIC_PREDICATES", set())
@@ -339,6 +358,16 @@ def retriever_predicate_filters(src_root: Path) -> dict[str, Any]:
         "placeholder_entities_excluded_from_cards": sorted(
             adapters.get("PLACEHOLDER_ENTITIES", set())
         ),
+        # O3: 플래그별로 나눈 값
+        "off": {
+            "priority_preds": priority_off,
+            "runtime_emitted_predicates": emitted_off,
+        },
+        "on": {
+            "priority_preds": priority_on,
+            "static_brand_predicates_ontology_card": static_on,
+            "runtime_emitted_predicates": emitted_on,
+        },
     }
 
 
@@ -390,9 +419,12 @@ def gold_edge_reachability(
         asins = slug_to_asins.get(key, set())
         return {key} | {normalize_entity_key(a) for a in asins}
 
-    emitted = set(emitted_predicates)
-    # 검색기는 KG의 ownedByGroup을 ownedBy로 바꿔 방출하므로 ownedByGroup은 이름으로 나오지 않는다
-    emitted_names = (emitted - {"ownedByGroup"}) | ({"ownedBy"} if "ownedBy" in emitted else set())
+    # emitted_predicates(retriever_predicate_filters의 runtime_emitted_predicates)는 이미
+    # 런타임이 실제로 내보내는 이름이다 — OFF는 "ownedBy"만, ON은 "ownedByGroup"만 담는다
+    # (hybrid_retriever.py: OFF는 읽을 때 ownedByGroup→ownedBy로 바꿔 방출하고, ON은 정식
+    # 이름을 그대로 쓴다). 여기서 다시 이름을 바꾸면 ON에서 ownedByGroup이 통째로 사라진다
+    # (전에 있던 하드코딩 버그) — 그래서 그대로 쓴다.
+    emitted_names = set(emitted_predicates)
     emitted_canonical = {canonical_predicate(p) for p in emitted_names}
 
     per_pred: dict[str, Counter[str]] = defaultdict(Counter)
@@ -654,22 +686,34 @@ def render_markdown(result: dict[str, Any]) -> str:
             "",
         ]
     filters = result["retriever_filters"]
+
+    def _reach_table(mode_filters: dict[str, Any], reachability: dict[str, Any]) -> list[str]:
+        out = [
+            f"- priority_preds: {', '.join(mode_filters['priority_preds'])}",
+            f"- 런타임 방출 술어: {', '.join(mode_filters['runtime_emitted_predicates'])}",
+            "",
+            "| 술어 | 골드 | KG 같은 이름 | KG 별칭 포함 | 런타임 이름 방출 | 지금 도달 가능 | 이름 정규화 시 |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for pred, c in reachability.items():
+            out.append(
+                f"| {pred} | {c.get('total', 0)} | {c.get('in_kg_same_name', 0)} | "
+                f"{c.get('in_kg_alias', 0)} | {c.get('runtime_emits_name', 0)} | "
+                f"{c.get('reachable_now', 0)} | {c.get('reachable_if_normalized', 0)} |"
+            )
+        return out
+
     lines += [
-        "## 2. 골드 엣지 도달률 (술어별)",
+        "## 2. 골드 엣지 도달률 (술어별, 플래그 ontology.use_class_reasoning OFF/ON 별도)",
         "",
-        f"- priority_preds: {', '.join(filters['priority_preds'])}",
-        f"- 런타임 방출 술어: {', '.join(filters['runtime_emitted_predicates'])}",
         f"- 카드에서 빠지는 수치 술어: {', '.join(filters['kg_numeric_predicates_excluded_from_cards'])}",
         "",
-        "| 술어 | 골드 | KG 같은 이름 | KG 별칭 포함 | 런타임 이름 방출 | 지금 도달 가능 | 이름 정규화 시 |",
-        "|---|---|---|---|---|---|---|",
+        "### 2a. 플래그 OFF (레거시)",
+        "",
     ]
-    for pred, c in result["gold_edge_reachability"].items():
-        lines.append(
-            f"| {pred} | {c.get('total', 0)} | {c.get('in_kg_same_name', 0)} | "
-            f"{c.get('in_kg_alias', 0)} | {c.get('runtime_emits_name', 0)} | "
-            f"{c.get('reachable_now', 0)} | {c.get('reachable_if_normalized', 0)} |"
-        )
+    lines += _reach_table(filters["off"], result["gold_edge_reachability"])
+    lines += ["", "### 2b. 플래그 ON (정식 술어 + 정적 사실 카드)", ""]
+    lines += _reach_table(filters["on"], result.get("gold_edge_reachability_on", {}))
     kg = result["kg_consistency"]
     asym = kg["asymmetric_symmetric_relations"]
     lines += [
@@ -734,8 +778,13 @@ def run_checks(kg_path: Path, typed_dir: Path, use_registry: bool) -> dict[str, 
             surfaces, gold_rows, linker, registry, KGQueryShim(triples)
         ),
         "retriever_filters": filters,
+        # 하위 호환 키(플래그 OFF/레거시)
         "gold_edge_reachability": gold_edge_reachability(
-            gold_rows, triples, filters["runtime_emitted_predicates"]
+            gold_rows, triples, filters["off"]["runtime_emitted_predicates"]
+        ),
+        # O3: 플래그 ON(정식 술어 + 정적 사실 카드)일 때의 같은 계산
+        "gold_edge_reachability_on": gold_edge_reachability(
+            gold_rows, triples, filters["on"]["runtime_emitted_predicates"]
         ),
         "kg_consistency": kg_consistency(triples, registry),
     }

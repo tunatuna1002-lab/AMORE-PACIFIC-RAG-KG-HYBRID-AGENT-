@@ -162,6 +162,14 @@ def test_read_source_constants_parses_nested_and_frozenset(checks, tmp_path):
 
 def test_real_retriever_filters_are_found(checks):
     filters = checks.retriever_predicate_filters(REPO / "src")
+    # 하위 호환 키 = 플래그 OFF(레거시)
     assert "ownedBy" in filters["priority_preds"]
     assert "hasSegment" not in filters["runtime_emitted_predicates"]
     assert "hasSoS" in filters["kg_numeric_predicates_excluded_from_cards"]
+    # O3: OFF/ON을 따로 낸다 — ON은 정식 술어(ownedByGroup)와 정적 카드 술어를 담는다
+    assert "ownedBy" in filters["off"]["priority_preds"]
+    assert "ownedByGroup" not in filters["off"]["priority_preds"]
+    assert "ownedByGroup" in filters["on"]["priority_preds"]
+    assert "ownedBy" not in filters["on"]["priority_preds"]
+    assert "hasSegment" in filters["on"]["runtime_emitted_predicates"]
+    assert "hasSegment" in filters["on"]["static_brand_predicates_ontology_card"]
