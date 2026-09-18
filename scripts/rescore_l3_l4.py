@@ -52,6 +52,9 @@ KEY_PREDICATES = (
     "hasSoS",
     "hasHHI",
 )
+# [2026-09 사후] O0-추가: canonical(별칭·브랜드/그룹 표기 정식화) 집계용 — ownedBy는
+# canonical_predicate로 ownedByGroup에 합쳐지므로 raw 목록에서 뺀다.
+KEY_PREDICATES_CANONICAL = tuple(p for p in KEY_PREDICATES if p != "ownedBy")
 
 
 def load_jsonl_by_id(path: Path) -> dict[str, dict[str, Any]]:
@@ -154,6 +157,10 @@ def summarize(per_run: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "kg_edge_recall_gold_only",
             "kg_edge_recall_micro",
             "gold_edge_items",
+            # [2026-09 사후] O0-추가: 술어 별칭·브랜드/그룹 표기를 정식화한 뒤의 같은 지표
+            "kg_edge_recall_gold_only_canonical",
+            "kg_edge_recall_micro_canonical",
+            "gold_edge_items_canonical",
         ):
             row[f"l3.{key}"] = _stats([r["l3"][key] for r in runs])
         for predicate in KEY_PREDICATES:
@@ -164,6 +171,18 @@ def summarize(per_run: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
                 (r["l3"]["recall_by_predicate"].get(predicate) or {}).get("total") for r in runs
             }
             row[f"l3.pred.{predicate}.total"] = sorted(t for t in totals if t is not None)
+        for predicate in KEY_PREDICATES_CANONICAL:
+            row[f"l3.predc.{predicate}"] = _stats(
+                [
+                    (r["l3"]["recall_by_predicate_canonical"].get(predicate) or {}).get("recall")
+                    for r in runs
+                ]
+            )
+            totals_c = {
+                (r["l3"]["recall_by_predicate_canonical"].get(predicate) or {}).get("total")
+                for r in runs
+            }
+            row[f"l3.predc.{predicate}.total"] = sorted(t for t in totals_c if t is not None)
         for key in (
             "constraint_violation_rate_legacy",
             "type_consistency_rate_legacy",
@@ -190,15 +209,18 @@ def _fmt(stat: dict[str, Any], digits: int = 3) -> str:
 def markdown(summary: dict[str, dict[str, Any]]) -> str:
     lines = [
         "| 구성 | runs | 문항 | L3 recall(기존) | L3 recall(골드 엣지 문항) | 골드 엣지 문항 | "
-        "L3 micro | L4 위반(기존) | L4 규칙 위반율 | 규칙 검사 문항 | L4 타입 일관성(기존) | "
+        "L3 micro | L3 recall(골드 엣지 문항, canonical) | L3 micro(canonical) | "
+        "L4 위반(기존) | L4 규칙 위반율 | 규칙 검사 문항 | L4 타입 일관성(기존) | "
         "L4 타입 일관성 | 타입 검사 문항 |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for group, row in summary.items():
         lines.append(
             f"| {group} | {row['runs']} | {'/'.join(map(str, sorted(set(row['items']))))} | "
             f"{_fmt(row['l3.kg_edge_recall_all'])} | {_fmt(row['l3.kg_edge_recall_gold_only'])} | "
             f"{_fmt(row['l3.gold_edge_items'], 0)} | {_fmt(row['l3.kg_edge_recall_micro'])} | "
+            f"{_fmt(row['l3.kg_edge_recall_gold_only_canonical'])} | "
+            f"{_fmt(row['l3.kg_edge_recall_micro_canonical'])} | "
             f"{_fmt(row['l4.constraint_violation_rate_legacy'])} | "
             f"{_fmt(row['l4.rule_constraint_violation_rate'])} | "
             f"{_fmt(row['l4.rule_checked_items'], 0)} | "
@@ -218,6 +240,25 @@ def markdown(summary: dict[str, dict[str, Any]]) -> str:
             totals = row[f"l3.pred.{predicate}.total"]
             total_txt = "/".join(map(str, totals)) if totals else "0"
             cells.append(f"{_fmt(row[f'l3.pred.{predicate}'])} [{total_txt}]")
+        lines.append(f"| {group} | " + " | ".join(cells) + " |")
+
+    # [2026-09 사후] O0-추가: 술어 별칭(ownedBy→ownedByGroup)·브랜드/그룹 표기(대소문자·
+    # 등록부 정식 이름)를 온톨로지 로더로 맞춘 뒤의 같은 표. 나라(korea/south_korea)는
+    # 등록부에 정규화 함수가 없어 별칭 처리하지 않는다.
+    lines += [
+        "",
+        "술어별 recall (canonical: 술어 별칭·브랜드/그룹 표기 통일, 국가는 별칭 처리 안 함) "
+        "— mean (min~max), [골드 엣지 수]",
+        "",
+    ]
+    header_c = "| 구성 | " + " | ".join(KEY_PREDICATES_CANONICAL) + " |"
+    lines += [header_c, "|---|" + "---|" * len(KEY_PREDICATES_CANONICAL)]
+    for group, row in summary.items():
+        cells = []
+        for predicate in KEY_PREDICATES_CANONICAL:
+            totals = row[f"l3.predc.{predicate}.total"]
+            total_txt = "/".join(map(str, totals)) if totals else "0"
+            cells.append(f"{_fmt(row[f'l3.predc.{predicate}'])} [{total_txt}]")
         lines.append(f"| {group} | " + " | ".join(cells) + " |")
     return "\n".join(lines)
 

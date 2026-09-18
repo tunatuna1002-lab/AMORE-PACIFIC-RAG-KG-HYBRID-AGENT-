@@ -87,6 +87,10 @@ def test_rescore_report_counts_and_checks_legacy_recall(rescore, workspace):
     assert result["l3"]["recall_by_predicate"]["ownedByGroup"]["recall"] == 0.0
     assert result["l4"]["rule_constraint_violation_rate"] == 1.0
     assert result["l4"]["rule_violation_kinds"] == {"related_entity_invalid": 1}
+    # [2026-09 사후] O0-추가: canonical은 방출 ownedBy(별칭)를 골드 ownedByGroup과 같은
+    # 것으로 본다 — raw는 0.0인데 canonical은 이 문항에서 일치한다
+    assert result["l3"]["recall_by_predicate_canonical"]["ownedByGroup"]["recall"] == 1.0
+    assert result["l3"]["kg_edge_recall_gold_only_canonical"] == 1.0
 
 
 def test_main_writes_outputs_and_subset(rescore, workspace, tmp_path, capsys):
@@ -114,5 +118,9 @@ def test_main_writes_outputs_and_subset(rescore, workspace, tmp_path, capsys):
     assert summary["x"]["l3.kg_edge_recall_gold_only"]["mean"] == 0.5
     assert summary["x-sub"]["l3.kg_edge_recall_gold_only"]["mean"] == 1.0
     assert summary["x-sub"]["l4.rule_constraint_violation_rate"]["mean"] is None
+    # [2026-09 사후] O0-추가: canonical 집계도 summary.json에 실린다
+    assert "l3.kg_edge_recall_gold_only_canonical" in summary["x"]
     assert (out / "x-run1.json").exists()
-    assert "| x |" in capsys.readouterr().out
+    out_text = capsys.readouterr().out
+    assert "| x |" in out_text
+    assert "canonical" in out_text
