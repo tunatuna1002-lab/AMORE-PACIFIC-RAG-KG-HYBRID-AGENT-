@@ -1,0 +1,352 @@
+{
+  "item_id": "rg030",
+  "question": "COSRX는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.047619047619047616,
+    "semantic_similarity": 0.6860554218292236,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6026973689170111,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "rg030",
+    "timestamp": "2026-09-17T21:54:59.010854",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "cosrx",
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_2_0",
+        "ir_2025_q2_0_22",
+        "chunk_2",
+        "chunk_3",
+        "ir_2025_q2_0_3",
+        "ir_2025_q1_0_2",
+        "ir_2025_q1_0_5",
+        "ir_2025_q3_0_5"
+      ],
+      "snippets": [
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "Hanyul‘Yuja Brightening Sleeping Mask/Toner Pads’(US)  \n\\- \\[COSRX\\] Diversified channels across key markets (Germany, Italy, and France) and strengthened marketing for its  new product (‘Ceramide Moi",
+        "1. Home 구성 요소별 출력 규칙",
+        "### 표시 규칙\n- 상태 카드에는:\n  - 라벨(Stable/Up/Down 등)\n  - 짧은 설명 1줄(선택)\n- 색상:\n  - Up: positive\n  - Down/Detected: warning\n  - Stable: neutral\n\n> 근거 문서: `Strategic_Indicators_Definition.md`, `Metric_Interpretat",
+        "1\\) Total revenue includes earnings from COSRX, other subsidiaries (Cosvision, Wedreametc.), and intercompany transactions.    \n2  \n2\\) Excluding brand reclassification impact (IOPE, Holitualtransferr",
+        "Overseas Business 336.8 36.9 473.0 44.3 \\+40.5 Western Region 105.1 11.5 212.5 19.9 \\+102.1 Other Asia 83.5 9.2 127.8 12.0 \\+53.0 Greater China 148.2 16.3 132.8 12.4 \\-10.4   \n1\\) Total revenue includ",
+        "• Western region (Americas, EMEA) achieved a double-digit  operating profit margin by expanding its operating profit  through continued revenue growth from major brands and  consolidation of COSRX ear",
+        "Overseas   \n• Western region: Delivered growth by reinforcing brand presence and diversifying  channels for recently launched brands   \nOverseas   \n• Western Region: Profitability moderated due to inc"
+      ],
+      "scores": [
+        7.7455616961291245,
+        5.564846390022247,
+        0.9694162919574812,
+        0.9323698750309416,
+        0.43417930603027344,
+        0.42965805530548096,
+        0.412943959236145,
+        0.4105600118637085
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "cosrx",
+        "amorepacific"
+      ],
+      "kg_edges_found": [
+        "cosrx -ownedBy-> amorepacific",
+        "cosrx -hasSoS-> skin_care",
+        "cosrx -rankedIn-> skin_care",
+        "cosrx -hasPosition-> mid_range"
+      ],
+      "ontology_facts": [
+        {
+          "type": "brand_products",
+          "entity": "cosrx",
+          "data": {
+            "product_count": 1,
+            "products": [
+              {
+                "asin": "B00PBX3L7K",
+                "name": "",
+                "category": "skin_care",
+                "rank": 85,
+                "title": "COSRX Snail Mucin 96% Repairing Serum for Sooothing & Hydrating 3.38 oz. | Snail Secretion Filtrate ",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        },
+        {
+          "type": "metric_edges",
+          "entity": "cosrx",
+          "data": {
+            "edges": [
+              {
+                "subject": "COSRX",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasSoS",
+                "object": "skin_care"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "rankedIn",
+                "object": "skin_care"
+              },
+              {
+                "subject": "cosrx",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "COSRX는 아모레퍼시픽 그룹 소속 브랜드가 아닙니다. 제공된 데이터와 Knowledge Graph 내에 COSRX가 아모레퍼시픽 그룹에 속한다는 정보가 없으며, COSRX는 독립적인 브랜드로 다뤄지고 있습니다. 따라서 brand_ownership_verification 기준에 따라 \"아모레퍼시픽 그룹 소속 아님\"으로 판정합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "COSRX",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.04,
+        "product_count": 1,
+        "brand_rank": 15
+      },
+      {
+        "type": "brand_share",
+        "brand": "amorepacific",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "COSRX",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 99,
+            "brand": "COSRX",
+            "name": "COSRX Snail Mucin 96% Repairing Serum for Sooothing & Hydrat",
+            "price": 18.5,
+            "rating": 4.6,
+            "reviews_count": 106338
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 644,
+      "judge_tokens": 3008,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 558,
+      "l5_completion_tokens": 86,
+      "judge_prompt_tokens": 2281,
+      "judge_completion_tokens": 727,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0003608,
+      "judge_cost_usd": 0.0020756,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 3272.461175918579,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 9.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

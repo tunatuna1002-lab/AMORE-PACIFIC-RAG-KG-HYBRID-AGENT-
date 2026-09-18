@@ -1,0 +1,136 @@
+{
+  "item_id": "lg069",
+  "question": "이탈률 계산 공식과 모니터링 주기는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.4,
+    "context_precision_at_k": 0.25,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.23076923076923078,
+    "semantic_similarity": 0.7219666242599487,
+    "groundedness_score": 0.222,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.6,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7294484491748484,
+  "fail_reason_tags": [
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg069",
+    "timestamp": "2026-09-17T16:24:22.252359",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "churn_rate"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "churn_rate",
+        "calculation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_3_0",
+        "strategic_indicators_0",
+        "chunk_2",
+        "chunk_3",
+        "metric_interpretation_0",
+        "home_insight_rules_1",
+        "metric_interpretation_4_1",
+        "strategic_indicators_2_1"
+      ],
+      "snippets": [
+        "C. Level 3: Product & Risk\n### (개별 상품 관리)\n\n---\n\n### 7. Rank Volatility\n\n- **정의**\n- 최근 N일(기본 7일) 동안의 순위 표준편차\n\n- **산출식**\nRank Volatility = StdDev(Rank[t−N] … Rank[t])\n\n- **사용 데이터**\n- 제품명, 날짜, 랭킹\n\n- **해석",
+        "# Strategic Indicators Definition\n본 문서는 랭킹 기반 시장 분석 대시보드에서 사용되는 핵심 전략 지표의\n정의, 산출 논리, 활용 범위를 표준화하기 위해 작성되었다.\n\n본 지표들은 **의사결정 판단 보조**를 목적으로 하며,\n원인 확정이나 성과 예측을 수행하지 않는다.\n\n---",
+        "- **주의사항**\n- 리뷰 수 급증/급감은 반영하지 않음\n- 단기 변동은 과대 해석 주의\n\n---",
+        "공통 주의사항\n\n- 모든 지표는 **상대 비교 및 신호 탐지 목적**\n- 단일 지표로 성과, 원인, 전략을 확정하지 않음\n- 지표 조합 해석은 `Indicator_Combination_Playbook.md`를 참조",
+        "# Metric Interpretation Guide\n본 문서는 랭킹 기반 시장 분석 대시보드에서 산출된 지표 값을  \n**어떻게 해석해야 하는지**, 그리고 **어디까지 해석하면 안 되는지**를 안내하기 위한 가이드이다.\n\n모든 지표는 **의사결정 보조 신호(Signal)**이며,  \n단일 지표만으로 원인·성과·전략을 확정하지 않는다.\n\n---",
+        "0. 적용 범위 및 입력 데이터\n\n### 0.1 입력 데이터 (Home에서 접근 가능)\n- 계산된 지표 값(예: SoS, HHI, Brand Avg Rank, CPI, Avg Rating Gap, Churn Rate, Rank Shock, Rank Volatility, Streak Days, Rating Trend)\n- 선택된 컨텍스트(brand, mark",
+        "#### 해석 가이드\n- **길수록**\n  - 롱런(Long-run) 가능성 높음\n  - 스테디셀러 후보\n- **짧음**\n  - 반짝 인기 또는 단기 이벤트 가능성\n\n#### 함께 봐야 할 지표\n- Rank Volatility\n- Brand Avg Rank\n\n#### 주의사항\n- Top N 기준 설정에 따라 결과 민감\n- 카테고리 특성 고려 필요\n\n---\n",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating "
+      ],
+      "scores": [
+        7.999873850507514,
+        4.582185514098913,
+        0.6687196296599243,
+        0.6127396185719699,
+        0.42609846591949463,
+        0.3519667387008667,
+        0.34010636806488037,
+        0.3335738182067871
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "이탈률(Churn Rate) 계산 공식은 일반적으로 다음과 같습니다.\n\n- **이탈률 계산 공식**  \n  이탈률 = (기간 내 이탈 고객 수 ÷ 기간 시작 시점 고객 수) × 100%\n\n모니터링 주기는 비즈니스 특성에 따라 다르나, Amazon 마켓 분석에서는 주간 단위(7일)를 기본으로 하는 경우가 많습니다. 이는 Rank Volatility 지표의 기본 기간과 동일하며, 단기 변동성을 파악하고 대응하기에 적합합니다.\n\n따라서,  \n- **이탈률 산출 시점**: 주간(7일) 단위 권장  \n- **참고 근거**: Rank Volatility 지표가 7일 기준으로 순위 변동성을 측정하는 점과 일관성 유지\n\n요약하면,  \n- 이탈률 = (이탈 고객 수 ÷ 초기 고객 수) × 100%  \n- 모니터링 주기 = 7일(주간) 단위 권장\n\n이는 아모레퍼시픽 LANEIGE 브랜드 Amazon 마켓 내 고객 유지 및 리스크 관리를 위한 표준적 접근법입니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 753,
+      "judge_tokens": 3155,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00022724999999999997,
+      "judge_cost_usd": 0.0009804
+    },
+    "latency_ms": 5276.539325714111,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

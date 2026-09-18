@@ -423,7 +423,7 @@ class TelegramAdminBot:
                     count = storage.execute_query(f"SELECT COUNT(*) FROM {table}")[0][0]
                     stats.append(f"• {table}: {count:,}건")
                 except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                    logger.warning("텔레그램 DB 통계 조회 실패", exc_info=True)
 
             return "🗄️ <b>데이터베이스 통계</b>\n\n" + "\n".join(stats)
 

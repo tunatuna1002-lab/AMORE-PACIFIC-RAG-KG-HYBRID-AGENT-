@@ -195,7 +195,9 @@ RULE_BRAND_OWNERSHIP_VERIFICATION = InferenceRule(
     conditions=[
         RuleCondition(
             name="brand_in_amorepacific",
-            check=lambda ctx: ctx.get("parent_group") == "AMOREPACIFIC",
+            # 그룹 정체는 대소문자와 무관하다. 카드 object는 소문자 canonical('amorepacific'),
+            # 시드 온톨로지 원표기는 'AMOREPACIFIC' — 어느 출처가 먼저 썼는지에 발화가 달려선 안 된다
+            check=lambda ctx: str(ctx.get("parent_group") or "").casefold() == "amorepacific",
             description="아모레퍼시픽 그룹 소속",
         ),
     ],

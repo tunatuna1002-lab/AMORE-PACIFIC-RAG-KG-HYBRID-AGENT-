@@ -20,7 +20,6 @@ from src.core.models import (
     ToolResult,
 )
 from src.core.state import OrchestratorState
-from src.core.tools import AGENT_TOOLS, ToolExecutor, get_all_tool_schemas
 
 
 class TestModels:
@@ -187,61 +186,6 @@ class TestOrchestratorState:
         assert "1000" in summary
 
 
-class TestTools:
-    """도구 정의 테스트"""
-
-    def test_tool_schema(self):
-        """OpenAI 스키마 변환"""
-        tool = AGENT_TOOLS["crawl_amazon"]
-        schema = tool.to_openai_schema()
-
-        assert schema["type"] == "function"
-        assert schema["function"]["name"] == "crawl_amazon"
-        assert "parameters" in schema["function"]
-
-    def test_all_tools_have_schema(self):
-        """모든 도구 스키마 테스트"""
-        schemas = get_all_tool_schemas()
-        assert len(schemas) >= 4  # 최소 4개 도구
-
-        for schema in schemas:
-            assert "function" in schema
-            assert "name" in schema["function"]
-
-
-class TestToolExecutor:
-    """도구 실행기 테스트"""
-
-    @pytest.mark.asyncio
-    async def test_direct_answer(self):
-        """직접 응답 도구"""
-        executor = ToolExecutor()
-
-        result = await executor.execute("direct_answer", {"reason": "test"})
-        assert result.success
-        assert result.tool_name == "direct_answer"
-
-    @pytest.mark.asyncio
-    async def test_unknown_tool(self):
-        """미등록 도구"""
-        executor = ToolExecutor()
-
-        result = await executor.execute("unknown_tool", {})
-        assert not result.success
-        assert "연결된 실행기가 없습니다" in result.error
-
-    def test_tool_availability(self):
-        """도구 사용 가능 여부"""
-        executor = ToolExecutor()
-
-        # direct_answer는 항상 사용 가능
-        assert executor.is_tool_available("direct_answer")
-
-        # 미등록 도구는 불가
-        assert not executor.is_tool_available("unregistered")
-
-
-# 통합 테스트
 class TestIntegration:
     """통합 테스트"""
 

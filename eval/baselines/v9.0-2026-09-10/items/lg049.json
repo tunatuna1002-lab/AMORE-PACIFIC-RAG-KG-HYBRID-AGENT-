@@ -1,0 +1,530 @@
+{
+  "item_id": "lg049",
+  "question": "Lip Care 카테고리 HHI 현황은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.5,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07650273224043716,
+    "semantic_similarity": 0.6078076958656311,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.4444444444444444,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.7737546051962129,
+  "fail_reason_tags": [
+    "L5_wrong_answer",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg049",
+    "timestamp": "2026-09-10T11:31:59.176044",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_2_0",
+        "strategic_indicators_1_0",
+        "home_insight_rules_6",
+        "metric_interpretation_2_1",
+        "metric_interpretation_3_0",
+        "indicator_combination_2_1",
+        "home_insight_rules_13",
+        "metric_interpretation_3_1"
+      ],
+      "snippets": [
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "1.4 Market Pulse Snapshot (시장 분위기 요약)\n\n### 목표\n- “성과 변화가 시장 때문인지” 맥락 제공\n\n### 입력 지표(권장)\n- HHI (시장 집중도)\n- Churn Rate (시장 역동성)\n\n### 출력 규칙(문장 1개 + 배지 1~2개)\n- HHI가 높고 Churn Rate가 낮으면:\n  - “시장 구조가 고착화된 편이며 단",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati"
+      ],
+      "scores": [
+        0.5555967688560486,
+        0.554925262928009,
+        0.5294504761695862,
+        0.48787403106689453,
+        0.4656963348388672,
+        0.463606059551239,
+        0.442402720451355,
+        0.41354823112487793
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "nivea",
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "nivea -competesWith-> tree_hut",
+        "nivea -competesWith-> carmex",
+        "nivea -competesWith-> hera",
+        "nivea -competesWith-> sun_bum",
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "nivea",
+          "data": [
+            {
+              "brand": "tree hut",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 33,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07X62WVM4",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK",
+                  "B0CLHVCPL5",
+                  "B0CKV7JNFX",
+                  "B01HOU74SO",
+                  "B0DZJM5VPY",
+                  "B0899C4WR8",
+                  "B00CXK623E",
+                  "B0G4NR7BL3"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 10,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP",
+                  "B0DQQNWRQS",
+                  "B00076TOUO",
+                  "B0DQF7FNYC"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 10,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR",
+                  "B0DXRKW3KY"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 10,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J",
+                  "B078YGLMLX"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 8,
+                "products": [
+                  "B0C7W6GW8P",
+                  "B0DZP8PN3N",
+                  "B09JL5PCJ6",
+                  "B0C7WQ3Z6H",
+                  "B0CPYMLVJJ",
+                  "B0FPMHTKCN",
+                  "B0GVG681B5",
+                  "B0B5MGPXPN"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "brand_products",
+          "entity": "nivea",
+          "data": {
+            "product_count": 8,
+            "products": [
+              {
+                "asin": "B07YG8YVQW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butter, 4 x 0.17 OZ | Moisturizing Lip Balm w",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07Y91BMSK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 66,
+                "title": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.17 OZ | One Each: Cherry, Strawberry, Wat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B082JJ4D98",
+                "name": "",
+                "category": "lip_care",
+                "rank": 96,
+                "title": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4 x 0.17 OZ | Sunscreen Lip Balm with SPF",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07CGKWP9L",
+                "name": "",
+                "category": "lip_care",
+                "rank": 90,
+                "title": "NIVEA Blackberry Lip Care, Tinted Lip Balm with Shea Butter, 0.17 OZ | Burgundy Tinted Lip Balm with",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN9LYVJQ",
+                "name": "",
+                "category": "lip_care",
+                "rank": 59,
+                "title": "NIVEA Blackberry Pie Lip Care, Bridgerton Design Lip Balm, 0.17 OZ | Bridgerton Limited Edition Burg",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN9C44ML",
+                "name": "",
+                "category": "lip_care",
+                "rank": 79,
+                "title": "NIVEA Vanilla Biscuit Lip Care, Bridgerton Design Lip Balm, 0.17 OZ | Bridgerton Limited Edition Moi",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN94YHB1",
+                "name": "",
+                "category": "lip_care",
+                "rank": 59,
+                "title": "NIVEA Rose Meringue Lip Care, Bridgerton Design Lip Balms, 0.17 OZ | Bridgerton Limited Edition Mois",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN9TGSCW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Peach Tea Lip Care, Bridgerton Design Lip Balm, 0.17 OZ | Bridgerton Limited Edition Coral Tin",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "### Lip Care 카테고리 HHI 현황\n\n- **인사이트**  \n  현재 제공된 데이터 내에서는 Lip Care 카테고리의 HHI(시장 집중도) 수치가 명시되어 있지 않습니다. 또한, 온톨로지 추론 결과에서도 관련 정보가 확인되지 않아 구체적인 HHI 현황을 제시하기 어렵습니다.  \n  HHI는 시장 내 브랜드 집중도를 나타내는 지표로, 높으면 소수 브랜드가 시장을 주도하는 구조, 낮으면 경쟁이 분산된 구조로 해석됩니다. 따라서 Lip Care 카테고리의 HHI 수치가 확인되면 시장 구조와 경쟁 강도를 보다 명확히 파악할 수 있을 것입니다.\n\n- **근거**  \n  제공된 컨텍스트 및 온톨로지 추론 결과에 HHI 관련 구체적 수치나 현황 데이터가 포함되어 있지 않음 [출처: 현재 데이터] / [출처: Ontology Reasoning]\n\n- **권장**  \n  Lip Care 카테고리의 HHI 수치를 확보하여 시장 집중도와 경쟁 구도를 분석할 필요가 있습니다.  \n  또한, HHI와 함께 Churn Rate(시장 역동성) 지표를 병행 관찰하면 시장 분위기와 변동성에 대한 종합적 이해가 가능할 것입니다.  \n  현재 확인된 데이터 기준으로는 추가 데이터 수집 후 재분석을 권장합니다.  \n\n요약하면, Lip Care 카테고리 HHI 현황은 현재 데이터상 확인 불가하며, 추후 관련 지표 확보 후 분석이 필요합니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.56\n\n3. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.55\n\n4. 📄 **1.4 Market Pulse Snapshot (시장 분위기 요약)**\n   - 관련도: 0.53\n\n5. 📄 **A. Market & Brand Combination**\n   - 관련도: 0.46\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3124,
+      "judge_tokens": 6588,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0006252,
+      "judge_cost_usd": 0.00170325
+    },
+    "latency_ms": 7423.527002334595,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

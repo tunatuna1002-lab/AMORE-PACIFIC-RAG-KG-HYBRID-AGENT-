@@ -27,6 +27,8 @@ def _normalize_edge_node(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", s).strip("_")
 
 
+from contextvars import ContextVar
+
 from eval.cost_tracker import CostTracker
 from eval.judge.interface import JudgeInterface
 from eval.judge.stub import StubJudge
@@ -48,8 +50,27 @@ from eval.schemas import (
     OntologyReasoningTrace,
 )
 from eval.validators.ontology_validator import OntologyValidator
+from src.domain.entities.evidence import Evidence
+from src.rag.evidence_renderer import render_for_judge
 
 logger = logging.getLogger(__name__)
+
+_MISSING = object()
+
+
+# 채점 중인 문항의 비용 버킷. 문항마다 별도 asyncio 태스크에서 실행되므로
+# ContextVar가 동시 실행에서도 문항별로 정확히 분리된다. judge는 러너와 문항을
+# 모르는 채로 호출되므로, judge의 토큰 사용량을 이 버킷으로 흘려보낸다.
+_CURRENT_ITEM_COST: ContextVar["CostTracker | None"] = ContextVar(
+    "eval_current_item_cost", default=None
+)
+
+
+def _record_judge_usage(prompt_tokens: int, completion_tokens: int) -> None:
+    """judge가 API 응답의 usage를 보고할 때 현재 문항 버킷에 적립."""
+    tracker = _CURRENT_ITEM_COST.get()
+    if tracker is not None:
+        tracker.track_judge_tokens(prompt_tokens, completion_tokens)
 
 
 class EvalRunner:
@@ -94,8 +115,30 @@ class EvalRunner:
         )
         self.aggregator = MetricAggregator()
 
-        # Initialize cost tracker
-        self.cost_tracker = CostTracker()
+        # 비용 추적: 문항별 버킷(트레이스에 저장)과 실행 전체 버킷(요약용)을 분리한다.
+        # 예전에는 실행 전체 누계를 문항 트레이스에 그대로 넣어, 값이 0이 아니었다면
+        # 리포트 합계가 문항 수만큼 중복 집계됐을 구조였다.
+        self._answer_model = getattr(agent, "model", None) or "gpt-4.1-mini"
+        self._judge_model = self.config.judge_model or "gpt-4.1-mini"
+        self.cost_tracker = CostTracker(llm_model=self._answer_model, judge_model=self._judge_model)
+
+        # judge가 API 응답의 usage를 보고하도록 연결 (추정치를 쓰지 않는다)
+        if hasattr(self.judge, "on_usage"):
+            self.judge.on_usage = _record_judge_usage
+
+    def _new_item_cost_tracker(self) -> CostTracker:
+        return CostTracker(llm_model=self._answer_model, judge_model=self._judge_model)
+
+    @staticmethod
+    def _extract_usage(result: dict[str, Any]) -> tuple[int, int]:
+        """에이전트 응답에서 API가 보고한 usage를 꺼낸다 (없으면 0).
+
+        추정하지 않는다 — usage가 없으면 0으로 남겨 리포트에서 미계측임이 드러나게 한다.
+        """
+        usage = result.get("llm_usage") or {}
+        if not isinstance(usage, dict):
+            return 0, 0
+        return int(usage.get("prompt_tokens", 0) or 0), int(usage.get("completion_tokens", 0) or 0)
 
     async def run_item(self, item: EvalItem) -> ItemResult:
         """
@@ -108,52 +151,125 @@ class EvalRunner:
             ItemResult with metrics and trace
         """
         start_time = time.time()
-        error: str | None = None
+        item_cost = self._new_item_cost_tracker()
+        token = _CURRENT_ITEM_COST.set(item_cost)
 
         try:
-            # Call the agent
-            result = await self._invoke_agent(item.question)
+            # 에이전트 호출 — 문항당 상한을 둔다. 상한이 없어 실행이 무기한
+            # 정지한 사고가 있었다 (2026-08-31, 135/172에서 정지).
+            timeout = self.config.item_timeout_seconds
+            try:
+                result = await asyncio.wait_for(self._invoke_agent(item.question), timeout=timeout)
+            except TimeoutError:
+                return self._infrastructure_failure(
+                    item, start_time, f"agent_timeout: {timeout:.0f}s 내 응답 없음", item_cost
+                )
+            except Exception as e:
+                return self._infrastructure_failure(
+                    item, start_time, f"agent_error: {type(e).__name__}: {e}", item_cost
+                )
 
-            # Capture traces
-            trace = await self._capture_trace(item.id, result, start_time)
+            prompt_tokens, completion_tokens = self._extract_usage(result)
+            if prompt_tokens or completion_tokens:
+                item_cost.track_l5_tokens(prompt_tokens, completion_tokens)
 
-            # Track item completion
-            self.cost_tracker.track_item_completed()
+            try:
+                trace = await self._capture_trace(item.id, result, start_time, item_cost)
 
-            # Compute metrics
-            l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
-            l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
-            l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
-            l4 = self.l4_metrics.compute(trace.l4_ontology, trace.l3_kg_query, item.gold)
+                if trace.retrieval_error:
+                    # 검색기가 핵심 검색 실패를 삼키고 빈 컨텍스트로 계속 진행한 경우
+                    # (F3) — 에이전트는 예외를 던지지 않았지만 채점하면 안 된다.
+                    # 답변이 근거 없이 생성됐을 수 있어 0점이 아니라 인프라 실패로 뺀다.
+                    return self._infrastructure_failure(
+                        item, start_time, f"retrieval_error: {trace.retrieval_error}", item_cost
+                    )
 
-            # L5 metrics (with optional judge)
-            context = self._build_context_string(trace)
-            l5 = await self.l5_metrics.compute(
-                trace.l5_answer,
-                item.gold,
-                item.question,
-                context,
-                use_judge=self.config.use_judge,
-            )
+                l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
+                l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
+                l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
+                l4 = self.l4_metrics.compute(trace.l4_ontology, trace.l3_kg_query, item.gold)
 
-        except Exception as e:
-            logger.error(f"Error evaluating item {item.id}: {e}")
-            error = str(e)
+                # L5 metrics (with optional judge)
+                context = self._build_context_string(trace)
+                l5 = await self.l5_metrics.compute(
+                    trace.l5_answer,
+                    item.gold,
+                    item.question,
+                    context,
+                    use_judge=self.config.use_judge,
+                )
 
-            # Create empty trace on error
-            trace = self._create_empty_trace(item.id, start_time, error)
+                # judge 호출은 트레이스 캡처 이후에 일어나므로 비용을 다시 굳힌다
+                trace.cost = item_cost.to_cost_trace()
+            except Exception as e:
+                # 채점 단계 실패(judge API 오류 등)도 모델 실패가 아니다.
+                # 0점으로 기록하면 인프라 실패가 품질 지표를 끌어내린다.
+                logger.error(f"Error scoring item {item.id}: {e}")
+                return self._infrastructure_failure(
+                    item, start_time, f"scoring_error: {type(e).__name__}: {e}", item_cost
+                )
+        finally:
+            _CURRENT_ITEM_COST.reset(token)
 
-            # Create zeroed metrics on error
-            l1, l2, l3, l4, l5 = self._create_zeroed_metrics()
+        # 채점에 성공한 문항만 실행 전체 카운터에 넣는다
+        self.cost_tracker.track_item_completed()
+        self._merge_cost(item_cost)
 
         # Aggregate results
-        return self.aggregator.aggregate(
+        item_result = self.aggregator.aggregate(
             item_id=item.id,
             l1=l1,
             l2=l2,
             l3=l3,
             l4=l4,
             l5=l5,
+            trace=trace,
+            metadata=item.metadata,
+            question=item.question,
+        )
+        item_result.rule_agreement = self._compute_rule_agreement(item.metadata, trace)
+        return item_result
+
+    def _merge_cost(self, item_cost: CostTracker) -> None:
+        """문항 버킷을 실행 전체 버킷에 합산 (요약 출력용)."""
+        for layer in ("l1", "l2", "l3", "l4", "l5", "judge"):
+            src = getattr(item_cost, layer)
+            dst = getattr(self.cost_tracker, layer)
+            dst.prompt_tokens += src.prompt_tokens
+            dst.completion_tokens += src.completion_tokens
+            dst.embedding_tokens += src.embedding_tokens
+            dst.calls += src.calls
+
+    def _infrastructure_failure(
+        self,
+        item: EvalItem,
+        start_time: float,
+        reason: str,
+        item_cost: CostTracker | None = None,
+    ) -> ItemResult:
+        """답변을 얻지 못한 문항을 0점 채점 대신 인프라 실패로 표시한다.
+
+        `trace.error`가 채워진 문항은 리포트 집계(평균 지표·pass_rate·실패 사유)에서
+        제외되고 `AggregateMetrics.errored`로만 센다. 인프라 실패와 모델 실패를
+        같은 열에 섞으면 지표가 실행 환경을 측정하게 된다.
+        """
+        logger.error(f"Item {item.id} excluded from scoring — {reason}")
+        trace = self._create_empty_trace(item.id, start_time, reason)
+        if item_cost is not None:
+            trace.cost = item_cost.to_cost_trace()
+            self._merge_cost(item_cost)
+        l1, l2, l3, l4, l5 = self._create_zeroed_metrics()
+        return ItemResult(
+            item_id=item.id,
+            question=item.question,
+            passed=False,
+            l1=l1,
+            l2=l2,
+            l3=l3,
+            l4=l4,
+            l5=l5,
+            overall_score=0.0,
+            fail_reason_tags=[],
             trace=trace,
             metadata=item.metadata,
         )
@@ -196,12 +312,10 @@ class EvalRunner:
         processed_results = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"Error in item {items[i].id}: {result}")
-                # Create failed result
-                trace = self._create_empty_trace(items[i].id, time.time(), str(result))
-                l1, l2, l3, l4, l5 = self._create_zeroed_metrics()
-                result = self.aggregator.aggregate(
-                    items[i].id, l1, l2, l3, l4, l5, trace, items[i].metadata
+                result = self._infrastructure_failure(
+                    items[i],
+                    time.time(),
+                    f"runner_error: {type(result).__name__}: {result}",
                 )
             processed_results.append(result)
 
@@ -232,6 +346,7 @@ class EvalRunner:
         item_id: str,
         result: dict[str, Any],
         start_time: float,
+        item_cost: CostTracker | None = None,
     ) -> EvalTrace:
         """
         Capture evaluation trace from agent result.
@@ -270,6 +385,16 @@ class EvalRunner:
         # L5: Answer trace
         l5_trace = self._extract_l5_trace(result)
 
+        # 핵심/선택 검색 실패 (F3) — v1 HybridContext와 v4 V4RetrievalTrace 모두
+        # .metadata에 담는다. metadata가 없는 구형/가짜 컨텍스트에서는 조용히 빈 값.
+        retrieval_error, degraded = self._extract_retrieval_health(hybrid_ctx)
+
+        # 증거 카드 (트랙 2-C) — prompt_evidence 속성이 있으면(트랙 2-B 병합 후) 그 카드
+        # 집합을 그대로 트레이스에 남긴다. 속성 자체가 없는 경로(2-B 미병합, v1 구형)는
+        # None으로 구분해 _build_context_string이 레거시 로직으로 폴백하게 한다.
+        prompt_evidence = self._extract_prompt_evidence(hybrid_ctx)
+        judge_context_source = "evidence" if prompt_evidence is not None else "legacy"
+
         return EvalTrace(
             item_id=item_id,
             timestamp=datetime.now(),
@@ -278,10 +403,116 @@ class EvalRunner:
             l3_kg_query=l3_trace,
             l4_ontology=l4_trace,
             l5_answer=l5_trace,
-            cost=self.cost_tracker.to_cost_trace(),
+            data_facts=self._extract_data_facts(hybrid_ctx),
+            cost=(item_cost or self._new_item_cost_tracker()).to_cost_trace(),
             latency_ms=latency_ms,
             error=None,
+            retrieval_error=retrieval_error,
+            degraded=degraded,
+            route_trace=self._extract_route_trace(result),
+            evidence=[card.model_dump(mode="json") for card in (prompt_evidence or [])],
+            evidence_all_count=self._extract_evidence_all_count(hybrid_ctx),
+            judge_context_source=judge_context_source,
+            rule_evaluation=self._extract_rule_evaluation(hybrid_ctx),
+            numeric_verification=self._extract_numeric_verification(result),
         )
+
+    @staticmethod
+    def _extract_numeric_verification(result: dict[str, Any]) -> dict[str, Any] | None:
+        """에이전트 결과에서 답변 수치 검증 결과(트랙 2-D)를 꺼낸다.
+
+        v4 어댑터만 채운다. 키가 없거나(v1, 플래그 off) dict가 아니면 None.
+        """
+        numeric_verification = result.get("numeric_verification")
+        return numeric_verification if isinstance(numeric_verification, dict) else None
+
+    @staticmethod
+    def _extract_rule_evaluation(hybrid_ctx: Any) -> dict[str, Any] | None:
+        """hybrid_ctx.metadata['rule_evaluation']을 읽는다 (트랙 3-B 계약).
+
+        {'combinations':..., 'evaluated': int, 'fired': [...], 'non_fire_top': [...],
+        'non_fire_counts_by_kind': {...}} 모양. metadata가 없거나 키가 없으면(3-B
+        미병합, v1 구형, 테스트용 가짜 컨텍스트) None — 필수 계약이 아니다.
+        """
+        metadata = getattr(hybrid_ctx, "metadata", None) if hybrid_ctx is not None else None
+        if not isinstance(metadata, dict):
+            return None
+        rule_evaluation = metadata.get("rule_evaluation")
+        return rule_evaluation if isinstance(rule_evaluation, dict) else None
+
+    @staticmethod
+    def _compute_rule_agreement(metadata: Any, trace: EvalTrace) -> bool | None:
+        """규칙 정답 일치 여부 (트랙 3-C).
+
+        metadata.rule_gold에 rule_ids·expected_conclusion.fires가 모두 있어야
+        판정한다. applied_rules는 trace.l4_ontology.applied_rules를 우선 쓰고,
+        비어 있으면 trace.rule_evaluation.fired로 대체한다.
+        """
+        rule_gold = getattr(metadata, "rule_gold", None) if metadata is not None else None
+        if not rule_gold:
+            return None
+        expected = (rule_gold.get("expected_conclusion") or {}).get("fires")
+        rule_ids = set(rule_gold.get("rule_ids") or [])
+        if expected is None or not rule_ids:
+            return None
+        applied = set(trace.l4_ontology.applied_rules or [])
+        if not applied and trace.rule_evaluation:
+            applied = set(trace.rule_evaluation.get("fired") or [])
+        return bool(applied & rule_ids) == bool(expected)
+
+    @staticmethod
+    def _extract_prompt_evidence(hybrid_ctx: Any) -> list[Evidence] | None:
+        """hybrid_ctx.prompt_evidence를 읽는다.
+
+        속성 자체가 없으면(트랙 2-B 미병합, v1 구형 HybridContext) None을 돌려준다 —
+        이것이 레거시 judge 컨텍스트로 폴백하라는 신호다. 속성이 있으면(빈 리스트 포함)
+        그 리스트를 그대로 돌려준다 — 이번 문항이 실제로 증거를 찾지 못했을 수도 있다.
+        """
+        if hybrid_ctx is None:
+            return None
+        raw = getattr(hybrid_ctx, "prompt_evidence", _MISSING)
+        if raw is _MISSING:
+            return None
+        return list(raw or [])
+
+    @staticmethod
+    def _extract_evidence_all_count(hybrid_ctx: Any) -> int:
+        """검색이 만든 전체 증거 카드 수 (선별 전). 속성이 없으면 0."""
+        raw = getattr(hybrid_ctx, "evidence", None) if hybrid_ctx is not None else None
+        return len(raw) if isinstance(raw, list) else 0
+
+    @staticmethod
+    def _extract_route_trace(result: dict[str, Any]) -> dict[str, Any] | None:
+        """에이전트 결과에서 문항별 경로 관측(route_trace, 커밋 31040bf)을 꺼낸다.
+
+        v4(BrainEvalAdapter)만 이 키를 채운다. v1이나 구형 에이전트는 키가
+        없거나 dict가 아니므로 조용히 None을 돌려준다.
+        """
+        route_trace = result.get("route_trace")
+        return route_trace if isinstance(route_trace, dict) else None
+
+    @staticmethod
+    def _extract_retrieval_health(hybrid_ctx: Any) -> tuple[str | None, list[dict[str, Any]]]:
+        """hybrid_ctx.metadata에서 검색 오류 가시화(F3) 정보를 꺼낸다.
+
+        hybrid_ctx가 없거나 metadata 속성이 없으면(구형 에이전트, 테스트용
+        SimpleNamespace 등) 조용히 (None, [])를 돌려준다 — 검색 오류
+        가시화는 이 정보가 있을 때만 부가하는 기능이지 필수 계약이 아니다.
+        """
+        metadata = getattr(hybrid_ctx, "metadata", None) if hybrid_ctx is not None else None
+        if not isinstance(metadata, dict):
+            return None, []
+        retrieval_error = metadata.get("retrieval_error")
+        degraded = metadata.get("degraded") or []
+        if not isinstance(degraded, list):
+            degraded = []
+        return retrieval_error, degraded
+
+    @staticmethod
+    def _extract_data_facts(hybrid_ctx: Any) -> list[dict[str, Any]]:
+        """검색이 실은 크롤 DB 수치 사실. 없거나 리스트가 아니면 빈 리스트."""
+        facts = getattr(hybrid_ctx, "metric_facts", None) if hybrid_ctx is not None else None
+        return [f for f in facts if isinstance(f, dict)] if isinstance(facts, list) else []
 
     def _extract_l1_trace(self, result: dict[str, Any], hybrid_ctx: Any) -> EntityLinkingTrace:
         """Extract L1 entity linking trace."""
@@ -454,7 +685,18 @@ class EvalRunner:
         )
 
     def _build_context_string(self, trace: EvalTrace) -> str:
-        """Build context string for groundedness checking."""
+        """judge 근거성 채점용 컨텍스트 문자열을 만든다.
+
+        trace.judge_context_source == "evidence"이면(트랙 2-C) trace.evidence(=
+        prompt_evidence를 model_dump한 카드 목록)를 Evidence로 복원해 render_for_judge로
+        렌더한다 — 답변 프롬프트에 실제로 실린 것과 정확히 같은 카드·같은 내용이다.
+        그 외(레거시 — 트랙 2-B 미병합, v1 구형, 구형 report.json)는 예전 로직을 그대로
+        쓴다: 문서 스니펫 + KG 사실 전부 + 크롤 DB 수치 사실 전부.
+        """
+        if trace.judge_context_source == "evidence":
+            cards = [Evidence(**card) for card in trace.evidence]
+            return render_for_judge(cards)
+
         parts = []
 
         # Add document snippets
@@ -464,6 +706,11 @@ class EvalRunner:
 
         # Add KG facts
         for fact in trace.l3_kg_query.ontology_facts:
+            if isinstance(fact, dict):
+                parts.append(str(fact))
+
+        # 크롤 DB 수치 사실 — 답변이 근거로 쓴 수치를 judge도 봐야 근거성이 공정하다
+        for fact in trace.data_facts:
             if isinstance(fact, dict):
                 parts.append(str(fact))
 

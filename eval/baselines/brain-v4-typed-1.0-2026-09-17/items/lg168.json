@@ -1,0 +1,176 @@
+{
+  "item_id": "lg168",
+  "question": "경쟁사 제품을 어떻게 따라 만들 수 있어?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0903954802259887,
+    "semantic_similarity": 0.5537212491035461,
+    "groundedness_score": 0.4444444444444444,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.6667,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7556401723063247,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg168",
+    "timestamp": "2026-09-17T21:48:39.762904",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "strategy",
+        "competitor_analysis"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_8_7",
+        "chunk_1",
+        "chunk_2",
+        "amazon_algorithm_guide_4_2",
+        "amazon_algorithm_guide_5_3",
+        "amazon_algorithm_guide_6_2",
+        "laneige_strategy_2026_3_4",
+        "amazon_algorithm_guide_6_1"
+      ],
+      "snippets": [
+        "log/57/_My_Amazon_Sales_Just_Dropped_____Use_this_Sudden_Sales_Slump_Checklist_Before_You_Panic)  \n16. Can You See a Competitor's Amazon Traffic Sources? The Truth \\+ What You Can Track Instead \\- Sel",
+        "산화 현상 때문에 소비자들은 본인의 피부 톤보다 1\\~2단계 밝은 색상을 구매해야 하는 '눈치 게임'을 강요받고 있다. \"평소 23호를 쓰는데 17호를 사야 맞는다\"는 팁이 공유되고 있지만, 이는 직관적인 구매를 방해하고 반품률을 높이는 원인이 된다.13 또한, 인플루언서들의 리뷰 영상에서는 조명이나 필터 보정으로 인해 이러한 산화 현상이 가려져 있어, 실",
+        "* **대표 크리에이터:**  \n  * Glow with Ava 13: '젤로 스킨(Jello Skin)' 트렌드의 창시자로서, 라네즈 제품을 활용해 탄력 있고 탱글탱글한 피부 질감을 보여줍니다. 그녀는 제품을 얼굴에 바르는 것뿐만 아니라, 예쁘게 정돈된 화장대를 보여주며 팔로워들의 소장 욕구를 자극합니다.  \n  * Ugly Duckling Skincar",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제",
+        "### **5.2 시나리오 B: 경쟁사 제품의 랭킹이 급등했을 때 (Ranking Improved)**\n\n1. **IF \\[가격\\] \\< \\[평소 가격\\] (상당한 인하)**  \n   * **THEN:** 쿠폰(초록색 배지) 적용 여부, 취소선 가격(Strike-through Pricing) 여부를 확인하라.  \n   * **가설:** 가격 탄력성을 이용한",
+        "* **Keepa / Helium 10:**  \n  * *활용법:* BSR 그래프와 가격 변동 그래프를 중첩하여 분석합니다. 경쟁사가 가격을 내린 시점과 내 랭킹이 떨어진 시점이 일치하는지 확인합니다. 'Market Tracker' 기능을 통해 시장 전체의 파이 변화와 내 점유율 변화를 비교합니다.17  \n* **SimilarWeb / Ahrefs:**  ",
+        "아마존 검색 데이터상에서 소비자들이 \"Pink Serum\" 혹은 \"Pink Peptide\"를 검색할 때, 두 브랜드의 제품이 동시에 노출되는 경향이 짙다. Medicube는 PDRN이라는 트렌디한 성분과 낮은 가격을 앞세우고 있고, LANEIGE는 작약(Peony) 복합체와 브랜드 헤리티지를 강조하고 있다. 이 경쟁에서 승리하기 위해서는 핑크색 제형이 주는",
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타"
+      ],
+      "scores": [
+        9.423544751664851,
+        1.0,
+        0.8107516581643996,
+        0.4778374433517456,
+        0.4597206115722656,
+        0.44730228185653687,
+        0.4007066488265991,
+        0.44469499588012695
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "경쟁사 제품을 따라 만들기 위해서는 다음과 같은 전략을 고려할 수 있습니다.\n\n1. **소비자 불만과 니즈 분석**  \n   예를 들어, 경쟁사의 쿠션 제품은 산화 현상으로 인해 소비자가 평소 피부 톤보다 1~2단계 밝은 색상을 구매해야 하는 불편함이 있습니다. 이로 인해 반품률이 높아지고, 소비자들이 직관적 구매를 방해받고 있습니다. 이런 문제점을 파악해 개선된 제품을 개발하는 것이 중요합니다.\n\n2. **경쟁사 제품의 단점 보완**  \n   티르티르의 '실버 쿠션'이나 클리오, 헤이미쉬 제품이 산화 문제를 어느 정도 해결해 소비자 이탈을 가속화하고 있다는 점을 참고해, 산화 방지 기능을 강화하거나 색상 매칭을 직관적으로 할 수 있는 제품을 만드는 것이 효과적입니다.\n\n3. **소비자 경험과 리뷰 분석**  \n   인플루언서 리뷰 영상에서 조명과 필터 보정으로 실제 제품과 차이가 나는 점이 소비자 불만으로 이어지고 있으므로, 실제 사용감을 정확히 전달하는 마케팅과 제품 개선이 필요합니다.\n\n4. **시장 트렌드 및 크리에이터 활용**  \n   라네즈의 경우, ‘젤로 스킨’ 트렌드를 창시한 크리에이터 ‘Glow with Ava’와 같이 제품의 피부 개선 효과를 시각적으로 보여주는 인플루언서 마케팅을 강화해 제품 신뢰도를 높일 수 있습니다.\n\n요약하면, 경쟁사 제품의 문제점(산화, 색상 불일치 등)을 데이터 기반으로 분석하고, 이를 보완한 제품 개발과 실제 사용 경험을 정확히 전달하는 마케팅 전략을 병행하는 것이 경쟁사 제품을 효과적으로 따라 만드는 방법입니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1130,
+      "judge_tokens": 3922,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 727,
+      "l5_completion_tokens": 403,
+      "judge_prompt_tokens": 2614,
+      "judge_completion_tokens": 1308,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0009356,
+      "judge_cost_usd": 0.0031383999999999995,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5871.906995773315,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 6.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "edge",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

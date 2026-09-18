@@ -89,12 +89,17 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
+from src.domain.entities.evidence import Evidence
 from src.domain.entities.relations import InferenceResult, InsightType, RelationType
 from src.monitoring.rag_metrics import RAGMetricsCollector
 from src.ontology.business_rules import register_all_rules
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
+from src.ontology.rule_contracts import evaluate_rules_on_cards
 
+from .evidence_adapters import EvidenceAdapter
+from .evidence_assembly import EvidenceBundle, assemble_evidence, build_rule_input_cards
+from .evidence_renderer import render_for_prompt
 from .query_enhancer import QueryEnhancer
 from .relevance_grader import RelevanceGrader
 from .retriever import DocumentRetriever
@@ -206,7 +211,10 @@ class HybridContext:
         ontology_facts: 지식 그래프에서 조회한 사실
         inferences: 온톨로지 추론 결과
         rag_chunks: RAG 검색 결과 청크
-        combined_context: 통합된 컨텍스트 (LLM 프롬프트용)
+        evidence: 이번 질의에서 만든 전체 증거 카드 (중복 제거, 순서 결정적)
+        prompt_evidence: 답변 프롬프트에 실제로 렌더링된 카드 (``select_cards`` 결과,
+            ``combined_context``의 렌더 입력과 같은 목록)
+        combined_context: 통합된 컨텍스트 (LLM 프롬프트용) = ``render_for_prompt(prompt_evidence)``
         metadata: 추가 메타데이터
     """
 
@@ -215,6 +223,11 @@ class HybridContext:
     ontology_facts: list[dict[str, Any]] = field(default_factory=list)
     inferences: list[InferenceResult] = field(default_factory=list)
     rag_chunks: list[dict[str, Any]] = field(default_factory=list)
+    # 크롤 DB 수치 사실 (src/rag/metric_facts.py). ontology_facts와 분리한다 — 섞으면
+    # 평가 러너가 여기서 엔티티를 뽑아 L3 Hits@k가 KG와 무관하게 오른다.
+    metric_facts: list[dict[str, Any]] = field(default_factory=list)
+    evidence: list[Evidence] = field(default_factory=list)
+    prompt_evidence: list[Evidence] = field(default_factory=list)
     combined_context: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -226,6 +239,9 @@ class HybridContext:
             "ontology_facts": self.ontology_facts,
             "inferences": [inf.to_dict() for inf in self.inferences],
             "rag_chunks": self.rag_chunks,
+            "metric_facts": self.metric_facts,
+            "evidence": [card.model_dump(mode="json") for card in self.evidence],
+            "prompt_evidence": [card.model_dump(mode="json") for card in self.prompt_evidence],
             "combined_context": self.combined_context,
             "metadata": self.metadata,
         }
@@ -330,7 +346,7 @@ class HybridRetriever:
         reasoner: OntologyReasoner | None = None,
         doc_retriever: DocumentRetriever | None = None,
         auto_init_rules: bool = True,
-        owl_strategy: Any | None = None,
+        metric_facts_provider: Any | None = None,
     ):
         """
         Args:
@@ -338,8 +354,6 @@ class HybridRetriever:
             reasoner: 온톨로지 추론기
             doc_retriever: RAG 문서 검색기
             auto_init_rules: 비즈니스 규칙 자동 등록
-            owl_strategy: OWLRetrievalStrategy 인스턴스 (옵션).
-                          설정되면 retrieve_unified()에서 OWL 파이프라인을 사용.
         """
         # 컴포넌트 초기화
         # fallback 인스턴스는 읽기 전용 (정식 기록자는 daily_crawl의 exporter)
@@ -347,8 +361,13 @@ class HybridRetriever:
         self.reasoner = reasoner or OntologyReasoner(self.kg)
         self.doc_retriever = doc_retriever or DocumentRetriever()
 
-        # OWL retrieval strategy (optional)
-        self.owl_strategy = owl_strategy
+        # 크롤 DB 수치 사실 제공자 (SQLite 정본, 스냅샷 날짜 포함)
+        from src.rag.metric_facts import MetricFactsProvider
+
+        self.metric_facts_provider = metric_facts_provider or MetricFactsProvider()
+
+        # 검색 결과 → 증거 카드 (단위·브랜드 정규화, KG 수치 엣지 제외)
+        self.evidence_adapter = EvidenceAdapter()
 
         # 엔티티 추출기
         self.entity_extractor = EntityExtractor()
@@ -419,6 +438,20 @@ class HybridRetriever:
 
         return False, "short_non_domain_query", 0.0
 
+    @staticmethod
+    def _record_degraded(
+        degraded: list[dict[str, Any]] | None, component: str, exc: Exception
+    ) -> None:
+        """선택 기능(비핵심) 실패를 degraded 목록에 기록한다.
+
+        호출자가 소유한 요청-로컬 리스트에만 쓰며 ``self``에는 아무것도
+        남기지 않는다 — 동시 요청 간 공유 상태로 트레이스가 오염됐던
+        ``_last_hybrid_context`` 사례(F3 배경)를 반복하지 않기 위함이다.
+        ``degraded``가 None이면(호출자가 추적하지 않는 경로) 조용히 무시한다.
+        """
+        if degraded is not None:
+            degraded.append({"component": component, "error": f"{type(exc).__name__}: {exc}"})
+
     async def retrieve(
         self,
         query: str,
@@ -428,13 +461,19 @@ class HybridRetriever:
         """
         하이브리드 검색 수행
 
+        단계: 엔티티 → KG 사실 → DB 수치 → 규칙 입력 카드(metric·relation) → 규칙 추론 →
+        문서 검색(추론으로 질의 확장) → 관련성 판정 → 가중 병합 → 카드 조립·선별 → 렌더링.
+
         Args:
             query: 사용자 쿼리
-            current_metrics: 현재 계산된 지표 데이터
-            include_explanations: 추론 설명 포함 여부
+            current_metrics: 시그니처 호환용. **규칙 추론 입력으로 쓰지 않는다** — 추론 입력은
+                DB 수치·KG 관계 증거 카드뿐이다 (설계 E3, 결함 F7: 대시보드 JSON 키가 운영
+                데이터에 없어 추론이 0건이었다).
+            include_explanations: 하위 호환용 (출력에 영향 없음)
 
         Returns:
-            HybridContext
+            HybridContext. 규칙을 판정했으면 ``metadata["rule_evaluation"]``에 조합·판정 수·
+            발화 규칙·미발화 사유 상위가 남는다 (``RuleRun.summary``).
         """
         # 초기화 확인
         if not self._initialized:
@@ -462,6 +501,10 @@ class HybridRetriever:
 
         # 결과 객체 초기화
         context = HybridContext(query=query)
+
+        # 선택 기능(비핵심 하위 조회) 실패 기록 — 요청 로컬 리스트라 동시 요청 간
+        # 공유 상태가 아니다 (F3: _last_hybrid_context 경쟁 상태 교훈 적용)
+        degraded: list[dict[str, Any]] = []
 
         try:
             # 0. 쿼리 의도 분류 + 인텐트 기반 전략 선택
@@ -504,18 +547,35 @@ class HybridRetriever:
 
             # 2. 지식 그래프에서 사실 조회 (ablation no-kg: FF_ONTOLOGY_USE_ONTOLOGY_KG=false)
             if flags.use_ontology_kg():
-                ontology_facts = self._query_knowledge_graph(entities)
+                ontology_facts = self._query_knowledge_graph(entities, degraded=degraded)
             else:
                 logger.info("KG query disabled by feature flag (use_ontology_kg=false)")
                 ontology_facts = []
             context.ontology_facts = ontology_facts
 
-            # 3. 추론 컨텍스트 구성
-            inference_context = self._build_inference_context(entities, current_metrics or {})
+            # 2.5 크롤 DB 수치 사실 (ablation no-db-metrics: FF_RETRIEVER_USE_DB_METRIC_FACTS=false)
+            # 수치 질문의 근거는 KG·문서가 아니라 SQLite 스냅샷이다 (사이클 10 §2).
+            if flags.use_db_metric_facts():
+                try:
+                    context.metric_facts = await self.metric_facts_provider.collect(entities)
+                except Exception as e:
+                    logger.warning("DB 지표 사실 조회 실패", exc_info=True)
+                    context.metric_facts = []
+                    self._record_degraded(degraded, "db_metric_facts", e)
 
-            # 4. 온톨로지 추론 실행 (ablation no-ontology: reasoner 플래그 둘 다 false)
+            # 3. 규칙 입력 카드 (DB 수치 → metric, KG 사실 → relation) — 추론 전에 만든다 (E3)
+            input_cards = build_rule_input_cards(
+                metric_facts=context.metric_facts,
+                ontology_facts=context.ontology_facts,
+                adapter=self.evidence_adapter,
+                degraded=degraded,
+            )
+
+            # 4. 규칙 추론: 카드 → 계약 입력 → 판정 (ablation no-ontology: reasoner 플래그
+            #    둘 다 false면 규칙을 판정하지 않는다 — 이름과 달리 "규칙 추론 off" 스위치)
+            rule_evaluation: dict[str, Any] | None = None
             if flags.use_unified_reasoner() or flags.use_owl_reasoner():
-                inferences = self.reasoner.infer(inference_context)
+                inferences, rule_evaluation = self._evaluate_rules(entities, input_cards)
             else:
                 logger.info("Ontology inference disabled by feature flags")
                 inferences = []
@@ -524,24 +584,44 @@ class HybridRetriever:
 
             # 5. RAG 문서 검색 (추론 결과로 쿼리 확장 + 의도 기반 필터링)
             #    Uses hybrid (dense + BM25 RRF) when BM25 is available
+            #    질의 엔티티(원 질의 기준)와 색인 태그가 겹치는 청크는 재정렬 보너스를 받는다
+            #    — 필터가 아니라 순서만 바뀐다 (E10, F9)
+            from .entity_tags import result_chunk_id
+
             expanded_query = self._expand_query(search_query, inferences, entities)
+            entity_rerank: dict[str, Any] = {}
             rag_results, search_method = await self._hybrid_search(
-                expanded_query, top_k=intent_top_k, doc_type_filter=doc_type_filter
+                expanded_query,
+                top_k=intent_top_k,
+                doc_type_filter=doc_type_filter,
+                degraded=degraded,
+                entities=entities,
+                rerank_stats=entity_rerank,
             )
 
-            # 필터링된 결과가 부족하면 전체 문서에서 추가 검색
-            if len(rag_results) < 3 and doc_type_filter:
+            # 필터링된 결과가 k개보다 적으면 전체 문서(필터 없음)에서 채운다
+            if len(rag_results) < intent_top_k and doc_type_filter:
                 additional_results, _fallback_method = await self._hybrid_search(
                     expanded_query,
-                    top_k=intent_top_k - len(rag_results),
+                    top_k=intent_top_k,
                     doc_type_filter=None,  # 전체 문서에서 검색
+                    degraded=degraded,
+                    entities=entities,
+                    rerank_stats=entity_rerank,
                 )
-                # 중복 제거하며 추가
-                existing_ids = {r["id"] for r in rag_results}
+                # 중복 제거하며 추가 (BM25 결과는 최상위 id가 없어 청크 id로 비교)
+                existing_ids = {result_chunk_id(r) for r in rag_results}
                 for result in additional_results:
-                    if result["id"] not in existing_ids:
+                    if len(rag_results) >= intent_top_k:
+                        break
+                    rid = result_chunk_id(result)
+                    if rid not in existing_ids:
                         rag_results.append(result)
+                        existing_ids.add(rid)
 
+            entity_rerank["bonus_chunks"] = sum(
+                1 for r in rag_results if r.get("entity_bonus", 0) > 0
+            )
             context.rag_chunks = rag_results
 
             # 5.5. 관련성 검증 (Relevance Grading)
@@ -549,36 +629,37 @@ class HybridRetriever:
                 from src.infrastructure.feature_flags import FeatureFlags
 
                 if not FeatureFlags.get_instance().use_reranker():
+                    # reranker 비활성화는 실패가 아니라 정상 분기 — degraded에 넣지 않는다
                     logger.info("Reranker disabled by feature flag, skipping relevance grading")
-                    raise RuntimeError("reranker disabled")  # jump to except → keep originals
-
-                relevant_docs, irrelevant_docs = await self.relevance_grader.grade_documents(
-                    query, rag_results
-                )
-                if self.relevance_grader.needs_rewrite(len(relevant_docs)):
-                    # 관련 문서 부족 → 쿼리 재작성 후 재검색 (최대 1회)
-                    logger.info(
-                        f"Relevance grading: only {len(relevant_docs)} relevant docs, "
-                        f"attempting query rewrite"
+                else:
+                    relevant_docs, irrelevant_docs = await self.relevance_grader.grade_documents(
+                        query, rag_results
                     )
-                    rewritten_query = self._rewrite_for_relevance(query, entities)
-                    if rewritten_query != query:
-                        additional_results = await self.doc_retriever.search(
-                            rewritten_query,
-                            top_k=intent_top_k,
-                            doc_type_filter=doc_type_filter,
+                    if self.relevance_grader.needs_rewrite(len(relevant_docs)):
+                        # 관련 문서 부족 → 쿼리 재작성 후 재검색 (최대 1회)
+                        logger.info(
+                            f"Relevance grading: only {len(relevant_docs)} relevant docs, "
+                            f"attempting query rewrite"
                         )
-                        # 기존 관련 문서 + 새 검색 결과 병합
-                        existing_ids = {r.get("id") for r in relevant_docs}
-                        for result in additional_results:
-                            if result.get("id") not in existing_ids:
-                                relevant_docs.append(result)
-                        logger.info(f"After rewrite: {len(relevant_docs)} relevant docs")
+                        rewritten_query = self._rewrite_for_relevance(query, entities)
+                        if rewritten_query != query:
+                            additional_results = await self.doc_retriever.search(
+                                rewritten_query,
+                                top_k=intent_top_k,
+                                doc_type_filter=doc_type_filter,
+                            )
+                            # 기존 관련 문서 + 새 검색 결과 병합
+                            existing_ids = {r.get("id") for r in relevant_docs}
+                            for result in additional_results:
+                                if result.get("id") not in existing_ids:
+                                    relevant_docs.append(result)
+                            logger.info(f"After rewrite: {len(relevant_docs)} relevant docs")
 
-                context.rag_chunks = relevant_docs
+                    context.rag_chunks = relevant_docs
             except Exception as e:
                 logger.warning(f"Relevance grading skipped: {e}")
-                # 실패 시 원본 결과 유지
+                # 실패 시 원본 결과 유지 — 선택 기능 실패로 기록
+                self._record_degraded(degraded, "relevance_grading", e)
 
             # 5.8. RAG 메트릭 기록
             try:
@@ -593,11 +674,20 @@ class HybridRetriever:
                 )
             except Exception as e:
                 logger.debug(f"RAG metrics recording failed: {e}")
+                self._record_degraded(degraded, "rag_metrics_recording", e)
 
             # 5.7. 가중치 기반 병합 (인텐트 전략 가중치 적용)
-            context = self._weighted_merge(context, intent_weights=intent_config.weights)
+            context = self._weighted_merge(
+                context, intent_weights=intent_config.weights, degraded=degraded
+            )
 
-            # 6. 통합 컨텍스트 생성
+            # 5.9. 증거 카드 조립·선별 (최종 ontology_facts·inferences·rag_chunks + DB 수치).
+            #      추론 근거 카드가 사실 상한으로 잘렸으면 입력 카드에서 되살린다
+            evidence_bundle = self._assemble_evidence(
+                context, degraded=degraded, input_cards=input_cards
+            )
+
+            # 6. 통합 컨텍스트 생성 (프롬프트 카드만 렌더링)
             context.combined_context = self._combine_contexts(context, include_explanations)
 
             # 메타데이터
@@ -612,13 +702,28 @@ class HybridRetriever:
                 "intent_strategy": intent_config.description,
                 "intent_weights": intent_config.weights,
                 "search_method": search_method,
+                # 엔티티 태그 재정렬: 질의 대상·후보/태그된 후보/보너스 후보 수·최종 보너스 청크 수
+                "entity_rerank": entity_rerank,
                 "selfrag_confidence": selfrag_confidence,
                 "bm25_available": self._bm25_actually_available(),
+                "evidence_count": len(context.evidence),
+                "prompt_evidence_count": len(context.prompt_evidence),
+                # 어댑터가 증거에서 뺀 KG 항목 수 (날짜 없는 수치 엣지·엔티티 메타데이터 등, E2)
+                "evidence_excluded": len(evidence_bundle.excluded),
+                "evidence_excluded_by_reason": evidence_bundle.excluded_by_reason,
+                # 선택 기능(비핵심) 실패 목록 — 이 재할당이 위에서 누적된 degraded를
+                # 지우지 않도록 여기서 함께 포함한다 (F3)
+                "degraded": degraded,
             }
+            if rule_evaluation is not None:  # 추론 off면 키가 없다 (판정하지 않았다)
+                context.metadata["rule_evaluation"] = rule_evaluation
 
         except Exception as e:
             logger.error(f"Hybrid retrieval failed: {e}")
-            context.metadata["error"] = str(e)
+            # 핵심 검색 실패 — 서비스 동작(빈 컨텍스트 반환)은 그대로 유지하고
+            # 평가 하니스가 인프라 실패로 분류할 수 있도록 원인을 남긴다 (F3)
+            context.metadata["retrieval_error"] = f"{type(e).__name__}: {e}"
+            context.metadata["error"] = str(e)  # 기존 소비자 호환용 키 유지
 
         return context
 
@@ -646,7 +751,7 @@ class HybridRetriever:
         """
         from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
 
-        # Self-RAG 게이트 — OWL 경로 포함 모든 unified 검색에 적용
+        # Self-RAG 게이트 — 모든 unified 검색에 적용
         # (인사/도움말 등 검색 불필요 쿼리는 검색 자체를 생략)
         should, reason, selfrag_confidence = self.should_retrieve(query)
         if not should:
@@ -668,16 +773,7 @@ class HybridRetriever:
                 retriever_type="selfrag_skip",
             )
 
-        # OWL strategy가 있으면 위임
-        if self.owl_strategy is not None:
-            return await self.owl_strategy.retrieve(
-                query=query,
-                current_metrics=current_metrics,
-                top_k=top_k,
-                **kwargs,
-            )
-
-        # Legacy path: retrieve() → HybridContext → UnifiedRetrievalResult 변환
+        # retrieve() → HybridContext → UnifiedRetrievalResult 변환
         ctx = await self.retrieve(
             query=query,
             current_metrics=current_metrics,
@@ -698,6 +794,8 @@ class HybridRetriever:
             ontology_facts=ctx.ontology_facts,
             inferences=inferences_dicts,
             rag_chunks=ctx.rag_chunks,
+            evidence=list(ctx.evidence),
+            prompt_evidence=list(ctx.prompt_evidence),
             combined_context=ctx.combined_context,
             confidence=0.0,
             entity_links=[],
@@ -721,8 +819,6 @@ class HybridRetriever:
         Returns:
             검색된 문서 목록
         """
-        if self.owl_strategy is not None and hasattr(self.owl_strategy, "search"):
-            return await self.owl_strategy.search(query=query, top_k=top_k, doc_filter=doc_filter)
         return await self.doc_retriever.search(query=query, top_k=top_k, doc_filter=doc_filter)
 
     def _bm25_actually_available(self) -> bool:
@@ -741,39 +837,55 @@ class HybridRetriever:
         query: str,
         top_k: int = 5,
         doc_type_filter: list[str] | None = None,
+        degraded: list[dict[str, Any]] | None = None,
+        entities: dict[str, Any] | None = None,
+        rerank_stats: dict[str, Any] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
         """
-        Dense + BM25 hybrid search with RRF fusion.
+        Dense + BM25 hybrid search with RRF fusion, then entity-tag re-rank bonus.
+
+        RRF 병합은 후보 전체(dense ∪ BM25)에 대해 하고, 엔티티 태그 보너스로 재정렬한 뒤
+        top_k로 자른다. 보너스는 필터가 아니다 — 후보 수는 줄지 않고, 보너스가 하나도 없으면
+        기존(top_k로 바로 자른 RRF) 결과와 같다 (설계 E10).
 
         Args:
             query: Search query
             top_k: Number of results to return
             doc_type_filter: Optional document type filter
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
+            entities: 질의 엔티티 (``EntityExtractor.extract`` 형식). None이면 보너스 없음
+            rerank_stats: 재정렬 통계 누적 대상 (호출자 소유 dict)
 
         Returns:
             (results, search_method) where search_method is
             "hybrid_rrf" or "dense_only"
         """
-        # 1. Dense search via doc_retriever.search()
+        # 1. Dense search via doc_retriever.search() — 핵심 검색 경로.
+        # 여기서 발생하는 예외는 의도적으로 잡지 않고 retrieve()의 바깥
+        # except로 전파시켜 retrieval_error로 분류한다 (F3)
         dense_results = await self.doc_retriever.search(
             query, top_k=top_k, doc_type_filter=doc_type_filter
         )
 
-        # 2. BM25 search (if available)
+        # 2. BM25 search (if available) — 선택 기능, 실패해도 dense 결과로 계속
         bm25_results = []
         if hasattr(self.doc_retriever, "search_bm25"):
             try:
                 bm25_results = self.doc_retriever.search_bm25(query, top_k=top_k)
             except Exception as e:
                 logger.debug(f"BM25 search failed in _hybrid_search: {e}")
+                self._record_degraded(degraded, "bm25_search", e)
 
-        # 3. RRF fusion
+        # 3. RRF fusion — 후보 전체를 병합해 둔다 (보너스 재정렬 후 top_k로 자른다)
+        candidate_limit = len(dense_results) + len(bm25_results)
         if bm25_results:
             if hasattr(self.doc_retriever, "reciprocal_rank_fusion"):
                 fused = self.doc_retriever.reciprocal_rank_fusion(
-                    dense_results, bm25_results, k=60, top_k=top_k
+                    dense_results, bm25_results, k=60, top_k=candidate_limit
                 )
-                return fused, "hybrid_rrf"
+                return self._rerank_by_entity_tags(
+                    fused, top_k, entities, rerank_stats, degraded
+                ), "hybrid_rrf"
             # Fallback: try confidence_fusion.fuse_documents_rrf
             try:
                 from src.rag.confidence_fusion import ConfidenceFusion
@@ -782,20 +894,78 @@ class HybridRetriever:
                 fused = fusion.fuse_documents_rrf(
                     {"dense": dense_results, "bm25": bm25_results},
                     k=60,
-                    top_n=top_k,
+                    top_n=candidate_limit,
                 )
-                return fused, "hybrid_rrf"
+                return self._rerank_by_entity_tags(
+                    fused, top_k, entities, rerank_stats, degraded
+                ), "hybrid_rrf"
             except (ImportError, Exception) as e:
                 logger.debug(f"Confidence fusion RRF fallback failed: {e}")
+                self._record_degraded(degraded, "rrf_fusion_fallback", e)
 
-        return dense_results, "dense_only"
+        return self._rerank_by_entity_tags(
+            dense_results, top_k, entities, rerank_stats, degraded
+        ), "dense_only"
 
-    def _query_knowledge_graph(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
+    def _rerank_by_entity_tags(
+        self,
+        results: list[dict[str, Any]],
+        top_k: int,
+        entities: dict[str, Any] | None,
+        rerank_stats: dict[str, Any] | None,
+        degraded: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """질의 엔티티와 색인 태그가 겹치는 청크에 가산 보너스를 주고 top_k로 자른다.
+
+        보너스 = Σ w_f · 1[질의 f ∩ 청크 태그 f ≠ ∅], f ∈ {brands, categories}.
+        가중치는 ``config/retrieval_weights.json``의 ``entity_tag_bonus``. 태그가 없는 색인·
+        엔티티 없는 질의·가중치 0이면 순서를 바꾸지 않는다. 태그 조회 실패는 선택 기능
+        실패로 기록하고 보너스 없이 계속한다.
+        """
+        from .entity_tags import (
+            apply_entity_bonus,
+            query_tag_targets,
+            resolve_bonus_weights,
+            result_chunk_id,
+        )
+
+        targets = query_tag_targets(entities)
+        weights_config = getattr(self, "_retrieval_weights", {}) or {}
+        weights = resolve_bonus_weights(weights_config.get("entity_tag_bonus"))
+
+        stats = {"candidates": len(results), "tagged_candidates": 0, "bonus_candidates": 0}
+        reranked = results
+        if targets and any(weights.get(field, 0) > 0 for field in targets) and results:
+            tags_by_id: dict[str, Any] = {}
+            get_tags = getattr(self.doc_retriever, "get_entity_tags", None)
+            if callable(get_tags):
+                try:
+                    looked_up = get_tags([result_chunk_id(r) for r in results])
+                    tags_by_id = looked_up if isinstance(looked_up, dict) else {}
+                except Exception as e:
+                    logger.warning("엔티티 태그 조회 실패 — 보너스 없이 진행", exc_info=True)
+                    self._record_degraded(degraded, "entity_tag_lookup", e)
+            reranked, stats = apply_entity_bonus(results, tags_by_id, targets, weights)
+
+        if rerank_stats is not None:
+            rerank_stats["query_targets"] = {f: sorted(v) for f, v in targets.items()}
+            rerank_stats["weights"] = weights
+            for key, value in stats.items():
+                rerank_stats[key] = rerank_stats.get(key, 0) + value
+
+        return reranked[:top_k]
+
+    def _query_knowledge_graph(
+        self,
+        entities: dict[str, list[str]],
+        degraded: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         지식 그래프에서 관련 사실 조회
 
         Args:
             entities: 추출된 엔티티
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             사실 리스트
@@ -856,8 +1026,9 @@ class HybridRetriever:
                             },
                         }
                     )
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+            except Exception as e:
+                logger.warning("브랜드 관계 네트워크 조회 실패", exc_info=True)
+                self._record_degraded(degraded, "kg_competitor_network", e)
 
             # 메트릭/관계 엣지 (kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등)
             try:
@@ -956,8 +1127,9 @@ class HybridRetriever:
                     facts.append(
                         {"type": "metric_edges", "entity": brand, "data": {"edges": metric_edges}}
                     )
-            except Exception:
+            except Exception as e:
                 logger.debug("metric edge query failed", exc_info=True)
+                self._record_degraded(degraded, "kg_metric_edges", e)
 
             # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
             trend_relations = self.kg.query(subject=brand, predicate=RelationType.HAS_TREND)
@@ -1006,8 +1178,9 @@ class HybridRetriever:
                             },
                         }
                     )
-            except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+            except Exception as e:
+                logger.warning("카테고리 계층 조회 실패", exc_info=True)
+                self._record_degraded(degraded, "kg_category_hierarchy", e)
 
         # 감성 관련 사실 조회
         sentiment_clusters = entities.get("sentiment_clusters", [])
@@ -1026,8 +1199,9 @@ class HybridRetriever:
                                 "data": product_sentiments,
                             }
                         )
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                except Exception as e:
+                    logger.warning("제품 감성 조회 실패", exc_info=True)
+                    self._record_degraded(degraded, "kg_product_sentiment", e)
 
             # 브랜드가 지정된 경우 브랜드 감성 프로필 조회
             for brand in entities.get("brands", []):
@@ -1037,8 +1211,9 @@ class HybridRetriever:
                         facts.append(
                             {"type": "brand_sentiment", "entity": brand, "data": brand_sentiment}
                         )
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                except Exception as e:
+                    logger.warning("브랜드 감성 프로필 조회 실패", exc_info=True)
+                    self._record_degraded(degraded, "kg_brand_sentiment", e)
 
             # 특정 감성 클러스터로 제품 검색
             for cluster in sentiment_clusters:
@@ -1064,143 +1239,41 @@ class HybridRetriever:
                                     }
                                 )
                                 break
-                    except Exception:
-                        logger.warning("Suppressed Exception", exc_info=True)
+                    except Exception as e:
+                        logger.warning("감성 클러스터 제품 조회 실패", exc_info=True)
+                        self._record_degraded(degraded, "kg_sentiment_cluster_products", e)
 
         return facts
 
-    def _build_inference_context(
-        self, entities: dict[str, list[str]], current_metrics: dict[str, Any]
-    ) -> dict[str, Any]:
-        """
-        추론용 컨텍스트 구성
+    def _evaluate_rules(
+        self, entities: dict[str, list[str]], cards: list[Evidence]
+    ) -> tuple[list[InferenceResult], dict[str, Any]]:
+        """증거 카드로 규칙을 판정한다 (설계 E3, 트랙 3-B).
 
-        Args:
-            entities: 추출된 엔티티
-            current_metrics: 현재 지표 데이터
+        질의 엔티티의 (브랜드 또는 없음) × 카테고리 조합마다 ``build_rule_context``로 계약 입력을
+        채우고 ``evaluate_rule``로 판정한다(``rule_contracts.evaluate_rules_on_cards``).
+        입력은 카드뿐이다 — 대시보드 JSON(current_metrics)·KG 수치 엣지를 읽지 않고,
+        ``OntologyReasoner._enrich_context``(호출자 값을 KG 조회로 덮어쓴다)도 거치지 않는다.
 
         Returns:
-            추론 컨텍스트
+            (발화 결과 — ``evidence["derived_from"]``에 근거 카드 id, ``metadata["rule_evaluation"]``)
         """
-        context = {}
-
-        # 엔티티 정보
-        if entities.get("brands"):
-            context["brand"] = entities["brands"][0]  # 첫 번째 브랜드
-            context["is_target"] = entities["brands"][0].lower() == "laneige"
-
-        if entities.get("categories"):
-            context["category"] = entities["categories"][0]
-
-        # 메트릭 정보 (summary에서)
-        summary = current_metrics.get("summary", {})
-
-        # 브랜드별 SoS
-        sos_by_category = summary.get("laneige_sos_by_category", {})
-        if entities.get("categories") and entities["categories"][0] in sos_by_category:
-            context["sos"] = sos_by_category[entities["categories"][0]]
-        elif sos_by_category:
-            # 첫 번째 카테고리의 SoS
-            context["sos"] = list(sos_by_category.values())[0] if sos_by_category else 0
-
-        # 브랜드 메트릭에서 추가 정보
-        brand_metrics = current_metrics.get("brand_metrics", [])
-        for bm in brand_metrics:
-            if (
-                bm.get("is_laneige")
-                or bm.get("brand_name", "").lower() == context.get("brand", "").lower()
-            ):
-                context["sos"] = bm.get("share_of_shelf", context.get("sos", 0))
-                context["avg_rank"] = bm.get("avg_rank")
-                context["product_count"] = bm.get("product_count", 0)
-                break
-
-        # 마켓 메트릭에서 HHI 등
-        market_metrics = current_metrics.get("market_metrics", [])
-        for mm in market_metrics:
-            if not entities.get("categories") or mm.get("category_id") == entities["categories"][0]:
-                context["hhi"] = mm.get("hhi", 0)
-                context["cpi"] = mm.get("cpi", 100)
-                context["churn_rate"] = mm.get("churn_rate_7d", 0)
-                context["rating_gap"] = mm.get("avg_rating_gap", 0)
-                break
-
-        # 제품 메트릭에서
-        product_metrics = current_metrics.get("product_metrics", [])
-        if product_metrics:
-            # 첫 번째 제품 또는 가장 좋은 순위 제품
-            best_product = min(product_metrics, key=lambda p: p.get("current_rank", 100))
-            context["current_rank"] = best_product.get("current_rank")
-            context["rank_change_1d"] = best_product.get("rank_change_1d")
-            context["rank_change_7d"] = best_product.get("rank_change_7d")
-            context["rank_volatility"] = best_product.get("rank_volatility", 0)
-            context["streak_days"] = best_product.get("streak_days", 0)
-            context["asin"] = best_product.get("asin")
-
-        # 알림 정보
-        alerts = current_metrics.get("alerts", [])
-        context["has_rank_shock"] = any(a.get("type") == "rank_shock" for a in alerts)
-        context["alert_count"] = len(alerts)
-
-        # 경쟁사 수 (지식 그래프에서)
-        if context.get("brand"):
-            competitors = self.kg.get_competitors(context["brand"])
-            context["competitor_count"] = len(competitors)
-            context["competitors"] = competitors
-
-            # 트렌드 키워드 (브랜드 우선, 없으면 MARKET)
-            trend_relations = self.kg.query(
-                subject=context["brand"], predicate=RelationType.HAS_TREND
-            )
-            if not trend_relations:
-                trend_relations = self.kg.query(subject="MARKET", predicate=RelationType.HAS_TREND)
-            if trend_relations:
-                context["trend_keywords"] = [rel.object for rel in trend_relations[:10]]
-
-        # 감성 데이터 (지식 그래프에서)
-        if entities.get("sentiments") or entities.get("sentiment_clusters"):
-            # 자사 브랜드 감성 프로필
-            if context.get("brand"):
-                try:
-                    brand_sentiment = self.kg.get_brand_sentiment_profile(context["brand"])
-                    context["sentiment_tags"] = brand_sentiment.get("all_tags", [])
-                    context["sentiment_clusters"] = brand_sentiment.get("clusters", {})
-                    context["dominant_sentiment"] = brand_sentiment.get("dominant_sentiment")
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
-
-            # 제품별 감성 데이터
-            if context.get("asin"):
-                try:
-                    product_sentiment = self.kg.get_product_sentiments(context["asin"])
-                    context["ai_summary"] = product_sentiment.get("ai_summary")
-                    if not context.get("sentiment_tags"):
-                        context["sentiment_tags"] = product_sentiment.get("sentiment_tags", [])
-                        context["sentiment_clusters"] = product_sentiment.get(
-                            "sentiment_clusters", {}
-                        )
-                except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
-
-            # 경쟁사 감성 데이터 (비교용)
-            if context.get("competitors"):
-                competitor_tags = []
-                competitor_clusters = {}
-                for comp in context["competitors"][:3]:  # 상위 3개 경쟁사
-                    comp_brand = comp.get("brand", comp) if isinstance(comp, dict) else comp
-                    try:
-                        comp_sentiment = self.kg.get_brand_sentiment_profile(comp_brand)
-                        competitor_tags.extend(comp_sentiment.get("all_tags", []))
-                        for cluster, count in comp_sentiment.get("clusters", {}).items():
-                            competitor_clusters[cluster] = (
-                                competitor_clusters.get(cluster, 0) + count
-                            )
-                    except Exception:
-                        logger.warning("Suppressed Exception", exc_info=True)
-                context["competitor_sentiment_tags"] = list(set(competitor_tags))
-                context["competitor_sentiment_clusters"] = competitor_clusters
-
-        return context
+        brands = [
+            self.evidence_adapter.normalize_brand(str(b)) for b in entities.get("brands") or [] if b
+        ]
+        categories = [
+            self.evidence_adapter.normalize_category(str(c))
+            for c in entities.get("categories") or []
+            if c
+        ]
+        run = evaluate_rules_on_cards(self.reasoner.rules_by_priority, cards, brands, categories)
+        inferences = run.fired_results()
+        summary = run.summary()
+        self.reasoner.record_inference(
+            {"combinations": summary["combinations"], "evaluated": summary["evaluated"]},
+            inferences,
+        )
+        return inferences, summary
 
     def _expand_query(
         self, query: str, inferences: list[InferenceResult], entities: dict[str, list[str]]
@@ -1316,10 +1389,15 @@ class HybridRetriever:
         import json
         from pathlib import Path
 
+        # 코드 기본값은 config/retrieval_weights.json과 일치해야 한다.
+        # rag_chunks가 3으로 남아 있어 설정 파일이 없는 배포 환경에서만
+        # 사이클 2 버그 값으로 조용히 회귀했다 (§6.3).
         defaults = {
             "weights": {"kg": 0.4, "rag": 0.4, "inference": 0.2},
             "freshness": {"weekly": 1.0, "quarterly": 0.9, "static": 0.8},
-            "max_context_items": {"ontology_facts": 5, "inferences": 5, "rag_chunks": 3},
+            "max_context_items": {"ontology_facts": 5, "inferences": 5, "rag_chunks": 8},
+            # 엔티티 태그 재정렬 보너스 (RRF 점수에 가산, src/rag/entity_tags.py)
+            "entity_tag_bonus": {"brands": 0.001, "categories": 0.001},
         }
 
         config_path = Path(__file__).parent.parent.parent / "config" / "retrieval_weights.json"
@@ -1327,10 +1405,14 @@ class HybridRetriever:
             try:
                 with open(config_path, encoding="utf-8") as f:
                     loaded = json.load(f)
-                    # Merge with defaults (loaded overrides)
-                    for key in defaults:
-                        if key in loaded:
-                            defaults[key] = loaded[key]
+                # 딥 머지: 설정 파일이 일부 키만 담고 있어도 나머지 기본값이 살아남는다.
+                # (기존 최상위 교체 방식은 부분 설정이 오면 키가 통째로 사라졌다.)
+                for key, default_value in defaults.items():
+                    loaded_value = loaded.get(key)
+                    if isinstance(default_value, dict) and isinstance(loaded_value, dict):
+                        defaults[key] = {**default_value, **loaded_value}
+                    elif loaded_value is not None:
+                        defaults[key] = loaded_value
                 logger.info(f"Retrieval weights loaded from {config_path}")
             except Exception as e:
                 logger.warning(f"Failed to load retrieval weights: {e}, using defaults")
@@ -1341,12 +1423,14 @@ class HybridRetriever:
         self,
         context: HybridContext,
         intent_weights: dict[str, float] | None = None,
+        degraded: list[dict[str, Any]] | None = None,
     ) -> HybridContext:
         """
         가중치 기반 컨텍스트 병합
 
         KG facts, RAG chunks, Ontology inferences에 가중치를 부여하고
-        최종 점수로 정렬하여 상위 항목만 유지합니다.
+        최종 점수로 정렬하여 상위 항목만 유지합니다 (추론은 정렬만 하고 자르지 않는다 —
+        ``max_context_items.inferences``는 추론에 적용하지 않는다).
 
         가중치 우선순위:
         1. intent_weights (인텐트 기반 전략에서 전달)
@@ -1356,6 +1440,7 @@ class HybridRetriever:
         Args:
             context: 병합 전 HybridContext
             intent_weights: 인텐트 기반 가중치 (optional override)
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             가중치 적용된 HybridContext
@@ -1430,9 +1515,12 @@ class HybridRetriever:
                 inference._weighted_score = weighted_score
                 scored_inferences.append(inference)
 
-            # 점수로 정렬 및 제한
+            # 점수로 정렬만 한다 — 자르지 않는다 (트랙 3-B). 발화한 규칙은 전부 inference 카드
+            # (context.evidence)와 평가 applied_rules에 남아야 한다. 여기서 max_context_items로
+            # 자르면 발화 6개 이상인 질의에서 질문한 규칙이 카드·applied_rules에서 사라졌다.
+            # 프롬프트 상한은 카드 선별(PROMPT_MAX_PER_KIND[INFERENCE])이 맡는다.
             scored_inferences.sort(key=lambda x: getattr(x, "_weighted_score", 0), reverse=True)
-            context.inferences = scored_inferences[: max_items["inferences"]]
+            context.inferences = scored_inferences
             weighted_scores["inferences"] = [
                 getattr(i, "_weighted_score", 0) for i in context.inferences
             ]
@@ -1443,7 +1531,7 @@ class HybridRetriever:
         context.metadata["weighted_scores"] = weighted_scores
 
         # ConfidenceFusion: 전체 신뢰도 계산 + 충돌 감지
-        fusion_meta = self._compute_fusion_confidence(context, intent_weights)
+        fusion_meta = self._compute_fusion_confidence(context, intent_weights, degraded=degraded)
         context.metadata["fusion"] = fusion_meta
 
         logger.info(
@@ -1463,6 +1551,7 @@ class HybridRetriever:
         self,
         context: HybridContext,
         intent_weights: dict[str, float] | None = None,
+        degraded: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """
         ConfidenceFusion을 사용해 전체 신뢰도를 계산하고 소스 간 충돌을 감지합니다.
@@ -1473,6 +1562,7 @@ class HybridRetriever:
         Args:
             context: 가중 병합 완료된 HybridContext
             intent_weights: 인텐트별 가중치 (kg/rag/inference)
+            degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
 
         Returns:
             dict with confidence, strategy, warnings, source_scores, explanation
@@ -1516,8 +1606,10 @@ class HybridRetriever:
             intent = _cl(context.query)
             config = get_intent_retrieval_config(intent)
             fusion_strategy_name = config.fusion_strategy
-        except Exception:
-            pass
+        except Exception as e:
+            # 무기록으로 weighted_sum 폴백하면 융합 전략이 바뀐 사실이 드러나지 않는다
+            logger.warning(f"인텐트 분류 실패, fusion_strategy=weighted_sum 폴백: {e}")
+            self._record_degraded(degraded, "fusion_strategy_selection", e)
 
         strategy_map = {
             "weighted_sum": FusionStrategy.WEIGHTED_SUM,
@@ -1558,7 +1650,10 @@ class HybridRetriever:
         for inf in context.inferences or []:
             ontology_results.append(
                 FusionInferenceResult(
-                    insight=getattr(inf, "conclusion", str(inf)),
+                    # str이어야 한다(FusionInferenceResult.insight: str, RRF가 content를 hash).
+                    # 예전 getattr(inf, "conclusion", ...)은 InferenceResult에 conclusion 속성이
+                    # 없어 늘 str(inf)였다 — 결론 dict 필드(트랙 3-B)가 생겨 dict가 들어갔다
+                    insight=str(inf),
                     confidence=getattr(inf, "confidence", 0.5),
                     evidence=getattr(inf, "evidence", {}),
                     rule_name=getattr(inf, "rule_name", None),
@@ -1603,106 +1698,51 @@ class HybridRetriever:
             ],
         }
 
-    def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
+    def _assemble_evidence(
+        self,
+        context: HybridContext,
+        degraded: list[dict[str, Any]] | None = None,
+        input_cards: list[Evidence] | None = None,
+    ) -> EvidenceBundle:
+        """최종 검색 결과를 증거 카드로 바꿔 ``context.evidence``·``prompt_evidence``에 담는다.
+
+        - metric_facts → metric 카드, ontology_facts → relation 카드(KG 수치 엣지 제외),
+          inferences → inference 카드(``derived_from`` = 규칙 입력 카드 id),
+          최종 rag_chunks → document 카드.
+        - ``input_cards``: 추론 전에 만든 규칙 입력 카드. 추론 근거 카드가 최종 사실에서 다시
+          만들어지지 않으면(사실 상한) 여기서 가져온다.
+        - 어댑터 실패는 ``degraded``에 기록하고 나머지 종류는 계속 만든다 (0-B).
         """
-        온톨로지 + RAG 컨텍스트 통합
+        bundle = assemble_evidence(
+            entities=context.entities,
+            metric_facts=context.metric_facts,
+            ontology_facts=context.ontology_facts,
+            inferences=context.inferences,
+            rag_chunks=context.rag_chunks,
+            adapter=self.evidence_adapter,
+            input_cards=input_cards or (),
+        )
+        context.evidence = bundle.evidence
+        context.prompt_evidence = bundle.prompt_evidence
+        if degraded is not None:
+            degraded.extend(bundle.degraded)
+        return bundle
+
+    def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
+        """답변 프롬프트용 컨텍스트 = 프롬프트 카드 렌더링 (설계 E1).
+
+        추론·KG 사실·DB 수치·문서는 모두 카드로만 싣는다 — 같은 정보를 카드 밖 형식으로
+        다시 렌더링하지 않는다. v1 ``ContextBuilder``도 같은 렌더러를 쓴다.
 
         Args:
-            context: HybridContext
-            include_explanations: 추론 설명 포함
+            context: ``_assemble_evidence``를 거친 HybridContext
+            include_explanations: 하위 호환용 인자. 추론의 근거는 카드의
+                ``derived_from``으로 표시되므로 더 이상 출력에 영향을 주지 않는다.
 
         Returns:
-            통합된 컨텍스트 문자열
+            ``render_for_prompt(context.prompt_evidence)`` (카드가 없으면 빈 문자열)
         """
-        parts = []
-
-        # 1. 온톨로지 추론 결과 (구조화된 인사이트)
-        if context.inferences:
-            parts.append("## 분석 결과 (Ontology Reasoning)\n")
-
-            for i, inf in enumerate(context.inferences, 1):
-                parts.append(
-                    f"### 인사이트 {i}: {inf.insight_type.value.replace('_', ' ').title()}"
-                )
-                parts.append(f"- **결론**: {inf.insight}")
-
-                if inf.recommendation:
-                    parts.append(f"- **권장 액션**: {inf.recommendation}")
-
-                parts.append(f"- **신뢰도**: {inf.confidence:.0%}")
-
-                if include_explanations and inf.evidence:
-                    conditions = inf.evidence.get("satisfied_conditions", [])
-                    if conditions:
-                        parts.append(f"- **근거 조건**: {', '.join(conditions)}")
-
-                parts.append("")
-
-        # 2. 지식 그래프 사실 (관련 정보)
-        if context.ontology_facts:
-            parts.append("## 관련 정보 (Knowledge Graph)\n")
-
-            for fact in context.ontology_facts[:5]:  # 상위 5개
-                fact_type = fact.get("type", "unknown")
-                entity = fact.get("entity", "")
-                data = fact.get("data", {})
-
-                if fact_type == "brand_info":
-                    sos = data.get("sos", 0)
-                    if sos:
-                        parts.append(f"- **{entity}** SoS: {sos * 100:.1f}%")
-                    if data.get("avg_rank"):
-                        parts.append(f"  - 평균 순위: {data['avg_rank']:.1f}")
-
-                elif fact_type == "brand_products":
-                    parts.append(f"- **{entity}** 제품 수: {data.get('product_count', 0)}개")
-
-                elif fact_type == "competitors":
-                    competitors = [c.get("brand", "") for c in data[:3]]
-                    parts.append(f"- **{entity}** 주요 경쟁사: {', '.join(competitors)}")
-
-                elif fact_type == "category_brands":
-                    top_brands = [b.get("brand", "") for b in data.get("top_brands", [])[:3]]
-                    parts.append(f"- **{entity}** Top 브랜드: {', '.join(top_brands)}")
-
-                elif fact_type == "category_hierarchy":
-                    level = data.get("level", 0)
-                    path = data.get("path", [])
-                    ancestors = data.get("ancestors", [])
-                    name = data.get("name", entity)
-                    if path:
-                        path_str = " > ".join(
-                            [
-                                a.get("name", a.get("id", "")) if isinstance(a, dict) else a
-                                for a in path
-                            ]
-                        )
-                        parts.append(f"- **{name}** 계층: {path_str} (Level {level})")
-                    if ancestors:
-                        parent_names = [a.get("name", "") for a in ancestors[:2]]
-                        parts.append(f"  - 상위 카테고리: {', '.join(parent_names)}")
-
-            parts.append("")
-
-        # 3. RAG 가이드라인 (비구조화 문서)
-        if context.rag_chunks:
-            parts.append("## 참고 가이드라인 (RAG)\n")
-
-            for chunk in context.rag_chunks[:3]:  # 상위 3개
-                title = chunk.get("metadata", {}).get("title", "")
-                content = chunk.get("content", "")
-
-                if title:
-                    parts.append(f"### {title}")
-
-                # 내용 축약 (500자)
-                if len(content) > 500:
-                    content = content[:500] + "..."
-
-                parts.append(content)
-                parts.append("")
-
-        return "\n".join(parts)
+        return render_for_prompt(context.prompt_evidence)
 
     async def retrieve_for_entity(
         self, entity: str, entity_type: str = "brand", current_metrics: dict[str, Any] | None = None

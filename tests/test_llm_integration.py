@@ -28,6 +28,9 @@ from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.rag.context_builder import ContextBuilder
 from src.rag.hybrid_retriever import HybridContext
+from src.tools.collectors.external_signal_collector import (
+    ExternalSignalCollector,  # noqa: E402 -- 파일 상단 sys.path 설정 이후 import 필요
+)
 
 
 def load_dashboard_data() -> dict:
@@ -105,7 +108,11 @@ def build_metrics_data_from_dashboard(data: dict) -> dict:
 
 def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
     """대시보드 데이터에서 KG 구축"""
-    kg = KnowledgeGraph()
+    # auto_save=False: 실제 data/knowledge_graph.json 오염 방지
+    # (KnowledgeGraph.__init__ -> _load()가 내부적으로 add_relation()을 호출하므로,
+    #  로드 중 배치 임계값(save_batch_threshold)에 도달하면 자동 저장이 발생해
+    #  add_relation을 한 번도 호출하지 않아도 파일이 다시 쓰여질 수 있음)
+    kg = KnowledgeGraph(auto_save=False)
 
     # 제품 정보
     products = data.get("products", {})
@@ -167,7 +174,7 @@ def build_knowledge_graph_from_dashboard(data: dict) -> KnowledgeGraph:
     return kg
 
 
-async def test_hybrid_insight_agent_with_llm():
+async def test_hybrid_insight_agent_with_llm(tmp_path, monkeypatch):
     """HybridInsightAgent LLM 연동 테스트"""
     print("=" * 60)
     print("🤖 LLM API 연동 테스트")
@@ -208,8 +215,48 @@ async def test_hybrid_insight_agent_with_llm():
     print("\n🔧 HybridInsightAgent 초기화 중...")
     model = "gpt-4o-mini"
 
+    # data/ 격리: HybridInsightAgent.execute()는 내부적으로
+    # - _collect_external_signals()에서 ExternalSignalCollector를 (주입 없으면)
+    #   기본 경로(./data/external_signals)로 생성
+    # - _collect_market_intelligence()에서 MarketIntelligenceEngine을 (주입 수단이
+    #   없으므로) 항상 기본 경로(./data/market_intelligence)로 생성
+    # - _collect_market_intelligence() 내부에서 다시 _collect_google_trends()를 호출해
+    #   GoogleTrendsCollector를 (주입 수단 없이) 항상 기본 경로
+    #   (./data/market_intelligence/trends)로 생성 — 실제 네트워크(Google Trends)가
+    #   성공하는 경우에만 트리거되어 환경에 따라 간헐적으로만 재현되던 오염 경로.
+    # 모두 실제 data/ 아래에 저장하므로 임시 경로로 격리한다.
+    signal_collector = ExternalSignalCollector(data_dir=str(tmp_path / "external_signals"))
+
+    from src.tools.intelligence.market_intelligence import MarketIntelligenceEngine
+
+    def _tmp_market_intelligence_engine(*args, **kwargs):
+        kwargs.setdefault("data_dir", str(tmp_path / "market_intelligence"))
+        return MarketIntelligenceEngine(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "src.agents.hybrid_insight_agent.MarketIntelligenceEngine",
+        _tmp_market_intelligence_engine,
+    )
+
+    from src.tools.collectors.google_trends_collector import GoogleTrendsCollector
+
+    def _tmp_google_trends_collector(*args, **kwargs):
+        collector = GoogleTrendsCollector(*args, **kwargs)
+        collector.data_dir = tmp_path / "market_intelligence" / "trends"
+        collector.data_dir.mkdir(parents=True, exist_ok=True)
+        return collector
+
+    monkeypatch.setattr(
+        "src.agents.hybrid_insight_agent.GoogleTrendsCollector",
+        _tmp_google_trends_collector,
+    )
+
     agent = HybridInsightAgent(
-        model=model, knowledge_graph=kg, reasoner=reasoner, docs_dir=str(PROJECT_ROOT)
+        model=model,
+        knowledge_graph=kg,
+        reasoner=reasoner,
+        docs_dir=str(PROJECT_ROOT),
+        signal_collector=signal_collector,
     )
     print(f"   - 모델: {model}")
 
@@ -264,8 +311,8 @@ async def test_hybrid_insight_agent_with_llm():
         print(f"   - RAG 청크: {hybrid_stats.get('rag_chunks_count', 0)}개")
         print(f"   - 온톨로지 사실: {hybrid_stats.get('ontology_facts_count', 0)}개")
 
-        # 결과 저장
-        output_path = PROJECT_ROOT / "data" / "llm_insight_result.json"
+        # 결과 저장 (실제 data/ 대신 tmp_path에 저장하여 운영 데이터 오염 방지)
+        output_path = tmp_path / "llm_insight_result.json"
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2, default=str)
         print(f"\n💾 결과 저장: {output_path}")

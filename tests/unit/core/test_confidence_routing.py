@@ -78,11 +78,10 @@ class TestConfidenceAssessor:
         assert level == ConfidenceLevel.MEDIUM
 
     def test_custom_thresholds(self):
-        """커스텀 임계값"""
-        custom = ConfidenceAssessor(threshold_high=8.0, threshold_medium=5.0, threshold_low=2.0)
-        result = {"max_score": 6.0}
-        level = custom.assess(result)
-        assert level == ConfidenceLevel.MEDIUM  # 6.0 < 8.0
+        """커스텀 임계값 (0~1 적합도 눈금)"""
+        custom = ConfidenceAssessor(threshold_high=0.95, threshold_medium=0.8, threshold_low=0.4)
+        level = custom.assess({"fit_score": 0.88})
+        assert level == ConfidenceLevel.MEDIUM  # 0.88 < 0.95
 
 
 class TestCalculateAbsoluteScore:

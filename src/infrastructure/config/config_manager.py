@@ -101,6 +101,8 @@ class AppConfig:
         if thresholds_path.exists():
             with open(thresholds_path, encoding="utf-8") as f:
                 data = json.load(f)
+                # thresholds.json에는 최상위 "thresholds" 키가 없어 문서 전체가 바인딩된다.
+                # 개별 임계값 조회는 RulesEngine.get_threshold()로 단일화됐다 (§6.2).
                 self.thresholds = data.get("thresholds", data)
                 self.categories = data.get("categories", {})
 
@@ -180,10 +182,6 @@ class AppConfig:
                 logger.error(error_msg)
 
         return config
-
-    def get_threshold(self, key: str, default: Any = None) -> Any:
-        """특정 threshold 값 조회"""
-        return self.thresholds.get(key, default)
 
     def get_category_url(self, category_id: str) -> str | None:
         """카테고리 URL 조회"""

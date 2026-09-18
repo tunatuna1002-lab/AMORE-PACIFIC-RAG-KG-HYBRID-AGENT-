@@ -46,10 +46,62 @@ def tmp_config(tmp_path):
     return str(config_file)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_workflow_data_dir(tmp_path, monkeypatch):
+    """실제 data/ 아래 파일 오염 방지 (CWD 상대경로 하드코딩 우회).
+
+    BatchWorkflow._observe()는 크롤링 완료 시
+    `Path("./data") / "latest_crawl_result.json"`에 하드코딩된 상대경로로
+    직접 저장한다 (주입 수단 없음). CWD를 tmp_path로 돌려 실제 data/를
+    건드리지 않게 한다.
+    """
+    (tmp_path / "data").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_brain_singleton(tmp_path):
+    """get_brain() 전역 싱글턴이 실제 data/orchestrator_state.json에 쓰지 않도록 격리.
+
+    BatchWorkflow._notify_workflow_failed()는 `from src.core.brain import
+    get_brain`로 프로세스 전역 UnifiedBrain 싱글턴을 가져와
+    `brain.state.mark_data_stale()`을 호출한다. UnifiedBrain.__init__은
+    `self.state = OrchestratorState()`를 무조건 기본(실제) 경로로 생성하며
+    주입 수단이 없으므로, 싱글턴을 리셋 후 재생성하고 .state만 임시 경로로
+    교체해 싱글턴 캐시에 채워 넣는다.
+    """
+    import src.core.brain as brain_module
+    from src.core.state import OrchestratorState
+
+    brain_module.reset_brain()
+    brain = brain_module.UnifiedBrain()
+    brain.state = OrchestratorState(_persist_path=tmp_path / "orchestrator_state.json")
+    brain_module._brain_instance = brain
+
+    yield
+
+    brain_module.reset_brain()
+
+
 @pytest.fixture
-def workflow(tmp_config, tmp_path):
+def workflow(tmp_config, tmp_path, monkeypatch):
     """테스트용 BatchWorkflow (KG 영속화 비활성)"""
     kg_path = str(tmp_path / "kg.json")
+
+    # DashboardExporter._init_ontology()가 (주입 수단 없이) 기본 KnowledgeGraph()를
+    # 생성해 실제 data/knowledge_graph.json을 오염시키는 것을 방지.
+    # (KnowledgeGraph.__init__ -> _load()가 add_relation()을 호출하므로 로드 중
+    #  배치 임계값에 도달하면 자동 저장이 발생할 수 있음 — test_dashboard_exporter_property
+    #  처럼 실제 lazy-init 자체를 검증하는 테스트를 위해 KnowledgeGraph 생성 자체는
+    #  그대로 두고 auto_save만 끈다.)
+    from src.ontology.knowledge_graph import KnowledgeGraph as RealKnowledgeGraph
+
+    def _no_autosave_kg(*args, **kwargs):
+        kwargs.setdefault("auto_save", False)
+        return RealKnowledgeGraph(*args, **kwargs)
+
+    monkeypatch.setattr("src.tools.exporters.dashboard_exporter.KnowledgeGraph", _no_autosave_kg)
+
     with patch("src.application.workflows.batch_workflow.AgentLogger"):
         with patch("src.application.workflows.batch_workflow.ExecutionTracer"):
             with patch("src.application.workflows.batch_workflow.QualityMetrics"):
@@ -502,8 +554,20 @@ class TestObserve:
             result={"brand_metrics": [1, 2], "product_metrics": [1], "alerts": ["a"]},
         )
         result = await workflow._observe(act)
-        assert result.next_step == WorkflowStep.INSIGHT
+        # CALCULATE 다음은 STORE_METRICS (지표 영속화 복원, D3)
+        assert result.next_step == WorkflowStep.STORE_METRICS
         mock_kg.load_from_metrics_data.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_observe_store_metrics(self, workflow):
+        """STORE_METRICS 다음은 INSIGHT"""
+        act = ActResult(
+            action="store_metrics",
+            success=True,
+            result={"brand_rows": 12, "market_rows": 5, "snapshot_date": "2026-08-31"},
+        )
+        result = await workflow._observe(act)
+        assert result.next_step == WorkflowStep.INSIGHT
 
     @pytest.mark.asyncio
     async def test_observe_hybrid_insight(self, workflow):

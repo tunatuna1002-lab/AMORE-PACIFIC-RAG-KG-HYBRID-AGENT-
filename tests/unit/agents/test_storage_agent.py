@@ -9,6 +9,20 @@ import pytest
 from src.agents.storage_agent import StorageAgent
 
 
+@pytest.fixture(autouse=True)
+def _isolate_competitor_json(tmp_path, monkeypatch):
+    """실제 data/competitor_products.json 오염 방지.
+
+    StorageAgent.execute()는 경쟁사 데이터가 있으면
+    `Path("./data/competitor_products.json")`에 하드코딩된 상대경로로 직접
+    json.dump()한다 (생성자 인자·환경변수 등 주입 수단 없음). sheets/sqlite는
+    이미 mock 처리되지만 이 raw file write는 별개 경로라 CWD를 임시
+    디렉토리로 돌려 격리한다.
+    """
+    (tmp_path / "data").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def mock_sheets():
     """Mock SheetsWriter"""
@@ -399,194 +413,6 @@ class TestStorageAgentTopLevelError:
 
         tracer.end_span.assert_called()
         metrics.record_agent_error.assert_called_once_with("storage", "Fatal")
-
-
-# =========================================================================
-# save_metrics (lines 304-372)
-# =========================================================================
-
-
-class TestStorageAgentSaveMetrics:
-    """save_metrics 메서드 테스트"""
-
-    @pytest.mark.asyncio
-    async def test_save_brand_metrics(self, agent):
-        """브랜드 지표 저장"""
-        bm = MagicMock()
-        bm.brand_name = "LANEIGE"
-        bm.category_id = "lip_care"
-        bm.share_of_shelf = 15.0
-        bm.avg_rank = 3.2
-        bm.product_count = 5
-        bm.top10_count = 3
-        bm.top20_count = 5
-
-        result = await agent.save_metrics(brand_metrics=[bm])
-        assert result["brand_metrics"] == 1
-        agent.sheets._append_row.assert_called_once()
-        call_args = agent.sheets._append_row.call_args
-        assert call_args[0][0] == "BrandMetrics"
-
-    @pytest.mark.asyncio
-    async def test_save_product_metrics(self, agent):
-        """제품 지표 저장"""
-        pm = MagicMock()
-        pm.asin = "B08XYZ001"
-        pm.product_title = "Lip Mask"
-        pm.category_id = "lip_care"
-        pm.current_rank = 1
-        pm.rank_change_1d = -2
-        pm.rank_change_7d = 5
-        pm.rank_volatility = 1.2
-        pm.streak_days = 10
-        pm.rating_trend = 0.01
-
-        result = await agent.save_metrics(product_metrics=[pm])
-        assert result["product_metrics"] == 1
-        call_args = agent.sheets._append_row.call_args
-        assert call_args[0][0] == "ProductMetrics"
-
-    @pytest.mark.asyncio
-    async def test_save_market_metrics(self, agent):
-        """시장 지표 저장"""
-        mm = MagicMock()
-        mm.category_id = "lip_care"
-        mm.hhi = 0.08
-        mm.cpi = 105.2
-        mm.churn_rate_7d = 12.5
-        mm.avg_rating_gap = 0.3
-        mm.top_brand = "LANEIGE"
-        mm.top_brand_sos = 15.0
-
-        result = await agent.save_metrics(market_metrics=[mm])
-        assert result["market_metrics"] == 1
-        call_args = agent.sheets._append_row.call_args
-        assert call_args[0][0] == "MarketMetrics"
-
-    @pytest.mark.asyncio
-    async def test_save_all_metrics(self, agent):
-        """모든 지표 동시 저장"""
-        bm = MagicMock()
-        bm.brand_name = "LANEIGE"
-        bm.category_id = "lip_care"
-        bm.share_of_shelf = 15.0
-        bm.avg_rank = 3.2
-        bm.product_count = 5
-        bm.top10_count = 3
-        bm.top20_count = 5
-
-        pm = MagicMock()
-        pm.asin = "B08XYZ001"
-        pm.product_title = "Lip Mask"
-        pm.category_id = "lip_care"
-        pm.current_rank = 1
-        pm.rank_change_1d = -2
-        pm.rank_change_7d = 5
-        pm.rank_volatility = 1.2
-        pm.streak_days = 10
-        pm.rating_trend = 0.01
-
-        mm = MagicMock()
-        mm.category_id = "lip_care"
-        mm.hhi = 0.08
-        mm.cpi = 105.2
-        mm.churn_rate_7d = 12.5
-        mm.avg_rating_gap = 0.3
-        mm.top_brand = "LANEIGE"
-        mm.top_brand_sos = 15.0
-
-        result = await agent.save_metrics(
-            brand_metrics=[bm], product_metrics=[pm], market_metrics=[mm]
-        )
-        assert result["brand_metrics"] == 1
-        assert result["product_metrics"] == 1
-        assert result["market_metrics"] == 1
-        assert agent.sheets._append_row.call_count == 3
-
-    @pytest.mark.asyncio
-    async def test_save_metrics_none_args(self, agent):
-        """None 인자 → 0 반환"""
-        result = await agent.save_metrics()
-        assert result["brand_metrics"] == 0
-        assert result["product_metrics"] == 0
-        assert result["market_metrics"] == 0
-        agent.sheets._append_row.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_save_metrics_exception(self, agent):
-        """save_metrics 예외 → raise"""
-        agent.sheets._append_row = MagicMock(side_effect=Exception("API limit"))
-        bm = MagicMock()
-        bm.brand_name = "LANEIGE"
-        bm.category_id = "lip_care"
-        bm.share_of_shelf = 15.0
-        bm.avg_rank = 3.2
-        bm.product_count = 5
-        bm.top10_count = 3
-        bm.top20_count = 5
-
-        with pytest.raises(Exception, match="API limit"):
-            await agent.save_metrics(brand_metrics=[bm])
-
-    @pytest.mark.asyncio
-    async def test_save_metrics_with_tracer(self, mock_sheets, mock_sqlite):
-        """save_metrics tracer 호출 확인"""
-        tracer = MagicMock()
-        with (
-            patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets),
-            patch("src.agents.storage_agent.get_sqlite_storage", return_value=mock_sqlite),
-        ):
-            a = StorageAgent(spreadsheet_id="test-id", tracer=tracer)
-            a.sheets = mock_sheets
-
-        result = await a.save_metrics()
-        tracer.start_span.assert_called_once_with("save_metrics")
-        tracer.end_span.assert_called_once_with("completed")
-
-    @pytest.mark.asyncio
-    async def test_save_metrics_exception_with_tracer(self, mock_sheets, mock_sqlite):
-        """save_metrics 예외 시 tracer end_span(failed) 호출"""
-        tracer = MagicMock()
-        with (
-            patch("src.agents.storage_agent.SheetsWriter", return_value=mock_sheets),
-            patch("src.agents.storage_agent.get_sqlite_storage", return_value=mock_sqlite),
-        ):
-            a = StorageAgent(spreadsheet_id="test-id", tracer=tracer)
-            a.sheets = mock_sheets
-            a.sheets._append_row = MagicMock(side_effect=RuntimeError("fail"))
-
-        bm = MagicMock()
-        bm.brand_name = "X"
-        bm.category_id = "c"
-        bm.share_of_shelf = 1.0
-        bm.avg_rank = 1.0
-        bm.product_count = 1
-        bm.top10_count = 1
-        bm.top20_count = 1
-
-        with pytest.raises(RuntimeError):
-            await a.save_metrics(brand_metrics=[bm])
-        failed_calls = [c for c in tracer.end_span.call_args_list if "failed" in str(c)]
-        assert len(failed_calls) >= 1
-
-    @pytest.mark.asyncio
-    async def test_save_multiple_brand_metrics(self, agent):
-        """여러 브랜드 지표 저장"""
-        metrics = []
-        for name in ["LANEIGE", "COSRX", "innisfree"]:
-            bm = MagicMock()
-            bm.brand_name = name
-            bm.category_id = "lip_care"
-            bm.share_of_shelf = 10.0
-            bm.avg_rank = 5.0
-            bm.product_count = 3
-            bm.top10_count = 2
-            bm.top20_count = 3
-            metrics.append(bm)
-
-        result = await agent.save_metrics(brand_metrics=metrics)
-        assert result["brand_metrics"] == 3
-        assert agent.sheets._append_row.call_count == 3
 
 
 # =========================================================================

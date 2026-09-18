@@ -1,0 +1,197 @@
+{
+  "item_id": "rl019",
+  "question": "아모레퍼시픽 포트폴리오에서 Sulwhasoo와 같은 세그먼트에 속한 브랜드는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09523809523809523,
+    "semantic_similarity": 0.6379458904266357,
+    "groundedness_score": 0.3333333333,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.5945421142623812,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "rl019",
+    "timestamp": "2026-09-17T21:56:16.662767",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "sulwhasoo",
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_7_1",
+        "kbeauty_industry_6_3",
+        "chunk_2",
+        "chunk_3",
+        "ir_2025_q3_0_11",
+        "ir_2025_q3_0_14",
+        "ir_2025_q2_0_10",
+        "ir_2025_q3_0_18"
+      ],
+      "snippets": [
+        "1. **라운드랩**은 '규제 준수'라는 방어 논리를 넘어, 미국 소비자를 위한 텍스처 개선(2.0 버전)을 서둘러야 하며, 오리지널과 미국 버전의 차이를 솔직하게 커뮤니케이션해야 한다.  \n2. **아누아**는 '모공 마케팅'의 수위를 조절하고, 트러블 발생 시 책임 있는 환불/케어 정책을 통해 '먹튀 브랜드'라는 오명을 씻어내야 한다.  \n3. **티르",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "customers",
+        "**Sulwhasoo** •Overall sales posted growth across department store, online, and travel retail channels • Enhanced customer experience through omni-marketing linked to the Ginseng pop-up  **APBeauty** ",
+        "\\* COSMETICS Business: Sulwhasoo,Hera,Iope,Primera,AP Beauty, Laneige, Aestura, Illiyoon, Mamonde, Hanyul, B.Ready, Vital Beautieetc. \\* HAIR & BEAUTY Business:Ryo, Mise-en-scene, Labo-H, Happy Bath, ",
+        "• Sharpened market responsiveness by strengthening customer engagement and channel expansion \\- \\[Sulwhasoo\\] Enhanced product competitiveness with luxury gift sets(‘First care activating serum’, ‘Con",
+        "\\-Launched new editions of the Lip Sleeping Mask (‘Baskin Robbins,’ ‘Strawberry Shortcake’), reinforcing its lip category leadership  • Expanded digital reach by launching micro-drama (‘Beauty and the"
+      ],
+      "scores": [
+        4.627333489434427,
+        4.794861965248118,
+        1.0,
+        0.844417896626279,
+        0.48830103874206543,
+        0.46979206800460815,
+        0.450145959854126,
+        0.449753999710083
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "sulwhasoo",
+        "amorepacific"
+      ],
+      "kg_edges_found": [
+        "sulwhasoo -ownedBy-> amorepacific"
+      ],
+      "ontology_facts": [
+        {
+          "type": "metric_edges",
+          "entity": "sulwhasoo",
+          "data": {
+            "edges": [
+              {
+                "subject": "Sulwhasoo",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽 포트폴리오에서 Sulwhasoo와 같은 세그먼트에 속한 브랜드는 프리미엄 스테디셀러 그룹에 속하는 브랜드입니다. 데이터에 따르면, LANEIGE가 Sulwhasoo와 같은 프리미엄 스테디셀러 세그먼트에 포함되어 있으며, 가격대는 $24~$45로 상대적으로 높고 강력한 브랜드 충성도를 기반으로 베스트셀러 상위를 유지하고 있습니다. 따라서 Sulwhasoo와 같은 세그먼트에 속한 브랜드는 LANEIGE입니다.",
+      "citations": [],
+      "confidence": 4.95,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 958,
+      "judge_tokens": 2553,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 830,
+      "l5_completion_tokens": 128,
+      "judge_prompt_tokens": 1565,
+      "judge_completion_tokens": 988,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0005367999999999999,
+      "judge_cost_usd": 0.0022067999999999996,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 6511.178970336914,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 8.0,
+      "confidence_components": {
+        "kg_facts": 1.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

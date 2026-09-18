@@ -1,0 +1,297 @@
+{
+  "item_id": "lg142",
+  "question": "뷰티 시장 계절성이 브랜드 전략에 미치는 영향은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.0,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.05555555555555555,
+    "context_precision_at_k": 0.125,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 0.5
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.05932203389830508,
+    "semantic_similarity": 0.5873923301696777,
+    "groundedness_score": 0.5555555555555556,
+    "answer_relevance_score": 0.95,
+    "factuality_score": 1.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.5156487372105629,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg142",
+    "timestamp": "2026-09-10T11:42:13.085996",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "strategy",
+        "seasonality"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_1_0",
+        "laneige_strategy_2026_7_0",
+        "indicator_combination_2_0",
+        "strategic_indicators_1_1",
+        "home_insight_rules_4_0",
+        "strategic_indicators_2_1",
+        "indicator_combination_2_1",
+        "metric_interpretation_2_0"
+      ],
+      "snippets": [
+        "**1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화**\n\n2026년 1월, 미국 뷰티 시장은 단순한 '연말연시 회복(Post-Holiday Recovery)'을 넘어선 구조적인 소비 패턴의 변화를 겪고 있다. 과거의 뷰티 트렌드가 '클린 걸(Clean Girl)'로 대변되는 미니멀리즘과 자연스러움에 천착했다면, 현재의 시장은 \\*\\*'재생",
+        "---\n\n**7\\. 결론 및 전략적 제언**\n\n2026년 1월, 미국 뷰티 시장은 '재생'과 '회복'이라는 거대한 테마 아래, 고기능성 성분과 감각적인 텍스처가 결합된 제품을 요구하고 있다. LANEIGE는 PDRN이나 스피큘과 같은 공격적인 바이오 성분 트렌드에는 다소 뒤처져 보일 수 있으나, '편안한 고효능(Comfortable Efficacy)'이라는",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "1.2 Brand Health Status (브랜드 건강 상태 배지/카드)\n\n### 목표\n- 수치 대신 “상태”로 요약\n- 3개 카드(권장): 브랜드 노출, 시장 구조, 이상 신호\n\n### 상태 정의 (권장 라벨)\n- 브랜드 노출 상태(SoS 중심):\n  - Stable / Up / Down\n- 시장 구조(HHI 중심):\n  - Competitive / C",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특"
+      ],
+      "scores": [
+        0.43399906158447266,
+        0.3768273591995239,
+        0.4700627326965332,
+        0.466888427734375,
+        0.43285858631134033,
+        0.4251056909561157,
+        0.42169189453125,
+        0.416210412979126
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 42,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 49,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              },
+              {
+                "brand": "dove",
+                "product_count": 5,
+                "products": [
+                  "B00MEDOY2G",
+                  "B09DDD6YGJ",
+                  "B00SK71SAG",
+                  "B001ET7IQK",
+                  "B00I69SEK0"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 뷰티 시장 계절성이 브랜드 전략에 미치는 영향\n\n### 인사이트\n- 뷰티 시장은 계절성에 따라 소비 패턴과 제품 수요가 변동될 가능성이 있으며, 이는 브랜드가 SKU 구조와 핵심 제품 집중 전략을 조정하는 데 영향을 미칠 수 있습니다.\n- 계절적 수요 변화에 대응하여 포트폴리오를 분산하거나 집중하는 전략이 필요할 수 있으며, 단기 신제품 출시가 계절성에 따른 순위 변동에 일시적 영향을 줄 수 있습니다.\n- 2026년 1월 미국 뷰티 시장은 '재생 미학'과 '고기능성 바이오 해킹'이라는 구조적 변화 속에서, 브랜드별로 제품 노출과 상위권 고정력 간 균형을 맞추는 전략이 중요해 보입니다.\n\n### 근거\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족한 경우, SKU 수 대비 효율 저하 가능성이 있으며 이는 계절성에 따른 수요 변화에 민감할 수 있음을 시사합니다.\n- 반대로 소수 제품으로 상위권을 유지하는 히트 상품 중심 구조는 계절성 변동에 상대적으로 안정적일 수 있습니다.\n- 단기 신제품 유입 시 일시적 순위 변동이 발생할 수 있어, 계절성에 따른 전략 조정 시 단기 노이즈 가능성을 고려해야 합니다 [출처: RAG 가이드, A. Market & Brand Combination].\n\n### 권장 사항\n- 계절별 소비 패턴을 면밀히 분석하여 SKU 구조를 점검하고, 계절성에 강한 핵심 제품에 집중하는 전략을 검토할 필요가 있습니다.\n- 신제품 출시 시점과 마케팅 활동을 계절성에 맞춰 조율하여 단기 순위 변동을 최소화하고, 브랜드의 상위권 고정력을 강화하는 방향을 모색하는 것이 바람직합니다.\n- 장기적으로는 고기능성 및 재생 미학 트렌드에 부합하는 제품 개발과 함께, 계절성 변동에 대응 가능한 유연한 포트폴리오 관리가 요구됩니다 [출처: 2026년 1월 미국 뷰티 시장 거시적 환경 변화].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 ****1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화****\n   - 관련도: 0.43\n\n3. 📄 **A. Market & Brand Combination**\n   - 관련도: 0.47\n\n4. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.47\n\n5. 📄 **1.2 Brand Health Status (브랜드 건강 상태 배지/카드)**\n   - 관련도: 0.43\n\n6. 📄 **A. Level 1: Market & Brand**\n   - 관련도: 0.42\n\n7. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3246,
+      "judge_tokens": 6478,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0007105500000000001,
+      "judge_cost_usd": 0.0018086999999999999
+    },
+    "latency_ms": 7120.434761047363,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

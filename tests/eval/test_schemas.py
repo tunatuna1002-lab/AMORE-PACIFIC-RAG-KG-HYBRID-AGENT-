@@ -275,3 +275,96 @@ class TestEvalConfig:
         assert config.top_k == 5
         assert config.use_judge is True
         assert config.judge_model == "gpt-4.1-mini"
+
+
+class TestGoldSourceMetadata:
+    """골드 수치의 검증 근거 층 (2026-09-06, 3단계).
+
+    document / snapshot / domain_expectation을 구분해야 각 층에 맞는 채점을
+    할 수 있다. 원자료로 검증할 수 없는 골드에 정답 일치를 요구하면 지표가
+    문체 유사도를 재게 된다.
+    """
+
+    def test_defaults_keep_existing_items_valid(self):
+        """기존 문항(필드 없음)은 document/None으로 읽혀야 한다."""
+        meta = ItemMetadata()
+
+        assert meta.gold_source == "document"
+        assert meta.as_of is None
+
+    def test_snapshot_items_carry_as_of(self):
+        meta = ItemMetadata(gold_source="snapshot", as_of="2026-08-31")
+
+        assert meta.gold_source == "snapshot"
+        assert meta.as_of == "2026-08-31"
+
+    def test_unknown_gold_source_is_rejected(self):
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            ItemMetadata(gold_source="guess")
+
+    def test_golden_dataset_is_fully_classified(self):
+        """172문항 전체에 gold_source가 있고, snapshot에는 as_of가 있어야 한다."""
+        import json
+        from pathlib import Path
+
+        path = (
+            Path(__file__).resolve().parents[2]
+            / "eval"
+            / "data"
+            / "golden"
+            / "laneige_golden_v2.jsonl"
+        )
+        rows = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+        assert rows, "골든셋이 비어 있다"
+        for row in rows:
+            meta = row["metadata"]
+            assert meta.get("gold_source") in {
+                "document",
+                "snapshot",
+                "domain_expectation",
+            }, row["id"]
+            if meta["gold_source"] == "snapshot":
+                assert meta.get("as_of"), f"{row['id']}: snapshot인데 as_of가 없다"
+            else:
+                assert "as_of" not in meta, f"{row['id']}: {meta['gold_source']}인데 as_of가 있다"
+
+    def test_snapshot_items_have_db_generated_values(self):
+        """snapshot 문항은 DB에서 생성된 expected_values를 가져야 한다 (4단계).
+
+        예외는 수치를 물어보지 않는 lg079(ASIN 조회)뿐이다. 이 문항은 해당 스냅샷의
+        Top 100에 제품이 없다는 사실 자체가 답이라 수치 기대값이 없다.
+        """
+        import json
+        from pathlib import Path
+
+        path = (
+            Path(__file__).resolve().parents[2]
+            / "eval"
+            / "data"
+            / "golden"
+            / "laneige_golden_v2.jsonl"
+        )
+        rows = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        no_numeric_answer = {"lg079"}
+
+        missing = [
+            row["id"]
+            for row in rows
+            if row["metadata"]["gold_source"] == "snapshot"
+            and not row["gold"].get("expected_values")
+            and row["id"] not in no_numeric_answer
+        ]
+
+        assert not missing, f"expected_values가 비어 있는 snapshot 문항: {missing}"

@@ -32,77 +32,119 @@ class TestReActIntegration:
         # ReActAgent는 run() 메서드 사용
         assert hasattr(agent, "run")
 
-    def test_brain_complex_query_detection(self):
-        """brain.py의 복잡한 질문 감지 로직"""
+    def test_complex_query_detection_lives_in_query_graph(self):
+        """복잡한 질문 감지는 QueryGraph에만 있다 (5-A: brain의 복제본 삭제)"""
         from src.core.brain import UnifiedBrain
+        from src.core.query_graph import QueryGraph
 
-        brain = UnifiedBrain.__new__(UnifiedBrain)
+        assert hasattr(QueryGraph, "_is_complex_query")
+        assert not hasattr(UnifiedBrain, "_is_complex_query")
 
-        # _is_complex_query가 존재하는지 확인
-        assert hasattr(brain, "_is_complex_query")
+    def test_routing_uses_the_hop_router_not_the_keyword_heuristic(self):
+        """5-C: 경로 판정은 홉 수 라우터가 한다. 옛 키워드 휴리스틱은 분기에서 빠졌다."""
+        from src.core.query_graph import QueryGraph
+        from src.core.router import HopRouter
 
-    def test_brain_has_react_agent_field(self):
-        """brain.py에 _process_with_react 메서드 존재"""
+        route_source = inspect.getsource(QueryGraph._route_after_confidence)
+        assert "_is_complex_query" not in route_source
+        assert isinstance(
+            QueryGraph._router_decision(  # noqa: SLF001
+                QueryGraph(
+                    cache=None,
+                    context_gatherer=None,
+                    confidence_assessor=None,
+                    decision_maker=None,
+                    tool_coordinator=None,
+                    response_pipeline=None,
+                    router=HopRouter(),
+                ),
+                _state("LANEIGE 제품이 속한 카테고리의 HHI는?"),
+            ).hops,
+            int,
+        )
+
+    def test_react_execution_lives_in_query_graph(self):
+        """ReAct 실행 노드도 QueryGraph에만 있다 (5-A: brain의 복제본 삭제)"""
         from src.core.brain import UnifiedBrain
+        from src.core.query_graph import QueryGraph
 
-        # _process_with_react 메서드 존재 확인
-        assert hasattr(UnifiedBrain, "_process_with_react")
+        assert hasattr(QueryGraph, "_node_react")
+        assert not hasattr(UnifiedBrain, "_process_with_react")
 
     def test_confidence_routing_preserves_react_path(self):
         """신뢰도 라우팅이 ReAct 경로를 보존하는지 확인
 
         MEDIUM/LOW 신뢰도에서 복잡한 질문은 여전히 ReAct로 가야 함
         (3.1: process_query가 QueryGraph에 위임, 라우팅은 QueryGraph에서 처리)
+        (5-A: 스트림도 같은 그래프를 타므로 분기 본문은 QueryGraph.stream에 있다)
         """
         from src.core.query_graph import QueryGraph
 
-        # QueryGraph의 라우팅에서 ReAct 경로 확인
+        # QueryGraph의 라우팅에서 ReAct 경로 확인 (5-C: 홉 수 라우터가 판정한다)
         route_source = inspect.getsource(QueryGraph._route_after_confidence)
-        assert "_is_complex_query" in route_source
+        assert "_router_decision" in route_source
+        assert "use_react" in route_source
 
-        # QueryGraph.run에서 ReAct 노드 호출 확인
-        run_source = inspect.getsource(QueryGraph.run)
-        assert "_node_react" in run_source
+        # QueryGraph.stream에서 ReAct 노드 호출 확인 (run은 stream을 소비만 한다)
+        stream_source = inspect.getsource(QueryGraph.stream)
+        assert "_node_react" in stream_source
+        assert "stream" in inspect.getsource(QueryGraph.run)
 
     def test_high_confidence_skips_react(self):
-        """HIGH 신뢰도에서는 ReAct를 건너뛰는지 확인
+        """HIGH 신뢰도 + 기본 플래그(react_bypass_confidence=False)에서는 ReAct를 건너뛴다
 
         HIGH 신뢰도 → direct response (ReAct 불필요)
         (3.1: 라우팅 로직이 QueryGraph._route_after_confidence로 이동)
+        (트랙 6: ``agents.react_bypass_confidence`` 플래그로 이 우선순위를 opt-in으로
+        뒤집을 수 있게 됐다 — 기본값 False에서는 이 동작이 그대로 유지된다)
         """
+        from unittest.mock import MagicMock
+
+        from src.core.graph_state import QueryState
+        from src.core.models import ConfidenceLevel
         from src.core.query_graph import QueryGraph
 
-        source = inspect.getsource(QueryGraph._route_after_confidence)
-        # HIGH confidence path (should_skip_llm_decision) should come before ReAct check
-        high_pos = source.find("should_skip_llm_decision")
-        react_pos = source.find("_is_complex_query")
-        if high_pos >= 0 and react_pos >= 0:
-            # HIGH confidence check should appear before ReAct
-            assert high_pos < react_pos, "HIGH confidence should be checked before ReAct"
+        confidence_assessor = MagicMock()
+        confidence_assessor.should_request_clarification.return_value = False
+        confidence_assessor.should_skip_llm_decision.return_value = True
+
+        graph = QueryGraph(
+            cache=None,
+            context_gatherer=None,
+            confidence_assessor=confidence_assessor,
+            decision_maker=None,
+            tool_coordinator=None,
+            response_pipeline=None,
+            react_agent=MagicMock(),
+            react_mode="on",
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+
+        assert graph._route_after_confidence(state) == "generate_response"
+
+
+def _state(query: str):
+    from src.core.graph_state import QueryState
+
+    return QueryState(query=query)
 
 
 class TestComplexQueryDetection:
-    """복잡한 질문 감지 로직 단위 테스트"""
+    """복잡한 질문 감지 로직 단위 테스트 (5-A: 유일한 구현인 QueryGraph를 본다)"""
 
     def test_analysis_keyword_is_complex(self):
         """분석 키워드 포함 → 복잡"""
-        from src.core.brain import UnifiedBrain
-
-        brain = UnifiedBrain.__new__(UnifiedBrain)
-        brain._react_agent = True  # Mock
+        from src.core.query_graph import QueryGraph
 
         context = Context(query="분석해줘")
         context.rag_docs = []
 
-        result = brain._is_complex_query("LANEIGE 경쟁사 대비 분석해줘", context)
-        assert result is True
+        assert QueryGraph._is_complex_query("LANEIGE 경쟁사 대비 분석해줘", context) is True
 
     def test_simple_query_not_complex(self):
         """단순 질문 → 비복잡"""
-        from src.core.brain import UnifiedBrain
-
-        brain = UnifiedBrain.__new__(UnifiedBrain)
-        brain._react_agent = True
+        from src.core.query_graph import QueryGraph
 
         context = Context(query="순위")
         context.rag_docs = [
@@ -111,18 +153,16 @@ class TestComplexQueryDetection:
             {"content": "doc3"},
         ]
 
-        result = brain._is_complex_query("LANEIGE 순위", context)
-        assert result is False
+        assert QueryGraph._is_complex_query("LANEIGE 순위", context) is False
 
     def test_multi_step_query_is_complex(self):
         """다단계 질문 → 복잡"""
-        from src.core.brain import UnifiedBrain
-
-        brain = UnifiedBrain.__new__(UnifiedBrain)
-        brain._react_agent = True
+        from src.core.query_graph import QueryGraph
 
         context = Context(query="test")
         context.rag_docs = []
 
-        result = brain._is_complex_query("LANEIGE 순위는? 그리고 경쟁사 대비 어때?", context)
-        assert result is True
+        assert (
+            QueryGraph._is_complex_query("LANEIGE 순위는? 그리고 경쟁사 대비 어때?", context)
+            is True
+        )

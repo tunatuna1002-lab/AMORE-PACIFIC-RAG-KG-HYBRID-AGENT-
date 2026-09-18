@@ -23,15 +23,33 @@ async def get_brain_status(request: Request):
         - scheduler: 스케줄러 상태
         - pending_tasks: 대기 중 태스크
         - stats: 통계
+        - components: 선택 컴포넌트(react_agent)의 플래그·활성·오류
     """
     try:
         brain = await get_initialized_brain()
+
+        # 색인/조회 분리(트랙 0-A) 이후 DocumentRetriever.initialize()가
+        # 어긋남을 조용히 경고만 하므로, 상태 확인용으로 여기서도 노출한다.
+        # brain.py를 수정하지 않고 기존 공개 경로만 따라간다:
+        # brain.context_gatherer(public property) → .retriever(HybridRetriever)
+        # → .doc_retriever(DocumentRetriever) → .get_index_status().
+        index_status = None
+        try:
+            gatherer = brain.context_gatherer
+            retriever = getattr(gatherer, "retriever", None) if gatherer else None
+            doc_retriever = getattr(retriever, "doc_retriever", None)
+            if doc_retriever is not None and hasattr(doc_retriever, "get_index_status"):
+                index_status = doc_retriever.get_index_status()
+        except Exception:
+            index_status = None
 
         return {
             "mode": brain.mode.value,
             "scheduler_running": brain.scheduler.running if brain.scheduler else False,
             "pending_tasks": brain.scheduler.get_pending_count() if brain.scheduler else 0,
             "stats": brain.get_stats(),
+            "components": brain.get_component_status(),
+            "index_status": index_status,
             "initialized": True,
         }
     except Exception as e:

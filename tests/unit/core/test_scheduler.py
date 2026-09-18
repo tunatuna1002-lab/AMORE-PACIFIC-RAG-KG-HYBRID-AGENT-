@@ -47,10 +47,15 @@ class TestInitialization:
     """Test scheduler initialization"""
 
     def test_init_creates_default_schedules(self, scheduler):
-        """Should create 3 default schedules on initialization"""
-        assert len(scheduler.schedules) == 3
+        """Should create 4 default schedules on initialization"""
+        assert len(scheduler.schedules) == 4
         schedule_ids = {s["id"] for s in scheduler.schedules}
-        assert schedule_ids == {"daily_crawl", "morning_brief", "check_data_freshness"}
+        assert schedule_ids == {
+            "daily_crawl",
+            "morning_brief",
+            "check_data_freshness",
+            "data_integrity_check",
+        }
 
     def test_init_sets_initial_state(self, scheduler):
         """Should initialize running=False and empty last_run"""
@@ -720,13 +725,13 @@ class TestStatusReporting:
     def test_get_status_schedules_count(self, scheduler):
         """Should report correct number of schedules"""
         status = scheduler.get_status()
-        assert status["schedules_count"] == 3
+        assert status["schedules_count"] == 4
 
         scheduler.add_schedule(
             {"id": "new_task", "schedule_type": "daily", "hour": 10, "minute": 0, "enabled": True}
         )
         status = scheduler.get_status()
-        assert status["schedules_count"] == 4
+        assert status["schedules_count"] == 5
 
     def test_get_status_pending_tasks(self, scheduler, fixed_time):
         """Should report number of pending tasks"""

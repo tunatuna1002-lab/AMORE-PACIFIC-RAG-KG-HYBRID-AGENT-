@@ -1,0 +1,383 @@
+{
+  "item_id": "lg197",
+  "question": "뷰티 시장에서 한국 브랜드와 미국 브랜드의 미래는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.09090909090909091,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.25,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.07777777777777778,
+    "semantic_similarity": 0.8047094941139221,
+    "groundedness_score": 0.8888888888888888,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.664423854470253,
+  "fail_reason_tags": [
+    "L1_mapping_fail"
+  ],
+  "trace": {
+    "item_id": "lg197",
+    "timestamp": "2026-09-17T16:34:30.559182",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_2_3",
+        "chunk_1",
+        "chunk_2",
+        "laneige_strategy_2026_1_0",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_6_1",
+        "negative_issue_response_0",
+        "kbeauty_industry_6_5"
+      ],
+      "snippets": [
+        "#### **2.2.2. 후각적 트라우마: \"전형적인 미국 선크림 냄새\"**\n\n한국 선크림을 선호하는 미국 소비자들은 특유의 역한 화학약품 냄새가 없는 것을 선호해왔다. 그러나 미국 버전 라운드랩 선크림에서는 아보벤존 등 구형 필터 특유의 냄새가 난다는 불만이 폭증하고 있다. 한 소비자는 이를 두고 \"고등학교 때 쓰던 뉴트로지나(Neutrogena) 선크림",
+        "4. **K-뷰티**** ****초격차****의 결론**:\n  1. 한국 화장품 업계가 쌓아 올린 초격차는 선명하다 \n  2. 고집스럽게 지켜온 전통에서 새로운 가치를 창조해 냈고, 세상에 없던 제품을 내놓는 **파괴적 ****혁신**을 선보였다 \n  3. 식민지와 전쟁의 참혹함을 건너면서도 놓지 못했던 아름다움에 대한 갈망은 이제 미용 기기, 초개인화 화",
+        "📌 K-뷰티가 세계 시장을 선도하는 '초격차'를 달성한 비결은 무엇인가?\n k-뷰티는 odm(제조자 개발 생산) 시스템을 통한 <mark>빠른 </mark>혁신<mark>과 유연한 생산</mark>, 그리고 <mark>K-콘텐츠와의 시너지</mark>를 바탕으로 세계 시장에서 독보적인 경쟁력을 확보했습니다.",
+        "**1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화**\n\n2026년 1월, 미국 뷰티 시장은 단순한 '연말연시 회복(Post-Holiday Recovery)'을 넘어선 구조적인 소비 패턴의 변화를 겪고 있다. 과거의 뷰티 트렌드가 '클린 걸(Clean Girl)'로 대변되는 미니멀리즘과 자연스러움에 천착했다면, 현재의 시장은 \\*\\*'재생",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "2. **하이엔드 브랜드 서사의 빈약**:\n  1. 소비자들이 기억하는 브랜드가 되려면 다양한 좋은 제품의 **서사(이야기)**가 더해져야 한다 \n  2. K-뷰티 제품은 **기초 중심**이며, 고부가 가치 제품에서는 아직 약세이다 \n  1. 향수나 화장수 분야에서는 세계 <mark>32위권</mark>에 그치는 수준이다 \n  2. 기초 제품 경쟁력은 확실",
+        "# **2026년 1월 미국 시장 내 K-뷰티 및 바이럴 스킨케어 브랜드에 대한 부정 이슈 심층 분석 및 조기 경보 리포트**",
+        "2. **AI 기반 초개인화 맞춤 화장품**:\n  1. K-뷰티의 미래는 **맞춤 화장품**이다 \n  2. AI와 로봇이 사용자에게 가장 어울리거나 피부를 개선해 줄 제품을 제안하고 만들어주는 개념이다 \n  3. 피부 톤을 분석하여 (예: 핑크색, 노란색 언더톤 중 뉴트럴에서 핑크빛 도는 피부) 개인별 맞춤형 제품을 제시한다 \n  4. AI와 로봇이 제안하"
+      ],
+      "scores": [
+        12.094434148696696,
+        0.8487323114784675,
+        0.774573789253191,
+        0.49837273359298706,
+        0.5212819576263428,
+        0.5186150670051575,
+        0.4625910520553589,
+        0.4726780652999878
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 44,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 51,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B",
+                  "B09SGLQNS5",
+                  "B00TZUJW6O"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 6,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B07PBQZ3KF",
+                  "B0F3J6W5KW",
+                  "B0GVG4S4X9",
+                  "B075DB13ZT",
+                  "B088W7L534"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "한국 뷰티 시장(K-뷰티)은 미국을 포함한 서구권 시장에서 독보적인 경쟁력을 갖추고 있으며, 미래 전망도 밝습니다. \n\n1. **한국 브랜드의 강점과 미래**  \n   - K-뷰티는 빠른 혁신과 유연한 생산 시스템(ODM)을 통해 시장 변화에 신속히 대응하며, K-콘텐츠와의 시너지로 글로벌 소비자들의 관심을 끌고 있습니다.  \n   - 전통을 고집스럽게 지키면서도 파괴적 혁신을 이루어냈고, 단순한 '유리 피부'를 넘어 초개인화 화장품과 미용 기기 등으로 영역을 확장 중입니다.  \n   - 미국 소비자들은 한국 선크림의 무향 또는 은은한 자작나무 향을 선호하는 등, K-뷰티 특유의 우아한 사용감을 높이 평가합니다.  \n   - 따라서 K-뷰티는 심플함과 미래를 보는 안목을 결합한 초격차 전략으로 세계 시장을 계속 선도할 전망입니다.\n\n2. **미국 브랜드의 현황과 과제**  \n   - 미국 브랜드는 전통적인 화학약품 냄새가 나는 선크림 등에서 소비자 불만이 증가하고 있습니다.  \n   - 예를 들어, 미국 버전 라운드랩 선크림에서 구형 필터 특유의 냄새가 문제로 지적되며, 이는 K-뷰티가 가진 '우아한 사용감'과 대비됩니다.  \n   - 미국 브랜드는 이러한 소비자 경험 개선과 혁신이 요구되며, K-뷰티의 혁신 속도와 콘텐츠 시너지에 대응해야 합니다.\n\n**결론적으로**, 한국 브랜드는 혁신과 문화적 콘텐츠를 결합해 글로벌 뷰티 시장에서 초격차를 유지하며 성장할 가능성이 크고, 미국 브랜드는 소비자 경험 개선과 혁신 가속화가 필요해 미래 경쟁에서 도전 과제를 안고 있습니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1255,
+      "judge_tokens": 6482,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0003858,
+      "judge_cost_usd": 0.0019307999999999999
+    },
+    "latency_ms": 5564.061164855957,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}

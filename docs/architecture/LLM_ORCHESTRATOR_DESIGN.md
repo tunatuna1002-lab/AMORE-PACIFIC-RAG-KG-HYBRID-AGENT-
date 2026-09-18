@@ -1,5 +1,21 @@
 # LLM Orchestrator 재설계 설계서
 
+> **[2026-09 사후] 이 설계서가 다루는 `src/core/llm_orchestrator.py`(603줄)는 삭제되었다.**
+> 호출처 0건 — 설계대로 구현은 됐지만 어떤 서비스에서도 import되지 않아 실제 질의
+> 경로에는 한 번도 연결되지 않은 죽은 코드였다(트랙 4-C, 커밋 `eb5dff2`·`f604c13`·
+> `167ec1b`·`b59beab`, 근거: `docs/experiments/evidence_pipeline_2026-09.md`,
+> `docs/portfolio/amore_architecture_evidence.md`). 같은 정리에서 `src/core/query_processor.py`,
+> `src/ontology/unified_reasoner.py`, SPARQL 계층(rdflib)도 함께 삭제됐다.
+>
+> 실제 질의 오케스트레이션은 지금 `src/core/brain.py`(UnifiedBrain)가
+> `src/core/query_graph.py`(QueryGraph)를 실행하는 경로가 맡는다 — 신뢰도 기반 라우팅은
+> `src/core/confidence.py`, 홉 수 기반 ReAct 진입 판단은 `src/core/router.py`, 도구
+> 선택·실행은 `src/core/decision_maker.py`/`src/core/react_agent.py`(둘 다
+> `src/core/tool_registry.py`의 5종 도구 공유)가 담당한다.
+>
+> 아래 본문은 삭제된 모듈의 원래 설계를 역사적 기록으로만 남겨둔 것이며, 현재 시스템의
+> 동작을 설명하지 않는다.
+
 ## 문서 정보
 - **버전**: 1.0
 - **작성일**: 2025-12-31

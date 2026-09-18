@@ -29,23 +29,19 @@ class TestContextToDecisionFlow:
             "available_tools": ["direct_answer"],
         }
 
-        # LLM 호출을 모킹
+        # LLM 호출을 모킹 (도구 호출 없음 → direct_answer, 트랙 4-A의 function calling)
         with patch("src.core.decision_maker.acompletion") as mock_llm:
-            mock_llm.return_value = MagicMock(
-                choices=[
-                    MagicMock(
-                        message=MagicMock(
-                            content='{"tool": "direct_answer", "tool_params": {}, "reason": "test", "confidence": 0.8, "key_points": ["SoS data"]}'
-                        )
-                    )
-                ]
-            )
+            message = MagicMock(content="컨텍스트로 충분\n- SoS data")
+            message.tool_calls = None
+            mock_llm.return_value = MagicMock(choices=[MagicMock(message=message)])
 
             decision = await dm.decide("LANEIGE SoS", context, system_state)
 
             assert isinstance(decision, Decision)
             assert decision.tool == "direct_answer"
-            assert decision.confidence == 0.8
+            assert decision.key_points == ["SoS data"]
+            # function calling 응답에는 모델 자기보고 신뢰도 필드가 없다 (미보고 = 0.0)
+            assert decision.confidence == 0.0
 
     @pytest.mark.asyncio
     async def test_decision_maker_with_confidence_level(self):
@@ -101,7 +97,9 @@ class TestDecisionToResponseFlow:
 
         assert isinstance(response, Response)
         assert response.text  # Not empty
-        assert response.confidence_score > 0
+        # §4.1: 근거(rag_docs/kg_facts)가 전혀 없으면 LLM이 0.85로 자신해도 신뢰도는 0.
+        # 과거 max()에서는 0.85로 올라갔다.
+        assert response.confidence_score == 0.0
 
     @pytest.mark.asyncio
     async def test_high_confidence_fast_path_detection(self):
@@ -166,44 +164,3 @@ class TestConfidenceRoutingFlow:
         level = assessor.assess(rule_result, context)
 
         assert level in [ConfidenceLevel.LOW, ConfidenceLevel.UNKNOWN]
-
-
-class TestOntologyIntegration:
-    """Ontology 컴포넌트 통합 테스트"""
-
-    def test_ontology_kg_to_unified_reasoner(self):
-        """OntologyKG → UnifiedReasoner 데이터 흐름"""
-        from src.ontology.knowledge_graph import KnowledgeGraph
-        from src.ontology.ontology_knowledge_graph import OntologyKnowledgeGraph
-        from src.ontology.unified_reasoner import UnifiedReasoner
-
-        # OntologyKG requires a KnowledgeGraph instance
-        kg = KnowledgeGraph()
-        okg = OntologyKnowledgeGraph(knowledge_graph=kg)
-
-        # UnifiedReasoner can work standalone
-        ur = UnifiedReasoner()
-        context = {"brand": "LANEIGE", "sos": 0.15, "rank": 3}
-        results = ur.infer(context=context, query="LANEIGE market position")
-
-        assert isinstance(results, list)
-
-    def test_unified_reasoner_result_format(self):
-        """UnifiedReasoner 결과가 Context에 호환되는 형식인지"""
-        from src.ontology.unified_reasoner import UnifiedInferenceResult
-
-        result = UnifiedInferenceResult(
-            insight="LANEIGE is market leader",
-            confidence=0.85,
-            source="owl",
-            recommendation="Continue current strategy",
-            supporting_facts=["High SoS", "Strong rankings"],
-        )
-
-        d = result.to_dict()
-
-        # Context.kg_inferences에 들어갈 수 있는 형식
-        assert "insight" in d
-        assert "confidence" in d
-        assert "source" in d
-        assert isinstance(d, dict)

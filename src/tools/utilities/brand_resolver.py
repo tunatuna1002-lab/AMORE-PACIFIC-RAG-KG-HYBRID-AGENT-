@@ -191,11 +191,11 @@ class BrandResolver:
                 if brand:
                     source = "amazon_detail_page"
 
-            # 2. 웹검색 fallback
+            # 2. 알려진 브랜드 패턴 사전 fallback (웹검색 아님 — docstring 참조)
             if use_websearch and not brand:
-                brand = await self._search_brand_web(product_name)
+                brand = await self._resolve_from_known_patterns(product_name)
                 if brand:
-                    source = "web_search"
+                    source = "known_patterns"
 
             # 결과 처리
             if brand and brand != "Unknown":
@@ -217,10 +217,24 @@ class BrandResolver:
         if verified_count > 0:
             self._save_mappings()
 
+        # Unknown 비율 로그 — 해소율이 낮으면 패턴 사전의 한계가 원인이다
+        total = len(products)
+        if total:
+            unknown_before = len(unknown_products)
+            unknown_after = unknown_before - verified_count
+            logger.info(
+                f"Unknown 브랜드 비율: {unknown_before}/{total} "
+                f"({unknown_before / total * 100:.1f}%) → "
+                f"{unknown_after}/{total} ({unknown_after / total * 100:.1f}%) "
+                f"(해소 {verified_count}건, 미해소 {failed_count}건)"
+            )
+
         return {
             "verified_count": verified_count,
             "failed_count": failed_count,
             "skipped_count": len(products) - len(unknown_products),
+            "unknown_before": len(unknown_products),
+            "unknown_after": len(unknown_products) - verified_count,
             "results": results,
         }
 
@@ -306,25 +320,22 @@ class BrandResolver:
 
         return None
 
-    async def _search_brand_web(self, product_name: str) -> str | None:
-        """
-        웹검색으로 브랜드 확인
+    async def _resolve_from_known_patterns(self, product_name: str) -> str | None:
+        """알려진 브랜드 패턴 사전으로 브랜드를 추정한다.
+
+        한계 (중요):
+            이 메서드는 **웹검색을 하지 않는다**. 아래 하드코딩된 14개 패턴에
+            제품명이 걸릴 때만 브랜드를 돌려준다. 그 밖의 브랜드는 항상 None이며,
+            이것이 Unknown 비율(현재 약 28%)의 한 원인이다.
+            실제 웹검색 연동은 별도 과제다.
 
         Args:
             product_name: 제품명
 
         Returns:
-            브랜드명 또는 None
+            브랜드명 또는 None (사전에 없으면 항상 None)
         """
         try:
-            # 제품명에서 첫 2-3 단어로 검색 쿼리 생성
-            words = product_name.split()[:3]
-            query = " ".join(words) + " brand"
-
-            # TODO: 실제 웹검색 API 연동
-            # 현재는 placeholder - 향후 WebSearch 도구 연동
-            logger.debug(f"Web search query: {query}")
-
             # 간단한 패턴 매칭으로 브랜드 추정
             known_patterns = {
                 "summer fridays": "Summer Fridays",
@@ -349,7 +360,7 @@ class BrandResolver:
                     return brand
 
         except Exception as e:
-            logger.error(f"Error in web search: {e}")
+            logger.error(f"Error in known-pattern lookup: {e}")
 
         return None
 

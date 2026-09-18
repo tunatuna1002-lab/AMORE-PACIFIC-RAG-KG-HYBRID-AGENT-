@@ -1,0 +1,176 @@
+{
+  "item_id": "lg056",
+  "question": "CPI가 1.0 미만일 때 브랜드 전략은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 0.5,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.11627906976744186,
+    "semantic_similarity": 0.7324512004852295,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.8097190576560738,
+  "fail_reason_tags": [
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg056",
+    "timestamp": "2026-09-17T21:39:10.627515",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "cpi",
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_2_1",
+        "home_insight_rules_7",
+        "metric_interpretation_3_0",
+        "metric_interpretation_3_1",
+        "strategic_indicators_1_1",
+        "indicator_combination_3_0",
+        "strategic_indicators_2_0",
+        "strategic_indicators_1_0"
+      ],
+      "snippets": [
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "1.5 Price vs Quality Signal (가격·품질 리스크 요약)\n\n### 목표\n- CPI와 Avg Rating Gap의 조합을 “리스크” 관점으로 1줄 요약\n- **문제 없으면 ‘정상’으로 처리**(과대 경고 금지)\n\n### 기본 규칙(조합)\n- CPI > 100 & Avg Rating Gap < 0:\n  - “프리미엄 가격 대비 평점 열위 신",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "#### 주의사항\n- 개별 브랜드 성과를 평가하는 지표가 아니다.\n- 단기 이벤트에 의해 일시적으로 급등할 수 있다.\n\n---\n\n### 6. Avg Rating Gap\n\n#### 해석 가이드\n- **양수**\n  - 카테고리 평균 대비 높은 고객 만족도\n- **음수**\n  - 상대적 품질 인식 열위 가능성\n\n#### 함께 봐야 할 지표\n- CPI\n- Rati",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "B. Category & Price Combination\n### (가격 · 품질 인식)\n\n---\n\n### 5. CPI > 100 + Avg Rating Gap > 0\n\n#### 해석 시나리오\n- 고가 포지션이면서 품질 인식도 양호\n\n#### 시사점\n- 프리미엄 전략 정합성 높음\n\n#### 고려 가능한 액션 후보\n- 프리미엄 메시지 강화\n- 고가 라인 확장 ",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제"
+      ],
+      "scores": [
+        18.959895982805136,
+        0.5029845237731934,
+        0.4892491102218628,
+        0.4845084547996521,
+        0.4730098247528076,
+        0.471000611782074,
+        0.4694180488586426,
+        0.4436960220336914
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "CPI가 1.0 미만(즉, 100 미만)일 때는 해당 브랜드가 카테고리 평균 대비 저가 또는 가성비 포지션에 있다는 의미입니다. 이 경우 브랜드 전략은 다음과 같이 수립하는 것이 적절합니다.\n\n1. **가성비 경쟁력 강화**  \n   - CPI가 낮은 만큼 가격 경쟁력이 강점이므로, Avg Rating Gap(평점 차이)과 함께 분석해 가성비 우위 신호가 있는지 확인해야 합니다.  \n   - 만약 Avg Rating Gap이 양수라면 “가성비 경쟁력 신호(가격 대비 만족도 우위)”로 해석되어 가격 대비 품질 만족도를 강조하는 마케팅이 효과적입니다.\n\n2. **품질 및 고객 만족도 관리**  \n   - CPI는 가격만 반영하므로, 평점과 리뷰를 통해 품질 신호를 지속적으로 모니터링해야 합니다.  \n   - 평점이 낮거나 부정적이라면 가격 경쟁력만으로는 한계가 있으므로 품질 개선 및 고객 신뢰 회복 전략이 필요합니다.\n\n3. **시장 내 포지셔닝 명확화**  \n   - 저가/가성비 포지션을 명확히 하여 타깃 고객층(예: 가격 민감 고객)을 집중 공략합니다.  \n   - 단기 프로모션이나 이벤트를 활용해 시장 점유율 확대를 노릴 수 있습니다.\n\n4. **경쟁사 대비 차별화 요소 발굴**  \n   - 가격 외에 제품 특성, 브랜드 이미지, 서비스 등 차별화 요소를 강화해 단순 저가 이미지 탈피 시도.\n\n요약하면, CPI가 1.0 미만일 때 브랜드 전략은 “가격 경쟁력을 기반으로 가성비 우위 신호를 적극 활용하되, 평점 등 품질 지표와 함께 관리하여 가격 대비 만족도를 높이는 방향으로 포지셔닝 및 마케팅을 전개”하는 것입니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1252,
+      "judge_tokens": 4205,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 822,
+      "l5_completion_tokens": 430,
+      "judge_prompt_tokens": 2692,
+      "judge_completion_tokens": 1513,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0010168,
+      "judge_cost_usd": 0.0034976,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5636.259078979492,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 7.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

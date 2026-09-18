@@ -28,6 +28,11 @@ from src.api.models import (
     UpdateAlertSettingsRequest,
 )
 from src.core.state_manager import EmailSubscription, StateManager, get_state_manager
+from src.tools.calculators.metric_calculator import (
+    calculate_hhi_from_counts,
+    count_brands,
+    hhi_to_points,
+)
 from src.tools.notifications.alert_service import get_alert_service
 from src.tools.storage.sqlite_storage import get_sqlite_storage
 
@@ -226,10 +231,14 @@ async def send_test_alert():
 # =============================================================================
 
 
-@router.get("/v3/alert-settings")
+@router.get("/v3/alert-settings", deprecated=True)
 async def get_alert_settings():
     """
-    현재 알림 설정 조회
+    현재 알림 설정 조회 (v3)
+
+    [DEPRECATED] v4 엔드포인트로 대체됨. 대시보드는 호출하지 않는다.
+    외부 소비자가 있을 수 있어 즉시 삭제하지 않는다 (docs/dev/FUTURE_WORK.md 참조).
+
 
     참고: 현재는 단일 사용자 설정만 지원 (첫 번째 등록된 이메일)
     """
@@ -249,11 +258,15 @@ async def get_alert_settings():
     }
 
 
-@router.post("/v3/alert-settings", dependencies=[Depends(verify_api_key)])
+@router.post("/v3/alert-settings", deprecated=True, dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")  # 분당 5회 제한 (스팸 방지)
 async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
     """
-    알림 설정 저장
+    알림 설정 저장 (v3)
+
+    [DEPRECATED] v4 엔드포인트로 대체됨. 대시보드는 호출하지 않는다.
+    외부 소비자가 있을 수 있어 즉시 삭제하지 않는다 (docs/dev/FUTURE_WORK.md 참조).
+
 
     보안: API Key + Rate Limiting (IP당 분당 5회)
     중요: consent가 True일 때만 이메일 등록
@@ -282,11 +295,15 @@ async def save_alert_settings(request: Request, settings: AlertSettingsRequest):
         return {"status": "ok", "message": "설정이 업데이트되었습니다."}
 
 
-@router.post("/v3/alert-settings/revoke", dependencies=[Depends(verify_api_key)])
+@router.post("/v3/alert-settings/revoke", deprecated=True, dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")  # 분당 5회 제한
 async def revoke_alert_consent(request: Request):
     """
-    알림 동의 철회
+    알림 동의 철회 (v3)
+
+    [DEPRECATED] v4 엔드포인트로 대체됨. 대시보드는 호출하지 않는다.
+    외부 소비자가 있을 수 있어 즉시 삭제하지 않는다 (docs/dev/FUTURE_WORK.md 참조).
+
 
     보안: API Key + Rate Limiting
     첫 번째 등록된 이메일의 동의를 철회합니다.
@@ -509,10 +526,14 @@ async def delete_alert_settings_v4(request: Request, email: str):
 # =============================================================================
 
 
-@router.get("/v3/alerts")
+@router.get("/v3/alerts", deprecated=True)
 async def get_alerts(limit: int = 50, alert_type: str | None = None):
     """
-    알림 목록 조회
+    알림 목록 조회 (v3)
+
+    [DEPRECATED] v4 엔드포인트로 대체됨. 대시보드는 호출하지 않는다.
+    외부 소비자가 있을 수 있어 즉시 삭제하지 않는다 (docs/dev/FUTURE_WORK.md 참조).
+
 
     Args:
         limit: 최대 개수
@@ -972,16 +993,8 @@ async def send_insight_report_email(request: Request):
         laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
         sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
 
-        # HHI 계산
-        brand_counts = {}
-        for p in top100:
-            brand = p.get("brand", "Unknown")
-            brand_counts[brand] = brand_counts.get(brand, 0) + 1
-        hhi = (
-            sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
-            if top100
-            else 0
-        )
+        # HHI 계산 (정본 0-1 → 이메일 표시는 0-10000 포인트)
+        hhi = hhi_to_points(calculate_hhi_from_counts(count_brands(top100)))
 
         # 인사이트 가져오기 (캐시된 것 또는 새로 생성)
         insight_content = dashboard_data.get("latest_insight", "")

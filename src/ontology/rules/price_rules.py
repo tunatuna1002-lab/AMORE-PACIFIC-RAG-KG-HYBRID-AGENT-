@@ -316,7 +316,7 @@ RULE_PREMIUM_POSITION = InferenceRule(
         StandardConditions.cpi_above(150),  # CPI > 150 (프리미엄)
         RuleCondition(
             name="good_rating",
-            check=lambda ctx: ctx.get("rating_gap", 0) >= 0,
+            check=lambda ctx: ctx.get("rating_gap") is not None and ctx["rating_gap"] >= 0,
             description="평점 동등 이상",
         ),
     ],
@@ -443,7 +443,9 @@ RULE_BESTSELLER_BADGE_EFFECT = InferenceRule(
         ),
         RuleCondition(
             name="rank_stable",
-            check=lambda ctx: abs(ctx.get("rank_change_7d", 0)) <= 3,
+            check=lambda ctx: (
+                ctx.get("rank_change_7d") is not None and abs(ctx["rank_change_7d"]) <= 3
+            ),
             description="순위 변동 ±3 이내 (안정)",
         ),
     ],

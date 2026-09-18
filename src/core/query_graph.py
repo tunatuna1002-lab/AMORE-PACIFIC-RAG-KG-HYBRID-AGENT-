@@ -10,18 +10,26 @@ Graph Structure:
     GUARD → CACHE_CHECK → GATHER_CONTEXT → ASSESS_CONFIDENCE
         → [HIGH] → GENERATE_RESPONSE
         → [UNKNOWN] → CLARIFICATION
-        → [MEDIUM/LOW + complex] → REACT_AGENT → GENERATE_RESPONSE
-        → [MEDIUM/LOW + simple] → DECIDE → EXECUTE_TOOL → GENERATE_RESPONSE
+        → [MEDIUM/LOW + 2홉 이상] → REACT_AGENT → GENERATE_RESPONSE
+        → [MEDIUM/LOW + 1홉] → DECIDE → EXECUTE_TOOL → GENERATE_RESPONSE
     GENERATE_RESPONSE → OUTPUT_GUARD → DONE
+
+분기 구현은 ``stream()`` 하나뿐이다 (트랙 5-A). ``run()``은 그 제너레이터를 끝까지
+소비하는 얇은 래퍼이고, ``UnifiedBrain.process_query_stream``은 같은 제너레이터가 내보내는
+진행 이벤트를 SSE로 흘려보낸다. 예전에는 brain.py가 이 파이프라인을 통째로 복제해
+스트림 경로에만 캐시·복합 질의 감지·route_trace가 빠져 있었다.
 """
 
 from __future__ import annotations
 
+import copy
 import logging
+import time
+from collections.abc import AsyncIterator
 from typing import Any
 
 from .cache import ResponseCache
-from .confidence import ConfidenceAssessor
+from .confidence import ConfidenceAssessor, legacy_count_score_to_fit, score_evidence_fit
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
 from .graph_state import QueryState
@@ -29,9 +37,32 @@ from .models import ConfidenceLevel, Context, Decision, Response
 from .prompt_guard import PromptGuard
 from .query_router import QueryRouter
 from .response_pipeline import ResponsePipeline
+from .router import HopRouter, RouteDecision
 from .tool_coordinator import ToolCoordinator
 
 logger = logging.getLogger(__name__)
+
+# 진행 상태 문구 — SSE `status` 이벤트로 그대로 나간다 (v3 스트림 계약 유지).
+# 분기마다 문구가 다르므로, 분기를 아는 그래프가 소유한다.
+STATUS_GATHER = "컨텍스트 수집 중..."
+STATUS_HIGH_CONFIDENCE = "높은 신뢰도 — 빠른 응답 생성 중..."
+STATUS_CLARIFY = "질문 분석 중..."
+STATUS_REACT = "복잡한 질문 감지 — ReAct 분석 모드 시작..."
+STATUS_DECIDE = "분석 중..."
+STATUS_GENERATE = "응답 생성 중..."
+
+
+# ReAct 운용 모드 (트랙 5-C)
+#   off     ReAct를 쓰지 않는다 (에이전트 미주입 또는 플래그 OFF)
+#   on      2홉 이상 질문의 답을 ReAct가 만든다
+#   shadow  답은 파이프라인이 만들고, ReAct는 같은 질문을 따로 돌려 기록만 남긴다
+REACT_MODE_OFF = "off"
+REACT_MODE_ON = "on"
+REACT_MODE_SHADOW = "shadow"
+
+
+def _status(content: str) -> dict[str, Any]:
+    return {"type": "status", "content": content}
 
 
 class QueryGraph:
@@ -61,6 +92,9 @@ class QueryGraph:
         tool_coordinator: ToolCoordinator,
         response_pipeline: ResponsePipeline,
         react_agent: Any | None = None,
+        router: HopRouter | None = None,
+        react_mode: str | None = None,
+        react_bypass_confidence: bool = False,
     ):
         self._cache = cache
         self._context_gatherer = context_gatherer
@@ -69,6 +103,11 @@ class QueryGraph:
         self._tool_coordinator = tool_coordinator
         self._response_pipeline = response_pipeline
         self._react_agent = react_agent
+        self._router = router or HopRouter()
+        # 모드를 주지 않으면 에이전트가 있을 때 "on" — 기존 호출부(테스트 포함)의 동작 유지
+        self._react_mode = react_mode or (REACT_MODE_ON if react_agent else REACT_MODE_OFF)
+        # HIGH 신뢰도라도 홉 라우터가 2홉 이상이면 react로 보낼지 (트랙 6, 기본 False)
+        self._react_bypass_confidence = react_bypass_confidence
 
     # =========================================================================
     # Node Methods — each takes QueryState, returns QueryState
@@ -101,8 +140,18 @@ class QueryGraph:
             cached = self._cache.get(state.query, "query")
             if cached:
                 logger.info(f"Cache hit: {state.query[:30]}...")
-                state.response = cached
+                # 캐시에 저장된 원본 객체는 변경하지 않고 얕은 복사본에
+                # route_trace만 "cache"로 덮어써서 반환한다 (다음 문항 오염 방지).
+                cached_metadata = getattr(cached, "metadata", None) or {}
+                trace = dict(cached_metadata.get("route_trace") or {})
+                trace["route"] = "cache"
+
+                response = copy.copy(cached)
+                response.metadata = {**cached_metadata, "route_trace": trace}
+
+                state.response = response
                 state.metadata["cache_hit"] = True
+                state.metadata["route_trace"] = trace
 
         return state
 
@@ -114,44 +163,63 @@ class QueryGraph:
         return state
 
     def _node_assess_confidence(self, state: QueryState) -> QueryState:
-        """신뢰도 평가 노드
+        """신뢰도 평가 노드 (적합도 기반, 트랙 5-B — 유일한 구현. brain.py 복제본은 5-A에서 삭제)
 
-        brain.py의 _assess_confidence_level 로직을 복제.
-        컨텍스트 데이터 점수 + 쿼리 의도 명확성 점수를 합산하여
-        ConfidenceAssessor에 위임합니다.
+        증거 카드가 이 질문에 맞는지를 재서 0~1 점수를 만들고 ConfidenceAssessor에
+        위임한다 (``src.core.confidence.score_evidence_fit``). 예전처럼 컨텍스트 개수를
+        더하지 않는다 — 검색이 질문마다 비슷한 양을 담아 오면 개수 합은 항상 높아져서
+        233문항 중 230문항이 HIGH로 나왔다.
+
+        카드가 하나도 없는 구형 경로(v1 retriever, 카드 미병합 컨텍스트)에서는 옛 개수
+        점수로 폴백한 뒤 ``legacy_count_score_to_fit()``으로 같은 사다리에 올린다.
         """
         context = state.context
         if context is None:
             state.confidence_level = ConfidenceLevel.UNKNOWN
             return state
 
-        # Build rule_result from context signals
-        rule_result: dict[str, Any] = {
-            "max_score": 0.0,
-            "confidence": 0.0,
-            "query_type": "unknown",
-        }
-
-        # --- 1) 컨텍스트 데이터 점수 ---
-        score = 0.0
-        if context.kg_facts:
-            score += min(len(context.kg_facts), 3) * 1.5
-        if context.rag_docs:
-            score += min(len(context.rag_docs), 3) * 1.0
-        if context.kg_inferences:
-            score += min(len(context.kg_inferences), 2) * 2.0
-        if context.entities:
-            entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
-            score += min(entity_count, 3) * 1.0
-
-        # --- 2) 쿼리 의도 명확성 점수 (최소 바닥 보장) ---
         query = context.query if hasattr(context, "query") else ""
-        query_intent_score = self._assess_query_intent(query)
-        score += query_intent_score
+        cards = getattr(context, "prompt_evidence", None) or getattr(context, "evidence", None)
 
-        rule_result["max_score"] = score
+        if cards:
+            fit = score_evidence_fit(query, context.entities, cards)
+            score = fit.score
+            components: dict[str, Any] = fit.to_dict()
+        else:
+            # 폴백: 카드 파이프라인을 타지 않는 경로(v1 HybridContext, 최소 컨텍스트)에서
+            # 신뢰도가 전부 UNKNOWN으로 무너지지 않게 옛 개수 점수를 같은 사다리에 올린다.
+            counts: dict[str, float] = {
+                "kg_facts": 0.0,
+                "rag_docs": 0.0,
+                "inferences": 0.0,
+                "entities": 0.0,
+                "query_intent": 0.0,
+            }
+            if context.kg_facts:
+                counts["kg_facts"] = min(len(context.kg_facts), 3) * 1.5
+            if context.rag_docs:
+                counts["rag_docs"] = min(len(context.rag_docs), 3) * 1.0
+            if context.kg_inferences:
+                counts["inferences"] = min(len(context.kg_inferences), 2) * 2.0
+            if context.entities:
+                entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
+                counts["entities"] = min(entity_count, 3) * 1.0
+            counts["query_intent"] = self._assess_query_intent(query)
 
-        state.confidence_level = self._confidence_assessor.assess(rule_result, context)
+            raw_score = sum(counts.values())
+            score = legacy_count_score_to_fit(raw_score)
+            components = {
+                "basis": "legacy",
+                "legacy_count_score": raw_score,
+                "legacy_counts": counts,
+                "card_count": 0,
+            }
+
+        state.confidence_level = self._confidence_assessor.assess({"fit_score": score}, context)
+
+        # 관측용 기록 (분기 로직에는 영향 없음). confidence_score는 0~1 적합도 눈금이다.
+        state.metadata["confidence_score"] = score
+        state.metadata["confidence_components"] = components
         return state
 
     async def _node_decide(self, state: QueryState) -> QueryState:
@@ -187,10 +255,15 @@ class QueryGraph:
                 context=context.summary or "컨텍스트 없음" if context else "컨텍스트 없음",
             )
 
+            if not react_result.final_answer:
+                logger.warning("ReAct returned an empty final answer")
+                state.response = Response.fallback("ReAct 분석이 답변을 만들지 못했습니다.")
+                return state
+
             state.response = Response(
                 text=react_result.final_answer,
                 confidence_score=react_result.confidence,
-                sources=context.rag_docs[:3] if context and context.rag_docs else [],
+                sources=self._react_sources(react_result, context),
                 tools_called=[step.action for step in react_result.steps if step.action],
             )
 
@@ -204,6 +277,79 @@ class QueryGraph:
             state.response = Response.fallback(f"ReAct 처리 실패: {str(e)}")
 
         return state
+
+    async def _node_route(self, state: QueryState) -> QueryState:
+        """홉 수 라우터 판정 노드 (LLM 폴백이 켜졌을 때만 비동기 호출이 일어난다)."""
+        state.metadata["router_decision"] = await self._router.route(state.query)
+        return state
+
+    async def _node_react_shadow(self, state: QueryState) -> QueryState:
+        """섀도 ReAct: 답변은 그대로 두고 ReAct 결과만 기록한다 (트랙 5-C).
+
+        파이프라인 답변을 **절대 바꾸지 않는다**. 실패해도 응답에 영향이 없도록 예외를
+        삼키고 ``error``만 남긴다. 섀도가 쓴 토큰은 파이프라인 사용량과 섞이지 않도록
+        ``token_usage``에 따로 적는다.
+        """
+        started = time.perf_counter()
+        shadow: dict[str, Any] = {"ran": False, "error": None}
+
+        try:
+            context = state.context
+            result = await self._react_agent.run(
+                query=state.query,
+                context=(context.summary or "컨텍스트 없음") if context else "컨텍스트 없음",
+            )
+            shadow.update(
+                ran=True,
+                answer=result.final_answer,
+                steps=[
+                    {
+                        "thought": step.thought,
+                        "action": step.action,
+                        "observed": bool(step.observation),
+                    }
+                    for step in (result.steps or [])
+                ],
+                tools=[step.action for step in (result.steps or []) if step.action],
+                iterations=result.iterations,
+                hop_count=result.hop_count,
+                confidence=result.confidence,
+                token_usage=dict(getattr(result, "token_usage", None) or {}),
+            )
+        except Exception as e:  # 섀도 실패가 답변을 깨뜨리면 안 된다
+            shadow["error"] = f"{type(e).__name__}: {e}"
+            logger.warning(f"ReAct shadow run failed: {shadow['error']}")
+
+        shadow["elapsed_ms"] = (time.perf_counter() - started) * 1000
+        state.metadata["react_shadow"] = shadow
+
+        if state.response is not None:
+            if state.response.metadata is None:
+                state.response.metadata = {}
+            state.response.metadata["react_shadow"] = shadow
+
+        return state
+
+    @staticmethod
+    def _react_sources(react_result: Any, context: Context | None) -> list[str]:
+        """ReAct 답변의 출처 라벨 (``list[str]``).
+
+        예전에는 ``context.rag_docs[:3]``(dict 목록)을 그대로 실었다. ``Response.sources``와
+        ``BrainChatResponse.sources``는 ``list[str]``이라 ReAct 경로로 답한 질문은
+        ``/api/v4/chat``에서 응답 모델 검증에 걸렸다 (트랙 5-C).
+
+        1순위는 ReAct가 **실제로 본** 도구 관찰의 근거 카드다. 도구를 하나도 부르지 않았으면
+        답변 프롬프트에 실린 검색 카드로 떨어진다 — 파이프라인 경로와 같은 기준이다.
+        """
+        sources = [str(s) for s in (getattr(react_result, "sources", None) or [])]
+        if sources or context is None:
+            return sources
+        cards = getattr(context, "prompt_evidence", None) or getattr(context, "evidence", None)
+        if not cards:
+            return []
+        from src.rag.evidence_assembly import evidence_source_labels
+
+        return evidence_source_labels(cards)
 
     async def _node_generate_response(self, state: QueryState) -> QueryState:
         """응답 생성 노드"""
@@ -288,25 +434,52 @@ class QueryGraph:
         return "gather_context"
 
     def _route_after_confidence(self, state: QueryState) -> str:
-        """신뢰도 기반 라우팅
+        """신뢰도 → (MEDIUM/LOW면) 홉 수 기반 라우팅
 
         Returns:
-            "generate_response": HIGH confidence - 직접 응답
             "clarification": UNKNOWN - 명확화 요청
-            "react": MEDIUM/LOW + 복잡한 질문 - ReAct 모드
-            "decide": MEDIUM/LOW + 단순 질문 - DecisionMaker
+            "react": react_bypass_confidence=True + react ON + 2홉 이상이면 HIGH도 포함
+                     (트랙 6), 그 외에는 MEDIUM/LOW + 2홉 이상 (react_mode == "on"일 때만)
+            "generate_response": HIGH confidence - 직접 응답
+            "decide": MEDIUM/LOW + 1홉 - DecisionMaker
         """
-        if self._confidence_assessor.should_skip_llm_decision(state.confidence_level):
-            return "generate_response"
-
         if self._confidence_assessor.should_request_clarification(state.confidence_level):
             return "clarification"
 
-        # MEDIUM/LOW: 복잡도 판단
-        if self._react_agent and self._is_complex_query(state.query, state.context):
+        # HIGH 신뢰도라도 홉 라우터가 2홉 이상이면 react로 보낸다 (opt-in, 트랙 6).
+        # UNKNOWN은 위에서 이미 걸러졌으니 여기서부터는 HIGH/MEDIUM/LOW뿐이다.
+        if (
+            self._react_bypass_confidence
+            and self._react_mode == REACT_MODE_ON
+            and self._react_agent
+        ):
+            decision = self._router_decision(state)
+            state.metadata["is_complex"] = decision.use_react
+            if decision.use_react:
+                return "react"
+
+        if self._confidence_assessor.should_skip_llm_decision(state.confidence_level):
+            return "generate_response"
+
+        decision = self._router_decision(state)
+
+        # is_complex는 관측 필드다 — ReAct를 쓸 수 있을 때만 채운다 (기존 계약 유지)
+        if self._react_agent is not None:
+            state.metadata["is_complex"] = decision.use_react
+
+        if self._react_mode == REACT_MODE_ON and self._react_agent and decision.use_react:
             return "react"
 
         return "decide"
+
+    def _router_decision(self, state: QueryState) -> RouteDecision:
+        """이 질의의 라우터 판정. ``_node_route``가 미리 넣어 둔 값을 쓰고, 없으면 규칙만
+        돌린다 (``_route_after_confidence``를 단독으로 부르는 테스트·호출부 때문)."""
+        decision = state.metadata.get("router_decision")
+        if decision is None:
+            decision = self._router.analyze(state.query)
+            state.metadata["router_decision"] = decision
+        return decision
 
     def _route_after_decide(self, state: QueryState) -> str:
         """Decision 후 라우팅: 도구 필요 시 execute_tool, 아니면 generate_response"""
@@ -315,7 +488,7 @@ class QueryGraph:
         return "generate_response"
 
     # =========================================================================
-    # Helper Methods (replicated from brain.py for self-containment)
+    # Helper Methods (분기·판정의 유일한 구현 — 트랙 5-A에서 brain.py 복제본 삭제)
     # =========================================================================
 
     @staticmethod
@@ -423,7 +596,14 @@ class QueryGraph:
 
     @staticmethod
     def _is_complex_query(query: str, context: Context | None) -> bool:
-        """복잡한 질문인지 판단 (QueryRouter 통합)
+        """복잡한 질문인지 판단 — **경로 판정에서는 쓰지 않는다** (트랙 5-C).
+
+        라우팅은 ``src/core/router.py``의 홉 수 판정으로 옮겼다. 이 헬퍼는 "비교·분석"
+        같은 어조 키워드와 컨텍스트 부족을 섞어 쓰기 때문에, 서로 의존하지 않는 두 조회
+        (예: 두 카테고리 HHI 비교)까지 ReAct로 보냈다. 복합 질의 감지 자체는 다른 곳에서
+        참조하므로 남겨 둔다.
+
+        (원래 설명)
 
         복잡한 질문의 특징:
         - 여러 단계 추론 필요
@@ -469,45 +649,132 @@ class QueryGraph:
                 points.append(inf["insight"])
         return points
 
+    def _finalize_route_trace(self, state: QueryState, route: str) -> QueryState:
+        """문항별 경로 관측 기록 (분기 로직에는 영향 없는 순수 관측 노드)
+
+        state.metadata["route_trace"]와 (있다면) response.metadata["route_trace"]에
+        동일한 dict를 기록한다.
+
+        Args:
+            state: 현재 QueryState
+            route: "direct" | "clarify" | "decide" | "react" | "blocked" | "cache"
+
+        라우터 판정(hops·router_stages·router_reason·router_basis·router_route)과 섀도 ReAct
+        기록(react_shadow)이 있으면 같은 dict에 합쳐진다 (트랙 5-C).
+
+        Returns:
+            state (route_trace가 기록된 상태)
+        """
+        confidence_level = state.confidence_level
+        tools_used: list[dict[str, Any]] = []
+        decision_tool: str | None = None
+
+        if route == "decide":
+            decision_tool = state.decision.tool if state.decision else None
+            if state.decision and state.decision.requires_tool():
+                tools_used = [
+                    {
+                        "tool": state.decision.tool,
+                        "executed": bool(state.tool_result and state.tool_result.success),
+                    }
+                ]
+        elif route == "react" and state.response is not None:
+            tools_used = [
+                {"tool": action, "executed": True} for action in (state.response.tools_called or [])
+            ]
+
+        trace: dict[str, Any] = {
+            "route": route,
+            "confidence_level": confidence_level.value if confidence_level else None,
+            "confidence_score": state.metadata.get("confidence_score"),
+            "confidence_components": state.metadata.get("confidence_components"),
+            "tools_used": tools_used,
+            "decision_tool": decision_tool,
+            "is_complex": state.metadata.get("is_complex"),
+        }
+
+        # 홉 수 라우터 판정 (hops·router_stages·router_reason·router_basis·router_route)
+        router_decision = state.metadata.get("router_decision")
+        if router_decision is not None:
+            trace.update(router_decision.to_trace())
+
+        # 섀도 ReAct 결과 (있을 때만)
+        shadow = state.metadata.get("react_shadow")
+        if shadow is not None:
+            trace["react_shadow"] = shadow
+
+        state.metadata["route_trace"] = trace
+
+        if state.response is not None:
+            if state.response.metadata is None:
+                state.response.metadata = {}
+            state.response.metadata["route_trace"] = trace
+
+        return state
+
     # =========================================================================
     # Graph Execution
     # =========================================================================
 
     async def run(self, state: QueryState) -> QueryState:
         """
-        상태 그래프 실행
+        상태 그래프 실행 (진행 이벤트를 버리는 얇은 래퍼)
+
+        분기는 ``stream()`` 하나에만 있다. 여기서는 이벤트를 소비만 한다.
 
         Args:
             state: 초기 QueryState
 
         Returns:
-            최종 QueryState (response 포함)
+            최종 QueryState (response 포함) — 인자로 받은 그 객체
+        """
+        async for _ in self.stream(state):
+            pass
+        return state
+
+    async def stream(self, state: QueryState) -> AsyncIterator[dict[str, Any]]:
+        """
+        상태 그래프를 실행하면서 진행 이벤트를 순서대로 내보낸다
+
+        이벤트는 SSE 청크와 같은 모양이다:
+        ``{"type": "status"|"tool_call", "content": ...}``.
+        최종 텍스트·완료 이벤트는 호출자(``UnifiedBrain.process_query_stream``)가
+        ``state.response``로 조립한다 — 그래야 처리 시간·통계가 한곳에 남는다.
+
+        모든 노드는 받은 state를 **제자리에서** 고치므로, 제너레이터를 끝까지 소비한
+        뒤 호출자가 갖고 있는 state를 그대로 읽으면 된다.
+
+        Args:
+            state: 초기 QueryState (제자리에서 수정된다)
         """
         state.original_query = state.query
 
         # GUARD
-        state = await self._node_guard(state)
-        next_node = self._route_after_guard(state)
-        if next_node == "done":
-            return state
+        await self._node_guard(state)
+        if self._route_after_guard(state) == "done":
+            self._finalize_route_trace(state, "blocked")
+            return
 
         # CACHE_CHECK
-        state = await self._node_cache_check(state)
-        next_node = self._route_after_cache(state)
-        if next_node == "done":
-            return state
+        await self._node_cache_check(state)
+        if self._route_after_cache(state) == "done":
+            # route_trace는 _node_cache_check에서 이미 "cache"로 기록됨
+            return
 
         # GATHER_CONTEXT
-        state = await self._node_gather_context(state)
+        yield _status(STATUS_GATHER)
+        await self._node_gather_context(state)
 
         # ASSESS_CONFIDENCE
-        state = self._node_assess_confidence(state)
+        self._node_assess_confidence(state)
 
-        # ROUTE based on confidence
+        # ROUTE — 홉 수 판정 (LLM 폴백이 켜졌을 때만 LLM을 부른다)
+        await self._node_route(state)
         next_node = self._route_after_confidence(state)
 
         if next_node == "generate_response":
             # HIGH confidence - direct answer (skip LLM decision)
+            yield _status(STATUS_HIGH_CONFIDENCE)
             logger.info(f"HIGH confidence - skipping LLM decision for: {state.query[:50]}...")
             state.decision = Decision(
                 tool="direct_answer",
@@ -518,27 +785,46 @@ class QueryGraph:
                 confidence=0.9,
                 key_points=self._extract_key_points(state.context),
             )
+            route = "direct"
         elif next_node == "clarification":
-            state = self._node_clarification(state)
-            state = self._node_output_guard(state)
-            return state
+            yield _status(STATUS_CLARIFY)
+            self._node_clarification(state)
+            self._node_output_guard(state)
+            self._finalize_route_trace(state, "clarify")
+            return
         elif next_node == "react":
+            yield _status(STATUS_REACT)
             logger.info(f"Complex query detected, using ReAct mode: {state.query[:50]}...")
-            state = await self._node_react(state)
-            state = self._node_output_guard(state)
-            return state
+            await self._node_react(state)
+            self._node_output_guard(state)
+            self._finalize_route_trace(state, "react")
+            return
         else:
             # DECIDE
-            state = await self._node_decide(state)
+            route = "decide"
+            yield _status(STATUS_DECIDE)
+            await self._node_decide(state)
             # ROUTE after decide
-            next_node = self._route_after_decide(state)
-            if next_node == "execute_tool":
-                state = await self._node_execute_tool(state)
+            if self._route_after_decide(state) == "execute_tool":
+                yield {
+                    "type": "tool_call",
+                    "content": {"name": state.decision.tool, "status": "calling"},
+                }
+                await self._node_execute_tool(state)
+            yield _status(STATUS_GENERATE)
 
         # GENERATE_RESPONSE
-        state = await self._node_generate_response(state)
+        await self._node_generate_response(state)
 
         # OUTPUT_GUARD
-        state = self._node_output_guard(state)
+        self._node_output_guard(state)
 
-        return state
+        # SHADOW REACT — 답변은 위에서 이미 정해졌다. 기록만 남긴다.
+        if (
+            self._react_mode == REACT_MODE_SHADOW
+            and self._react_agent is not None
+            and self._router_decision(state).use_react
+        ):
+            await self._node_react_shadow(state)
+
+        self._finalize_route_trace(state, route)

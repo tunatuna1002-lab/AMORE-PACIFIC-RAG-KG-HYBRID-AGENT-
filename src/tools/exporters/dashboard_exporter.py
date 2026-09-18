@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Any
 
 from src.shared.constants import KST
+from src.tools.calculators.metric_calculator import (
+    UNKNOWN_BRAND_LABELS,
+    calculate_hhi_from_counts,
+)
 
 # 한국 시간대 (UTC+9)
 from src.tools.storage.sheets_writer import SheetsWriter
@@ -572,6 +576,11 @@ class DashboardExporter:
         laneige_count = len(laneige_stats["products"])
         sos = (laneige_count / total_products * 100) if total_products > 0 else 0
 
+        # 델타 3종: 직전 스냅샷 대비 실계산 (이전 데이터 없으면 None)
+        sos_delta = self._calculate_sos_delta(raw_data, latest_date)
+        top10_delta = self._calculate_top10_delta(raw_data, latest_date)
+        avg_rank_delta = self._calculate_avg_rank_delta(raw_data, latest_date)
+
         # Top 10 내 개수
         top10_count = len([r for r in laneige_ranks if r <= 10])
 
@@ -581,27 +590,125 @@ class DashboardExporter:
         return {
             "kpis": {
                 "sos": round(sos, 1),
-                "sos_delta": "+2.1%p",  # TODO: 실제 계산
+                "sos_delta": sos_delta,
                 "top10_count": top10_count,
+                "top10_delta": top10_delta,
                 "avg_rank": round(avg_rank, 1),
+                "avg_rank_delta": avg_rank_delta,
                 "avg_price": round(laneige_avg_price, 2) if laneige_avg_price else None,
-                "hhi": round(hhi, 2),
+                "hhi": round(hhi, 4),
+                "hhi_band": self._hhi_band(hhi),
             },
             "competitors": self._generate_competitor_data(brand_stats),
         }
 
-    def _calculate_hhi(self, brand_stats: dict) -> float:
-        """HHI (Herfindahl-Hirschman Index) 계산"""
-        total = sum(len(stats["products"]) for stats in brand_stats.values())
-        if total == 0:
-            return 0
+    def _calculate_sos_delta(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 대비 SoS 변화량(%p) 계산.
 
-        hhi = (
-            sum((len(stats["products"]) / total * 100) ** 2 for stats in brand_stats.values())
-            / 10000
+        양변 모두 _is_laneige 기준으로 세어 내부 일관성을 보장하며,
+        이전 날짜 데이터가 없으면 None을 반환한다 (하드코딩 금지).
+        """
+
+        def _sos_of(records: list[dict]) -> float | None:
+            total = len(records)
+            if total == 0:
+                return None
+            count = sum(1 for r in records if self._is_laneige(r))
+            return count / total * 100
+
+        prev_dates = sorted(
+            {
+                r.get("snapshot_date")
+                for r in raw_data
+                if r.get("snapshot_date") and r.get("snapshot_date") < latest_date
+            }
         )
+        if not prev_dates:
+            return None
 
-        return hhi
+        today_sos = _sos_of([r for r in raw_data if r.get("snapshot_date") == latest_date])
+        prev_sos = _sos_of([r for r in raw_data if r.get("snapshot_date") == prev_dates[-1]])
+        if today_sos is None or prev_sos is None:
+            return None
+
+        delta = round(today_sos - prev_sos, 1)
+        if delta == 0:
+            delta = 0.0  # -0.0 표기 방지
+        return f"{delta:+.1f}%p"
+
+    def _prev_snapshot_date(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 날짜. 없으면 None."""
+        prev_dates = sorted(
+            {
+                r.get("snapshot_date")
+                for r in raw_data
+                if r.get("snapshot_date") and r.get("snapshot_date") < latest_date
+            }
+        )
+        return prev_dates[-1] if prev_dates else None
+
+    def _calculate_top10_delta(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 대비 Top10 LANEIGE 제품 수 변화. 이전 데이터 없으면 None."""
+        prev_date = self._prev_snapshot_date(raw_data, latest_date)
+        if not prev_date:
+            return None
+
+        def _top10_of(date: str) -> int:
+            return sum(
+                1
+                for r in raw_data
+                if r.get("snapshot_date") == date
+                and self._is_laneige(r)
+                and self._safe_int(r.get("rank", 999)) <= 10
+            )
+
+        delta = _top10_of(latest_date) - _top10_of(prev_date)
+        return f"{delta:+d}개"
+
+    def _calculate_avg_rank_delta(self, raw_data: list[dict], latest_date: str) -> str | None:
+        """직전 스냅샷 대비 LANEIGE 평균 순위 변화. 이전 데이터 없으면 None.
+
+        순위는 낮을수록 좋으므로 음수 델타가 '개선'이다.
+        """
+        prev_date = self._prev_snapshot_date(raw_data, latest_date)
+        if not prev_date:
+            return None
+
+        def _avg_rank_of(date: str) -> float | None:
+            ranks = [
+                self._safe_int(r.get("rank", 0))
+                for r in raw_data
+                if r.get("snapshot_date") == date and self._is_laneige(r) and r.get("rank")
+            ]
+            return sum(ranks) / len(ranks) if ranks else None
+
+        today = _avg_rank_of(latest_date)
+        prev = _avg_rank_of(prev_date)
+        if today is None or prev is None:
+            return None
+
+        delta = round(today - prev, 1)
+        if delta == 0:
+            return "0.0위"
+        return f"{delta:+.1f}위"
+
+    @staticmethod
+    def _hhi_band(hhi: float) -> str:
+        """0-1 스케일 HHI의 집중도 밴드 라벨 (metric_calculator 해석 가이드 기준)."""
+        if hhi >= 0.25:
+            return "고집중 시장"
+        if hhi >= 0.15:
+            return "중간 집중도"
+        return "분산 시장"
+
+    def _calculate_hhi(self, brand_stats: dict) -> float:
+        """HHI (Herfindahl-Hirschman Index) 계산 — 정본 구현 위임 (0-1 스케일)"""
+        counts = {
+            brand: len(stats["products"])
+            for brand, stats in brand_stats.items()
+            if brand and brand.strip().lower() not in UNKNOWN_BRAND_LABELS
+        }
+        return calculate_hhi_from_counts(counts)
 
     def _generate_competitor_data(self, brand_stats: dict) -> list[dict]:
         """경쟁사 데이터 생성 (tracked competitors 포함)"""
@@ -969,15 +1076,24 @@ class DashboardExporter:
             laneige_avg_price = sum(laneige_prices) / len(laneige_prices) if laneige_prices else 0
             cpi = (laneige_avg_price / avg_price * 100) if avg_price > 0 else 100
 
-            # 신규 경쟁자 수 (임시 계산 - 실제로는 시계열 비교 필요)
-            unique_brands = len({r.get("brand", "") for r in cat_data})
+            # 카테고리 내 고유 브랜드 수. "신규 경쟁자"가 아니다 —
+            # 신규 판정은 시계열 비교가 필요하며 아직 구현돼 있지 않다 (§6.5).
+            unique_brands = len(
+                {
+                    b
+                    for r in cat_data
+                    if (b := (r.get("brand") or "").strip())
+                    and b.lower() not in UNKNOWN_BRAND_LABELS
+                }
+            )
 
             category_kpis[cat_id] = {
                 "name": cat_name,
                 "sos": round(sos, 1),
                 "best_rank": best_rank,
                 "cpi": round(cpi, 0),
-                "new_competitors": unique_brands,
+                "brand_count": unique_brands,
+                "new_competitors": None,  # 시계열 비교 미구현
             }
 
         # CPI 추이 차트 (최근 7일)
@@ -1474,9 +1590,11 @@ class DashboardExporter:
             ),
             # 제품 지표
             "current_rank": best_rank,
-            "rank_change_7d": 0,  # 추후 계산 가능
-            "streak_days": 7,  # 추후 계산 가능
-            "rating_gap": 0.1,  # 추후 계산 가능
+            # 미계산 지표는 None으로 방출한다. 상수(streak_days=7 등)를 넣으면
+            # 온톨로지 규칙이 실데이터 없이 상시 트리거된다 (§6.5).
+            "rank_change_7d": None,
+            "streak_days": None,
+            "rating_gap": None,
         }
 
     def _get_inference_priority(self, inference) -> str:

@@ -1,0 +1,528 @@
+{
+  "item_id": "lg179",
+  "question": "분기별 Lip Care HHI 변화는?",
+  "passed": true,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.5
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14634146341463414,
+    "semantic_similarity": 0.7593683004379272,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.2,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6336249898578417,
+  "fail_reason_tags": [],
+  "trace": {
+    "item_id": "lg179",
+    "timestamp": "2026-09-10T11:46:19.703349",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi",
+        "seasonality"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_7",
+        "laneige_strategy_2026_4_0",
+        "laneige_influencer_map_0",
+        "laneige_strategy_2026_7_10",
+        "laneige_influencer_map_table_3",
+        "us_beauty_trends_weekly_table_0",
+        "us_beauty_trends_weekly_3_1",
+        "laneige_strategy_2026_7_8"
+      ],
+      "snippets": [
+        "ty \\- Reddit, 1월 20, 2026에 액세스, [https://www.reddit.com/r/AsianBeauty/comments/1l86p6e/research\\_on\\_if\\_you\\_should\\_use\\_pdrn\\_creams\\_serums/](https://www.reddit.com/r/AsianBeauty/comments/1l86p6e/",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "# **전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서**",
+        "g\\_mask/](https://www.reddit.com/r/Sephora/comments/1hsf7tq/laneige_lip_glowy_balm_vs_sleeping_mask/)  \n18. Fans of Pricey Rhode and Laneige Say This Anti-Aging Lip Gloss Gives the Same Plump and Shin",
+        "| 구성 요소 | 상세 내용 |\n| :---- | :---- |\n| **주요 목표** | 진정성 있는 정보 공유, 가성비 검증, 트러블 슈팅 |\n| **반복 메시지** | \"마케팅에 속지 말고 성분을 봐라. 구형 버전이 더 나을 수 있다.\" (비판적 시각) |\n| **설득 논리** | 전성분 비교 분석, 가격 대비 용량(Cost per ounce) 계산, ",
+        "| 순위 | 키워드 (출처·발행일) | 소비자 니즈/의미 | LANEIGE 연결 가설 | 관측 근거 |\n|---|---|---|---|---|\n| **1** | **립케어·#lipcare (#lipcare·#lipoil 해시태그)**【976869541034373†L309-L319】 | TikTok에서 #lipcare와 #lipoil 해시태그가 수천건 이상 ",
+        "1. **TikTok·Reels 광고에 #lipcare 및 #lipoil 활용** – 겨울철 건조 입술과 립케어 붐을 겨냥해 래니즈 Lip Sleeping Mask의 장점을 15초 영상으로 홍보한다. 소비자 리뷰나 ASMR 형식으로 보습력과 향을 강조한다.\n2. **“글래스 스킨 키트” 런칭 및 상세페이지 개선** – Water Bank Aqua Facia",
+        "tps://www.thehandbook.com/best-lip-repair-products/)  \n13. Dr. Idriss Packaged Her Viral \"Lip Basting\" Hack, and It's Saving My Flaky Winter Lips, 1월 20, 2026에 액세스, [https://www.byrdie.com/dr-idriss-l"
+      ],
+      "scores": [
+        0.40918290615081787,
+        0.40638136863708496,
+        0.3901594877243042,
+        0.3813953399658203,
+        0.37391436100006104,
+        0.3706188201904297,
+        0.3539045453071594,
+        0.3522029519081116
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "nivea",
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "nivea -competesWith-> tree_hut",
+        "nivea -competesWith-> carmex",
+        "nivea -competesWith-> hera",
+        "nivea -competesWith-> sun_bum",
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "nivea",
+          "data": [
+            {
+              "brand": "tree hut",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 33,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 33,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07X62WVM4",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK",
+                  "B0CLHVCPL5",
+                  "B0CKV7JNFX",
+                  "B01HOU74SO",
+                  "B0DZJM5VPY",
+                  "B0899C4WR8",
+                  "B00CXK623E",
+                  "B0G4NR7BL3"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 10,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP",
+                  "B0DQQNWRQS",
+                  "B00076TOUO",
+                  "B0DQF7FNYC"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 10,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR",
+                  "B0DXRKW3KY"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 10,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J",
+                  "B078YGLMLX"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 8,
+                "products": [
+                  "B0C7W6GW8P",
+                  "B0DZP8PN3N",
+                  "B09JL5PCJ6",
+                  "B0C7WQ3Z6H",
+                  "B0CPYMLVJJ",
+                  "B0FPMHTKCN",
+                  "B0GVG681B5",
+                  "B0B5MGPXPN"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "brand_products",
+          "entity": "nivea",
+          "data": {
+            "product_count": 8,
+            "products": [
+              {
+                "asin": "B07YG8YVQW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butter, 4 x 0.17 OZ | Moisturizing Lip Balm w",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07Y91BMSK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 66,
+                "title": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.17 OZ | One Each: Cherry, Strawberry, Wat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B082JJ4D98",
+                "name": "",
+                "category": "lip_care",
+                "rank": 96,
+                "title": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4 x 0.17 OZ | Sunscreen Lip Balm with SPF",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07CGKWP9L",
+                "name": "",
+                "category": "lip_care",
+                "rank": 90,
+                "title": "NIVEA Blackberry Lip Care, Tinted Lip Balm with Shea Butter, 0.17 OZ | Burgundy Tinted Lip Balm with",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN9LYVJQ",
+                "name": "",
+                "category": "lip_care",
+                "rank": 59,
+                "title": "NIVEA Blackberry Pie Lip Care, Bridgerton Design Lip Balm, 0.17 OZ | Bridgerton Limited Edition Burg",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN9C44ML",
+                "name": "",
+                "category": "lip_care",
+                "rank": 79,
+                "title": "NIVEA Vanilla Biscuit Lip Care, Bridgerton Design Lip Balm, 0.17 OZ | Bridgerton Limited Edition Moi",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN94YHB1",
+                "name": "",
+                "category": "lip_care",
+                "rank": 59,
+                "title": "NIVEA Rose Meringue Lip Care, Bridgerton Design Lip Balms, 0.17 OZ | Bridgerton Limited Edition Mois",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FN9TGSCW",
+                "name": "",
+                "category": "lip_care",
+                "rank": 60,
+                "title": "NIVEA Peach Tea Lip Care, Bridgerton Design Lip Balm, 0.17 OZ | Bridgerton Limited Edition Coral Tin",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.21
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 분기별 Lip Care HHI 변화 인사이트\n\n- **인사이트**: 현재 제공된 데이터 및 온톨로지 추론 결과 내에서는 Lip Care 카테고리의 분기별 HHI(시장 집중도) 변화에 관한 구체적인 수치나 추이가 명시되어 있지 않습니다. 따라서 분기별 HHI 변화 패턴을 확인하기에는 데이터가 부족한 상태입니다.\n\n- **근거**: 제공된 컨텍스트 및 온톨로지 추론 결과에 Lip Care 카테고리의 HHI 수치나 분기별 변동 데이터가 포함되어 있지 않음 [출처: 현재 데이터] / [출처: Ontology Reasoning]\n\n- **권장**: 분기별 HHI 변화를 분석하기 위해서는 추가적인 시장 점유율 데이터나 브랜드별 판매 비중 데이터 확보가 필요할 것으로 보입니다. 현재 확인된 데이터 기준으로는 Lip Care 시장 내 경쟁 구도 및 집중도 변화를 판단하기 어렵습니다.\n\n요약하면, 2026년 9월 10일 기준으로 분기별 Lip Care HHI 변화에 관한 구체적 데이터가 없어 명확한 분석 제공이 어렵습니다. 추가 데이터 확보 후 재분석을 권장드립니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n\n2. 📄 **---**\n   - 관련도: 0.41\n\n3. 📄 ****전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서****\n   - 관련도: 0.39\n\n4. 📄 **이번 주 Top 10 키워드 및 의미**\n   - 관련도: 0.37\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 2875,
+      "judge_tokens": 5940,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0005514000000000001,
+      "judge_cost_usd": 0.0014471999999999998
+    },
+    "latency_ms": 7183.583974838257,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "time",
+    "difficulty": "medium",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}

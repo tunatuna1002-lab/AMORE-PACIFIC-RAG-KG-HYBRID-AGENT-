@@ -1,0 +1,984 @@
+{
+  "item_id": "lg124",
+  "question": "MEDICUBE와 LANEIGE 브랜드 비교는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.5555555555555556,
+    "context_precision_at_k": 0.625,
+    "mrr": 0.5,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.06134969325153374,
+    "semantic_similarity": 0.6129847764968872,
+    "groundedness_score": 0.8888888889,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.625,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.7316623245005802,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "lg124",
+    "timestamp": "2026-09-17T16:28:51.355315",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "laneige",
+        "medicube"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "brand_comparison"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_6_0",
+        "laneige_strategy_2026_3_1",
+        "chunk_2",
+        "chunk_3",
+        "laneige_strategy_2026_5_1",
+        "laneige_strategy_2026_3_4",
+        "laneige_strategy_2026_table_1",
+        "laneige_strategy_2026_3_3"
+      ],
+      "snippets": [
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "# **전략적 영향력 아키텍처: 미국 시장 내 라네즈(LANEIGE) 인플루언서 및 메시지 맵 심층 분석 보고서**",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "이 카테고리에서 **LANEIGE Cream Skin Toner & Moisturizer**는 선구자적 위치를 점하고 있으나, **Rhode Glazing Milk**와의 치열한 비교 우위 경쟁에 직면해 있다. 레딧(Reddit) 등의 커뮤니티 분석 결과, 소비자들은 두 제품을 다음과 같이 명확히 구분하여 인식하고 있다 21:\n일부 기존 사용자들 사이에서 ",
+        "아마존 검색 데이터상에서 소비자들이 \"Pink Serum\" 혹은 \"Pink Peptide\"를 검색할 때, 두 브랜드의 제품이 동시에 노출되는 경향이 짙다. Medicube는 PDRN이라는 트렌디한 성분과 낮은 가격을 앞세우고 있고, LANEIGE는 작약(Peony) 복합체와 브랜드 헤리티지를 강조하고 있다. 이 경쟁에서 승리하기 위해서는 핑크색 제형이 주는",
+        "| 구분 | LANEIGE Cream Skin (Cerapeptide) | Rhode Glazing Milk | 소비자 인식 차이 및 시사점 |\n| :---- | :---- | :---- | :---- |\n| **제형** | 상대적으로 묽고 가벼움 (Watery) | 더 점도가 높고 에센스에 가까움 (Thicker) | LANEIGE는 레이어링(스킨 플러딩",
+        "LANEIGE의 제품군은 전통적으로 '자극 없는 편안함'과 '수분 진정'에 초점을 맞춰왔기에, 이러한 자극 기반의 트렌드와는 대척점에 있다. 그러나 역설적으로 스피큘 제품의 인기는 LANEIGE에게 기회가 될 수 있다. 스피큘 사용 후 자극받은 피부를 진정시키고 장벽을 복구하기 위한 '애프터 케어' 제품으로 **Cream Skin Toner**나 **Cic"
+      ],
+      "scores": [
+        6.731466091132427,
+        6.525687939758308,
+        0.8342910578727205,
+        0.8308842503043488,
+        0.6357925534248352,
+        0.6315371990203857,
+        0.5594598054885864,
+        0.5079619884490967
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "laneige",
+        "medicube"
+      ],
+      "kg_edges_found": [
+        "laneige -competesWith-> blistex",
+        "laneige -competesWith-> chapstick",
+        "laneige -competesWith-> sun_bum",
+        "laneige -competesWith-> carmex",
+        "laneige -competesWith-> hera",
+        "medicube -competesWith-> unknown",
+        "medicube -competesWith-> neutrogena",
+        "medicube -competesWith-> the_ordinary",
+        "medicube -competesWith-> eos",
+        "medicube -competesWith-> biodance"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "laneige",
+          "data": [
+            {
+              "brand": "blistex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "chapstick",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "competitors",
+          "entity": "medicube",
+          "data": [
+            {
+              "brand": "unknown",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "neutrogena",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "the ordinary",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "eos",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "biodance",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "competitor_network",
+          "entity": "medicube",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "anua"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "brand_products",
+          "entity": "laneige",
+          "data": {
+            "product_count": 6,
+            "products": [
+              {
+                "asin": "B07XXPHQZK",
+                "name": "",
+                "category": "lip_care",
+                "rank": 8,
+                "title": "LANEIGE Lip Sleeping Mask: Korean Overnight Treatment For Dry Lips | Hydrating & Nourishing Overnigh",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B07DY2QRF6",
+                "name": "",
+                "category": "lip_care",
+                "rank": 26,
+                "title": "LANEIGE Lip Glowy Balm: Sheer Tinted Lip Treatment Balm Tube with Shea & Murumuru Butters for Hydrat",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DT2JNXP2",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 52,
+                "title": "LANEIGE Glaze Craze Tinted Lip Serum: Hydrating Lip Serum for Glossy, Nourished Lips with Plumping P",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0G7NRYFJS",
+                "name": "",
+                "category": "lip_makeup",
+                "rank": 98,
+                "title": "LANEIGE JuicePop Box Lip Tint | Long-Lasting Hydrating Lightweight Tint | Buildable Juicy Color & No",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DHWFT182",
+                "name": "",
+                "category": "face_powder",
+                "rank": 11,
+                "title": "LANEIGE Neo Blurring Powder: Korean Oil-Control Compact with Pore Blurring, Smoothing Finish & Trave",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0GXGQL59K",
+                "name": "",
+                "category": "lip_care",
+                "rank": 76,
+                "title": "LANEIGE Lip Glowy Balm: Sheer Tinted Lip Treatment Balm Tube with Shea & Murumuru Butters for Hydrat",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.3
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "laneige",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "nivea"
+              ],
+              [
+                "competesWith",
+                "rimmel"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "tree hut"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "maybelline"
+              ],
+              [
+                "competesWith",
+                "wet n wild"
+              ],
+              [
+                "competesWith",
+                "clinique"
+              ],
+              [
+                "competesWith",
+                "revlon"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "competitor_network",
+          "entity": "medicube",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "anua"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽의 LANEIGE와 MEDICUBE 브랜드를 아마존 시장에서 비교하면 다음과 같습니다.\n\n1. **브랜드 포지셔닝 및 가격대**  \n   - LANEIGE는 프리미엄 스테디셀러 그룹에 속하며, 제품 가격대가 약 $24~$45로 상대적으로 높습니다. 강력한 브랜드 충성도를 기반으로 베스트셀러 상위를 유지하고 있습니다.  \n   - MEDICUBE는 바이럴 K-뷰티 그룹에 속하며, 틱톡 샵과 연동해 급성장 중입니다. 가격대는 $19~$25로 LANEIGE보다 저렴하며, 공격적인 가격 정책으로 시장 점유율을 확대하고 있습니다.\n\n2. **제품 수 및 경쟁사**  \n   - LANEIGE는 아마존에 6개 제품을 보유하고 있으며, 주요 경쟁사는 blistex, chapstick, sun bum입니다.  \n   - MEDICUBE의 주요 경쟁사는 neutrogena, the ordinary 등이며, 경쟁사 정보가 일부 미확인 상태입니다.\n\n3. **시장 동향 및 성장성**  \n   - MEDICUBE는 PDRN 성분을 내세운 'Pink Peptide Serum'이 아마존 'Movers & Shakers' 리스트에 오르며, LANEIGE의 신제품 'Bouncy & Firm Serum'(약 $45)을 위협하는 상황입니다.  \n   - LANEIGE는 프리미엄 브랜드로서 안정적인 충성 고객층을 확보하고 있으나, MEDICUBE의 가성비 및 바이럴 마케팅에 따른 성장세가 두드러집니다.\n\n요약하면, LANEIGE는 프리미엄 고가 시장에서 강력한 브랜드 충성도를 기반으로 안정적 입지를 유지하는 반면, MEDICUBE는 저가 고효능 제품과 틱톡 연동 바이럴 전략으로 빠르게 시장 점유율을 확대하며 LANEIGE의 일부 제품군을 위협하고 있습니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "laneige",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "brand_share",
+        "brand": "MEDICUBE",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 13.54,
+        "product_count": 13,
+        "brand_rank": 1
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "MEDICUBE",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 10,
+            "brand": "MEDICUBE",
+            "name": "medicube Jelly Cream with Collagen & Niacinamide, 1.69 fl.oz",
+            "price": 14.9,
+            "rating": 4.5,
+            "reviews_count": 36263
+          },
+          {
+            "rank": 13,
+            "brand": "MEDICUBE",
+            "name": "medicube Facial Cleanser Zero Pore Capsule Foam Cleanser | D",
+            "price": 14.9,
+            "rating": 4.6,
+            "reviews_count": 3873
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "laneige",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "brand_share",
+        "brand": "MEDICUBE",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 8.0,
+        "product_count": 8,
+        "brand_rank": 1
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "MEDICUBE",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 13,
+            "brand": "MEDICUBE",
+            "name": "medicube Jelly Cream with Collagen & Niacinamide, 1.69 fl.oz",
+            "price": 14.9,
+            "rating": 4.5,
+            "reviews_count": 36263
+          },
+          {
+            "rank": 16,
+            "brand": "MEDICUBE",
+            "name": "medicube Facial Cleanser Zero Pore Capsule Foam Cleanser | D",
+            "price": 14.9,
+            "rating": 4.6,
+            "reviews_count": 3873
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.1024,
+        "category_avg_rating": 4.26
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "Maybelline",
+            "sos": 11.46,
+            "product_count": 11
+          },
+          {
+            "brand": "NYX",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "Revlon",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 9.38,
+            "product_count": 9
+          },
+          {
+            "brand": "L'Oreal",
+            "sos": 7.29,
+            "product_count": 7
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "LANEIGE",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 2.08,
+        "product_count": 2,
+        "brand_rank": 9
+      },
+      {
+        "type": "brand_share",
+        "brand": "medicube",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Sh",
+            "rating": 4.6,
+            "reviews_count": 19849
+          },
+          {
+            "rank": 2,
+            "brand": "NYX",
+            "name": "NYX PROFESSIONAL MAKEUP Butter Gloss, Non-Sticky Lip Gloss -",
+            "rating": 4.5,
+            "reviews_count": 126021
+          },
+          {
+            "rank": 3,
+            "brand": "Sacheu",
+            "name": "Sacheu Lip Liner STAY-N Peel Off Lip Stain, Longwear, p-INKE",
+            "rating": 4.0,
+            "reviews_count": 22850
+          },
+          {
+            "rank": 4,
+            "brand": "Unknown",
+            "name": "Wonderskin Lip Stain – Long Lasting, Waterproof, Lip Tint Pe",
+            "rating": 3.8,
+            "reviews_count": 32729
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted",
+            "rating": 4.6,
+            "reviews_count": 30232
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "LANEIGE",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 45,
+            "brand": "LANEIGE",
+            "name": "LANEIGE Glaze Craze Tinted Lip Serum",
+            "rating": 4.6,
+            "reviews_count": 911
+          },
+          {
+            "rank": 65,
+            "brand": "LANEIGE",
+            "name": "LANEIGE JuicePop Box Lip Tint | Long-Lasting Hydrating Light",
+            "rating": 4.1,
+            "reviews_count": 975
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1074,
+      "judge_tokens": 8386,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00035505,
+      "judge_cost_usd": 0.0020381999999999996
+    },
+    "latency_ms": 5124.145269393921,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

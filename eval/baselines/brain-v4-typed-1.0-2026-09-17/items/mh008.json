@@ -1,0 +1,356 @@
+{
+  "item_id": "mh008",
+  "question": "2026-08-31 기준 innisfree 제품이 Top 100에 있는 카테고리에서 SoS 1위 브랜드와 그 SoS는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.21875000000000003,
+    "semantic_similarity": 0.534659743309021,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.25,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.7263068768978119,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L5_wrong_answer",
+    "L5_numeric_mismatch",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "mh008",
+    "timestamp": "2026-09-17T21:56:58.605344",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "innisfree"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_6_1",
+        "strategic_indicators_1_0",
+        "metric_interpretation_2_0",
+        "strategic_indicators_1_1",
+        "metric_interpretation_2_1",
+        "home_insight_rules_13",
+        "strategic_indicators_2_0",
+        "chunk_7"
+      ],
+      "snippets": [
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "- **주의사항**\n- 리뷰 수 급증/급감은 반영하지 않음\n- 단기 변동은 과대 해석 주의\n\n---"
+      ],
+      "scores": [
+        18.494241772560954,
+        0.5711463093757629,
+        0.5708805322647095,
+        0.4955819845199585,
+        0.49345558881759644,
+        0.49187755584716797,
+        0.45732349157333374,
+        0.36981676239388916
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "innisfree"
+      ],
+      "kg_edges_found": [
+        "innisfree -ownedBy-> amorepacific",
+        "innisfree -hasSoS-> face_powder",
+        "innisfree -rankedIn-> face_powder",
+        "innisfree -hasPosition-> mid_range",
+        "innisfree -hasPosition-> budget"
+      ],
+      "ontology_facts": [
+        {
+          "type": "brand_products",
+          "entity": "innisfree",
+          "data": {
+            "product_count": 1,
+            "products": [
+              {
+                "asin": "B0CWN955CQ",
+                "name": "",
+                "category": "face_powder",
+                "rank": 43,
+                "title": "innisfree No Sebum Matte Mineral Powder | Korean Loose Setting Powder for Oil & Shine Control | Blur",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "metric_edges",
+          "entity": "innisfree",
+          "data": {
+            "edges": [
+              {
+                "subject": "innisfree",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "hasSoS",
+                "object": "face_powder"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "rankedIn",
+                "object": "face_powder"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "hasPosition",
+                "object": "budget"
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "2026-08-31 기준 innisfree 제품이 Top 100에 진입한 카테고리 내에서 SoS 1위 브랜드와 그 SoS는 다음과 같습니다.\n\n- innisfree 제품 수: 1개 (데이터 제공)\n- Top 100 내 SoS 1위 브랜드 및 SoS 수치는 별도 제공된 데이터가 없어 직접 산출 불가\n\n따라서, 제공된 데이터만으로는 innisfree가 포함된 Top 100 카테고리에서 SoS 1위 브랜드와 그 SoS 값을 확인할 수 없습니다. 추가적인 브랜드별 Top 100 제품 수 데이터가 필요합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0527,
+        "category_avg_price": 17.2,
+        "category_avg_rating": 4.48
+      },
+      {
+        "type": "category_top_brands",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "COVERGIRL",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Clinique",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Maybelline",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Physicians Formula",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Innisfree",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.0,
+        "product_count": 1,
+        "brand_rank": 18
+      },
+      {
+        "type": "category_top_products",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 2,
+            "brand": "L'Oreal",
+            "name": "L'Oreal Paris Infallible Blur-fection Longwear Loose Setting",
+            "price": 12.32,
+            "rating": 4.5,
+            "reviews_count": 4673
+          },
+          {
+            "rank": 3,
+            "brand": "COVERGIRL",
+            "name": "Covergirl Clean Invisible Pressed Powder, Lightweight, Breat",
+            "price": 9.99,
+            "rating": 4.5,
+            "reviews_count": 9925
+          },
+          {
+            "rank": 4,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Halo Glow Soft Focus Setting Powder, Silky & Creates ",
+            "price": 8.0,
+            "rating": 4.5,
+            "reviews_count": 20322
+          },
+          {
+            "rank": 5,
+            "brand": "Unknown",
+            "name": "Clean Invisible Loose Powder Translucent Fair",
+            "price": 6.95,
+            "rating": 4.6,
+            "reviews_count": 8523
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Innisfree",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 44,
+            "brand": "Innisfree",
+            "name": "innisfree No Sebum Matte Mineral Powder | Korean Loose Setti",
+            "price": 12.6,
+            "rating": 4.4,
+            "reviews_count": 816
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1017,
+      "judge_tokens": 3676,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 879,
+      "l5_completion_tokens": 138,
+      "judge_prompt_tokens": 2667,
+      "judge_completion_tokens": 1009,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0005723999999999999,
+      "judge_cost_usd": 0.0026812,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 6674.009084701538,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 10.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "multi_hop",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

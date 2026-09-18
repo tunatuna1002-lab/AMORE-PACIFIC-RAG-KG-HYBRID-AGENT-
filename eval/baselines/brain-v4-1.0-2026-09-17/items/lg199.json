@@ -1,0 +1,142 @@
+{
+  "item_id": "lg199",
+  "question": "SoS, HHI, CPI 지표 간 통합 해석 방법은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8571428571428571,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.625,
+    "context_precision_at_k": 0.625,
+    "mrr": 0.5,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14285714285714285,
+    "semantic_similarity": 0.5589422583580017,
+    "groundedness_score": 0.42857142857142855,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5714,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6763141365855534,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg199",
+    "timestamp": "2026-09-17T16:34:45.014664",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos",
+        "hhi",
+        "cpi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "hhi",
+        "cpi",
+        "interpretation"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_3_2",
+        "strategic_indicators_1_0",
+        "metric_interpretation_2_0",
+        "chunk_3",
+        "metric_interpretation_2_1",
+        "home_insight_rules_13",
+        "metric_interpretation_3_0",
+        "strategic_indicators_1_1"
+      ],
+      "snippets": [
+        "- **주의사항**\n- 리뷰 수 급증/급감은 반영하지 않음\n- 단기 변동은 과대 해석 주의\n\n---",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식"
+      ],
+      "scores": [
+        43.85184014425409,
+        0.6458980441093445,
+        0.6197742223739624,
+        0.6176643527516473,
+        0.5359789729118347,
+        0.5316053628921509,
+        0.5300691723823547,
+        0.4876885414123535
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "SoS, HHI, CPI 지표를 통합 해석하는 방법은 다음과 같습니다.\n\n1. SoS (Share of Shelf)\n- 브랜드가 Top N 제품 중 차지하는 비중으로, ‘물리적 노출 점유율’을 나타냄\n- SoS가 높으면 해당 브랜드가 시장 내에서 제품 수 기준으로 많은 자리를 차지하고 있음을 의미\n- 단, SoS는 매출이나 판매량과 직접 연결되지 않으므로 단독 해석은 위험\n\n2. HHI (Herfindahl-Hirschman Index)\n- 시장 내 브랜드별 SoS 점유율의 제곱합으로 시장 집중도를 측정\n- HHI가 높으면 소수 브랜드가 시장을 지배하는 ‘과점’ 상태, 낮으면 경쟁이 치열한 ‘분산’ 상태를 의미\n- SoS와 함께 보면, 특정 브랜드가 높은 SoS를 가졌을 때 HHI가 높으면 그 브랜드가 시장 지배적 위치임을 시사\n\n3. CPI (Customer Preference Index) — (참고: 질문에 데이터 미제공, 일반적 해석)\n- 소비자 선호도나 구매 의향을 반영하는 지표로, 매출, 리뷰 평점, 구매 빈도 등을 기반으로 산출\n- SoS가 높아도 CPI가 낮으면 ‘물리적 노출은 많으나 소비자 선호는 낮은’ 상태로 해석 가능\n- 반대로 CPI가 높고 SoS가 낮으면 ‘소비자 선호는 높으나 노출이 부족한’ 상태\n\n통합 해석 방법:\n- SoS로 브랜드의 시장 내 물리적 노출 정도를 파악\n- HHI로 시장 내 경쟁 구도 및 집중도를 확인\n- CPI로 소비자 선호 및 실제 구매력 반영 정도를 평가\n- 예를 들어, SoS와 CPI가 모두 높고 HHI가 높으면 해당 브랜드가 시장에서 강력한 지배력을 가진 상태로 판단\n- SoS는 높으나 CPI가 낮으면 ‘저가 물량 공세’ 혹은 ‘브랜드 인지도 부족’ 가능성\n- SoS와 CPI가 낮고 HHI가 낮으면 신규 진입 브랜드이거나 시장 내 존재감이 약한 상태\n\n요약하면, SoS는 ‘노출 점유율’, HHI는 ‘시장 집중도’, CPI는 ‘소비자 선호’를 각각 나타내며, 이 세 지표를 함께 분석해 브랜드의 시장 내 위치와 경쟁력, 소비자 반응을 종합적으로 평가해야 합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "interpretation",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1191,
+      "judge_tokens": 4902,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00042794999999999997,
+      "judge_cost_usd": 0.00154755
+    },
+    "latency_ms": 6983.220815658569,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "multi_hop",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

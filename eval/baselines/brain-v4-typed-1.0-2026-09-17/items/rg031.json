@@ -1,0 +1,360 @@
+{
+  "item_id": "rg031",
+  "question": "innisfree는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.06349206349206349,
+    "semantic_similarity": 0.563786506652832,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6831217379797072,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "rg031",
+    "timestamp": "2026-09-17T21:55:05.234515",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "innisfree",
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_2_0",
+        "ir_2025_q3_0_22",
+        "ir_2025_q3_0_26",
+        "ir_2025_q2_0_21",
+        "chunk_4",
+        "ir_2025_q1_0_21",
+        "ir_2025_q2_0_19",
+        "ir_2025_q3_0_21"
+      ],
+      "snippets": [
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "‘Peptide-132’ haircare line by accelerating its presence abroad and capturing new growth momentum\n\n\\-Operated the brand’s first offline pop-up store in Europe(‘Glow Market’) in partnership with a key ",
+        "• Hero products of lip and skincare category continued strong sales, driving growth in both APAC and Japan \\-Enhanced brand awareness by launching new products(‘Water/CicaSleeping Mask,’ ‘Lip Sleeping",
+        "• EMEA posted 18% revenue growth led by strong sales across all regions, particularly in the UK \\- \\[Laneige\\] Drove overall sales growth through continued success of Q1 product launches(‘Glaze Craze ",
+        "1. Home 구성 요소별 출력 규칙",
+        "\\- Innisfree sales increased through channel diversification, such as entering new multi-brand shop  channels (Oh My Cream)   \nLaneige'Glaze Craze Tinted Lip Serum'  (Americas, EMEA)\n\nSulwhasooentered",
+        "• Americas revenue grew 10% driven by new brand launch and strong performance of key products \\- \\[Laneige\\] Achieved robust sales growth in both lip and skincare category through solid sales of ‘Glaz",
+        "• Launched new edition of the Lip Sleeping Mask(‘Strawberry Shortcake’), generating early brand buzz\n\nahead of holiday season\n\n**Innisfree**\n\n• Delivered robust sales growth driven by major product li"
+      ],
+      "scores": [
+        7.7455616961291245,
+        6.902613534554883,
+        6.324356259863054,
+        6.233292041575741,
+        0.9694162919574812,
+        0.41042160987854004,
+        0.4034990072250366,
+        0.38830482959747314
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "innisfree",
+        "amorepacific"
+      ],
+      "kg_edges_found": [
+        "innisfree -ownedBy-> amorepacific",
+        "innisfree -hasSoS-> face_powder",
+        "innisfree -rankedIn-> face_powder",
+        "innisfree -hasPosition-> mid_range",
+        "innisfree -hasPosition-> budget"
+      ],
+      "ontology_facts": [
+        {
+          "type": "brand_products",
+          "entity": "innisfree",
+          "data": {
+            "product_count": 1,
+            "products": [
+              {
+                "asin": "B0CWN955CQ",
+                "name": "",
+                "category": "face_powder",
+                "rank": 43,
+                "title": "innisfree No Sebum Matte Mineral Powder | Korean Loose Setting Powder for Oil & Shine Control | Blur",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        },
+        {
+          "type": "metric_edges",
+          "entity": "innisfree",
+          "data": {
+            "edges": [
+              {
+                "subject": "innisfree",
+                "predicate": "ownedBy",
+                "object": "AMOREPACIFIC"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "hasSoS",
+                "object": "face_powder"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "rankedIn",
+                "object": "face_powder"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "hasPosition",
+                "object": "mid_range"
+              },
+              {
+                "subject": "innisfree",
+                "predicate": "hasPosition",
+                "object": "budget"
+              }
+            ]
+          },
+          "_weighted_score": 0.18
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "innisfree는 아모레퍼시픽 그룹 소속 브랜드입니다. \n\n근거: 2025년 3분기 실적 발표 자료에서 innisfree가 아모레퍼시픽 그룹의 해외 사업 확장 및 주요 브랜드로 언급되고 있으며, Laneige, Sulwhasoo 등 아모레퍼시픽 그룹 내 다른 브랜드들과 함께 소개되고 있습니다. 또한, innisfree 제품과 관련된 마케팅 및 판매 활동이 아모레퍼시픽 그룹의 전략 하에 진행되고 있음을 확인할 수 있습니다.\n\n따라서 brand_ownership_verification 기준에 따라 innisfree는 아모레퍼시픽 그룹 소속 브랜드로 판정됩니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0527,
+        "category_avg_price": 17.2,
+        "category_avg_rating": 4.48
+      },
+      {
+        "type": "category_top_brands",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "COVERGIRL",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Clinique",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Maybelline",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Physicians Formula",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Innisfree",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 1.0,
+        "product_count": 1,
+        "brand_rank": 18
+      },
+      {
+        "type": "brand_share",
+        "brand": "amorepacific",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 2,
+            "brand": "L'Oreal",
+            "name": "L'Oreal Paris Infallible Blur-fection Longwear Loose Setting",
+            "price": 12.32,
+            "rating": 4.5,
+            "reviews_count": 4673
+          },
+          {
+            "rank": 3,
+            "brand": "COVERGIRL",
+            "name": "Covergirl Clean Invisible Pressed Powder, Lightweight, Breat",
+            "price": 9.99,
+            "rating": 4.5,
+            "reviews_count": 9925
+          },
+          {
+            "rank": 4,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Halo Glow Soft Focus Setting Powder, Silky & Creates ",
+            "price": 8.0,
+            "rating": 4.5,
+            "reviews_count": 20322
+          },
+          {
+            "rank": 5,
+            "brand": "Unknown",
+            "name": "Clean Invisible Loose Powder Translucent Fair",
+            "price": 6.95,
+            "rating": 4.6,
+            "reviews_count": 8523
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Innisfree",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 44,
+            "brand": "Innisfree",
+            "name": "innisfree No Sebum Matte Mineral Powder | Korean Loose Setti",
+            "price": 12.6,
+            "rating": 4.4,
+            "reviews_count": 816
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 790,
+      "judge_tokens": 3252,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 643,
+      "l5_completion_tokens": 147,
+      "judge_prompt_tokens": 2385,
+      "judge_completion_tokens": 867,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0004923999999999999,
+      "judge_cost_usd": 0.0023412,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 3662.2960567474365,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 9.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

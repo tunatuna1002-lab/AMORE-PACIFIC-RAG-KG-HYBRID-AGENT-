@@ -32,6 +32,11 @@ DEFAULT_THRESHOLDS = {
     # L5 gating
     "groundedness_min": 0.70,
     "answer_f1_min": 0.50,
+    # 수치 정확도 (2026-09-06): gold_source="snapshot" 문항에만 적용한다.
+    # 골드가 DB 스냅샷에서 생성된 문항만 원자료로 정답을 검증할 수 있다.
+    # document·domain_expectation 문항에서는 보고만 하고 게이트로 쓰지 않는다 —
+    # 검증할 수 없는 골드에 정답 일치를 요구하면 지표가 문체 유사도를 재게 된다.
+    "numeric_accuracy_min": 0.50,
     # token-F1은 골드(단문 정의)와 에이전트(장문 마크다운)의 스타일 차이에
     # 구조적으로 취약하므로, semantic similarity가 계산된 경우 이 값 이상이면
     # answer_f1 미달이어도 정답으로 인정한다
@@ -72,6 +77,7 @@ FAIL_REASONS = {
     "L4_type_inconsistency": "Type consistency rate below threshold",
     "L5_grounding_fail": "Groundedness score below threshold",
     "L5_wrong_answer": "Answer F1 below threshold",
+    "L5_numeric_mismatch": "Numeric accuracy below threshold (snapshot items only)",
     "L5_relevance_fail": "Relevance score below threshold",
 }
 
@@ -131,18 +137,30 @@ class MetricAggregator:
         # L2/L3 score: depends on requires_kg
         requires_kg = metadata.requires_kg if metadata else True
 
+        # 종합 점수는 게이트와 같은 지표를 쓴다 (2026-09-06).
+        # 이전 공식은 청크 단위 recall(`context_recall_at_k`)과 엣지 set-F1
+        # (`kg_edge_f1`)을 썼는데, 게이트는 개념 단위 recall과 엣지 recall을 본다.
+        # 이중 기준이라 게이트를 개선해도 종합 점수가 움직이지 않았다.
+        # 두 지표 모두 판별력이 없다고 이미 판정된 것들이다 —
+        # 청크 단위는 라벨 입도를 재고(eval/metrics/l2_retrieval.py),
+        # 엣지 set-F1은 골드·방출 규모 비대칭으로 상한이 ~0.18이다(l3_kg.py).
+        # 가중치는 그대로 두고 지표만 교체했다.
+        # **v8.1 이전 baseline과 종합 점수를 직접 비교하지 말 것** — 정의가 다르다.
+        # 재집계 값과 연속성 표: docs/eval/overall-score-formula-2026-09-06.md
         if requires_kg:
             # Weight KG metrics more
             l2_l3_score = (
-                l2.context_recall_at_k * 0.3
+                l2.context_recall_at_k_concept * 0.3
                 + l2.mrr * 0.1
                 + l3.hits_at_k * 0.4
-                + l3.kg_edge_f1 * 0.2
+                + l3.kg_edge_recall * 0.2
             )
         else:
             # Weight document retrieval more
             l2_l3_score = (
-                l2.context_recall_at_k * 0.5 + l2.context_precision_at_k * 0.2 + l2.mrr * 0.3
+                l2.context_recall_at_k_concept * 0.5
+                + l2.context_precision_at_k * 0.2
+                + l2.mrr * 0.3
             )
 
         # L4 score: penalize violations
@@ -226,14 +244,24 @@ class MetricAggregator:
         if l4.type_consistency_rate < self.thresholds.get("type_consistency_min", 0.9):
             fail_reasons.append("L4_type_inconsistency")
 
-        # L5 checks — token-F1 미달이어도 semantic similarity가 충분하면 정답 인정
-        answer_ok = l5.answer_f1 >= self.thresholds.get("answer_f1_min", 0.5)
-        if not answer_ok and l5.semantic_similarity is not None:
-            answer_ok = l5.semantic_similarity >= self.thresholds.get(
-                "semantic_similarity_min", 0.65
-            )
-        if not answer_ok:
-            fail_reasons.append("L5_wrong_answer")
+        gold_source = metadata.gold_source if metadata else "document"
+
+        # L5 checks — token-F1 미달이어도 semantic similarity가 충분하면 정답 인정.
+        # domain_expectation 문항은 골드 자체를 원자료로 검증할 수 없으므로 정답
+        # 일치 게이트에서 제외하고 groundedness·relevance만 본다.
+        if gold_source != "domain_expectation":
+            answer_ok = l5.answer_f1 >= self.thresholds.get("answer_f1_min", 0.5)
+            if not answer_ok and l5.semantic_similarity is not None:
+                answer_ok = l5.semantic_similarity >= self.thresholds.get(
+                    "semantic_similarity_min", 0.65
+                )
+            if not answer_ok:
+                fail_reasons.append("L5_wrong_answer")
+
+        # 수치 정확도는 골드가 DB에서 생성된 snapshot 문항에만 게이트로 적용한다
+        if gold_source == "snapshot" and l5.numeric_accuracy is not None:
+            if l5.numeric_accuracy < self.thresholds.get("numeric_accuracy_min", 0.5):
+                fail_reasons.append("L5_numeric_mismatch")
 
         if l5.groundedness_score is not None:
             if l5.groundedness_score < self.thresholds.get("groundedness_min", 0.7):
@@ -256,6 +284,7 @@ class MetricAggregator:
         l5: L5Metrics,
         trace: "EvalTrace",  # type: ignore  # noqa: F821
         metadata: ItemMetadata | None = None,
+        question: str = "",
     ) -> ItemResult:
         """
         Aggregate all metrics into ItemResult.
@@ -265,6 +294,7 @@ class MetricAggregator:
             l1-l5: Layer metrics
             trace: Full evaluation trace
             metadata: Item metadata
+            question: 원 질문 (리포트 가독성용)
 
         Returns:
             ItemResult with all metrics, overall score, and pass/fail
@@ -272,8 +302,12 @@ class MetricAggregator:
         overall_score = self.compute_overall_score(l1, l2, l3, l4, l5, metadata)
         passed, fail_reasons = self.check_gating(l1, l2, l3, l4, l5, metadata)
 
+        # metadata를 결과에 실어야 리포트만으로 게이팅을 재현할 수 있다.
+        # 예전에는 여기서 누락돼 report.json의 requires_kg가 전부 기본값 True,
+        # domain이 전부 "general"로 기록됐다 (v8.1까지의 by_domain 표가 무의미했다).
         return ItemResult(
             item_id=item_id,
+            question=question,
             passed=passed,
             l1=l1,
             l2=l2,
@@ -283,6 +317,7 @@ class MetricAggregator:
             overall_score=overall_score,
             fail_reason_tags=fail_reasons,
             trace=trace,
+            metadata=metadata or ItemMetadata(),
         )
 
 

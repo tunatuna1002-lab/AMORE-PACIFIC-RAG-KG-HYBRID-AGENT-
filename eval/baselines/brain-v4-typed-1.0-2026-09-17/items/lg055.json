@@ -1,0 +1,866 @@
+{
+  "item_id": "lg055",
+  "question": "Lip Care와 Lip Makeup 카테고리 HHI를 비교해주세요",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8571428571428571,
+    "concept_map_f1": 0.8571428571428571,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13513513513513514,
+    "semantic_similarity": 0.8068026304244995,
+    "groundedness_score": 0.4444444444444444,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.5882505893765577,
+  "fail_reason_tags": [
+    "L5_numeric_mismatch",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg055",
+    "timestamp": "2026-09-17T21:39:02.737164",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "nivea"
+      ],
+      "extracted_categories": [
+        "lip_care",
+        "lip_makeup"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [
+        "lip_care"
+      ],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "chunk_0",
+        "chunk_1",
+        "laneige_strategy_2026_4_0",
+        "chunk_3",
+        "chunk_4",
+        "laneige_strategy_2026_7_10",
+        "laneige_strategy_2026_7_8",
+        "laneige_strategy_2026_7_9"
+      ],
+      "snippets": [
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "g\\_mask/](https://www.reddit.com/r/Sephora/comments/1hsf7tq/laneige_lip_glowy_balm_vs_sleeping_mask/)  \n18. Fans of Pricey Rhode and Laneige Say This Anti-Aging Lip Gloss Gives the Same Plump and Shin",
+        "tps://www.thehandbook.com/best-lip-repair-products/)  \n13. Dr. Idriss Packaged Her Viral \"Lip Basting\" Hack, and It's Saving My Flaky Winter Lips, 1월 20, 2026에 액세스, [https://www.byrdie.com/dr-idriss-l",
+        " 1월 20, 2026에 액세스, [https://www.reddit.com/r/Sephora/comments/1kfc47s/lip\\_maskalt\\_to\\_laneige/](https://www.reddit.com/r/Sephora/comments/1kfc47s/lip_maskalt_to_laneige/)  \n16. The lip peptide battl"
+      ],
+      "scores": [
+        1.0,
+        0.7887224855293063,
+        0.5278451442718506,
+        0.6535314122202422,
+        0.6470595301129978,
+        0.4613771438598633,
+        0.45145928859710693,
+        0.41993725299835205
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "nivea",
+        "lip_care",
+        "lip_makeup"
+      ],
+      "kg_edges_found": [
+        "nivea -competesWith-> tree_hut",
+        "nivea -competesWith-> carmex",
+        "nivea -competesWith-> hera",
+        "nivea -competesWith-> sun_bum",
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "nivea",
+          "data": [
+            {
+              "brand": "tree hut",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "carmex",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "hera",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "sun bum",
+              "type": "competesWith",
+              "category": "lip_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 33,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 40,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07X62WVM4",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK",
+                  "B0CLHVCPL5",
+                  "B0CKV7JNFX",
+                  "B01HOU74SO",
+                  "B0DZJM5VPY",
+                  "B0899C4WR8",
+                  "B00CXK623E",
+                  "B0G4NR7BL3",
+                  "B088ZVHX78",
+                  "B01NAI251H",
+                  "B0CP1PW1BD",
+                  "B001AQO9MI",
+                  "B0FB9DNJ9T",
+                  "B0F5XZ8J5X",
+                  "B0CVMYKYZQ"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 10,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP",
+                  "B0DQQNWRQS",
+                  "B00076TOUO",
+                  "B0DQF7FNYC"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 10,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR",
+                  "B0DXRKW3KY"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 10,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J",
+                  "B078YGLMLX"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 8,
+                "products": [
+                  "B0C7W6GW8P",
+                  "B0DZP8PN3N",
+                  "B09JL5PCJ6",
+                  "B0C7WQ3Z6H",
+                  "B0CPYMLVJJ",
+                  "B0FPMHTKCN",
+                  "B0GVG681B5",
+                  "B0B5MGPXPN"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.4
+        },
+        {
+          "type": "category_brands",
+          "entity": "lip_makeup",
+          "data": {
+            "brand_count": 24,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 43,
+                "products": [
+                  "B0B9YHX8DX",
+                  "B0GF21LCW2",
+                  "B0CN1D9C6Q",
+                  "B004BCT7G6",
+                  "B007OAFJ5U",
+                  "B06XTPX8B2",
+                  "B0GWPHKD43",
+                  "B00I6DV3UO",
+                  "B007O9Y8TE",
+                  "B0D35YXWZ4",
+                  "B09Z2K8726",
+                  "B0CCDG5NHJ",
+                  "B0DKJ5MSTB",
+                  "B0G43TQ9VG",
+                  "B0CWN3MD25",
+                  "B015RPE14S",
+                  "B0F13H2319",
+                  "B0F7XJ73MD",
+                  "B0FRLBNPY6",
+                  "B093L9K6J8",
+                  "B0HCJQ79R8",
+                  "B083QNQQP9",
+                  "B07CKFQXNZ",
+                  "B0DSJ9CBWB",
+                  "B0CHJ8R113",
+                  "B0F7XFXQ2S",
+                  "B0F1F4MD13",
+                  "B00CSME112",
+                  "B08BK3MJX5",
+                  "B094LT5LM4",
+                  "B0FCZFZ26L",
+                  "B07DGXJ6NG",
+                  "B0BYD846XK",
+                  "B0DZNWSFJV",
+                  "B0CX5F9SGF",
+                  "B0DQWD3JY4",
+                  "B0HFWGZZ8L",
+                  "B07DGWPH1X",
+                  "B0B1M5X88Z",
+                  "B0D6Z6MXHM",
+                  "B0G43SM6RS",
+                  "B07DBS1RV9",
+                  "B089FBPMC6"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 18,
+                "products": [
+                  "B07XTTHXND",
+                  "B01LTI19EM",
+                  "B001P2JZBC",
+                  "B00392C96Y",
+                  "B00VRAJT7M",
+                  "B0DHYCZX5S",
+                  "B002H988FQ",
+                  "B0BHKFXXL8",
+                  "B0CGCH8JGX",
+                  "B0DHYFX26G",
+                  "B0FSP9P54P",
+                  "B000OF9ATI",
+                  "B002H96420",
+                  "B08MRXHC4K",
+                  "B08MS77KPC",
+                  "B00005320H",
+                  "B07QGXCG6W",
+                  "B09HXYBYL7"
+                ]
+              },
+              {
+                "brand": "nyx",
+                "product_count": 15,
+                "products": [
+                  "B09SP2XHKT",
+                  "B079ZX2QBD",
+                  "B0DK7TXTGY",
+                  "B07GXGLQQ7",
+                  "B0BL8HY2QP",
+                  "B0FT51CZS6",
+                  "B09XGXXGD1",
+                  "B09ZKLYPVZ",
+                  "B005G9LPDQ",
+                  "B0DKKRZGNY",
+                  "B00LMPYYPO",
+                  "B005G9LPG8",
+                  "B005G9LPNQ",
+                  "B08WBMR6G6",
+                  "B004LXJOEK"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 14,
+                "products": [
+                  "B07W59CNXQ",
+                  "B0046VESH0",
+                  "B085S9N6JP",
+                  "B07PGQDWMT",
+                  "B00N6YEI6O",
+                  "B09QH8148N",
+                  "B0DHF9X19V",
+                  "B0CZB39JH7",
+                  "B0FTT9WMD9",
+                  "B08H3TSP2X",
+                  "B0GSWMK4NY",
+                  "B002LFNOVY",
+                  "B002LFLPQA",
+                  "B0GWNQ3TT4"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 13,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B0CL8W1HZQ",
+                  "B0BSR85M24",
+                  "B0GVG87QVL",
+                  "B08S57F6JH",
+                  "B0G1H1NQY8",
+                  "B0B4F9PBQB",
+                  "B0DH62626H",
+                  "B0BSP3ZM2J",
+                  "B09XMWCY5L",
+                  "B0GVG2ZVX1",
+                  "B0CMJXGCFQ",
+                  "B0F8VKQKJT"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.4
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "nivea",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "tree hut"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ],
+              [
+                "competesWith",
+                "hera"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "burt's bees"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "laneige"
+              ],
+              [
+                "competesWith",
+                "blistex"
+              ],
+              [
+                "competesWith",
+                "chapstick"
+              ],
+              [
+                "competesWith",
+                "sun bum"
+              ],
+              [
+                "competesWith",
+                "carmex"
+              ]
+            ]
+          },
+          "_weighted_score": 0.5
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내에 Lip Care와 Lip Makeup 카테고리의 HHI(시장 집중도 지수) 구체 수치는 명시되어 있지 않습니다. 다만, 다음과 같은 점을 통해 간접 비교가 가능합니다.\n\n1. Lip Care 카테고리는 LANEIGE가 독보적인 지위를 차지하고 있으며, ‘립 베이스팅’ 트렌드와 펩타이드 립 트리트먼트가 시장을 주도하는 상황입니다. 이는 특정 브랜드(LANEIGE)의 SoS가 높고, 이에 따라 HHI도 상대적으로 높을 가능성이 큽니다.\n\n2. Lip Care의 Top 브랜드는 unknown, burt's bees, eos 등이며, LANEIGE가 독보적이라는 점에서 소수 브랜드가 시장을 주도해 HHI가 높을 것으로 추정됩니다.\n\n3. 반면 Lip Makeup 카테고리의 Top 브랜드는 unknown, revlon, nyx 등으로 다양하며, 브랜드 간 경쟁이 상대적으로 분산되어 있을 가능성이 있습니다. 따라서 Lip Makeup 카테고리의 HHI는 Lip Care보다 낮을 가능성이 있습니다.\n\n요약하면,\n\n- Lip Care 카테고리는 LANEIGE의 독보적 점유율로 인해 HHI가 높아 시장 집중도가 높음\n- Lip Makeup 카테고리는 브랜드가 다양하게 분포되어 있어 HHI가 상대적으로 낮음\n\n정확한 수치가 없으나, 시장 구조와 브랜드 점유율 분포를 고려할 때 Lip Care > Lip Makeup 순으로 HHI가 높다고 판단됩니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0681,
+        "category_avg_rating": 4.57
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "eos",
+            "sos": 9.0,
+            "product_count": 9
+          },
+          {
+            "brand": "Burt's Bees",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "Hera",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Aquaphor",
+            "sos": 6.0,
+            "product_count": 6
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "Nivea",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 2.0,
+        "product_count": 2,
+        "brand_rank": 9
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Burt's Bees",
+            "name": "Burt's Bees 100% Natural Moisturizing Lip Balm (Original Bee",
+            "price": 10.48,
+            "rating": 4.8,
+            "reviews_count": 121467
+          },
+          {
+            "rank": 2,
+            "brand": "Unknown",
+            "name": "NOONI Korean Lip Oil - Applepeony - pH Color-Changing Plumpi",
+            "price": 15.0,
+            "rating": 4.0,
+            "reviews_count": 25988
+          },
+          {
+            "rank": 3,
+            "brand": "Summer Fridays",
+            "name": "Summer Fridays Lip Butter Balm - Moisturizing Lip Gloss for ",
+            "price": 24.0,
+            "rating": 4.7,
+            "reviews_count": 10594
+          },
+          {
+            "rank": 4,
+            "brand": "eos",
+            "name": "eos 100% Natural Lip Balm - Strawberry Sorbet and Pomegranat",
+            "price": 3.79,
+            "rating": 4.7,
+            "reviews_count": 32621
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Ba",
+            "price": 4.59,
+            "rating": 4.6,
+            "reviews_count": 27228
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "Nivea",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 55,
+            "brand": "Nivea",
+            "name": "NIVEA Moisture Lip Care, Hydrating Lip Balms with Shea Butte",
+            "price": 8.52,
+            "rating": 4.7,
+            "reviews_count": 9218
+          },
+          {
+            "rank": 58,
+            "brand": "Nivea",
+            "name": "NIVEA Lip Care, Fruity Cuties Lip Balm Variety Pack, 4 x 0.1",
+            "price": 8.52,
+            "rating": 4.6,
+            "reviews_count": 23261
+          },
+          {
+            "rank": 89,
+            "brand": "Nivea",
+            "name": "NIVEA Smoothness Lip Care, Sunscreen Lip Balm with SPF 15, 4",
+            "price": 8.94,
+            "rating": 4.5,
+            "reviews_count": 9841
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.1024,
+        "category_avg_rating": 4.26
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "Maybelline",
+            "sos": 11.46,
+            "product_count": 11
+          },
+          {
+            "brand": "NYX",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "Revlon",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 9.38,
+            "product_count": 9
+          },
+          {
+            "brand": "L'Oreal",
+            "sos": 7.29,
+            "product_count": 7
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "nivea",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Sh",
+            "rating": 4.6,
+            "reviews_count": 19849
+          },
+          {
+            "rank": 2,
+            "brand": "NYX",
+            "name": "NYX PROFESSIONAL MAKEUP Butter Gloss, Non-Sticky Lip Gloss -",
+            "rating": 4.5,
+            "reviews_count": 126021
+          },
+          {
+            "rank": 3,
+            "brand": "Sacheu",
+            "name": "Sacheu Lip Liner STAY-N Peel Off Lip Stain, Longwear, p-INKE",
+            "rating": 4.0,
+            "reviews_count": 22850
+          },
+          {
+            "rank": 4,
+            "brand": "Unknown",
+            "name": "Wonderskin Lip Stain – Long Lasting, Waterproof, Lip Tint Pe",
+            "rating": 3.8,
+            "reviews_count": 32729
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted",
+            "rating": 4.6,
+            "reviews_count": 30232
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1229,
+      "judge_tokens": 7866,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 895,
+      "l5_completion_tokens": 334,
+      "judge_prompt_tokens": 6171,
+      "judge_completion_tokens": 1695,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0008924,
+      "judge_cost_usd": 0.0051804,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5301.537036895752,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 12.5,
+      "confidence_components": {
+        "kg_facts": 4.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 2.0
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

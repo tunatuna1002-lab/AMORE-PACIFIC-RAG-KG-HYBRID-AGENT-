@@ -1,0 +1,179 @@
+{
+  "item_id": "lg118",
+  "question": "아모레퍼시픽 브랜드들이 Amazon에서 시너지를 내는 방법은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1552511415525114,
+    "semantic_similarity": 0.24885766208171844,
+    "groundedness_score": 0.4167,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.2,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.4685394589937473,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg118",
+    "timestamp": "2026-09-17T21:44:18.332923",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_1_1",
+        "amazon_ranking_diagnosis_9_3",
+        "chunk_2",
+        "chunk_3",
+        "amazon_algorithm_guide_8_3",
+        "amazon_ranking_diagnosis_9_2",
+        "amazon_algorithm_guide_8_10",
+        "amazon_algorithm_guide_8_2"
+      ],
+      "snippets": [
+        "현재 미국 뷰티 시장의 소비자 정서는 '맹목적 바이럴 수용'에서 '검증과 회의주의'로 급격히 전환되고 있다. 지난 1년간 틱톡(TikTok)을 중심으로 폭발적인 성장을 이룬 브랜드들이 이제는 '인플루언서 피로감(Influencer Fatigue)'과 '효능 불일치'라는 역풍을 맞이하고 있다. 데이터 분석 결과, 위기는 크게 네 가지 핵심 벡터로 분류된다. ",
+        "k Content Driving Amazon Sales* – #TikTokMadeMeBuyIt 해시태그로 TikTok에서 제품이 바이럴되면 아마존 판매가 급증하고, Micro‑Influencer의 영향력이 큼을 보여준다【757634067288727†L63-L84】. TikTok Analytics와 Amazon Attribution을 사용해 외부 트래픽이 판",
+        "주목해야 할 점은 **Medicube(메디큐브)**, **VT Cosmetics**, **Genabelle** 등 경쟁 K-뷰티 브랜드들이 PDRN을 전면에 내세우며 아마존 내 시장 점유율을 공격적으로 확대하고 있다는 것이다. 특히 **Medicube의 PDRN Pink Peptide Serum**은 $19\\~$25의 공격적인 가격 정책으로 아마존 'Mov",
+        "3. 외부 요인 분석\n\n### 3.1 소셜 미디어 바이럴\n\n- **TikTok/Instagram**: TikTok의 #TikTokMadeMeBuyIt 해시태그처럼 바이럴 콘텐츠가 아마존에서 제품을 폭발적으로 판매하게 만든 사례가 있다【757634067288727†L63-L84】. TikTok에서 바이럴된 제품은 외부 트래픽을 아마존으로 유도하여 순위를 크게",
+        "tering-the-Amazon-COSMO-Algorithm-with-AI-Content-Optimization/1976471090287931392)  \n4. Introduction: Why Surge Pricing and TikTok Matter for Amazon Sellers \\- Profasee, 1월 21, 2026에 액세스, [https://pr",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "-funnel-a-practical-guide-to-the-sqp-report.html)  \n25. Amazon Brand Analytics: A 2025 Guide to Smarter Selling with Data, 1월 21, 2026에 액세스, [https://www.sarasanalytics.com/blog/amazon-brand-analytics",
+        "1. A Comprehensive Analysis of Amazon's Algorithmic Convergence ..., 1월 21, 2026에 액세스, [https://prebodigital.co.za/blog/amazon-2/analysis-of-amazons-algorithmic-convergence-cosmo-rufus-and-a10/](https"
+      ],
+      "scores": [
+        7.487043314791101,
+        5.9778424244818495,
+        0.699226215817431,
+        0.7055450606241678,
+        0.3854224681854248,
+        0.3764307498931885,
+        0.3652549982070923,
+        0.353812575340271
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽 브랜드들이 Amazon에서 시너지를 내기 위해서는 다음 전략이 효과적입니다.\n\n1. **제품 포지셔닝 차별화 및 가격 전략 조율**  \n   경쟁사 Medicube가 PDRN 성분을 앞세워 $19~$25의 공격적 가격으로 시장 점유율을 확대 중인 상황에서, LANEIGE의 신제품 Bouncy & Firm Serum($45)은 가격 경쟁력이 상대적으로 낮습니다. 따라서 아모레퍼시픽 내 브랜드별로 타겟 고객층과 가격대를 명확히 구분해 서로 간의 직접 경쟁을 최소화하고, 각 브랜드가 강점으로 내세우는 성분과 효능을 차별화해야 합니다.\n\n2. **통합 마케팅 및 외부 트래픽 활용**  \n   TikTok 등 소셜 미디어에서 #TikTokMadeMeBuyIt 해시태그를 활용한 바이럴 마케팅이 Amazon 판매 급증에 직결됨이 확인되었습니다. 아모레퍼시픽 브랜드들이 공동으로 Micro-Influencer를 활용해 연계 프로모션을 진행하고, Amazon Attribution을 통해 외부 트래픽 효과를 분석·최적화하면 시너지를 극대화할 수 있습니다.\n\n3. **신뢰 구축 및 현지화 전략 강화**  \n   미국 소비자들이 ‘검증과 회의주의’로 전환된 상황에서, 제품력 저하 논란(예: 라운드랩 사례)과 효능 불일치 문제를 피하기 위해 아모레퍼시픽 브랜드들은 엄격한 품질 관리와 투명한 성분 공개를 통해 신뢰를 확보해야 합니다. 또한, 현지 소비자 니즈에 맞춘 제품 개발과 마케팅으로 ‘미국 현지화’ 전략을 강화하면 브랜드 간 시너지가 높아집니다.\n\n4. **제품 라인업 연계 프로모션 및 번들 판매**  \n   LANEIGE, Sulwhasoo, Innisfree 등 아모레퍼시픽 내 다양한 브랜드 제품을 묶은 번들 상품을 Amazon에서 선보여 교차 구매를 유도하면 고객 충성도와 평균 구매 단가 상승에 기여할 수 있습니다.\n\n요약하면, 아모레퍼시픽은 Amazon 내에서 브랜드별 차별화된 포지셔닝과 가격 전략을 수립하고, 공동 마케팅 및 외부 트래픽 연계, 신뢰 구축, 그리고 제품 번들링을 통해 경쟁 K-뷰티 브랜드 대비 시너지를 극대화할 수 있습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1227,
+      "judge_tokens": 5163,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 682,
+      "l5_completion_tokens": 545,
+      "judge_prompt_tokens": 2963,
+      "judge_completion_tokens": 2200,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0011447999999999999,
+      "judge_cost_usd": 0.0047052,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 6718.693256378174,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 5.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 1.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

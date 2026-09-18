@@ -1,0 +1,745 @@
+{
+  "item_id": "lg117",
+  "question": "ANUA 브랜드의 Skin Care 성장 전략은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.8,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.155688622754491,
+    "semantic_similarity": 0.6197172403335571,
+    "groundedness_score": 0.375,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.3333333333333333,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.5368698610112577,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg117",
+    "timestamp": "2026-09-17T21:44:13.432721",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "anua"
+      ],
+      "extracted_categories": [
+        "skin_care"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "strategy",
+        "growth_strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "negative_issue_response_7_7",
+        "negative_issue_response_7_6",
+        "negative_issue_response_7_17",
+        "chunk_3",
+        "chunk_4",
+        "chunk_5",
+        "laneige_strategy_2026_7_1",
+        "laneige_influencer_map_1_0"
+      ],
+      "snippets": [
+        "ruth_anua_heart_leaf_foner_cleansing_oil_a/)  \n8. Anua heartleaf oil cleanser is BAD : r/koreanskincare \\- Reddit, 1월 20, 2026에 액세스, [https://www.reddit.com/r/koreanskincare/comments/1j7gfdx/anua\\_hea",
+        "://www.reddit.com/r/koreanskincare/comments/1juc8xw/anua\\_pore\\_control\\_cleansing\\_oil\\_has\\_absolutely/](https://www.reddit.com/r/koreanskincare/comments/1juc8xw/anua_pore_control_cleansing_oil_has_",
+        "mments/1cfp9vi/can_someone_help_me_tell_if_this_anua_cleanser_is/)  \n25. Hello, could someone pls tell if my anua cleansing oil and rice toner by im from looks real?, 1월 20, 2026에 액세스, [https://www.re",
+        "---\n\n**5\\. 결론 및 전략적 제언**\n\n라네즈의 미국 시장 전략은 **\"수분 과학(Clinical Hydration)\"과 \"감각적 즐거움(Sensorial Pop)\"의 정교한 줄타기**입니다.\n\n틱톡의 **Golloria**나 **Sydney Sweeney**와 같은 메가 인플루언서를 통해서는 브랜드의 '힙'한 이미지와 시각적 매력을 극대화하여 신규",
+        "1월 20, 2026에 액세스, [https://www.reddit.com/r/Sephora/comments/1nb5o74/rhode\\_glazing\\_milk\\_vs\\_laneige\\_toner/](https://www.reddit.com/r/Sephora/comments/1nb5o74/rhode_glazing_milk_vs_laneige_toner/) ",
+        "drive/](https://thekit.ca/beauty/face/morning-shed-tiktok-test-drive/)  \n4. Waking Up To Self-Care: The Morning Shed Trend Explained By Experts \\- Haute Living, 1월 20, 2026에 액세스, [https://hauteliving.",
+        "1. **'모닝 쉐드' 트렌드의 주도권 확보:** Lip Sleeping Mask와 Sleeping Mask 제품군을 단순한 보습제가 아닌, 틱톡의 '모닝 쉐드' 리추얼을 완성하는 필수 아이템으로 포지셔닝해야 한다. 밤 사이 두껍게 바르고 아침에 닦아내는 과정이 주는 시각적 만족감을 마케팅에 적극 활용해야 한다.  \n2. **스피큘/PDRN 트렌드의 '보완",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아"
+      ],
+      "scores": [
+        7.114281024082903,
+        6.742591324133964,
+        6.695779477040853,
+        1.0,
+        0.9957765888123107,
+        0.8087039727529504,
+        0.4409971237182617,
+        0.4229697585105896
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "anua",
+        "skin_care"
+      ],
+      "kg_edges_found": [
+        "anua -competesWith-> loreal",
+        "anua -competesWith-> nyx",
+        "anua -competesWith-> aquaphor",
+        "anua -competesWith-> cetaphil",
+        "anua -competesWith-> la_roche_posay",
+        "beauty -hasSubcategory-> skin_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "competitors",
+          "entity": "anua",
+          "data": [
+            {
+              "brand": "l'oreal",
+              "type": "competesWith",
+              "category": "beauty",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "nyx",
+              "type": "competesWith",
+              "category": "beauty",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "aquaphor",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "cetaphil",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            },
+            {
+              "brand": "la roche-posay",
+              "type": "competesWith",
+              "category": "skin_care",
+              "original_predicate": "COMPETES_WITH"
+            }
+          ],
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "competitor_network",
+          "entity": "anua",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "cetaphil"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "vanicream"
+              ],
+              [
+                "competesWith",
+                "eltamd"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        },
+        {
+          "type": "category_brands",
+          "entity": "skin_care",
+          "data": {
+            "brand_count": 39,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 38,
+                "products": [
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B0B1PDDLGZ",
+                  "B081FFRGZB",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B07BRDVQ4B",
+                  "B09M7SPFSJ",
+                  "B0BFQ9RD5B",
+                  "B0BWX6NZLT",
+                  "B0BT1WN3ZD",
+                  "B0BBSP2JNQ",
+                  "B0DFY92NDB",
+                  "B0D8W1YVBX",
+                  "B09MFMCTRK",
+                  "B07VRFC3Y7",
+                  "B092RB7LQW",
+                  "B0FGQ3J31K",
+                  "B0CCRWC6W9",
+                  "B07G1VKCND",
+                  "B09GN1YRVP",
+                  "B09G2S1KZ2",
+                  "B00028EYJ8",
+                  "B0DP37D91R",
+                  "B0CNCL35CH",
+                  "B07ZDHQQW1",
+                  "B0DDC3QGJL",
+                  "B084MVWG1F",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B077RTL1HJ",
+                  "B0FX418XT8",
+                  "B08TM8DLFJ",
+                  "B0GQTSGWSG",
+                  "B0G643D8ZG",
+                  "B081KLNHSG",
+                  "B092RB3292"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 16,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0G38FGSKL",
+                  "B0GVQ6NYR3",
+                  "B0GCC2JV65",
+                  "B0DWMSM6Y9",
+                  "B0FPQGLYK9",
+                  "B0GHNDWQFN",
+                  "B0D16L5F2M",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 9,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY",
+                  "B07YLKXV11",
+                  "B0C7JJG6BB",
+                  "B07VWSN95S"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 5,
+                "products": [
+                  "B0BZGRCBY4",
+                  "B0B9CHS3LR",
+                  "B0FY7963T5",
+                  "B091NJQ29P",
+                  "B0G48T5CM2"
+                ]
+              },
+              {
+                "brand": "the ordinary",
+                "product_count": 5,
+                "products": [
+                  "B071914GGL",
+                  "B01MDTVZTZ",
+                  "B01MYEZPC8",
+                  "B06WD5J8KY",
+                  "B0C3PCJ6SD"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "skin_care",
+          "data": {
+            "name": "Skin Care",
+            "level": 1,
+            "path": [
+              "beauty",
+              "skin_care"
+            ],
+            "ancestors": [
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": [
+              {
+                "id": "lip_care",
+                "name": "Lip Care",
+                "level": 2
+              },
+              {
+                "id": "face_skincare",
+                "name": "Face",
+                "level": 2
+              },
+              {
+                "id": "body_skincare",
+                "name": "Body",
+                "level": 2
+              },
+              {
+                "id": "eyes_skincare",
+                "name": "Eyes",
+                "level": 2
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "brand_products",
+          "entity": "anua",
+          "data": {
+            "product_count": 5,
+            "products": [
+              {
+                "asin": "B0DWFLY18Y",
+                "name": "",
+                "category": "skin_care",
+                "rank": 12,
+                "title": "ANUA PDRN Hyaluronic Acid 100 Moisturizing Cream, 2.02 fl oz | Lightweight, Non-Greasy Hydrating Fac",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0DG1DQ2S7",
+                "name": "",
+                "category": "skin_care",
+                "rank": 28,
+                "title": "Anua Azelaic Acid 10 Hyaluron Redness Soothing Serum, 1.01 fl oz | Facial Serum for Blemish-Prone & ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FVT77ZLL",
+                "name": "",
+                "category": "skin_care",
+                "rank": 51,
+                "title": "Anua PDRN Collagen Glow Facial Serum Spray, 3.38 fl oz | Hydrating Face Mist, Hyaluronic Acid, dewy ",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0BVV8BNYJ",
+                "name": "",
+                "category": "skin_care",
+                "rank": 63,
+                "title": "Anua Heartleaf Quercetinol Pore Deep Cleansing Foam, 5.07 fl.oz | Face wash for Pore Refining Cleans",
+                "original_predicate": "HAS_PRODUCT"
+              },
+              {
+                "asin": "B0FWCF61VF",
+                "name": "",
+                "category": "lip_care",
+                "rank": 58,
+                "title": "Anua PDRN Lip Serum, 0.33 fl.oz | Long-lasting Hydration for Dry Skin, Non-Sticky Moisturizing Lip C",
+                "original_predicate": "HAS_PRODUCT"
+              }
+            ]
+          },
+          "_weighted_score": 0.21
+        }
+      ],
+      "competitor_network": [
+        {
+          "type": "competitor_network",
+          "entity": "anua",
+          "data": {
+            "outgoing": [
+              [
+                "competesWith",
+                "l'oreal"
+              ],
+              [
+                "competesWith",
+                "nyx"
+              ],
+              [
+                "competesWith",
+                "aquaphor"
+              ],
+              [
+                "competesWith",
+                "cetaphil"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ],
+              [
+                "competesWith",
+                "e.l.f."
+              ],
+              [
+                "competesWith",
+                "vanicream"
+              ],
+              [
+                "competesWith",
+                "eltamd"
+              ]
+            ],
+            "incoming": [
+              [
+                "competesWith",
+                "fresh"
+              ],
+              [
+                "competesWith",
+                "medicube"
+              ],
+              [
+                "competesWith",
+                "unknown"
+              ],
+              [
+                "competesWith",
+                "neutrogena"
+              ],
+              [
+                "competesWith",
+                "the ordinary"
+              ],
+              [
+                "competesWith",
+                "eos"
+              ],
+              [
+                "competesWith",
+                "biodance"
+              ],
+              [
+                "competesWith",
+                "la roche-posay"
+              ],
+              [
+                "competesWith",
+                "dove"
+              ],
+              [
+                "competesWith",
+                "cerave"
+              ]
+            ]
+          },
+          "_weighted_score": 0.35
+        }
+      ],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "ANUA 브랜드의 Skin Care 성장 전략은 다음과 같이 요약할 수 있습니다.\n\n1. **경쟁사 대비 차별화된 제품 라인업 강화**  \n   - ANUA는 현재 5개의 제품을 보유하고 있으며, 주요 경쟁사로는 L'Oreal, NYX, Aquaphor가 있습니다.  \n   - 경쟁사 대비 제품 수가 적은 만큼, 제품 다양화 및 기능성 강화가 필요합니다.\n\n2. **고객 피드백 기반 제품 개선**  \n   - Reddit 등 커뮤니티에서 ANUA의 클렌징 오일 제품에 대해 여드름 유발 및 품질 논란(예: “anua oil cleanser is giving me pimples”, “Anua heartleaf oil cleanser is BAD”)이 제기되고 있습니다.  \n   - 이를 반영해 제품 성분 개선 및 피부 트러블 최소화에 집중하는 것이 중요합니다.\n\n3. **브랜드 인지도 및 신뢰도 제고**  \n   - Skin Care 카테고리 내 Top 브랜드는 Medicube, Cerave 등으로 ANUA는 아직 인지도 면에서 뒤처져 있습니다.  \n   - 효과적인 마케팅과 소비자 신뢰 구축을 통해 브랜드 입지를 강화해야 합니다.\n\n4. **아모레퍼시픽의 글로벌 유통망 활용**  \n   - 아모레퍼시픽의 강력한 글로벌 유통망과 Amazon 등 온라인 채널을 적극 활용해 해외 시장 진출 및 매출 확대를 도모할 수 있습니다.\n\n요약하면, ANUA는 제품 라인업 확대와 품질 개선에 집중하고, 고객 피드백을 반영한 신뢰도 향상 전략을 통해 경쟁사 대비 차별화를 꾀하며, 아모레퍼시픽의 글로벌 유통망을 활용해 Skin Care 시장에서 성장할 수 있습니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "analysis",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.067,
+        "category_avg_rating": 4.58
+      },
+      {
+        "type": "category_top_brands",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 13.54,
+            "product_count": 13
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 7.29,
+            "product_count": 7
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 5.21,
+            "product_count": 5
+          },
+          {
+            "brand": "ANUA",
+            "sos": 4.17,
+            "product_count": 4
+          },
+          {
+            "brand": "Dove",
+            "sos": 4.17,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "ANUA",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "present": true,
+        "sos": 4.17,
+        "product_count": 4,
+        "brand_rank": 4
+      },
+      {
+        "type": "category_top_products",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 4,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          },
+          {
+            "rank": 5,
+            "brand": "The Ordinary",
+            "name": "The Ordinary Glycolic Acid 7% Exfoliating Toner, Brightening",
+            "price": 13.5,
+            "rating": 4.7,
+            "reviews_count": 62240
+          }
+        ]
+      },
+      {
+        "type": "brand_products",
+        "brand": "ANUA",
+        "category": "skin_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 12,
+            "brand": "ANUA",
+            "name": "Anua PDRN Hyaluronic Acid 100 Moisturizing Cream, 2.02 fl oz",
+            "price": 21.6,
+            "rating": 4.6,
+            "reviews_count": 5185
+          },
+          {
+            "rank": 41,
+            "brand": "ANUA",
+            "name": "Anua Azelaic Acid 10 Hyaluron Redness Soothing Serum, 1.01 f",
+            "price": 19.8,
+            "rating": 4.5,
+            "reviews_count": 6374
+          },
+          {
+            "rank": 64,
+            "brand": "ANUA",
+            "name": "Anua PDRN Collagen Glow Facial Serum Spray, 3.38 fl oz | Hyd",
+            "price": 21.0,
+            "rating": 4.5,
+            "reviews_count": 6343
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 0,
+      "judge_tokens": 6585,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 0,
+      "l5_completion_tokens": 0,
+      "judge_prompt_tokens": 5280,
+      "judge_completion_tokens": 1305,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0,
+      "judge_cost_usd": 0.004199999999999999,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5644.006013870239,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 12.5,
+      "confidence_components": {
+        "kg_facts": 4.5,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 2.0
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

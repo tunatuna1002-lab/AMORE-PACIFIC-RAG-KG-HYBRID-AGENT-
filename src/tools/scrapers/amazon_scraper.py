@@ -1116,7 +1116,7 @@ class AmazonScraper:
                 if 0.50 <= price <= 500:
                     return price
         except (ValueError, TypeError, AttributeError):
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("가격 파싱 실패", exc_info=True)
         return None
 
     def _parse_rating(self, rating_text: str) -> float | None:
@@ -1149,7 +1149,7 @@ class AmazonScraper:
                     return round(rating, 1)
 
         except (ValueError, TypeError, AttributeError):
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("평점 파싱 실패", exc_info=True)
         return None
 
     def _parse_reviews_count(self, reviews_text: str) -> int | None:
@@ -1167,7 +1167,7 @@ class AmazonScraper:
                 if 0 <= count <= 1000000:
                     return count
         except (ValueError, TypeError, AttributeError):
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("리뷰 수 파싱 실패", exc_info=True)
         return None
 
     def _get_page2_url(self, url: str) -> str | None:

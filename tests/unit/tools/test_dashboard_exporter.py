@@ -12,6 +12,29 @@ import pytest
 from src.tools.exporters.dashboard_exporter import DashboardExporter
 
 
+@pytest.fixture(autouse=True)
+def _isolate_ontology_kg(monkeypatch):
+    """실제 data/knowledge_graph.json 오염 방지.
+
+    DashboardExporter(enable_ontology=True, 기본값)는 _init_ontology()에서
+    (주입 수단 없이) 기본 KnowledgeGraph()를 생성한다.
+    KnowledgeGraph.__init__ -> _load()가 내부적으로 add_relation()을 호출하므로,
+    로드 중 배치 임계값(save_batch_threshold)에 도달하면 자동 저장이 발생해
+    add_relation을 한 번도 호출하지 않아도 실제 파일이 다시 쓰여질 수 있다.
+    test_init_with_ontology_enabled처럼 _init_ontology 자체를 patch하는 테스트도
+    있지만, test_init_default/test_init_with_spreadsheet_id는 실제 lazy-init 결과
+    (enable_ontology 플래그 등)를 검증하므로 KnowledgeGraph 생성 자체는 그대로 두고
+    auto_save만 끈다.
+    """
+    from src.ontology.knowledge_graph import KnowledgeGraph as RealKnowledgeGraph
+
+    def _no_autosave_kg(*args, **kwargs):
+        kwargs.setdefault("auto_save", False)
+        return RealKnowledgeGraph(*args, **kwargs)
+
+    monkeypatch.setattr("src.tools.exporters.dashboard_exporter.KnowledgeGraph", _no_autosave_kg)
+
+
 @pytest.fixture
 def mock_sheets_writer():
     """Mock SheetsWriter"""
@@ -264,6 +287,58 @@ class TestDashboardExporterCalculateHHI:
         """Test HHI calculation with empty data"""
         result = exporter._calculate_hhi({})
         assert result == 0
+
+
+class TestDashboardExporterCalculateSosDelta:
+    """Test _calculate_sos_delta method (실계산 — 하드코딩 회귀 방지)"""
+
+    def test_delta_computed_from_previous_snapshot(self, exporter):
+        """직전 스냅샷 대비 %p 델타를 실계산한다"""
+        raw_data = [
+            # 오늘: 4건 중 LANEIGE 2건 = 50.0%
+            {"snapshot_date": "2026-02-15", "brand": "LANEIGE"},
+            {"snapshot_date": "2026-02-15", "brand": "LANEIGE"},
+            {"snapshot_date": "2026-02-15", "brand": "eos"},
+            {"snapshot_date": "2026-02-15", "brand": "Carmex"},
+            # 전일: 4건 중 LANEIGE 1건 = 25.0%
+            {"snapshot_date": "2026-02-14", "brand": "LANEIGE"},
+            {"snapshot_date": "2026-02-14", "brand": "eos"},
+            {"snapshot_date": "2026-02-14", "brand": "Carmex"},
+            {"snapshot_date": "2026-02-14", "brand": "Blistex"},
+        ]
+        assert exporter._calculate_sos_delta(raw_data, "2026-02-15") == "+25.0%p"
+
+    def test_delta_negative(self, exporter):
+        """하락 시 음수 부호로 포맷된다"""
+        raw_data = [
+            {"snapshot_date": "2026-02-15", "brand": "eos"},
+            {"snapshot_date": "2026-02-15", "brand": "Carmex"},
+            {"snapshot_date": "2026-02-14", "brand": "LANEIGE"},
+            {"snapshot_date": "2026-02-14", "brand": "eos"},
+        ]
+        assert exporter._calculate_sos_delta(raw_data, "2026-02-15") == "-50.0%p"
+
+    def test_delta_skips_gap_to_latest_prior_snapshot(self, exporter):
+        """수집 공백이 있으면 가장 최근의 이전 스냅샷과 비교한다"""
+        raw_data = [
+            {"snapshot_date": "2026-02-15", "brand": "LANEIGE"},
+            {"snapshot_date": "2026-02-10", "brand": "eos"},  # 직전 스냅샷 (공백 4일)
+            {"snapshot_date": "2026-02-01", "brand": "LANEIGE"},
+        ]
+        assert exporter._calculate_sos_delta(raw_data, "2026-02-15") == "+100.0%p"
+
+    def test_no_previous_snapshot_returns_none(self, exporter):
+        """이전 날짜 데이터가 없으면 None (하드코딩 금지)"""
+        raw_data = [{"snapshot_date": "2026-02-15", "brand": "LANEIGE"}]
+        assert exporter._calculate_sos_delta(raw_data, "2026-02-15") is None
+
+    def test_brand_data_kpis_use_real_delta(self, exporter, sample_raw_data):
+        """_generate_brand_data의 sos_delta가 하드코딩 값이 아니다"""
+        result = exporter._generate_brand_data(sample_raw_data)
+        delta = result["kpis"]["sos_delta"]
+        # sample_raw_data: 02-15는 3건 중 LANEIGE 2건(66.7%), 02-14는 1건 중 1건(100%)
+        assert delta == "-33.3%p"
+        assert delta != "+2.1%p"
 
 
 class TestDashboardExporterCalculateRankChange:

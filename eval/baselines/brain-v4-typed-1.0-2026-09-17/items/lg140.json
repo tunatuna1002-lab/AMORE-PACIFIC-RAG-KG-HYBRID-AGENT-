@@ -1,0 +1,424 @@
+{
+  "item_id": "lg140",
+  "question": "Amazon Prime Day가 뷰티 카테고리 시장 구조에 미치는 영향은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.16853932584269662,
+    "semantic_similarity": 0.589891791343689,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.42857142857142855,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6268302291212032,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg140",
+    "timestamp": "2026-09-17T21:46:29.871476",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "prime_day"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q3_0_10",
+        "ir_2025_q3_0_13",
+        "chunk_2",
+        "chunk_3",
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_ranking_diagnosis_9_3",
+        "amazon_algorithm_guide_8_3",
+        "amazon_algorithm_guide_8_7"
+      ],
+      "snippets": [
+        "• Accelerated global expansion and sales growth via cross-border channel \\-Mamondeentered new markets(N.Europe, Italy, Thailand)and elevated brand awareness \\-Amazon Prime Day sales doubled, contribut",
+        "**![][image2]![][image3]**  \n**28% (3Q24 28%) ![][image4]15% (3Q24 15%) ![][image5]7% (3Q24 5%) ![][image6]7% (3Q24 6%) ![][image7]6% (3Q24 6%) ![][image8]5% (3Q24 5%) ![][image9]4% (3Q24 3%) ![][imag",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "k Content Driving Amazon Sales* – #TikTokMadeMeBuyIt 해시태그로 TikTok에서 제품이 바이럴되면 아마존 판매가 급증하고, Micro‑Influencer의 영향력이 큼을 보여준다【757634067288727†L63-L84】. TikTok Analytics와 Amazon Attribution을 사용해 외부 트래픽이 판",
+        "tering-the-Amazon-COSMO-Algorithm-with-AI-Content-Optimization/1976471090287931392)  \n4. Introduction: Why Surge Pricing and TikTok Matter for Amazon Sellers \\- Profasee, 1월 21, 2026에 액세스, [https://pr",
+        "log/57/_My_Amazon_Sales_Just_Dropped_____Use_this_Sudden_Sales_Slump_Checklist_Before_You_Panic)  \n16. Can You See a Competitor's Amazon Traffic Sources? The Truth \\+ What You Can Track Instead \\- Sel"
+      ],
+      "scores": [
+        6.823236151320273,
+        6.522825902045021,
+        1.0,
+        0.7535607201790449,
+        0.48628103733062744,
+        0.46966618299484253,
+        0.46625781059265137,
+        0.46134889125823975
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 44,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 51,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B",
+                  "B09SGLQNS5",
+                  "B00TZUJW6O"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 6,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B07PBQZ3KF",
+                  "B0F3J6W5KW",
+                  "B0GVG4S4X9",
+                  "B075DB13ZT",
+                  "B088W7L534"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.24
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "Amazon Prime Day는 뷰티 카테고리 시장 구조에 다음과 같은 영향을 미치고 있습니다.\n\n1. **판매량 및 매출 증대**  \n   - Mise-en-scène 브랜드는 Amazon Prime Day 기간 동안 강력한 판매 실적을 기록하며 전체 매출 성장에 기여했습니다.  \n   - Illiyoon과 Mise-en-scène의 강한 퍼포먼스 덕분에 Amazon Prime Day 매출이 2배로 증가했습니다.  \n   - Mise-en-scène의 ‘Perfect Hair Serum’은 미국 아마존 향수 카테고리에서 1위를 차지하는 등 프로모션 효과가 뚜렷합니다.\n\n2. **시장 점유율 및 경쟁 구도 변화**  \n   - 대규모 프로모션으로 경쟁사들의 판매량이 급증하면서, 프로모션에 참여하지 않은 브랜드는 상대적으로 랭킹이 하락하는 현상이 발생합니다.  \n   - 이는 Prime Day와 같은 대형 이벤트가 시장 내 경쟁 강도를 높이고, 브랜드 간 점유율 변동성을 키운다는 점을 시사합니다.\n\n3. **글로벌 확장 및 브랜드 인지도 제고**  \n   - Mamonde 등 브랜드가 신규 시장 진출과 함께 Amazon Prime Day를 통한 글로벌 판매 확대를 가속화하고 있습니다.  \n   - Prime Day는 단순 할인 이벤트를 넘어 브랜드 인지도 상승과 신규 고객 확보의 기회로 작용합니다.\n\n요약하면, Amazon Prime Day는 뷰티 카테고리 내에서 판매량과 매출을 크게 증대시키고, 경쟁 구도를 재편하며, 글로벌 시장 확장과 브랜드 인지도 제고에 중요한 역할을 하고 있습니다. 특히, 프로모션 참여 여부가 시장 점유율과 랭킹에 직접적인 영향을 미치는 점이 핵심입니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1190,
+      "judge_tokens": 5499,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 798,
+      "l5_completion_tokens": 392,
+      "judge_prompt_tokens": 4016,
+      "judge_completion_tokens": 1483,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0009463999999999999,
+      "judge_cost_usd": 0.0039792,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5199.624061584473,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 10.5,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "hard",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}

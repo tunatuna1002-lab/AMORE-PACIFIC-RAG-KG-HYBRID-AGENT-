@@ -1,0 +1,308 @@
+"""
+v4 Brain 평가 어댑터 검증 (결정 D3)
+
+- 동시 실행에서도 문항별 검색 트레이스가 섞이지 않는다
+- litellm 사용량이 문항별로 적립된다 (mock_response — 네트워크 없음)
+- ReAct 도구 관찰이 observation 증거 카드로 만들어져 prompt_evidence로 넘어간다 (트랙 2-C)
+- CLI --target 인자와 리포트 설정 기록
+
+실제 UnifiedBrain·QueryGraph·EvalRunner를 쓰고, 검색 백엔드와 LLM 호출 지점만 가짜로 둔다.
+"""
+
+import asyncio
+import json
+from unittest.mock import AsyncMock, patch
+
+import litellm
+import pytest
+
+from eval.brain_adapter import BrainEvalAdapter
+from eval.runner import EvalRunner
+from eval.schemas import EvalConfig
+from src.core.models import Decision, Response
+from src.domain.entities.evidence import EvidenceKind
+from src.infrastructure.feature_flags import FeatureFlags
+from src.rag.hybrid_retriever import HybridContext, HybridRetriever
+
+QUESTIONS = [
+    "LANEIGE Lip Care SoS는?",
+    "LANEIGE Skin Care 순위는?",
+    "LANEIGE Face Powder HHI는?",
+]
+
+
+@pytest.fixture
+def flags(monkeypatch, tmp_path):
+    data_path = tmp_path / "dashboard_data.json"
+    data_path.write_text(json.dumps({"brand": {"competitors": []}}), encoding="utf-8")
+    monkeypatch.setenv("DASHBOARD_DATA_PATH", str(data_path))
+
+    def _set(react: bool = False) -> None:
+        monkeypatch.setenv("FF_AGENTS_USE_REACT_AGENT", "true" if react else "false")
+        monkeypatch.setenv("FF_RETRIEVER_USE_OWL_STRATEGY", "false")
+        FeatureFlags.reset_instance()
+
+    yield _set
+    FeatureFlags.reset_instance()
+
+
+async def _adapter() -> BrainEvalAdapter:
+    from src.core.brain import UnifiedBrain
+
+    brain = UnifiedBrain()
+    with patch.object(HybridRetriever, "initialize", AsyncMock()):
+        await brain.initialize()
+    return BrainEvalAdapter(brain)
+
+
+def _fake_retrieve(delays: dict[str, float]):
+    async def retrieve(query: str, **kwargs):
+        await asyncio.sleep(delays[query])
+        return HybridContext(
+            query=query,
+            entities={"brands": ["laneige"], "categories": [query]},
+            rag_chunks=[{"id": f"chunk::{query}", "content": query}],
+            metric_facts=[{"type": "probe", "query": query}],
+        )
+
+    return retrieve
+
+
+@pytest.mark.asyncio
+async def test_concurrent_items_keep_their_own_trace_and_usage(flags):
+    flags(react=False)
+    adapter = await _adapter()
+    brain = adapter.brain
+    retriever = brain._context_gatherer.retriever
+    # 먼저 들어온 문항이 가장 늦게 끝나게 해서 공유 상태였다면 덮어써지도록 한다
+    delays = {q: 0.03 * (len(QUESTIONS) - i) for i, q in enumerate(QUESTIONS)}
+    retriever.retrieve = _fake_retrieve(delays)
+
+    async def generate(query, context, decision, tool_result=None):
+        # 실제 litellm 경로를 타되 네트워크 없이 — 사용량 콜백 검증용
+        await litellm.acompletion(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": query}],
+            mock_response=f"answer:{query}",
+        )
+        return Response(text=f"answer:{query}", confidence_score=0.5)
+
+    decide = AsyncMock(return_value=Decision(tool="direct_answer", tool_params={}))
+    with (
+        patch.object(brain._response_pipeline, "generate", side_effect=generate),
+        patch.object(brain.decision_maker, "decide", decide),
+    ):
+        await adapter.initialize()
+        results = await asyncio.gather(*(adapter.chat(q) for q in QUESTIONS))
+
+    for question, result in zip(QUESTIONS, results, strict=True):
+        assert result["response"] == f"answer:{question}"
+        ctx = result["hybrid_context"]
+        assert ctx.rag_chunks[0]["id"] == f"chunk::{question}"
+        assert ctx.metric_facts == [{"type": "probe", "query": question}]
+        assert ctx.retriever_type == "legacy"
+        assert result["llm_usage"]["calls"] == 1
+        assert result["llm_usage"]["prompt_tokens"] > 0
+
+
+@pytest.mark.asyncio
+async def test_runner_scores_v4_trace_with_same_schema(flags):
+    flags(react=False)
+    adapter = await _adapter()
+    brain = adapter.brain
+    brain._context_gatherer.retriever.retrieve = _fake_retrieve({QUESTIONS[0]: 0})
+
+    with (
+        patch.object(
+            brain._response_pipeline,
+            "generate",
+            AsyncMock(return_value=Response(text="LANEIGE SoS 3%", confidence_score=0.5)),
+        ),
+        patch.object(
+            brain.decision_maker,
+            "decide",
+            AsyncMock(return_value=Decision(tool="direct_answer", tool_params={})),
+        ),
+    ):
+        await adapter.initialize()
+        runner = EvalRunner(agent=adapter, config=EvalConfig(target="v4"))
+        result = await adapter.chat(QUESTIONS[0])
+        trace = await runner._capture_trace("lgX", result, start_time=0.0)
+
+    assert trace.l2_doc_retrieval.chunk_ids == [f"chunk::{QUESTIONS[0]}"]
+    assert trace.l1_entity_linking.extracted_brands == ["laneige"]
+    assert trace.data_facts == [{"type": "probe", "query": QUESTIONS[0]}]
+    assert trace.l5_answer.final_answer == "LANEIGE SoS 3%"
+
+
+@pytest.mark.asyncio
+async def test_react_observations_become_prompt_evidence_cards(flags):
+    flags(react=True)
+    adapter = await _adapter()
+    brain = adapter.brain
+    question = "LANEIGE 경쟁사와 비교해서 점유율이 왜 달라졌는지 분석해줘"
+
+    # 5-C: ReAct가 네이티브 function calling을 쓰므로 가짜 응답도 tool_calls 모양이다
+    from tests.unit.core.react_fc_fixtures import reply
+
+    llm = AsyncMock(
+        side_effect=[
+            reply(
+                {
+                    "thought": "경쟁사 확인",
+                    "action": "query_knowledge_graph",
+                    "action_input": {"entity": "LANEIGE", "relation": "competitors"},
+                }
+            ),
+            reply({"thought": "끝", "action": "final_answer", "action_input": {"answer": "답"}}),
+            reply({"quality_score": 0.8, "needs_improvement": False}),
+        ]
+    )
+    thin = HybridContext(query=question, entities={"brands": ["laneige"]})
+    leaked = AssertionError("ReAct 경로를 타지 않았다")
+    with (
+        patch.object(brain._context_gatherer.retriever, "retrieve", AsyncMock(return_value=thin)),
+        patch("src.core.react_agent.acompletion", llm),
+        patch.object(brain.decision_maker, "decide", AsyncMock(side_effect=leaked)),
+        patch.object(brain._response_pipeline, "generate", AsyncMock(side_effect=leaked)),
+    ):
+        await adapter.initialize()
+        result = await adapter.chat(question)
+
+    assert result["query_type"] == "react"
+    assert result["route_trace"]["route"] == "react"
+    assert result["response"] == "답"
+    trace = result["hybrid_context"]
+    # 옛 dict 삽입은 더 이상 없다 — observation은 증거 카드로만 실린다 (트랙 2-C)
+    assert [f for f in trace.metric_facts if f.get("type") == "react_observation"] == []
+    observation_cards = [c for c in trace.prompt_evidence if c.kind == EvidenceKind.OBSERVATION]
+    assert [c.subject for c in observation_cards] == ["query_knowledge_graph"]
+    assert "LANEIGE" in observation_cards[0].text
+
+
+@pytest.mark.asyncio
+async def test_shadow_react_does_not_leak_into_prompt_evidence_or_query_type(flags, monkeypatch):
+    """섀도 모드(버그 재현): ReAct는 기록용으로만 돌고 답은 파이프라인이 낸다.
+
+    route_trace.route == "direct"인데도 react_steps가 채워지는 경우, 어댑터가
+    (1) observation 카드를 prompt_evidence에 얹거나 (2) query_type을 "react"로 덮어쓰면
+    judge가 답변이 실제로 보지 않은 근거로 채점하게 된다. 둘 다 일어나면 안 된다.
+    """
+    flags(react=False)
+    monkeypatch.setenv("FF_AGENTS_REACT_SHADOW_MODE", "true")
+    FeatureFlags.reset_instance()
+    adapter = await _adapter()
+    brain = adapter.brain
+    # 홉 2개 이상(관계+판정)인 질문 — HopRouter가 use_react=True로 판정해 섀도가 돈다
+    question = "LANEIGE 경쟁사와 비교해서 점유율이 왜 달라졌는지 분석해줘"
+
+    from tests.unit.core.react_fc_fixtures import reply
+
+    llm = AsyncMock(
+        side_effect=[
+            reply(
+                {
+                    "thought": "경쟁사 확인",
+                    "action": "query_knowledge_graph",
+                    "action_input": {"entity": "LANEIGE", "relation": "competitors"},
+                }
+            ),
+            reply({"thought": "끝", "action": "final_answer", "action_input": {"answer": "답"}}),
+            reply({"quality_score": 0.8, "needs_improvement": False}),
+        ]
+    )
+    thin = HybridContext(query=question, entities={"brands": ["laneige"]})
+    pipeline_response = Response(text="파이프라인 답", confidence_score=0.9, query_type="direct")
+
+    with (
+        patch.object(brain._context_gatherer.retriever, "retrieve", AsyncMock(return_value=thin)),
+        patch("src.core.react_agent.acompletion", llm),
+        patch.object(
+            brain._query_graph._confidence_assessor,
+            "should_skip_llm_decision",
+            return_value=True,
+        ),
+        patch.object(
+            brain._response_pipeline, "generate", AsyncMock(return_value=pipeline_response)
+        ),
+    ):
+        await adapter.initialize()
+        result = await adapter.chat(question)
+
+    # 전제: 섀도 ReAct가 실제로 돌았다 (route는 direct인데 react_steps가 있어야 버그가 재현된다)
+    assert result["route_trace"]["route"] == "direct"
+    assert result["route_trace"]["react_shadow"]["ran"] is True
+
+    assert result["response"] == "파이프라인 답"
+    assert result["query_type"] == "direct"
+    trace = result["hybrid_context"]
+    observation_cards = [c for c in trace.prompt_evidence if c.kind == EvidenceKind.OBSERVATION]
+    assert observation_cards == []
+
+
+@pytest.mark.asyncio
+async def test_decision_tool_cards_become_prompt_evidence(flags, tmp_path):
+    """DecisionMaker가 부른 도구의 카드도 judge 근거 컨텍스트에 실린다 (트랙 4-A).
+
+    도구·SQLite·어댑터는 실제 객체이고, 가짜는 LLM 호출(결정·답변)과 문서 검색기뿐이다.
+    """
+    from src.core.models import ToolResult
+    from src.domain.entities.evidence import EvidenceKind
+    from src.rag.metric_facts import MetricFactsProvider
+    from tests.unit.rag.evidence_pipeline_fixtures import AS_OF, make_metrics_db
+
+    flags(react=False)
+    adapter = await _adapter()
+    brain = adapter.brain
+    question = "LANEIGE Lip Care 점유율은?"
+    retriever = brain._context_gatherer.retriever
+
+    async def thin_retrieve(query, **kwargs):
+        # 근거가 거의 없는 컨텍스트 → LOW 신뢰도 → DecisionMaker 경로
+        return HybridContext(query=query)
+
+    retriever.retrieve = thin_retrieve
+    # 운영 DB 대신 임시 스냅샷 DB (as_of 고정)
+    retriever.metric_facts_provider = MetricFactsProvider(make_metrics_db(tmp_path), as_of=AS_OF)
+
+    captured: dict[str, ToolResult] = {}
+
+    async def generate(query, context, decision=None, tool_result=None):
+        captured["tool_result"] = tool_result
+        return Response(text="LANEIGE SoS는 2%입니다.", confidence_score=0.5)
+
+    with (
+        patch.object(brain._response_pipeline, "generate", side_effect=generate),
+        patch.object(
+            brain.decision_maker,
+            "decide",
+            AsyncMock(
+                return_value=Decision(
+                    tool="get_metrics", tool_params={"brand": "LANEIGE", "category": "lip_care"}
+                )
+            ),
+        ),
+    ):
+        await adapter.initialize()
+        result = await adapter.chat(question)
+
+    assert result["route_trace"]["decision_tool"] == "get_metrics"
+    assert captured["tool_result"].success, captured["tool_result"].error
+    cards = [c for c in result["hybrid_context"].prompt_evidence if c.kind == EvidenceKind.METRIC]
+    assert cards, "도구가 만든 수치 카드가 트레이스에 없다"
+    assert {c.as_of for c in cards} == {AS_OF}
+    assert result["tools_called"] == []  # 파이프라인을 가짜로 둔 응답이라 비어 있다
+
+
+def test_cli_target_argument_defaults_to_v1():
+    from eval.cli import parse_args
+
+    assert parse_args(["run", "--dataset", "x.jsonl"]).target == "v1"
+    assert parse_args(["run", "--dataset", "x.jsonl", "--target", "v4"]).target == "v4"
+
+
+def test_eval_config_records_target_and_commit():
+    config = EvalConfig(target="v4", git_commit="abc1234")
+    dumped = config.model_dump()
+    assert dumped["target"] == "v4"
+    assert dumped["git_commit"] == "abc1234"

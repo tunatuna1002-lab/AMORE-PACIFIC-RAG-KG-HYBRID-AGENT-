@@ -1,8 +1,8 @@
 {
   "retriever": {
-    "use_owl_strategy": true,
     "use_reranker": false,
-    "use_confidence_fusion": true
+    "use_confidence_fusion": true,
+    "use_db_metric_facts": true
   },
   "reasoner": {
     "use_unified_reasoner": true,
@@ -19,6 +19,15 @@
   },
   "agents": {
     "use_query_rewriter": true,
-    "use_external_signals": true
+    "use_external_signals": true,
+    "use_react_agent": false,
+    "react_shadow_mode": false,
+    "react_bypass_confidence": false
+  },
+  "response": {
+    "numeric_verification_mode": "annotate"
+  },
+  "router": {
+    "use_llm_fallback": false
   }
 }

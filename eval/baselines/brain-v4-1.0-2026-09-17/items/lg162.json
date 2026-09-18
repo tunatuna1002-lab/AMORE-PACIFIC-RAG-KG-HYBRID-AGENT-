@@ -1,0 +1,379 @@
+{
+  "item_id": "lg162",
+  "question": "라에니즈 립케어 순위 알려줘",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0975609756097561,
+    "semantic_similarity": 0.669779896736145,
+    "groundedness_score": 0.75,
+    "answer_relevance_score": 0.3,
+    "factuality_score": 0.4,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6395606785111311,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_edge_fail",
+    "L5_numeric_mismatch",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg162",
+    "timestamp": "2026-09-17T16:31:53.193185",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "lip_care"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "chunk_0",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "metric_interpretation_2_1",
+        "amazon_algorithm_guide_3_2",
+        "home_insight_rules_13",
+        "strategic_indicators_1_1"
+      ],
+      "snippets": [
+        " 1월 20, 2026에 액세스, [https://www.reddit.com/r/Sephora/comments/1kfc47s/lip\\_maskalt\\_to\\_laneige/](https://www.reddit.com/r/Sephora/comments/1kfc47s/lip_maskalt_to_laneige/)  \n16. The lip peptide battl",
+        "g\\_mask/](https://www.reddit.com/r/Sephora/comments/1hsf7tq/laneige_lip_glowy_balm_vs_sleeping_mask/)  \n18. Fans of Pricey Rhode and Laneige Say This Anti-Aging Lip Gloss Gives the Same Plump and Shin",
+        "LANEIGE의 **Lip Glowy Balm**이 튜브형 제품군에 속하지만, 경쟁사 제품들이 '펩타이드 트리트먼트'라는 고기능성 이미지를 구축한 것에 비해 단순한 '글로시 밤'으로 인식되는 경향이 있다.17 최근 **Essence**와 같은 저가 브랜드조차 $5짜리 '슈퍼 펩타이드 글로스'를 출시하며 펩타이드 마케팅에 열을 올리고 있는 상황이다.18 이는",
+        "---\n\n**4\\. 카테고리별 상세 분석: 립 케어(Lip Care)**\n\nLANEIGE가 독보적인 지위를 차지하고 있는 립 케어 카테고리는 현재 '립 베이스팅(Lip Basting)'이라는 강력한 트렌드와 펩타이드 립 트리트먼트의 도전이라는 두 가지 큰 흐름 속에 있다.\n\n### **4.1 '립 베이스팅(Lip Basting)' 트렌드와 LANEIGE의 ",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "* **지식 그래프의 모순:** 리스팅에서는 \"조립이 쉽다\"고 주장하지만, 최근 리뷰 데이터에서 \"조립이 악몽 같다\"는 텍스트가 반복되면, 루퍼스는 이를 감지하고 해당 제품의 추천 순위를 낮춥니다.1 이는 별점이 4.5점으로 높더라도 발생할 수 있는 현상입니다.  \n* **진단 조치:** 최근 등록된 10\\~20개의 리뷰를 전수 조사하여, 리스팅의 핵심 소",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식"
+      ],
+      "scores": [
+        1.0,
+        0.8482472569926287,
+        0.7391310018076384,
+        0.7258416323147407,
+        0.38160306215286255,
+        0.33448994159698486,
+        0.34624940156936646,
+        0.33952510356903076
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_care"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> skin_care",
+        "skin_care -hasSubcategory-> lip_care"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "lip_care",
+          "data": {
+            "brand_count": 33,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 40,
+                "products": [
+                  "B0BWX6NZLT",
+                  "B0FGCLTN83",
+                  "B00EXPRM7C",
+                  "B0GL22N4GY",
+                  "B09N7XD1JY",
+                  "B09HHD9X58",
+                  "B077XC7K7V",
+                  "B07BB4V9W9",
+                  "B000S2LT9Q",
+                  "B0BFXM9NNW",
+                  "B0FF2G7YDQ",
+                  "B0CKV8DCPD",
+                  "B07X62WVM4",
+                  "B07N4PVLB7",
+                  "B0D1JWSP3M",
+                  "B001ET729S",
+                  "B07NTF3TC5",
+                  "B0GWPJFTBN",
+                  "B084TPK3WY",
+                  "B0CLHTKY3V",
+                  "B07BB4WVRY",
+                  "B0DSGQ8Y5J",
+                  "B07D5RGLPJ",
+                  "B0C65TFRQC",
+                  "B0DQYVN4WS",
+                  "B01FSJV3XK",
+                  "B0CLHVCPL5",
+                  "B0CKV7JNFX",
+                  "B01HOU74SO",
+                  "B0DZJM5VPY",
+                  "B0899C4WR8",
+                  "B00CXK623E",
+                  "B0G4NR7BL3",
+                  "B088ZVHX78",
+                  "B01NAI251H",
+                  "B0CP1PW1BD",
+                  "B001AQO9MI",
+                  "B0FB9DNJ9T",
+                  "B0F5XZ8J5X",
+                  "B0CVMYKYZQ"
+                ]
+              },
+              {
+                "brand": "burt's bees",
+                "product_count": 10,
+                "products": [
+                  "B0054LHI5A",
+                  "B01N2UBGQJ",
+                  "B0163BMUFM",
+                  "B0DKF34N9R",
+                  "B08VXNT6L2",
+                  "B001GIOV14",
+                  "B078JD3TFP",
+                  "B0DQQNWRQS",
+                  "B00076TOUO",
+                  "B0DQF7FNYC"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 10,
+                "products": [
+                  "B0G2T52PRG",
+                  "B0B2TKJVDH",
+                  "B0CRRZNL11",
+                  "B0BNP3ZN4X",
+                  "B0CQS64YDB",
+                  "B0DXRJYY7X",
+                  "B006WQF3B2",
+                  "B08C8Y26LL",
+                  "B09V1VJGCR",
+                  "B0DXRKW3KY"
+                ]
+              },
+              {
+                "brand": "hera",
+                "product_count": 10,
+                "products": [
+                  "B07QYWXCCT",
+                  "B07LHBLVYJ",
+                  "B0BBPS73TD",
+                  "B00C2IVGSS",
+                  "B0C1TFHMCT",
+                  "B0BBWCZLYY",
+                  "B0BZQP7V3B",
+                  "B0F5HTSWW3",
+                  "B08G51PM4J",
+                  "B078YGLMLX"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 8,
+                "products": [
+                  "B0C7W6GW8P",
+                  "B0DZP8PN3N",
+                  "B09JL5PCJ6",
+                  "B0C7WQ3Z6H",
+                  "B0CPYMLVJJ",
+                  "B0FPMHTKCN",
+                  "B0GVG681B5",
+                  "B0B5MGPXPN"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_care",
+          "data": {
+            "name": "Lip Care",
+            "level": 2,
+            "path": [
+              "beauty",
+              "skin_care",
+              "lip_care"
+            ],
+            "ancestors": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "라에니즈(LANEIGE) 립케어 제품 순위에 관한 직접적인 판매 순위 데이터는 제공되지 않았으나, 관련 분석을 바탕으로 요약하면 다음과 같습니다.\n\n1. LANEIGE의 대표 립케어 제품인 **Lip Sleeping Mask**는 강력한 브랜드 파워를 보유하고 있으나, Amazon 내 lip_care 카테고리 상위 브랜드(예: burt's bees, eos)와 비교 시, 전체 시장 점유율이나 순위는 상대적으로 낮은 편입니다.\n\n2. LANEIGE의 튜브형 제품인 **Lip Glowy Balm**은 단순한 글로시 밤으로 인식되어, 펩타이드 등 고기능성 성분을 강조하는 경쟁사 제품 대비 마케팅 경쟁력이 다소 약한 상태입니다.\n\n3. 현재 Amazon lip_care 시장에서는 burt's bees, eos 등이 상위권을 차지하고 있으며, LANEIGE는 이들과 비교해 고기능성 트리트먼트 이미지 구축이 필요한 상황입니다.\n\n결론적으로, LANEIGE 립케어 제품은 Amazon lip_care 카테고리 내에서 상위 브랜드들과 비교해 순위가 명확히 높지 않으며, 특히 Lip Sleeping Mask를 제외한 제품군은 기능성 강조와 마케팅 강화가 필요한 상태입니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0681,
+        "category_avg_rating": 4.57
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "eos",
+            "sos": 9.0,
+            "product_count": 9
+          },
+          {
+            "brand": "Burt's Bees",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "Hera",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Aquaphor",
+            "sos": 6.0,
+            "product_count": 6
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_care",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Burt's Bees",
+            "name": "Burt's Bees 100% Natural Moisturizing Lip Balm (Original Bee",
+            "price": 10.48,
+            "rating": 4.8,
+            "reviews_count": 121467
+          },
+          {
+            "rank": 2,
+            "brand": "Unknown",
+            "name": "NOONI Korean Lip Oil - Applepeony - pH Color-Changing Plumpi",
+            "price": 15.0,
+            "rating": 4.0,
+            "reviews_count": 25988
+          },
+          {
+            "rank": 3,
+            "brand": "Summer Fridays",
+            "name": "Summer Fridays Lip Butter Balm - Moisturizing Lip Gloss for ",
+            "price": 24.0,
+            "rating": 4.7,
+            "reviews_count": 10594
+          },
+          {
+            "rank": 4,
+            "brand": "eos",
+            "name": "eos 100% Natural Lip Balm - Strawberry Sorbet and Pomegranat",
+            "price": 3.79,
+            "rating": 4.7,
+            "reviews_count": 32621
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Squeeze Me Lip Balm, Strawberry | Moisturizing Lip Ba",
+            "price": 4.59,
+            "rating": 4.6,
+            "reviews_count": 27228
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1051,
+      "judge_tokens": 5036,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00028724999999999996,
+      "judge_cost_usd": 0.0013318499999999999
+    },
+    "latency_ms": 4098.10996055603,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "edge",
+    "difficulty": "easy",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

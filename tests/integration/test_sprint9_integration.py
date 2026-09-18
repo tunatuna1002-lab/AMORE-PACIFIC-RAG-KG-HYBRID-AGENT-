@@ -1,7 +1,7 @@
 """
 Sprint 9 Integration Tests (D-5)
 
-Tests for multi-hop, AIS citation, SPARQL, IRI roundtrip,
+Tests for multi-hop, AIS citation, IRI roundtrip,
 OWL consistency, and Self-RAG + hybrid retrieval integration.
 """
 
@@ -113,7 +113,13 @@ def knowledge_graph():
 
 
 class TestMultiHopIntegration:
-    """Integration tests for multi-hop retrieval via ReActAgent."""
+    """Integration tests for multi-hop retrieval via ReActAgent.
+
+    5-C: ReAct가 네이티브 function calling으로 바뀌면서 스텝 생성 이음매가
+    ``_execute_step``(프롬프트 JSON 파싱) → ``_next_move``(tool_calls 읽기)로 옮겨졌다.
+    여기서는 그 이음매를 대역으로 두고 **루프·홉 집계·최종 답 추출**을 실제 코드로 검증한다.
+    LLM 호출은 일어나지 않는다 (``_next_move``와 ``_reflect``가 대역이다).
+    """
 
     @pytest.fixture
     def react_agent(self):
@@ -138,250 +144,196 @@ class TestMultiHopIntegration:
         agent.tool_executor = mock_executor
         return agent
 
+    @staticmethod
+    def _scripted_moves(moves):
+        """(thought, action, action_input) 목록 → ``_next_move`` 대역.
+
+        마지막 항목이 소진되면 그대로 반복한다 (루프가 스스로 멈춰야 한다).
+        """
+        index = {"n": 0}
+
+        async def _next_move(messages, tools, run=None):
+            thought, action, action_input = moves[min(index["n"], len(moves) - 1)]
+            index["n"] += 1
+            if action is None:
+                return thought, None
+            return thought, (action, action_input, f"call_{index['n']}")
+
+        return _next_move
+
+    async def _run_multihop(self, agent, query, moves):
+        from unittest.mock import AsyncMock as _AsyncMock
+
+        with (
+            patch.object(agent, "_next_move", side_effect=self._scripted_moves(moves)),
+            patch.object(
+                agent,
+                "_reflect",
+                _AsyncMock(return_value={"quality_score": 0.8, "needs_improvement": False}),
+            ),
+        ):
+            return await agent.run(query, context="Test context")
+
     @pytest.mark.asyncio
     async def test_multihop_competitor_avg_price(self, react_agent):
         """LANEIGE Lip Sleeping Mask의 경쟁 제품들의 평균 가격은?"""
-        from src.core.react_agent import ReActStep
-
-        query = "LANEIGE Lip Sleeping Mask의 경쟁 제품들의 평균 가격은?"
-        step_idx = 0
-
-        async def mock_execute_step(q, ctx, steps):
-            nonlocal step_idx
-            sequence = [
-                ReActStep(
-                    thought="Need to find LANEIGE competitors first",
-                    action="get_competitors",
-                    action_input={"brand": "LANEIGE"},
-                ),
-                ReActStep(
-                    thought="추가 검색 필요: competitor pricing",
-                    action="refine_search",
-                    action_input={
+        result = await self._run_multihop(
+            react_agent,
+            "LANEIGE Lip Sleeping Mask의 경쟁 제품들의 평균 가격은?",
+            [
+                ("경쟁 관계부터 확인", "kg_neighbors", {"entity": "LANEIGE"}),
+                (
+                    "추가 검색 필요: competitor pricing",
+                    "refine_search",
+                    {
                         "refined_query": "competitor prices for LANEIGE",
                         "reason": "need pricing data",
                         "focus_entities": ["LANEIGE"],
                     },
                 ),
-                ReActStep(
-                    thought="Got data. Average price is $24.99.",
-                    action="final_answer",
-                    observation="경쟁 제품 평균 가격은 $24.99입니다.",
+                (
+                    "정리",
+                    "final_answer",
+                    {"answer": "경쟁 제품 평균 가격은 $24.99입니다.", "confidence": 0.8},
                 ),
-            ]
-            result = sequence[min(step_idx, len(sequence) - 1)]
-            step_idx += 1
-            return result
+            ],
+        )
 
-        with (
-            patch.object(react_agent, "_execute_step", side_effect=mock_execute_step),
-            patch.object(
-                react_agent,
-                "_reflect",
-                return_value={"quality_score": 0.8, "needs_improvement": False},
-            ),
-        ):
-            result = await react_agent.run(query, context="Test context")
-
-        assert result is not None
         assert result.hop_count >= 1
+        assert result.final_answer == "경쟁 제품 평균 가격은 $24.99입니다."
+        assert [step.action for step in result.steps] == [
+            "kg_neighbors",
+            "refine_search",
+            "final_answer",
+        ]
 
     @pytest.mark.asyncio
     async def test_multihop_category_leader_performance(self, react_agent):
         """Lip Care 카테고리 1위 브랜드의 다른 카테고리 성과는?"""
-        from src.core.react_agent import ReActStep
-
-        step_idx = 0
-
-        async def mock_execute_step(q, ctx, steps):
-            nonlocal step_idx
-            sequence = [
-                ReActStep(
-                    thought="Find Lip Care category leader first",
-                    action="search_products",
-                    action_input={"category": "lip_care"},
-                ),
-                ReActStep(
-                    thought="추가 검색 필요: cross-category performance",
-                    action="refine_search",
-                    action_input={
+        result = await self._run_multihop(
+            react_agent,
+            "Lip Care 카테고리 1위 브랜드의 다른 카테고리 성과는?",
+            [
+                ("카테고리 1위부터", "get_metrics", {"category": "Lip Care"}),
+                (
+                    "추가 검색 필요: cross-category performance",
+                    "refine_search",
+                    {
                         "refined_query": "LANEIGE other categories",
                         "reason": "need cross-category data",
                         "focus_entities": ["LANEIGE"],
                     },
                 ),
-                ReActStep(
-                    thought="Found cross-category data.",
-                    action="final_answer",
-                    observation="LANEIGE는 Lip Care 1위이며 Skin Care에서도 활약합니다.",
+                (
+                    "정리",
+                    "final_answer",
+                    {"answer": "LANEIGE는 Lip Care 1위이며 Skin Care에서도 활약합니다."},
                 ),
-            ]
-            result = sequence[min(step_idx, len(sequence) - 1)]
-            step_idx += 1
-            return result
+            ],
+        )
 
-        with (
-            patch.object(react_agent, "_execute_step", side_effect=mock_execute_step),
-            patch.object(
-                react_agent,
-                "_reflect",
-                return_value={"quality_score": 0.8, "needs_improvement": False},
-            ),
-        ):
-            result = await react_agent.run(
-                "Lip Care 카테고리 1위 브랜드의 다른 카테고리 성과는?",
-                context="Test context",
-            )
-
-        assert result is not None
         assert result.hop_count >= 1
+        assert "Lip Care 1위" in result.final_answer
 
     @pytest.mark.asyncio
     async def test_multihop_cosrx_top3_hhi(self, react_agent):
         """COSRX의 Top 3 제품이 속한 카테고리들의 시장 집중도는?"""
-        from src.core.react_agent import ReActStep
-
-        step_idx = 0
-
-        async def mock_execute_step(q, ctx, steps):
-            nonlocal step_idx
-            sequence = [
-                ReActStep(
-                    thought="First find COSRX top products",
-                    action="search_products",
-                    action_input={"brand": "COSRX", "limit": 3},
-                ),
-                ReActStep(
-                    thought="추가 검색 필요: HHI for categories",
-                    action="refine_search",
-                    action_input={
+        result = await self._run_multihop(
+            react_agent,
+            "COSRX의 Top 3 제품이 속한 카테고리들의 시장 집중도는?",
+            [
+                ("제품부터", "get_metrics", {"brand": "COSRX"}),
+                (
+                    "추가 검색 필요: HHI for categories",
+                    "refine_search",
+                    {
                         "refined_query": "HHI for COSRX product categories",
                         "reason": "need market concentration",
                         "focus_entities": ["COSRX"],
                     },
                 ),
-                ReActStep(
-                    thought="HHI data retrieved.",
-                    action="final_answer",
-                    observation="COSRX 제품 카테고리의 평균 HHI는 0.08입니다.",
+                (
+                    "정리",
+                    "final_answer",
+                    {"answer": "COSRX 제품 카테고리의 평균 HHI는 0.08입니다."},
                 ),
-            ]
-            result = sequence[min(step_idx, len(sequence) - 1)]
-            step_idx += 1
-            return result
+            ],
+        )
 
-        with (
-            patch.object(react_agent, "_execute_step", side_effect=mock_execute_step),
-            patch.object(
-                react_agent,
-                "_reflect",
-                return_value={"quality_score": 0.8, "needs_improvement": False},
-            ),
-        ):
-            result = await react_agent.run(
-                "COSRX의 Top 3 제품이 속한 카테고리들의 시장 집중도는?",
-                context="Test context",
-            )
-
-        assert result is not None
+        assert result.hop_count >= 1
+        assert "HHI" in result.final_answer
 
     @pytest.mark.asyncio
     async def test_multihop_fastest_growing_competitor(self, react_agent):
         """LANEIGE와 경쟁하는 브랜드 중 성장세가 가장 큰 브랜드는?"""
-        from src.core.react_agent import ReActStep
-
-        step_idx = 0
-
-        async def mock_execute_step(q, ctx, steps):
-            nonlocal step_idx
-            sequence = [
-                ReActStep(
-                    thought="Get LANEIGE competitors first",
-                    action="get_competitors",
-                    action_input={"brand": "LANEIGE"},
-                ),
-                ReActStep(
-                    thought="추가 검색 필요: growth rate details",
-                    action="refine_search",
-                    action_input={
+        result = await self._run_multihop(
+            react_agent,
+            "LANEIGE와 경쟁하는 브랜드 중 성장세가 가장 큰 브랜드는?",
+            [
+                ("경쟁사부터", "kg_neighbors", {"entity": "LANEIGE"}),
+                (
+                    "추가 검색 필요: growth rate details",
+                    "refine_search",
+                    {
                         "refined_query": "ANUA growth rate details",
                         "reason": "need growth data",
                         "focus_entities": ["ANUA"],
                     },
                 ),
-                ReActStep(
-                    thought="ANUA is fastest growing.",
-                    action="final_answer",
-                    observation="ANUA가 25.3%로 가장 높은 성장세를 보입니다.",
-                ),
-            ]
-            result = sequence[min(step_idx, len(sequence) - 1)]
-            step_idx += 1
-            return result
+                ("정리", "final_answer", {"answer": "ANUA가 25.3%로 가장 높은 성장세를 보입니다."}),
+            ],
+        )
 
-        with (
-            patch.object(react_agent, "_execute_step", side_effect=mock_execute_step),
-            patch.object(
-                react_agent,
-                "_reflect",
-                return_value={"quality_score": 0.8, "needs_improvement": False},
-            ),
-        ):
-            result = await react_agent.run(
-                "LANEIGE와 경쟁하는 브랜드 중 성장세가 가장 큰 브랜드는?",
-                context="Test context",
-            )
-
-        assert result is not None
+        assert result.hop_count >= 1
+        assert "ANUA" in result.final_answer
 
     @pytest.mark.asyncio
     async def test_multihop_brand_sentiment_profile(self, react_agent):
         """Lip Care에서 SoS가 가장 높은 브랜드의 감성 프로필은?"""
-        from src.core.react_agent import ReActStep
-
-        step_idx = 0
-
-        async def mock_execute_step(q, ctx, steps):
-            nonlocal step_idx
-            sequence = [
-                ReActStep(
-                    thought="Find top SoS brand in Lip Care",
-                    action="search_products",
-                    action_input={"category": "lip_care"},
-                ),
-                ReActStep(
-                    thought="추가 검색 필요: sentiment data",
-                    action="refine_search",
-                    action_input={
+        result = await self._run_multihop(
+            react_agent,
+            "Lip Care에서 SoS가 가장 높은 브랜드의 감성 프로필은?",
+            [
+                ("SoS 1위부터", "get_metrics", {"category": "Lip Care"}),
+                (
+                    "추가 검색 필요: sentiment data",
+                    "refine_search",
+                    {
                         "refined_query": "LANEIGE sentiment profile",
                         "reason": "need sentiment",
                         "focus_entities": ["LANEIGE"],
                     },
                 ),
-                ReActStep(
-                    thought="Got sentiment data.",
-                    action="final_answer",
-                    observation="LANEIGE의 감성 프로필: 긍정 80%, 중립 15%, 부정 5%",
+                (
+                    "정리",
+                    "final_answer",
+                    {"answer": "LANEIGE의 감성 프로필: 긍정 80%, 중립 15%, 부정 5%"},
                 ),
-            ]
-            result = sequence[min(step_idx, len(sequence) - 1)]
-            step_idx += 1
-            return result
+            ],
+        )
 
+        assert result.hop_count >= 1
+        assert "긍정 80%" in result.final_answer
+
+    @pytest.mark.asyncio
+    async def test_multihop_loop_stops_without_final_answer(self, react_agent):
+        """final_answer 없이 같은 도구만 반복하면 반복 한도에서 멈춘다 (무한 루프 방지)."""
+        from unittest.mock import AsyncMock as _AsyncMock
+
+        moves = [("계속 조회", "kg_neighbors", {"entity": "LANEIGE"})]
         with (
-            patch.object(react_agent, "_execute_step", side_effect=mock_execute_step),
+            patch.object(react_agent, "_next_move", side_effect=self._scripted_moves(moves)),
+            patch.object(react_agent, "_force_final_answer", _AsyncMock(return_value="요약 답변")),
             patch.object(
                 react_agent,
                 "_reflect",
-                return_value={"quality_score": 0.8, "needs_improvement": False},
+                _AsyncMock(return_value={"quality_score": 0.5, "needs_improvement": True}),
             ),
         ):
-            result = await react_agent.run(
-                "Lip Care에서 SoS가 가장 높은 브랜드의 감성 프로필은?",
-                context="Test context",
-            )
+            result = await react_agent.run("질문", context="Test context")
 
-        assert result is not None
+        assert result.iterations == react_agent.max_iterations
+        assert result.final_answer == "요약 답변"
 
 
 # =========================================================================
@@ -423,86 +375,6 @@ class TestAISCitationIntegration:
         assert stats["citation_rate"] >= 0.80, f"Citation rate {stats['citation_rate']:.2f} < 0.80"
         # Verify citation tags present
         assert "[출처" in annotated
-
-
-# =========================================================================
-# 3. SPARQL Tests (5 queries)
-# =========================================================================
-
-
-class TestSPARQLIntegration:
-    """Test query_sparql_rdflib() with real SPARQL queries."""
-
-    def test_sparql_select_all_products(self, knowledge_graph):
-        """SELECT all products for a brand using STR FILTER on URI."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?product
-            WHERE {
-                <http://amore.ontology/entity/LANEIGE> amore:hasProduct ?product .
-            }
-        """)
-
-        assert len(results) >= 2
-        product_ids = [r.get("product", "") for r in results]
-        assert any("B08R35S2QH" in pid for pid in product_ids)
-
-    def test_sparql_select_competitors(self, knowledge_graph):
-        """SELECT competitors of a brand using STR FILTER on URI."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?competitor
-            WHERE {
-                <http://amore.ontology/entity/LANEIGE> amore:competesWith ?competitor .
-            }
-        """)
-
-        assert len(results) >= 2
-        competitor_ids = [r.get("competitor", "") for r in results]
-        assert any("COSRX" in cid for cid in competitor_ids)
-        assert any("ANUA" in cid for cid in competitor_ids)
-
-    def test_sparql_select_brand_category(self, knowledge_graph):
-        """SELECT brand-category relations."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?brand ?category
-            WHERE {
-                ?brand amore:belongsToCategory ?category .
-            }
-        """)
-
-        assert len(results) >= 2
-
-    def test_sparql_filter_by_literal(self, knowledge_graph):
-        """SELECT with FILTER on object literal."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT ?brand
-            WHERE {
-                ?brand amore:belongsToCategory ?cat .
-                FILTER(?cat = "lip_care")
-            }
-        """)
-
-        assert len(results) >= 1
-        brand_ids = [r.get("brand", "") for r in results]
-        assert any("LANEIGE" in bid for bid in brand_ids)
-
-    def test_sparql_count_products(self, knowledge_graph):
-        """COUNT products for COSRX brand."""
-        results = knowledge_graph.query_sparql_rdflib("""
-            PREFIX amore: <http://amore.ontology/>
-            SELECT (COUNT(?product) AS ?count)
-            WHERE {
-                <http://amore.ontology/entity/COSRX> amore:hasProduct ?product .
-            }
-        """)
-
-        assert len(results) >= 1
-        # COSRX has 3 products (may count 6 with URI+literal dual triples)
-        count = int(results[0].get("count", 0))
-        assert count >= 3
 
 
 # =========================================================================

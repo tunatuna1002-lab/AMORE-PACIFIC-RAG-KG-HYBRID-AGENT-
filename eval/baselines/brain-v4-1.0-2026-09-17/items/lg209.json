@@ -1,0 +1,139 @@
+{
+  "item_id": "lg209",
+  "question": "아모레퍼시픽 2025년 3분기 영업이익 증가율은 얼마인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.08695652173913043,
+    "semantic_similarity": 0.5085811614990234,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.3333333333,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.4164872803773227,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg209",
+    "timestamp": "2026-09-17T16:35:23.393653",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "data_query"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_5_6",
+        "laneige_strategy_2026_7_0",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "chunk_5",
+        "kbeauty_industry_5_3",
+        "laneige_strategy_2026_1_0"
+      ],
+      "snippets": [
+        "om/watch?v=lWRyqyRoVi0)  \n10. LANEIGE Launches New Water Bank Campaign 'The LANEIGE Show' \\- Amorepacific, 1월 21, 2026에 액세스, [https://www.apgroup.com/int/en/news/2025-01-10-1.html](https://www.apgroup",
+        "---\n\n**7\\. 결론 및 전략적 제언**\n\n2026년 1월, 미국 뷰티 시장은 '재생'과 '회복'이라는 거대한 테마 아래, 고기능성 성분과 감각적인 텍스처가 결합된 제품을 요구하고 있다. LANEIGE는 PDRN이나 스피큘과 같은 공격적인 바이오 성분 트렌드에는 다소 뒤처져 보일 수 있으나, '편안한 고효능(Comfortable Efficacy)'이라는",
+        "customers",
+        "Deep Facial Cleanser' Happy Bath'SkinUDeep Musk Body Oil & Gua Sha'  \n7   \n**1Q 2025 Overseas Business**",
+        "\\- \\[Hanyul\\] Newly entered the U.S. market via Sephora and built awareness with its ‘Yuja Brightening’ line products  \\- \\[COSRX\\] Expanded product portfolio in emerging categories by launching new s",
+        " to Luxury business), like-for-like growth for luxury business is 4% increaseYoY    \nSulwhasooGlobal Culture Trip‘HolisticBeautyJourney’ Hera‘Custom Match’ Service![][image2]![][image3]Primera‘Vitatin",
+        "2. **아마존****과의 협력 및 성과**:\n  1. 아마존은 젊은 사용자들을 끌어들이기 위해 K-뷰티 다큐멘터리를 제작해 공개했으며, 언론 노출을 꺼리는 신생 업체 창업자도 출연했다 \n  2. 한 신생 업체는 나흘간 진행되는 이벤트 기간에 <mark>140억 원어치</mark>를 팔자는 목표(10 밀리언 달러)를 세웠고, 직원들은 놀랐으나 촬영에 들어갔",
+        "**1\\. 서론: 2026년 1월 미국 뷰티 시장의 거시적 환경 변화**\n\n2026년 1월, 미국 뷰티 시장은 단순한 '연말연시 회복(Post-Holiday Recovery)'을 넘어선 구조적인 소비 패턴의 변화를 겪고 있다. 과거의 뷰티 트렌드가 '클린 걸(Clean Girl)'로 대변되는 미니멀리즘과 자연스러움에 천착했다면, 현재의 시장은 \\*\\*'재생"
+      ],
+      "scores": [
+        1.2728822361708296,
+        1.2685181189687844,
+        1.0,
+        0.9486588883154754,
+        0.8501312906069605,
+        0.8408386146959335,
+        0.29562056064605713,
+        0.2620340585708618
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내에는 아모레퍼시픽의 2025년 3분기 영업이익 증가율에 대한 구체적인 수치가 포함되어 있지 않습니다. 따라서 정확한 영업이익 증가율을 산출할 수 없습니다. 추가적인 재무 보고서나 공식 발표 자료 확인이 필요합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 560,
+      "judge_tokens": 2069,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00011639999999999998,
+      "judge_cost_usd": 0.00061455
+    },
+    "latency_ms": 3000.903844833374,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

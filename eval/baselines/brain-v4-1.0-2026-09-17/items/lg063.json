@@ -1,0 +1,138 @@
+{
+  "item_id": "lg063",
+  "question": "SoS와 리뷰 수의 상관관계는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 1.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09523809523809523,
+    "semantic_similarity": 0.646964967250824,
+    "groundedness_score": 0.857,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.5714285714285714,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.4686901803859075,
+  "fail_reason_tags": [
+    "L3_kg_fail",
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg063",
+    "timestamp": "2026-09-17T16:23:58.653314",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos",
+        "correlation",
+        "review_count"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_6_1",
+        "chunk_1",
+        "chunk_2",
+        "amazon_ranking_diagnosis_4_2",
+        "amazon_algorithm_guide_1_1",
+        "amazon_algorithm_guide_3_2",
+        "amazon_algorithm_guide_4_2",
+        "chunk_7"
+      ],
+      "snippets": [
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "- **리뷰와 별점의 영향**: BSR은 리뷰 수에 직접 영향을 받지 않지만【437377726246902†L408-L415】, 아마존의 검색 알고리즘은 높은 클릭률·전환율·긍정적 리뷰를 **고객 참여(CTR, CVR)** 지표로 간주하며, 이는 순위에 반영된다【340261456527992†L187-L197】. 최근 부정적 리뷰의 급증이나 별점 하락은 전환율",
+        "과거의 BSR 변동이 단순히 판매량(Sales Volume)의 증감에 대한 후행 지표였다면, 현재의 랭킹은 '의미론적 밀도(Semantic Density)', '지식 그래프(Knowledge Graph) 적합성', 그리고 '외부 트래픽의 가중치'가 복합적으로 작용하는 다변수 함수의 결과값입니다.3 예를 들어, 판매 속도가 일정함에도 불구하고 랭킹이 급락하는",
+        "* **지식 그래프의 모순:** 리스팅에서는 \"조립이 쉽다\"고 주장하지만, 최근 리뷰 데이터에서 \"조립이 악몽 같다\"는 텍스트가 반복되면, 루퍼스는 이를 감지하고 해당 제품의 추천 순위를 낮춥니다.1 이는 별점이 4.5점으로 높더라도 발생할 수 있는 현상입니다.  \n* **진단 조치:** 최근 등록된 10\\~20개의 리뷰를 전수 조사하여, 리스팅의 핵심 소",
+        "* **인플루언서 스토어프론트:** 경쟁사 제품 페이지의 \"Videos for this product\" 섹션을 확인합니다. 새로운 인플루언서의 고품질 리뷰 영상이 다수 업로드되었다면, 이는 조직적인 인플루언서 시딩(Seeding) 캠페인의 결과일 가능성이 높습니다.18  \n* **아마존 라이브(Amazon Live):** 아마존 라이브 플랫폼에서 경쟁사 제",
+        "- **주의사항**\n- 리뷰 수 급증/급감은 반영하지 않음\n- 단기 변동은 과대 해석 주의\n\n---"
+      ],
+      "scores": [
+        16.03401643456445,
+        1.0,
+        0.725847489675364,
+        0.4795216917991638,
+        0.44585251808166504,
+        0.42394816875457764,
+        0.4106874465942383,
+        0.42729421861525535
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "SoS(Share of Shelf)와 리뷰 수 간의 상관관계는 직접적인 데이터가 제공되지 않아 명확한 수치적 상관관계를 제시하기 어렵습니다. 다만, SoS는 특정 브랜드가 Top N 랭킹 내에서 차지하는 제품 비중을 의미하며, 이는 브랜드의 물리적 노출 점유율을 나타냅니다. 반면 리뷰 수는 소비자 선호도와 제품 만족도를 반영하는 지표입니다.\n\n- SoS가 높다는 것은 브랜드 제품이 많이 노출되고 있다는 의미이나, 반드시 매출이나 소비자 선호(리뷰 수)와 비례하지 않습니다.\n- 리뷰 수가 많다는 것은 소비자 반응이 활발하다는 뜻이나, 제품 노출(SoS)과는 별개로 마케팅, 제품력, 구매 전환율 등에 영향을 받습니다.\n- 따라서 SoS와 리뷰 수는 서로 다른 측면을 평가하는 지표로, 상관관계가 높다고 단정하기 어렵습니다.\n\n결론적으로, SoS가 높아도 리뷰 수가 적을 수 있고, 리뷰 수가 많아도 SoS가 낮을 수 있으므로 두 지표는 별도로 분석하고 함께 해석하는 것이 바람직합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1105,
+      "judge_tokens": 3583,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00028635,
+      "judge_cost_usd": 0.00117285
+    },
+    "latency_ms": 6348.405122756958,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}

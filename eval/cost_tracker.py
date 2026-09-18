@@ -28,15 +28,28 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # Pricing Configuration (per 1M tokens, USD)
 # =============================================================================
+#
+# These tables are a FALLBACK only. Live pricing is looked up from litellm's
+# `model_cost` table first (see resolve_llm_pricing / resolve_embedding_pricing
+# below); this table is used only when litellm is unavailable or doesn't know
+# the model. Keep it corrected so the fallback path is never wrong on its own.
+#
+# gpt-4.1-mini corrected 2026-09 (F4): was $0.15/$0.60, published price is
+# $0.40/$1.60 per 1M tokens (input/output). Source: OpenAI pricing page, as
+# mirrored in litellm.model_cost["gpt-4.1-mini"]["source"]
+# (https://developers.openai.com/api/docs/pricing).
 
 LLM_PRICING: dict[str, dict[str, float]] = {
     # OpenAI
-    "gpt-4.1-mini": {"input": 0.15, "output": 0.60},
+    "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
     "gpt-4.1": {"input": 2.00, "output": 8.00},
     "gpt-4o": {"input": 2.50, "output": 10.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
     "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
-    # Anthropic
+    # Anthropic (2026-09 공식 요금, per 1M tokens)
+    "claude-opus-5": {"input": 5.00, "output": 25.00},
+    "claude-sonnet-5": {"input": 2.00, "output": 10.00},
+    "claude-haiku-4-5": {"input": 1.00, "output": 5.00},
     "claude-3-5-sonnet-20241022": {"input": 3.00, "output": 15.00},
     "claude-3-5-haiku-20241022": {"input": 1.00, "output": 5.00},
     "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
@@ -52,6 +65,55 @@ EMBEDDING_PRICING: dict[str, float] = {
     # Defaults
     "default": 0.10,
 }
+
+
+def _litellm_model_info(model: str) -> dict[str, Any] | None:
+    """Look up a model's cost entry from litellm, or None if unavailable/unmapped."""
+    try:
+        import litellm
+    except ImportError:
+        return None
+    try:
+        return litellm.get_model_info(model)
+    except Exception:
+        # litellm raises a plain Exception (not a specific subclass) for models
+        # it doesn't recognize ("This model isn't mapped yet...").
+        return None
+
+
+def resolve_llm_pricing(model: str) -> tuple[float, float, str]:
+    """
+    Resolve (input_usd_per_1m, output_usd_per_1m, source) for an LLM model.
+
+    Prefers litellm's live `model_cost` table (handles provider prefixes like
+    "openai/gpt-4.1-mini" and dated snapshots like "gpt-4.1-mini-2025-04-14").
+    Falls back to the internal LLM_PRICING table when litellm is unavailable
+    or doesn't know the model.
+    """
+    info = _litellm_model_info(model)
+    if info is not None:
+        input_per_token = info.get("input_cost_per_token")
+        if input_per_token is not None:
+            output_per_token = info.get("output_cost_per_token") or 0.0
+            return input_per_token * 1_000_000, output_per_token * 1_000_000, "litellm"
+
+    pricing = LLM_PRICING.get(model, LLM_PRICING["default"])
+    return pricing["input"], pricing["output"], "fallback_table"
+
+
+def resolve_embedding_pricing(model: str) -> tuple[float, str]:
+    """
+    Resolve (usd_per_1m_tokens, source) for an embedding model.
+
+    Prefers litellm's live `model_cost` table; falls back to EMBEDDING_PRICING.
+    """
+    info = _litellm_model_info(model)
+    if info is not None:
+        input_per_token = info.get("input_cost_per_token")
+        if input_per_token is not None:
+            return input_per_token * 1_000_000, "litellm"
+
+    return EMBEDDING_PRICING.get(model, EMBEDDING_PRICING["default"]), "fallback_table"
 
 
 @dataclass
@@ -140,12 +202,38 @@ class CostTracker:
     # =========================================================================
 
     def _get_llm_pricing(self, model: str) -> dict[str, float]:
-        """Get pricing for an LLM model."""
-        return LLM_PRICING.get(model, LLM_PRICING["default"])
+        """Get pricing for an LLM model (litellm live table, fallback to internal table)."""
+        input_per_m, output_per_m, _source = resolve_llm_pricing(model)
+        return {"input": input_per_m, "output": output_per_m}
 
     def _get_embedding_pricing(self, model: str) -> float:
-        """Get pricing for an embedding model."""
-        return EMBEDDING_PRICING.get(model, EMBEDDING_PRICING["default"])
+        """Get pricing for an embedding model (litellm live table, fallback to internal table)."""
+        price_per_m, _source = resolve_embedding_pricing(model)
+        return price_per_m
+
+    def get_pricing_metadata(self) -> dict[str, dict[str, Any]]:
+        """
+        Unit prices actually used for this run's cost calculations, keyed by model
+        name, with the source ("litellm" or "fallback_table") each came from.
+        """
+        metadata: dict[str, dict[str, Any]] = {}
+
+        for model in (self.llm_model, self.judge_model):
+            input_per_m, output_per_m, source = resolve_llm_pricing(model)
+            metadata[model] = {
+                "input_per_1m_usd": input_per_m,
+                "output_per_1m_usd": output_per_m,
+                "source": source,
+            }
+
+        embed_price, embed_source = resolve_embedding_pricing(self.embedding_model)
+        metadata[self.embedding_model] = {
+            "input_per_1m_usd": embed_price,
+            "output_per_1m_usd": 0.0,
+            "source": embed_source,
+        }
+
+        return metadata
 
     def _compute_layer_cost(self, layer: LayerCost, is_embedding: bool = False) -> float:
         """Compute cost for a layer in USD."""
@@ -289,12 +377,24 @@ class CostTracker:
             l4_tokens=self.l4.total_tokens,
             l5_tokens=self.l5.total_tokens,
             judge_tokens=self.judge.total_tokens,
+            l1_prompt_tokens=self.l1.prompt_tokens,
+            l1_completion_tokens=self.l1.completion_tokens,
+            l2_embedding_tokens=self.l2.embedding_tokens,
+            l3_prompt_tokens=self.l3.prompt_tokens,
+            l3_completion_tokens=self.l3.completion_tokens,
+            l4_prompt_tokens=self.l4.prompt_tokens,
+            l4_completion_tokens=self.l4.completion_tokens,
+            l5_prompt_tokens=self.l5.prompt_tokens,
+            l5_completion_tokens=self.l5.completion_tokens,
+            judge_prompt_tokens=self.judge.prompt_tokens,
+            judge_completion_tokens=self.judge.completion_tokens,
             l1_cost_usd=self.get_l1_cost(),
             l2_cost_usd=self.get_l2_cost(),
             l3_cost_usd=self.get_l3_cost(),
             l4_cost_usd=self.get_l4_cost(),
             l5_cost_usd=self.get_l5_cost(),
             judge_cost_usd=self.get_judge_cost(),
+            pricing=self.get_pricing_metadata(),
         )
 
     def reset(self) -> None:
@@ -343,7 +443,7 @@ def estimate_embedding_cost(texts: list[str], model: str = "text-embedding-3-sma
         Estimated cost in USD
     """
     total_tokens = sum(estimate_tokens(t) for t in texts)
-    price_per_m = EMBEDDING_PRICING.get(model, EMBEDDING_PRICING["default"])
+    price_per_m, _source = resolve_embedding_pricing(model)
     return (total_tokens / 1_000_000) * price_per_m
 
 
@@ -362,7 +462,7 @@ def estimate_llm_cost(
         Estimated cost in USD
     """
     prompt_tokens = estimate_tokens(prompt)
-    pricing = LLM_PRICING.get(model, LLM_PRICING["default"])
-    input_cost = (prompt_tokens / 1_000_000) * pricing["input"]
-    output_cost = (expected_output_tokens / 1_000_000) * pricing["output"]
+    input_per_m, output_per_m, _source = resolve_llm_pricing(model)
+    input_cost = (prompt_tokens / 1_000_000) * input_per_m
+    output_cost = (expected_output_tokens / 1_000_000) * output_per_m
     return input_cost + output_cost

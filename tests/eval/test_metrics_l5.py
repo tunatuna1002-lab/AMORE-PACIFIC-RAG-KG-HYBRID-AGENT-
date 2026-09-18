@@ -247,3 +247,213 @@ class TestConvenienceFunctions:
 
         assert metrics["exact_match"] == 1.0
         assert metrics["token_f1"] == 1.0
+
+
+class TestNumericAccuracy:
+    """수치 정확도 (2026-09-06, 5단계).
+
+    골든셋 40문항에 있던 expected_values를 어떤 채점기도 읽지 않아, 데이터형
+    문항에서 정답 일치 계열 지표가 문체 유사도만 재고 있었다.
+    (docs/eval/rag-eval-review-2026-09-06.md §2-c 2번)
+    """
+
+    def test_none_when_no_expected_values(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("LANEIGE SoS는 2.0%입니다.", {}) is None
+
+    def test_exact_value_matches(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("LANEIGE Lip Care SoS는 2.0%입니다.", {"sos": 2.0}) == 1.0
+
+    def test_within_ten_percent_relative_error_matches(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        # 2.0 대비 2.15는 7.5% 오차 → 정답
+        assert numeric_accuracy("SoS는 2.15%", {"sos": 2.0}) == 1.0
+        # 2.0 대비 2.5는 25% 오차 → 오답
+        assert numeric_accuracy("SoS는 2.5%", {"sos": 2.0}) == 0.0
+
+    def test_thousands_separator_is_handled(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("리뷰 37,356건", {"reviews": 37356}) == 1.0
+
+    def test_range_keys_use_interval_containment(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        values = {"hhi_low": 0.06, "hhi_high": 0.08}
+        assert numeric_accuracy("HHI는 0.0681입니다", values) == 1.0
+        assert numeric_accuracy("HHI는 0.15입니다", values) == 0.0
+
+    def test_partial_credit_across_keys(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        score = numeric_accuracy("SoS 2.0%, HHI 0.15", {"sos": 2.0, "hhi": 0.0681})
+        assert score == 0.5
+
+    def test_zero_expectation_requires_zero(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("해당 카테고리 SoS는 0%입니다.", {"sos": 0.0}) == 1.0
+        assert numeric_accuracy("SoS는 3.0%입니다.", {"sos": 0.0}) == 0.0
+
+
+class TestNumericAccuracyGating:
+    """게이트는 골드를 원자료로 검증할 수 있는 문항에만 적용한다."""
+
+    @staticmethod
+    def _metrics(numeric):
+        from eval.schemas import L1Metrics, L2Metrics, L3Metrics, L4Metrics, L5Metrics
+
+        return (
+            L1Metrics(entity_link_f1=1.0, concept_map_f1=1.0, constraint_extraction_f1=1.0),
+            L2Metrics(
+                context_recall_at_k=1.0,
+                context_precision_at_k=1.0,
+                mrr=1.0,
+                context_recall_at_k_concept=1.0,
+            ),
+            L3Metrics(hits_at_k=1.0, kg_edge_f1=1.0, kg_edge_recall=1.0),
+            L4Metrics(constraint_violation_rate=0.0, type_consistency_rate=1.0),
+            L5Metrics(
+                answer_exact_match=1.0,
+                answer_f1=1.0,
+                groundedness_score=1.0,
+                answer_relevance_score=1.0,
+                numeric_accuracy=numeric,
+            ),
+        )
+
+    def _gate(self, numeric, gold_source):
+        from eval.metrics.aggregator import MetricAggregator
+        from eval.schemas import ItemMetadata
+
+        l1, l2, l3, l4, l5 = self._metrics(numeric)
+        return MetricAggregator().check_gating(
+            l1, l2, l3, l4, l5, ItemMetadata(gold_source=gold_source)
+        )
+
+    def test_snapshot_item_fails_on_numeric_mismatch(self):
+        passed, reasons = self._gate(0.0, "snapshot")
+
+        assert passed is False
+        assert "L5_numeric_mismatch" in reasons
+
+    def test_document_item_is_only_reported(self):
+        passed, reasons = self._gate(0.0, "document")
+
+        assert "L5_numeric_mismatch" not in reasons
+        assert passed is True
+
+    def test_domain_expectation_item_is_only_reported(self):
+        passed, reasons = self._gate(0.0, "domain_expectation")
+
+        assert "L5_numeric_mismatch" not in reasons
+        assert passed is True
+
+    def test_domain_expectation_skips_wrong_answer_gate(self):
+        """원자료로 검증할 수 없는 골드에 정답 일치를 요구하지 않는다."""
+        from eval.metrics.aggregator import MetricAggregator
+        from eval.schemas import ItemMetadata, L5Metrics
+
+        l1, l2, l3, l4, _ = self._metrics(None)
+        weak_answer = L5Metrics(
+            answer_exact_match=0.0,
+            answer_f1=0.0,
+            semantic_similarity=0.1,
+            groundedness_score=1.0,
+            answer_relevance_score=1.0,
+        )
+
+        _, domain_reasons = MetricAggregator().check_gating(
+            l1, l2, l3, l4, weak_answer, ItemMetadata(gold_source="domain_expectation")
+        )
+        _, snapshot_reasons = MetricAggregator().check_gating(
+            l1, l2, l3, l4, weak_answer, ItemMetadata(gold_source="snapshot")
+        )
+
+        assert "L5_wrong_answer" not in domain_reasons
+        assert "L5_wrong_answer" in snapshot_reasons
+
+
+class TestNumericAccuracyFalsePositives:
+    """사이클 10 감사에서 확인된 거짓양성 (v9.0 run3의 실제 답변 문구).
+
+    수치 점수가 0보다 컸던 snapshot 33문항의 대부분이 모델 답변이 아니라 시스템이
+    덧붙인 출처 목록 번호·관계 개수·관련도에 걸렸고, 상당수는 "데이터에 명시되어
+    있지 않습니다"라고 답하면서 만점을 받았다.
+    """
+
+    FOOTER = (
+        "\n\n---\n📅 **데이터 기준: Amazon US Best Sellers 2026-08-31 수집**\n\n"
+        "**📚 출처 및 참고자료:**\n\n"
+        "1. 🔗 **지식 그래프 관계 데이터** (5개 관계)\n"
+        "2. 🧠 **온톨로지 규칙 기반 추론**\n"
+        "7. 📄 **1.2 Brand Positioning**\n   - 관련도: 0.52\n"
+    )
+
+    def test_footer_numbers_do_not_count(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        answer = "현재 제공된 데이터 내에서는 SoS 수치가 명시되어 있지 않습니다." + self.FOOTER
+        assert numeric_accuracy(answer, {"sos": 2.0}) == 0.0
+        assert numeric_accuracy(answer, {"rank": 7.0}) == 0.0
+        assert numeric_accuracy(answer, {"new_entrants": 5.0}) == 0.0
+
+    def test_failed_signal_warning_is_excluded(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        answer = (
+            "순위 데이터가 없습니다."
+            "\n\n> ⚠️ **외부 신호 수집 실패**: tavily\n> *(3개 소스 사용 불가)*"
+        )
+        assert numeric_accuracy(answer, {"sleeping_mask_listings": 3.0}) == 0.0
+
+    def test_list_markers_and_citations_are_not_claims(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        answer = "## 2. 진입 및 확장 기회\n1. 제품 라인업 확대 [1][2]\n- 근거 부족 [2]"
+        assert numeric_accuracy(answer, {"price_ratio": 2.0}) == 0.0
+        assert numeric_accuracy(answer, {"top1_rank": 1.0}) == 0.0
+
+    def test_grouped_citations_are_not_claims(self):
+        """v9 run2 lg050: "[Knowledge Graph 1, 2; RAG 3]"의 2가 가격비 1.86에 걸렸다."""
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        answer = "프리미엄 포지션입니다 [Knowledge Graph 1, 2; RAG 3]. 근거 [출처: 현재 데이터]"
+        assert numeric_accuracy(answer, {"price_ratio": 1.86}) == 0.0
+
+    def test_percent_metric_requires_percent_unit(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("LANEIGE 제품은 2개로 확인됩니다.", {"sos": 2.0}) == 0.0
+        assert numeric_accuracy("LANEIGE Lip Care SoS는 2.0%입니다.", {"sos": 2.0}) == 1.0
+        assert numeric_accuracy("1위와의 격차는 7.0%p입니다.", {"gap": 7.0}) == 1.0
+
+    def test_rank_requires_wi_suffix(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("Lip Care 카테고리 7위입니다.", {"rank": 7.0}) == 1.0
+        assert numeric_accuracy("관련 제품 7개가 있습니다.", {"rank": 7.0}) == 0.0
+
+    def test_price_requires_dollar_prefix(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        assert numeric_accuracy("가격은 $21.60입니다.", {"product_price": 21.6}) == 1.0
+        assert numeric_accuracy("점유율 21.6%입니다.", {"product_price": 21.6}) == 0.0
+
+    def test_ratio_and_hhi_are_unitless(self):
+        from eval.metrics.l5_answer import numeric_accuracy
+
+        answer = "HHI는 0.0681이며 가격은 카테고리 평균의 약 1.86배입니다."
+        assert numeric_accuracy(answer, {"hhi": 0.0681, "price_ratio": 1.86}) == 1.0
+
+    def test_answer_body_keeps_model_text(self):
+        from eval.metrics.l5_answer import answer_body
+
+        body = answer_body("SoS는 2.0%입니다." + self.FOOTER)
+        assert "2.0%" in body
+        assert "출처" not in body
+        assert "관련도" not in body

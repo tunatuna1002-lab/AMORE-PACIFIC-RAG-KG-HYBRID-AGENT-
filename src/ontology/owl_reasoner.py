@@ -15,8 +15,7 @@ OWL 2 온톨로지 기반 형식 추론 엔진
 2. 엔티티 관리 (Brand, Product, Category, Trend)
 3. Object Properties (관계) 정의
 4. 추론기 실행 (Pellet/HermiT)
-5. SPARQL 쿼리 지원
-6. 기존 KnowledgeGraph 데이터 마이그레이션
+5. 기존 KnowledgeGraph 데이터 마이그레이션
 
 ## 사용 예
 ```python
@@ -635,29 +634,6 @@ class OWLReasoner:
     # =========================================================================
     # 쿼리 기능
     # =========================================================================
-
-    def query_sparql(self, sparql_query: str) -> list[Any]:
-        """
-        SPARQL 쿼리 실행
-
-        Args:
-            sparql_query: SPARQL 쿼리 문자열
-
-        Returns:
-            쿼리 결과 리스트
-        """
-        if not OWLREADY2_AVAILABLE:
-            logger.warning("SPARQL not available without owlready2")
-            return []
-
-        try:
-            # owlready2의 search() 메서드로 간단한 쿼리 구현
-            # 전체 SPARQL 지원은 rdflib 필요
-            logger.warning("Full SPARQL not implemented. Use query methods instead.")
-            return []
-        except Exception as e:
-            logger.error(f"SPARQL query failed: {e}")
-            return []
 
     def get_brand_info(self, brand_name: str) -> dict[str, Any] | None:
         """

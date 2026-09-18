@@ -88,6 +88,31 @@ class ItemMetadata(BaseModel):
     difficulty: Literal["easy", "medium", "hard"] = Field(
         default="medium", description="Difficulty level for stratified analysis"
     )
+    # 골드 수치의 출처. 검증 가능한 근거가 무엇이냐에 따라 채점 방식이 갈린다
+    # (scripts/classify_golden_sources.py, 2026-09-06):
+    #   document          — 코퍼스 문서에서 나오고 시간에 따라 변하지 않는 답
+    #   snapshot          — 크롤 DB의 특정 시점 수치 (as_of 필수)
+    #   domain_expectation— DB에도 문서에도 없는 도메인 추정치
+    # 원자료로 검증할 수 없는 골드에 정답 일치를 요구하면 지표가 문체 유사도를 잰다.
+    gold_source: Literal["document", "snapshot", "domain_expectation"] = Field(
+        default="document", description="골드 수치의 검증 근거"
+    )
+    as_of: str | None = Field(default=None, description="snapshot 문항의 기준 시점 (YYYY-MM-DD)")
+    # 유형별 시험지·규칙 관측 관련 필드 (트랙 3-C, 2026-09-17). 로더가 기본적으로
+    # 버리던 키들 중 리포트만으로 분석하는 데 필요한 것만 보존한다. 없으면 None —
+    # 구형 골든셋/리포트와 하위 호환.
+    question_type: str | None = Field(
+        default=None, description="유형별 시험지 분류 (numeric/relation/rule/multihop 등)"
+    )
+    generated: bool | None = Field(default=None, description="생성 문항 여부 (스크립트 생성)")
+    rule_gold: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "rule 유형 문항의 규칙 정답: {'rule_ids': [...], 'expected_conclusion': "
+            "{'fires': bool, ...}, ...} (scripts/generate_rule_questions.py). "
+            "리포트의 ItemResult.rule_agreement 계산에 쓴다. 없으면 규칙 정답 판정 불가."
+        ),
+    )
 
 
 class EvalItem(BaseModel):
@@ -232,6 +257,21 @@ class CostTrace(BaseModel):
     l5_tokens: int = Field(default=0, description="Tokens used in L5 (answer generation)")
     judge_tokens: int = Field(default=0, description="Tokens used in judge scoring")
 
+    # Granular per-layer token breakdown (prompt/completion for LLM layers,
+    # embedding for L2). Added 2026-09 (F4 cost pricing fix). All default to 0
+    # so older report.json/baseline files without these fields still load.
+    l1_prompt_tokens: int = Field(default=0, description="L1 prompt tokens")
+    l1_completion_tokens: int = Field(default=0, description="L1 completion tokens")
+    l2_embedding_tokens: int = Field(default=0, description="L2 embedding tokens")
+    l3_prompt_tokens: int = Field(default=0, description="L3 prompt tokens")
+    l3_completion_tokens: int = Field(default=0, description="L3 completion tokens")
+    l4_prompt_tokens: int = Field(default=0, description="L4 prompt tokens")
+    l4_completion_tokens: int = Field(default=0, description="L4 completion tokens")
+    l5_prompt_tokens: int = Field(default=0, description="L5 prompt tokens")
+    l5_completion_tokens: int = Field(default=0, description="L5 completion tokens")
+    judge_prompt_tokens: int = Field(default=0, description="Judge prompt tokens")
+    judge_completion_tokens: int = Field(default=0, description="Judge completion tokens")
+
     # Cost estimates (USD)
     l1_cost_usd: float = Field(default=0.0, description="Cost for L1 in USD")
     l2_cost_usd: float = Field(default=0.0, description="Cost for L2 in USD")
@@ -239,6 +279,14 @@ class CostTrace(BaseModel):
     l4_cost_usd: float = Field(default=0.0, description="Cost for L4 in USD")
     l5_cost_usd: float = Field(default=0.0, description="Cost for L5 in USD")
     judge_cost_usd: float = Field(default=0.0, description="Cost for judge in USD")
+
+    # Unit prices actually used to compute the costs above, keyed by model name,
+    # e.g. {"gpt-4.1-mini": {"input_per_1m_usd": 0.40, "output_per_1m_usd": 1.60,
+    # "source": "litellm" | "fallback_table"}}. Added 2026-09 (F4). Defaults to
+    # {} so older report.json/baseline files without this field still load.
+    pricing: dict[str, dict[str, Any]] = Field(
+        default_factory=dict, description="Unit prices used per model, with their source"
+    )
 
     @property
     def total_tokens(self) -> int:
@@ -275,9 +323,80 @@ class EvalTrace(BaseModel):
     l3_kg_query: KGQueryTrace = Field(default_factory=KGQueryTrace)
     l4_ontology: OntologyReasoningTrace = Field(default_factory=OntologyReasoningTrace)
     l5_answer: AnswerTrace = Field(default_factory=AnswerTrace)
+    data_facts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="검색이 컨텍스트에 실은 크롤 DB 수치 사실 (judge 근거성 컨텍스트에 포함)",
+    )
     cost: CostTrace = Field(default_factory=CostTrace, description="Cost tracking")
     latency_ms: float = Field(default=0.0, description="Total latency in milliseconds")
     error: str | None = Field(default=None, description="Error message if any")
+    retrieval_error: str | None = Field(
+        default=None,
+        description=(
+            "핵심 검색 실패 원인 (HybridContext.metadata['retrieval_error'] 또는 "
+            "V4RetrievalTrace 동등 필드). 채워지면 run_item이 인프라 실패로 분리한다."
+        ),
+    )
+    degraded: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "선택 기능(비핵심) 실패 목록: [{'component':..., 'error':...}, ...]. "
+            "채점은 계속하되 어떤 하위 조회가 저하됐는지 노출한다."
+        ),
+    )
+    route_trace: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "문항별 질의 경로 관측 (QueryGraph._finalize_route_trace, 커밋 31040bf). "
+            "route/confidence_level/confidence_score/confidence_components/tools_used/"
+            "decision_tool/is_complex를 담는다. v1(HybridChatbotAgent) 경로나 구형 "
+            "report.json에는 없으므로 기본값 None으로 하위 호환한다."
+        ),
+    )
+    evidence: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "답변 프롬프트에 실제로 실린 증거 카드(prompt_evidence)를 "
+            "Evidence.model_dump(mode='json')한 목록 — judge 컨텍스트를 그대로 재구성하는 데 "
+            "쓴다 (트랙 2-C). 검색기가 evidence/prompt_evidence 속성을 아직 주지 않는 "
+            "경로(2-B 미병합, v1 구형)나 구형 report.json에는 없으므로 기본값 빈 리스트로 "
+            "하위 호환한다 — 그때는 judge_context_source가 'legacy'가 된다."
+        ),
+    )
+    evidence_all_count: int = Field(
+        default=0,
+        description=(
+            "검색이 만든 전체 증거 카드 수(prompt_evidence로 선별되기 전). evidence(선별 후) "
+            "길이와 비교하면 judge가 보지 못한 채 버려진 근거가 얼마나 되는지 드러난다."
+        ),
+    )
+    judge_context_source: str = Field(
+        default="legacy",
+        description=(
+            "judge 근거성 컨텍스트를 만든 방식. 'evidence' = evidence 필드의 카드를 "
+            "render_for_judge로 렌더 (답변 프롬프트와 같은 집합·같은 내용). "
+            "'legacy' = 구형 로직(문서 스니펫 + KG 사실 + data_facts 전부) — 카드가 없는 "
+            "경로에서만 쓴다."
+        ),
+    )
+    rule_evaluation: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "규칙 엔진 추론 관측 (트랙 3-B, HybridContext.metadata['rule_evaluation']을 "
+            "그대로 복사): {'combinations': [...], 'evaluated': int, 'fired': [rule_name,...], "
+            "'non_fire_top': [[label, count], ...], 'non_fire_counts_by_kind': {...}}. "
+            "metadata에 키가 없으면(3-B 미병합, v1 구형, 구형 report.json) None."
+        ),
+    )
+    numeric_verification: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "답변 수치 검증 결과 (트랙 2-D, Response.metadata['numeric_verification']을 그대로 "
+            "복사): mode/skipped/checked/verified/mismatch/no_citation/unknown_card/"
+            "found_in_other_cards/replaced/details. 스키마는 src/core/numeric_verifier.py "
+            "docstring. 플래그 off·v1·구형 report.json이면 None."
+        ),
+    )
 
 
 # =============================================================================
@@ -377,6 +496,15 @@ class L5Metrics(BaseModel):
     factuality_score: float | None = Field(
         default=None, ge=0.0, le=1.0, description="Judge-based factuality (0-1)"
     )
+    numeric_accuracy: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "gold.expected_values의 수치를 답변이 맞힌 비율. "
+            "expected_values가 없으면 None. gold_source=snapshot 문항에만 게이트로 쓴다."
+        ),
+    )
 
 
 # =============================================================================
@@ -399,14 +527,32 @@ class ItemResult(BaseModel):
     fail_reason_tags: list[str] = Field(default_factory=list, description="Failure reason tags")
     trace: EvalTrace | None = Field(default=None, description="Full evaluation trace")
     metadata: ItemMetadata = Field(default_factory=ItemMetadata)
+    rule_agreement: bool | None = Field(
+        default=None,
+        description=(
+            "규칙 정답 일치 여부 (트랙 3-C). metadata.rule_gold가 있고 "
+            "rule_ids·expected_conclusion.fires가 모두 있을 때만 계산: "
+            "bool(applied_rules ∩ rule_ids) == fires. 판정 불가하면 None "
+            "(rule_gold 없음, 구형 리포트 등)."
+        ),
+    )
 
 
 class AggregateMetrics(BaseModel):
     """Aggregate metrics across all evaluated items."""
 
-    total: int = Field(default=0, description="Total items evaluated")
+    total: int = Field(default=0, description="Items actually scored (인프라 실패 제외)")
     passed: int = Field(default=0, description="Items that passed all gates")
     failed: int = Field(default=0, description="Items that failed")
+    # 인프라 실패(타임아웃·API 오류)는 모델 실패와 같은 열에 섞지 않는다.
+    # 이 문항들은 total/passed/failed·평균 지표 어디에도 들어가지 않는다.
+    errored: int = Field(default=0, description="답변을 얻지 못해 채점에서 분리된 문항 수")
+    error_item_ids: list[str] = Field(default_factory=list, description="채점에서 분리된 문항 ID")
+    # 선택 기능(비핵심) 실패는 채점을 막지 않는다 — 몇 문항이 저하된 채로
+    # 채점됐는지만 드러낸다 (F3). errored와 달리 total/평균 지표에서 빠지지 않는다.
+    degraded_items: int = Field(
+        default=0, description="선택 기능이 하나 이상 저하된 채로 채점된 문항 수"
+    )
     pass_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     avg_overall_score: float = Field(default=0.0, ge=0.0, le=1.0)
     avg_latency_ms: float = Field(default=0.0, ge=0.0)
@@ -440,11 +586,90 @@ class AggregateMetrics(BaseModel):
         default_factory=dict, description="Metrics by domain"
     )
 
+    # Route / confidence distribution (trace.route_trace 기반, v4 전용 — 커밋 31040bf).
+    # 구형 report.json에는 이 필드들이 없으므로 기본값(빈 dict/0)으로 하위 호환한다.
+    route_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="문항별 경로(route) 분포: direct/clarify/decide/react/blocked/cache별 개수",
+    )
+    confidence_level_counts: dict[str, int] = Field(
+        default_factory=dict, description="문항별 신뢰도 레벨(confidence_level) 분포"
+    )
+    react_items: int = Field(
+        default=0,
+        description="route_trace.route == 'react'로 관측된 문항 수 (route_counts 동일 값)",
+    )
+    rule_fired_items: int = Field(
+        default=0,
+        description="trace.l4_ontology.inferences가 비어있지 않은 문항 수 (규칙 추론 발동)",
+    )
+    rule_inference_total: int = Field(
+        default=0, description="채점된 전체 문항의 inferences 총 개수 합"
+    )
+    # 규칙 정답 일치 관측 (트랙 3-C). rule_gold가 있는 문항(judged)만 대상 —
+    # rule_fired_items/rule_inference_total(0-D2, 발화 여부만 봄)과는 다른 지표다.
+    rule_agreement_rate: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="rule_agreement 판정 가능한 문항 중 일치 비율. 판정 가능 문항 0이면 None",
+    )
+    rule_agreement_items: int = Field(
+        default=0, description="rule_agreement가 판정된(None이 아닌) 문항 수"
+    )
+    non_fire_reason_top: list[tuple[str, int]] = Field(
+        default_factory=list,
+        description=(
+            "채점된 문항의 rule_evaluation.non_fire_top을 라벨별로 합산한 상위 15개 "
+            "[(label, count), ...] — 예: missing_input:sos, conditions_not_met:hhi_below_0.15"
+        ),
+    )
+    # 답변 수치 검증 관측 (트랙 2-D). 채점된 문항만 합산. 구형 report.json은 기본값.
+    numeric_verification_items: int = Field(
+        default=0, description="trace.numeric_verification이 있는(검증기가 실행된) 문항 수"
+    )
+    numeric_verification_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "skipped가 아닌 문항의 checked/verified/mismatch/no_citation/unknown_card/"
+            "replaced/found_in_other_cards 합계"
+        ),
+    )
+    numeric_verification_skipped: dict[str, int] = Field(
+        default_factory=dict, description="skipped 사유별 문항 수 (no_evidence/error)"
+    )
+    numeric_verification_items_with_unverified: int = Field(
+        default=0,
+        description="mismatch 또는 unknown_card가 1개 이상인 문항 수 (enforce였다면 치환 대상)",
+    )
+
 
 class EvalConfig(BaseModel):
     """Configuration for evaluation run."""
 
     top_k: int = Field(default=8, description="Top-k for retrieval metrics")
+    item_timeout_seconds: float = Field(
+        default=120.0,
+        description=(
+            "문항당 에이전트 호출 상한(초). 초과하면 그 문항은 0점이 아니라 "
+            "인프라 실패로 분리된다 (trace.error, AggregateMetrics.errored)."
+        ),
+    )
+    data_as_of: str | None = Field(
+        default=None,
+        description=(
+            "시스템이 읽을 크롤 DB 시점 상한(YYYY-MM-DD). 골든셋 snapshot 문항의 as_of에서 "
+            "정해진다 — 골드와 같은 날짜의 데이터를 읽어야 수치 비교가 성립한다."
+        ),
+    )
+    target: str = Field(
+        default="v1",
+        description=(
+            "평가 대상 경로: v1 = HybridChatbotAgent(/api/chat), v4 = UnifiedBrain.process_query"
+            "(대시보드와 같은 Brain 경로의 비스트림 판). 두 경로의 기준선은 직접 비교하지 않는다."
+        ),
+    )
+    git_commit: str | None = Field(default=None, description="평가 대상 코드의 git HEAD")
     use_judge: bool = Field(default=False, description="Whether to use LLM judge")
     judge_model: str | None = Field(default="gpt-4.1-mini", description="Judge model name")
     save_traces: bool = Field(default=False, description="Save individual traces to files")

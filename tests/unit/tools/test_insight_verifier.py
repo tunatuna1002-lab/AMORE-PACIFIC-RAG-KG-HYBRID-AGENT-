@@ -386,12 +386,26 @@ class TestVerifyNumericData:
         sos_issues = [i for i in issues if "SoS" in i.description]
         assert len(sos_issues) == 0
 
-    def test_boundary_hhi_10000_no_issue(self, verifier, sample_analysis_data):
-        """HHI 정확히 10000은 이슈 아님"""
+    def test_boundary_hhi_10000_not_critical(self, verifier, sample_analysis_data):
+        """HHI 정확히 10000은 이론상 가능하므로 critical 아님 (비현실적이라 warning)"""
         content = "HHI: 10000"
         issues = verifier._verify_numeric_data(content, sample_analysis_data)
         hhi_issues = [i for i in issues if "HHI" in i.description]
-        assert len(hhi_issues) == 0
+        assert all(i.severity != "critical" for i in hhi_issues)
+
+    def test_ratio_scale_hhi_in_range_no_issue(self, verifier, sample_analysis_data):
+        """0-1 스케일 정상 HHI는 이슈 없음 (§1.1 정본 스케일)"""
+        content = "HHI: 0.12로 시장은 분산되어 있습니다."
+        issues = verifier._verify_numeric_data(content, sample_analysis_data)
+        assert len(issues) == 0
+
+    def test_ratio_scale_hhi_out_of_range_flagged(self, verifier, sample_analysis_data):
+        """0-1 스케일 비현실적 HHI도 검증된다 (기존에는 통과해버렸음)"""
+        content = "HHI: 0.95로 사실상 독점입니다."
+        issues = verifier._verify_numeric_data(content, sample_analysis_data)
+        hhi_issues = [i for i in issues if "HHI" in i.description]
+        assert len(hhi_issues) == 1
+        assert hhi_issues[0].severity == "warning"
 
 
 # =============================================================================

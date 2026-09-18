@@ -169,10 +169,9 @@ class TestAgentStatus:
 
 class TestStateManagerInit:
     def test_defaults(self, state_mgr):
-        assert state_mgr.last_crawl_time is None
-        assert state_mgr.last_crawl_success is False
-        assert state_mgr.last_crawl_count == 0
-        assert state_mgr.data_freshness == DataFreshness.UNKNOWN
+        # 크롤 상태는 OrchestratorState가 정본 — StateManager는 더 이상 갖지 않는다
+        assert not hasattr(state_mgr, "last_crawl_time")
+        assert not hasattr(state_mgr, "data_freshness")
         assert state_mgr.kg_initialized is False
         assert state_mgr.kg_triple_count == 0
         assert state_mgr.current_session_id is None
@@ -183,50 +182,6 @@ class TestStateManagerInit:
         mgr = StateManager(persist_dir=nested)
         assert nested.exists()
         assert mgr.persist_dir == nested
-
-
-# =========================================================================
-# 크롤링 상태
-# =========================================================================
-
-
-class TestCrawlState:
-    def test_is_crawl_needed_no_history(self, state_mgr):
-        assert state_mgr.is_crawl_needed() is True
-
-    def test_is_crawl_needed_today(self, state_mgr):
-        state_mgr.last_crawl_time = datetime.now()
-        assert state_mgr.is_crawl_needed() is False
-
-    def test_is_crawl_needed_yesterday(self, state_mgr):
-        state_mgr.last_crawl_time = datetime.now() - timedelta(days=1)
-        assert state_mgr.is_crawl_needed() is True
-
-    def test_mark_crawled_success(self, state_mgr):
-        state_mgr.mark_crawled(success=True, products_count=50)
-        assert state_mgr.last_crawl_time is not None
-        assert state_mgr.last_crawl_success is True
-        assert state_mgr.last_crawl_count == 50
-        assert state_mgr.data_freshness == DataFreshness.FRESH
-
-    def test_mark_crawled_failure(self, state_mgr):
-        state_mgr.mark_crawled(success=False, products_count=0)
-        assert state_mgr.last_crawl_success is False
-        assert state_mgr.data_freshness == DataFreshness.UNKNOWN
-
-    def test_mark_data_stale(self, state_mgr):
-        state_mgr.mark_crawled(success=True)
-        state_mgr.mark_data_stale()
-        assert state_mgr.data_freshness == DataFreshness.STALE
-
-    def test_get_data_age_hours_none(self, state_mgr):
-        assert state_mgr.get_data_age_hours() is None
-
-    def test_get_data_age_hours_recent(self, state_mgr):
-        state_mgr.last_crawl_time = datetime.now() - timedelta(hours=3)
-        age = state_mgr.get_data_age_hours()
-        assert age is not None
-        assert 2.9 < age < 3.1
 
 
 # =========================================================================
@@ -464,37 +419,31 @@ class TestMetrics:
 class TestSerialization:
     def test_to_dict_defaults(self, state_mgr):
         d = state_mgr.to_dict()
-        assert d["last_crawl_time"] is None
-        assert d["last_crawl_success"] is False
-        assert d["last_crawl_count"] == 0
-        assert d["data_freshness"] == "unknown"
+        # 크롤 상태 키는 OrchestratorState로 이관됐다
+        assert "last_crawl_time" not in d
+        assert "data_freshness" not in d
         assert d["kg_initialized"] is False
         assert d["kg_triple_count"] == 0
         assert d["kg_last_update"] is None
         assert d["last_metrics_time"] is None
 
     def test_to_dict_with_data(self, state_mgr):
-        state_mgr.mark_crawled(success=True, products_count=50)
         state_mgr.mark_kg_initialized(100)
         state_mgr.mark_metrics_calculated()
         d = state_mgr.to_dict()
-        assert d["last_crawl_time"] is not None
-        assert d["last_crawl_success"] is True
-        assert d["data_freshness"] == "fresh"
         assert d["kg_initialized"] is True
         assert d["kg_last_update"] is not None
+        assert d["last_metrics_time"] is not None
 
     def test_to_context_summary_no_data(self, state_mgr):
         summary = state_mgr.to_context_summary()
-        assert "크롤링: 없음" in summary
+        assert "크롤링:" in summary  # 정본(OrchestratorState)에서 읽는다
         assert "KG: 미초기화" in summary
 
     def test_to_context_summary_with_data(self, state_mgr):
-        state_mgr.mark_crawled(success=True, products_count=50)
         state_mgr.mark_kg_initialized(200)
         summary = state_mgr.to_context_summary()
         assert "크롤링:" in summary
-        assert "시간 전" in summary
         assert "KG: 200 트리플" in summary
 
     def test_to_context_summary_active_tools(self, state_mgr):
@@ -511,15 +460,10 @@ class TestSerialization:
 class TestPersistence:
     def test_save_and_reload(self, tmp_path):
         mgr1 = StateManager(persist_dir=tmp_path)
-        mgr1.mark_crawled(success=True, products_count=100)
         mgr1.mark_kg_initialized(500)
         mgr1.mark_metrics_calculated()
 
         mgr2 = StateManager(persist_dir=tmp_path)
-        assert mgr2.last_crawl_time is not None
-        assert mgr2.last_crawl_success is True
-        assert mgr2.last_crawl_count == 100
-        assert mgr2.data_freshness == DataFreshness.FRESH
         assert mgr2.kg_initialized is True
         assert mgr2.kg_triple_count == 500
         assert mgr2.last_metrics_time is not None
@@ -536,13 +480,13 @@ class TestPersistence:
 
     def test_load_state_no_file(self, tmp_path):
         mgr = StateManager(persist_dir=tmp_path)
-        assert mgr.last_crawl_time is None
+        assert mgr.kg_initialized is False
 
     def test_load_state_corrupt_file(self, tmp_path):
         state_path = tmp_path / "system_state.json"
         state_path.write_text("not valid json!", encoding="utf-8")
         mgr = StateManager(persist_dir=tmp_path)
-        assert mgr.data_freshness == DataFreshness.UNKNOWN
+        assert mgr.kg_initialized is False
 
     def test_load_subscriptions_corrupt(self, tmp_path):
         sub_path = tmp_path / "email_subscriptions.json"
@@ -551,11 +495,11 @@ class TestPersistence:
         assert len(mgr.get_all_subscriptions()) == 0
 
     def test_save_state_creates_file(self, state_mgr):
-        state_mgr.mark_crawled()
+        state_mgr.mark_kg_initialized(10)
         state_path = state_mgr.persist_dir / "system_state.json"
         assert state_path.exists()
         data = json.loads(state_path.read_text())
-        assert data["data_freshness"] == "fresh"
+        assert data["kg_triple_count"] == 10
         assert "saved_at" in data
 
 
@@ -566,7 +510,6 @@ class TestPersistence:
 
 class TestReset:
     def test_reset_clears_all(self, state_mgr):
-        state_mgr.mark_crawled(success=True, products_count=100)
         state_mgr.mark_kg_initialized(500)
         state_mgr.set_session("sess-1")
         state_mgr.start_agent("crawler")
@@ -574,10 +517,6 @@ class TestReset:
 
         state_mgr.reset()
 
-        assert state_mgr.last_crawl_time is None
-        assert state_mgr.last_crawl_success is False
-        assert state_mgr.last_crawl_count == 0
-        assert state_mgr.data_freshness == DataFreshness.UNKNOWN
         assert state_mgr.kg_initialized is False
         assert state_mgr.kg_triple_count == 0
         assert state_mgr.kg_last_update is None
@@ -586,7 +525,7 @@ class TestReset:
         assert not state_mgr.has_active_agents()
 
     def test_reset_deletes_file(self, state_mgr):
-        state_mgr.mark_crawled()
+        state_mgr.mark_kg_initialized(1)
         state_path = state_mgr.persist_dir / "system_state.json"
         assert state_path.exists()
 

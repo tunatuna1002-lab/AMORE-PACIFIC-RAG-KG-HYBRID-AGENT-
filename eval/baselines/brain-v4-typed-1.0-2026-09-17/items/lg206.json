@@ -1,0 +1,178 @@
+{
+  "item_id": "lg206",
+  "question": "AMOREPACIFIC 2Q25 revenue growth by region",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.015503875968992248,
+    "semantic_similarity": 0.433249831199646,
+    "groundedness_score": 0.42857142857142855,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.14285714285714285,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.32148307174041557,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg206",
+    "timestamp": "2026-09-17T21:51:49.531625",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q1_0_15",
+        "ir_2025_q1_0_20",
+        "chunk_2",
+        "chunk_3",
+        "ir_2025_q2_0_1",
+        "ir_2025_q1_0_1",
+        "ir_2025_q1_0_2",
+        "ir_2025_q3_0_5"
+      ],
+      "snippets": [
+        "Showroom in Daiso (Busan)\n\n\\*Excluding the brand reclassification impact (IOPE, Holitualtransferred to Luxury business), like-for-like growth for premium business is11% increase YoY 6   \n**1Q 2025 Dom",
+        "\\- Sulwhasoosales posted growth by enteringnewdepartmentstores (Macy’s),renewing its concentrated  ginseng line and achieving robust sales for its core products\n\n\\- Aesturaentered US market (Sephora) ",
+        "• Western region (Americas, EMEA) achieved a double-digit  operating profit margin by expanding its operating profit  through continued revenue growth from major brands and  consolidation of COSRX ear",
+        "• Posted sales growth for all major brands by enhancing expertise in 'skinification’ and strengthened  product portfolio of scalp and body care products   \n\\- \\[Ryo\\] Launched Root:Gen'Anti-Aging Care",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**Overseas Business Financial Summary**   \n**2Q 2025 Revenue*",
+        "The company hereby expressly disclaims any and all liabilities resulting from investors’ reliance on the  information contained herein.   \n**1Q 2025 Revenue**\n\nAmorepacific revenue up 17.1% to 1.1 tri",
+        "Overseas Business 336.8 36.9 473.0 44.3 \\+40.5 Western Region 105.1 11.5 212.5 19.9 \\+102.1 Other Asia 83.5 9.2 127.8 12.0 \\+53.0 Greater China 148.2 16.3 132.8 12.4 \\-10.4   \n1\\) Total revenue includ",
+        "Overseas   \n• Western region: Delivered growth by reinforcing brand presence and diversifying  channels for recently launched brands   \nOverseas   \n• Western Region: Profitability moderated due to inc"
+      ],
+      "scores": [
+        9.550314976479811,
+        9.276207975666125,
+        1.0,
+        0.955884617187577,
+        0.7015125751495361,
+        0.6828083992004395,
+        0.6619567275047302,
+        0.6049315333366394
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽 2025년 2분기 지역별 매출 성장에 대한 구체적인 수치는 제공된 데이터에 명확히 나타나 있지 않습니다. 다만, 1분기 실적 발표 내용을 바탕으로 다음과 같이 요약할 수 있습니다.\n\n- **서구권(미주, EMEA)**: EMEA 지역 매출은 Laneige의 강력한 성장과 COSRX 인수 효과로 3배 증가했으며, 서구권 전체에서 주요 브랜드 매출 확대와 COSRX 실적 통합으로 두 자릿수 영업이익률을 기록했습니다. 이는 2분기에도 긍정적인 매출 성장세가 지속되었을 가능성을 시사합니다.\n\n- **중국 및 기타 아시아 지역**: 중국 지역은 사업 구조조정으로 흑자 전환했으며, 기타 아시아 지역도 매출 성장과 COSRX 실적 통합으로 영업이익이 증가했습니다.\n\n- **국내 사업**: 1분기 프리미엄 사업 기준 전년 동기 대비 11% 매출 성장, 데일리 뷰티 부문은 6% 성장했습니다.\n\n요약하면, 2분기에도 EMEA 및 미주 지역에서 Laneige와 COSRX 중심으로 강한 매출 성장과 수익성 개선이 지속되었고, 중국과 기타 아시아 지역도 구조조정과 매출 성장으로 실적이 개선된 것으로 추정됩니다. 다만, 구체적인 2분기 매출 성장률 수치는 공개된 자료에 포함되어 있지 않습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 901,
+      "judge_tokens": 3691,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 557,
+      "l5_completion_tokens": 344,
+      "judge_prompt_tokens": 2039,
+      "judge_completion_tokens": 1652,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0007731999999999999,
+      "judge_cost_usd": 0.0034587999999999997,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 13034.188985824585,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 5.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 1.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

@@ -20,6 +20,7 @@ DI (Dependency Injection) 컨테이너
     Container.reset()
 """
 
+import logging
 from contextlib import contextmanager
 from typing import Any
 
@@ -27,6 +28,8 @@ from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.rag.hybrid_retriever import HybridRetriever
 from src.rag.retriever import DocumentRetriever
+
+logger = logging.getLogger(__name__)
 
 
 class Container:
@@ -137,9 +140,8 @@ class Container:
     @classmethod
     def get_unified_retriever(cls, docs_path: str = "./docs"):
         """
-        HybridRetriever (OWL strategy 포함) 싱글톤 반환.
+        HybridRetriever 싱글톤 반환.
 
-        Feature flag에 따라 OWL strategy를 주입합니다.
         이전 UnifiedRetriever facade를 대체합니다.
 
         Args:
@@ -152,35 +154,13 @@ class Container:
             return cls._overrides["unified_retriever"]
 
         if "unified_retriever" not in cls._instances:
-            from src.infrastructure.feature_flags import FeatureFlags
             from src.rag.hybrid_retriever import HybridRetriever
 
-            kg = cls.get_knowledge_graph()
-            owl_strategy = None
-
-            flags = FeatureFlags.get_instance()
-            if flags.use_owl_strategy():
-                try:
-                    from src.ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
-
-                    if OWLREADY2_AVAILABLE:
-                        from src.rag.retrieval_strategy import OWLRetrievalStrategy
-
-                        owl_reasoner = OWLReasoner()
-                        owl_strategy = OWLRetrievalStrategy(
-                            knowledge_graph=kg,
-                            owl_reasoner=owl_reasoner,
-                            docs_path=docs_path,
-                        )
-                except Exception:
-                    pass  # fall back to legacy
-
             cls._instances["unified_retriever"] = HybridRetriever(
-                knowledge_graph=kg,
+                knowledge_graph=cls.get_knowledge_graph(),
                 reasoner=cls.get_reasoner(),
                 doc_retriever=cls.get_document_retriever(),
                 auto_init_rules=True,
-                owl_strategy=owl_strategy,
             )
 
         return cls._instances["unified_retriever"]
@@ -474,37 +454,6 @@ class Container:
         return ChatWorkflow(
             chatbot=cls.get_chatbot_agent(),
             retriever=cls.get_hybrid_retriever(),
-        )
-
-    @classmethod
-    def get_crawl_workflow(cls, scraper=None, storage=None, metric_calculator=None):
-        """
-        CrawlWorkflow 생성 (매번 새 인스턴스)
-
-        Args:
-            scraper: ScraperProtocol 구현 (None이면 기본 CrawlerAgent)
-            storage: StorageProtocol 구현 (None이면 기본 StorageAgent)
-            metric_calculator: MetricCalculatorProtocol 구현
-
-        Returns:
-            CrawlWorkflow 인스턴스
-        """
-        if "crawl_workflow" in cls._overrides:
-            return cls._overrides["crawl_workflow"]
-
-        from src.application.workflows.crawl_workflow import CrawlWorkflow
-
-        if scraper is None:
-            scraper = cls.get_crawler_agent()
-        if storage is None:
-            storage = cls.get_storage_agent()
-        if metric_calculator is None:
-            metric_calculator = cls.get_metrics_agent()
-
-        return CrawlWorkflow(
-            scraper=scraper,
-            storage=storage,
-            metric_calculator=metric_calculator,
         )
 
     @classmethod

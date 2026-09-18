@@ -28,7 +28,7 @@ Level 4 Autonomous Agent의 핵심 두뇌
 - Event Management: emit_event() - 이벤트 발생 및 핸들러 호출
 - Component Coordination: Facade 패턴으로 내부 컴포넌트 조율
 - ReAct Integration: 복잡한 질문 감지 및 ReAct 모드 라우팅
-- KG/OWL Sync: Knowledge Graph 및 OWL Ontology 동기화
+- KG Sync: Knowledge Graph 동기화
 - Market Intelligence: collect_market_intelligence() - 시장 정보 수집
 - Newsletter: _send_morning_brief() - 아침 브리핑 이메일 발송
 
@@ -45,7 +45,6 @@ Usage:
 
 import asyncio
 import heapq
-import json
 import logging
 import os
 from collections.abc import Callable
@@ -63,25 +62,36 @@ from .cache import ResponseCache
 from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
 from .decision_maker import DecisionMaker
-from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
-from .prompt_guard import PromptGuard
-from .query_graph import QueryGraph
+from .models import Response
+from .query_graph import REACT_MODE_OFF, REACT_MODE_ON, REACT_MODE_SHADOW, QueryGraph
 from .response_pipeline import ResponsePipeline
+from .router import HopRouter
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
 from .tool_coordinator import ToolCoordinator
-from .tools import AGENT_TOOLS, ToolExecutor
+from .tool_registry import ToolRegistry
 
 # Type checking imports (순환 참조 방지)
 if TYPE_CHECKING:
     from ..tools.intelligence.market_intelligence import MarketIntelligenceEngine
+    from .graph_state import QueryState
 
 # AlertAgent는 TYPE_CHECKING에서만 임포트 (순환 import 방지)
 from src.shared.constants import DEFAULT_MODEL
+from src.tools.calculators.metric_calculator import (
+    calculate_hhi_from_counts,
+    count_brands,
+    hhi_to_points,
+)
 
 from ..core.state_manager import StateManager
 
 logger = logging.getLogger(__name__)
+
+# QueryGraph의 경로(route_trace.route) → SSE done 이벤트의 ``mode``.
+# v3부터의 계약이 ReAct 여부만 구분하므로 나머지는 모두 "direct"다
+# (세부 경로는 done.metadata.route_trace에 그대로 실린다).
+_STREAM_MODE_BY_ROUTE = {"react": "react", "blocked": "blocked"}
 
 
 # =============================================================================
@@ -156,7 +166,7 @@ class UnifiedBrain:
     def __init__(
         self,
         context_gatherer: ContextGatherer | None = None,
-        tool_executor: ToolExecutor | None = None,
+        tool_executor: ToolRegistry | None = None,
         response_pipeline: ResponsePipeline | None = None,
         cache: ResponseCache | None = None,
         model: str = DEFAULT_MODEL,
@@ -165,7 +175,7 @@ class UnifiedBrain:
         """
         Args:
             context_gatherer: 컨텍스트 수집기
-            tool_executor: 도구 실행기
+            tool_executor: 도구 레지스트리 (읽기 전용 도구 5종)
             response_pipeline: 응답 파이프라인
             cache: 응답 캐시
             model: LLM 모델
@@ -182,7 +192,8 @@ class UnifiedBrain:
 
         # 외부 주입 또는 기본 컴포넌트
         self._context_gatherer = context_gatherer
-        self._tool_executor = tool_executor or ToolExecutor()
+        # 읽기 전용 도구 레지스트리 — DecisionMaker·ToolCoordinator·ReAct가 같은 객체를 본다
+        self._tool_executor = tool_executor or ToolRegistry()
         self._response_pipeline = response_pipeline
 
         # SRP 분해된 내부 컴포넌트 (lazy init)
@@ -208,6 +219,10 @@ class UnifiedBrain:
         self._workflow_agent = None
         self._alert_agent = None
         self._react_agent = None
+        # 홉 수 라우터 — LLM 폴백 캐시를 공유하려고 Brain 수명 동안 하나만 둔다
+        self._router = HopRouter()
+        self._react_mode = REACT_MODE_OFF
+        self._react_bypass_confidence = False
 
         # Market Intelligence Engine (lazy init)
         self._market_intelligence: MarketIntelligenceEngine | None = None
@@ -223,6 +238,11 @@ class UnifiedBrain:
             "autonomous_tasks": 0,
             "alerts_generated": 0,
             "errors": 0,
+        }
+
+        # 선택 컴포넌트 활성 상태 (/api/v4/brain/status로 노출)
+        self._component_status: dict[str, dict[str, Any]] = {
+            name: {"enabled": False, "active": False, "error": None} for name in ("react_agent",)
         }
 
         # 초기화 플래그
@@ -243,8 +263,8 @@ class UnifiedBrain:
         self._context_gatherer = value
 
     @property
-    def tool_executor(self) -> ToolExecutor:
-        """도구 실행기"""
+    def tool_executor(self) -> ToolRegistry:
+        """도구 레지스트리 (읽기 전용 도구 5종)"""
         return self._tool_executor
 
     @property
@@ -300,38 +320,12 @@ class UnifiedBrain:
             kg = KnowledgeGraph(auto_save=False)
             self._knowledge_graph = kg
 
-            # HybridRetriever with optional OWL strategy
-            from ..infrastructure.feature_flags import FeatureFlags
             from ..ontology.reasoner import OntologyReasoner
             from ..rag.hybrid_retriever import HybridRetriever
 
-            flags = FeatureFlags.get_instance()
             reasoner = OntologyReasoner(kg)
-            owl_strategy = None
-            self._owl_reasoner = None
+            hybrid_retriever = HybridRetriever(knowledge_graph=kg, reasoner=reasoner)
 
-            if flags.use_owl_strategy():
-                try:
-                    from ..ontology.owl_reasoner import OWLREADY2_AVAILABLE, OWLReasoner
-
-                    if OWLREADY2_AVAILABLE:
-                        from ..rag.retrieval_strategy import OWLRetrievalStrategy
-
-                        self._owl_reasoner = OWLReasoner()
-                        owl_strategy = OWLRetrievalStrategy(
-                            knowledge_graph=kg,
-                            owl_reasoner=self._owl_reasoner,
-                            docs_path="./docs",
-                        )
-                        logger.info("UnifiedBrain: OWL strategy enabled")
-                except Exception as e:
-                    logger.info(f"UnifiedBrain: OWL strategy unavailable ({e})")
-
-            hybrid_retriever = HybridRetriever(
-                knowledge_graph=kg,
-                reasoner=reasoner,
-                owl_strategy=owl_strategy,
-            )
             logger.info("UnifiedBrain: HybridRetriever initialized")
 
             self._context_gatherer = ContextGatherer(
@@ -370,16 +364,11 @@ class UnifiedBrain:
         # AlertManager 초기화
         await self.alert_manager.initialize()
 
-        # ReActAgent 초기화 (있으면)
-        try:
-            from ..agents.react_agent import get_react_agent
+        # 도구 레지스트리 배선 (ReAct 실행기가 같은 레지스트리를 쓰므로 먼저 한다)
+        self._bind_tool_registry()
 
-            self._react_agent = get_react_agent()
-            self._react_agent.set_tool_executor(self._tool_executor)
-            logger.info("ReActAgent initialized")
-        except Exception as e:
-            logger.debug(f"ReActAgent not available: {e}")
-            self._react_agent = None
+        # ReActAgent 초기화 (피처 플래그)
+        self._init_react_agent()
 
         # crawl_complete 이벤트 시 KG 동기화
         async def _on_crawl_complete(event_data: dict[str, Any]) -> None:
@@ -397,22 +386,90 @@ class UnifiedBrain:
 
         self.on_event("crawl_complete", _on_crawl_complete)
 
-        # v3 대시보드 도구 등록
-        self._register_dashboard_tools()
-
-        # Initialize query processing graph
-        self._query_graph = QueryGraph(
-            cache=self.cache,
-            context_gatherer=self._context_gatherer,
-            confidence_assessor=self.confidence_assessor,
-            decision_maker=self.decision_maker,
-            tool_coordinator=self.tool_coordinator,
-            response_pipeline=self._response_pipeline,
-            react_agent=self._react_agent,
-        )
+        # Initialize query processing graph (컴포넌트 배선이 끝난 뒤 새로 만든다)
+        self._query_graph = None
+        self._ensure_query_graph()
 
         self._initialized = True
         logger.info("UnifiedBrain initialized (LLM-First mode, SRP components)")
+
+    def _bind_tool_registry(self) -> None:
+        """읽기 전용 도구 레지스트리를 검색기에 연결한다 (트랙 4-A).
+
+        예전에는 여기서 대시보드 JSON(dashboard_data.json)을 읽는 도구 5종
+        (get_brand_status·get_product_info·get_competitor_analysis·get_category_info·
+        get_action_items)을 등록했다. 그 JSON은 날짜가 없는 캐시라 수치 근거가 될 수 없었고
+        (E2와 같은 이유), ReAct는 또 다른 도구 3종을 따로 갖고 있어 경로마다 도구가 달랐다.
+        이제 도구는 ``tool_registry``의 5종뿐이고, 백엔드는 검색과 같은 HybridRetriever다.
+        """
+        retriever = getattr(self._context_gatherer, "retriever", None)
+        if retriever is None:
+            logger.warning("Tool registry not bound: context gatherer has no retriever")
+            return
+        if isinstance(self._tool_executor, ToolRegistry):
+            self._tool_executor.bind(retriever)
+            logger.info(
+                f"Tool registry bound: {', '.join(self._tool_executor.get_available_tools())}"
+            )
+
+    def _init_react_agent(self) -> None:
+        """ReActAgent를 공용 도구 레지스트리(읽기 전용 5종)와 함께 연결한다.
+
+        이전 코드는 존재하지 않는 `..agents.react_agent`를 import해 추가된 날(a965437)부터
+        항상 None이었고, 예외는 debug 로그로 삼켜졌다.
+
+        섀도 모드(``agents.react_shadow_mode``, 트랙 5-C)에서도 에이전트는 만들어야 한다 —
+        답변은 파이프라인이 내지만 ReAct를 같이 돌려 기록을 남기기 때문이다. 이때 모드는
+        ``shadow``이고 QueryGraph는 ReAct 경로로 분기하지 않는다.
+        """
+        from ..infrastructure.feature_flags import FeatureFlags
+
+        flags = FeatureFlags.get_instance()
+        use_react = bool(flags.use_react_agent())
+        shadow = bool(flags.react_shadow_mode()) and not use_react
+        self._react_mode = (
+            REACT_MODE_ON if use_react else (REACT_MODE_SHADOW if shadow else REACT_MODE_OFF)
+        )
+        self._react_bypass_confidence = bool(flags.react_bypass_confidence())
+
+        status = self._component_status["react_agent"]
+        status.update(
+            enabled=use_react,
+            active=False,
+            error=None,
+            mode=self._react_mode,
+            react_bypass_confidence=self._react_bypass_confidence,
+        )
+        self._react_agent = None
+        if not (use_react or shadow):
+            return
+
+        try:
+            from .react_agent import ALLOWED_ACTIONS, ReActAgent
+            from .react_tools import build_react_tool_executor
+
+            executor = build_react_tool_executor(self._tool_executor)
+            missing = (ALLOWED_ACTIONS - {"final_answer", "refine_search"}) - set(
+                executor.get_available_tools()
+            )
+            if missing:
+                logger.warning(f"ReActAgent: allowed actions without executor: {sorted(missing)}")
+
+            # 싱글톤을 쓰지 않는다: 도구 실행기는 이 Brain의 레지스트리(=검색기)에 묶여 있다
+            agent = ReActAgent()
+            agent.set_tool_executor(executor)
+            self._react_agent = agent
+            status["active"] = True
+            logger.info("ReActAgent initialized with read-only tools")
+        except Exception as e:
+            status["error"] = f"{type(e).__name__}: {e}"
+            logger.warning(
+                f"ReActAgent enabled by flag but failed to initialize: {status['error']}"
+            )
+
+    def get_component_status(self) -> dict[str, dict[str, Any]]:
+        """선택 컴포넌트(ReAct)의 플래그·활성·오류 상태."""
+        return {name: dict(status) for name, status in self._component_status.items()}
 
     # =========================================================================
     # 이벤트 시스템
@@ -441,7 +498,7 @@ class UnifiedBrain:
                 logger.error(f"Event handler error: {e}")
 
         # 알림 조건 체크 (AlertManager에 위임)
-        if event_name in ["crawl_complete", "metrics_calculated", "rank_changed"]:
+        if event_name in ["crawl_complete", "crawl_failed", "metrics_calculated", "rank_changed"]:
             alerts = await self.alert_manager.check_conditions(event_name, data)
             for alert in alerts:
                 await self._process_alert(alert)
@@ -455,6 +512,63 @@ class UnifiedBrain:
     # =========================================================================
     # 사용자 질문 처리 (최우선)
     # =========================================================================
+
+    def _ensure_query_graph(self) -> QueryGraph:
+        """질의 처리 그래프 (분기 구현은 이 그래프 하나뿐)
+
+        테스트가 ``_initialized=True``만 직접 설정하는 경우를 위해 지연 생성도 지원한다.
+        """
+        if self._query_graph is None:
+            self._query_graph = QueryGraph(
+                cache=self.cache,
+                context_gatherer=self._context_gatherer,
+                confidence_assessor=self.confidence_assessor,
+                decision_maker=self.decision_maker,
+                tool_coordinator=self.tool_coordinator,
+                response_pipeline=self._response_pipeline,
+                react_agent=self._react_agent,
+                router=self._router,
+                react_mode=self._react_mode,
+                react_bypass_confidence=self._react_bypass_confidence,
+            )
+        return self._query_graph
+
+    def _new_query_state(
+        self,
+        query: str,
+        session_id: str | None,
+        current_metrics: dict[str, Any] | None,
+        skip_cache: bool,
+    ) -> "QueryState":
+        """두 경로가 공유하는 초기 QueryState 생성 (+ 세션 설정)"""
+        from .graph_state import QueryState
+
+        if session_id:
+            self.state.set_session(session_id)
+
+        return QueryState(
+            query=query,
+            session_id=session_id,
+            current_metrics=current_metrics,
+            skip_cache=skip_cache,
+            system_state=self._get_system_state(current_metrics),
+        )
+
+    def _finalize_query(self, state: "QueryState", query: str, start_time: datetime) -> Response:
+        """그래프 실행 결과 → 최종 Response (통계·처리 시간·캐시 기록 공통 처리)"""
+        if state.response:
+            if state.metadata.get("cache_hit"):
+                self._stats["cache_hits"] += 1
+            if state.decision and state.decision.tool != "direct_answer":
+                self._stats["llm_decisions"] += 1
+
+        response = state.response or Response.fallback("처리 결과가 없습니다.")
+        response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
+
+        if not state.skip_cache and not response.is_fallback:
+            self.cache.set(query, response, "query")
+
+        return response
 
     async def process_query(
         self,
@@ -475,8 +589,6 @@ class UnifiedBrain:
         Returns:
             Response 객체
         """
-        from .graph_state import QueryState
-
         start_time = datetime.now()
         self._stats["total_queries"] += 1
 
@@ -492,51 +604,9 @@ class UnifiedBrain:
         self.mode = BrainMode.RESPONDING
 
         try:
-            # QueryState 초기화
-            state = QueryState(
-                query=query,
-                session_id=session_id,
-                current_metrics=current_metrics,
-                skip_cache=skip_cache,
-                system_state=self._get_system_state(current_metrics),
-            )
-
-            # 세션 설정
-            if session_id:
-                self.state.set_session(session_id)
-
-            # Lazy init query graph (테스트에서 _initialized=True 직접 설정 시)
-            if self._query_graph is None:
-                self._query_graph = QueryGraph(
-                    cache=self.cache,
-                    context_gatherer=self._context_gatherer,
-                    confidence_assessor=self.confidence_assessor,
-                    decision_maker=self.decision_maker,
-                    tool_coordinator=self.tool_coordinator,
-                    response_pipeline=self._response_pipeline,
-                    react_agent=self._react_agent,
-                )
-
-            # 그래프 실행
-            state = await self._query_graph.run(state)
-
-            # 통계 업데이트
-            if state.response:
-                if state.metadata.get("cache_hit"):
-                    self._stats["cache_hits"] += 1
-                if state.decision and state.decision.tool != "direct_answer":
-                    self._stats["llm_decisions"] += 1
-
-            response = state.response or Response.fallback("처리 결과가 없습니다.")
-
-            # 처리 시간
-            response.processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
-
-            # 캐시 저장
-            if not skip_cache and not response.is_fallback:
-                self.cache.set(query, response, "query")
-
-            return response
+            state = self._new_query_state(query, session_id, current_metrics, skip_cache)
+            await self._ensure_query_graph().run(state)
+            return self._finalize_query(state, query, start_time)
 
         except Exception as e:
             self._stats["errors"] += 1
@@ -560,8 +630,11 @@ class UnifiedBrain:
         """
         SSE 스트리밍 방식으로 질문 처리
 
-        v3의 chat_stream()에서 포팅. PromptGuard + 도구 호출 + LLM 응답을
-        실시간 SSE 청크로 yield합니다.
+        ``process_query``와 **같은 QueryGraph**를 실행하고, 그래프가 노드마다 내보내는
+        진행 이벤트를 그대로 흘려보낸다. 분기(가드 → 캐시 → 컨텍스트 → 신뢰도 → 도구 →
+        생성)는 그래프에만 있다 — 예전처럼 여기에 복제해 두지 않는다.
+
+        토큰 단위 스트리밍은 아니다: 답변은 ``generate``가 끝난 뒤 한 덩어리로 나간다.
 
         Yields:
             dict: {"type": "status"|"tool_call"|"text"|"done"|"error", "content": ...}
@@ -573,151 +646,26 @@ class UnifiedBrain:
         if not self._initialized:
             await self.initialize()
 
-        # PromptGuard 입력 검증
-        is_safe, block_reason, sanitized_query = PromptGuard.check_input(query)
-        if not is_safe:
-            logger.warning(f"PromptGuard blocked input (stream): {block_reason}")
-            rejection_msg = PromptGuard.get_rejection_message(block_reason)
-            yield {"type": "text", "content": rejection_msg}
-            yield {
-                "type": "done",
-                "content": {
-                    "confidence": 0.0,
-                    "sources": [],
-                    "tools_used": [],
-                    "suggestions": ["다른 질문을 해주세요"],
-                    "processing_time_ms": 0,
-                    "mode": "blocked",
-                    "confidence_level": "unknown",
-                },
-            }
-            return
-
-        if block_reason == "out_of_scope_warning":
-            query = sanitized_query
-
         # 모드 전환
         previous_mode = self.mode
         self.mode = BrainMode.RESPONDING
 
         try:
-            if session_id:
-                self.state.set_session(session_id)
+            state = self._new_query_state(query, session_id, current_metrics, skip_cache=False)
 
-            # 1. 컨텍스트 수집 단계
-            yield {"type": "status", "content": "컨텍스트 수집 중..."}
+            async for event in self._ensure_query_graph().stream(state):
+                if event["type"] == "tool_call":
+                    self.mode = BrainMode.EXECUTING
+                yield event
 
-            context = await self._context_gatherer.gather(
-                query=query, current_metrics=current_metrics
-            )
+            response = self._finalize_query(state, query, start_time)
+            route = (state.metadata.get("route_trace") or {}).get("route")
 
-            # 2. 신뢰도 기반 라우팅 (non-streaming과 동일한 4-tier 분기)
-            confidence_level = self._assess_confidence_level(context)
-            use_react = False
+            # 텍스트 청크로 yield (출력 가드는 그래프의 output_guard 노드가 이미 적용)
+            yield {"type": "text", "content": response.text}
 
-            if self.confidence_assessor.should_skip_llm_decision(confidence_level):
-                # HIGH: LLM 판단 스킵, 컨텍스트로 직접 응답
-                yield {"type": "status", "content": "높은 신뢰도 — 빠른 응답 생성 중..."}
-                logger.info(f"[stream] HIGH confidence - skipping LLM decision: {query[:50]}...")
-                decision = Decision(
-                    tool="direct_answer",
-                    tool_params={},
-                    reason=f"HIGH confidence ({confidence_level.value}) - direct context answer",
-                    confidence=0.9,
-                    key_points=self._extract_key_points_from_context(context),
-                )
-                response = await self._generate_response(
-                    query=query, context=context, decision=decision, tool_result=None
-                )
-
-            elif self.confidence_assessor.should_request_clarification(confidence_level):
-                # UNKNOWN: 명확화 요청
-                yield {"type": "status", "content": "질문 분석 중..."}
-                logger.info(
-                    f"[stream] UNKNOWN confidence - requesting clarification: {query[:50]}..."
-                )
-                response = Response(
-                    text="질문을 더 구체적으로 해주시겠어요? 예를 들어 특정 브랜드나 카테고리, 분석 지표(SoS, HHI 등)를 포함해주세요.",
-                    query_type="clarification",
-                    confidence_level=confidence_level,
-                    confidence_score=0.2,
-                    suggestions=[
-                        "LANEIGE의 Lip Care 카테고리 점유율은?",
-                        "최근 크롤링 데이터 기반 Top 10 브랜드 알려줘",
-                        "경쟁사 대비 LANEIGE 포지셔닝 분석해줘",
-                    ],
-                )
-
-            else:
-                # MEDIUM/LOW: 기존 플로우 (ReAct 또는 DecisionMaker)
-                use_react = self._react_agent and self._is_complex_query(query, context)
-
-                if use_react:
-                    yield {
-                        "type": "status",
-                        "content": "복잡한 질문 감지 — ReAct 분석 모드 시작...",
-                    }
-                    response = await self._process_with_react(query, context)
-
-                else:
-                    # LLM 의사결정
-                    yield {"type": "status", "content": "분석 중..."}
-
-                    system_state = self._get_system_state(current_metrics)
-                    decision = await self.decision_maker.decide(
-                        query,
-                        context,
-                        system_state,
-                        confidence_level=confidence_level.value if confidence_level else "medium",
-                    )
-                    self._stats["llm_decisions"] += 1
-
-                    # 도구 실행 (필요시)
-                    tool_result = None
-                    tool_name = decision.tool
-                    if tool_name and tool_name != "direct_answer":
-                        yield {
-                            "type": "tool_call",
-                            "content": {"name": tool_name, "status": "calling"},
-                        }
-                        self.mode = BrainMode.EXECUTING
-                        tool_result = await self.tool_coordinator.execute(
-                            tool_name=tool_name, params=decision.tool_params or {}
-                        )
-
-                    # 응답 생성
-                    yield {"type": "status", "content": "응답 생성 중..."}
-
-                    response = await self._generate_response(
-                        query=query,
-                        context=context,
-                        decision=decision,
-                        tool_result=tool_result,
-                    )
-
-            # PromptGuard 출력 검증
-            is_output_safe, sanitized_text = PromptGuard.check_output(response.text)
-            final_text = sanitized_text if not is_output_safe else response.text
-
-            # 처리 시간
-            processing_time = (datetime.now() - start_time).total_seconds() * 1000
-
-            # 텍스트 청크로 yield (자연스러운 스트리밍)
-            yield {"type": "text", "content": final_text}
-
-            # 완료 이벤트 (content는 dict - dashboard_api에서 json.dumps 처리)
-            yield {
-                "type": "done",
-                "content": {
-                    "confidence": response.confidence_score,
-                    "sources": response.sources[:5] if response.sources else [],
-                    "tools_used": response.tools_called,
-                    "suggestions": response.suggestions[:3] if response.suggestions else [],
-                    "processing_time_ms": round(processing_time, 1),
-                    "mode": "react" if use_react else "direct",
-                    "confidence_level": confidence_level.value if confidence_level else "medium",
-                },
-            }
+            # 완료 이벤트 (content는 dict - chat 라우트에서 json.dumps 처리)
+            yield {"type": "done", "content": self._stream_done_content(response, route)}
 
         except Exception as e:
             logger.error(f"Stream processing failed: {e}", exc_info=True)
@@ -735,22 +683,55 @@ class UnifiedBrain:
                     "processing_time_ms": round(processing_time, 1),
                     "mode": "error",
                     "confidence_level": "unknown",
+                    "metadata": {},
                 },
             }
 
         finally:
             self.mode = previous_mode
 
+    @staticmethod
+    def _stream_done_content(response: Response, route: str | None) -> dict[str, Any]:
+        """``done`` 이벤트 내용 (v3부터의 SSE 계약 유지 + metadata 추가)
+
+        ``mode``는 예전처럼 ReAct 여부만 구분한다 — 세부 경로는 ``metadata.route_trace``에
+        있다. 차단 응답만 신뢰도·출처가 의미 없어 고정값을 쓴다.
+        """
+        trace = (response.metadata or {}).get("route_trace") or {}
+
+        if route == "blocked":
+            content: dict[str, Any] = {
+                "confidence": 0.0,
+                "sources": [],
+                "tools_used": [],
+                "suggestions": ["다른 질문을 해주세요"],
+                "confidence_level": "unknown",
+            }
+        else:
+            content = {
+                "confidence": response.confidence_score,
+                "sources": response.sources[:5] if response.sources else [],
+                "tools_used": response.tools_called,
+                "suggestions": response.suggestions[:3] if response.suggestions else [],
+                "confidence_level": trace.get("confidence_level") or "medium",
+            }
+
+        content["processing_time_ms"] = round(response.processing_time_ms or 0.0, 1)
+        content["mode"] = _STREAM_MODE_BY_ROUTE.get(route, "direct")
+        # 관측 정보 (route_trace·numeric_verification). 대시보드는 무시해도 안전하다.
+        content["metadata"] = response.metadata or {}
+        return content
+
     # =========================================================================
-    # KG + OWL 동기화 (Phase 4: v3에서 포팅)
+    # KG 동기화 (Phase 4: v3에서 포팅)
     # =========================================================================
 
     def _sync_knowledge_graph(self, data: dict[str, Any]) -> None:
         """
-        크롤링 데이터 → KG + OWL Ontology 동기화
+        크롤링 데이터 → KG 동기화
 
-        대시보드 데이터의 브랜드 메트릭을 KnowledgeGraph 엔티티 메타데이터와
-        OWL Ontology의 Brand 인스턴스로 동기화합니다.
+        대시보드 데이터의 브랜드 메트릭을 KnowledgeGraph 엔티티 메타데이터로
+        동기화합니다.
 
         Args:
             data: 대시보드 JSON 데이터 (brand.competitors 포함)
@@ -774,384 +755,9 @@ class UnifiedBrain:
                         },
                     )
 
-            # OWL Ontology에도 동기화
-            if hasattr(self, "_owl_reasoner") and self._owl_reasoner:
-                for brand_info in brand_metrics[:20]:  # 상위 20개 브랜드
-                    brand_name = brand_info.get("brand")
-                    if brand_name:
-                        self._owl_reasoner.add_brand(
-                            name=brand_name,
-                            sos=brand_info.get("sos", 0) / 100,
-                            avg_rank=brand_info.get("avg_rank"),
-                            product_count=brand_info.get("products", 0),
-                        )
-
-                # 시장 포지션 추론
-                self._owl_reasoner.infer_market_positions()
-
-            logger.info(f"KG & OWL Ontology synced: {len(brand_metrics)} brands")
+            logger.info(f"KG synced: {len(brand_metrics)} brands")
         except Exception as e:
-            logger.warning(f"KG/Ontology sync failed: {e}")
-
-    # =========================================================================
-    # v3 대시보드 도구 등록 (Phase 3)
-    # =========================================================================
-
-    def _register_dashboard_tools(self) -> None:
-        """v3 대시보드 조회 도구를 ToolCoordinator에 등록"""
-        import json
-
-        data_path = os.environ.get("DASHBOARD_DATA_PATH", f"{_DATA_DIR}/dashboard_data.json")
-
-        def _load_dashboard_data() -> dict:
-            """대시보드 데이터 로드"""
-            try:
-                with open(data_path, encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.error(f"Failed to load dashboard data: {e}")
-                return {}
-
-        async def exec_brand_status(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            brand = data.get("brand", {})
-            kpis = brand.get("kpis", {})
-            return {
-                "brand": "LANEIGE",
-                "sos": kpis.get("sos", 0),
-                "sos_change": kpis.get("sos_delta", "N/A"),
-                "top10_products": kpis.get("top10_count", 0),
-                "avg_rank": kpis.get("avg_rank", 0),
-                "hhi": kpis.get("hhi", 0),
-                "total_products": data.get("metadata", {}).get("laneige_products", 0),
-            }
-
-        async def exec_product_info(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            product_name = kwargs.get("product_name", "")
-            products = data.get("products", {})
-
-            # ASIN으로 검색
-            if product_name.upper().startswith("B0"):
-                product = products.get(product_name.upper())
-                if product:
-                    return product
-
-            # 제품명으로 검색
-            for _asin, prod in products.items():
-                name = prod.get("name", "").lower()
-                if product_name.lower() in name:
-                    return prod
-
-            # 모든 LANEIGE 제품 목록
-            laneige_products = [
-                {"asin": k, "name": v.get("name", "")[:50], "rank": v.get("rank")}
-                for k, v in products.items()
-            ]
-            return {
-                "message": f"'{product_name}' 제품을 찾을 수 없습니다.",
-                "available_products": laneige_products,
-            }
-
-        async def exec_competitor_analysis(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            brand_name = kwargs.get("brand_name")
-            competitors = data.get("brand", {}).get("competitors", [])
-
-            if brand_name:
-                for comp in competitors:
-                    if brand_name.lower() in comp.get("brand", "").lower():
-                        return comp
-                return {"message": f"'{brand_name}' 브랜드를 찾을 수 없습니다."}
-
-            return {
-                "competitors": competitors[:10],
-                "laneige_rank": next(
-                    (i + 1 for i, c in enumerate(competitors) if "LANEIGE" in c.get("brand", "")),
-                    "N/A",
-                ),
-            }
-
-        async def exec_category_info(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            category = kwargs.get("category")
-            categories = data.get("categories", {})
-
-            if category:
-                cat_data = categories.get(category) or categories.get(category.lower())
-                if cat_data:
-                    return cat_data
-                return {"message": f"'{category}' 카테고리를 찾을 수 없습니다."}
-
-            return categories
-
-        async def exec_action_items(**kwargs: Any) -> dict:
-            data = _load_dashboard_data()
-            home = data.get("home", {})
-            return {
-                "status": home.get("status", {}),
-                "action_items": home.get("action_items", []),
-            }
-
-        # ToolCoordinator의 ToolExecutor에 등록
-        executor = self.tool_coordinator.tool_executor
-        executor.register_executor("get_brand_status", exec_brand_status)
-        executor.register_executor("get_product_info", exec_product_info)
-        executor.register_executor("get_competitor_analysis", exec_competitor_analysis)
-        executor.register_executor("get_category_info", exec_category_info)
-        executor.register_executor("get_action_items", exec_action_items)
-
-        logger.info("Registered 5 v3 dashboard tools in ToolCoordinator")
-
-    # =========================================================================
-    # 응답 생성
-    # =========================================================================
-
-    async def _generate_response(
-        self,
-        query: str,
-        context: Context,
-        decision: Decision,
-        tool_result: ToolResult | None = None,
-    ) -> Response:
-        """응답 생성"""
-        if self._response_pipeline:
-            return await self._response_pipeline.generate(
-                query=query, context=context, decision=decision, tool_result=tool_result
-            )
-
-        # 폴백 응답 생성
-        content = ""
-        if tool_result and tool_result.success:
-            content = (
-                f"도구 실행 결과:\n{json.dumps(tool_result.data, ensure_ascii=False, indent=2)}"
-            )
-        elif context.summary:
-            content = context.summary
-        else:
-            content = "관련 정보를 찾을 수 없습니다."
-
-        return Response(
-            text=content,
-            confidence_score=decision.confidence,
-            sources=context.rag_docs[:3] if context.rag_docs else [],
-            tools_called=[decision.tool] if decision.tool != "direct_answer" else [],
-        )
-
-    # =========================================================================
-    # ReAct 처리
-    # =========================================================================
-
-    def _is_complex_query(self, query: str, context: Context) -> bool:
-        """
-        복잡한 질문인지 판단
-
-        복잡한 질문의 특징:
-        - 여러 단계 추론 필요
-        - 다중 데이터 소스 필요
-        - "왜", "어떻게", "비교" 등 분석적 질문
-        - 컨텍스트가 불충분
-        """
-        # 복잡도 키워드
-        complex_keywords = ["왜", "어떻게", "비교", "분석", "추천", "전략", "예측", "원인"]
-        has_complex_keyword = any(keyword in query for keyword in complex_keywords)
-
-        # 컨텍스트 부족
-        has_kg_triples = hasattr(context, "kg_triples") and context.kg_triples
-        low_context = not context.rag_docs or len(context.rag_docs) < 2 or not has_kg_triples
-
-        # 다단계 질문 (여러 개의 의문사 또는 접속사)
-        multi_step = query.count("?") > 1 or any(
-            conj in query for conj in ["그리고", "또한", "하지만", "그러나"]
-        )
-
-        return has_complex_keyword or (low_context and multi_step)
-
-    async def _process_with_react(self, query: str, context: Context) -> Response:
-        """
-        ReAct 모드로 질문 처리
-
-        Args:
-            query: 사용자 질문
-            context: 수집된 컨텍스트
-
-        Returns:
-            Response 객체
-        """
-        if not self._react_agent:
-            return Response.fallback("ReAct 에이전트를 사용할 수 없습니다.")
-
-        try:
-            # ReAct 실행
-            react_result = await self._react_agent.run(
-                query=query, context=context.summary or "컨텍스트 없음"
-            )
-
-            # 응답 생성
-            response = Response(
-                text=react_result.final_answer,
-                confidence_score=react_result.confidence,
-                sources=context.rag_docs[:3] if context.rag_docs else [],
-                tools_called=[step.action for step in react_result.steps if step.action],
-            )
-
-            # 개선 필요 시 로깅
-            if react_result.needs_improvement:
-                logger.warning(
-                    f"ReAct result needs improvement (confidence: {react_result.confidence:.2f})"
-                )
-
-            return response
-
-        except Exception as e:
-            logger.error(f"ReAct processing failed: {e}")
-            return Response.fallback(f"ReAct 처리 실패: {str(e)}")
-
-    def _assess_confidence_level(self, context: Context) -> "ConfidenceLevel":
-        """컨텍스트 기반 신뢰도 평가
-
-        UNKNOWN은 질문 자체가 이해 불가할 때만 사용.
-        데이터가 부족해도 의도가 명확하면 LOW 이상 → LLM에게 위임.
-        """
-        # Build rule_result from context signals
-        rule_result = {"max_score": 0.0, "confidence": 0.0, "query_type": "unknown"}
-
-        # --- 1) 컨텍스트 데이터 점수 ---
-        score = 0.0
-        if context.kg_facts:
-            score += min(len(context.kg_facts), 3) * 1.5
-        if context.rag_docs:
-            score += min(len(context.rag_docs), 3) * 1.0
-        if context.kg_inferences:
-            score += min(len(context.kg_inferences), 2) * 2.0
-        if context.entities:
-            entity_count = sum(len(v) for v in context.entities.values() if isinstance(v, list))
-            score += min(entity_count, 3) * 1.0
-
-        # --- 2) 쿼리 의도 명확성 점수 (최소 바닥 보장) ---
-        # 데이터가 없어도 의미 있는 질문이면 UNKNOWN이 아닌 LOW로 분류
-        query = context.query if hasattr(context, "query") else ""
-        query_intent_score = self._assess_query_intent(query)
-        score += query_intent_score
-
-        rule_result["max_score"] = score
-
-        return self.confidence_assessor.assess(rule_result, context)
-
-    def _assess_query_intent(self, query: str) -> float:
-        """쿼리 자체의 의도 명확성 점수 반환
-
-        UNKNOWN(< 1.5)은 의도 파악이 불가한 경우에만 해당.
-        한국어/영어로 의미 있는 질문이면 최소 1.5점(LOW) 보장.
-
-        Returns:
-            0.0: 빈 쿼리 또는 의미 없는 문자열
-            1.5: 일반적인 질문 (의도 파악 가능)
-            2.5: 도메인 관련 질문 (브랜드, 지표, 분석 키워드 포함)
-        """
-        if not query or not query.strip():
-            return 0.0
-
-        stripped = query.strip()
-
-        # 너무 짧은 무의미 입력 (1~2자)
-        if len(stripped) <= 2:
-            return 0.0
-
-        score = 0.0
-
-        # 도메인 키워드 (브랜드, 제품, 카테고리)
-        domain_keywords = [
-            "laneige",
-            "라네즈",
-            "lip",
-            "립",
-            "mask",
-            "마스크",
-            "sleeping",
-            "슬리핑",
-            "cream",
-            "크림",
-            "skin",
-            "스킨",
-            "beauty",
-            "뷰티",
-            "makeup",
-            "메이크업",
-            "powder",
-            "파우더",
-            "아모레",
-            "amore",
-            "설화수",
-            "sulwhasoo",
-            "이니스프리",
-            "amazon",
-            "아마존",
-        ]
-        if any(kw in stripped.lower() for kw in domain_keywords):
-            score += 1.0
-
-        # 분석/질문 의도 키워드
-        intent_keywords = [
-            "분석",
-            "비교",
-            "추천",
-            "전략",
-            "예측",
-            "원인",
-            "이유",
-            "왜",
-            "어떻게",
-            "알려",
-            "보여",
-            "설명",
-            "순위",
-            "상승",
-            "하락",
-            "점유",
-            "경쟁",
-            "트렌드",
-            "현황",
-            "변화",
-            "추이",
-            "sos",
-            "hhi",
-            "cpi",
-            "share",
-            "rank",
-            "top",
-            "analyze",
-            "compare",
-            "explain",
-            "show",
-            "tell",
-        ]
-        if any(kw in stripped.lower() for kw in intent_keywords):
-            score += 1.0
-
-        # 의미 있는 질문이면 최소 LOW 바닥 보장 (1.5)
-        # 한글 3자 이상 또는 영어 단어 2개 이상이면 의도 있는 질문으로 간주
-        has_meaningful_length = len(stripped) >= 3
-        if has_meaningful_length and score == 0.0:
-            # 도메인/의도 키워드 없어도 최소 바닥 점수
-            score = 1.5
-
-        # 도메인 또는 의도 키워드가 있으면 바닥 보장
-        if score > 0.0 and score < 1.5:
-            score = 1.5
-
-        return score
-
-    def _extract_key_points_from_context(self, context: Context) -> list[str]:
-        """컨텍스트에서 핵심 포인트 추출"""
-        points = []
-        for fact in (context.kg_facts or [])[:3]:
-            if hasattr(fact, "entity") and hasattr(fact, "fact_type"):
-                points.append(f"{fact.entity}: {fact.fact_type}")
-        for inf in (context.kg_inferences or [])[:2]:
-            if isinstance(inf, dict) and "insight" in inf:
-                points.append(inf["insight"])
-        return points
+            logger.warning(f"KG sync failed: {e}")
 
     # =========================================================================
     # 자율 작업 (Autonomous)
@@ -1222,8 +828,8 @@ class UnifiedBrain:
 
                 result = await self._workflow_agent.run_daily_workflow()
 
-                # 크롤링 완료 이벤트
-                await self.emit_event("crawl_complete", {"result": result})
+                # crawl_complete 발화는 BatchWorkflow 완료 지점에서 한다 (D4).
+                # 여기서 또 쏘면 스케줄러 경로에서만 이벤트가 두 번 나간다.
 
                 # Market Intelligence 데이터 수집
                 mi_result = await self.collect_market_intelligence()
@@ -1240,6 +846,9 @@ class UnifiedBrain:
                 needs_crawl = self.state.is_crawl_needed()
                 return {"task": task_name, "status": "completed", "needs_crawl": needs_crawl}
 
+            elif action == "check_integrity":
+                return await self._run_integrity_check(task_name)
+
             else:
                 return {
                     "task": task_name,
@@ -1250,6 +859,40 @@ class UnifiedBrain:
         except Exception as e:
             logger.error(f"Scheduled task failed: {e}")
             return {"task": task_name, "status": "failed", "error": str(e)}
+
+    async def _run_integrity_check(self, task_name: str) -> dict[str, Any]:
+        """데이터 정합성 검사 실행. CRITICAL이면 알림까지 발화한다 (§3.3).
+
+        run_full_check()는 구현돼 있었으나 __main__ 외 호출처가 0건이었다.
+        """
+        from src.tools.utilities.data_integrity_checker import check_data_integrity
+
+        result = await check_data_integrity()
+        severity = result.get("severity", "OK")
+        logger.info(f"Data integrity check: severity={severity}")
+
+        if severity == "CRITICAL":
+            recommendations = result.get("recommendations", [])
+            await self._process_alert(
+                {
+                    "type": "data_integrity",
+                    "severity": "critical",
+                    "message": (
+                        f"데이터 정합성 CRITICAL: "
+                        f"누락 {len(result.get('missing_dates', []))}일, "
+                        f"gap {result.get('sync_status', {}).get('gap', 0)}건"
+                    ),
+                    "details": "\n".join(recommendations),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+
+        return {
+            "task": task_name,
+            "status": "completed",
+            "severity": severity,
+            "result": result,
+        }
 
     async def _process_task_queue(self) -> None:
         """작업 큐 처리"""
@@ -1366,16 +1009,6 @@ class UnifiedBrain:
         ]
         if state["failed_tools"]:
             lines.append(f"- 실패 도구: {', '.join(state['failed_tools'])}")
-        return "\n".join(lines)
-
-    def _format_tools_description(self, state: dict[str, Any]) -> str:
-        """도구 설명 포맷"""
-        available = state.get("available_tools", [])
-        lines = []
-        for name, tool in AGENT_TOOLS.items():
-            if name in available:
-                lines.append(f"- {name}: {tool.description}")
-        lines.append("- direct_answer: 컨텍스트만으로 직접 답변")
         return "\n".join(lines)
 
     # =========================================================================
@@ -1517,16 +1150,8 @@ class UnifiedBrain:
             laneige_in_top100 = len([p for p in top100 if p.get("brand") == "LANEIGE"])
             sos = (laneige_in_top100 / len(top100) * 100) if top100 else 0
 
-            # HHI 계산
-            brand_counts = {}
-            for p in top100:
-                brand = p.get("brand", "Unknown")
-                brand_counts[brand] = brand_counts.get(brand, 0) + 1
-            hhi = (
-                sum((count / len(top100) * 100) ** 2 for count in brand_counts.values())
-                if top100
-                else 0
-            )
+            # HHI 계산 (정본 0-1 → 이메일 표시는 0-10000 포인트)
+            hhi = hhi_to_points(calculate_hhi_from_counts(count_brands(top100)))
 
             # 인사이트 생성 (HybridInsightAgent 사용)
             insight_content = "<p>현재 생성된 인사이트가 없습니다.</p>"
@@ -1667,6 +1292,16 @@ class UnifiedBrain:
             except Exception as e:
                 logger.error(f"Scheduled task error: {action} - {e}")
                 self._stats["errors"] += 1
+
+                # 크롤 관련 스케줄 태스크 실패는 CRITICAL 알림 대상
+                if action in ("crawl_workflow", "check_data"):
+                    try:
+                        await self.emit_event(
+                            "crawl_failed",
+                            {"error": str(e), "details": f"스케줄 태스크 '{action}' 실패"},
+                        )
+                    except Exception as notify_error:
+                        logger.error(f"crawl_failed 알림 발화 실패: {notify_error}")
 
         await self.scheduler.start(_handle_scheduled_task)
         self.mode = BrainMode.AUTONOMOUS

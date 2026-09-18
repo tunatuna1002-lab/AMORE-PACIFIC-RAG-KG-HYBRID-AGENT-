@@ -9,7 +9,7 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 - cache.py: 응답 캐싱
 - state.py: 오케스트레이터 상태 관리
 - context_gatherer.py: RAG + KG 컨텍스트 수집
-- tools.py: 에이전트 도구 정의
+- tool_registry.py: 읽기 전용 도구 레지스트리 (에이전트가 쓸 수 있는 도구 5종)
 - response_pipeline.py: 응답 생성 파이프라인
 - scheduler.py: 자율 작업 스케줄러
 - decision_maker.py: LLM 의사결정 (SRP 분해)
@@ -17,7 +17,6 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 - alert_manager.py: 알림 관리 (SRP 분해)
 - brain.py: Level 4 자율 에이전트 두뇌 (LLM-First Facade)
 - batch_workflow.py: 배치 워크플로우 오케스트레이터 (Think-Act-Observe)
-- llm_orchestrator.py: 메인 오케스트레이터 (Legacy)
 
 주요 클래스:
 - UnifiedBrain: 통합 두뇌 (Facade) - 모든 컴포넌트 조율
@@ -33,14 +32,13 @@ LLM 기반 오케스트레이터 핵심 컴포넌트
 from .cache import ResponseCache
 from .confidence import ConfidenceAssessor
 from .context_gatherer import ContextGatherer
-from .llm_orchestrator import LLMOrchestrator
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
 from .response_pipeline import ResponsePipeline
 
 # Autonomous Scheduler
 from .scheduler import AutonomousScheduler
 from .state import OrchestratorState
-from .tools import AGENT_TOOLS, AgentTool, ToolExecutor
+from .tool_registry import ToolRegistry
 
 # Lazy loading for brain module to prevent circular imports
 _brain_module = None
@@ -80,11 +78,8 @@ __all__ = [
     "ResponseCache",
     "OrchestratorState",
     "ContextGatherer",
-    "AgentTool",
-    "ToolExecutor",
-    "AGENT_TOOLS",
+    "ToolRegistry",
     "ResponsePipeline",
-    "LLMOrchestrator",
     # Scheduler
     "AutonomousScheduler",
     # Level 4 Brain (lazy loaded)

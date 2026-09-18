@@ -353,7 +353,7 @@ async def _get_external_signals(
         try:
             await collector.close()
         except Exception:
-            logger.warning("Suppressed Exception", exc_info=True)
+            logger.warning("외부 신호 수집기 종료 실패", exc_info=True)
 
 
 @router.post("/docx")

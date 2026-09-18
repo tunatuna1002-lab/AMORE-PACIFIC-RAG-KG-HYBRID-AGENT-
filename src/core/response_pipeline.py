@@ -18,13 +18,18 @@ RAG + KG 컨텍스트 기반 LLM 응답 생성
 
 import json
 import logging
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 
+from src.rag.evidence_assembly import evidence_source_labels
+from src.rag.evidence_renderer import CITATION_INSTRUCTION, render_for_prompt
 from src.shared.constants import DEFAULT_MODEL
 
+from .confidence import ConfidenceAssessor
 from .hallucination_detector import HallucinationDetector
 from .models import ConfidenceLevel, Context, Decision, Response, ToolResult
+from .numeric_verifier import MODE_OFF, apply_numeric_verification, skipped_summary
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +82,8 @@ class ResponsePipeline:
         self.temperature = temperature
         self._tracer = None  # Set externally via set_tracer()
         self._hallucination_detector = HallucinationDetector()
+        # 신뢰도 사다리는 ConfidenceAssessor 하나만 쓴다 (§4.2 이중화 제거)
+        self._confidence_assessor = ConfidenceAssessor()
 
     def _get_system_prompt(self) -> str:
         """시스템 프롬프트 — PromptRegistry 경유 (플래그 off이면 인라인 폴백).
@@ -137,6 +144,10 @@ class ResponsePipeline:
         start_time = datetime.now()
 
         try:
+            # 도구 결과도 증거 카드다 — 프롬프트·인용·출처·수치 검증이 검색 카드와 같은 경로를
+            # 타도록 컨텍스트에 합친다 (트랙 4-A). 호출자의 Context는 바꾸지 않는다.
+            context = self._with_tool_evidence(context, tool_result)
+
             # 프롬프트 구성
             messages = self._build_messages(query, context, decision, tool_result)
 
@@ -167,6 +178,9 @@ class ResponsePipeline:
             # 응답 후처리
             processed_text = self._post_process(response_text, context)
 
+            # 답변 수치 검증 (설계 E8) — 이 답변 프롬프트에 실린 카드와 대조
+            processed_text, numeric_verification = self._verify_numbers(processed_text, context)
+
             # 환각 감지 (low confidence 응답만)
             hallucination_penalty = 1.0
             grounding_warning = False
@@ -192,10 +206,14 @@ class ResponsePipeline:
 
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
-            # 신뢰도 계산 - decision의 confidence를 고려
+            # 신뢰도 계산 — 근거 점수가 상한, LLM 자기보고는 감쇠만 한다.
+            # 과거에는 max()를 써서 근거 기반 점수가 "바닥 올리기"로만 작동했다.
+            # 두 값은 스케일도 달라(근거 0-10 vs LLM 0-1) 근거가 거의 없을 때만
+            # LLM 자신감이 이겼고, 그 결과 무근거 답변이 신뢰도를 얻었다.
             calculated_confidence = self._calculate_confidence_score(context)
-            if decision and hasattr(decision, "confidence") and decision.confidence:
-                final_confidence = max(calculated_confidence, decision.confidence)
+            decision_confidence = getattr(decision, "confidence", None) if decision else None
+            if decision_confidence:
+                final_confidence = calculated_confidence * min(float(decision_confidence), 1.0)
             else:
                 final_confidence = calculated_confidence
 
@@ -212,6 +230,11 @@ class ResponsePipeline:
                 else [],
                 suggestions=suggestions,
                 processing_time_ms=processing_time,
+                metadata=(
+                    {"numeric_verification": numeric_verification}
+                    if numeric_verification is not None
+                    else {}
+                ),
             )
 
         except Exception as e:
@@ -246,6 +269,8 @@ class ResponsePipeline:
             kg_inferences=context.kg_inferences,
             system_state=context.system_state,
             summary=f"{context.summary}\n\n[도구 실행 결과] {tool_summary}",
+            evidence=context.evidence,
+            prompt_evidence=context.prompt_evidence,
         )
 
         return await self.generate(query, enhanced_context, tool_result=tool_result)
@@ -275,9 +300,14 @@ class ResponsePipeline:
         """
         messages = [{"role": "system", "content": self._get_system_prompt()}]
 
-        # 컨텍스트 메시지
+        # 컨텍스트 메시지 (+ 카드가 있으면 인용 규칙 한 번)
         context_content = self._format_context(context)
-        messages.append({"role": "system", "content": f"[분석 컨텍스트]\n{context_content}"})
+        messages.append(
+            {
+                "role": "system",
+                "content": f"[분석 컨텍스트]\n{context_content}{self._citation_block(context)}",
+            }
+        )
 
         # 판단 결과 (있으면) - None-safety 추가
         if decision:
@@ -303,7 +333,7 @@ class ResponsePipeline:
         return messages
 
     def _format_context(self, context: Context) -> str:
-        """컨텍스트 포맷팅"""
+        """컨텍스트 포맷팅 — summary(카드 렌더링)가 없으면 상태 한 줄과 카드만 싣는다 (E1)."""
         if context.summary:
             return context.summary
 
@@ -316,24 +346,50 @@ class ResponsePipeline:
             if state.kg_initialized:
                 parts.append(f"KG: {state.kg_triple_count} 트리플")
 
-        # KG 추론
-        if context.kg_inferences:
-            parts.append("\n인사이트:")
-            for inf in context.kg_inferences[:3]:
-                parts.append(f"- {inf.get('insight', '')}")
+        cards = render_for_prompt(context.prompt_evidence)
+        if cards:
+            parts.append(cards)
 
-        # KG 사실
-        if context.kg_facts:
-            parts.append("\n관련 정보:")
-            for fact in context.kg_facts[:3]:
-                parts.append(f"- {fact.fact_type}: {fact.entity}")
+        return "\n\n".join(parts) if parts else "컨텍스트 없음"
 
-        return "\n".join(parts) if parts else "컨텍스트 없음"
+    @staticmethod
+    def _citation_block(context: Context) -> str:
+        """답변 프롬프트의 인용 규칙 (설계 E8 앞부분). 카드가 없으면 인용할 id도 없다."""
+        if not context.prompt_evidence:
+            return ""
+        return f"\n\n[인용 규칙]\n{CITATION_INSTRUCTION}"
+
+    @staticmethod
+    def _with_tool_evidence(context: Context, tool_result: ToolResult | None) -> Context:
+        """도구 결과의 증거 카드를 컨텍스트 카드에 합친 사본을 돌려준다 (트랙 4-A).
+
+        레지스트리 도구(``src/core/tool_registry.py``)의 결과는 전부 카드다. 카드를 합치면
+        답변 프롬프트의 인용 규칙·출처 표시(``_extract_sources``)·답변 수치 검증(E8)이
+        검색 카드와 똑같이 도구 카드에도 적용된다. 카드가 없는 결과(옛 도구·실패)는 그대로 둔다.
+        """
+        from src.core.tool_registry import tool_evidence
+        from src.domain.entities.evidence import EvidenceSet
+
+        cards = tool_evidence(tool_result)
+        if not cards:
+            return context
+
+        return replace(
+            context,
+            evidence=EvidenceSet([*context.evidence, *cards]).to_list(),
+            prompt_evidence=EvidenceSet([*context.prompt_evidence, *cards]).to_list(),
+        )
 
     def _format_tool_result(self, tool_result: ToolResult) -> str:
         """도구 결과 포맷팅"""
         if not tool_result.success:
             return f"실행 실패: {tool_result.error}"
+
+        from src.core.tool_registry import render_tool_observation, tool_evidence
+
+        if tool_evidence(tool_result):
+            # 레지스트리 도구: 카드를 프롬프트와 같은 형식(``[id] 내용 (as_of, source)``)으로
+            return render_tool_observation(tool_result)
 
         data = tool_result.data
 
@@ -431,7 +487,10 @@ class ResponsePipeline:
         )
 
         # 컨텍스트 요약을 사용자 메시지에 직접 포함
-        user_msg = f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
+        user_msg = (
+            f"## 질문\n{query}\n\n## 데이터\n{context.summary or '데이터 없음'}"
+            f"{self._citation_block(context)}"
+        )
 
         try:
             response = await acompletion(
@@ -524,6 +583,29 @@ class ResponsePipeline:
 
         return "\n".join(parts)
 
+    @staticmethod
+    def _verify_numbers(text: str, context: Context) -> tuple[str, dict[str, Any] | None]:
+        """플래그 모드로 답변 수치를 검증한다 → (답변, ``metadata["numeric_verification"]``).
+
+        ``generate``의 모든 생성 분기(일반 LLM·HIGH 신뢰도 fast path·LLM 없는 기본 응답)와
+        ``generate_with_tool_result``가 후처리 직후 이 한 곳을 지난다. 이 파이프라인에는
+        스트리밍 생성이 없다 — ``UnifiedBrain.process_query_stream``은 ``generate``로 답을 다
+        만든 뒤 한 번에 내보내므로 enforce 치환도 스트림 텍스트에 그대로 반영된다.
+
+        스키마는 ``src/core/numeric_verifier.py`` 모듈 docstring. ``off``면 메타데이터 없음.
+        검증기 오류는 답변을 막지 않는다(``skipped: "error"``).
+        """
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        mode = FeatureFlags.get_instance().numeric_verification_mode()
+        if mode == MODE_OFF:
+            return text, None
+        try:
+            return apply_numeric_verification(text, context.prompt_evidence, mode)
+        except Exception:
+            logger.warning("Numeric verification failed; answer kept as generated", exc_info=True)
+            return text, skipped_summary(mode, "error")
+
     # =========================================================================
     # 메타데이터 생성
     # =========================================================================
@@ -553,23 +635,13 @@ class ResponsePipeline:
         return suggestions[:3]
 
     def _extract_sources(self, context: Context) -> list[str]:
-        """출처 추출"""
-        sources = []
+        """출처 = 답변 프롬프트에 실린 증거 카드의 출처 (설계 E1).
 
-        # RAG 문서 출처
-        for doc in context.rag_docs:
-            title = doc.get("metadata", {}).get("title", "")
-            if title and title not in sources:
-                sources.append(title)
-
-        # KG 출처
-        if context.kg_facts:
-            sources.append("Knowledge Graph")
-
-        if context.kg_inferences:
-            sources.append("Ontology Reasoning")
-
-        return sources[:5]
+        문서 제목·``sqlite:<table> (as_of)``·``KG``·``rule:<이름>``을 카드 순서대로 중복 없이
+        돌려준다. ``Response.sources``의 계약(list[str])은 그대로다. 프롬프트에 싣지 않은
+        원자료(rag_docs·kg_facts)는 출처로 내지 않는다 — 모델이 보지 않은 근거이기 때문이다.
+        """
+        return evidence_source_labels(context.prompt_evidence)
 
     def _infer_query_type(self, query: str, context: Context) -> str:
         """질문 유형 추론"""
@@ -589,17 +661,13 @@ class ResponsePipeline:
             return "general"
 
     def _assess_confidence(self, context: Context) -> ConfidenceLevel:
-        """신뢰도 레벨 평가"""
-        score = self._calculate_confidence_score(context)
+        """신뢰도 레벨 평가 — 사다리는 ConfidenceAssessor에 위임한다.
 
-        if score >= 5.0:
-            return ConfidenceLevel.HIGH
-        elif score >= 3.0:
-            return ConfidenceLevel.MEDIUM
-        elif score >= 1.5:
-            return ConfidenceLevel.LOW
-        else:
-            return ConfidenceLevel.UNKNOWN
+        과거에는 confidence.py의 5.0/3.0/1.5 사다리를 여기서 재구현해,
+        임계값이 갈라질 수 있었다 (§4.2).
+        """
+        score = self._calculate_confidence_score(context)
+        return self._confidence_assessor.assess({"max_score": score})
 
     def _calculate_confidence_score(self, context: Context) -> float:
         """신뢰도 점수 계산"""

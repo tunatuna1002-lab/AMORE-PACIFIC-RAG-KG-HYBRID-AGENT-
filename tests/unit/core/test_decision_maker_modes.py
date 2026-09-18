@@ -21,8 +21,8 @@ class TestDecisionMakerModes:
         assert "unknown" in self.dm.MODE_PROMPTS
 
     def test_mode_prompt_content(self):
-        """각 모드 프롬프트 내용 확인"""
-        assert "direct_answer" in self.dm.MODE_PROMPTS["high"]
+        """각 모드 프롬프트 내용 확인 (HIGH는 도구 호출 금지, LOW는 도구 사용 유도)"""
+        assert "도구를 호출하지 말고" in self.dm.MODE_PROMPTS["high"]
         assert "도구" in self.dm.MODE_PROMPTS["low"]
 
     def test_decide_signature_accepts_confidence_level(self):
@@ -46,9 +46,7 @@ class TestDecisionMakerModes:
         assert isinstance(d, Decision)
         assert d.tool == "direct_answer"
 
-    def test_parse_decision_unchanged(self):
-        """파싱 로직은 모드에 무관"""
-        json_str = '{"tool": "direct_answer", "tool_params": {}, "reason": "test", "confidence": 0.8, "key_points": []}'
-        d = self.dm._parse_decision(json_str)
-        assert isinstance(d, Decision)
-        assert d.tool == "direct_answer"
+    def test_key_points_parsing_unchanged(self):
+        """본문의 "- " 줄만 핵심 포인트가 된다 (모드 무관)"""
+        points = self.dm._key_points("근거 충분\n- SoS 2%\n설명 줄\n* HHI 0.07")
+        assert points == ["SoS 2%", "HHI 0.07"]

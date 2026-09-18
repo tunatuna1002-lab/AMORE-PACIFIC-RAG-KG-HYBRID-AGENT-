@@ -1,0 +1,139 @@
+{
+  "item_id": "lg205",
+  "question": "아모레퍼시픽 2025년 2분기 영업이익은 얼마인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.1,
+    "semantic_similarity": 0.4065799117088318,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.37848108094268373,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg205",
+    "timestamp": "2026-09-17T16:35:11.108866",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "data_query"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_9_1",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "home_insight_rules_13",
+        "amazon_ranking_diagnosis_9_2",
+        "indicator_combination_4_1"
+      ],
+      "snippets": [
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "customers",
+        "Deep Facial Cleanser' Happy Bath'SkinUDeep Musk Body Oil & Gua Sha'  \n7   \n**1Q 2025 Overseas Business**",
+        "\\- \\[Hanyul\\] Newly entered the U.S. market via Sephora and built awareness with its ‘Yuja Brightening’ line products  \\- \\[COSRX\\] Expanded product portfolio in emerging categories by launching new s",
+        " to Luxury business), like-for-like growth for luxury business is 4% increaseYoY    \nSulwhasooGlobal Culture Trip‘HolisticBeautyJourney’ Hera‘Custom Match’ Service![][image2]![][image3]Primera‘Vitatin",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "#### 고려 가능한 액션 후보\n- 단기 활용 후 철수 전략 검토\n- 추가 투자 여부 신중 판단\n\n---\n\n### 11. Rank Volatility ↓ + Streak Days ↑\n\n#### 해석 시나리오\n- 순위 안정적 유지\n- 충성 고객 기반 가능성\n\n#### 시사점\n- 스테디셀러 후보\n\n#### 고려 가능한 액션 후보\n- 장기 운영 전략 수립\n- 파"
+      ],
+      "scores": [
+        1.4198647068533334,
+        1.0,
+        0.9603512452712857,
+        0.8546734286684783,
+        0.845619966889598,
+        0.33995282649993896,
+        0.2990657091140747,
+        0.28896868228912354
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내에는 아모레퍼시픽의 2025년 2분기 영업이익에 관한 구체적인 수치가 포함되어 있지 않습니다. 따라서 2025년 2분기 영업이익 금액을 정확히 답변드리기 어렵습니다. 추가적인 공식 재무자료나 공시가 필요합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 496,
+      "judge_tokens": 2058,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0001095,
+      "judge_cost_usd": 0.0006309
+    },
+    "latency_ms": 4870.465040206909,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

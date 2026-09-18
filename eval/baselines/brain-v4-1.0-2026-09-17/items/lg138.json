@@ -1,0 +1,386 @@
+{
+  "item_id": "lg138",
+  "question": "클린뷰티 트렌드가 K-Beauty 브랜드에 미치는 기회와 위협은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.5714285714285715,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.14666666666666667,
+    "semantic_similarity": 0.7855625748634338,
+    "groundedness_score": 0.857,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.42857142857142855,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.5253163460234234,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail"
+  ],
+  "trace": {
+    "item_id": "lg138",
+    "timestamp": "2026-09-17T16:29:58.581550",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty",
+        "trend_analysis",
+        "clean_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_strategy_2026_7_3",
+        "negative_issue_response_0",
+        "laneige_strategy_2026_7_4",
+        "laneige_influencer_map_2_7",
+        "chunk_4",
+        "laneige_influencer_map_2_8",
+        "laneige_influencer_map_1_0",
+        "kbeauty_industry_6_3"
+      ],
+      "snippets": [
+        "1. Experts Predict the Five Biggest Skincare Trends of 2026, 1월 20, 2026에 액세스, [https://www.cosmopolitan.com/style-beauty/beauty/a69757862/2026-skincare-trend-predictions/](https://www.cosmopolitan.co",
+        "# **2026년 1월 미국 시장 내 K-뷰티 및 바이럴 스킨케어 브랜드에 대한 부정 이슈 심층 분석 및 조기 경보 리포트**",
+        "drive/](https://thekit.ca/beauty/face/morning-shed-tiktok-test-drive/)  \n4. Waking Up To Self-Care: The Morning Shed Trend Explained By Experts \\- Haute Living, 1월 20, 2026에 액세스, [https://hauteliving.",
+        " 미치는 영향을 상세히 분석합니다.8",
+        "2. 출력 안전장치(Guardrails)\n\n### 2.1 단정 방지\n- 항상 가능성 표현 사용\n- 최소 1개의 주의 문구를 포함(선택):\n  - “단기 노이즈일 가능성도 있어 추이 확인이 필요합니다.”\n\n### 2.2 과대 경고 방지\n- Alert가 없으면 “문제 없음”을 명시해 사용자 불안 최소화\n- 리스크 문구는 **조건 충족 시에만** 노출\n\n### ",
+        "#### **2.2.2 K-뷰티 큐레이터 (K-Beauty Curators)**\n\n라네즈를 한국 뷰티 트렌드의 맥락에서 해석해주는 그룹입니다.\n\n* **대표 크리에이터:**  \n  * Soo Beauty / Euni Unni 7: 한국 현지의 올리브영 트렌드와 미국 시장의 차이를 설명하며 라네즈의 위상을 재확인시켜줍니다. 다만, 이들 그룹은 유료 광고(Sp",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 "
+      ],
+      "scores": [
+        9.27115870270571,
+        7.971385560901817,
+        7.809466835776,
+        6.4430189068077555,
+        0.6794065917286582,
+        0.4807530641555786,
+        0.4513400197029114,
+        0.46881604194641113
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 44,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 51,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B",
+                  "B09SGLQNS5",
+                  "B00TZUJW6O"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 6,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B07PBQZ3KF",
+                  "B0F3J6W5KW",
+                  "B0GVG4S4X9",
+                  "B075DB13ZT",
+                  "B088W7L534"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "클린뷰티 트렌드는 K-Beauty 브랜드에 다음과 같은 기회와 위협을 제공합니다.\n\n**기회**  \n- 소비자들이 성분 안전성과 친환경 제품에 대한 관심이 증가하면서, K-Beauty 브랜드가 자연 유래 성분과 무해한 포뮬러를 강조할 경우 시장 점유율 확대 가능  \n- 미국 등 글로벌 시장에서 클린뷰티 수요가 커지고 있어, K-Beauty가 혁신적이고 투명한 제품 개발로 차별화할 수 있음  \n- 클린뷰티 트렌드와 맞물려 ‘셀프케어’ 및 ‘건강한 피부 관리’에 대한 관심이 높아져, K-Beauty의 스킨케어 전문성을 부각시키는 마케팅 전략에 유리  \n\n**위협**  \n- 클린뷰티 기준이 명확하지 않고 다양한 정의가 존재해, K-Beauty 브랜드가 성분 및 인증 문제로 소비자 신뢰를 잃을 위험  \n- 미국 시장 내 이미 medicube, cerave 등 현지 브랜드가 강세를 보이며 클린뷰티 영역을 선점하고 있어 경쟁 심화  \n- 바이럴 및 SNS 기반 트렌드 변화가 빠르기 때문에, K-Beauty 브랜드가 신속히 대응하지 못하면 시장에서 도태될 가능성 존재  \n\n요약하면, 클린뷰티 트렌드는 K-Beauty가 친환경·안전성 강조를 통해 글로벌 시장에서 성장할 기회를 제공하나, 성분 투명성 확보와 현지 경쟁 브랜드 대응이 과제로 작용합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 915,
+      "judge_tokens": 5515,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00028890000000000003,
+      "judge_cost_usd": 0.0015882000000000001
+    },
+    "latency_ms": 4392.351865768433,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

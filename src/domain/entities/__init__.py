@@ -24,6 +24,12 @@ from src.domain.entities.brand import (
     Brand,
     BrandMetrics,
 )
+from src.domain.entities.evidence import (
+    Evidence,
+    EvidenceKind,
+    EvidenceSet,
+    EvidenceUnit,
+)
 from src.domain.entities.market import (
     Category,
     MarketMetrics,
@@ -65,6 +71,11 @@ __all__ = [
     # Brand
     "Brand",
     "BrandMetrics",
+    # Evidence
+    "Evidence",
+    "EvidenceKind",
+    "EvidenceSet",
+    "EvidenceUnit",
     # Market
     "Category",
     "Snapshot",

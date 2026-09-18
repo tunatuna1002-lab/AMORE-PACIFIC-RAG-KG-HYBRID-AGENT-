@@ -1,0 +1,421 @@
+{
+  "item_id": "lg068",
+  "question": "Face Powder 카테고리 SoS 현황은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5714285714285715,
+    "concept_map_f1": 0.8,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.3076923076923077,
+    "context_precision_at_k": 0.5,
+    "mrr": 0.25,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 0.6666666666666666
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.16184971098265893,
+    "semantic_similarity": 0.5147246718406677,
+    "groundedness_score": 0.8,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.5714285714285714,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6276178849302899,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg068",
+    "timestamp": "2026-09-17T21:40:07.073154",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [
+        "sos"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "sos"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_algorithm_guide_6_1",
+        "amazon_algorithm_guide_table_1",
+        "strategic_indicators_2_1",
+        "metric_interpretation_2_0",
+        "strategic_indicators_1_0",
+        "metric_interpretation_2_1",
+        "chunk_6",
+        "strategic_indicators_1_1"
+      ],
+      "snippets": [
+        "* **검색 쿼리 성과 보고서 (Search Query Performance \\- SQP):**  \n  * *활용법:* '노출', '클릭', '장바구니 담기', '구매'의 전체 깔때기(Funnel)를 분석하여 어디서 누수가 발생하는지 진단합니다.  \n  * *검증 포인트:* 브랜드 점유율(Brand Share)이 급락했다면, 경쟁사가 내 브랜드 키워드를 타",
+        "| 도구 (Tool) | 주요 분석 지표 (Metrics) | 진단 목적 (Diagnostic Goal) |\n| :---- | :---- | :---- |\n| **Seller Central** | Suppressed Listings, Voice of Customer | 리스팅 기술적 오류 및 고객 불만(NCX) 파악 |\n| **Search Query Per",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "#### 해석 가이드\n- **높음**\n  - 소수 브랜드 중심의 집중 시장\n  - 신규 진입 또는 순위 반등 난이도 높음\n- **낮음**\n  - 브랜드가 분산된 경쟁 시장\n  - 단기 트렌드 및 신규 기회 존재 가능성\n\n#### 함께 봐야 할 지표\n- SoS\n- Churn Rate\n\n#### 주의사항\n- HHI는 **시장 구조 지표**이지 브랜드 성과 지표",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식"
+      ],
+      "scores": [
+        16.03401643456445,
+        13.21934404377991,
+        14.304484934029404,
+        0.520781397819519,
+        0.4784047603607178,
+        0.4550074338912964,
+        0.4104425798679916,
+        0.4010312557220459
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 32,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 45,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ",
+                  "B004QCT9HI",
+                  "B00MQBSRZG",
+                  "B001QHFXQM",
+                  "B09VYV9HW2",
+                  "B0DN6TZT6N",
+                  "B08G1Z1LNH",
+                  "B09VYT9FYN",
+                  "B0FR4795PK",
+                  "B002HSM6BO",
+                  "B07PT8VBTX",
+                  "B0DPMBFY6M",
+                  "B0BBSMWHWH",
+                  "B0D4M5YG9R",
+                  "B01ACPSI9M",
+                  "B00G4UC9SG"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 9,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6",
+                  "B08L98T4N5"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "clinique",
+                "product_count": 7,
+                "products": [
+                  "B000ALBLXE",
+                  "B0B5T5YVTJ",
+                  "B0050BRO30",
+                  "B015CXN8M6",
+                  "B002HF07MC",
+                  "B015CXN72C",
+                  "B0B5T4JN5N"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 6,
+                "products": [
+                  "B08GR6B8HN",
+                  "B004X8M59E",
+                  "B0DZZ6QS6H",
+                  "B09S8N5WV8",
+                  "B08GR514T1",
+                  "B0DZYP2495"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "Face Powder 카테고리 SoS(Share of Search) 현황에 대한 직접적인 수치 데이터는 제공되지 않았으나, 관련 정보를 종합하면 다음과 같습니다.\n\n1. 주요 브랜드: Face Powder 카테고리 내 상위 브랜드는 unknown, covergirl, e.l.f.로 나타나 아모레퍼시픽 LANEIGE 브랜드는 주요 점유 브랜드 목록에 포함되어 있지 않습니다. 이는 LANEIGE의 SoS가 상대적으로 낮거나 시장 내 인지도가 주요 경쟁사 대비 부족할 가능성을 시사합니다.\n\n2. 카테고리 위치: Face Powder는 beauty > makeup > face_makeup > face_powder의 3단계 하위 카테고리로, 메이크업 내 세분화된 시장입니다. 이 시장은 경쟁이 치열하며, SoS 확보를 위해서는 키워드 노출, 클릭, 전환율 개선이 중요합니다.\n\n3. 데이터 최신성: 마지막 크롤링이 1.2시간 전으로 데이터는 매우 신선(fresh)하여 최근 시장 동향 반영이 가능합니다.\n\n4. 분석 방향 제안: SoS 현황을 정확히 파악하려면 Search Query Performance에서 노출(Impressions), 클릭률(CTR), 장바구니 담기(Cart Adds), 구매(Purchases) 단계별 퍼널 분석과 Brand Analytics의 클릭 점유율(Click Share), 전환 점유율(Conversion Share) 비교가 필요합니다. 현재 제공된 데이터에는 이 수치가 없어 구체적 SoS 수치를 제시하기 어렵습니다.\n\n요약하면, Face Powder 카테고리에서 LANEIGE 브랜드의 SoS는 주요 상위 브랜드에 포함되지 않아 상대적으로 낮을 것으로 추정되며, 정확한 SoS 현황 파악을 위해서는 추가적인 검색 퍼널 및 브랜드 분석 지표가 필요합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0527,
+        "category_avg_price": 17.2,
+        "category_avg_rating": 4.48
+      },
+      {
+        "type": "category_top_brands",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "COVERGIRL",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Clinique",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Maybelline",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Physicians Formula",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "category_top_products",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 2,
+            "brand": "L'Oreal",
+            "name": "L'Oreal Paris Infallible Blur-fection Longwear Loose Setting",
+            "price": 12.32,
+            "rating": 4.5,
+            "reviews_count": 4673
+          },
+          {
+            "rank": 3,
+            "brand": "COVERGIRL",
+            "name": "Covergirl Clean Invisible Pressed Powder, Lightweight, Breat",
+            "price": 9.99,
+            "rating": 4.5,
+            "reviews_count": 9925
+          },
+          {
+            "rank": 4,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Halo Glow Soft Focus Setting Powder, Silky & Creates ",
+            "price": 8.0,
+            "rating": 4.5,
+            "reviews_count": 20322
+          },
+          {
+            "rank": 5,
+            "brand": "Unknown",
+            "name": "Clean Invisible Loose Powder Translucent Fair",
+            "price": 6.95,
+            "rating": 4.6,
+            "reviews_count": 8523
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1219,
+      "judge_tokens": 5568,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 826,
+      "l5_completion_tokens": 393,
+      "judge_prompt_tokens": 4012,
+      "judge_completion_tokens": 1556,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0009591999999999999,
+      "judge_cost_usd": 0.0040944,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 5904.210090637207,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 11.0,
+      "confidence_components": {
+        "kg_facts": 3.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 3.0,
+        "query_intent": 2.0
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "metric",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

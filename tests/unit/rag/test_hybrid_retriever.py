@@ -476,37 +476,6 @@ class TestHybridRetriever:
         assert any(f["type"] == "brand_products" for f in facts)
         assert any(f["type"] == "competitors" for f in facts)
 
-    @pytest.mark.asyncio
-    async def test_retriever_build_inference_context(self):
-        """추론 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = [{"brand": "cosrx", "sos": 0.05}]
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "categories": ["lip_care"], "indicators": ["sos"]}
-
-        current_metrics = {
-            "summary": {"laneige_sos_by_category": {"lip_care": 0.08}},
-            "brand_metrics": [
-                {"is_laneige": True, "share_of_shelf": 0.08, "avg_rank": 15.5, "product_count": 3}
-            ],
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        assert context["brand"] == "laneige"
-        assert context["is_target"] is True
-        assert context["category"] == "lip_care"
-        assert context["sos"] == 0.08
-        assert context["competitor_count"] == 1
-
     def test_retriever_get_stats(self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever):
         """통계 조회 테스트"""
         retriever = HybridRetriever(
@@ -536,15 +505,6 @@ class TestHybridRetriever:
         mock_knowledge_graph.get_category_brands.return_value = []
         mock_knowledge_graph.query.return_value = []
 
-        mock_reasoner.infer.return_value = [
-            InferenceResult(
-                rule_name="test_rule",
-                insight_type=InsightType.MARKET_POSITION,
-                insight="test insight",
-                confidence=0.9,
-            )
-        ]
-
         mock_doc_retriever.search.return_value = [
             {"id": "doc1", "content": "test content", "metadata": {"title": "Test Doc"}}
         ]
@@ -561,7 +521,11 @@ class TestHybridRetriever:
         # 결과 검증
         assert context.query == "LANEIGE Lip Care 분석"
         assert len(context.entities) > 0
-        assert len(context.inferences) == 1
+        # 규칙은 reasoner.infer가 아니라 증거 카드 + 계약 래퍼로 판정한다 (트랙 3-B).
+        # 등록된 규칙이 없는 reasoner면 판정도 발화도 없다.
+        mock_reasoner.infer.assert_not_called()
+        assert context.inferences == []
+        assert context.metadata["rule_evaluation"]["evaluated"] == 0
         assert len(context.rag_chunks) == 1
         assert context.combined_context != ""
         assert "retrieval_time_ms" in context.metadata
@@ -928,127 +892,6 @@ class TestQueryKnowledgeGraphExtended:
 
 
 # =============================================================================
-# Build Inference Context Sentiment Tests
-# =============================================================================
-
-
-class TestBuildInferenceContextSentiment:
-    """추론 컨텍스트 감성 데이터 테스트"""
-
-    def test_build_context_with_trend_keywords(self):
-        """트렌드 키워드 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_relation = MagicMock()
-        mock_relation.object = "glass_skin"
-        mock_kg.query.return_value = [mock_relation]
-        mock_kg.get_competitors.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"]}
-        context = retriever._build_inference_context(entities, {})
-
-        assert "trend_keywords" in context
-        assert "glass_skin" in context["trend_keywords"]
-
-    def test_build_context_with_brand_sentiment(self):
-        """브랜드 감성 프로필 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.return_value = {
-            "all_tags": ["hydrating", "soothing"],
-            "clusters": {"Hydration": 30, "Effectiveness": 20},
-            "dominant_sentiment": "Hydration",
-        }
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-        context = retriever._build_inference_context(entities, {})
-
-        assert "sentiment_tags" in context
-        assert "hydrating" in context["sentiment_tags"]
-        assert context["dominant_sentiment"] == "Hydration"
-
-    def test_build_context_with_product_sentiment(self):
-        """제품 감성 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.return_value = {}
-        mock_kg.get_product_sentiments.return_value = {
-            "sentiment_tags": ["moisturizing", "gentle"],
-            "ai_summary": "Excellent hydration",
-            "sentiment_clusters": {"Hydration": 5},
-        }
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-        current_metrics = {
-            "product_metrics": [{"asin": "B08TEST123", "current_rank": 10}],
-        }
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        assert "ai_summary" in context
-        assert context["ai_summary"] == "Excellent hydration"
-
-    def test_build_context_with_competitor_sentiment(self):
-        """경쟁사 감성 비교 컨텍스트 구성 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = [
-            {"brand": "cosrx"},
-            {"brand": "tirtir"},
-        ]
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.side_effect = [
-            {  # laneige
-                "all_tags": ["hydrating"],
-                "clusters": {"Hydration": 30},
-            },
-            {  # cosrx
-                "all_tags": ["affordable", "gentle"],
-                "clusters": {"Pricing": 25, "Skin_Compatibility": 15},
-            },
-            {  # tirtir
-                "all_tags": ["trendy"],
-                "clusters": {"Effectiveness": 20},
-            },
-        ]
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-        context = retriever._build_inference_context(entities, {})
-
-        assert "competitor_sentiment_tags" in context
-        assert "affordable" in context["competitor_sentiment_tags"]
-        assert "competitor_sentiment_clusters" in context
-        assert context["competitor_sentiment_clusters"]["Pricing"] == 25
-
-
-# =============================================================================
 # Rewrite For Relevance Tests
 # =============================================================================
 
@@ -1194,17 +1037,39 @@ class TestWeightedMerge:
 
 
 class TestCombineContexts:
-    """컨텍스트 통합 포매팅 테스트"""
+    """컨텍스트 통합 = 프롬프트 증거 카드 렌더링 (트랙 2-B).
 
-    def test_combine_contexts_with_inferences(self):
-        """추론 결과 포매팅 테스트"""
-        retriever = HybridRetriever(
+    ``_combine_contexts``는 ``_assemble_evidence``가 고른 ``prompt_evidence``만 렌더링한다.
+    """
+
+    @staticmethod
+    def _retriever():
+        return HybridRetriever(
             knowledge_graph=MagicMock(),
             reasoner=MagicMock(),
             doc_retriever=MagicMock(),
             auto_init_rules=False,
         )
 
+    def _combined(self, context, include_explanations=True):
+        retriever = self._retriever()
+        retriever._assemble_evidence(context)
+        return retriever._combine_contexts(context, include_explanations=include_explanations)
+
+    def test_only_assembled_prompt_cards_are_rendered(self):
+        """카드 조립 전 원자료는 렌더링하지 않는다"""
+        inference = InferenceResult(
+            rule_name="test_rule",
+            insight_type=InsightType.MARKET_POSITION,
+            insight="Dominant position",
+            confidence=0.9,
+        )
+        context = HybridContext(query="test", inferences=[inference])
+
+        assert self._retriever()._combine_contexts(context) == ""
+
+    def test_combine_contexts_with_inferences(self):
+        """추론 결과 → [규칙 추론] 카드 (신뢰도·근거 조건 줄은 싣지 않는다)"""
         inference = InferenceResult(
             rule_name="test_rule",
             insight_type=InsightType.MARKET_POSITION,
@@ -1213,26 +1078,18 @@ class TestCombineContexts:
             recommendation="Maintain leadership",
             evidence={"satisfied_conditions": ["sos > 0.15"]},
         )
-
         context = HybridContext(query="test", inferences=[inference])
 
-        combined = retriever._combine_contexts(context, include_explanations=True)
+        combined = self._combined(context)
 
-        assert "## 분석 결과" in combined
-        assert "Dominant position" in combined
-        assert "Maintain leadership" in combined
-        assert "90%" in combined
-        assert "sos > 0.15" in combined
+        assert combined.startswith("[규칙 추론]\n[I-")
+        assert "Dominant position (rule:test_rule)" in combined
+        assert "권장: Maintain leadership" in combined
+        assert "90%" not in combined
+        assert "sos > 0.15" not in combined
 
     def test_combine_contexts_brand_info_facts(self):
-        """브랜드 정보 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
+        """브랜드 메타데이터의 날짜 없는 SoS·평균 순위는 싣지 않는다 (E2)"""
         context = HybridContext(
             query="test",
             ontology_facts=[
@@ -1244,42 +1101,34 @@ class TestCombineContexts:
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "## 관련 정보" in combined
-        assert "laneige" in combined
-        assert "8.0%" in combined
-        assert "12.5" in combined
+        assert combined == ""
+        assert context.evidence == []
 
     def test_combine_contexts_brand_products_facts(self):
-        """브랜드 제품 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
+        """제품 수(날짜 없는 개수)는 싣지 않고 제품 관계만 싣는다"""
         context = HybridContext(
             query="test",
             ontology_facts=[
-                {"type": "brand_products", "entity": "laneige", "data": {"product_count": 15}}
+                {
+                    "type": "brand_products",
+                    "entity": "laneige",
+                    "data": {
+                        "product_count": 15,
+                        "products": [{"asin": "B0LANEIGE1", "category": "lip_care"}],
+                    },
+                }
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "15개" in combined
+        assert "15개" not in combined
+        assert "laneige hasProduct B0LANEIGE1 (kg)" in combined
+        assert "B0LANEIGE1 belongsToCategory lip_care (kg)" in combined
 
     def test_combine_contexts_competitors_facts(self):
-        """경쟁사 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
         context = HybridContext(
             query="test",
             ontology_facts=[
@@ -1291,20 +1140,13 @@ class TestCombineContexts:
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "경쟁사" in combined
-        assert "cosrx" in combined
+        assert "[관계]" in combined
+        assert "laneige competesWith cosrx" in combined
+        assert "laneige competesWith tirtir" in combined
 
     def test_combine_contexts_category_hierarchy_facts(self):
-        """카테고리 계층 사실 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
         context = HybridContext(
             query="test",
             ontology_facts=[
@@ -1314,69 +1156,53 @@ class TestCombineContexts:
                     "data": {
                         "name": "Lip Care",
                         "level": 2,
-                        "path": [
-                            {"name": "Beauty", "id": "beauty"},
-                            {"name": "Skin Care", "id": "skin_care"},
-                            {"name": "Lip Care", "id": "lip_care"},
+                        "ancestors": [
+                            {"name": "Skin Care", "id": "skin_care", "level": 1},
+                            {"name": "Beauty", "id": "beauty", "level": 0},
                         ],
-                        "ancestors": [{"name": "Skin Care"}],
+                        "descendants": [],
                     },
                 }
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "계층" in combined
-        assert "Beauty > Skin Care > Lip Care" in combined
-        assert "Level 2" in combined
+        assert "lip_care parentCategory skin_care (kg)" in combined
+        assert "skin_care parentCategory beauty (kg)" in combined
 
     def test_combine_contexts_rag_chunks(self):
-        """RAG 청크 포매팅 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
         context = HybridContext(
             query="test",
             rag_chunks=[
                 {
+                    "id": "sos_guide_0",
                     "metadata": {"title": "SoS 해석 가이드"},
                     "content": "SoS는 시장 점유율을 나타내는 지표입니다.",
                 }
             ],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        assert "## 참고 가이드라인" in combined
-        assert "SoS 해석 가이드" in combined
+        assert combined.startswith("[문서]\n[D-")
+        assert "SoS 해석 가이드 (rag)" in combined
         assert "시장 점유율" in combined
 
     def test_combine_contexts_long_content_truncation(self):
-        """긴 내용 잘림 테스트"""
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
+        """문서 본문은 렌더러 상한(DEFAULT_MAX_DETAIL_CHARS)에서 잘린다"""
+        from src.rag.evidence_renderer import DEFAULT_MAX_DETAIL_CHARS
 
-        long_content = "X" * 600  # 500자 초과
-
+        long_content = "X" * (DEFAULT_MAX_DETAIL_CHARS + 100)
         context = HybridContext(
             query="test",
-            rag_chunks=[{"metadata": {"title": "Test"}, "content": long_content}],
+            rag_chunks=[{"id": "long_0", "metadata": {"title": "Test"}, "content": long_content}],
         )
 
-        combined = retriever._combine_contexts(context)
+        combined = self._combined(context)
 
-        # 500자로 잘리고 "..."이 붙어야 함
-        assert "..." in combined
-        assert combined.count("X") <= 510  # 약간의 여유
+        assert "X" * DEFAULT_MAX_DETAIL_CHARS + "…" in combined
+        assert combined.count("X") == DEFAULT_MAX_DETAIL_CHARS
 
 
 # =============================================================================
@@ -1634,20 +1460,17 @@ class TestRetrieveEdgeCases:
         mock_doc_retriever.initialize = AsyncMock()
         mock_doc_retriever.search = AsyncMock(return_value=[])
 
-        # 딕셔너리를 반환하는 reasoner
-        mock_reasoner = MagicMock()
-        mock_reasoner.infer.return_value = [
-            {"insight": "test insight", "confidence": 0.9}  # dict 형태
-        ]
-
         retriever = HybridRetriever(
             knowledge_graph=mock_kg,
-            reasoner=mock_reasoner,
+            reasoner=MagicMock(),
             doc_retriever=mock_doc_retriever,
             auto_init_rules=False,
         )
 
-        result = await retriever.retrieve_unified("test query", current_metrics={})
+        # 딕셔너리 추론 결과를 내는 규칙 판정 (retrieve_unified의 dict 변환 분기 검증용)
+        dict_inferences = [{"insight": "test insight", "confidence": 0.9}]
+        with patch.object(retriever, "_evaluate_rules", return_value=(dict_inferences, {})):
+            result = await retriever.retrieve_unified("test query", current_metrics={})
 
         # 딕셔너리가 그대로 포함되어야 함
         assert len(result.inferences) == 1
@@ -1747,90 +1570,6 @@ class TestUpdateKnowledgeGraph:
 
         assert stats["crawl_relations"] == 50
         assert stats["metrics_relations"] == 30
-
-
-# =============================================================================
-# OWL Strategy Tests
-# =============================================================================
-
-
-class TestOWLStrategy:
-    """OWL 전략 통합 테스트"""
-
-    @pytest.mark.asyncio
-    async def test_retrieve_unified_with_owl_strategy(self):
-        """OWL strategy가 설정된 경우 retrieve_unified 위임 테스트"""
-        from src.domain.value_objects.retrieval_result import UnifiedRetrievalResult
-
-        mock_owl_strategy = MagicMock()
-        mock_result = UnifiedRetrievalResult(
-            query="test",
-            entities={},
-            ontology_facts=[],
-            inferences=[],
-            rag_chunks=[],
-            combined_context="OWL result",
-            confidence=0.95,
-            entity_links=[],
-            metadata={},
-            retriever_type="owl",
-        )
-        mock_owl_strategy.retrieve = AsyncMock(return_value=mock_result)
-
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-            owl_strategy=mock_owl_strategy,
-        )
-
-        result = await retriever.retrieve_unified("test query", current_metrics={}, top_k=5)
-
-        assert result.combined_context == "OWL result"
-        assert result.retriever_type == "owl"
-        mock_owl_strategy.retrieve.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_search_with_owl_strategy(self):
-        """OWL strategy가 설정된 경우 search 위임 테스트"""
-        mock_owl_strategy = MagicMock()
-        mock_owl_strategy.search = AsyncMock(return_value=[{"id": "owl_doc", "content": "test"}])
-
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-            owl_strategy=mock_owl_strategy,
-        )
-
-        results = await retriever.search("test query", top_k=5, doc_filter="test")
-
-        assert len(results) == 1
-        assert results[0]["id"] == "owl_doc"
-        mock_owl_strategy.search.assert_called_once_with(
-            query="test query", top_k=5, doc_filter="test"
-        )
-
-    @pytest.mark.asyncio
-    async def test_search_without_owl_strategy(self):
-        """OWL strategy 없이 search 호출 시 doc_retriever 사용 테스트"""
-        mock_doc_retriever = MagicMock()
-        mock_doc_retriever.search = AsyncMock(return_value=[{"id": "doc1", "content": "test"}])
-
-        retriever = HybridRetriever(
-            knowledge_graph=MagicMock(),
-            reasoner=MagicMock(),
-            doc_retriever=mock_doc_retriever,
-            auto_init_rules=False,
-            owl_strategy=None,
-        )
-
-        results = await retriever.search("test query", top_k=3)
-
-        assert len(results) == 1
-        mock_doc_retriever.search.assert_called_once()
 
 
 # =============================================================================
@@ -1940,118 +1679,6 @@ class TestRelevanceGradingRewrite:
         # 재작성이 트리거되지 않으므로 첫 번째 검색만 수행
         assert mock_doc_retriever.search.call_count == 1
         assert len(context.rag_chunks) == 3
-
-
-# =============================================================================
-# Build Inference Context Edge Cases
-# =============================================================================
-
-
-class TestBuildInferenceContextEdgeCases:
-    """추론 컨텍스트 구성 엣지 케이스 테스트"""
-
-    def test_build_context_without_categories_hhi(self):
-        """카테고리 없이 HHI 할당 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"]}
-        current_metrics = {
-            "market_metrics": [
-                {"category_id": "lip_care", "hhi": 0.15, "cpi": 105, "churn_rate_7d": 0.12}
-            ]
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        # 카테고리 필터 없이 첫 번째 market_metric 적용
-        assert context.get("hhi") == 0.15
-        assert context.get("cpi") == 105
-
-    def test_build_context_sos_fallback(self):
-        """SoS 폴백 로직 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "categories": ["face_powder"]}
-        current_metrics = {
-            "summary": {"laneige_sos_by_category": {"lip_care": 0.08, "face_powder": 0.05}}
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        # face_powder 카테고리의 SoS가 할당되어야 함
-        assert context.get("sos") == 0.05
-
-    def test_build_context_brand_metrics_matching(self):
-        """브랜드 메트릭 매칭 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = []
-        mock_kg.query.return_value = []
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["cosrx"]}
-        current_metrics = {
-            "summary": {"laneige_sos_by_category": {}},
-            "brand_metrics": [
-                {"brand_name": "LANEIGE", "share_of_shelf": 0.08, "avg_rank": 15},
-                {"brand_name": "COSRX", "share_of_shelf": 0.05, "avg_rank": 22},
-            ],
-        }
-
-        context = retriever._build_inference_context(entities, current_metrics)
-
-        # cosrx 브랜드 메트릭이 매칭되어야 함
-        assert context.get("sos") == 0.05
-        assert context.get("avg_rank") == 22
-
-    def test_build_context_sentiment_exception_handling(self):
-        """감성 조회 예외 처리 테스트"""
-        mock_kg = MagicMock()
-        mock_kg.get_competitors.return_value = [{"brand": "cosrx"}]
-        mock_kg.query.return_value = []
-        mock_kg.get_brand_sentiment_profile.side_effect = [
-            {"all_tags": ["hydrating"]},  # laneige
-            Exception("Sentiment fetch failed"),  # cosrx (예외)
-        ]
-
-        retriever = HybridRetriever(
-            knowledge_graph=mock_kg,
-            reasoner=MagicMock(),
-            doc_retriever=MagicMock(),
-            auto_init_rules=False,
-        )
-
-        entities = {"brands": ["laneige"], "sentiments": ["보습"]}
-
-        # 예외가 발생해도 컨텍스트 구성은 성공해야 함
-        context = retriever._build_inference_context(entities, {})
-
-        assert "sentiment_tags" in context
-        # 경쟁사 감성은 빈 리스트여야 함 (예외로 인해)
-        assert context.get("competitor_sentiment_tags", []) == []
 
 
 # =============================================================================
@@ -2208,10 +1835,9 @@ class TestExpandQueryEdgeCases:
 
 
 class TestCombineContextsNoExplanations:
-    """설명 제외 컨텍스트 통합 테스트"""
+    """include_explanations는 더 이상 출력에 영향을 주지 않는다 (근거는 카드 derived_from)"""
 
     def test_combine_contexts_without_explanations(self):
-        """추론 설명 제외 포매팅 테스트"""
         retriever = HybridRetriever(
             knowledge_graph=MagicMock(),
             reasoner=MagicMock(),
@@ -2228,13 +1854,15 @@ class TestCombineContextsNoExplanations:
         )
 
         context = HybridContext(query="test", inferences=[inference])
+        retriever._assemble_evidence(context)
 
-        combined = retriever._combine_contexts(context, include_explanations=False)
+        without = retriever._combine_contexts(context, include_explanations=False)
+        with_explanations = retriever._combine_contexts(context, include_explanations=True)
 
-        # 인사이트는 포함되어야 하지만 근거 조건은 제외되어야 함
-        assert "Threat detected" in combined
-        assert "condition1" not in combined
-        assert "satisfied_conditions" not in combined
+        assert "Threat detected" in without
+        assert "condition1" not in without
+        assert "satisfied_conditions" not in without
+        assert without == with_explanations
 
 
 # =============================================================================
@@ -2388,14 +2016,17 @@ class TestAblationFlagGating:
 
     @pytest.mark.asyncio
     async def test_no_ontology_flag_skips_inference(self, retriever, mock_reasoner, monkeypatch):
-        """FF_REASONER_* 둘 다 false면 reasoner.infer가 호출되지 않아야 함"""
+        """FF_REASONER_* 둘 다 false면 규칙을 판정하지 않아야 함"""
         monkeypatch.setenv("FF_REASONER_USE_UNIFIED_REASONER", "false")
         monkeypatch.setenv("FF_REASONER_USE_OWL_REASONER", "false")
 
-        context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+        with patch.object(retriever, "_evaluate_rules") as rules_spy:
+            context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+            rules_spy.assert_not_called()
 
         mock_reasoner.infer.assert_not_called()
         assert context.inferences == []
+        assert "rule_evaluation" not in context.metadata
 
     @pytest.mark.asyncio
     async def test_no_kg_flag_skips_kg_query(self, retriever, monkeypatch):
@@ -2412,10 +2043,12 @@ class TestAblationFlagGating:
     async def test_default_flags_keep_kg_and_inference(self, retriever, mock_reasoner):
         """기본 플래그(true)에서는 KG 조회와 추론이 모두 수행되어야 함"""
         with patch.object(retriever, "_query_knowledge_graph", return_value=[]) as kg_spy:
-            await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
+            context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})
             kg_spy.assert_called_once()
 
-        mock_reasoner.infer.assert_called_once()
+        # 규칙 판정은 계약 래퍼 경로 — 추론 통계에는 판정 1회로 남는다
+        assert "rule_evaluation" in context.metadata
+        mock_reasoner.record_inference.assert_called_once()
 
 
 class TestUnifiedSelfRAGGate:
@@ -2439,41 +2072,13 @@ class TestUnifiedSelfRAGGate:
         mock_doc_retriever.search.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_greeting_skips_even_with_owl_strategy(
-        self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever
-    ):
-        owl_strategy = MagicMock()
-        owl_strategy.retrieve = AsyncMock()
-        retriever = HybridRetriever(
-            knowledge_graph=mock_knowledge_graph,
-            reasoner=mock_reasoner,
-            doc_retriever=mock_doc_retriever,
-            owl_strategy=owl_strategy,
-            auto_init_rules=False,
-        )
-
-        result = await retriever.retrieve_unified("안녕하세요")
-
-        assert result.metadata.get("self_rag_skip") is True
-        owl_strategy.retrieve.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_analysis_query_passes_gate(
-        self, mock_knowledge_graph, mock_reasoner, mock_doc_retriever
-    ):
-        owl_strategy = MagicMock()
-        owl_strategy.retrieve = AsyncMock(return_value=MagicMock())
-        retriever = HybridRetriever(
-            knowledge_graph=mock_knowledge_graph,
-            reasoner=mock_reasoner,
-            doc_retriever=mock_doc_retriever,
-            owl_strategy=owl_strategy,
-            auto_init_rules=False,
-        )
+    async def test_analysis_query_passes_gate(self, retriever):
+        """게이트를 통과하면 실제 검색 경로(retrieve)가 호출된다."""
+        retriever.retrieve = AsyncMock(return_value=HybridContext(query="LANEIGE SoS 분석해줘"))
 
         await retriever.retrieve_unified("LANEIGE SoS 분석해줘")
 
-        owl_strategy.retrieve.assert_called_once()
+        retriever.retrieve.assert_called_once()
 
 
 class TestMetricEdgeSelection:

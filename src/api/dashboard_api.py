@@ -49,7 +49,7 @@ Dashboard API Server
 ## 환경 변수
 - OPENAI_API_KEY: OpenAI API 키 (필수)
 - API_KEY: 보호된 엔드포인트용 인증키
-- AUTO_START_SCHEDULER: 서버 시작 시 스케줄러 자동 시작 (default: true)
+- AUTO_START_SCHEDULER: 서버 시작 시 스케줄러 자동 시작 (default: false)
 """
 
 import asyncio

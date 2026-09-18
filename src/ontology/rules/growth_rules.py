@@ -113,7 +113,8 @@ RULE_CATEGORY_OPPORTUNITY = InferenceRule(
         StandardConditions.hhi_below(0.15),  # 분산 시장
         RuleCondition(
             name="low_target_presence",
-            check=lambda ctx: ctx.get("sos", 0) < 0.03,  # SoS < 3%
+            # 결측을 0%로 읽으면 "존재감이 낮다(0.0%)"를 지어낸다 (StandardConditions 결측값 규칙)
+            check=lambda ctx: ctx.get("sos") is not None and ctx["sos"] < 0.03,  # SoS < 3%
             description="타겟 브랜드 점유율 < 3%",
         ),
         RuleCondition(

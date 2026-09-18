@@ -36,7 +36,10 @@ class TestHybridInsightAgentInit:
         from src.agents.hybrid_insight_agent import HybridInsightAgent
         from src.ontology.knowledge_graph import KnowledgeGraph
 
-        mock_kg = KnowledgeGraph()
+        # auto_save=False: 실제 data/knowledge_graph.json에 쓰지 않도록 격리
+        # (KnowledgeGraph.__init__ -> _load()가 내부적으로 add_relation()을 호출해
+        #  로드 중에도 배치 임계값(threshold)에 도달하면 자동 저장이 발생함)
+        mock_kg = KnowledgeGraph(auto_save=False)
         agent = HybridInsightAgent(knowledge_graph=mock_kg)
 
         assert agent.kg is mock_kg
@@ -47,7 +50,7 @@ class TestHybridInsightAgentInit:
         from src.ontology.knowledge_graph import KnowledgeGraph
         from src.ontology.reasoner import OntologyReasoner
 
-        kg = KnowledgeGraph()
+        kg = KnowledgeGraph(auto_save=False)
         mock_reasoner = OntologyReasoner(kg)
         agent = HybridInsightAgent(knowledge_graph=kg, reasoner=mock_reasoner)
 

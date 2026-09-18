@@ -1,0 +1,389 @@
+{
+  "item_id": "lg062",
+  "question": "TIRTIR의 Face Powder 카테고리 HHI 영향은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.4,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.09090909090909091,
+    "context_precision_at_k": 0.125,
+    "mrr": 0.25,
+    "context_recall_at_k_concept": 0.5,
+    "context_recall_at_k_doc": 0.5
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.21818181818181817,
+    "semantic_similarity": 0.782469630241394,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 0.4,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6603086303580891,
+  "fail_reason_tags": [
+    "L3_edge_fail"
+  ],
+  "trace": {
+    "item_id": "lg062",
+    "timestamp": "2026-09-17T16:23:54.311610",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "tirtir"
+      ],
+      "extracted_categories": [
+        "face_powder"
+      ],
+      "extracted_indicators": [
+        "hhi"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "hhi"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_2_0",
+        "chunk_1",
+        "metric_interpretation_2_0",
+        "strategic_indicators_1_0",
+        "home_insight_rules_6",
+        "home_insight_rules_13",
+        "metric_interpretation_3_0",
+        "indicator_combination_2_1"
+      ],
+      "snippets": [
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- ",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "1.4 Market Pulse Snapshot (시장 분위기 요약)\n\n### 목표\n- “성과 변화가 시장 때문인지” 맥락 제공\n\n### 입력 지표(권장)\n- HHI (시장 집중도)\n- Churn Rate (시장 역동성)\n\n### 출력 규칙(문장 1개 + 배지 1~2개)\n- HHI가 높고 Churn Rate가 낮으면:\n  - “시장 구조가 고착화된 편이며 단",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 해석)\n\n---\n\n### 4. CPI (Category Price Index)\n\n#### 해석 가이드\n- **100 초과**\n  - 카테고리 평균 대비 고가/프리미엄 포지션\n- **100 미만**\n  - 가성비/저가 포지션\n\n#### 함께 봐야 할 지표\n- Avg Rating ",
+        "### 3. HHI ↑ + Churn Rate ↓\n\n#### 해석 시나리오\n- 소수 브랜드 중심의 고착 시장\n- 순위 변동이 적은 안정 구조\n\n#### 시사점\n- 신규 진입 및 반등 난이도 높음\n- 방어 전략 중요\n\n#### 고려 가능한 액션 후보\n- 기존 주력 제품 유지 전략\n- 차별화 포인트 재정의\n\n---\n\n### 4. HHI ↓ + Churn Rat"
+      ],
+      "scores": [
+        14.320716998321197,
+        0.6470595301129978,
+        0.4851534366607666,
+        0.484180212020874,
+        0.46209704875946045,
+        0.4264411926269531,
+        0.4139169454574585,
+        0.3996785879135132
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "face_powder",
+        "tirtir"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> face_makeup",
+        "face_makeup -hasSubcategory-> face_powder"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "face_powder",
+          "data": {
+            "brand_count": 32,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 45,
+                "products": [
+                  "B0BBST2FRF",
+                  "B0BDW1MN6Y",
+                  "B0D9R58R1B",
+                  "B001AN0UTC",
+                  "B0G5WXFCYS",
+                  "B0DN6TBSK8",
+                  "B00PC0ZWHO",
+                  "B081X3KTGW",
+                  "B0002RI2PG",
+                  "B0DRPSYD8H",
+                  "B0042QYJ82",
+                  "B004E9HRNG",
+                  "B0B3ZF8NP4",
+                  "B0DPMCBKNV",
+                  "B0BDW27227",
+                  "B0D3YSL2YZ",
+                  "B000R8YZQA",
+                  "B008ND0RZY",
+                  "B09XWV7W6F",
+                  "B09XGPRKJQ",
+                  "B0BL3ZR7NW",
+                  "B07S2ZG4VK",
+                  "B0CWLPDKDH",
+                  "B0CPPLWGFR",
+                  "B0DRJG5V7L",
+                  "B01E1WYSN2",
+                  "B07MH1PPZZ",
+                  "B08P3YR3TZ",
+                  "B00V88FJ9A",
+                  "B0732NMYKQ",
+                  "B004QCT9HI",
+                  "B00MQBSRZG",
+                  "B001QHFXQM",
+                  "B09VYV9HW2",
+                  "B0DN6TZT6N",
+                  "B08G1Z1LNH",
+                  "B09VYT9FYN",
+                  "B0FR4795PK",
+                  "B002HSM6BO",
+                  "B07PT8VBTX",
+                  "B0DPMBFY6M",
+                  "B0BBSMWHWH",
+                  "B0D4M5YG9R",
+                  "B01ACPSI9M",
+                  "B00G4UC9SG"
+                ]
+              },
+              {
+                "brand": "covergirl",
+                "product_count": 9,
+                "products": [
+                  "B0BVC218SG",
+                  "B00112HQZI",
+                  "B08L91YHX5",
+                  "B0GR224BKC",
+                  "B08L91VZQK",
+                  "B07BRXYSGZ",
+                  "B00C678APM",
+                  "B08L956DK6",
+                  "B08L98T4N5"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 7,
+                "products": [
+                  "B07ZR111LV",
+                  "B01D1DRF9Q",
+                  "B01IM0LVFC",
+                  "B0087HOAWC",
+                  "B0DHRR3XW8",
+                  "B0GVGB96WL",
+                  "B0CDQSR26L"
+                ]
+              },
+              {
+                "brand": "clinique",
+                "product_count": 7,
+                "products": [
+                  "B000ALBLXE",
+                  "B0B5T5YVTJ",
+                  "B0050BRO30",
+                  "B015CXN8M6",
+                  "B002HF07MC",
+                  "B015CXN72C",
+                  "B0B5T4JN5N"
+                ]
+              },
+              {
+                "brand": "fresh",
+                "product_count": 6,
+                "products": [
+                  "B08GR6B8HN",
+                  "B004X8M59E",
+                  "B0DZZ6QS6H",
+                  "B09S8N5WV8",
+                  "B08GR514T1",
+                  "B0DZYP2495"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "face_powder",
+          "data": {
+            "name": "Face Powder",
+            "level": 3,
+            "path": [
+              "beauty",
+              "makeup",
+              "face_makeup",
+              "face_powder"
+            ],
+            "ancestors": [
+              {
+                "id": "face_makeup",
+                "name": "Face Makeup",
+                "level": 2
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내 TIRTIR 브랜드의 Face Powder 카테고리 관련 HHI(헤르핀달-허쉬만 지수) 수치는 명시되어 있지 않습니다. \n\n다만, HHI는 시장 내 브랜드 점유율 집중도를 나타내는 지표로, 특정 브랜드가 시장 점유율을 크게 차지할 경우 HHI가 상승합니다. TIRTIR이 Face Powder 카테고리에서 높은 점유율을 보인다면 HHI 상승에 영향을 미칠 수 있으나, 현재 Top 브랜드로는 unknown, covergirl, e.l.f.가 언급되어 있어 TIRTIR의 시장 점유율이 상대적으로 낮을 가능성이 있습니다.\n\n따라서, 현재 데이터와 KG 정보를 바탕으로 보면 TIRTIR의 Face Powder 카테고리 내 HHI 영향은 미미하거나 제한적일 것으로 판단됩니다. 추가적인 점유율 또는 판매량 데이터가 필요합니다.",
+      "citations": [],
+      "confidence": 5.8500000000000005,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0527,
+        "category_avg_price": 17.2,
+        "category_avg_rating": 4.48
+      },
+      {
+        "type": "category_top_brands",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "COVERGIRL",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 7.0,
+            "product_count": 7
+          },
+          {
+            "brand": "Clinique",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Maybelline",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "Physicians Formula",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "tirtir",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "face_powder",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Maybelline",
+            "name": "Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeu",
+            "price": 8.98,
+            "rating": 4.6,
+            "reviews_count": 88813
+          },
+          {
+            "rank": 2,
+            "brand": "L'Oreal",
+            "name": "L'Oreal Paris Infallible Blur-fection Longwear Loose Setting",
+            "price": 12.32,
+            "rating": 4.5,
+            "reviews_count": 4673
+          },
+          {
+            "rank": 3,
+            "brand": "COVERGIRL",
+            "name": "Covergirl Clean Invisible Pressed Powder, Lightweight, Breat",
+            "price": 9.99,
+            "rating": 4.5,
+            "reviews_count": 9925
+          },
+          {
+            "rank": 4,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Halo Glow Soft Focus Setting Powder, Silky & Creates ",
+            "price": 8.0,
+            "rating": 4.5,
+            "reviews_count": 20322
+          },
+          {
+            "rank": 5,
+            "brand": "Unknown",
+            "name": "Clean Invisible Loose Powder Translucent Fair",
+            "price": 6.95,
+            "rating": 4.6,
+            "reviews_count": 8523
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1052,
+      "judge_tokens": 4653,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0002469,
+      "judge_cost_usd": 0.0012212999999999998
+    },
+    "latency_ms": 5596.743822097778,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "metric",
+    "difficulty": "hard",
+    "gold_source": "domain_expectation",
+    "as_of": null
+  }
+}

@@ -4,6 +4,8 @@ ContextBuilder 단위 테스트
 LLM 프롬프트 조립, 토큰 예산 관리, 섹션 우선순위 검증
 """
 
+import re
+
 from src.rag.context_builder import (
     CompactContextBuilder,
     ContextBuilder,
@@ -317,55 +319,6 @@ class TestSourceManagement:
 
 
 # ---------------------------------------------------------------------------
-# _build_inference_section
-# ---------------------------------------------------------------------------
-
-
-class TestBuildInferenceSection:
-    """온톨로지 추론 섹션 테스트"""
-
-    def test_basic_inference(self):
-        builder = ContextBuilder()
-        inf = _make_inference(
-            insight="LANEIGE SoS 상승",
-            confidence=0.9,
-            recommendation="마케팅 강화 권장",
-        )
-        section = builder._build_inference_section([inf])
-        assert section.priority == ContextPriority.CRITICAL
-        assert "LANEIGE SoS 상승" in section.content
-        assert "마케팅 강화 권장" in section.content
-        assert "90%" in section.content
-
-    def test_inference_with_evidence_conditions(self):
-        builder = ContextBuilder()
-        inf = _make_inference(
-            evidence={"satisfied_conditions": ["SoS > 10%", "Rank < 5"]},
-        )
-        section = builder._build_inference_section([inf])
-        assert "SoS > 10%" in section.content
-        assert "Rank < 5" in section.content
-
-    def test_inference_without_recommendation(self):
-        builder = ContextBuilder()
-        inf = _make_inference(recommendation=None)
-        section = builder._build_inference_section([inf])
-        assert "권장 액션" not in section.content
-
-    def test_multiple_inferences(self):
-        builder = ContextBuilder()
-        infs = [
-            _make_inference(insight="Insight 1"),
-            _make_inference(insight="Insight 2"),
-        ]
-        section = builder._build_inference_section(infs)
-        assert "인사이트 1" in section.content
-        assert "인사이트 2" in section.content
-        # 출처 등록 확인
-        assert len(builder.get_source_references()) == 2
-
-
-# ---------------------------------------------------------------------------
 # _build_data_section
 # ---------------------------------------------------------------------------
 
@@ -498,156 +451,6 @@ class TestBuildDataSection:
 
 
 # ---------------------------------------------------------------------------
-# _build_facts_section
-# ---------------------------------------------------------------------------
-
-
-class TestBuildFactsSection:
-    """KG 사실 섹션 테스트"""
-
-    def test_brand_info_fact(self):
-        builder = ContextBuilder()
-        facts = [
-            {
-                "type": "brand_info",
-                "entity": "LANEIGE",
-                "data": {"sos": 0.12, "avg_rank": 15.5, "product_count": 3},
-            }
-        ]
-        section = builder._build_facts_section(facts)
-        assert "LANEIGE" in section.content
-        assert "12.0%" in section.content
-        assert "15.5" in section.content
-        assert "3개" in section.content
-
-    def test_brand_products_fact(self):
-        builder = ContextBuilder()
-        facts = [
-            {
-                "type": "brand_products",
-                "entity": "COSRX",
-                "data": {"product_count": 7},
-            }
-        ]
-        section = builder._build_facts_section(facts)
-        assert "COSRX" in section.content
-        assert "7개" in section.content
-
-    def test_competitors_fact(self):
-        builder = ContextBuilder()
-        facts = [
-            {
-                "type": "competitors",
-                "entity": "LANEIGE",
-                "data": [
-                    {"brand": "COSRX"},
-                    {"brand": "TIRTIR"},
-                ],
-            }
-        ]
-        section = builder._build_facts_section(facts)
-        assert "경쟁사" in section.content
-        assert "COSRX" in section.content
-
-    def test_category_brands_fact(self):
-        builder = ContextBuilder()
-        facts = [
-            {
-                "type": "category_brands",
-                "entity": "lip_care",
-                "data": {
-                    "top_brands": [
-                        {"brand": "LANEIGE"},
-                        {"brand": "COSRX"},
-                    ]
-                },
-            }
-        ]
-        section = builder._build_facts_section(facts)
-        assert "Top 브랜드" in section.content
-
-    def test_facts_limited_to_5(self):
-        builder = ContextBuilder()
-        facts = [
-            {"type": "brand_products", "entity": f"Brand{i}", "data": {"product_count": i}}
-            for i in range(10)
-        ]
-        section = builder._build_facts_section(facts)
-        # 5개만 처리
-        assert "Brand4" in section.content
-        assert "Brand5" not in section.content
-
-    def test_unknown_fact_type(self):
-        """알 수 없는 타입은 빈 라인만"""
-        builder = ContextBuilder()
-        facts = [{"type": "unknown_type", "entity": "X", "data": {}}]
-        section = builder._build_facts_section(facts)
-        assert section.priority == ContextPriority.MEDIUM
-
-
-# ---------------------------------------------------------------------------
-# _build_rag_section
-# ---------------------------------------------------------------------------
-
-
-class TestBuildRagSection:
-    """RAG 섹션 테스트"""
-
-    def test_basic_rag_chunk(self):
-        builder = ContextBuilder()
-        chunks = [
-            {
-                "content": "SoS는 Share of Shelf입니다.",
-                "metadata": {"title": "지표 정의", "doc_id": "metrics_guide"},
-            }
-        ]
-        section = builder._build_rag_section(chunks)
-        assert "지표 정의" in section.content
-        assert "SoS는 Share of Shelf" in section.content
-        assert len(builder.get_source_references()) == 1
-
-    def test_rag_chunk_without_title(self):
-        """제목 없는 청크는 doc_id 사용"""
-        builder = ContextBuilder()
-        chunks = [
-            {
-                "content": "Content here",
-                "metadata": {"doc_id": "doc_123"},
-            }
-        ]
-        section = builder._build_rag_section(chunks)
-        assert "doc_123" in section.content
-
-    def test_rag_content_truncation(self):
-        """400자 초과 시 잘림"""
-        builder = ContextBuilder()
-        chunks = [
-            {
-                "content": "A" * 500,
-                "metadata": {"title": "Long Doc", "doc_id": "long"},
-            }
-        ]
-        section = builder._build_rag_section(chunks)
-        assert "..." in section.content
-        # 원본 500자가 아닌 400자+...
-        assert "A" * 401 not in section.content
-
-    def test_rag_limited_to_3_chunks(self):
-        builder = ContextBuilder()
-        chunks = [
-            {
-                "content": f"Content {i}",
-                "metadata": {"title": f"Doc {i}", "doc_id": f"d{i}"},
-            }
-            for i in range(5)
-        ]
-        section = builder._build_rag_section(chunks)
-        assert "Doc 2" in section.content
-        assert "Doc 3" not in section.content
-        assert len(builder.get_source_references()) == 3
-
-
-# ---------------------------------------------------------------------------
 # _select_within_limit
 # ---------------------------------------------------------------------------
 
@@ -746,128 +549,6 @@ class TestAssemble:
         ]
         result = builder._assemble(sections)
         assert "출처" in result
-
-
-# ---------------------------------------------------------------------------
-# build() 통합 — HybridContext 기반
-# ---------------------------------------------------------------------------
-
-
-class TestBuildWithHybridContext:
-    """build() 메소드 HybridContext 통합 테스트"""
-
-    def test_build_with_inferences(self):
-        builder = ContextBuilder()
-        ctx = _make_context(
-            inferences=[_make_inference(insight="시장 점유율 상승")],
-        )
-        result = builder.build(ctx, current_metrics=None, query="분석")
-        assert "시장 점유율 상승" in result
-
-    def test_build_with_rag_chunks(self):
-        builder = ContextBuilder()
-        ctx = _make_context(
-            rag_chunks=[{"content": "가이드 내용", "metadata": {"title": "Guide", "doc_id": "g1"}}],
-        )
-        result = builder.build(ctx)
-        assert "Guide" in result
-
-    def test_build_with_ontology_facts(self):
-        builder = ContextBuilder()
-        ctx = _make_context(
-            ontology_facts=[{"type": "brand_info", "entity": "LANEIGE", "data": {"sos": 0.15}}],
-        )
-        result = builder.build(ctx)
-        assert "LANEIGE" in result
-
-    def test_build_with_metrics(self):
-        builder = ContextBuilder()
-        ctx = _make_context()
-        metrics = {
-            "summary": {
-                "laneige_products_tracked": 5,
-                "alert_count": 2,
-                "critical_alerts": 1,
-                "warning_alerts": 1,
-            }
-        }
-        result = builder.build(ctx, current_metrics=metrics)
-        assert "5개" in result
-
-    def test_build_full_integration(self):
-        builder = ContextBuilder()
-        ctx = _make_context(
-            inferences=[_make_inference(insight="SoS 상승 추세", recommendation="광고 강화")],
-            rag_chunks=[
-                {
-                    "content": "가이드라인 본문",
-                    "metadata": {"title": "전략 가이드", "doc_id": "strat"},
-                }
-            ],
-            ontology_facts=[{"type": "brand_info", "entity": "LANEIGE", "data": {"sos": 0.12}}],
-        )
-        metrics = {
-            "summary": {
-                "laneige_products_tracked": 3,
-                "alert_count": 0,
-                "critical_alerts": 0,
-                "warning_alerts": 0,
-            }
-        }
-        result = builder.build(ctx, current_metrics=metrics, query="LANEIGE 분석")
-        assert "SoS 상승 추세" in result
-        assert "광고 강화" in result
-        assert "전략 가이드" in result
-        assert "LANEIGE" in result
-
-    def test_build_with_category_hierarchy_ranking_query(self):
-        """순위 관련 쿼리 시 카테고리 계층 포함"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {
-            "name": "Lip Care",
-            "level": 2,
-            "ancestors": [{"name": "Beauty"}, {"name": "Skin Care"}],
-            "descendants": [{"name": "Lip Balm"}, {"name": "Lip Treatment"}],
-        }
-        ctx = _make_context(entities={"categories": ["lip_care"], "products": []})
-        result = builder.build(ctx, query="LANEIGE 순위 분석", knowledge_graph=mock_kg)
-        assert "Lip Care" in result
-        assert "Skin Care > Beauty > Lip Care" in result
-
-    def test_build_with_product_category_context(self):
-        """제품별 카테고리 순위 컨텍스트"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "not found"}
-        mock_kg.get_product_category_context.return_value = {
-            "categories": [
-                {
-                    "category_id": "lip_care",
-                    "rank": 3,
-                    "hierarchy": {"name": "Lip Care", "level": 2},
-                }
-            ]
-        }
-        mock_kg.get_entity_metadata.return_value = {"product_name": "LANEIGE Lip Mask"}
-        ctx = _make_context(entities={"categories": [], "products": ["B0BSHRYY1S"]})
-        result = builder.build(ctx, query="순위 분석", knowledge_graph=mock_kg)
-        assert "LANEIGE Lip Mask" in result
-        assert "3위" in result
-
-    def test_build_category_hierarchy_with_many_descendants(self):
-        """하위 카테고리 5개 초과 시 '외 N개' 표시"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {
-            "name": "Skin Care",
-            "level": 1,
-            "ancestors": [],
-            "descendants": [{"name": f"Sub {i}"} for i in range(8)],
-        }
-        ctx = _make_context(entities={"categories": ["skin_care"], "products": []})
-        result = builder.build(ctx, query="순위 확인", knowledge_graph=mock_kg)
-        assert "외 3개" in result
 
 
 # ---------------------------------------------------------------------------
@@ -1056,63 +737,6 @@ class TestCompactContextBuilderExtended:
 # ---------------------------------------------------------------------------
 
 
-class TestCategoryHierarchyEdgeCases:
-    """카테고리 계층 구조 엣지 케이스"""
-
-    def test_category_hierarchy_with_error(self):
-        """카테고리 계층 조회 실패 시"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "Category not found"}
-        ctx = _make_context(entities={"categories": ["unknown_cat"], "products": []})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        # 에러 시 해당 카테고리는 스킵
-        assert isinstance(result, str)
-
-    def test_category_hierarchy_without_ancestors(self):
-        """상위 카테고리 없는 최상위 카테고리"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {
-            "name": "Beauty",
-            "level": 0,
-            "ancestors": [],
-            "descendants": [],
-        }
-        ctx = _make_context(entities={"categories": ["beauty"], "products": []})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        assert "Beauty" in result
-        # ancestors가 없어도 정상 처리
-        assert "레벨" in result and "0" in result
-
-    def test_product_category_context_without_categories(self):
-        """제품의 카테고리 정보 없을 때"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "not found"}
-        mock_kg.get_product_category_context.return_value = {"categories": []}
-        ctx = _make_context(entities={"categories": [], "products": ["B0TEST"]})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        assert isinstance(result, str)
-
-    def test_product_with_more_than_5_products(self):
-        """제품이 5개 초과일 때 상위 5개만"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "skip"}
-        mock_kg.get_product_category_context.return_value = {
-            "categories": [
-                {"category_id": "cat", "rank": 1, "hierarchy": {"name": "Cat", "level": 1}}
-            ]
-        }
-        mock_kg.get_entity_metadata.return_value = {"product_name": "Product"}
-        # 6개 제품 but only first 5 processed
-        ctx = _make_context(entities={"categories": [], "products": [f"ASIN{i}" for i in range(6)]})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        # get_product_category_context는 최대 5번만 호출
-        assert mock_kg.get_product_category_context.call_count <= 5
-
-
 class TestBuildSystemPromptCentralized:
     """중앙 집중식 프롬프트 테스트"""
 
@@ -1204,21 +828,6 @@ class TestBrandMetricsEdgeCases:
         assert "0.05" in section.content
 
 
-class TestRagChunkEdgeCases:
-    """RAG 청크 엣지 케이스"""
-
-    def test_rag_chunk_without_title_and_doc_id(self):
-        """제목도 doc_id도 없는 청크"""
-        builder = ContextBuilder()
-        chunks = [{"content": "Content without metadata", "metadata": {}}]
-        section = builder._build_rag_section(chunks)
-        # Unknown으로 출처 등록
-        assert "Content without metadata" in section.content
-        refs = builder.get_source_references()
-        assert len(refs) == 1
-        assert refs[0].title == "Unknown"
-
-
 class TestCompactContextBuilderAdditional:
     """CompactContextBuilder 추가 테스트"""
 
@@ -1257,59 +866,6 @@ class TestCompactContextBuilderAdditional:
 # ---------------------------------------------------------------------------
 # Additional coverage tests for uncovered lines
 # ---------------------------------------------------------------------------
-
-
-class TestCategoryHierarchyEdgeCasesExtended:
-    """카테고리 계층 구조 엣지 케이스 (확장)"""
-
-    def test_category_hierarchy_with_error(self):
-        """카테고리 계층 조회 실패 시"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "Category not found"}
-        ctx = _make_context(entities={"categories": ["unknown_cat"], "products": []})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        assert isinstance(result, str)
-
-    def test_category_hierarchy_without_ancestors(self):
-        """상위 카테고리 없는 최상위 카테고리"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {
-            "name": "Beauty",
-            "level": 0,
-            "ancestors": [],
-            "descendants": [],
-        }
-        ctx = _make_context(entities={"categories": ["beauty"], "products": []})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        assert "Beauty" in result
-        assert "레벨" in result and "0" in result
-
-    def test_product_category_context_without_categories(self):
-        """제품의 카테고리 정보 없을 때"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "not found"}
-        mock_kg.get_product_category_context.return_value = {"categories": []}
-        ctx = _make_context(entities={"categories": [], "products": ["B0TEST"]})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        assert isinstance(result, str)
-
-    def test_product_with_more_than_5_products(self):
-        """제품이 5개 초과일 때 상위 5개만"""
-        builder = ContextBuilder()
-        mock_kg = MagicMock()
-        mock_kg.get_category_hierarchy.return_value = {"error": "skip"}
-        mock_kg.get_product_category_context.return_value = {
-            "categories": [
-                {"category_id": "cat", "rank": 1, "hierarchy": {"name": "Cat", "level": 1}}
-            ]
-        }
-        mock_kg.get_entity_metadata.return_value = {"product_name": "Product"}
-        ctx = _make_context(entities={"categories": [], "products": [f"ASIN{i}" for i in range(6)]})
-        result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
-        assert mock_kg.get_product_category_context.call_count <= 5
 
 
 class TestBuildSystemPromptCentralizedV2:
@@ -1402,20 +958,6 @@ class TestBrandMetricsEdgeCasesV2:
         assert "0.05" in section.content
 
 
-class TestRagChunkEdgeCasesV2:
-    """RAG 청크 엣지 케이스"""
-
-    def test_rag_chunk_without_title_and_doc_id(self):
-        """제목도 doc_id도 없는 청크"""
-        builder = ContextBuilder()
-        chunks = [{"content": "Content without metadata", "metadata": {}}]
-        section = builder._build_rag_section(chunks)
-        assert "Content without metadata" in section.content
-        refs = builder.get_source_references()
-        assert len(refs) == 1
-        assert refs[0].title == "Unknown"
-
-
 class TestCompactContextBuilderAdditionalV2:
     """CompactContextBuilder 추가 테스트"""
 
@@ -1447,3 +989,262 @@ class TestCompactContextBuilderAdditionalV2:
         ctx = _make_context(entities={"products": [f"ASIN{i}" for i in range(5)], "categories": []})
         result = builder.build(ctx, query="순위", knowledge_graph=mock_kg)
         assert mock_kg.get_product_category_context.call_count <= 3
+
+
+# ---------------------------------------------------------------------------
+# build() — 증거 카드 렌더링 (트랙 2-B). 옛 섹션 빌더(_build_inference_section·
+# _build_facts_section·_build_rag_section·_build_category_hierarchy_section) 테스트를 대체한다.
+# ---------------------------------------------------------------------------
+
+from src.domain.entities.evidence import EvidenceKind  # noqa: E402
+from src.rag.evidence_assembly import PROMPT_MAX_PER_KIND, assemble_evidence  # noqa: E402
+from src.rag.evidence_renderer import DEFAULT_MAX_DETAIL_CHARS  # noqa: E402
+
+
+class TestBuildInferenceCards:
+    """추론 결과 → [규칙 추론] 카드"""
+
+    def test_basic_inference(self):
+        builder = ContextBuilder()
+        inf = _make_inference(
+            insight="LANEIGE SoS 상승",
+            confidence=0.9,
+            recommendation="마케팅 강화 권장",
+        )
+        result = builder.build(_make_context(inferences=[inf]))
+        assert "[규칙 추론]" in result
+        assert re.search(r"\[I-[0-9a-f]{6,}\] LANEIGE SoS 상승 \(rule:test_rule\)", result)
+        assert "권장: 마케팅 강화 권장" in result
+
+    def test_inference_conditions_stay_on_the_card(self):
+        """근거 조건은 렌더링하지 않고 카드 metadata에 남긴다 (근거 표시는 derived_from)"""
+        inf = _make_inference(evidence={"satisfied_conditions": ["SoS > 10%", "Rank < 5"]})
+        card = assemble_evidence(inferences=[inf]).evidence[0]
+        assert card.metadata["satisfied_conditions"] == ["SoS > 10%", "Rank < 5"]
+        assert card.confidence == 0.85
+        assert "SoS > 10%" not in ContextBuilder().build(_make_context(inferences=[inf]))
+
+    def test_inference_without_recommendation(self):
+        result = ContextBuilder().build(_make_context(inferences=[_make_inference()]))
+        assert "권장:" not in result
+
+    def test_multiple_inferences(self):
+        builder = ContextBuilder()
+        infs = [
+            _make_inference(rule_name="rule_a", insight="Insight 1"),
+            _make_inference(rule_name="rule_b", insight="Insight 2"),
+        ]
+        result = builder.build(_make_context(inferences=infs))
+        assert "Insight 1" in result and "Insight 2" in result
+        assert len(set(re.findall(r"\[(I-[0-9a-f]{6,})\]", result))) == 2
+        # 번호 출처([N])는 더 이상 등록하지 않는다 — 카드 id가 인용 단위다
+        assert builder.get_source_references() == []
+        assert "## 출처" not in result
+
+
+class TestBuildRelationCards:
+    """KG 사실 → [관계] 카드"""
+
+    def test_brand_info_numbers_are_not_rendered(self):
+        """KG 엔티티 메타데이터의 날짜 없는 SoS·평균 순위·제품 수는 증거가 아니다 (E2)"""
+        facts = [
+            {
+                "type": "brand_info",
+                "entity": "LANEIGE",
+                "data": {"sos": 0.12, "avg_rank": 15.5, "product_count": 3},
+            }
+        ]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert "12.0%" not in result and "15.5" not in result
+        assert "[관계]" not in result
+
+    def test_brand_products_fact(self):
+        facts = [
+            {
+                "type": "brand_products",
+                "entity": "COSRX",
+                "data": {
+                    "product_count": 7,
+                    "products": [{"asin": "B0COSRX001", "category": "skin_care"}],
+                },
+            }
+        ]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert "COSRX hasProduct B0COSRX001" in result  # 원표기 표시, id는 canonical
+        assert "B0COSRX001 belongsToCategory skin_care" in result
+        assert "7개" not in result  # 날짜 없는 개수는 싣지 않는다
+
+    def test_competitors_fact(self):
+        facts = [
+            {
+                "type": "competitors",
+                "entity": "LANEIGE",
+                "data": [{"brand": "COSRX"}, {"brand": "TIRTIR"}],
+            }
+        ]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert "competesWith COSRX" in result or "competesWith cosrx" in result
+        assert "TIRTIR" in result or "tirtir" in result
+
+    def test_category_brands_fact(self):
+        facts = [
+            {
+                "type": "category_brands",
+                "entity": "lip_care",
+                "data": {"top_brands": [{"brand": "LANEIGE"}, {"brand": "COSRX"}]},
+            }
+        ]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert "rankedIn lip_care" in result
+        assert result.count("rankedIn") == 2
+
+    def test_relation_cards_are_capped(self):
+        facts = [
+            {
+                "type": "competitors",
+                "entity": "LANEIGE",
+                "data": [{"brand": f"Brand{i}"} for i in range(40)],
+            }
+        ]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert result.count("competesWith") == PROMPT_MAX_PER_KIND[EvidenceKind.RELATION]
+
+    def test_unknown_fact_type_is_skipped(self):
+        facts = [{"type": "unknown_type", "entity": "X", "data": {}}]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert "[관계]" not in result
+
+    def test_category_hierarchy_fact(self):
+        """카테고리 계층은 KG를 따로 조회하지 않고 category_hierarchy 사실의 카드로 싣는다"""
+        facts = [
+            {
+                "type": "category_hierarchy",
+                "entity": "lip_care",
+                "data": {
+                    "name": "Lip Care",
+                    "level": 2,
+                    "ancestors": [
+                        {"id": "skin_care", "name": "Skin Care", "level": 1},
+                        {"id": "beauty", "name": "Beauty & Personal Care", "level": 0},
+                    ],
+                    "descendants": [],
+                },
+            }
+        ]
+        result = ContextBuilder().build(_make_context(ontology_facts=facts))
+        assert "lip_care parentCategory skin_care" in result
+        assert "skin_care parentCategory beauty" in result
+
+
+class TestBuildDocumentCards:
+    """RAG 청크 → [문서] 카드"""
+
+    def test_basic_rag_chunk(self):
+        chunks = [
+            {
+                "id": "metrics_guide_0",
+                "content": "SoS는 Share of Shelf입니다.",
+                "metadata": {"title": "지표 정의", "doc_id": "metrics_guide"},
+            }
+        ]
+        result = ContextBuilder().build(_make_context(rag_chunks=chunks))
+        assert re.search(r"\[D-[0-9a-f]{6,}\] 지표 정의 \(rag\)", result)
+        assert "SoS는 Share of Shelf" in result
+
+    def test_rag_chunk_without_title(self):
+        """제목이 없으면 본문 첫 줄을 카드 제목으로 쓴다"""
+        chunks = [{"content": "Content here", "metadata": {"doc_id": "doc_123"}}]
+        result = ContextBuilder().build(_make_context(rag_chunks=chunks))
+        assert re.search(r"\[D-[0-9a-f]{6,}\] Content here \(rag\)", result)
+
+    def test_rag_content_truncation(self):
+        chunks = [
+            {
+                "content": "A" * (DEFAULT_MAX_DETAIL_CHARS + 100),
+                "metadata": {"title": "Long Doc", "doc_id": "long"},
+            }
+        ]
+        result = ContextBuilder().build(_make_context(rag_chunks=chunks))
+        assert "A" * DEFAULT_MAX_DETAIL_CHARS + "…" in result
+        assert "A" * (DEFAULT_MAX_DETAIL_CHARS + 1) not in result
+
+    def test_all_retrieved_chunks_are_rendered(self):
+        """문서 카드는 상한을 두지 않는다 — 검색 top_k가 상한이다"""
+        chunks = [
+            {
+                "id": f"d{i}",
+                "content": f"Content {i}",
+                "metadata": {"title": f"Doc {i}", "doc_id": f"d{i}"},
+            }
+            for i in range(5)
+        ]
+        result = ContextBuilder().build(_make_context(rag_chunks=chunks))
+        for i in range(5):
+            assert f"Doc {i}" in result
+
+    def test_rag_chunk_without_title_and_doc_id(self):
+        chunks = [{"content": "Content without metadata", "metadata": {}}]
+        builder = ContextBuilder()
+        result = builder.build(_make_context(rag_chunks=chunks))
+        assert "Content without metadata" in result
+        assert builder.get_source_references() == []
+
+
+class TestBuildWithHybridContext:
+    """build() 메소드 HybridContext 통합 테스트"""
+
+    def test_build_with_metrics(self):
+        """current_metrics를 넘기면 카드 밖 '현재 데이터' 섹션을 싣는다 (인사이트 경로)"""
+        ctx = _make_context()
+        metrics = {
+            "summary": {
+                "laneige_products_tracked": 5,
+                "alert_count": 2,
+                "critical_alerts": 1,
+                "warning_alerts": 1,
+            }
+        }
+        result = ContextBuilder().build(ctx, current_metrics=metrics)
+        assert "## 현재 데이터" in result
+        assert "5개" in result
+
+    def test_build_full_integration(self):
+        ctx = _make_context(
+            inferences=[_make_inference(insight="SoS 상승 추세", recommendation="광고 강화")],
+            rag_chunks=[
+                {
+                    "id": "strat_0",
+                    "content": "가이드라인 본문",
+                    "metadata": {"title": "전략 가이드", "doc_id": "strat"},
+                }
+            ],
+            ontology_facts=[
+                {"type": "competitors", "entity": "LANEIGE", "data": [{"brand": "COSRX"}]}
+            ],
+        )
+        result = ContextBuilder().build(ctx, current_metrics=None, query="LANEIGE 분석")
+        assert result.index("## 사용자 질문") < result.index("## 증거 카드")
+        assert result.index("## 증거 카드") < result.index("## 응답 가이드")
+        for expected in ("SoS 상승 추세", "광고 강화", "전략 가이드", "가이드라인 본문"):
+            assert expected in result
+        assert "[관계]" in result and "[규칙 추론]" in result and "[문서]" in result
+
+    def test_prompt_evidence_is_rendered_as_given(self):
+        """검색기가 고른 prompt_evidence를 다시 고르지 않고 그대로 렌더링한다"""
+        full = assemble_evidence(
+            inferences=[_make_inference(rule_name="a", insight="첫째")],
+        )
+        ctx = _make_context(inferences=[_make_inference(rule_name="b", insight="둘째")])
+        ctx.evidence = full.evidence
+        ctx.prompt_evidence = full.prompt_evidence
+        result = ContextBuilder().build(ctx)
+        assert "첫째" in result and "둘째" not in result
+
+    def test_knowledge_graph_argument_is_not_queried(self):
+        """카테고리 계층·제품별 순위를 KG에서 따로 조회해 렌더링하지 않는다 (E1·E2)"""
+        mock_kg = MagicMock()
+        ctx = _make_context(entities={"categories": ["lip_care"], "products": ["B0BSHRYY1S"]})
+        result = ContextBuilder().build(ctx, query="LANEIGE 순위 분석", knowledge_graph=mock_kg)
+        mock_kg.get_category_hierarchy.assert_not_called()
+        mock_kg.get_product_category_context.assert_not_called()
+        assert "## 카테고리 계층 구조" not in result

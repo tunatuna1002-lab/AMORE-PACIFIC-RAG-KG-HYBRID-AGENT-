@@ -18,12 +18,12 @@
 
 | 항목 | 수치 |
 |------|------|
-| src/ Python 파일 | 214개 |
-| src/ 코드 라인 | ~75,700 lines |
-| tests/ 파일 | 184개 |
-| tests/ 코드 라인 | ~74,000 lines |
+| src/ Python 파일 | 213개 (git 추적 기준, 2026-09-17) |
+| src/ 코드 라인 | 76,235 lines |
+| tests/ 파일 | 200개 |
+| tests/ 코드 라인 | 77,868 lines |
 | src/api/dashboard_api.py | 195 lines (진입점, 라우트는 routes/ 분리) |
-| 커버리지 목표 | 60% (pytest-cov) |
+| 커버리지 | 목표 60%이나 강제되지 않음 (`pyproject.toml` `fail_under = 0`) |
 
 ---
 
@@ -36,8 +36,8 @@
 | LLM | OpenAI GPT-4.1-mini via LiteLLM |
 | Scraping | Playwright, playwright-stealth, browserforge, fake-useragent |
 | Storage | SQLite (aiosqlite), Google Sheets API |
-| RAG | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) |
-| Ontology | owlready2, rdflib, Rule-based Reasoner |
+| RAG | ChromaDB + OpenAI `text-embedding-3-small` 임베딩 + BM25/RRF (reranker 플래그 기본 OFF) |
+| Ontology | owlready2, Rule-based Reasoner. rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) — `requirements.txt` 의존성 정리 후보로 `docs/dev/FUTURE_WORK.md`에 기록 |
 | NLP | spaCy (NER/Entity Linking) |
 | Data | pandas, numpy, matplotlib |
 | Test | pytest, pytest-asyncio, pytest-cov |
@@ -52,7 +52,7 @@
 
 | 파일 | 역할 | 실행 방법 |
 |------|------|-----------|
-| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 12개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
+| `src/api/dashboard_api.py` | **FastAPI 메인 서버** (진입점, 라우트는 `src/api/routes/` 14개 모듈) | `uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload` |
 | `scripts/start.py` | Railway 배포용 시작 스크립트 | `python scripts/start.py` (PORT 환경변수 사용) |
 | `main.py` | CLI 진입점 (크롤링 + 챗봇) | `python main.py` / `python main.py --chat` |
 | `src/core/orchestrator.py` | BatchWorkflow 별칭 (하위 호환) | `from src.core.orchestrator import Orchestrator` |
@@ -95,11 +95,15 @@
 │   │
 │   ├── core/                     # 핵심 오케스트레이션
 │   │   ├── brain.py              # UnifiedBrain - 자율 스케줄러
-│   │   ├── react_agent.py        # ReAct Self-Reflection Agent
-│   │   ├── batch_workflow.py     # 배치 워크플로우 (=Orchestrator)
+│   │   ├── query_graph.py        # QueryGraph - 질의 처리 그래프 (process_query/스트리밍 공용, [2026-09 사후])
+│   │   ├── react_agent.py        # ReAct 루프 (agents.use_react_agent 플래그, 기본 OFF)
+│   │   ├── react_tools.py        # ReAct ↔ tool_registry 어댑터 ([2026-09 사후] 전용 도구 3종 폐지)
+│   │   ├── tool_registry.py      # DecisionMaker·ReAct 공용 도구 레지스트리 5종, 증거 카드 반환 ([2026-09 사후])
+│   │   ├── decision_maker.py     # 신뢰도 MEDIUM/LOW 시 LLM 도구 선택 (네이티브 function calling, [2026-09 사후])
+│   │   ├── numeric_verifier.py   # 답변 수치 ↔ 인용 카드 검증, response.numeric_verification_mode 기본 annotate ([2026-09 사후])
+│   │   ├── confidence.py         # 증거 적합도 기반 신뢰도 점수 ([2026-09 사후], 트랙 5-B)
 │   │   ├── orchestrator.py       # BatchWorkflow 하위 호환 래퍼 (루트에서 이동)
 │   │   ├── query_router.py       # 쿼리 라우팅
-│   │   ├── query_processor.py    # 쿼리 처리
 │   │   ├── response_pipeline.py  # 응답 파이프라인
 │   │   ├── hallucination_detector.py
 │   │   ├── prompt_guard.py       # 프롬프트 인젝션 방어
@@ -118,20 +122,23 @@
 │   │   ├── suggestion_engine.py      # 후속 질문 생성 엔진
 │   │   ├── source_provider.py        # 출처 추출 및 포매팅
 │   │   ├── external_signal_manager.py # 외부 신호 수집 관리
-│   │   ├── period_insight_agent.py   # 기간별 인사이트
-│   │   └── true_hybrid_insight_agent.py
+│   │   └── period_insight_agent.py   # 기간별 인사이트
 │   │
 │   ├── rag/                      # RAG 시스템
 │   │   ├── hybrid_retriever.py   # KG + RAG 통합 검색
-│   │   ├── retrieval_strategy.py  # OWL + Legacy 전략 패턴
+│   │   ├── retrieval_strategy.py  # 인텐트별 검색 설정 (OWL 검색 전략은 [2026-09 사후] 삭제)
+│   │   ├── build_index.py        # 색인 전용 CLI (`--retag`/`--prune`/`--dry-run`), [2026-09 사후]
+│   │   ├── evidence_adapters.py  # 근거를 증거 카드(Evidence)로 변환, [2026-09 사후]
+│   │   ├── evidence_assembly.py  # 증거 카드 조립, [2026-09 사후]
+│   │   ├── evidence_renderer.py  # 증거 카드 → 프롬프트 문자열 렌더링, [2026-09 사후]
 │   │   ├── confidence_fusion.py  # 다중 소스 신뢰도 융합
-│   │   ├── retriever.py          # 문서 검색 + 임베딩 캐시
+│   │   ├── retriever.py          # 문서 검색 + 임베딩 캐시 (초기화는 읽기 전용, [2026-09 사후])
 │   │   ├── embedding_cache.py    # 임베딩 캐시 (InMemory/SQLite)
-│   │   ├── reranker.py           # 재순위화
+│   │   ├── reranker.py           # 재순위화 (플래그 `retriever.use_reranker` 기본 OFF)
 │   │   ├── entity_linker.py      # 엔티티 링킹
+│   │   ├── entity_tags.py        # 색인 태그 기반 재정렬 가산점, [2026-09 사후]
 │   │   ├── chunker.py            # 문서 청킹
 │   │   ├── query_rewriter.py     # 쿼리 리라이팅
-│   │   ├── confidence_fusion.py  # 신뢰도 융합
 │   │   ├── context_builder.py    # 컨텍스트 빌더
 │   │   └── router.py             # RAG 라우터
 │   │
@@ -139,8 +146,8 @@
 │   │   ├── knowledge_graph.py    # Triple Store (JSON 기반)
 │   │   ├── ontology_knowledge_graph.py
 │   │   ├── reasoner.py           # 규칙 기반 추론 엔진
-│   │   ├── owl_reasoner.py       # OWL 추론
-│   │   ├── unified_reasoner.py   # 통합 추론
+│   │   ├── rule_contracts.py     # 규칙이 증거 카드를 입력으로 받는 계약, [2026-09 사후]
+│   │   ├── owl_reasoner.py       # OWL 추론 — [2026-09 사후] 검색 전략에서 빠지고 카테고리 계층 어휘로만 사용
 │   │   ├── kg_enricher.py        # KG 보강
 │   │   ├── kg_query.py           # KG 쿼리
 │   │   ├── kg_updater.py         # KG 업데이트
@@ -204,6 +211,7 @@
 │   │   │   ├── brand.py
 │   │   │   ├── market.py
 │   │   │   ├── brain_models.py
+│   │   │   ├── evidence.py       # 증거 카드 모델 (KG·DB·문서·추론·관찰 공용), [2026-09 사후]
 │   │   │   └── relations.py
 │   │   ├── interfaces/           # 프로토콜/인터페이스
 │   │   │   ├── agent.py, alert.py, brain.py
@@ -218,7 +226,6 @@
 │   ├── application/              # Clean Architecture Layer 2
 │   │   ├── workflows/            # 유스케이스
 │   │   │   ├── chat_workflow.py
-│   │   │   ├── crawl_workflow.py
 │   │   │   ├── insight_workflow.py
 │   │   │   ├── alert_workflow.py
 │   │   │   └── batch_workflow.py
@@ -260,7 +267,6 @@
 ├── config/                       # 설정 파일
 │   ├── thresholds.json           # 시스템 설정 + 카테고리 URL
 │   ├── category_hierarchy.json   # Amazon 카테고리 트리
-│   ├── competitors.json          # 경쟁사 정보
 │   ├── tracked_competitors.json
 │   ├── brands.json               # 브랜드 매핑
 │   ├── asin_brand_mapping.json
@@ -392,8 +398,10 @@ python3 -m pytest tests/ -v                    # 전체 (커버리지 포함)
 python3 -m pytest tests/unit/domain/ -v        # Domain 레이어만
 python3 -m pytest tests/ -m "not slow" -v      # 느린 테스트 제외
 
-# 골든셋 평가
+# 골든셋 평가 (172문항). --target v4 = 대시보드 Brain 경로, 기본 v1 = /api/chat 경로
 python3 scripts/evaluate_golden.py --verbose
+.venv/bin/python -m eval.cli run --dataset eval/data/golden/laneige_golden_v2.jsonl --target v4 \
+  --data-as-of 2026-08-31 --judge llm --semantic-similarity --concurrency 4
 
 # KG 백업
 python3 -m src.tools.utilities.kg_backup backup
@@ -419,7 +427,7 @@ OPENAI_API_KEY=sk-...
 
 # 서버
 API_KEY=...                        # 보호 엔드포인트 인증
-AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작
+AUTO_START_SCHEDULER=true          # 스케줄러 자동 시작 (미설정 시 기본 false)
 
 # Google Sheets
 GOOGLE_SPREADSHEET_ID=...
@@ -487,9 +495,13 @@ class MyWorkflow:
 |------|------|------|
 | DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 |
 | Orchestrator | `src/core/orchestrator.py` | BatchWorkflow 하위 호환 래퍼 |
-| UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
-| ReActAgent | `src/core/react_agent.py` | Self-Reflection (복잡한 질문) |
-| BatchWorkflow | `src/core/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
+| UnifiedBrain | `src/core/brain.py` | 스케줄러 + 질의 처리(QueryGraph). ReAct 활성 여부는 `/api/v4/brain/status`의 `components`(OWL 검색 전략은 [2026-09 사후] 삭제되어 더는 이 필드에 없음) |
+| ReActAgent | `src/core/react_agent.py` | Thought-Action 루프(최대 5회). 플래그 `agents.use_react_agent` 기본 OFF. [2026-09 사후] DecisionMaker와 같은 `tool_registry`(5종)를 공유. 진입은 신뢰도 MEDIUM/LOW + 홉 2 이상(`agents.react_bypass_confidence`로 HIGH 관문 우회 가능, 기본 OFF). [2026-09-18 사후] 6단계 비교에서 켜기 조건 미충족 → OFF 유지(결정 S6-3) |
+| ToolRegistry | `src/core/tool_registry.py` | DecisionMaker·ReAct 공용 도구 5종(resolve_entity·kg_neighbors·get_metrics·apply_rules·search_docs), 증거 카드 반환. [2026-09 사후] |
+| DecisionMaker | `src/core/decision_maker.py` | 신뢰도 MEDIUM/LOW일 때 도구 선택. [2026-09 사후] JSON 파싱 → 네이티브 function calling(`tools=`, `tool_choice="auto"`) |
+| ConfidenceAssessor | `src/core/confidence.py` | 증거 적합도 기반 신뢰도 점수(엔티티 충족도 0.60 + 카드 종류 충족 0.40, 검색 분포는 ±0.05 동점 가르기). 임계값 HIGH 0.95 / MEDIUM 0.61 / LOW 0.60. [2026-09 사후] 트랙 5-B |
+| NumericVerifier | `src/core/numeric_verifier.py` | 답변 수치 ↔ 인용 카드 대조. 플래그 `response.numeric_verification_mode` 기본 `annotate`(기록만, 답변은 바꾸지 않음). [2026-09 사후]. [2026-09-18 사후] enforce는 기본값으로 올리지 않음 — 불일치로 잡힌 수치의 87~88%가 카드에 있거나 카드 값에서 계산된 값(결정 S6-4) |
+| BatchWorkflow | `src/application/workflows/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
 | HybridChatbot | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
 | HybridInsight | `src/agents/hybrid_insight_agent.py` | 인사이트 생성 |
 | AlertAgent | `src/agents/alert_agent.py` | 순위 변동 알림 |
@@ -497,12 +509,12 @@ class MyWorkflow:
 | SourceProvider | `src/agents/source_provider.py` | 출처 추출 및 포매팅 |
 | ExternalSignalManager | `src/agents/external_signal_manager.py` | 외부 신호 수집 관리 |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
-| RetrievalStrategy | `src/rag/retrieval_strategy.py` | OWL + 인텐트 기반 전략 패턴 |
+| RetrievalStrategy | `src/rag/retrieval_strategy.py` | 인텐트별 검색 설정(`IntentRetrievalConfig`). [2026-09 사후] OWL 검색 전략(`OWLRetrievalStrategy`·`create_owl_strategy`)과 플래그 `retriever.use_owl_strategy`는 삭제 — OWL은 검색 전략이 아니라 카테고리 계층 어휘로만 쓰고, 온톨로지 신호는 legacy 검색 경로의 재정렬 가산점으로 표현 |
 | ConfidenceFusion | `src/rag/confidence_fusion.py` | 다중 소스 신뢰도 융합 엔진 |
 | Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
 | EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |
-| UnifiedReasoner | `src/ontology/unified_reasoner.py` | 통합 추론 엔진 (OWL + Rules) |
+| OntologyReasoner | `src/ontology/reasoner.py` | 검색 경로에서 쓰는 규칙 기반 추론 엔진. [2026-09 사후] 입력을 증거 카드로 받도록 재작업(`rule_contracts.py`). 호출처 0건이던 `src/ontology/unified_reasoner.py`는 삭제됨(트랙 4-C) |
 | PromptRegistry | `prompts/registry.py` | 프롬프트 중앙 관리 |
 | FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default) |
 | MetricCalculator | `src/tools/calculators/metric_calculator.py` | SoS, HHI, CPI |
@@ -519,9 +531,9 @@ class MyWorkflow:
 
 | 저장소 | 위치 | 역할 |
 |--------|------|------|
-| SQLite (Railway) | `/data/amore_data.db` | Source of Truth |
+| SQLite (Railway) | `/data/amore_data.db` | 읽기 정본 (exporter·지표·API가 읽음) |
 | SQLite (로컬) | `./data/amore_data.db` | 개발용 |
-| Google Sheets | 스프레드시트 | 백업 |
+| Google Sheets | 스프레드시트 | 병행 저장. 서버 경로(`StorageAgent`)는 Sheets를 먼저 쓰고 SQLite를 다음에 쓰며, 자동 동기화는 Sheets→SQLite 단방향 |
 | KG JSON | `data/knowledge_graph.json` | Triple Store |
 | ChromaDB | `data/chroma/` | 벡터 스토어 |
 | Dashboard JSON | `data/dashboard_data.json` | 캐시 |

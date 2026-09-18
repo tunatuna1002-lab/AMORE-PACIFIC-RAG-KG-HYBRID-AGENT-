@@ -1,0 +1,660 @@
+{
+  "item_id": "lg086",
+  "question": "Rare Beauty의 Lip Makeup 카테고리 주요 제품 순위는?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.3333333333333333,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 0.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.27906976744186046,
+    "semantic_similarity": 0.7594785094261169,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 0.7,
+    "factuality_score": 1.0,
+    "numeric_accuracy": 0.0
+  },
+  "overall_score": 0.6431360115847846,
+  "fail_reason_tags": [
+    "L3_edge_fail",
+    "L5_numeric_mismatch"
+  ],
+  "trace": {
+    "item_id": "lg086",
+    "timestamp": "2026-09-17T16:25:40.447052",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "rare beauty"
+      ],
+      "extracted_categories": [
+        "lip_makeup",
+        "beauty"
+      ],
+      "extracted_indicators": [
+        "ranking"
+      ],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "ranking",
+        "product_ranking"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "amazon_ranking_diagnosis_9_2",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "strategic_indicators_2_1",
+        "strategic_indicators_1_1",
+        "home_insight_rules_8",
+        "strategic_indicators_2_0"
+      ],
+      "snippets": [
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "A. Level 1: Market & Brand\n### (거시적 시장 해석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n#### 해석 가이드\n- **높음**\n  - 해당 시장(카테고리)에서 브랜드 노출력이 높음\n  - 제품 수 기준으로 ‘자리를 많이 차지’하고 있음\n- **낮음**\n  - 시장 내 존재감이 약함\n  - 신규 진입 또는 특",
+        "1.3 Action Queue (오늘의 확인 필요 항목)\n\n### 목표\n- 마케터의 다음 행동을 최소 클릭으로 유도\n- “확인해야 할 것”을 **우선순위로 정렬**해 2~3개만 노출\n\n### Action Queue 항목 유형\n- Category-type → L2로 이동\n- Product-type → L3로 이동\n\n### 생성 규칙(우선순위)\n1) Rank ",
+        "#### 해석 가이드\n- **길수록**\n  - 롱런(Long-run) 가능성 높음\n  - 스테디셀러 후보\n- **짧음**\n  - 반짝 인기 또는 단기 이벤트 가능성\n\n#### 함께 봐야 할 지표\n- Rank Volatility\n- Brand Avg Rank\n\n#### 주의사항\n- Top N 기준 설정에 따라 결과 민감\n- 카테고리 특성 고려 필요\n\n---\n",
+        "- **해석 포인트**\n- 시장의 트렌드 민감도 및 역동성 측정\n- 높을수록 단기 트렌드 시장 가능성\n\n- **주의사항**\n- 브랜드 성과 지표가 아닌 시장 특성 지표\n- 단기 이벤트에 의해 급변 가능\n\n---\n\n### 6. Avg Rating Gap\n\n- **정의**\n- 자사 평균 평점과 카테고리 평균 평점의 차이\n\n- **산출식**\nAvg Rating ",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "1.6 Issue Preview (Top 이슈 미리보기)\n\n### 목표\n- Home에서 “최상위 3개”만 미리 노출하고 상세는 L3에서 확인\n\n### 구성(권장)\n- Rank Shock Top 3 (제품명 + 변화폭/날짜)\n- Streak Days Top 3 (제품명 + 연속 체류일)\n\n### 정렬 규칙\n- Rank Shock 리스트: 하락 폭 큰 순(또는",
+        "B. Level 2: Category & Price\n### (포트폴리오 및 가격 전략)\n\n---\n\n### 4. CPI (Category Price Index)\n\n- **정의**\n- 카테고리 평균 가격 대비 자사 제품 평균 가격의 상대 지수\n\n- **산출식**\nCPI = (자사 제품 평균 가격 / 카테고리 평균 가격) × 100\n\n- **사용 데이터**\n- "
+      ],
+      "scores": [
+        8.180896765565874,
+        1.0,
+        0.937810653906629,
+        0.8478015447332794,
+        0.4099142551422119,
+        0.40841102600097656,
+        0.40490102767944336,
+        0.3823186755180359
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "lip_makeup",
+        "beauty",
+        "rare beauty"
+      ],
+      "kg_edges_found": [
+        "beauty -hasSubcategory-> makeup",
+        "makeup -hasSubcategory-> lip_makeup"
+      ],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "lip_makeup",
+          "data": {
+            "brand_count": 24,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 43,
+                "products": [
+                  "B0B9YHX8DX",
+                  "B0GF21LCW2",
+                  "B0CN1D9C6Q",
+                  "B004BCT7G6",
+                  "B007OAFJ5U",
+                  "B06XTPX8B2",
+                  "B0GWPHKD43",
+                  "B00I6DV3UO",
+                  "B007O9Y8TE",
+                  "B0D35YXWZ4",
+                  "B09Z2K8726",
+                  "B0CCDG5NHJ",
+                  "B0DKJ5MSTB",
+                  "B0G43TQ9VG",
+                  "B0CWN3MD25",
+                  "B015RPE14S",
+                  "B0F13H2319",
+                  "B0F7XJ73MD",
+                  "B0FRLBNPY6",
+                  "B093L9K6J8",
+                  "B0HCJQ79R8",
+                  "B083QNQQP9",
+                  "B07CKFQXNZ",
+                  "B0DSJ9CBWB",
+                  "B0CHJ8R113",
+                  "B0F7XFXQ2S",
+                  "B0F1F4MD13",
+                  "B00CSME112",
+                  "B08BK3MJX5",
+                  "B094LT5LM4",
+                  "B0FCZFZ26L",
+                  "B07DGXJ6NG",
+                  "B0BYD846XK",
+                  "B0DZNWSFJV",
+                  "B0CX5F9SGF",
+                  "B0DQWD3JY4",
+                  "B0HFWGZZ8L",
+                  "B07DGWPH1X",
+                  "B0B1M5X88Z",
+                  "B0D6Z6MXHM",
+                  "B0G43SM6RS",
+                  "B07DBS1RV9",
+                  "B089FBPMC6"
+                ]
+              },
+              {
+                "brand": "revlon",
+                "product_count": 18,
+                "products": [
+                  "B07XTTHXND",
+                  "B01LTI19EM",
+                  "B001P2JZBC",
+                  "B00392C96Y",
+                  "B00VRAJT7M",
+                  "B0DHYCZX5S",
+                  "B002H988FQ",
+                  "B0BHKFXXL8",
+                  "B0CGCH8JGX",
+                  "B0DHYFX26G",
+                  "B0FSP9P54P",
+                  "B000OF9ATI",
+                  "B002H96420",
+                  "B08MRXHC4K",
+                  "B08MS77KPC",
+                  "B00005320H",
+                  "B07QGXCG6W",
+                  "B09HXYBYL7"
+                ]
+              },
+              {
+                "brand": "nyx",
+                "product_count": 15,
+                "products": [
+                  "B09SP2XHKT",
+                  "B079ZX2QBD",
+                  "B0DK7TXTGY",
+                  "B07GXGLQQ7",
+                  "B0BL8HY2QP",
+                  "B0FT51CZS6",
+                  "B09XGXXGD1",
+                  "B09ZKLYPVZ",
+                  "B005G9LPDQ",
+                  "B0DKKRZGNY",
+                  "B00LMPYYPO",
+                  "B005G9LPG8",
+                  "B005G9LPNQ",
+                  "B08WBMR6G6",
+                  "B004LXJOEK"
+                ]
+              },
+              {
+                "brand": "maybelline",
+                "product_count": 14,
+                "products": [
+                  "B07W59CNXQ",
+                  "B0046VESH0",
+                  "B085S9N6JP",
+                  "B07PGQDWMT",
+                  "B00N6YEI6O",
+                  "B09QH8148N",
+                  "B0DHF9X19V",
+                  "B0CZB39JH7",
+                  "B0FTT9WMD9",
+                  "B08H3TSP2X",
+                  "B0GSWMK4NY",
+                  "B002LFNOVY",
+                  "B002LFLPQA",
+                  "B0GWNQ3TT4"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 13,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B0CL8W1HZQ",
+                  "B0BSR85M24",
+                  "B0GVG87QVL",
+                  "B08S57F6JH",
+                  "B0G1H1NQY8",
+                  "B0B4F9PBQB",
+                  "B0DH62626H",
+                  "B0BSP3ZM2J",
+                  "B09XMWCY5L",
+                  "B0GVG2ZVX1",
+                  "B0CMJXGCFQ",
+                  "B0F8VKQKJT"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "lip_makeup",
+          "data": {
+            "name": "Lip Makeup",
+            "level": 2,
+            "path": [
+              "beauty",
+              "makeup",
+              "lip_makeup"
+            ],
+            "ancestors": [
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "beauty",
+                "name": "Beauty & Personal Care",
+                "level": 0
+              }
+            ],
+            "descendants": []
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 44,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 51,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B",
+                  "B09SGLQNS5",
+                  "B00TZUJW6O"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "e.l.f.",
+                "product_count": 6,
+                "products": [
+                  "B0CMYR1CNK",
+                  "B07PBQZ3KF",
+                  "B0F3J6W5KW",
+                  "B0GVG4S4X9",
+                  "B075DB13ZT",
+                  "B088W7L534"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.32000000000000006
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 및 지식 그래프에 따르면, Rare Beauty 브랜드의 Lip Makeup 카테고리 주요 제품 순위에 대한 구체적인 정보는 없습니다. \n\n- Lip Makeup 카테고리의 Top 브랜드는 unknown, revlon, nyx로 나타나며, Rare Beauty는 상위 브랜드 목록에 포함되어 있지 않습니다.\n- 따라서 Rare Beauty의 Lip Makeup 제품은 Amazon 마켓 내에서 주요 순위권에 진입하지 않은 것으로 판단됩니다.\n\n요약: Rare Beauty의 Lip Makeup 카테고리 주요 제품 순위 데이터는 현재 확보되어 있지 않으며, 해당 카테고리 내 상위 브랜드로는 unknown, revlon, nyx가 있습니다.",
+      "citations": [],
+      "confidence": 6.75,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [
+      {
+        "type": "category_market",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.1024,
+        "category_avg_rating": 4.26
+      },
+      {
+        "type": "category_top_brands",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "Maybelline",
+            "sos": 11.46,
+            "product_count": 11
+          },
+          {
+            "brand": "NYX",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "Revlon",
+            "sos": 10.42,
+            "product_count": 10
+          },
+          {
+            "brand": "e.l.f.",
+            "sos": 9.38,
+            "product_count": 9
+          },
+          {
+            "brand": "L'Oreal",
+            "sos": 7.29,
+            "product_count": 7
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "rare beauty",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "lip_makeup",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Cream Glide Lip Liner, Highly-Pigmented Pencil For Sh",
+            "rating": 4.6,
+            "reviews_count": 19849
+          },
+          {
+            "rank": 2,
+            "brand": "NYX",
+            "name": "NYX PROFESSIONAL MAKEUP Butter Gloss, Non-Sticky Lip Gloss -",
+            "rating": 4.5,
+            "reviews_count": 126021
+          },
+          {
+            "rank": 3,
+            "brand": "Sacheu",
+            "name": "Sacheu Lip Liner STAY-N Peel Off Lip Stain, Longwear, p-INKE",
+            "rating": 4.0,
+            "reviews_count": 22850
+          },
+          {
+            "rank": 4,
+            "brand": "Unknown",
+            "name": "Wonderskin Lip Stain – Long Lasting, Waterproof, Lip Tint Pe",
+            "rating": 3.8,
+            "reviews_count": 32729
+          },
+          {
+            "rank": 5,
+            "brand": "e.l.f.",
+            "name": "e.l.f. Glow Reviver Lip Oil, Pink Quartz | Nourishing Tinted",
+            "rating": 4.6,
+            "reviews_count": 30232
+          }
+        ]
+      },
+      {
+        "type": "category_market",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "hhi": 0.0487,
+        "category_avg_rating": 4.55
+      },
+      {
+        "type": "category_top_brands",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "brands": [
+          {
+            "brand": "MEDICUBE",
+            "sos": 8.0,
+            "product_count": 8
+          },
+          {
+            "brand": "CeraVe",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "Dove",
+            "sos": 5.0,
+            "product_count": 5
+          },
+          {
+            "brand": "La Roche-Posay",
+            "sos": 4.0,
+            "product_count": 4
+          },
+          {
+            "brand": "The Ordinary",
+            "sos": 4.0,
+            "product_count": 4
+          }
+        ]
+      },
+      {
+        "type": "brand_share",
+        "brand": "rare beauty",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "present": false
+      },
+      {
+        "type": "category_top_products",
+        "category": "beauty",
+        "snapshot_date": "2026-08-31",
+        "products": [
+          {
+            "rank": 1,
+            "brand": "Fresh",
+            "name": "eos Natural Shea Better Body Lotion, Fresh & Cozy, 16 fl oz",
+            "price": 9.97,
+            "rating": 4.7,
+            "reviews_count": 74671
+          },
+          {
+            "rank": 2,
+            "brand": "MEDICUBE",
+            "name": "medicube Toner Pads Zero Pore Pad 2.0 for Exfoliation and Po",
+            "price": 20.89,
+            "rating": 4.6,
+            "reviews_count": 31045
+          },
+          {
+            "rank": 3,
+            "brand": "Unknown",
+            "name": "Amazon Basics Double-Tipped Cotton Swabs for Personal Hygien",
+            "price": 2.66,
+            "rating": 4.7,
+            "reviews_count": 80447
+          },
+          {
+            "rank": 4,
+            "brand": "Clean Skin Club",
+            "name": "Clean Skin Club Clean Towels XL®, 100% USDA Biobased Face To",
+            "price": 17.95,
+            "rating": 4.7,
+            "reviews_count": 50569
+          },
+          {
+            "rank": 5,
+            "brand": "Neutrogena",
+            "name": "Neutrogena Makeup Remover Micellar Wipes, 2 Pack of 25 Ct | ",
+            "price": 9.97,
+            "rating": 4.8,
+            "reviews_count": 121361
+          }
+        ]
+      }
+    ],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1050,
+      "judge_tokens": 6080,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00022365,
+      "judge_cost_usd": 0.0013484999999999999
+    },
+    "latency_ms": 7445.444822311401,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "product",
+    "difficulty": "medium",
+    "gold_source": "snapshot",
+    "as_of": "2026-08-31"
+  }
+}

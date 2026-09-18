@@ -31,6 +31,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -131,6 +132,27 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         default=False,
         help="Load dataset and validate without running evaluation",
+    )
+
+    parser.add_argument(
+        "--target",
+        type=str,
+        choices=["v1", "v4"],
+        default="v1",
+        help=(
+            "평가 대상 경로: v1 = HybridChatbotAgent(/api/chat), v4 = UnifiedBrain.process_query "
+            "(대시보드 Brain 경로). 기준선은 경로별로 따로 둔다 (default: v1)"
+        ),
+    )
+
+    parser.add_argument(
+        "--data-as-of",
+        type=str,
+        default=None,
+        help=(
+            "시스템이 읽을 크롤 DB 시점 상한 (YYYY-MM-DD). 생략하면 데이터셋 snapshot "
+            "문항의 as_of를 쓴다"
+        ),
     )
 
     parser.add_argument(
@@ -345,6 +367,22 @@ Configs:
 # =============================================================================
 
 
+def resolve_data_as_of(items: list, override: str | None = None) -> str | None:
+    """평가에서 시스템이 읽을 크롤 DB 시점.
+
+    명시값이 있으면 그것을, 없으면 데이터셋 snapshot 문항의 as_of를 쓴다. as_of가
+    여러 개면 하나의 시점으로 고정할 수 없으므로 명시를 요구한다.
+    """
+    if override:
+        return override
+    dates = {item.metadata.as_of for item in items if getattr(item.metadata, "as_of", None)}
+    if len(dates) > 1:
+        raise ValueError(
+            f"데이터셋의 as_of가 여러 개다 {sorted(dates)} — --data-as-of로 시점을 지정할 것"
+        )
+    return dates.pop() if dates else None
+
+
 async def run_evaluation(
     dataset_path: str,
     out_dir: str,
@@ -357,6 +395,8 @@ async def run_evaluation(
     dry_run: bool,
     baseline: str | None = None,
     baseline_dir: str = "eval/baselines",
+    data_as_of: str | None = None,
+    target: str = "v1",
 ) -> int:
     """
     Run the full evaluation pipeline.
@@ -372,6 +412,14 @@ async def run_evaluation(
     except Exception as e:
         logger.error(f"Failed to load dataset: {e}")
         return 1
+
+    try:
+        data_as_of = resolve_data_as_of(items, data_as_of)
+    except ValueError as e:
+        logger.error(str(e))
+        return 1
+    if data_as_of:
+        logger.info(f"Data as-of pinned to {data_as_of} (crawl DB snapshots <= this date)")
 
     if dry_run:
         logger.info("Dry run mode - skipping evaluation")
@@ -389,12 +437,22 @@ async def run_evaluation(
         use_judge=use_judge,
         judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
         save_traces=save_traces,
+        data_as_of=data_as_of,
+        target=target,
+        git_commit=_git_head(),
     )
 
+    if data_as_of:
+        # 골드가 이 날짜의 DB에서 생성됐으므로 시스템도 같은 날짜의 DB를 읽게 한다.
+        # 운영 기본값(최신 스냅샷)은 바꾸지 않는다 — 평가 프로세스에서만 설정한다.
+        from src.rag.metric_facts import AS_OF_ENV
+
+        os.environ[AS_OF_ENV] = data_as_of
+
     # Initialize agent
-    logger.info("Initializing agent...")
+    logger.info(f"Initializing agent (target={target})...")
     try:
-        agent = await _create_agent()
+        agent = await _create_agent(target)
     except Exception as e:
         logger.error(f"Failed to initialize agent: {e}")
         return 1
@@ -628,6 +686,7 @@ async def cmd_ablation(
     use_semantic_similarity: bool,
     concurrency: int,
     configs: list[str] | None = None,
+    target: str = "v1",
 ) -> int:
     """Run ablation study."""
     from eval.ablation import AblationRunner
@@ -637,6 +696,8 @@ async def cmd_ablation(
         top_k=top_k,
         use_judge=use_judge,
         judge_model=judge_model if judge_type == "llm" else "gpt-4.1-mini",
+        target=target,
+        git_commit=_git_head(),
     )
 
     # Initialize judge
@@ -653,6 +714,7 @@ async def cmd_ablation(
         judge=judge,
         use_semantic_similarity=use_semantic_similarity,
         concurrency=concurrency,
+        target=target,
     )
 
     try:
@@ -669,16 +731,30 @@ async def cmd_ablation(
 # =============================================================================
 
 
-async def _create_agent():
-    """Create and initialize the HybridChatbotAgent."""
-    try:
-        from src.agents.hybrid_chatbot_agent import HybridChatbotAgent
+async def _create_agent(target: str = "v1"):
+    """평가 대상 에이전트 생성 (v1 HybridChatbotAgent / v4 UnifiedBrain 어댑터)."""
+    from eval.brain_adapter import create_eval_agent
 
-        agent = HybridChatbotAgent()
-        return agent
-    except ImportError as e:
-        logger.error(f"Could not import HybridChatbotAgent: {e}")
-        raise
+    return await create_eval_agent(target)
+
+
+def _git_head() -> str | None:
+    """평가 대상 코드의 커밋. 작업 트리에 미커밋 변경이 있으면 '-dirty'를 붙인다."""
+    import subprocess
+
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        return f"{head}-dirty" if dirty else head
+    except Exception:
+        return None
 
 
 async def _create_nli_judge():
@@ -714,11 +790,17 @@ def _print_summary(report) -> None:
     print("\n" + "=" * 60)
     print("EVALUATION SUMMARY")
     print("=" * 60)
-    print(f"Total Items:  {agg.total}")
+    print(f"Scored Items: {agg.total}")
     print(f"Passed:       {agg.passed} ({agg.pass_rate:.1%})")
     print(f"Failed:       {agg.failed}")
+    if agg.errored:
+        print(f"Excluded:     {agg.errored} (인프라 실패 — 채점 제외)")
+        for item_id in agg.error_item_ids[:10]:
+            print(f"  - {item_id}")
     print(f"Avg Score:    {agg.avg_overall_score:.3f}")
     print(f"Avg Latency:  {agg.avg_latency_ms:.0f}ms")
+    if agg.total_tokens:
+        print(f"Tokens:       {agg.total_tokens:,} (${agg.total_cost_usd:.4f})")
     print()
 
     if agg.top_fail_reasons:
@@ -760,6 +842,8 @@ def main(argv: list[str] | None = None):
                 dry_run=args.dry_run,
                 baseline=args.baseline,
                 baseline_dir=args.baseline_dir,
+                data_as_of=args.data_as_of,
+                target=args.target,
             )
         )
 
@@ -788,6 +872,7 @@ def main(argv: list[str] | None = None):
                 use_semantic_similarity=args.semantic_similarity,
                 concurrency=args.concurrency,
                 configs=args.configs,
+                target=args.target,
             )
         )
 

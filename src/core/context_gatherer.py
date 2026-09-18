@@ -21,6 +21,9 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from src.domain.entities.evidence import Evidence
+from src.rag.evidence_renderer import render_for_prompt
+
 from .models import Context, KGFact, SystemState
 from .state import OrchestratorState
 
@@ -130,6 +133,8 @@ class ContextGatherer:
                         context.rag_docs = result.rag_chunks[: self.max_rag_docs]
                         context.kg_facts = self._convert_kg_facts(result.ontology_facts)
                         context.kg_inferences = result.inferences
+                        context.evidence = self._card_list(result.evidence)
+                        context.prompt_evidence = self._card_list(result.prompt_evidence)
 
                         if result.combined_context:
                             context.summary = result.combined_context
@@ -158,16 +163,22 @@ class ContextGatherer:
                         inf.to_dict() if hasattr(inf, "to_dict") else inf
                         for inf in hybrid_context.inferences
                     ]
+                    context.evidence = self._card_list(getattr(hybrid_context, "evidence", None))
+                    context.prompt_evidence = self._card_list(
+                        getattr(hybrid_context, "prompt_evidence", None)
+                    )
+                    combined = getattr(hybrid_context, "combined_context", "")
+                    if isinstance(combined, str) and combined:
+                        context.summary = combined
 
             # 2. 시스템 상태
             if include_system_state:
                 context.system_state = self._get_system_state()
 
             # 3. 요약 생성
-            # retrieve_unified()가 이미 combined_context를 설정한 경우 그것을 유지.
-            # 두 요약을 이어붙이면 같은 데이터가 중복되어 LLM 토큰 낭비 + 답변 혼란.
+            # retriever의 combined_context(= 프롬프트 카드 렌더링)를 그대로 쓰고 시스템 상태만
+            # 앞에 붙인다. KG 사실·추론·문서를 카드 밖 형식으로 다시 렌더링하지 않는다 (E1).
             if context.summary:
-                # retriever의 구조화된 요약 유지, 시스템 상태만 보충
                 if context.system_state and "[시스템 상태]" not in context.summary:
                     state_str = self._format_system_state(context.system_state)
                     if state_str:
@@ -237,6 +248,13 @@ class ContextGatherer:
     # 변환 헬퍼
     # =========================================================================
 
+    @staticmethod
+    def _card_list(cards: Any) -> list[Evidence]:
+        """검색 결과의 카드 필드 → 카드 리스트 (카드 필드가 없는 결과는 빈 리스트)."""
+        if not isinstance(cards, list | tuple):
+            return []
+        return [card for card in cards if isinstance(card, Evidence)]
+
     def _convert_kg_facts(self, ontology_facts: list[dict[str, Any]]) -> list[KGFact]:
         """
         HybridRetriever의 ontology_facts를 KGFact로 변환
@@ -275,7 +293,11 @@ class ContextGatherer:
 
     def _build_summary(self, context: Context) -> str:
         """
-        LLM 프롬프트용 컨텍스트 요약 생성
+        LLM 프롬프트용 컨텍스트 요약 (retriever가 combined_context를 주지 않았을 때)
+
+        시스템 상태 한 줄 + 프롬프트 카드 렌더링만 싣는다. ``kg_facts``·``kg_inferences``·
+        ``rag_docs`` 원자료는 카드로만 프롬프트에 간다 (E1) — 특히 KG 엔티티 메타데이터의
+        날짜 없는 SoS·평균 순위는 증거가 아니다 (E2).
 
         Args:
             context: 수집된 컨텍스트
@@ -285,40 +307,16 @@ class ContextGatherer:
         """
         parts = []
 
-        # 1. 시스템 상태
         if context.system_state:
             state_str = self._format_system_state(context.system_state)
             if state_str:
                 parts.append(f"[시스템 상태] {state_str}")
 
-        # 2. KG 추론 인사이트 (가장 중요)
-        if context.kg_inferences:
-            parts.append("\n[분석 인사이트]")
-            for i, inf in enumerate(context.kg_inferences[:3], 1):
-                insight = inf.get("insight", "")
-                rec = inf.get("recommendation", "")
-                parts.append(f"{i}. {insight}")
-                if rec:
-                    parts.append(f"   → {rec}")
+        cards = render_for_prompt(context.prompt_evidence)
+        if cards:
+            parts.append(cards)
 
-        # 3. KG 사실
-        if context.kg_facts:
-            parts.append("\n[관련 정보]")
-            for fact in context.kg_facts[:5]:
-                fact_str = self._format_kg_fact(fact)
-                if fact_str:
-                    parts.append(f"- {fact_str}")
-
-        # 4. RAG 문서 요약
-        if context.rag_docs:
-            parts.append("\n[참조 문서]")
-            for doc in context.rag_docs[:3]:
-                title = doc.get("metadata", {}).get("title", "")
-                content = doc.get("content", "")[:100]
-                if title:
-                    parts.append(f"- {title}: {content}...")
-
-        return "\n".join(parts)
+        return "\n\n".join(parts)
 
     def _build_decision_summary(self, context: Context) -> str:
         """LLM 판단용 간략 요약"""
@@ -365,37 +363,6 @@ class ContextGatherer:
             parts.append(f"KG: {state.kg_triple_count} 트리플")
 
         return " | ".join(parts)
-
-    def _format_kg_fact(self, fact: KGFact) -> str:
-        """KG 사실 포맷팅"""
-        if fact.fact_type == "brand_info":
-            sos = fact.data.get("sos", 0)
-            avg_rank = fact.data.get("avg_rank")
-            info = f"{fact.entity}"
-            if sos:
-                info += f" SoS {sos * 100:.1f}%"
-            if avg_rank:
-                info += f" 평균순위 {avg_rank:.1f}"
-            return info
-
-        elif fact.fact_type == "brand_products":
-            count = fact.data.get("product_count", 0)
-            return f"{fact.entity} 제품 {count}개"
-
-        elif fact.fact_type == "competitors":
-            comps = (
-                [c.get("brand", "") for c in fact.data[:3]] if isinstance(fact.data, list) else []
-            )
-            if comps:
-                return f"{fact.entity} 경쟁사: {', '.join(comps)}"
-
-        elif fact.fact_type == "category_brands":
-            top = fact.data.get("top_brands", [])[:3]
-            brands = [b.get("brand", "") for b in top]
-            if brands:
-                return f"{fact.entity} Top 브랜드: {', '.join(brands)}"
-
-        return ""
 
     # =========================================================================
     # 유틸리티

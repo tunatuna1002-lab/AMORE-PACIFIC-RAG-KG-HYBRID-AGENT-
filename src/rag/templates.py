@@ -8,7 +8,11 @@ Home Page Insight Rules 문서 기반:
 - 원인 확정 금지
 """
 
+import logging
+import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class ResponseTemplates:
@@ -36,6 +40,22 @@ class ResponseTemplates:
         "~로 보입니다",
         "~추정됩니다",
         "~고려해볼 수 있습니다",
+    ]
+
+    # 금지 표현 → 완곡 표현 치환 규칙 (apply_guardrails가 실제로 적용한다)
+    # FORBIDDEN_PHRASES의 "~"는 임의 텍스트 자리이므로, 실제 치환은 정규식으로 한다.
+    # 각 규칙은 멱등해야 한다 (치환 결과가 다시 매칭되지 않을 것).
+    GUARDRAIL_SUBSTITUTIONS: list[tuple[str, str]] = [
+        # "~인 것으로" 형태를 쓰면 앞 명사의 받침 유무와 무관하게 문법이 맞는다
+        (r"원인은\s*(.+?)입니다", r"원인은 \1인 것으로 추정됩니다"),
+        (r"확실히\s*(.+?)입니다", r"\1인 것으로 보입니다"),
+        (r"반드시\s*(.+?)해야\s*합니다", r"\1하는 것을 고려해볼 수 있습니다"),
+        (r"틀림없이", "높은 가능성으로"),
+        (r"절대적으로", "상당히"),
+        # "100%"는 SoS 100% 같은 정상 수치로도 쓰이므로 단정 표현이 뒤따를 때만 치환
+        (r"100%\s*확실", "상당히 유력"),
+        (r"100%\s*보장", "기대"),
+        (r"100%\s*(?=성공|정확)", "높은 확률로 "),
     ]
 
     # 주의 문구
@@ -183,6 +203,9 @@ class ResponseTemplates:
         # 3. 시장 맥락
         hhi = metrics.get("hhi", 0)
         if hhi:
+            # 정본 스케일은 0-1(D1). 0-10000 포인트 값이 흘러들어와도
+            # "항상 고집중 시장"으로 오분기하지 않도록 정규화한다.
+            hhi = hhi / 10000 if hhi > 1 else hhi
             if hhi >= 0.25:
                 return "시장 집중도가 높아 경쟁 구도가 고착화된 편으로, 단기 변동성보다는 구조적 흐름을 함께 고려할 필요가 있습니다."
             elif hhi < 0.15:
@@ -256,22 +279,30 @@ class ResponseTemplates:
 
     @classmethod
     def apply_guardrails(cls, text: str) -> str:
-        """
-        안전장치 적용 (금지 표현 제거)
+        """안전장치 적용: 단정적 금지 표현을 완곡 표현으로 치환한다.
+
+        LLM 프롬프트만으로는 단정 표현이 새어나오므로 출력 단계에서 한 번 더 막는다.
+        (과거 구현은 루프 본문이 pass여서 원문을 그대로 돌려주는 no-op이었다.)
 
         Args:
             text: 원본 텍스트
 
         Returns:
-            안전장치 적용된 텍스트
+            완곡 표현으로 치환된 텍스트
         """
-        result = text
+        if not text:
+            return text
 
-        # 금지 표현 체크 및 경고 (실제로는 LLM 프롬프트에서 방지)
-        for phrase in cls.FORBIDDEN_PHRASES:
-            if phrase.replace("~", "") in result:
-                # 로깅 또는 경고
-                pass
+        result = text
+        applied = []
+        for pattern, replacement in cls.GUARDRAIL_SUBSTITUTIONS:
+            new_result, count = re.subn(pattern, replacement, result)
+            if count:
+                applied.append(f"{pattern}×{count}")
+                result = new_result
+
+        if applied:
+            logger.info(f"가드레일 적용: {', '.join(applied)}")
 
         return result
 

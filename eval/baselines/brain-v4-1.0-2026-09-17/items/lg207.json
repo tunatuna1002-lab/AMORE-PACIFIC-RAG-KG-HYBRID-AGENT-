@@ -1,0 +1,141 @@
+{
+  "item_id": "lg207",
+  "question": "2025년 2분기 아모레퍼시픽 매출총이익률은 어떻게 변했나요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.0,
+    "semantic_similarity": 0.4311367869377136,
+    "groundedness_score": 0.6666666667,
+    "answer_relevance_score": 0.6,
+    "factuality_score": 0.3333333333,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.34946897749106093,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg207",
+    "timestamp": "2026-09-17T16:35:19.011159",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "strategy"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "metric_interpretation_0",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "amazon_ranking_diagnosis_9_2",
+        "home_insight_rules_13",
+        "amazon_algorithm_guide_5_3",
+        "amazon_algorithm_guide_1_0"
+      ],
+      "snippets": [
+        "# Metric Interpretation Guide\n본 문서는 랭킹 기반 시장 분석 대시보드에서 산출된 지표 값을  \n**어떻게 해석해야 하는지**, 그리고 **어디까지 해석하면 안 되는지**를 안내하기 위한 가이드이다.\n\n모든 지표는 **의사결정 보조 신호(Signal)**이며,  \n단일 지표만으로 원인·성과·전략을 확정하지 않는다.\n\n---",
+        "customers",
+        "# Indicator Combination Playbook\n본 문서는 단일 지표가 아닌 **지표 조합(Combination)**을 통해  \n시장·브랜드·제품 상황을 **어떻게 해석할 수 있는지**를 정리한 판단 보조 가이드이다.\n\n본 플레이북은 **의사결정 옵션을 넓히는 용도**이며,  \n원인 확정·전략 결정·성과 평가를 자동으로 수행하지 않는다.\n\n---",
+        "Deep Facial Cleanser' Happy Bath'SkinUDeep Musk Body Oil & Gua Sha'  \n7   \n**1Q 2025 Overseas Business**",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "### **5.2 시나리오 B: 경쟁사 제품의 랭킹이 급등했을 때 (Ranking Improved)**\n\n1. **IF \\[가격\\] \\< \\[평소 가격\\] (상당한 인하)**  \n   * **THEN:** 쿠폰(초록색 배지) 적용 여부, 취소선 가격(Strike-through Pricing) 여부를 확인하라.  \n   * **가설:** 가격 탄력성을 이용한",
+        "**1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화**\n\n전자상거래의 중력 중심인 아마존 마켓플레이스에서 베스트 셀러 랭킹(Best Sellers Rank, 이하 BSR)은 단순한 숫자가 아닌, 제품의 생존 가능성을 나타내는 바이탈 사인(Vital Sign)과 같습니다. 그러나 2025년과 2026년을 기점으로 아마존의 검색 및 "
+      ],
+      "scores": [
+        4.772767589662693,
+        1.0,
+        0.9835140424057894,
+        0.9603512452712857,
+        0.3662678003311157,
+        0.36510103940963745,
+        0.318456768989563,
+        0.2824473977088928
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내역과 최신 크롤링 시점(0.8시간 전) 기준으로, 2025년 2분기 아모레퍼시픽의 매출총이익률 변화에 대한 구체적인 수치나 변동 추이는 명시되어 있지 않습니다. 따라서, 현재로서는 2025년 2분기 매출총이익률이 어떻게 변했는지에 대해 정확한 분석이나 수치 제공이 어렵습니다.\n\n추가적인 재무 데이터나 공식 실적 발표 자료가 확보되는 대로 매출총이익률 변동을 상세히 분석할 수 있습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 489,
+      "judge_tokens": 2468,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0001341,
+      "judge_cost_usd": 0.0007446
+    },
+    "latency_ms": 3430.5386543273926,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

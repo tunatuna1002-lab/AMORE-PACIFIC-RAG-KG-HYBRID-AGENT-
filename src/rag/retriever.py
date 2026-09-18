@@ -116,7 +116,7 @@ class DocumentRetriever:
                     config = json.load(f)
                     return config.get("system", {}).get("rag", {})
             except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+                logger.warning("RAG 설정(thresholds.json) 로드 실패, 기본값 사용", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 
@@ -456,6 +456,7 @@ class DocumentRetriever:
         self.openai_client = None
         self.embedding_model_name = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
         self.collection = None
+        self._persist_dir: str | None = None
         self._initialized = False
 
         # 새 기능 플래그
@@ -503,14 +504,23 @@ class DocumentRetriever:
 
     async def initialize(self) -> bool:
         """
-        문서 로드 및 벡터 인덱스 초기화
+        문서 로드 및 벡터 인덱스 조회 초기화 (읽기 전용)
+
+        Chroma 컬렉션에는 쓰지 않는다. 색인이 아직 없으면 RuntimeError로
+        `python -m src.rag.build_index` 실행을 안내한다.
 
         Returns:
             초기화 성공 여부
 
         Raises:
             ValueError: 벡터 검색 초기화 실패 시
+            RuntimeError: Chroma 컬렉션이 아직 없을 시
         """
+        # HybridRetriever와 OWL 전략이 같은 인스턴스를 공유하므로 두 번 불릴 수 있다.
+        # 다시 로드하면 self.chunks가 중복 적재된다.
+        if self._initialized:
+            return True
+
         # 문서 로드
         await self._load_documents()
 
@@ -738,12 +748,22 @@ class DocumentRetriever:
 
     async def _initialize_vector_search(self) -> None:
         """
-        벡터 검색 초기화 (필수)
+        벡터 검색 초기화 (읽기 전용)
+
+        Chroma 컬렉션을 **열기만** 한다 — 생성·add·upsert·delete는 절대 하지
+        않는다. 색인을 만들거나 갱신하려면 `python -m src.rag.build_index`를
+        먼저 실행해야 한다.
+
+        과거에는 이 메서드가 `get_or_create_collection` + 증분 색인까지
+        수행했는데, 서버(runtime)가 동시에 색인을 쓰면서 별도로 돌던 평가나
+        다른 프로세스의 조회 결과를 오염시켰다 (2026-09-17 발견: 358 → 1,145
+        청크로 컬렉션이 실행 중에 불어남). 색인(쓰기)과 조회(읽기)를
+        분리한다 (트랙 0-A).
 
         Raises:
             ImportError: 필수 패키지 미설치 시
             ValueError: OPENAI_API_KEY 미설정 시
-            Exception: 기타 초기화 실패 시
+            RuntimeError: Chroma 컬렉션이 아직 없을 시 (build_index 안내)
         """
         if not VECTOR_SEARCH_AVAILABLE:
             raise ImportError("Vector search dependencies not available. Install: chromadb, openai")
@@ -755,7 +775,7 @@ class DocumentRetriever:
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable not set")
 
-        # OpenAI 클라이언트 초기화
+        # OpenAI 클라이언트 초기화 (조회용 쿼리 임베딩에만 사용, 색인 쓰기는 없음)
         self.openai_client = openai.OpenAI(api_key=api_key)
         self.embedding_model_name = os.getenv(
             "OPENAI_EMBEDDING_MODEL", self.embedding_model_name or "text-embedding-3-small"
@@ -763,22 +783,101 @@ class DocumentRetriever:
 
         # ChromaDB 초기화 (modern API - persistent client)
         persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
-        os.makedirs(persist_dir, exist_ok=True)
+        self._persist_dir = persist_dir
 
         self.client = chromadb.PersistentClient(path=persist_dir)
 
-        # 컬렉션 생성/로드
-        self.collection = self.client.get_or_create_collection(
-            name="amore_docs", metadata={"hnsw:space": "cosine"}
-        )
+        # 컬렉션은 열기만 한다 — 없으면 생성하지 않고 명확한 예외로 안내한다.
+        try:
+            self.collection = self.client.get_collection(name="amore_docs")
+        except Exception as e:
+            raise RuntimeError(
+                f"Chroma collection 'amore_docs' not found at '{persist_dir}'. "
+                "Run `python -m src.rag.build_index` to build it before starting "
+                "the server."
+            ) from e
 
-        # 문서 인덱싱 — 컬렉션에 없는 청크만 증분 색인한다.
-        # 기존 조건(`count() == 0`)은 최초 1회만 색인했기 때문에, 나중에
-        # DOCUMENTS에 추가된 문서(IR 분기보고서 3종 = 1,971청크)가 영원히
-        # 색인되지 않고 검색에서 침묵으로 누락됐다 (2026-08-30 사이클 4 발견).
-        await self._index_documents()
+        # 어긋남 검사 — 실패시키지 않고 경고만 남긴다.
+        status = self.get_index_status()
+        if not status["in_sync"]:
+            logger.warning(
+                "Chroma index out of sync at '%s': indexed=%d expected=%d "
+                "missing=%d extra=%d (run `python -m src.rag.build_index` to fix)",
+                persist_dir,
+                status["indexed_count"],
+                status["expected_count"],
+                status["missing_count"],
+                status["extra_count"],
+            )
 
-        print(f"ChromaDB initialized: {self.collection.count()} documents indexed")
+        logger.info("ChromaDB opened read-only: %d documents indexed", self.collection.count())
+
+    def get_index_status(self) -> dict[str, Any]:
+        """현재 로드된 청크(기대값)와 Chroma 컬렉션(실제값)의 어긋남을 계산한다.
+
+        `initialize()`를 실패시키지 않고 관측하기 위한 진단용 메서드다.
+        """
+        persist_dir = self._persist_dir or os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
+        expected_ids = {chunk["id"] for chunk in self.chunks}
+
+        indexed_ids: set[str] = set()
+        if self.collection is not None:
+            try:
+                indexed_ids = set(self.collection.get(include=[])["ids"])
+            except Exception:
+                logger.warning("Failed to read indexed chunk ids for status check", exc_info=True)
+
+        missing = expected_ids - indexed_ids
+        extra = indexed_ids - expected_ids
+        tagged_count = self._count_tagged_chunks()
+
+        return {
+            "persist_dir": str(persist_dir),
+            "collection": "amore_docs",
+            "indexed_count": len(indexed_ids),
+            "expected_count": len(expected_ids),
+            "missing_count": len(missing),
+            "extra_count": len(extra),
+            "in_sync": not missing and not extra,
+            "missing_sample": sorted(missing)[:10],
+            "extra_sample": sorted(extra)[:10],
+            # 엔티티 태그(트랙 4-B) — 미태깅 색인도 조회는 되고 재정렬 보너스만 0이다.
+            # `python -m src.rag.build_index --retag`로 재임베딩 없이 태깅한다.
+            "tagged_count": tagged_count,
+            "tagged": bool(indexed_ids) and tagged_count == len(indexed_ids),
+        }
+
+    def _count_tagged_chunks(self) -> int:
+        """엔티티 태그가 붙은 색인 청크 수 (읽기 전용)."""
+        if self.collection is None:
+            return 0
+        from src.rag.entity_tags import TAG_VERSION_KEY
+
+        try:
+            got = self.collection.get(where={TAG_VERSION_KEY: {"$gte": 1}}, include=[])
+            return len(got["ids"])
+        except Exception:
+            logger.warning("Failed to count entity-tagged chunks", exc_info=True)
+            return 0
+
+    def get_entity_tags(self, chunk_ids: list[str]) -> dict[str, dict[str, list[str]]]:
+        """색인 메타데이터에서 청크별 엔티티 태그를 읽는다 (읽기 전용).
+
+        태그가 없는(트랙 4-B 이전에 색인된) 청크는 결과에서 빠진다 — 호출부는 보너스 0으로
+        취급한다. 컬렉션이 없거나 조회에 실패하면 빈 dict.
+        """
+        ids = list(dict.fromkeys(cid for cid in chunk_ids if cid))
+        if self.collection is None or not ids:
+            return {}
+        from src.rag.entity_tags import read_tags
+
+        got = self.collection.get(ids=ids, include=["metadatas"])
+        tags_by_id: dict[str, dict[str, list[str]]] = {}
+        for chunk_id, metadata in zip(got["ids"], got["metadatas"] or [], strict=False):
+            tags = read_tags(metadata)
+            if tags is not None:
+                tags_by_id[chunk_id] = tags
+        return tags_by_id
 
     def _get_text_hash(self, text: str) -> str:
         """텍스트 해시 생성"""
@@ -899,6 +998,8 @@ Do not include any explanation."""
         if not self.collection or not self.openai_client:
             return
 
+        from src.rag.entity_tags import build_tag_metadata
+
         try:
             already_indexed = set(self.collection.get(include=[])["ids"])
         except Exception:
@@ -922,6 +1023,8 @@ Do not include any explanation."""
                     "description": chunk["description"],
                     "content_type": chunk.get("content_type", "text"),
                     "source_filename": chunk.get("source_filename", ""),
+                    # 엔티티 태그 (브랜드·카테고리·지표 canonical id, 트랙 4-B)
+                    **build_tag_metadata(chunk["title"], chunk["content"]),
                 }
             )
 

@@ -13,5 +13,9 @@
     "ontology_facts": 5,
     "inferences": 5,
     "rag_chunks": 8
+  },
+  "entity_tag_bonus": {
+    "brands": 0.001,
+    "categories": 0.001
   }
 }

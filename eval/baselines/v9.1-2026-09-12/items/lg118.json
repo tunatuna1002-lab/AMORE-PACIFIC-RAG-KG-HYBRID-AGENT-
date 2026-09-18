@@ -1,0 +1,138 @@
+{
+  "item_id": "lg118",
+  "question": "아모레퍼시픽 브랜드들이 Amazon에서 시너지를 내는 방법은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.16379310344827586,
+    "semantic_similarity": 0.6431397795677185,
+    "groundedness_score": 0.545,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.48934062613810614,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg118",
+    "timestamp": "2026-09-10T11:39:35.619772",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "ir_2025_q2_0_25",
+        "amazon_algorithm_guide_4_1",
+        "negative_issue_response_6_2",
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_algorithm_guide_8_3",
+        "amazon_ranking_diagnosis_9_2",
+        "amazon_algorithm_guide_8_10",
+        "amazon_algorithm_guide_8_2"
+      ],
+      "snippets": [
+        "\\- \\[Japan\\] Enhanced brand appeal of Laneige(‘Neo Cushion Mewy’, ‘Gel Cream Skin’) and Aestura(‘Theracne365’)  through innovative products and achieved strong sales growth for major brands (Laneige/A",
+        "* **탐지 전략:**  \n  * **해시태그 추적:** 틱톡, 인스타그램 릴스, 유튜브 쇼츠에서 경쟁사 브랜드명, 제품명, 또는 \\#AmazonFinds, \\#AmazonMustHaves 등의 태그와 함께 해당 카테고리를 검색합니다.16  \n  * **광고 라이브러리:** 틱톡 크리에이티브 센터(TikTok Creative Center)나 메타 광고 라이",
+        "소비자들은 이제 \"아마존에서는 절대 스킨케어를 사지 말라(Never order skincare products from Amazon)\"는 극단적인 조언을 공유하고 있다.22 이는 브랜드가 아마존 내 공식 스토어를 운영하더라도 피할 수 없는 플랫폼 리스크다. 가품 경험은 해당 브랜드의 품질에 대한 오해로 이어져 영구적인 고객 이탈을 초래할 수 있다.\n\n* *",
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "tering-the-Amazon-COSMO-Algorithm-with-AI-Content-Optimization/1976471090287931392)  \n4. Introduction: Why Surge Pricing and TikTok Matter for Amazon Sellers \\- Profasee, 1월 21, 2026에 액세스, [https://pr",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "-funnel-a-practical-guide-to-the-sqp-report.html)  \n25. Amazon Brand Analytics: A 2025 Guide to Smarter Selling with Data, 1월 21, 2026에 액세스, [https://www.sarasanalytics.com/blog/amazon-brand-analytics",
+        "1. A Comprehensive Analysis of Amazon's Algorithmic Convergence ..., 1월 21, 2026에 액세스, [https://prebodigital.co.za/blog/amazon-2/analysis-of-amazons-algorithmic-convergence-cosmo-rufus-and-a10/](https"
+      ],
+      "scores": [
+        0.5233256816864014,
+        0.4530993103981018,
+        0.4076780080795288,
+        0.39043378829956055,
+        0.3854224681854248,
+        0.3764307498931885,
+        0.3652549982070923,
+        0.353812575340271
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 아모레퍼시픽 브랜드들의 Amazon 내 시너지 방안\n\n### 인사이트\n- 아모레퍼시픽 주요 브랜드(Laneige, Aestura, Primera, Hera)는 일본 시장에서 혁신 제품과 멀티 브랜드 리테일러와의 공동 마케팅 활동을 통해 강한 판매 성장세를 보인 바 있습니다. 이는 브랜드 간 협업과 시너지 효과가 긍정적으로 작용했을 가능성을 시사합니다 [출처: 2Q 2025 Earnings Release, 2025.8.1].\n- Amazon 내에서는 가품 유통 문제로 인해 브랜드 신뢰도 저하 위험이 존재하므로, 공식 판매처 확인 및 인증된 리테일러 활용을 권장하는 공동 대응 문구를 사용하는 등 브랜드 간 협력으로 소비자 신뢰를 강화하는 전략이 필요할 수 있습니다 [출처: Negative Issue Response].\n- Amazon 플랫폼 내에서 아모레퍼시픽 브랜드들이 각각 독립적으로 활동하는 대신, 공동 프로모션이나 크로스 브랜드 마케팅을 통해 소비자 접점을 확대하고, 해시태그 및 인플루언서 마케팅을 연계하는 방안도 고려될 수 있습니다 [출처: Amazon Algorithm Guide].\n\n### 근거\n- 일본 시장에서 Laneige, Aestura, Primera, Hera가 혁신 제품과 공동 마케팅으로 시너지를 낸 사례 [출처: 2Q 2025 Earnings Release, 2025.8.1].\n- Amazon 내 가품 문제 대응을 위한 브랜드 공통 문구 활용 [출처: Negative Issue Response].\n- 소셜 미디어 해시태그 추적 및 인플루언서 광고 활용 가능성 제시 [출처: Amazon Algorithm Guide].\n\n### 권장 사항\n- Amazon 내 아모레퍼시픽 브랜드들이 공동으로 공식 판매처 인증 캠페인을 전개하여 소비자 신뢰를 제고할 것을 권장합니다.\n- 브랜드별 독립 프로모션을 넘어, Laneige, Aestura 등 주요 브랜드 간 크로스 프로모션 및 공동 마케팅을 통해 브랜드 인지도와 구매 전환율을 높이는 전략을 모색할 필요가 있습니다.\n- 틱톡, 인스타그램 등에서 아모레퍼시픽 브랜드 연계 해시태그 및 인플루언서 콘텐츠를 활용하여 Amazon 내 브랜드 노출과 소비자 참여를 증대시키는 방안도 검토할 만합니다.\n\n현재 확인된 데이터 기준으로, 아모레퍼시픽 브랜드들의 Amazon 내 시너지 전략은 일본 시장에서의 공동 마케팅 성공 사례와 Amazon 플랫폼 특성을 고려한 소비자 신뢰 강화 및 디지털 마케팅 협업에 초점을 맞출 수 있을 것으로 보입니다.\n\n---\n**📚 출처 및 참고자료:**\n\n1. 📄 ****2Q 2025 Earnings Release ![][image1]**2025.8.1**\n   - 관련도: 0.52\n\n2. 📄 **---**\n   - 관련도: 0.45\n\n3. 📄 **---**\n   - 관련도: 0.41\n\n4. 📄 **참고문헌**\n   - 관련도: 0.39\n\n5. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3178,
+      "judge_tokens": 5419,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0007381499999999999,
+      "judge_cost_usd": 0.00168225
+    },
+    "latency_ms": 9034.837007522583,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "hard",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

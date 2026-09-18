@@ -666,8 +666,16 @@ class TestVerifyApiKey:
 
         import src.api.dependencies as deps
 
-        with pytest.raises(HTTPException) as exc_info:
-            await deps.verify_api_key(None)
+        # 다른 테스트가 API_KEY 없이 모듈을 먼저 import하면 deps.API_KEY가 None(→503)이 된다.
+        # "키가 설정된 서버에 키 없이 요청"을 재현하려면 직접 설정한다(다른 두 테스트와 같은 방식).
+        original_key = deps.API_KEY
+        deps.API_KEY = "test-api-key-12345"  # pragma: allowlist secret
+
+        try:
+            with pytest.raises(HTTPException) as exc_info:
+                await deps.verify_api_key(None)
+        finally:
+            deps.API_KEY = original_key
 
         assert exc_info.value.status_code == 401
 

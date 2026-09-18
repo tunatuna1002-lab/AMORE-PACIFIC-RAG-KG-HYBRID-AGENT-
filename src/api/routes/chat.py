@@ -149,13 +149,14 @@ async def clear_memory(session_id: str):
 @limiter.limit("10/minute")
 async def chat_v4(request: Request, body: BrainChatRequest):
     """
-    Level 4 Brain 기반 챗봇 API (v4)
+    Level 4 Brain 기반 챗봇 API (v4, 비스트림 — `brain.process_query` → QueryGraph)
 
-    LLM-First 접근:
-    - 모든 판단을 LLM이 수행
-    - 규칙 기반 빠른 경로 없음
-    - RAG + KG 하이브리드 검색
-    - 자율 스케줄러와 통합
+    처리 순서 (대부분 고정 코드, LLM 판단 지점은 표시):
+    - PromptGuard 입력 검사 → 캐시 → 하이브리드 검색(KG 사실·DB 지표·규칙 추론·Dense+BM25)
+    - 컨텍스트 점수 규칙으로 신뢰도 분기: HIGH는 바로 답변 생성, UNKNOWN은 명확화 문구
+    - MEDIUM/LOW: [LLM] DecisionMaker가 조회 도구 1개 또는 직접 답변을 고른다.
+      `agents.use_react_agent` 플래그(기본 OFF)가 켜져 있고 복잡 질의면 ReAct 루프로 간다
+    - [LLM] 답변 생성 → 환각 점검 → PromptGuard 출력 검사
     """
     start_time = time.time()
 
@@ -222,14 +223,18 @@ async def chat_v4_stream(request: Request, body: BrainChatRequest):
     """
     Level 4 Brain 기반 SSE 스트리밍 챗봇 API (v4)
 
-    v3의 SSE 스트리밍과 동일한 인터페이스로 v4 Brain의 처리 결과를 반환합니다.
-    ReAct + OWL + PromptGuard + 도구 호출을 모두 지원합니다.
+    v3의 SSE 스트리밍과 동일한 인터페이스로 v4 Brain의 처리 결과를 반환합니다
+    (`brain.process_query_stream`, 대시보드가 쓰는 경로). 분기·캐시는 `/api/v4/chat`과
+    **같은 QueryGraph**를 탑니다 (트랙 5-A: 스트림 전용 복제 구현 삭제). 토큰 단위
+    스트리밍은 아니며, 답변은 생성이 끝난 뒤 한 덩어리로 나갑니다.
+    ReAct(`agents.use_react_agent`)는 피처 플래그로만 켜지며 기본은 OFF입니다.
+    활성 여부는 `/api/v4/brain/status`의 `components`에서 확인합니다.
 
     이벤트 타입:
     - status: 처리 단계 알림
     - tool_call: 도구 호출 정보
     - text: 응답 텍스트
-    - done: 완료 (메타데이터 포함)
+    - done: 완료 (신뢰도·출처·제안 + `metadata`에 route_trace·numeric_verification)
     - error: 오류 발생
     """
     message = body.message.strip()

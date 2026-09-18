@@ -6,14 +6,14 @@
 
 ## OVERVIEW
 
-AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on Amazon US. Autonomous AI system with daily crawling, KPI analysis (SoS/HHI/CPI), hybrid RAG+KG+Ontology chatbot, and ReAct self-reflection for complex queries.
+AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on Amazon US. Daily crawling, KPI analysis (SoS/HHI/CPI), and a hybrid RAG+KG+rule-reasoning chatbot with one LLM tool-selection step (DecisionMaker, native function calling). ReAct loop is wired behind a feature flag that defaults to OFF (`agents.use_react_agent`); it shares the same 5-tool registry (`src/core/tool_registry.py`) as DecisionMaker. [post-2026-09] The OWL retrieval strategy was deleted (dead code, 0 callers) — OWL now serves only as category-hierarchy vocabulary, not a retrieval path.
 
 ## STRUCTURE
 
 ```
 ./
 ├── src/api/dashboard_api.py  # FastAPI entry + static UI mount
-├── src/core/orchestrator.py  # Compat shim → src/core/batch_workflow
+├── src/core/orchestrator.py  # Compat shim → src/application/workflows/batch_workflow
 ├── main.py               # CLI entry for batch + interactive chat
 ├── src/
 │   ├── core/             # Brain, ReAct, scheduler, orchestration
@@ -29,7 +29,7 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 │   ├── monitoring/       # Logging, tracing, metrics
 │   └── adapters/         # Interface adapters
 ├── dashboard/            # Static HTML UI
-├── tests/                # pytest (60% min coverage)
+├── tests/                # pytest (60% coverage goal, not enforced: fail_under = 0)
 ├── scripts/              # Operational utilities
 ├── config/               # JSON-driven rules/thresholds
 ├── docs/                 # Architecture docs, guides
@@ -49,7 +49,7 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 | Add domain entity | `src/domain/entities/` | Pydantic models |
 | Add workflow | `src/application/workflows/` | Clean Architecture |
 | Modify brain behavior | `src/core/brain.py` | UnifiedBrain facade |
-| Add ReAct tool | `src/core/react_agent.py` | Register in ALLOWED_ACTIONS |
+| Add a tool (DecisionMaker + ReAct) | `src/core/tool_registry.py` | Add a `ToolDefinition`; both `DecisionMaker` (function calling) and `ReActToolExecutor`/`ALLOWED_ACTIONS` read from this one registry |
 | Configure thresholds | `config/thresholds.json` | Category/alert rules |
 
 ## KEY MODULES
@@ -57,11 +57,11 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 | Module | File | Role |
 |--------|------|------|
 | UnifiedBrain | `src/core/brain.py` | Facade: scheduler + query + ReAct |
-| ReActAgent | `src/core/react_agent.py` | Thought-Action-Observation loop (max 3) |
+| ReActAgent | `src/core/react_agent.py` | Thought-Action-Observation loop (max 5), flag `agents.use_react_agent` (default OFF) |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG + Ontology context |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple store + persistence |
 | HybridChatbotAgent | `src/agents/hybrid_chatbot_agent.py` | AI chatbot |
-| AmazonScraper | `src/tools/amazon_scraper.py` | Playwright + stealth |
+| AmazonScraper | `src/tools/scrapers/amazon_scraper.py` | Playwright + stealth |
 | BatchWorkflow | `src/application/workflows/batch_workflow.py` | Daily crawl pipeline |
 
 ## CONVENTIONS
@@ -101,14 +101,14 @@ infrastructure → adapters    ❌
 # Dev server
 uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001 --reload
 
-# Tests (60% min coverage)
+# Tests
 python -m pytest tests/ -v
 
 # Golden set evaluation
 python scripts/evaluate_golden.py --verbose
 
 # KG backup
-python -m src.tools.kg_backup backup
+python -m src.tools.utilities.kg_backup backup
 
 # Sync data from Railway
 python scripts/sync_from_railway.py
@@ -122,7 +122,7 @@ OPENAI_API_KEY=sk-...
 
 # Optional - Server
 API_KEY=...                        # API auth
-AUTO_START_SCHEDULER=true          # Auto-start scheduler
+AUTO_START_SCHEDULER=true          # Auto-start scheduler (default false when unset)
 
 # Optional - External
 GOOGLE_SPREADSHEET_ID=...          # Sheets backup
@@ -139,8 +139,8 @@ ALERT_RECIPIENTS=...
 
 - **Lip Care vs Lip Makeup**: Different categories (Skin Care vs Makeup hierarchy)
 - **KG Backup**: Auto 7-day rolling in `data/backups/kg/`
-- **ReAct activation**: Auto-triggered for complex queries (analysis keywords, context gaps)
-- **Embedding cache**: MD5-keyed FIFO (max 1000) reduces API costs 33%+
+- **ReAct activation**: Only when `agents.use_react_agent` is on; then MEDIUM/LOW-confidence queries that the hop-count router (`src/core/router.py`) judges as 2+ hops route to it. HIGH confidence always answers via the pipeline unless the measurement flag `agents.react_bypass_confidence` (default OFF) is on. [post-2026-09-18] Stage-6 comparison kept all three ReAct flags OFF (decision S6-3 in `docs/plans/evidence-react-ontology-decisions-2026-09.md`). Check `/api/v4/brain/status` → `components`
+- **Embedding cache**: MD5-keyed FIFO (max 1000). No measured cost reduction on record
 - **AWS WAF**: Stealth context + exponential backoff in scraper
 
 ---

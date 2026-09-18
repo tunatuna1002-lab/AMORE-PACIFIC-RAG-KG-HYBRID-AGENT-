@@ -1,0 +1,918 @@
+{
+  "as_of": "2026-08-31",
+  "generator": "scripts/generate_rule_questions.py",
+  "gold_policy": "정답 수치 = 지표 테이블(brand_metrics·market_metrics). 테이블이 없는 순위·제품 가격은 raw_data 기록값. raw_data 독립 재계산은 교차 확인 전용 — 결론이 다르면 제외.",
+  "rule_input_availability": {
+    "bestseller_badge_effect": {
+      "family": "price",
+      "inputs": {
+        "badge": "db_column_empty",
+        "rank_change_7d": "history_not_stored"
+      },
+      "generatable": false
+    },
+    "brand_ownership_verification": {
+      "family": "ir",
+      "inputs": {
+        "parent_group": "kg_curated"
+      },
+      "note": "KG ownedByGroup(config/brands.json)",
+      "generatable": true
+    },
+    "category_entry_opportunity": {
+      "family": "growth",
+      "inputs": {
+        "hhi": "db_snapshot",
+        "sos": "db_snapshot",
+        "is_target": "target_flag"
+      },
+      "generatable": true
+    },
+    "challenger_position": {
+      "family": "market",
+      "inputs": {
+        "hhi": "db_snapshot",
+        "sos": "db_snapshot"
+      },
+      "generatable": true
+    },
+    "competitive_pressure": {
+      "family": "market",
+      "inputs": {
+        "sos_change": "no_derivation_defined",
+        "competitor_count": "kg_unversioned"
+      },
+      "note": "sos_change의 비교 기간을 정한 코드가 없다(_build_inference_context도 설정 안 함)",
+      "generatable": false
+    },
+    "customer_perception_mixed": {
+      "family": "sentiment",
+      "inputs": {
+        "ai_summary": "absent"
+      },
+      "generatable": false
+    },
+    "customer_perception_positive": {
+      "family": "sentiment",
+      "inputs": {
+        "ai_summary": "absent"
+      },
+      "generatable": false
+    },
+    "discount_dependent": {
+      "family": "price",
+      "inputs": {
+        "discount_periods": "no_derivation_defined",
+        "rank_improvements": "no_derivation_defined"
+      },
+      "note": "raw_data.discount_percent도 2026-08-31 전부 NULL",
+      "generatable": false
+    },
+    "fragmented_market_competition": {
+      "family": "market",
+      "inputs": {
+        "hhi": "db_snapshot",
+        "competitor_count": "kg_unversioned"
+      },
+      "note": "competitor_count = KG get_competitors(brand) 개수. competesWith 616개가 kg_enricher 산출(날짜 버전 없음)이고 'LANEIGE'/'laneige' 주어가 따로 있어 조회 표기에 따라 개수가 달라진다",
+      "generatable": false
+    },
+    "high_discount_dependency_score": {
+      "family": "price",
+      "inputs": {
+        "product_history": "no_derivation_defined"
+      },
+      "note": "점수 함수는 있으나 이력 구성(기간·정렬) 정의가 없고 discount_percent 전부 NULL",
+      "generatable": false
+    },
+    "ir_americas_revenue_correlation": {
+      "family": "ir",
+      "inputs": {
+        "ir_americas_yoy": "absent",
+        "sos_change": "no_derivation_defined",
+        "is_target": "target_flag"
+      },
+      "generatable": false
+    },
+    "ir_brand_campaign_effect": {
+      "family": "ir",
+      "inputs": {
+        "ir_campaign_mentioned": "absent",
+        "rank_change_7d": "history_not_stored"
+      },
+      "generatable": false
+    },
+    "ir_growth_momentum": {
+      "family": "ir",
+      "inputs": {
+        "ir_consecutive_growth_quarters": "absent"
+      },
+      "generatable": false
+    },
+    "ir_growth_slowdown_warning": {
+      "family": "ir",
+      "inputs": {
+        "ir_current_qtr_growth": "absent",
+        "ir_prev_qtr_growth": "absent"
+      },
+      "generatable": false
+    },
+    "ir_prime_day_impact": {
+      "family": "ir",
+      "inputs": {
+        "ir_mentions_prime_day": "absent",
+        "rank_change_during_event": "no_derivation_defined"
+      },
+      "generatable": false
+    },
+    "market_disruption": {
+      "family": "alert",
+      "inputs": {
+        "has_rank_shock": "history_not_stored",
+        "churn_rate": "history_not_stored"
+      },
+      "note": "market_metrics.churn_rate 전부 NULL, product_metrics 0행. metric_calculator.calculate_churn_rate/calculate_rank_shock 공식은 있음",
+      "generatable": false
+    },
+    "market_dominance_concentrated": {
+      "family": "market",
+      "inputs": {
+        "sos": "db_snapshot",
+        "hhi": "db_snapshot"
+      },
+      "generatable": true
+    },
+    "market_dominance_fragmented": {
+      "family": "market",
+      "inputs": {
+        "sos": "db_snapshot",
+        "hhi": "db_snapshot"
+      },
+      "generatable": true
+    },
+    "premium_defense_success": {
+      "family": "price",
+      "inputs": {
+        "price": "db_snapshot",
+        "category_avg_price": "db_snapshot",
+        "rank": "db_snapshot"
+      },
+      "note": "market_metrics.category_avg_price는 2026-08-31 face_powder만 값이 있다",
+      "generatable": true
+    },
+    "premium_price_position": {
+      "family": "price",
+      "inputs": {
+        "cpi": "db_snapshot",
+        "rating_gap": "db_snapshot"
+      },
+      "generatable": true
+    },
+    "price_quality_mismatch": {
+      "family": "alert",
+      "inputs": {
+        "cpi": "db_snapshot",
+        "rating_gap": "db_snapshot"
+      },
+      "note": "brand_metrics.cpi는 2026-08-31에 face_powder만 값이 있다(나머지 카테고리 NULL, lip_makeup은 raw_data price도 전부 NULL)",
+      "generatable": true
+    },
+    "rank_decline_alert": {
+      "family": "alert",
+      "inputs": {
+        "rank_change_7d": "history_not_stored",
+        "rank_volatility": "history_not_stored"
+      },
+      "generatable": false
+    },
+    "rating_momentum_positive": {
+      "family": "growth",
+      "inputs": {
+        "rating_trend": "history_not_stored",
+        "review_count": "db_snapshot"
+      },
+      "generatable": false
+    },
+    "sentiment_effectiveness_strong": {
+      "family": "sentiment",
+      "inputs": {
+        "sentiment_clusters": "absent"
+      },
+      "generatable": false
+    },
+    "sentiment_gap_sensory": {
+      "family": "sentiment",
+      "inputs": {
+        "sentiment_clusters": "absent",
+        "competitor_sentiment_clusters": "absent"
+      },
+      "generatable": false
+    },
+    "sentiment_strength_hydration": {
+      "family": "sentiment",
+      "inputs": {
+        "sentiment_clusters": "absent"
+      },
+      "generatable": false
+    },
+    "sentiment_usability_strength": {
+      "family": "sentiment",
+      "inputs": {
+        "sentiment_clusters": "absent"
+      },
+      "generatable": false
+    },
+    "sentiment_value_advantage": {
+      "family": "sentiment",
+      "inputs": {
+        "sentiment_tags": "absent",
+        "competitor_sentiment_tags": "absent"
+      },
+      "generatable": false
+    },
+    "sentiment_weakness_packaging": {
+      "family": "sentiment",
+      "inputs": {
+        "sentiment_clusters": "absent",
+        "competitor_sentiment_clusters": "absent"
+      },
+      "generatable": false
+    },
+    "stable_growth": {
+      "family": "growth",
+      "inputs": {
+        "streak_days": "history_not_stored",
+        "rank_change_7d": "history_not_stored"
+      },
+      "generatable": false
+    },
+    "strong_avg_rank": {
+      "family": "market",
+      "inputs": {
+        "avg_rank": "db_snapshot",
+        "is_target": "target_flag"
+      },
+      "generatable": true
+    },
+    "strong_rating_position": {
+      "family": "growth",
+      "inputs": {
+        "rating_gap": "db_snapshot",
+        "is_target": "target_flag"
+      },
+      "generatable": true
+    },
+    "top10_stability": {
+      "family": "growth",
+      "inputs": {
+        "current_rank": "db_snapshot",
+        "streak_days": "history_not_stored",
+        "rank_volatility": "history_not_stored"
+      },
+      "generatable": false
+    },
+    "top3_achievement": {
+      "family": "growth",
+      "inputs": {
+        "current_rank": "db_snapshot",
+        "is_target": "target_flag"
+      },
+      "generatable": true
+    },
+    "trend_alignment_opportunity": {
+      "family": "growth",
+      "inputs": {
+        "trend_keywords": "absent",
+        "is_target": "target_flag"
+      },
+      "generatable": false
+    },
+    "value_position": {
+      "family": "price",
+      "inputs": {
+        "cpi": "db_snapshot",
+        "rating_gap": "db_snapshot"
+      },
+      "generatable": true
+    },
+    "viral_effect": {
+      "family": "price",
+      "inputs": {
+        "price_stable": "no_derivation_defined",
+        "rank_change_7d": "history_not_stored"
+      },
+      "generatable": false
+    }
+  },
+  "metric_facts_serves": {
+    "sos": "brand_share.sos",
+    "hhi": "category_market.hhi",
+    "category_avg_price": "category_market.category_avg_price",
+    "current_rank": "brand_products.products[0].rank (브랜드 상위 3개 제품)",
+    "price": "category_top_products/brand_products 의 price (상위 5·3개 제품만)",
+    "rank": "category_top_products/brand_products 의 rank (상위 5·3개 제품만)",
+    "avg_rank": null,
+    "cpi": null,
+    "rating_gap": null,
+    "parent_group": null
+  },
+  "excluded": [
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "CHI",
+      "category": "face_powder",
+      "reason": "브랜드 귀속 검증 실패: 'CHI' 행의 제품명에 브랜드명 없음 ['KimChiChic Beauty Puff Puff Pass Set & Bake Loose Setting Po', 'Chillab Lavender Matte Powder, Original Compact, Oil-Control']"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "CHI",
+      "category": "face_powder",
+      "reason": "브랜드 귀속 검증 실패: 'CHI' 행의 제품명에 브랜드명 없음 ['KimChiChic Beauty Puff Puff Pass Set & Bake Loose Setting Po', 'Chillab Lavender Matte Powder, Original Compact, Oil-Control']"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "CHI",
+      "category": "face_powder",
+      "reason": "브랜드 귀속 검증 실패: 'CHI' 행의 제품명에 브랜드명 없음 ['KimChiChic Beauty Puff Puff Pass Set & Bake Loose Setting Po', 'Chillab Lavender Matte Powder, Original Compact, Oil-Control']"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Tarte",
+      "category": "face_powder",
+      "reason": "결론 불일치 지표테이블=False raw재계산=True",
+      "metric_tables": {
+        "cpi": 215.1,
+        "rating_gap": 0.019
+      },
+      "raw_recomputed": {
+        "cpi": 209.1,
+        "rating_gap": -0.083
+      }
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Tarte",
+      "category": "face_powder",
+      "reason": "결론 불일치 지표테이블=True raw재계산=False",
+      "metric_tables": {
+        "cpi": 215.1,
+        "rating_gap": 0.019
+      },
+      "raw_recomputed": {
+        "cpi": 209.1,
+        "rating_gap": -0.083
+      }
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:10",
+      "category": "face_powder",
+      "reason": "브랜드 귀속 검증 실패: 'CHI' 행의 제품명에 브랜드명 없음 ['KimChiChic Beauty Puff Puff Pass Set & Bake Loose Setting Po', 'Chillab Lavender Matte Powder, Original Compact, Oil-Control']"
+    },
+    {
+      "kind": "A_fragmented_market",
+      "subject": "face_powder",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "A_fragmented_market",
+      "subject": "beauty",
+      "category": "beauty",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "B_concentrated_market",
+      "subject": "skin_care",
+      "category": "skin_care",
+      "reason": "종류별 상한 1 초과(유효 후보)"
+    },
+    {
+      "kind": "C_dominance_fragmented",
+      "subject": "Maybelline",
+      "category": "lip_makeup",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "D_challenger",
+      "subject": "Maybelline",
+      "category": "lip_makeup",
+      "reason": "종류별 상한 1 초과(유효 후보)"
+    },
+    {
+      "kind": "G_top3_achievement",
+      "subject": "LANEIGE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Burt's Bees",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "COVERGIRL",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Catrice",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Charlotte Tilbury",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Clinique",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "ETUDE",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Fresh",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Innisfree",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "L'Oreal",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "LANEIGE",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Laura Mercier",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Maybelline",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Milani",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Morphe",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "NYX",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Neutrogena",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Physicians Formula",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Revlon",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Rimmel",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "SKINFOOD",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Supergoop",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Urban Decay",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "Wet n Wild",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "I_price_quality_mismatch",
+      "subject": "e.l.f.",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Burt's Bees",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Catrice",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Charlotte Tilbury",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Clinique",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "ETUDE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Fresh",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "IT Cosmetics",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Innisfree",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Jouer",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "L'Oreal",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "LANEIGE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Laura Mercier",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Maybelline",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Milani",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Morphe",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "NYX",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Neutrogena",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Physicians Formula",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Revlon",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Rimmel",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "SKINFOOD",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Supergoop",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Tarte",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Urban Decay",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "Wet n Wild",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "J_value_position",
+      "subject": "e.l.f.",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Burt's Bees",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "COVERGIRL",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Catrice",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Clinique",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "ETUDE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Fresh",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "IT Cosmetics",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Innisfree",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Jouer",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "L'Oreal",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "LANEIGE",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Laura Mercier",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Maybelline",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Milani",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Morphe",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "NYX",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Neutrogena",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Physicians Formula",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Revlon",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Rimmel",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "SKINFOOD",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Supergoop",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Urban Decay",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "Wet n Wild",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "K_premium_position",
+      "subject": "e.l.f.",
+      "category": "face_powder",
+      "reason": "종류별 상한 2 초과(유효 후보)"
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:3",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:4",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:5",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:6",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:7",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    },
+    {
+      "kind": "L_premium_defense",
+      "subject": "rank:8",
+      "category": "face_powder",
+      "reason": "종류별 상한 3 초과(유효 후보)"
+    }
+  ],
+  "counts": {
+    "generated": 32,
+    "by_rule": {
+      "brand_ownership_verification": 3,
+      "category_entry_opportunity": 6,
+      "challenger_position": 2,
+      "fragmented_market_competition": 3,
+      "market_dominance_concentrated": 1,
+      "market_dominance_fragmented": 6,
+      "premium_defense_success": 3,
+      "premium_price_position": 2,
+      "price_quality_mismatch": 3,
+      "strong_avg_rank": 3,
+      "strong_rating_position": 3,
+      "top3_achievement": 2,
+      "value_position": 2
+    },
+    "max_relative_diff": {
+      "n": 29,
+      "max": 0.25,
+      "median": 0.0646
+    }
+  }
+}

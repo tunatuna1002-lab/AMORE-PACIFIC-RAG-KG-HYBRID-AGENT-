@@ -9,8 +9,10 @@ Level 4 Autonomous Agent의 통합 상태 관리
 3. 사용자 설정 (이메일 동의 등) 관리
 4. 상태 영속화
 
+크롤링 상태(last_crawl_time / data_freshness)는 여기서 관리하지 않는다.
+정본은 core/state.py의 OrchestratorState이며, BatchWorkflow 완료 지점에서 갱신된다.
+
 관리하는 상태:
-- 크롤링 상태 (마지막 시간, 성공 여부)
 - KG 상태 (초기화, 트리플 수)
 - 에이전트 상태 (실행 중, 완료, 실패)
 - 사용자 설정 (이메일 동의, 알림 설정)
@@ -18,9 +20,6 @@ Level 4 Autonomous Agent의 통합 상태 관리
 
 Usage:
     state_manager = StateManager()
-
-    # 크롤링 완료 표시
-    state_manager.mark_crawled(products_count=150)
 
     # 이메일 동의 등록
     state_manager.register_email("user@example.com", consent=True)
@@ -32,7 +31,7 @@ Usage:
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -149,12 +148,6 @@ class StateManager:
         self.persist_dir = persist_dir
         self.persist_dir.mkdir(parents=True, exist_ok=True)
 
-        # 크롤링 상태
-        self.last_crawl_time: datetime | None = None
-        self.last_crawl_success: bool = False
-        self.last_crawl_count: int = 0
-        self.data_freshness: DataFreshness = DataFreshness.UNKNOWN
-
         # KG 상태
         self.kg_initialized: bool = False
         self.kg_triple_count: int = 0
@@ -176,46 +169,6 @@ class StateManager:
         # 로드
         self._load_state()
         self._load_subscriptions()
-
-    # =========================================================================
-    # 크롤링 상태 관리
-    # =========================================================================
-
-    def is_crawl_needed(self) -> bool:
-        """오늘 크롤링이 필요한지 판단"""
-        if self.last_crawl_time is None:
-            return True
-
-        return self.last_crawl_time.date() < date.today()
-
-    def mark_crawled(self, success: bool = True, products_count: int = 0) -> None:
-        """
-        크롤링 완료 표시
-
-        Args:
-            success: 성공 여부
-            products_count: 수집된 제품 수
-        """
-        self.last_crawl_time = datetime.now()
-        self.last_crawl_success = success
-        self.last_crawl_count = products_count
-        self.data_freshness = DataFreshness.FRESH if success else DataFreshness.UNKNOWN
-
-        logger.info(f"Crawl marked: success={success}, count={products_count}")
-        self._save_state()
-
-    def mark_data_stale(self) -> None:
-        """데이터를 stale로 표시"""
-        self.data_freshness = DataFreshness.STALE
-        self._save_state()
-
-    def get_data_age_hours(self) -> float | None:
-        """데이터 경과 시간 (시간 단위)"""
-        if self.last_crawl_time is None:
-            return None
-
-        delta = datetime.now() - self.last_crawl_time
-        return delta.total_seconds() / 3600
 
     # =========================================================================
     # KG 상태 관리
@@ -436,10 +389,6 @@ class StateManager:
     def to_dict(self) -> dict[str, Any]:
         """상태를 딕셔너리로"""
         return {
-            "last_crawl_time": self.last_crawl_time.isoformat() if self.last_crawl_time else None,
-            "last_crawl_success": self.last_crawl_success,
-            "last_crawl_count": self.last_crawl_count,
-            "data_freshness": self.data_freshness.value,
             "kg_initialized": self.kg_initialized,
             "kg_triple_count": self.kg_triple_count,
             "kg_last_update": self.kg_last_update.isoformat() if self.kg_last_update else None,
@@ -452,15 +401,17 @@ class StateManager:
         """LLM 컨텍스트용 요약"""
         parts = []
 
-        # 크롤링 상태
-        if self.last_crawl_time:
-            age = self.get_data_age_hours()
-            age_str = f"{age:.1f}시간 전" if age else "알 수 없음"
-            parts.append(f"크롤링: {age_str}")
-        else:
-            parts.append("크롤링: 없음")
+        # 크롤링 상태는 정본인 OrchestratorState에서 읽는다
+        try:
+            from src.core.state import OrchestratorState
 
-        parts.append(f"데이터: {self.data_freshness.value}")
+            crawl_state = OrchestratorState()
+            age = crawl_state.get_data_age_hours()
+            parts.append(f"크롤링: {age:.1f}시간 전" if age is not None else "크롤링: 없음")
+            parts.append(f"데이터: {crawl_state.data_freshness}")
+        except Exception as e:
+            logger.warning(f"크롤 상태 조회 실패: {e}")
+            parts.append("크롤링: 알 수 없음")
 
         # KG 상태
         if self.kg_initialized:
@@ -501,18 +452,12 @@ class StateManager:
             with open(state_path, encoding="utf-8") as f:
                 data = json.load(f)
 
-            if data.get("last_crawl_time"):
-                self.last_crawl_time = datetime.fromisoformat(data["last_crawl_time"])
-
             if data.get("kg_last_update"):
                 self.kg_last_update = datetime.fromisoformat(data["kg_last_update"])
 
             if data.get("last_metrics_time"):
                 self.last_metrics_time = datetime.fromisoformat(data["last_metrics_time"])
 
-            self.last_crawl_success = data.get("last_crawl_success", False)
-            self.last_crawl_count = data.get("last_crawl_count", 0)
-            self.data_freshness = DataFreshness(data.get("data_freshness", "unknown"))
             self.kg_initialized = data.get("kg_initialized", False)
             self.kg_triple_count = data.get("kg_triple_count", 0)
 
@@ -556,10 +501,6 @@ class StateManager:
 
     def reset(self) -> None:
         """전체 상태 초기화"""
-        self.last_crawl_time = None
-        self.last_crawl_success = False
-        self.last_crawl_count = 0
-        self.data_freshness = DataFreshness.UNKNOWN
         self.kg_initialized = False
         self.kg_triple_count = 0
         self.kg_last_update = None

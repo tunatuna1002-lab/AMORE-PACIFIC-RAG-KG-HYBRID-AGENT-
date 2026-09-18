@@ -1,0 +1,140 @@
+{
+  "item_id": "lg211",
+  "question": "2025년 3분기 아모레퍼시픽 해외 사업 매출은 얼마인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 1.0,
+    "concept_map_f1": 0.6666666666666666,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 0.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.09523809523809523,
+    "semantic_similarity": 0.5681806206703186,
+    "groundedness_score": 0.4,
+    "answer_relevance_score": 0.4,
+    "factuality_score": 0.6,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.3745965733206461,
+  "fail_reason_tags": [
+    "L2_doc_retrieval_fail",
+    "L5_wrong_answer",
+    "L5_grounding_fail",
+    "L5_relevance_fail"
+  ],
+  "trace": {
+    "item_id": "lg211",
+    "timestamp": "2026-09-17T16:35:32.998845",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "data_query"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "chunk_0",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "amazon_ranking_diagnosis_9_2",
+        "home_insight_rules_13",
+        "amazon_ranking_diagnosis_9_1",
+        "amazon_algorithm_guide_1_0"
+      ],
+      "snippets": [
+        "### 4.3. 미래 초격차 전략: 미용 기기, 초개인화, 원료 혁신 \n![image]()\n1. **미용 기기****와의 결합을 통한 ****초격차**:\n  1. K-뷰티가 보여주는 초격차는 시장을 새로 만들어내는 **창조적 ****혁신**에 있다 \n  2. 화장품 효과를 극대화하기 위해 **미용 기기**를 활용하며, 피부과나 병원 접근이 쉽지 않은 해외에",
+        "2. **화장품 전문 편집숍의 역할**:\n  1. 한겨울 이른 아침에도 외국인들이 줄을 서서 기다릴 정도로 인기가 높다 \n  2. 다양한 화장품을 써보고 체험하는 공간은 여행자들에게 새로운 경험을 제공한다 \n  3. 이 편집숍 체인의 2025년 외국인 매출은 <mark>1조 원</mark>을 돌파했으며, 이는 2022년 대비 <mark>26% 증가</mar",
+        "3. **물류 회사의 조연 역할**:\n  1. 화장품 전문 물류 회사는 운송과 납품을 넘어 **주연급 조연** 역할을 한다 \n  2. 중소기업들이 어려워하는 **세관 통과**를 책임지고, 나라마다 다른 **규제 장벽**을 돌파하도록 돕는다 \n  3. 초거대 전자상거래 기업과의 경쟁, 전 세계 물류망 및 창고 유지 비용, 재고 부담 등을 감당하고도 남을 정도",
+        "customers",
+        "3663511655†L14-L22】.\n- Carbon6. 2025. *How to Improve Amazon Organic Ranking in 2025* – 아마존 검색 알고리즘의 주요 요소로 판매 속도, 키워드 적합성, 고객 참여(CTR, 전환율), 콘텐츠 품질, 가격 경쟁력, 재고 상태, 리뷰·고객 만족도 및 외부 트래픽을 제시한다【34026145652",
+        "4. 프로토타입 기본 더미 값 예시(선택)\n\n- SoS: 15% (Stable)\n- HHI: 0.30 (Concentrated)\n- Brand Avg Rank: 22\n- CPI: 120\n- Avg Rating Gap: -0.5\n- Churn Rate: 0.18\n- Rank Shock count: 3\n- Streak Days top: 7, 6, 5\n- Rat",
+        "- Amazon. 2025. *Guide to Amazon Sales Rank: BSR* – 아마존은 BSR을 최근 및 누적 판매량으로 계산하며, 고객 리뷰나 페이지 조회수는 BSR에 직접 영향을 미치지 않는다【437377726246902†L408-L415】. BSR 개선을 위한 방법으로 카테고리 선택, 가격 경쟁력 확보, 광고 활용 등을 제시한다【4373",
+        "**1\\. 서론: 2025-2026년 아마존 검색 생태계와 랭킹 물리학의 변화**\n\n전자상거래의 중력 중심인 아마존 마켓플레이스에서 베스트 셀러 랭킹(Best Sellers Rank, 이하 BSR)은 단순한 숫자가 아닌, 제품의 생존 가능성을 나타내는 바이탈 사인(Vital Sign)과 같습니다. 그러나 2025년과 2026년을 기점으로 아마존의 검색 및 "
+      ],
+      "scores": [
+        1.0,
+        0.762953733015348,
+        0.6783070643327599,
+        0.6976770114288019,
+        0.3327847719192505,
+        0.30056047439575195,
+        0.25325798988342285,
+        0.25102174282073975
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "제공된 데이터 내에 2025년 3분기 아모레퍼시픽 해외 사업 매출에 대한 구체적인 수치 정보는 없습니다. 다만, K-뷰티 해외 시장이 매년 두 배 이상 성장하고 있고, 해외 매출 비중이 점차 커지고 있다는 점에서 아모레퍼시픽의 해외 매출도 상당한 성장세를 보일 것으로 추정됩니다. 정확한 매출액은 별도의 공식 재무자료 확인이 필요합니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 1128,
+      "judge_tokens": 2547,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.00021735,
+      "judge_cost_usd": 0.00077355
+    },
+    "latency_ms": 4873.012065887451,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": false,
+    "domain": "ir",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

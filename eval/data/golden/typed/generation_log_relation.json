@@ -1,0 +1,10 @@
+{
+  "generator": "scripts/generate_relation_questions.py",
+  "generated": 19,
+  "excluded": [
+    {
+      "candidate": "acquired/TATA HARPER",
+      "reason": "TATA HARPER: acquiredIn 값이 연도가 아님 'True'"
+    }
+  ]
+}

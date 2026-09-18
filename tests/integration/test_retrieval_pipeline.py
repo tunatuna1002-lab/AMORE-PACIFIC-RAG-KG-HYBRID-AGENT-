@@ -49,7 +49,6 @@ class TestRetrievalPipelineBasic:
                 knowledge_graph=mock_kg,
                 reasoner=mock_reasoner,
                 doc_retriever=mock_doc,
-                owl_strategy=None,
             )
             # Patch legacy retrieve to return mock context
             retriever.retrieve = AsyncMock(return_value=mock_context)
@@ -61,56 +60,6 @@ class TestRetrievalPipelineBasic:
             assert "LANEIGE" in result.entities["brands"]
             assert len(result.rag_chunks) == 1
             assert result.retriever_type == "legacy"
-
-    @pytest.mark.asyncio
-    async def test_retrieve_unified_owl_path(self):
-        """Test HybridRetriever.retrieve_unified() via OWL strategy"""
-        owl_result = UnifiedRetrievalResult(
-            query="test query",
-            entities={"brands": ["LANEIGE"]},
-            ontology_facts=[
-                {"subject": "LANEIGE", "predicate": "hasCategory", "object": "lip_care"}
-            ],
-            inferences=[{"type": "growth", "content": "Growing trend"}],
-            rag_chunks=[{"content": "test", "score": 0.8, "metadata": {}}],
-            combined_context="OWL context",
-            confidence=0.85,
-            entity_links=[{"text": "LANEIGE", "type": "brand"}],
-            metadata={"retrieval_time_ms": 150},
-            retriever_type="owl",
-        )
-
-        mock_strategy = AsyncMock()
-        mock_strategy.retrieve = AsyncMock(return_value=owl_result)
-
-        mock_kg = MagicMock()
-        mock_kg.get_entity_metadata = MagicMock(return_value=None)
-        mock_kg.get_brand_products = MagicMock(return_value=[])
-        mock_kg.get_competitors = MagicMock(return_value=[])
-        mock_kg.get_category_hierarchy = MagicMock(return_value=[])
-        mock_kg.query_triples = MagicMock(return_value=[])
-
-        mock_reasoner = MagicMock()
-        mock_reasoner.rules = []
-
-        mock_doc = AsyncMock()
-
-        with patch("src.rag.hybrid_retriever.register_all_rules"):
-            from src.rag.hybrid_retriever import HybridRetriever
-
-            retriever = HybridRetriever(
-                knowledge_graph=mock_kg,
-                reasoner=mock_reasoner,
-                doc_retriever=mock_doc,
-                owl_strategy=mock_strategy,
-            )
-
-            result = await retriever.retrieve_unified("test query")
-
-            assert isinstance(result, UnifiedRetrievalResult)
-            assert result.query == "test query"
-            assert result.confidence == 0.85
-            assert result.retriever_type == "owl"
 
 
 class TestRetrievalPipelineContextOutput:
@@ -128,7 +77,7 @@ class TestRetrievalPipelineContextOutput:
             combined_context="context",
             confidence=0.8,
             metadata={"retrieval_time_ms": 100, "entity_count": 1},
-            retriever_type="owl",
+            retriever_type="legacy",
         )
 
         assert hasattr(result, "query")
@@ -149,15 +98,10 @@ class TestRetrievalPipelineMultiQuery:
     async def test_multiple_queries_maintain_isolation(self):
         """Test multiple queries don't interfere with each other"""
 
-        async def make_result(query, **kwargs):
-            return UnifiedRetrievalResult(
-                query=query,
-                combined_context=f"Context for {query}",
-                retriever_type="owl",
-            )
+        from src.rag.hybrid_retriever import HybridContext
 
-        mock_strategy = AsyncMock()
-        mock_strategy.retrieve = AsyncMock(side_effect=make_result)
+        async def make_context(query, **kwargs):
+            return HybridContext(query=query, combined_context=f"Context for {query}")
 
         mock_kg = MagicMock()
         mock_kg.get_entity_metadata = MagicMock(return_value=None)
@@ -178,8 +122,8 @@ class TestRetrievalPipelineMultiQuery:
                 knowledge_graph=mock_kg,
                 reasoner=mock_reasoner,
                 doc_retriever=mock_doc,
-                owl_strategy=mock_strategy,
             )
+            retriever.retrieve = AsyncMock(side_effect=make_context)
 
             result1 = await retriever.retrieve_unified("query 1")
             result2 = await retriever.retrieve_unified("query 2")

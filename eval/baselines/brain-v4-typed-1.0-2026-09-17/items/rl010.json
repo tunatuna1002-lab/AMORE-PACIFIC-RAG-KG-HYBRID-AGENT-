@@ -1,0 +1,177 @@
+{
+  "item_id": "rl010",
+  "question": "아모레퍼시픽 그룹 브랜드 TATA HARPER의 원산지(출신 국가)는 어디인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.5,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13333333333333333,
+    "semantic_similarity": 0.8251066207885742,
+    "groundedness_score": 0.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 1.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6962595958709716,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "rl010",
+    "timestamp": "2026-09-17T21:55:43.125561",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_1_0",
+        "strategic_indicators_1_0",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "negative_issue_response_7_1",
+        "negative_issue_response_0",
+        "laneige_influencer_map_1_1"
+      ],
+      "snippets": [
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "A. Level 1: Market & Brand\n### (거시적 시장 분석)\n\n---\n\n### 1. SoS (Share of Shelf)\n\n- **정의**\n  - Top N 랭킹 리스트 내에서 특정 브랜드가 차지하는 제품 비중\n\n- **산출식**\nSoS = (자사 브랜드 진입 제품 수 / Top N 전체 제품 수) × 100\n\n- **사용 데이터**\n- 제",
+        "2. **ODM**** 시스템의 효율성과 ****혁신****성** \n  1. **연구 개발**** 기록**: 빽빽하게 꽂힌 파일들은 화장품 개발 과정이 기록된 K-뷰티의 설계도이며, 연구원들은 이 연구 노트를 바탕으로 선배들의 연구를 리뷰하고 신제품 개발에 활용한다 \n  2. **최적화된 구조**:\n  1. ODM 설비를 이용하는 신생 화장품 회사는 초기 ",
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "1.2 Brand Health Status (브랜드 건강 상태 배지/카드)\n\n### 목표\n- 수치 대신 “상태”로 요약\n- 3개 카드(권장): 브랜드 노출, 시장 구조, 이상 신호\n\n### 상태 정의 (권장 라벨)\n- 브랜드 노출 상태(SoS 중심):\n  - Stable / Up / Down\n- 시장 구조(HHI 중심):\n  - Competitive / C",
+        "1. **라운드랩**은 '규제 준수'라는 방어 논리를 넘어, 미국 소비자를 위한 텍스처 개선(2.0 버전)을 서둘러야 하며, 오리지널과 미국 버전의 차이를 솔직하게 커뮤니케이션해야 한다.  \n2. **아누아**는 '모공 마케팅'의 수위를 조절하고, 트러블 발생 시 책임 있는 환불/케어 정책을 통해 '먹튀 브랜드'라는 오명을 씻어내야 한다.  \n3. **티르",
+        "# **2026년 1월 미국 시장 내 K-뷰티 및 바이럴 스킨케어 브랜드에 대한 부정 이슈 심층 분석 및 조기 경보 리포트**",
+        "이러한 기술적 우위를 바탕으로 라네즈는 미국 시장에서 이중적인 브랜드 정체성을 구축했습니다. 한편으로는 임상 실험과 특허 성분(2,000배 작은 초저분자 히알루론산 등)을 강조하는 \\*\\*'임상적 권위(Clinical Authority)'\\*\\*를 내세우며, 다른 한편으로는 립 슬리핑 마스크의 다양한 향(Berry, Gummy Bear, Hot Cocoa)"
+      ],
+      "scores": [
+        3.67147285371922,
+        3.347497938584296,
+        1.0,
+        0.773530743152533,
+        0.7700235261893844,
+        0.2877430319786072,
+        0.26405787467956543,
+        0.2573443651199341
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "TATA HARPER 브랜드의 원산지(출신 국가)는 미국입니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "general",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 989,
+      "judge_tokens": 1713,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 972,
+      "l5_completion_tokens": 17,
+      "judge_prompt_tokens": 1392,
+      "judge_completion_tokens": 321,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.000416,
+      "judge_cost_usd": 0.0010704,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 2816.5078163146973,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 5.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 1.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

@@ -322,6 +322,99 @@ class TestQueryGraphRouting:
         state.confidence_level = ConfidenceLevel.MEDIUM
         assert graph._route_after_confidence(state) == "decide"
 
+    # -------------------------------------------------------------------
+    # react_bypass_confidence 플래그 (트랙 6)
+    #
+    # 기본 동작: HIGH 신뢰도면 홉 라우터를 보지 않고 바로 generate_response로 간다.
+    # 플래그가 True이고 react 모드가 "on"이며 라우터가 2홉 이상(use_react)이라고
+    # 판단하면, HIGH 신뢰도라도 react로 보낸다 — 측정용 opt-in 변형.
+    # -------------------------------------------------------------------
+
+    def test_route_high_confidence_bypass_react_when_flag_and_use_react(self, mock_components):
+        """HIGH + react_bypass_confidence=True + react ON + 2홉 이상 → react"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=2, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="on",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "react"
+
+    def test_route_high_confidence_flag_off_still_direct(self, mock_components):
+        """같은 조건이라도 react_bypass_confidence=False(기본)면 기존처럼 generate_response"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=2, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="on",
+            react_bypass_confidence=False,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "generate_response"
+
+    def test_route_high_confidence_bypass_flag_but_shadow_mode_stays_direct(self, mock_components):
+        """플래그 True라도 react_mode가 shadow면 react로 가지 않는다"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=2, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="shadow",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "generate_response"
+
+    def test_route_high_confidence_bypass_flag_one_hop_stays_direct(self, mock_components):
+        """플래그 True + react ON이라도 1홉이면 generate_response"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=1, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="on",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "generate_response"
+
+    def test_route_unknown_confidence_bypass_flag_still_clarification(self, mock_components):
+        """UNKNOWN은 플래그·react 모드와 무관하게 항상 clarification"""
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = False
+        mock_components["confidence_assessor"].should_request_clarification.return_value = True
+        graph = QueryGraph(
+            **mock_components,
+            react_mode="on",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.UNKNOWN
+        assert graph._route_after_confidence(state) == "clarification"
+
     def test_route_after_decide_needs_tool(self, graph):
         state = QueryState(query="test")
         state.decision = Decision(
@@ -373,8 +466,34 @@ class TestQueryGraphHelpers:
         )
         assert not QueryGraph._is_complex_query("순위 알려줘", context)
 
+    def test_assess_query_intent_domain_and_intent_combined(self):
+        """도메인 + 의도 키워드 조합 (brain.py에서 옮겨옴, 트랙 5-A)"""
+        assert QueryGraph._assess_query_intent("laneige 순위 분석해줘") >= 2.0
+
     def test_is_complex_query_none_context(self):
         assert not QueryGraph._is_complex_query("왜?", None)
+
+    def test_is_complex_query_low_context_with_multi_step(self):
+        """컨텍스트 부족 + 다단계 질문 → 복잡 (brain.py에서 옮겨옴, 트랙 5-A)"""
+        context = Context(query="LANEIGE 그리고 COSRX?", rag_docs=[], kg_facts=[])
+        assert QueryGraph._is_complex_query("LANEIGE 그리고 COSRX?", context) is True
+
+    def test_is_complex_query_compound_query(self):
+        """QueryRouter 복합 질의 감지 — brain.py 구현에는 없던 분기"""
+        context = Context(query="q", rag_docs=[{"doc": 1}, {"doc": 2}])
+        context.kg_triples = [("laneige", "competes_with", "cosrx")]
+        assert QueryGraph._is_complex_query("LANEIGE 순위와 COSRX 순위 알려줘", context) is True
+
+    def test_extract_key_points_limits_results(self):
+        """사실 3개 + 추론 2개까지만 (brain.py에서 옮겨옴, 트랙 5-A)"""
+        facts = []
+        for i in range(10):
+            fact = MagicMock()
+            fact.entity = f"Brand{i}"
+            fact.fact_type = f"type{i}"
+            facts.append(fact)
+        context = Context(query="test", kg_facts=facts)
+        assert len(QueryGraph._extract_key_points(context)) <= 5
 
     def test_extract_key_points_empty(self):
         assert QueryGraph._extract_key_points(None) == []
@@ -536,3 +655,102 @@ class TestQueryGraphEndToEnd:
         state = await graph._node_react(state)
         assert state.response is not None
         assert state.response.is_fallback is True
+
+
+# =============================================================================
+# 폴백 경로 (brain.py의 _generate_response·_process_with_react에서 옮겨옴, 트랙 5-A)
+# =============================================================================
+
+
+class TestGenerateResponseFallback:
+    """ResponsePipeline이 없을 때의 폴백 응답 생성"""
+
+    @pytest.fixture
+    def graph_without_pipeline(self, mock_components):
+        return QueryGraph(**{**mock_components, "response_pipeline": None})
+
+    @pytest.mark.asyncio
+    async def test_fallback_uses_tool_result(self, graph_without_pipeline):
+        state = QueryState(query="test")
+        state.context = Context(query="test")
+        state.decision = Decision(tool="get_metrics", confidence=0.8, reason="test")
+        state.tool_result = ToolResult(
+            tool_name="get_metrics", success=True, data={"brand": "LANEIGE", "sos": 12.5}
+        )
+
+        state = await graph_without_pipeline._node_generate_response(state)
+
+        assert "도구 실행 결과" in state.response.text
+        assert "LANEIGE" in state.response.text
+        assert state.response.tools_called == ["get_metrics"]
+
+    @pytest.mark.asyncio
+    async def test_fallback_uses_context_summary(self, graph_without_pipeline):
+        state = QueryState(query="test")
+        state.context = Context(query="test", summary="LANEIGE는 Lip Care에서 4위입니다")
+        state.decision = Decision(tool="direct_answer", confidence=0.8, reason="test")
+
+        state = await graph_without_pipeline._node_generate_response(state)
+
+        assert "LANEIGE는 Lip Care에서 4위입니다" in state.response.text
+        assert state.response.tools_called == []
+
+    @pytest.mark.asyncio
+    async def test_fallback_without_any_information(self, graph_without_pipeline):
+        state = QueryState(query="test")
+        state.context = Context(query="test")
+        state.decision = Decision(tool="direct_answer", confidence=0.5, reason="test")
+
+        state = await graph_without_pipeline._node_generate_response(state)
+
+        assert "관련 정보를 찾을 수 없습니다" in state.response.text
+
+
+class TestReActNodeOutcomes:
+    """_node_react의 성공·예외 경로"""
+
+    @pytest.mark.asyncio
+    async def test_react_success_collects_actions(self, graph, mock_components):
+        step = MagicMock()
+        step.action = "search_kg"
+        result = MagicMock()
+        result.final_answer = "LANEIGE is #4 in Lip Care"
+        result.confidence = 0.85
+        result.steps = [step]
+        result.needs_improvement = False
+        mock_components["react_agent"].run.return_value = result
+
+        state = QueryState(query="왜 LANEIGE가 하락했나?")
+        state.context = Context(query="test", rag_docs=[{"content": "doc"}], summary="요약")
+
+        state = await graph._node_react(state)
+
+        assert state.response.text == "LANEIGE is #4 in Lip Care"
+        assert state.response.confidence_score == 0.85
+        assert state.response.tools_called == ["search_kg"]
+
+    @pytest.mark.asyncio
+    async def test_react_exception_becomes_fallback(self, graph, mock_components):
+        mock_components["react_agent"].run.side_effect = Exception("ReAct error")
+
+        state = QueryState(query="test")
+        state.context = Context(query="test")
+
+        state = await graph._node_react(state)
+
+        assert state.response.is_fallback
+        assert "ReAct 처리 실패" in state.response.text
+
+    @pytest.mark.asyncio
+    async def test_react_empty_answer_becomes_fallback(self, graph, mock_components):
+        result = MagicMock()
+        result.final_answer = ""
+        mock_components["react_agent"].run.return_value = result
+
+        state = QueryState(query="test")
+        state.context = Context(query="test")
+
+        state = await graph._node_react(state)
+
+        assert state.response.is_fallback
+        assert "ReAct 분석이 답변을 만들지 못했습니다" in state.response.text

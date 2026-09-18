@@ -17,7 +17,7 @@ Critical test areas:
 - _build_summary() formatting
 - _build_decision_summary() formatting
 - _format_system_state() variations
-- _format_kg_fact() for all fact types
+- _build_summary() renders only system state + prompt evidence cards
 - get_stats() with/without retriever
 """
 
@@ -499,66 +499,16 @@ class TestHelperMethods:
         assert "데이터 상태: unknown" in result
         assert "KG:" not in result  # kg_initialized=False이므로 표시 안함
 
-    def test_format_kg_fact_brand_info(self):
-        """_format_kg_fact() - brand_info 타입"""
-        gatherer = ContextGatherer()
-        fact = KGFact(fact_type="brand_info", entity="LANEIGE", data={"sos": 0.15, "avg_rank": 5.2})
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert "LANEIGE" in result
-        assert "SoS 15.0%" in result
-        assert "평균순위 5.2" in result
-
-    def test_format_kg_fact_brand_products(self):
-        """_format_kg_fact() - brand_products 타입"""
-        gatherer = ContextGatherer()
-        fact = KGFact(fact_type="brand_products", entity="LANEIGE", data={"product_count": 12})
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert "LANEIGE 제품 12개" in result
-
-    def test_format_kg_fact_competitors(self):
-        """_format_kg_fact() - competitors 타입"""
-        gatherer = ContextGatherer()
-        fact = KGFact(
-            fact_type="competitors",
-            entity="LANEIGE",
-            data=[{"brand": "Burt's Bees"}, {"brand": "Neutrogena"}],
-        )
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert "LANEIGE 경쟁사:" in result
-        assert "Burt's Bees" in result
-
-    def test_format_kg_fact_category_brands(self):
-        """_format_kg_fact() - category_brands 타입"""
-        gatherer = ContextGatherer()
-        fact = KGFact(
-            fact_type="category_brands",
-            entity="Lip Care",
-            data={"top_brands": [{"brand": "LANEIGE"}, {"brand": "Burt's Bees"}]},
-        )
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert "Lip Care Top 브랜드:" in result
-        assert "LANEIGE" in result
-
-    def test_format_kg_fact_unknown_type(self):
-        """_format_kg_fact() - 알 수 없는 타입"""
-        gatherer = ContextGatherer()
-        fact = KGFact(fact_type="unknown_type", entity="TEST", data={})
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert result == ""
-
     def test_build_summary(self, mock_orchestrator_state):
-        """_build_summary() - 전체 요약 생성"""
+        """_build_summary() - 시스템 상태 + 프롬프트 카드만 (원자료는 카드로만 싣는다, E1)"""
+        from src.rag.evidence_assembly import assemble_evidence
+        from src.rag.evidence_renderer import render_for_prompt
+
         gatherer = ContextGatherer(orchestrator_state=mock_orchestrator_state)
+        rag_docs = [
+            {"id": "doc1_0", "content": "RAG content 1", "metadata": {"title": "Doc 1"}},
+        ]
+        cards = assemble_evidence(rag_chunks=rag_docs).prompt_evidence
         context = Context(
             query="Test",
             system_state=SystemState(
@@ -567,29 +517,23 @@ class TestHelperMethods:
                 kg_initialized=True,
                 kg_triple_count=100,
             ),
-            kg_inferences=[
-                {"insight": "Insight 1", "recommendation": "Rec 1"},
-                {"insight": "Insight 2", "recommendation": "Rec 2"},
-            ],
+            kg_inferences=[{"insight": "Insight 1", "recommendation": "Rec 1"}],
             kg_facts=[
                 KGFact(fact_type="brand_info", entity="LANEIGE", data={"sos": 0.15}),
             ],
-            rag_docs=[
-                {"content": "RAG content 1", "metadata": {"title": "Doc 1"}},
-                {"content": "RAG content 2", "metadata": {}},
-            ],
+            rag_docs=rag_docs,
+            prompt_evidence=cards,
         )
 
         result = gatherer._build_summary(context)
 
-        assert "[시스템 상태]" in result
-        assert "[분석 인사이트]" in result
-        assert "Insight 1" in result
-        assert "Rec 1" in result
-        assert "[관련 정보]" in result
-        assert "LANEIGE" in result
-        assert "[참조 문서]" in result
-        assert "Doc 1" in result
+        assert result.startswith("[시스템 상태]")
+        assert result.endswith(render_for_prompt(cards))
+        assert "Doc 1" in result and "RAG content 1" in result
+        # 카드가 아닌 원자료는 렌더링하지 않는다
+        assert "Insight 1" not in result
+        assert "15.0%" not in result
+        assert "[관련 정보]" not in result
 
     def test_build_summary_empty_context(self):
         """_build_summary() - 빈 컨텍스트"""
@@ -726,26 +670,6 @@ class TestEdgeCases:
 
         assert len(result) == 3  # 정확히 3개
 
-    def test_format_kg_fact_brand_info_partial_data(self):
-        """_format_kg_fact() - 일부 데이터만 있는 brand_info"""
-        gatherer = ContextGatherer()
-        fact = KGFact(fact_type="brand_info", entity="LANEIGE", data={"sos": 0.15})  # avg_rank 없음
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert "LANEIGE" in result
-        assert "SoS 15.0%" in result
-        assert "평균순위" not in result  # avg_rank가 없으므로 표시 안함
-
-    def test_format_kg_fact_competitors_empty_list(self):
-        """_format_kg_fact() - 경쟁사 목록 비어있음"""
-        gatherer = ContextGatherer()
-        fact = KGFact(fact_type="competitors", entity="LANEIGE", data=[])
-
-        result = gatherer._format_kg_fact(fact)
-
-        assert result == ""  # 빈 경쟁사 목록은 표시 안함
-
     @pytest.mark.asyncio
     async def test_gather_summary_appends_system_state(
         self, mock_retriever_unified, mock_orchestrator_state
@@ -775,8 +699,8 @@ class TestEdgeCases:
         assert "[시스템 상태]" in result.summary
         assert result.summary.startswith("[시스템 상태]")
 
-    def test_build_summary_limits_inferences_to_3(self, mock_orchestrator_state):
-        """_build_summary()는 최대 3개의 인사이트만 포함"""
+    def test_build_summary_ignores_raw_inferences_without_cards(self, mock_orchestrator_state):
+        """_build_summary()는 카드가 없는 원자료 추론을 렌더링하지 않는다"""
         gatherer = ContextGatherer(orchestrator_state=mock_orchestrator_state)
         context = Context(
             query="Test",
@@ -787,9 +711,4 @@ class TestEdgeCases:
 
         result = gatherer._build_summary(context)
 
-        # 1, 2, 3은 있어야 함
-        assert "Insight 0" in result
-        assert "Insight 1" in result
-        assert "Insight 2" in result
-        # 4번째 이상은 없어야 함
-        assert "Insight 3" not in result
+        assert result == ""

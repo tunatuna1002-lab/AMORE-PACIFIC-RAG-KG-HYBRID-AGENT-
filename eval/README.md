@@ -126,6 +126,84 @@ Human-readable summary including:
 - **Token F1**: Token-level F1 score
 - **Groundedness Score**: LLM judge score for context grounding (optional)
 - **Answer Relevance Score**: LLM judge score for question relevance (optional)
+- **Numeric Accuracy**: `gold.expected_values`의 수치를 답변이 맞힌 비율.
+  상대 오차 10% 이내면 정답, `x_low`/`x_high` 쌍은 구간 포함으로 판정한다.
+  `expected_values`가 없는 문항은 None(측정 대상 아님).
+  **모델 답변 본문만 본다** — 시스템이 붙인 출처 목록·경고 블록, 줄머리 목록 번호,
+  대괄호 인용은 제외한다. 답변 수치는 키에 맞는 단위를 달고 있어야 한다
+  (SoS·점유율·성장률·격차 `%`, 순위 `위`, 가격 `$`, 개수·리뷰 `개/건`, HHI·비율 무단위).
+  사이클 9 첫 배선 때는 이 두 조건이 없어 출처 목록 번호("2. 🧠")가 SoS 2.0%에
+  걸리는 거짓양성이 대부분이었다(0.465 → 재채점 0.04,
+  `docs/experiments/eval_cycle10_2026-09-12.md`).
+
+## 골드 층(gold_source)과 채점
+
+`metadata.gold_source`는 골드 수치를 무엇으로 검증할 수 있는지를 말한다
+(`scripts/classify_golden_sources.py`). 층에 따라 게이트 적용 범위가 다르다.
+
+| gold_source | 뜻 | Numeric Accuracy | L5_wrong_answer |
+|---|---|---|---|
+| `document` | 코퍼스 문서 기반, 시간 불변 | 보고만 | 적용 |
+| `snapshot` | `as_of` 시점 크롤 DB 수치 | **게이트 (< 0.50 실패)** | 적용 |
+| `domain_expectation` | DB에도 문서에도 없는 추정치 | 보고만 | **제외** |
+
+`domain_expectation` 문항을 정답 일치 게이트에서 빼는 이유: 원자료로 검증할 수
+없는 골드에 정답 일치를 요구하면 지표가 문체 유사도를 재게 된다. 이 문항들은
+groundedness·relevance로만 판정한다.
+
+Numeric Accuracy는 **종합 점수 공식에는 넣지 않는다.** 적용 대상이 일부 문항이라
+분모가 달라져 문항 간 비교가 깨지기 때문이다. 게이트와 보고 전용이다.
+
+snapshot 문항의 `expected_values`는 `scripts/refresh_golden_snapshot_values.py`가
+`as_of` 시점 DB에서 생성한다. 문항별 조회 SQL이 그 스크립트에 있다.
+
+## Overall Score
+
+가중 합: L5 45% / L2·L3 35% / L1 10% / L4 10% (`eval/metrics/aggregator.py`).
+
+L2·L3 성분은 **게이트와 같은 지표**를 쓴다 (2026-09-06 변경).
+
+| | 이전 공식 (~v8.1) | 현재 공식 |
+|---|---|---|
+| L2 | `context_recall_at_k` (청크 단위) | `context_recall_at_k_concept` (개념 단위) |
+| L3 | `kg_edge_f1` | `kg_edge_recall` |
+
+이전에는 공식과 게이트가 다른 지표를 봐서 게이트를 개선해도 종합 점수가 움직이지
+않았다. **v8.1 이전 baseline과 종합 점수를 직접 비교하지 말 것** — 정의가 다르다.
+재집계 값과 연속성 표: `docs/eval/overall-score-formula-2026-09-06.md`
+(`python3 scripts/reaggregate_baseline_scores.py`로 재현).
+
+## 인프라 실패는 채점하지 않는다
+
+문항당 에이전트 호출 상한은 `EvalConfig.item_timeout_seconds`(기본 120초), judge
+호출 상한은 `LLMJudge(timeout=...)`(기본 60초)다. 타임아웃·API 오류로 답변을 얻지
+못한 문항은 **0점으로 채점하지 않고** `trace.error`에 사유를 남긴 뒤 집계에서
+분리한다.
+
+- `aggregates.total`은 실제로 채점된 문항 수다 (분리된 문항 제외).
+- 분리된 문항은 `aggregates.errored`와 `error_item_ids`로만 보고된다.
+- 평균 지표·pass_rate·실패 사유 집계 어디에도 들어가지 않는다.
+- 비용은 예외다 — 토큰을 실제로 썼으므로 실패 문항도 합산한다.
+
+## 비용 기록
+
+`report.json`의 `total_tokens`·`total_cost_usd`는 **API 응답의 usage 필드**에서
+온다(추정치 아님). 현재 집계 범위는 **답변 생성 호출(L5)과 judge 호출**이다.
+질의 재구성·질의 확장 호출은 아직 배선되지 않아 실제 지출은 기록값보다 조금 크다.
+usage가 없는 응답은 추정으로 채우지 않고 0으로 남긴다 — 미계측임이 드러나야 한다.
+
+## 크롤 DB 수치 사실과 데이터 시점
+
+검색은 링크된 브랜드·카테고리에 대해 크롤 DB(SQLite)의 SoS·HHI·순위·가격·리뷰 수를
+스냅샷 날짜와 함께 컨텍스트에 싣는다(`src/rag/metric_facts.py`, 사이클 10). 평가에서는:
+
+- **데이터 시점을 골드와 맞춘다.** `eval.cli run`은 데이터셋 snapshot 문항의 `as_of`를
+  읽어 `AMORE_DATA_AS_OF`로 설정한다(`--data-as-of`로 덮어쓰기, as_of가 여럿이면 실행
+  거부). 시스템은 그 날짜 이하의 최신 스냅샷을 읽고, 값은 리포트의 `config.data_as_of`에
+  남는다. 운영 기본값(최신 스냅샷)은 바뀌지 않는다.
+- **judge 근거성 컨텍스트에 DB 사실이 포함된다**(`trace.data_facts`). 답변이 근거로 쓴
+  수치를 judge가 못 보면 근거성이 부당하게 낮아진다. 그 결과 **사이클 10 이전 리포트와
+  L5 groundedness는 judge 컨텍스트 정의가 달라 직접 비교하지 않는다.**
 
 ## Gating Thresholds
 
@@ -140,7 +218,8 @@ Items are marked as failed if any of these thresholds are violated:
 | KG Edge Recall | < 0.50 | `L3_edge_fail` |
 | Constraint Violation Rate | > 0.05 | `L4_constraint_violation` |
 | Type Consistency Rate | < 0.90 | `L4_type_inconsistency` |
-| Answer F1 | < 0.50 | `L5_wrong_answer` |
+| Answer F1 (domain_expectation 제외) | < 0.50 | `L5_wrong_answer` |
+| Numeric Accuracy (snapshot만) | < 0.50 | `L5_numeric_mismatch` |
 | Groundedness | < 0.70 | `L5_grounding_fail` |
 | Relevance | < 0.70 | `L5_relevance_fail` |
 
@@ -180,10 +259,11 @@ Create a custom configuration:
 from eval.schemas import EvalConfig
 
 config = EvalConfig(
-    top_k=8,              # Top-k for retrieval metrics
-    use_judge=False,      # Enable LLM judge
-    judge_model=None,     # Model for judge
-    save_traces=True,     # Save individual traces
+    top_k=8,                    # Top-k for retrieval metrics
+    item_timeout_seconds=120.0, # 문항당 에이전트 호출 상한(초)
+    use_judge=False,            # Enable LLM judge
+    judge_model=None,           # Model for judge
+    save_traces=True,           # Save individual traces
 )
 ```
 

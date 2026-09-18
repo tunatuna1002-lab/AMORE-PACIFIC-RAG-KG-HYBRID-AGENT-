@@ -193,20 +193,20 @@ AlertAgent → Email/Telegram 알림 (순위 ±10, SoS 변동)
     ▼
 UnifiedBrain.process_query()
     │
-    ├── 복잡도 판단: "경쟁사", "위치", "분석" → Complex!
+    ├── 홉 카운트 판단: `router.py`가 hops=2(경쟁사 조회+지표 조회) ≥ HOP_THRESHOLD(2) → ReAct 후보  # [2026-09 사후] 키워드 판단에서 홉 카운트 라우터로 교체, `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제 실행
     │
     ▼
-ReActAgent (Self-Reflection Loop, max 3회)
+ReActAgent (Self-Reflection Loop, max 5회 — `max_iterations` 기본값, [post-2026-09] 정정)
     │
     │  Iteration 1:
     │  ├── Thought: "경쟁사 비교를 위해 KG에서 관계 조회 필요"
-    │  ├── Action: search_knowledge("LANEIGE COMPETES_WITH")
+    │  ├── Action: kg_neighbors(entity="LANEIGE", predicates=["competesWith"])  # [post-2026-09] 도구명 변경
     │  ├── Observation: [COSRX, Neutrogena, CeraVe...]
     │  └── Reflection: confidence=0.5, needs_improvement=true
     │
     │  Iteration 2:
     │  ├── Thought: "SoS/HHI 지표로 정량적 비교 필요"
-    │  ├── Action: calculate_metrics("lip_care")
+    │  ├── Action: get_metrics(category="lip_care")  # [post-2026-09] 도구명 변경 — 아래 참고
     │  ├── Observation: {SoS: 8.3%, HHI: 0.12, rank: 3}
     │  └── Reflection: confidence=0.85, needs_improvement=false
     │
@@ -261,11 +261,21 @@ Response:
 | `batch_workflow.py` | 일일 배치 파이프라인 | CRAWL→STORE→KG→CALCULATE→INSIGHT→EXPORT |
 | `crawl_manager.py` | 크롤링 상태 관리 | `start_crawl()`, `get_status()` |
 | `scheduler.py` | APScheduler 통합 | 매일 22:00 KST (UTC 13:00) |
-| `query_processor.py` | 쿼리 의도 분류 | 키워드/패턴 기반 분류 |
+| ~~`query_processor.py`~~ | [post-2026-09] 삭제(호출처 0건) | 질의 라우팅·신뢰도 분기는 `query_graph.py`의 QueryGraph가 맡는다 |
 | `verification_pipeline.py` | 응답 검증 | Claim 추출 → 사실 검증 |
 | `cache.py` | TTL 기반 캐싱 | 5분 TTL, 자동 만료 |
 
-**UnifiedBrain - 복잡도 판단 기준:**
+**UnifiedBrain - ReAct 활성화 기준 [2026-09 사후: 키워드 판단 → 홉 카운트 라우터로 교체]**
+
+`src/core/router.py`가 질문을 단계(stage)로 분해해 `hops = len(stages)`를 세고,
+`hops >= HOP_THRESHOLD(2)`면 ReAct 후보로 표시한다. 실제로 ReAct 루프를 타는지는
+플래그 `agents.use_react_agent`(기본 OFF)에 달려 있다 — OFF면 판정만 `route_trace`에
+남기고 기존 경로로 응답한다(OFF 상태에서 `agents.react_shadow_mode`가 켜져 있으면
+그림자 실행만 한다). 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3).
+
+<details>
+<summary>Original text (kept for history, describes the pre-rework keyword-based activation)</summary>
+
 ```
 Simple → HybridChatbotAgent 직접 처리
 Complex → ReActAgent 활성화
@@ -273,6 +283,8 @@ Complex → ReActAgent 활성화
   ├── 멀티 엔티티 질문 (3+ 브랜드/카테고리)
   └── 컨텍스트 부족 (추가 조회 필요)
 ```
+
+</details>
 
 ### 4.2 Agent Layer - 전문 에이전트 (`src/agents/`)
 

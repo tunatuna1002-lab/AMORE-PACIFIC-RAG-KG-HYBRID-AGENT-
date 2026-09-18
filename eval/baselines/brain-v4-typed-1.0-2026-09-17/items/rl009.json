@@ -1,0 +1,179 @@
+{
+  "item_id": "rl009",
+  "question": "아모레퍼시픽 브랜드 포트폴리오에서 AESTURA의 세그먼트는 무엇인가요?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.6666666666666666,
+    "concept_map_f1": 0.0,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 1.0,
+    "context_precision_at_k": 1.0,
+    "mrr": 1.0,
+    "context_recall_at_k_concept": 1.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 1.0,
+    "kg_edge_f1": 0.0,
+    "kg_edge_recall": 0.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.13559322033898305,
+    "semantic_similarity": 0.44635501503944397,
+    "groundedness_score": 1.0,
+    "answer_relevance_score": 1.0,
+    "factuality_score": 0.0,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.6679308967396139,
+  "fail_reason_tags": [
+    "L1_concept_fail",
+    "L3_edge_fail",
+    "L5_wrong_answer"
+  ],
+  "trace": {
+    "item_id": "rl009",
+    "timestamp": "2026-09-17T21:55:42.320749",
+    "l1_entity_linking": {
+      "extracted_brands": [
+        "amorepacific"
+      ],
+      "extracted_categories": [],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "definition"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "strategic_indicators_1_1",
+        "chunk_1",
+        "chunk_2",
+        "chunk_3",
+        "chunk_4",
+        "amazon_algorithm_guide_2_2",
+        "indicator_combination_2_0",
+        "home_insight_rules_4_0"
+      ],
+      "snippets": [
+        "- **해석 포인트**\n- 값이 높을수록 소수 브랜드 중심의 집중 시장\n- 값이 낮을수록 경쟁이 치열한 분산 시장\n\n- **주의사항**\n- 시장 구조 판단용 지표이며 개별 브랜드 성과 지표는 아님\n- 특정 시점 스냅샷 기준임\n\n---\n\n### 3. Brand Avg Rank\n\n- **정의**\n- 특정 브랜드가 보유한 진입 제품들의 평균 순위\n\n- **산출식",
+        "5\n\n121.7\n\n\\-17%   \n**2Q 2025 Domestic Business PREMIUM**\n\n101.1 • Premium accounts for 18% of    \ntotal domestic revenue\n\n\\-Aestura7% (vs. 24.2Q 5%)\n\n\\-Laneige6% (vs. 24.2Q 6%)\n\n2024 2Q 2025 2Q\n\n(Unit",
+        "\\- \\[APAC\\] Sulwhasooincreased customer purchase with its global campaign (‘First Care Activating Serum’), Laneige enhanced brand attractiveness and drove sales growth for its ‘Bouncy and Firm’ line t",
+        "\\- \\[Japan\\] Enhanced brand appeal of Laneige(‘Neo Cushion Mewy’, ‘Gel Cream Skin’) and Aestura(‘Theracne365’)  through innovative products and achieved strong sales growth for major brands (Laneige/A",
+        "| Amount  | % of Sales  | Amount  |\n| ----- | ----- | ----- |\n| 904.8  | 100.0%  | 1,005.0  |\n| 266.7  | 29.5%  | 275.1  |\n| 638.1  | 70.5%  | 729.9  |\n| 633.9  | 70.1%  | 656.2  |\n| 4.2  | 0.5%  | 73",
+        "* **시장 점유율의 역설:** 내 제품의 판매량이 어제와 동일하더라도, 경쟁사들이 대규모 프로모션을 통해 판매량을 2배로 늘렸다면 내 제품의 랭킹은 급락합니다.7 이는 \"아무것도 하지 않았는데 랭킹이 떨어지는\" 현상의 가장 흔한 원인입니다.  \n* **카테고리 노이즈 필터링:** 메인 카테고리(예: Kitchen & Dining)의 랭킹 변동은 전체 시장",
+        "A. Market & Brand Combination\n### (시장 구조 · 브랜드 포지션)\n\n---\n\n### 1. SoS ↑ + Brand Avg Rank ↓\n\n#### 해석 시나리오\n- 브랜드 제품 수는 많으나 상위권 고정력이 부족\n- 포트폴리오가 분산되어 있을 가능성\n\n#### 시사점\n- “많이 노출되지만 강하지는 않다”\n- SKU 수 대비 효율 저하",
+        "1.2 Brand Health Status (브랜드 건강 상태 배지/카드)\n\n### 목표\n- 수치 대신 “상태”로 요약\n- 3개 카드(권장): 브랜드 노출, 시장 구조, 이상 신호\n\n### 상태 정의 (권장 라벨)\n- 브랜드 노출 상태(SoS 중심):\n  - Stable / Up / Down\n- 시장 구조(HHI 중심):\n  - Competitive / C"
+      ],
+      "scores": [
+        3.393238365292065,
+        1.0,
+        0.9794894644916406,
+        0.9481613116762404,
+        0.9342123518484244,
+        0.2511146068572998,
+        0.24193960428237915,
+        0.2012842297554016
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "amorepacific"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "아모레퍼시픽 브랜드 포트폴리오에서 AESTURA의 세그먼트는 **프리미엄(PREMIUM) 세그먼트**입니다. \n\n근거는 2025년 2분기 실적 발표에 따르면, 국내 프리미엄 화장품 매출 중 Aestura가 7%를 차지하고 있으며, 이는 2024년 2분기 5% 대비 증가한 수치입니다. 또한, Aestura는 온라인 및 멀티 브랜드샵 등 성장 채널을 통해 매출 성장을 이루고 있는 주요 프리미엄 브랜드 중 하나로 언급되고 있습니다. \n\n따라서 AESTURA는 아모레퍼시픽 내에서 프리미엄 화장품 세그먼트에 속하는 브랜드임을 알 수 있습니다.",
+      "citations": [],
+      "confidence": 4.05,
+      "query_type": "definition",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "data_facts": [],
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 796,
+      "judge_tokens": 2752,
+      "l1_prompt_tokens": 0,
+      "l1_completion_tokens": 0,
+      "l2_embedding_tokens": 0,
+      "l3_prompt_tokens": 0,
+      "l3_completion_tokens": 0,
+      "l4_prompt_tokens": 0,
+      "l4_completion_tokens": 0,
+      "l5_prompt_tokens": 619,
+      "l5_completion_tokens": 177,
+      "judge_prompt_tokens": 1813,
+      "judge_completion_tokens": 939,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0005307999999999999,
+      "judge_cost_usd": 0.0022275999999999997,
+      "pricing": {
+        "gpt-4.1-mini": {
+          "input_per_1m_usd": 0.39999999999999997,
+          "output_per_1m_usd": 1.5999999999999999,
+          "source": "litellm"
+        },
+        "text-embedding-3-small": {
+          "input_per_1m_usd": 0.02,
+          "output_per_1m_usd": 0.0,
+          "source": "litellm"
+        }
+      }
+    },
+    "latency_ms": 3895.2598571777344,
+    "error": null,
+    "retrieval_error": null,
+    "degraded": [],
+    "route_trace": {
+      "route": "direct",
+      "confidence_level": "high",
+      "confidence_score": 6.5,
+      "confidence_components": {
+        "kg_facts": 0.0,
+        "rag_docs": 3.0,
+        "inferences": 0.0,
+        "entities": 2.0,
+        "query_intent": 1.5
+      },
+      "tools_used": [],
+      "decision_tool": null,
+      "is_complex": null
+    }
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "brand",
+    "difficulty": "easy",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

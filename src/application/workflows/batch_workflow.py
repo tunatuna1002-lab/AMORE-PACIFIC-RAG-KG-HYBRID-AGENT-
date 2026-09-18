@@ -131,6 +131,7 @@ class WorkflowStep(Enum):
     STORE = "store"
     UPDATE_KG = "update_kg"  # 신규: Knowledge Graph 업데이트
     CALCULATE = "calculate"
+    STORE_METRICS = "store_metrics"  # 신규: 지표 영속화 (D3)
     INSIGHT = "insight"
     EXPORT = "export"
     COMPLETE = "complete"
@@ -482,6 +483,7 @@ class BatchWorkflow:
                 WorkflowStep.STORE.value,
                 WorkflowStep.UPDATE_KG.value,  # 신규
                 WorkflowStep.CALCULATE.value,
+                WorkflowStep.STORE_METRICS.value,
                 WorkflowStep.INSIGHT.value,
                 WorkflowStep.EXPORT.value,
             ]
@@ -490,6 +492,7 @@ class BatchWorkflow:
                 WorkflowStep.CRAWL.value,
                 WorkflowStep.STORE.value,
                 WorkflowStep.CALCULATE.value,
+                WorkflowStep.STORE_METRICS.value,
                 WorkflowStep.INSIGHT.value,
                 WorkflowStep.EXPORT.value,
             ]
@@ -576,10 +579,15 @@ class BatchWorkflow:
                 except Exception as e:
                     self.logger.warning(f"KG auto-backup failed (non-critical): {e}")
 
+            # 신선도 기록 + crawl_complete 발화 (D4: 스케줄러가 아니라 워크플로우
+            # 완료 지점에서 발화해야 수동/자동 어느 경로로 크롤해도 도달한다)
+            await self._notify_workflow_complete(results)
+
         except Exception as e:
             self.logger.error(f"Workflow failed: {e}", exc_info=True)
             results["status"] = "failed"
             results["error"] = str(e)
+            await self._notify_workflow_failed(str(e))
 
         finally:
             # 세션 종료
@@ -646,6 +654,23 @@ class BatchWorkflow:
                 parameters={
                     "crawl_data": crawl_data,
                     "historical_data": self._state.get("historical_data"),
+                },
+            )
+
+        elif step == WorkflowStep.STORE_METRICS:
+            metrics_data = self._state.get("metrics_result")
+            if not metrics_data:
+                return ThinkResult(
+                    next_action="skip",
+                    reasoning="지표 데이터 없음으로 영속화 스킵",
+                    should_continue=False,
+                )
+            return ThinkResult(
+                next_action="store_metrics",
+                reasoning="계산된 브랜드/시장 지표를 SQLite에 영속화",
+                parameters={
+                    "metrics_data": metrics_data,
+                    "crawl_data": self._state.get("crawl_result"),
                 },
             )
 
@@ -722,6 +747,12 @@ class BatchWorkflow:
             elif action == "calculate":
                 result = await self.metrics_agent.execute(
                     params.get("crawl_data"), params.get("historical_data")
+                )
+                return ActResult(action=action, success=True, result=result)
+
+            elif action == "store_metrics":
+                result = await self._store_metrics(
+                    params.get("metrics_data") or {}, params.get("crawl_data") or {}
                 )
                 return ActResult(action=action, success=True, result=result)
 
@@ -890,13 +921,22 @@ class BatchWorkflow:
                 f"알림 {alert_count}건"
             )
             state_updates["metrics_result"] = result
-            next_step = WorkflowStep.INSIGHT
+            next_step = WorkflowStep.STORE_METRICS
 
             self.context_manager.set_metrics_calculated(True)
 
             # KG에 지표 데이터 반영
             if self.use_hybrid:
                 self.knowledge_graph.load_from_metrics_data(result)
+
+        elif act_result.action == "store_metrics":
+            result = act_result.result
+            observations.append(
+                f"지표 저장 완료: 브랜드 {result.get('brand_rows', 0)}행, "
+                f"시장 {result.get('market_rows', 0)}행"
+            )
+            state_updates["store_metrics_result"] = result
+            next_step = WorkflowStep.INSIGHT
 
         elif act_result.action in ["insight", "hybrid_insight"]:
             result = act_result.result
@@ -941,6 +981,126 @@ class BatchWorkflow:
         return ObserveResult(
             observations=observations, state_updates=state_updates, next_step=next_step
         )
+
+    async def _store_metrics(
+        self, metrics_data: dict[str, Any], crawl_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """계산된 지표를 SQLite에 영속화한다 (D3: STORE_METRICS 복원).
+
+        기존에는 CALCULATE 결과가 state와 KG에만 전달되고 저장 스텝이 없어
+        brand_metrics/market_metrics 테이블이 0행이었고, /api/data가 매 요청마다
+        raw_data에서 재계산했다.
+
+        주의: MetricsAgent 산출 키와 SQLite 컬럼명이 달라 여기서 매핑한다.
+            brand_name → brand, share_of_shelf → sos, avg_rank → brand_avg_rank
+            churn_rate_7d → churn_rate
+        """
+        from src.tools.storage.sqlite_storage import get_sqlite_storage
+
+        snapshot_date = self._resolve_snapshot_date(metrics_data, crawl_data)
+
+        brand_rows = [
+            {
+                "snapshot_date": snapshot_date,
+                "category_id": m.get("category_id"),
+                "brand": m.get("brand_name"),
+                "sos": m.get("share_of_shelf"),
+                "brand_avg_rank": m.get("avg_rank"),
+                "product_count": m.get("product_count"),
+                "cpi": m.get("cpi"),
+                "avg_rating_gap": m.get("avg_rating_gap"),
+            }
+            for m in metrics_data.get("brand_metrics", [])
+            if m.get("brand_name")
+        ]
+
+        market_rows = [
+            {
+                "snapshot_date": snapshot_date,
+                "category_id": m.get("category_id"),
+                "hhi": m.get("hhi"),
+                "churn_rate": m.get("churn_rate_7d"),
+                "category_avg_price": m.get("category_avg_price"),
+                "category_avg_rating": m.get("category_avg_rating"),
+            }
+            for m in metrics_data.get("market_metrics", [])
+            if m.get("category_id")
+        ]
+
+        storage = get_sqlite_storage()
+        await storage.initialize()
+
+        saved_brand = await storage.save_brand_metrics(brand_rows) if brand_rows else 0
+        saved_market = await storage.save_market_metrics(market_rows) if market_rows else 0
+
+        self.logger.info(
+            f"Metrics persisted: brand={saved_brand}, market={saved_market} "
+            f"(snapshot_date={snapshot_date})"
+        )
+
+        # 참고: Sheets 지표 백업은 붙이지 않았다. StorageAgent.save_metrics는
+        # 호출처 0건인 데다 BrandMetrics 엔티티에 없는 필드(brand_name/share_of_shelf)를
+        # 참조해 실제 엔티티로는 동작하지 않는 상태였다 (§5.4에 따라 삭제).
+        # Sheets 지표 백업이 필요해지면 FUTURE_WORK 항목 참조.
+
+        return {
+            "brand_rows": saved_brand,
+            "market_rows": saved_market,
+            "snapshot_date": snapshot_date,
+        }
+
+    @staticmethod
+    def _resolve_snapshot_date(metrics_data: dict[str, Any], crawl_data: dict[str, Any]) -> str:
+        """지표의 스냅샷 날짜 결정 (크롤 데이터 우선, 없으면 오늘)."""
+        for candidate in (
+            crawl_data.get("snapshot_date"),
+            crawl_data.get("crawl_date"),
+            (metrics_data.get("calculated_at") or "")[:10],
+        ):
+            if candidate:
+                return str(candidate)[:10]
+        return datetime.now().strftime("%Y-%m-%d")
+
+    async def _notify_workflow_complete(self, results: dict[str, Any]) -> None:
+        """워크플로우 완료 후처리: 데이터 신선도 기록 + crawl_complete 이벤트 발화.
+
+        알림·상태 기록이 실패해도 워크플로우 결과를 덮어쓰지 않도록 예외를 삼킨다.
+        """
+        summary = results.get("summary", {})
+        products = summary.get("products_crawled", 0)
+
+        try:
+            from src.core.brain import get_brain
+
+            brain = await get_brain()
+
+            # data_freshness를 "fresh"로 기록 (호출처가 없어 상시 "unknown"이던 문제)
+            brain.state.mark_crawled(products_count=products)
+
+            await brain.emit_event(
+                "crawl_complete",
+                {
+                    "result": {"success": results.get("status") == "completed"},
+                    "total_products": products,
+                    "laneige_count": summary.get("laneige_tracked", 0),
+                    "categories": summary.get("categories", []),
+                },
+            )
+        except Exception as e:
+            self.logger.warning(f"crawl_complete 후처리 실패 (non-critical): {e}")
+
+    async def _notify_workflow_failed(self, error: str) -> None:
+        """워크플로우 실패 시 CRITICAL 알림 발화 + 데이터 stale 표시."""
+        try:
+            from src.core.brain import get_brain
+
+            brain = await get_brain()
+            brain.state.mark_data_stale()
+            await brain.emit_event(
+                "crawl_failed", {"error": error, "details": "일일 배치 워크플로우 실패"}
+            )
+        except Exception as e:
+            self.logger.error(f"crawl_failed 알림 발화 실패: {e}")
 
     def _generate_summary(self) -> dict[str, Any]:
         """최종 요약 생성"""

@@ -9,8 +9,8 @@ Hybrid retrieval combining vector search (ChromaDB), knowledge graph facts, and 
 | Module | File | Role |
 |--------|------|------|
 | DocumentRetriever | `retriever.py` | ChromaDB vector search + SHA-256 embedding cache |
-| HybridRetriever | `hybrid_retriever.py` | RAG + KG facts + rule inference + OWL strategy |
-| RetrievalStrategy | `retrieval_strategy.py` | OWL + intent-based strategy pattern |
+| HybridRetriever | `hybrid_retriever.py` | RAG + KG facts + rule inference (single retrieval path) |
+| IntentRetrievalConfig | `retrieval_strategy.py` | Intent-based retrieval tuning (weights, top_k, filters) |
 | EntityLinker | `entity_linker.py` | Text → KG entity mapping (unified extractor) |
 | ConfidenceFusion | `confidence_fusion.py` | Multi-source score fusion + conflict detection |
 
@@ -20,7 +20,9 @@ Hybrid retrieval combining vector search (ChromaDB), knowledge graph facts, and 
 |----------|-------|-------------|
 | Vector-only | DocumentRetriever | Simple keyword queries |
 | Hybrid | HybridRetriever | Queries needing KG context |
-| OWL Strategy | OWLRetrievalStrategy | Complex analysis requiring OWL reasoning |
+
+OWL 검색 전략(`OWLRetrievalStrategy`)은 2026-09에 삭제됐다. OWL은 검색 전략이 아니라
+어휘(카테고리 계층·일관성 검사)로만 쓴다.
 
 Intent-based config (`IntentRetrievalConfig`) tunes weights, top_k, doc_type_filter, and fusion_strategy per query intent.
 

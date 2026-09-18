@@ -369,7 +369,7 @@ class KGBackupService:
                     info["triple_count"] = meta.get("triple_count")
                     info["created_at"] = meta.get("created_at")
                 except Exception:
-                    logger.warning("Suppressed Exception", exc_info=True)
+                    logger.warning("KG 백업 메타데이터 읽기 실패", exc_info=True)
 
             backups.append(info)
 

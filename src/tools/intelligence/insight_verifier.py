@@ -282,21 +282,49 @@ class InsightVerifier:
                 )
 
         # HHI 값 검증
+        # 정본 스케일은 0-1(D1)이나, 리포트 표기는 0-10000 포인트도 쓴다.
+        # 두 스케일 모두 유효 범위를 검사한다 (0-1 값이 검증을 통과해버리던 구멍 차단).
         hhi_pattern = r"HHI[:\s]*(\d+\.?\d*)"
         hhi_matches = re.findall(hhi_pattern, content)
 
         for hhi_str in hhi_matches:
             hhi_val = float(hhi_str)
-            # HHI > 10000은 불가능 (이론적 최대값)
+            is_ratio_scale = "." in hhi_str and hhi_val <= 1.0
+
             if hhi_val > 10000:
                 issues.append(
                     VerificationIssue(
                         severity="critical",
                         category="data_accuracy",
-                        description=f"HHI {hhi_val}는 불가능한 값입니다 (최대 10000).",
+                        description=f"HHI {hhi_val}는 불가능한 값입니다 (최대 10000 포인트).",
                         location=f"HHI: {hhi_val}",
                         original_text=f"{hhi_val}",
                         suggested_fix="HHI 계산을 확인하세요.",
+                    )
+                )
+            elif is_ratio_scale:
+                # 0-1 비율 스케일: Amazon Top 100 카테고리에서 0.5 초과는 비현실적
+                if hhi_val > 0.5:
+                    issues.append(
+                        VerificationIssue(
+                            severity="warning",
+                            category="data_accuracy",
+                            description=f"HHI {hhi_val}(0-1 스케일)가 비정상적으로 높습니다.",
+                            location=f"HHI: {hhi_val}",
+                            original_text=f"{hhi_val}",
+                            suggested_fix="Amazon Top 100 기준 HHI는 일반적으로 0-0.25 범위입니다.",
+                        )
+                    )
+            elif hhi_val > 5000:
+                # 0-10000 포인트 스케일
+                issues.append(
+                    VerificationIssue(
+                        severity="warning",
+                        category="data_accuracy",
+                        description=f"HHI {hhi_val}포인트가 비정상적으로 높습니다.",
+                        location=f"HHI: {hhi_val}",
+                        original_text=f"{hhi_val}",
+                        suggested_fix="Amazon Top 100 기준 HHI는 일반적으로 0-2500 포인트 범위입니다.",
                     )
                 )
 

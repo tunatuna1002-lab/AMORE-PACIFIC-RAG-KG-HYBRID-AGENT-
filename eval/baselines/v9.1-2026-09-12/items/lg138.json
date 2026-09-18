@@ -1,0 +1,296 @@
+{
+  "item_id": "lg138",
+  "question": "클린뷰티 트렌드가 K-Beauty 브랜드에 미치는 기회와 위협은?",
+  "passed": false,
+  "l1": {
+    "entity_link_f1": 0.4,
+    "concept_map_f1": 0.5714285714285715,
+    "constraint_extraction_f1": 1.0
+  },
+  "l2": {
+    "context_recall_at_k": 0.0,
+    "context_precision_at_k": 0.0,
+    "mrr": 0.0,
+    "context_recall_at_k_concept": 0.0,
+    "context_recall_at_k_doc": 1.0
+  },
+  "l3": {
+    "hits_at_k": 0.0,
+    "kg_edge_f1": 1.0,
+    "kg_edge_recall": 1.0,
+    "kg_edge_precision": 1.0
+  },
+  "l4": {
+    "constraint_violation_rate": 0.0,
+    "type_consistency_rate": 1.0
+  },
+  "l5": {
+    "answer_exact_match": 0.0,
+    "answer_f1": 0.10138248847926268,
+    "semantic_similarity": 0.8019624352455139,
+    "groundedness_score": 0.5,
+    "answer_relevance_score": 0.9,
+    "factuality_score": 0.5714,
+    "numeric_accuracy": null
+  },
+  "overall_score": 0.4944413288495156,
+  "fail_reason_tags": [
+    "L1_mapping_fail",
+    "L3_kg_fail",
+    "L5_grounding_fail"
+  ],
+  "trace": {
+    "item_id": "lg138",
+    "timestamp": "2026-09-10T11:41:51.009006",
+    "l1_entity_linking": {
+      "extracted_brands": [],
+      "extracted_categories": [
+        "beauty"
+      ],
+      "extracted_indicators": [],
+      "extracted_products": [],
+      "extracted_sentiments": [],
+      "extracted_concepts": [
+        "k_beauty",
+        "trend_analysis",
+        "clean_beauty"
+      ],
+      "time_range": []
+    },
+    "l2_doc_retrieval": {
+      "chunk_ids": [
+        "laneige_influencer_map_5_7",
+        "laneige_strategy_2026_6_0",
+        "negative_issue_response_2_5",
+        "laneige_influencer_map_2_8",
+        "laneige_influencer_map_2_13",
+        "laneige_influencer_map_1_0",
+        "kbeauty_industry_6_3",
+        "kbeauty_industry_2_0"
+      ],
+      "snippets": [
+        ", 2026에 액세스, [https://retailbeauty.com.au/sydney-sweeney-fronts-the-laneige-show-for-water-bank/](https://retailbeauty.com.au/sydney-sweeney-fronts-the-laneige-show-for-water-bank/)  \n13. Top 20 Korea",
+        "---\n\n**6\\. 아마존 채널 전략 및 판매 동향 분석**\n\n### **6.1 아마존 베스트셀러 동적 분석**\n\n2026년 1월 아마존 뷰티 카테고리의 'Movers & Shakers'를 분석한 결과, 시장은 크게 세 가지 그룹으로 양분되어 있다.8\n\n1. **가성비 클리니컬(Value Clinicals):** **COSRX** (스네일 뮤신), **Gr",
+        "이 이슈의 확산 경로는 전형적인 '기대-실망-공유'의 사이클을 따르고 있다. 소비자는 틱톡이나 인스타그램에서 한국 인플루언서들이 극찬하는 오리지널 제품을 보고, 접근성이 좋은 타겟(Target)이나 아마존에서 '공식 제품'을 구매한다. 그러나 사용 직후 텍스처와 냄새에서 이질감을 느끼고, 레딧의 r/AsianBeauty나 r/SkincareAddiction",
+        "#### **2.2.2 K-뷰티 큐레이터 (K-Beauty Curators)**\n\n라네즈를 한국 뷰티 트렌드의 맥락에서 해석해주는 그룹입니다.\n\n* **대표 크리에이터:**  \n  * Soo Beauty / Euni Unni 7: 한국 현지의 올리브영 트렌드와 미국 시장의 차이를 설명하며 라네즈의 위상을 재확인시켜줍니다. 다만, 이들 그룹은 유료 광고(Sp",
+        "* **주요 이슈:** '크림 스킨 리파이너'가 리뉴얼되면서 히알루론산과 나이아신아마이드가 추가된 것에 대해 많은 유저들이 \"끈적임이 심해졌다\", \"예전의 순한 느낌이 사라졌다\"며 불만을 제기했습니다.8 이들은 브랜드가 대중성(Sephora 판매)을 위해 마니아층(K-뷰티 팬덤)을 버렸다고 인식하는 경향이 있습니다.\n\n#### **2.4.2 저렴이 사냥꾼 ",
+        "**1\\. 서론: 라네즈의 브랜드 생태계와 시장 포지셔닝**\n\n### **1.1 \"Advanced Water Science\"의 진화와 시장 지배력**\n\n미국 뷰티 시장에서 라네즈(LANEIGE)의 성공은 단순한 K-뷰티 트렌드의 편승이 아닌, \"수분(Hydration)\"이라는 가장 본질적이고 보편적인 피부 고민을 독점적인 기술력으로 브랜딩한 결과입니다. 아",
+        "3. **차이나 뷰티 및 아시아 로컬 브랜드의 추격**:\n  1. **차이나 뷰티**는 '메이드 인 코리아' 시장의 성장을 기반으로 발전하여 자신감과 현금 창출력을 가지고 글로벌 마켓으로 나오고 있다 \n  2. 중국 브랜드는 강력한 플랫폼인 **틱톡**을 통해 아시아 쪽 시장을 많이 잠식하고 있다 \n  3. 중국 외에도 동남아시아(태국, 인도네시아) 로컬 ",
+        "💡 K-뷰티의 초격차를 가능하게 한 구체적인 요소들은?\n\n- **ODM**** 시스템**: 연구소와 공장을 갖춘 전문 기업이 제품 개발 및 생산을 맡아 신생 기업의 초기 투자 부담을 줄이고 빠른 제품 출시 가능\n- **콘텐츠 연계**: K-팝, 드라마 등 K-콘텐츠의 인기가 K-뷰티 소비로 이어지며 글로벌 관심 증대\n- **유통 ****혁신**: 온라인 이"
+      ],
+      "scores": [
+        0.5454422235488892,
+        0.4929971694946289,
+        0.48933112621307373,
+        0.4807530641555786,
+        0.47859978675842285,
+        0.4513400197029114,
+        0.46881604194641113,
+        0.4190521836280823
+      ],
+      "doc_types": []
+    },
+    "l3_kg_query": {
+      "kg_entities_found": [
+        "beauty"
+      ],
+      "kg_edges_found": [],
+      "ontology_facts": [
+        {
+          "type": "category_brands",
+          "entity": "beauty",
+          "data": {
+            "brand_count": 42,
+            "top_brands": [
+              {
+                "brand": "unknown",
+                "product_count": 49,
+                "products": [
+                  "B09541P9WH",
+                  "B09542G9ZN",
+                  "B081KL2QYJ",
+                  "B09HHDHXWX",
+                  "B07GB3NVN1",
+                  "B075JRT85B",
+                  "B0B1PDDLGZ",
+                  "B08WYXNVQ7",
+                  "B081FFRGZB",
+                  "B00HF3XSO0",
+                  "B08SNSSTPZ",
+                  "B08V3JGB1F",
+                  "B0BT1WL6KY",
+                  "B0FKGJYFC8",
+                  "B0DK4Y2YP3",
+                  "B0DK8DCVK7",
+                  "B0G1VBDXYF",
+                  "B07BRDVQ4B",
+                  "B0B6CMT476",
+                  "B09M7SPFSJ",
+                  "B0014CZ16Q",
+                  "B091D7T4N8",
+                  "B00J4YYFYA",
+                  "B0BXTS6L35",
+                  "B0BBBSMV94",
+                  "B01I70RA8E",
+                  "B09RG8Q3C3",
+                  "B0CWPKWPRJ",
+                  "B0B9YHX8DX",
+                  "B0B854YTCF",
+                  "B0BLXZ4YBJ",
+                  "B06XB43LPM",
+                  "B00TPRG5D0",
+                  "B0DFY92NDB",
+                  "B0BFQ9RD5B",
+                  "B084MVWG1F",
+                  "B098NSHBQK",
+                  "B099FK66CL",
+                  "B0G643D8ZG",
+                  "B000EF1FW8",
+                  "B07PK2P2XB",
+                  "B000IEMGGE",
+                  "B0CBR7J4TV",
+                  "B08N1CWL7S",
+                  "B004BCTFVS",
+                  "B0DCL275RK",
+                  "B09HR5KSR8",
+                  "B09MFMCTRK",
+                  "B0BBZ7645B"
+                ]
+              },
+              {
+                "brand": "medicube",
+                "product_count": 10,
+                "products": [
+                  "B09V7Z4TJG",
+                  "B0DGPSZVW3",
+                  "B0DGTMR754",
+                  "B0DBF65JYY",
+                  "B0DYTQ5GYQ",
+                  "B0GHMZXX8Y",
+                  "B0D2Z3GGCY",
+                  "B0BRMYHMS5",
+                  "B0DWMSM6Y9",
+                  "B0CM2PPNMW"
+                ]
+              },
+              {
+                "brand": "cerave",
+                "product_count": 6,
+                "products": [
+                  "B01MSSDEPK",
+                  "B01N1LL62W",
+                  "B00TTD9BRC",
+                  "B07RK4HST7",
+                  "B00365DABC",
+                  "B00SNPCSUY"
+                ]
+              },
+              {
+                "brand": "eos",
+                "product_count": 5,
+                "products": [
+                  "B08KT2Y49F",
+                  "B0DPHQRLJC",
+                  "B0H72GFKJQ",
+                  "B0FM2CCBS1",
+                  "B08KT2Z93D"
+                ]
+              },
+              {
+                "brand": "dove",
+                "product_count": 5,
+                "products": [
+                  "B00MEDOY2G",
+                  "B09DDD6YGJ",
+                  "B00SK71SAG",
+                  "B001ET7IQK",
+                  "B00I69SEK0"
+                ]
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        },
+        {
+          "type": "category_hierarchy",
+          "entity": "beauty",
+          "data": {
+            "name": "Beauty & Personal Care",
+            "level": 0,
+            "path": [
+              "beauty"
+            ],
+            "ancestors": [],
+            "descendants": [
+              {
+                "id": "skin_care",
+                "name": "Skin Care",
+                "level": 1
+              },
+              {
+                "id": "makeup",
+                "name": "Makeup",
+                "level": 1
+              },
+              {
+                "id": "hair_care",
+                "name": "Hair Care",
+                "level": 1
+              },
+              {
+                "id": "fragrance",
+                "name": "Fragrance",
+                "level": 1
+              },
+              {
+                "id": "personal_care",
+                "name": "Personal Care",
+                "level": 1
+              }
+            ]
+          },
+          "_weighted_score": 0.27999999999999997
+        }
+      ],
+      "competitor_network": [],
+      "category_hierarchy": []
+    },
+    "l4_ontology": {
+      "inferences": [],
+      "applied_rules": [],
+      "insight_types": [],
+      "constraint_violations": []
+    },
+    "l5_answer": {
+      "final_answer": "## 클린뷰티 트렌드가 K-Beauty of Joseon 브랜드에 미치는 기회와 위협\n\n### 인사이트\n- 클린뷰티 트렌드는 K-Beauty of Joseon 브랜드가 친환경, 저자극, 성분 투명성 등 소비자 요구에 부합하는 제품 개발 기회를 제공할 수 있습니다.  \n- 특히, Medicube, Anua, Tirtir 등 틱톡 샵과 연동되어 급성장하는 바이럴 K-뷰티 브랜드들은 클린뷰티 트렌드를 활용해 시장 내 입지를 강화할 가능성이 있습니다.  \n- 반면, 클린뷰티에 대한 소비자 기대가 높아지면서 제품 품질과 성분에 대한 불만이 발생할 경우 브랜드 신뢰도 하락 위험도 존재할 수 있습니다. 예를 들어, 라운드랩 선크림 관련 사용자의 이질감 및 가품 의심 사례가 Reddit 커뮤니티에서 공유되고 있어, 클린뷰티 이미지 훼손 가능성이 일부 감지됩니다.  \n- 따라서 클린뷰티 트렌드는 K-Beauty of Joseon 브랜드에 성장 동력과 동시에 품질 관리 및 소비자 신뢰 확보라는 과제를 함께 안겨줄 수 있습니다.\n\n### 근거\n- Medicube, Anua, Tirtir 등 바이럴 K-뷰티 브랜드가 틱톡 샵과 연동되어 급성장 중임 [출처: 현재 데이터]  \n- Reddit r/AsianBeauty, r/SkincareAddiction에서 라운드랩 선크림 관련 부정적 경험 공유 사례 존재 [출처: 현재 데이터]  \n\n### 권장 사항\n- K-Beauty of Joseon 브랜드는 클린뷰티 트렌드에 맞춘 성분 안전성, 투명성 강화에 집중할 필요가 있습니다.  \n- 소비자 피드백 모니터링과 신속한 대응 체계를 구축하여 브랜드 신뢰도를 유지하는 전략이 요구됩니다.  \n- 틱톡 등 소셜 미디어 채널을 활용한 긍정적 바이럴 마케팅과 함께, 품질 이슈 발생 시 적극적인 커뮤니케이션으로 리스크를 최소화하는 방안이 고려될 수 있습니다.  \n\n현재 확인된 데이터 기준으로, 클린뷰티 트렌드가 K-Beauty of Joseon 브랜드에 미치는 영향은 위와 같이 해석됩니다 [출처: 현재 데이터].\n\n---\n**📚 출처 및 참고자료:**\n\n1. 🔗 **지식 그래프 관계 데이터** (2개 관계)\n\n2. 📄 **---**\n   - 관련도: 0.55\n\n3. 📄 **---**\n   - 관련도: 0.49\n\n4. 📄 **---**\n   - 관련도: 0.49\n\n5. 📄 **4. K-뷰티의 위협 요인과 미래 초격차 전략**\n   - 관련도: 0.47\n\n6. 🤖 **AI 분석: gpt-4.1-mini**\n   - 모델: gpt-4.1-mini\n   - 참고: AI가 생성한 분석입니다. 중요한 의사결정 시 추가 검증을 권장합니다.\n",
+      "citations": [],
+      "confidence": null,
+      "query_type": "data_query",
+      "was_rewritten": false,
+      "rewritten_query": null
+    },
+    "cost": {
+      "l1_tokens": 0,
+      "l2_tokens": 0,
+      "l3_tokens": 0,
+      "l4_tokens": 0,
+      "l5_tokens": 3154,
+      "judge_tokens": 6376,
+      "l1_cost_usd": 0.0,
+      "l2_cost_usd": 0.0,
+      "l3_cost_usd": 0.0,
+      "l4_cost_usd": 0.0,
+      "l5_cost_usd": 0.0006963000000000001,
+      "judge_cost_usd": 0.00179655
+    },
+    "latency_ms": 7507.18879699707,
+    "error": null
+  },
+  "metadata": {
+    "requires_kg": true,
+    "domain": "market",
+    "difficulty": "medium",
+    "gold_source": "document",
+    "as_of": null
+  }
+}

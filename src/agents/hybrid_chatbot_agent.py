@@ -17,6 +17,7 @@ from typing import Any
 from litellm import acompletion
 
 from src.agents.base_hybrid_agent import BaseHybridAgent
+from src.domain.entities.evidence import Evidence
 from src.domain.entities.relations import InferenceResult
 from src.memory.context import ContextManager
 from src.monitoring.logger import AgentLogger
@@ -25,6 +26,7 @@ from src.monitoring.tracer import ExecutionTracer
 from src.ontology.knowledge_graph import KnowledgeGraph
 from src.ontology.reasoner import OntologyReasoner
 from src.rag.context_builder import CompactContextBuilder
+from src.rag.evidence_renderer import CITATION_INSTRUCTION
 from src.rag.query_rewriter import QueryRewriter, RewriteResult, create_rewrite_result_no_change
 from src.rag.router import QueryType, RAGRouter
 
@@ -94,7 +96,7 @@ class HybridChatbotAgent(BaseHybridAgent):
                     config = json.load(f)
                     return config.get("system", {}).get("chatbot", {})
             except Exception:
-                logger.warning("Suppressed Exception", exc_info=True)
+                logger.warning("챗봇 설정(thresholds.json) 로드 실패, 기본값 사용", exc_info=True)
 
         return {}  # 설정 없으면 기본값 사용
 
@@ -310,11 +312,14 @@ class HybridChatbotAgent(BaseHybridAgent):
             if self.tracer:
                 self.tracer.start_span("build_context")
 
-            # 항상 풀 빌더 사용 (AIS 인라인 인용 + 전체 컨텍스트 포함)
+            # 항상 풀 빌더 사용 (증거 카드 전체, v4와 같은 렌더러)
             # CompactBuilder는 제목만 전달하여 Answer F1 저하 유발 (ablation study P0-a)
+            # current_metrics는 넘기지 않는다: 대시보드 JSON에는 빌더가 읽는 키
+            # (summary·brand_metrics·market_metrics)가 없어 "추적 제품 수: 0개" 같은
+            # 0만 렌더됐고, 수치의 정본은 DB 수치 카드다 (E1).
             context = self.context_builder.build(
                 hybrid_context=hybrid_context,
-                current_metrics=self._current_data,
+                current_metrics=None,
                 query=user_message,
                 knowledge_graph=self.kg,
             )
@@ -326,11 +331,18 @@ class HybridChatbotAgent(BaseHybridAgent):
             if self.tracer:
                 self.tracer.start_span("llm_response")
 
+            # 답변 LLM 호출의 토큰 사용량을 호출자에게 돌려주기 위한 수집기
+            # (평가 하네스가 report.json의 비용 집계에 쓴다 — 추정치가 아니라
+            #  API 응답의 usage 필드를 그대로 싣는다)
+            llm_usage: dict[str, int] = {}
+
             response = await self._generate_response(
                 user_message=user_message,
                 query_type=query_type,
                 context=context,
                 inferences=hybrid_context.inferences,
+                usage_sink=llm_usage,
+                prompt_evidence=hybrid_context.prompt_evidence,
             )
 
             if self.tracer:
@@ -439,6 +451,8 @@ class HybridChatbotAgent(BaseHybridAgent):
                 # _last_hybrid_context(공유 상태)가 경쟁 상태로 덮어써져
                 # 호출자가 다른 요청의 컨텍스트를 읽는 문제 방지 (eval 트레이스 등)
                 "hybrid_context": hybrid_context,
+                # 답변 생성 호출의 실제 토큰 사용량 (usage 필드가 없으면 빈 dict)
+                "llm_usage": llm_usage,
             }
 
             # 검증 결과 추가
@@ -476,8 +490,19 @@ class HybridChatbotAgent(BaseHybridAgent):
         query_type: QueryType,
         context: str,
         inferences: list[InferenceResult],
+        usage_sink: dict[str, int] | None = None,
+        prompt_evidence: list[Evidence] | None = None,
     ) -> str:
-        """LLM 응답 생성"""
+        """LLM 응답 생성
+
+        Args:
+            context: ``ContextBuilder.build`` 결과 (증거 카드 렌더링 포함)
+            inferences: 폴백 응답용 추론 결과 (프롬프트에는 카드로만 실린다)
+            usage_sink: 넘기면 API 응답의 usage(prompt/completion/total tokens)를
+                이 dict에 채운다. 호출자(평가 하네스)가 비용을 실측하는 경로.
+            prompt_evidence: ``context``에 렌더링된 카드. 있으면 카드 id 인용 규칙을
+                프롬프트에 한 번 붙인다 (설계 E8 앞부분).
+        """
         # 시스템 프롬프트 (카테고리 계층 인식 추가)
         system_prompt = self.context_builder.build_system_prompt(include_guardrails=True)
 
@@ -517,42 +542,25 @@ class HybridChatbotAgent(BaseHybridAgent):
         # 대화 히스토리
         conversation = self.context.get_conversation_summary()
 
-        # 추론 결과 강조
-        inference_summary = ""
-        if inferences:
-            inference_lines = []
-            for inf in inferences[:3]:
-                inference_lines.append(f"- [{inf.insight_type.value}] {inf.insight}")
-            inference_summary = "\n".join(inference_lines)
-
-        # 카테고리 계층 컨텍스트 추출 (마지막 하이브리드 컨텍스트에서)
-        category_hierarchy_context = ""
-        if self._last_hybrid_context and self._last_hybrid_context.entities:
-            category_hierarchy_context = self._build_category_hierarchy_context(
-                self._last_hybrid_context.entities
-            )
+        # 추론 결과·카테고리 계층은 context의 증거 카드([규칙 추론]·[관계])로만 싣는다.
+        # 카드 밖에서 다시 렌더링하면 같은 사실이 두 형식으로 중복된다 (E1).
+        citation_rule = f"\n[인용 규칙]\n{CITATION_INSTRUCTION}\n" if prompt_evidence else ""
 
         user_prompt = f"""
 {context}
 
 ---
 
-## 카테고리 계층 정보
-{category_hierarchy_context if category_hierarchy_context else "카테고리 계층 정보 없음"}
-
-## 온톨로지 추론 결과 (우선 참고)
-{inference_summary if inference_summary else "관련 추론 결과 없음"}
-
 ## 이전 대화
 {conversation if conversation else "없음"}
 
 ## 사용자 질문
 {user_message}
-
+{citation_rule}
 ---
 
 요구사항:
-1. 온톨로지 추론 결과가 있으면 이를 기반으로 답변
+1. [규칙 추론] 카드가 있으면 이를 기반으로 답변
 2. 구체적인 수치를 인용하여 답변
 3. 순위를 언급할 때는 카테고리를 명시 (예: "Lip Care에서 4위", "Beauty & Personal Care 전체에서는 73위")
 4. 불확실한 부분은 명확히 밝힘
@@ -580,6 +588,14 @@ class HybridChatbotAgent(BaseHybridAgent):
                 answer = "죄송합니다. 응답을 생성하지 못했습니다."
 
             # 토큰 사용량 기록
+            if usage_sink is not None and getattr(response, "usage", None):
+                usage_sink["prompt_tokens"] = int(response.usage.prompt_tokens or 0)
+                usage_sink["completion_tokens"] = int(response.usage.completion_tokens or 0)
+                usage_sink["total_tokens"] = int(
+                    getattr(response.usage, "total_tokens", 0)
+                    or usage_sink["prompt_tokens"] + usage_sink["completion_tokens"]
+                )
+
             if self.metrics and hasattr(response, "usage"):
                 self.metrics.record_llm_call(
                     model=self.model,
@@ -655,61 +671,6 @@ class HybridChatbotAgent(BaseHybridAgent):
                 response = re.sub(pattern, full, response, flags=re.IGNORECASE)
 
         return response
-
-    def _build_category_hierarchy_context(self, entities: dict[str, list[str]]) -> str:
-        """
-        카테고리 계층 컨텍스트 생성
-
-        Args:
-            entities: 추출된 엔티티 (카테고리, 제품 등)
-
-        Returns:
-            카테고리 계층 정보 문자열
-        """
-        if not self.kg:
-            return ""
-
-        context_parts = []
-
-        # 카테고리 엔티티에서 계층 정보 추출
-        if not entities:
-            return ""
-
-        categories = entities.get("categories", [])
-        for category in categories:
-            hierarchy = self.kg.get_category_hierarchy(category)
-            if "error" in hierarchy:
-                continue
-
-            # 현재 카테고리 정보
-            context_parts.append(f"**{hierarchy['name']}** (Level {hierarchy['level']})")
-
-            # 상위 카테고리 경로
-            if hierarchy.get("ancestors"):
-                path = " > ".join([a["name"] for a in reversed(hierarchy["ancestors"])])
-                context_parts.append(f"  - 상위 경로: {path} > {hierarchy['name']}")
-
-            # 하위 카테고리
-            if hierarchy.get("descendants"):
-                children = ", ".join([d["name"] for d in hierarchy["descendants"][:5]])
-                context_parts.append(f"  - 하위 카테고리: {children}")
-
-            context_parts.append("")
-
-        # 제품의 카테고리 컨텍스트 (순위 관련 질문 시)
-        products = entities.get("products", [])
-        for product_asin in products:
-            product_ctx = self.kg.get_product_category_context(product_asin)
-            if product_ctx.get("categories"):
-                context_parts.append(f"**제품 {product_asin}의 카테고리별 순위:**")
-                for cat_info in product_ctx["categories"]:
-                    hierarchy = cat_info.get("hierarchy", {})
-                    cat_name = hierarchy.get("name", cat_info.get("category_id"))
-                    rank = cat_info.get("rank", "N/A")
-                    context_parts.append(f"  - {cat_name}: {rank}위")
-                context_parts.append("")
-
-        return "\n".join(context_parts) if context_parts else ""
 
     def _estimate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
         """비용 추정"""

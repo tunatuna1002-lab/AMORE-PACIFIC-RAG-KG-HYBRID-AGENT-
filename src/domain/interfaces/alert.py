@@ -27,9 +27,6 @@ class AlertAgentProtocol(Protocol):
         create_alert: 알림 생성
         process_metrics: 메트릭 기반 알림 처리
         send_pending_alerts: 대기 중인 알림 발송
-        on_crawl_complete: 크롤링 완료 이벤트 핸들러
-        on_crawl_failed: 크롤링 실패 이벤트 핸들러
-        on_error: 에러 이벤트 핸들러
         send_daily_summary: 일일 요약 발송
         get_alerts: 알림 목록 조회
         get_pending_count: 대기 중인 알림 수 조회
@@ -90,33 +87,6 @@ class AlertAgentProtocol(Protocol):
                 "recipients": [...],
                 ...
             }
-        """
-        ...
-
-    async def on_crawl_complete(self, data: dict[str, Any]) -> None:
-        """
-        크롤링 완료 이벤트 핸들러.
-
-        Args:
-            data: 이벤트 데이터
-        """
-        ...
-
-    async def on_crawl_failed(self, data: dict[str, Any]) -> None:
-        """
-        크롤링 실패 이벤트 핸들러.
-
-        Args:
-            data: 이벤트 데이터
-        """
-        ...
-
-    async def on_error(self, data: dict[str, Any]) -> None:
-        """
-        에러 이벤트 핸들러.
-
-        Args:
-            data: 이벤트 데이터
         """
         ...
 

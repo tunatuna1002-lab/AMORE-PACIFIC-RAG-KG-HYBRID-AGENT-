@@ -1,5 +1,25 @@
 # ReAct Self-Reflection Agent Guide
 
+> **[2026-09 사후] 이 가이드의 도구명·활성화 조건·반복 기본값은 트랙 5-C 리팩터 이전 기준이다.**
+> `src/core/react_agent.py`(`ReActAgent`/`get_react_agent`/`set_tool_executor` 등 API 자체는
+> 여전히 존재한다) 아래에서 실제로 바뀐 부분:
+> - **도구**: 아래 문서 곳곳의 `query_data`·`query_knowledge_graph`·`calculate_metrics`는
+>   더 이상 존재하지 않는다. ReAct 전용 도구 3종·대시보드 JSON 도구 5종이 폐지되고,
+>   DecisionMaker와 공유하는 5종 레지스트리(`resolve_entity`·`kg_neighbors`·`get_metrics`·
+>   `apply_rules`·`search_docs`, `src/core/tool_registry.py`) + 루프 제어 2종
+>   (`final_answer`·`refine_search`)만 남았다.
+> - **활성화**: "분석/비교/왜" 같은 키워드 기반 복잡도 판단이 아니라, 홉 카운트 라우터
+>   (`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)가 먼저 판단하고 플래그
+>   `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제로 ReAct 경로를 탄다(OFF 상태에서는
+>   `agents.react_shadow_mode`로 그림자 실행만 가능). 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3).
+> - **호출 방식**: 프롬프트에 JSON을 요구해 직접 파싱하던 방식에서 네이티브 function
+>   calling(`tools=`/`tool_choice="auto"`)으로 바뀌었다.
+> - **반복·예산**: `max_iterations` 기본값은 3이 아니라 5이며, 질문당 토큰 예산
+>   `max_total_tokens`(기본 `DEFAULT_TOKEN_BUDGET=12000`)이 새로 추가됐다.
+>
+> 아래 본문은 개념(Thought→Action→Observation→Reflection 루프, Self-Reflection)은 여전히
+> 유효하지만, 도구명·활성화 조건·기본 반복 횟수가 나오는 예시는 위 내용을 기준으로 읽어야 한다.
+
 ## 개요
 
 ReAct (Reasoning + Acting) Self-Reflection 패턴을 구현한 AI 에이전트로, 복잡한 질문에 대해 단계적 사고와 자체 평가를 통해 고품질 응답을 생성합니다.
@@ -245,7 +265,7 @@ response = await brain.process_query(query)
 
 ## 제약사항
 
-1. **최대 반복 횟수 제한**: 무한 루프 방지 (기본 3회)
+1. **최대 반복 횟수 제한**: 무한 루프 방지 (기본 5회, `max_iterations` — [2026-09 사후] 정정) + 질문당 토큰 예산(기본 12,000)
 2. **도구 의존성**: ToolExecutor에 등록된 도구만 사용 가능
 3. **컨텍스트 길이**: 과도한 step 누적 시 토큰 제한 주의
 4. **LLM 파싱 오류**: JSON 파싱 실패 시 fallback

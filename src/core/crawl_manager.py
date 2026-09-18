@@ -429,6 +429,24 @@ class CrawlManager:
             self.state.completed_at = datetime.now(KST).isoformat()
             self._save_state()
 
+            # CRITICAL 알림 발화 (이메일/텔레그램) — 알림 실패가 크롤 상태 기록을
+            # 덮어쓰지 않도록 별도 try로 감싼다.
+            try:
+                from src.core.brain import get_brain
+
+                brain = await get_brain()
+                await brain.emit_event(
+                    "crawl_failed",
+                    {
+                        "error": str(e),
+                        "started_at": self.state.started_at,
+                        "products_collected": self.state.products_collected,
+                        "details": f"진행률 {self.state.progress}%에서 중단",
+                    },
+                )
+            except Exception as notify_error:
+                logger.error(f"crawl_failed 알림 발화 실패: {notify_error}")
+
     def get_status_message(self) -> str:
         """현재 상태 메시지 반환"""
         if self.state.status == CrawlStatus.IDLE:

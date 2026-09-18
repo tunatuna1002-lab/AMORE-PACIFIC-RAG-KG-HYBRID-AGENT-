@@ -11,7 +11,6 @@ import json
 from datetime import datetime
 from typing import Any
 
-from src.domain.entities import BrandMetrics, MarketMetrics, ProductMetrics
 from src.monitoring.logger import AgentLogger
 from src.monitoring.metrics import QualityMetrics
 from src.monitoring.tracer import ExecutionTracer
@@ -284,92 +283,10 @@ class StorageAgent:
             self.logger.agent_error("StorageAgent", str(e), duration)
             raise
 
-    async def save_metrics(
-        self,
-        brand_metrics: list[BrandMetrics] | None = None,
-        product_metrics: list[ProductMetrics] | None = None,
-        market_metrics: list[MarketMetrics] | None = None,
-    ) -> dict[str, Any]:
-        """
-        계산된 지표 저장
-
-        Args:
-            brand_metrics: 브랜드 지표
-            product_metrics: 제품 지표
-            market_metrics: 시장 지표
-
-        Returns:
-            저장 결과
-        """
-        self.logger.info("Saving calculated metrics")
-
-        if self.tracer:
-            self.tracer.start_span("save_metrics")
-
-        results = {"brand_metrics": 0, "product_metrics": 0, "market_metrics": 0}
-
-        try:
-            # 브랜드 지표 저장
-            if brand_metrics:
-                for bm in brand_metrics:
-                    row = [
-                        datetime.now().isoformat(),
-                        bm.brand_name,
-                        bm.category_id,
-                        bm.share_of_shelf,
-                        bm.avg_rank,
-                        bm.product_count,
-                        bm.top10_count,
-                        bm.top20_count,
-                    ]
-                    self.sheets._append_row("BrandMetrics", row)
-                results["brand_metrics"] = len(brand_metrics)
-
-            # 제품 지표 저장
-            if product_metrics:
-                for pm in product_metrics:
-                    row = [
-                        datetime.now().isoformat(),
-                        pm.asin,
-                        pm.product_title,
-                        pm.category_id,
-                        pm.current_rank,
-                        pm.rank_change_1d,
-                        pm.rank_change_7d,
-                        pm.rank_volatility,
-                        pm.streak_days,
-                        pm.rating_trend,
-                    ]
-                    self.sheets._append_row("ProductMetrics", row)
-                results["product_metrics"] = len(product_metrics)
-
-            # 시장 지표 저장
-            if market_metrics:
-                for mm in market_metrics:
-                    row = [
-                        datetime.now().isoformat(),
-                        mm.category_id,
-                        mm.hhi,
-                        mm.cpi,
-                        mm.churn_rate_7d,
-                        mm.avg_rating_gap,
-                        mm.top_brand,
-                        mm.top_brand_sos,
-                    ]
-                    self.sheets._append_row("MarketMetrics", row)
-                results["market_metrics"] = len(market_metrics)
-
-            if self.tracer:
-                self.tracer.end_span("completed")
-
-            self.logger.info(f"Saved metrics: {results}")
-            return results
-
-        except Exception as e:
-            if self.tracer:
-                self.tracer.end_span("failed", str(e))
-            self.logger.error(f"Failed to save metrics: {e}")
-            raise
+    # save_metrics()는 제거됐다 (§5.4).
+    # 호출처가 0건이었고 BrandMetrics/ProductMetrics 엔티티에 존재하지 않는 필드
+    # (brand_name, share_of_shelf, avg_rank ...)를 참조해 실제 엔티티로는 동작하지
+    # 않았다. 지표 영속화는 BatchWorkflow의 STORE_METRICS 스텝이 담당한다.
 
     def get_historical_data(self, asin: str, days: int = 30) -> list[dict[str, Any]]:
         """

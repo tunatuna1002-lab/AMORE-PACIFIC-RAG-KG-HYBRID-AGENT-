@@ -2,9 +2,6 @@
 ReAct Agent Multi-hop & IRCoT 단위 테스트
 """
 
-import json
-from unittest.mock import MagicMock
-
 import pytest
 
 from src.core.models import ToolResult
@@ -12,6 +9,7 @@ from src.core.react_agent import (
     ReActAgent,
     ReActResult,
 )
+from tests.unit.core.react_fc_fixtures import json_reply, tool_call_reply
 
 # ============================================================
 # Fixtures
@@ -19,30 +17,20 @@ from src.core.react_agent import (
 
 
 def _make_llm_response(thought, action, action_input=None):
-    """LLM 응답 Mock 생성 헬퍼"""
-    payload = {"thought": thought, "action": action}
-    if action_input is not None:
-        payload["action_input"] = action_input
-    content = f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
-    response = MagicMock()
-    response.choices = [MagicMock()]
-    response.choices[0].message.content = content
-    return response
+    """LLM 응답 Mock 생성 헬퍼 (5-C: 네이티브 function calling 모양)"""
+    return tool_call_reply(thought, action, action_input)
 
 
 def _make_reflection_response(quality_score=0.8, needs_improvement=False):
-    """Reflection 응답 Mock 생성 헬퍼"""
-    payload = {
-        "quality_score": quality_score,
-        "needs_improvement": needs_improvement,
-        "missing_info": [],
-        "improvement_suggestion": "",
-    }
-    content = f"```json\n{json.dumps(payload)}\n```"
-    response = MagicMock()
-    response.choices = [MagicMock()]
-    response.choices[0].message.content = content
-    return response
+    """Reflection 응답 Mock 생성 헬퍼 (도구 호출 없는 본문 JSON)"""
+    return json_reply(
+        {
+            "quality_score": quality_score,
+            "needs_improvement": needs_improvement,
+            "missing_info": [],
+            "improvement_suggestion": "",
+        }
+    )
 
 
 class MockToolExecutor:
@@ -85,8 +73,8 @@ async def test_multihop_refine_search_basic(agent, monkeypatch):
     """refine_search action이 2차 검색을 트리거한다"""
     executor = MockToolExecutor(
         responses={
-            "query_data": ToolResult(
-                tool_name="query_data",
+            "search_docs": ToolResult(
+                tool_name="search_docs",
                 success=True,
                 data={"brand": "LANEIGE", "rank": 3},
             ),
@@ -122,8 +110,8 @@ async def test_multihop_refine_search_basic(agent, monkeypatch):
     result = await agent.run("LANEIGE 순위는?", "test context")
     assert result.hop_count == 1
     assert len(executor.call_log) >= 1
-    # refine_search는 query_data로 변환되어 실행
-    assert executor.call_log[0][0] == "query_data"
+    # refine_search는 search_docs로 변환되어 실행 (트랙 4-A)
+    assert executor.call_log[0][0] == "search_docs"
 
 
 @pytest.mark.asyncio
@@ -168,8 +156,8 @@ async def test_multihop_combined_observations(agent, monkeypatch):
     call_idx = 0
     executor = MockToolExecutor(
         responses={
-            "query_data": ToolResult(
-                tool_name="query_data",
+            "search_docs": ToolResult(
+                tool_name="search_docs",
                 success=True,
                 data={"brand": "LANEIGE", "info": "lip care"},
             ),
@@ -183,7 +171,7 @@ async def test_multihop_combined_observations(agent, monkeypatch):
         if call_idx == 1:
             return _make_llm_response(
                 "먼저 기본 데이터를 수집",
-                "query_data",
+                "search_docs",
                 {"brand": "LANEIGE"},
             )
         elif call_idx == 2:
@@ -257,10 +245,10 @@ async def test_ircot_auto_inject_search(agent, monkeypatch):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            # thought에 '정보 부족' 포함, action은 query_data
+            # thought에 '정보 부족' 포함, action은 get_metrics
             return _make_llm_response(
                 "정보 부족 - LANEIGE 데이터가 필요합니다",
-                "query_data",
+                "search_docs",
                 {"brand": "LANEIGE"},
             )
         elif call_count == 2:
@@ -274,7 +262,7 @@ async def test_ircot_auto_inject_search(agent, monkeypatch):
     monkeypatch.setattr("src.core.react_agent.acompletion", mock_acompletion)
 
     result = await agent.run("LANEIGE 분석", "context")
-    # IRCoT가 query_data를 refine_search로 바꿨으므로 hop_count >= 1
+    # IRCoT가 도구 호출을 refine_search로 바꿨으므로 hop_count >= 1
     assert result.hop_count >= 1
     # 첫 step의 action이 refine_search로 변경되었는지 확인
     assert result.steps[0].action == "refine_search"
@@ -294,7 +282,7 @@ async def test_ircot_disabled(agent_no_ircot, monkeypatch):
         if call_count == 1:
             return _make_llm_response(
                 "정보 부족 - 데이터 필요",
-                "query_data",
+                "search_docs",
                 {"brand": "LANEIGE"},
             )
         elif call_count == 2:
@@ -310,7 +298,7 @@ async def test_ircot_disabled(agent_no_ircot, monkeypatch):
     result = await agent_no_ircot.run("LANEIGE 분석", "context")
     # IRCoT 비활성이므로 hop_count == 0, action 변경 없음
     assert result.hop_count == 0
-    assert result.steps[0].action == "query_data"
+    assert result.steps[0].action == "search_docs"
 
 
 @pytest.mark.asyncio
@@ -374,8 +362,8 @@ def test_refine_search_action_validation():
 async def test_multihop_with_tool_executor(agent, monkeypatch):
     """Mock executor와 multi-hop 통합 테스트"""
     responses = {
-        "query_data": ToolResult(
-            tool_name="query_data",
+        "search_docs": ToolResult(
+            tool_name="search_docs",
             success=True,
             data={"products": ["A", "B", "C"]},
         ),
@@ -410,10 +398,11 @@ async def test_multihop_with_tool_executor(agent, monkeypatch):
 
     result = await agent.run("제품 목록", "context")
     assert result.hop_count == 1
-    # executor가 query_data로 호출됨
+    # executor가 search_docs로 호출됨
     assert len(executor.call_log) == 1
-    assert executor.call_log[0][0] == "query_data"
-    assert "LANEIGE" in executor.call_log[0][1].get("brand", "")
+    assert executor.call_log[0][0] == "search_docs"
+    # focus_entities는 검색 질의에 덧붙는다 (search_docs는 query 하나만 받는다, 트랙 4-A)
+    assert "LANEIGE" in executor.call_log[0][1]["query"]
 
 
 @pytest.mark.asyncio
@@ -448,8 +437,8 @@ async def test_multihop_empty_observation(agent, monkeypatch):
     """빈 검색 결과 처리"""
     executor = MockToolExecutor(
         responses={
-            "query_data": ToolResult(
-                tool_name="query_data",
+            "search_docs": ToolResult(
+                tool_name="search_docs",
                 success=True,
                 data={},
             ),
@@ -543,13 +532,13 @@ async def test_refine_search_focus_entities(agent, monkeypatch):
     monkeypatch.setattr("src.core.react_agent.acompletion", mock_acompletion)
 
     result = await agent.run("브랜드 비교", "context")
-    # executor에 brand 파라미터가 전달됨
+    # focus_entities가 검색 질의에 전달됨
     assert len(executor.call_log) == 1
     params = executor.call_log[0][1]
-    assert "brand" in params
-    assert "LANEIGE" in params["brand"]
-    assert "Dior" in params["brand"]
-    assert "Chanel" in params["brand"]
+    assert set(params) == {"query"}
+    assert "LANEIGE" in params["query"]
+    assert "Dior" in params["query"]
+    assert "Chanel" in params["query"]
 
 
 def test_react_result_hop_count_default():

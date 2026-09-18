@@ -22,7 +22,14 @@ from .cache import ResponseCache
 from .circuit_breaker import CircuitBreaker
 from .models import ToolResult
 from .state import OrchestratorState
-from .tools import ToolExecutor
+from .tool_registry import (
+    TOOL_APPLY_RULES,
+    TOOL_GET_METRICS,
+    TOOL_KG_NEIGHBORS,
+    TOOL_RESOLVE_ENTITY,
+    TOOL_SEARCH_DOCS,
+    ToolRegistry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,12 +54,14 @@ TOOL_ERROR_STRATEGIES: dict[str, ErrorStrategy] = {
     "workflow": ErrorStrategy.RETRY,
     "query_deals": ErrorStrategy.FALLBACK,
     "query_deals_summary": ErrorStrategy.FALLBACK,
-    # v3 대시보드 도구
-    "get_brand_status": ErrorStrategy.FALLBACK,
-    "get_product_info": ErrorStrategy.FALLBACK,
-    "get_competitor_analysis": ErrorStrategy.FALLBACK,
-    "get_category_info": ErrorStrategy.FALLBACK,
-    "get_action_items": ErrorStrategy.FALLBACK,
+    # 읽기 전용 도구 레지스트리 5종 (트랙 4-A).
+    # FALLBACK(캐시 재사용)을 쓰지 않는다: 캐시 키가 도구 이름뿐이라 다른 질의(다른 브랜드·
+    # 카테고리)의 결과를 근거로 내놓게 된다. 실패는 그대로 드러내고 답변이 근거 없이 나가지 않게 한다.
+    TOOL_RESOLVE_ENTITY: ErrorStrategy.NOTIFY_USER,
+    TOOL_KG_NEIGHBORS: ErrorStrategy.NOTIFY_USER,
+    TOOL_GET_METRICS: ErrorStrategy.NOTIFY_USER,
+    TOOL_APPLY_RULES: ErrorStrategy.NOTIFY_USER,
+    TOOL_SEARCH_DOCS: ErrorStrategy.NOTIFY_USER,
 }
 
 
@@ -69,7 +78,7 @@ class ToolCoordinator:
 
     def __init__(
         self,
-        tool_executor: ToolExecutor | None = None,
+        tool_executor: ToolRegistry | None = None,
         state: OrchestratorState | None = None,
         cache: ResponseCache | None = None,
         max_retries: int = 2,
@@ -77,13 +86,13 @@ class ToolCoordinator:
     ):
         """
         Args:
-            tool_executor: 도구 실행기
+            tool_executor: 도구 레지스트리 (읽기 전용 도구 5종)
             state: 오케스트레이터 상태
             cache: 응답 캐시 (폴백용)
             max_retries: 최대 재시도 횟수
             retry_delay: 재시도 간 대기 시간 (초)
         """
-        self.tool_executor = tool_executor or ToolExecutor()
+        self.tool_executor = tool_executor or ToolRegistry()
         self.state = state or OrchestratorState()
         self.cache = cache or ResponseCache()
         self.max_retries = max_retries

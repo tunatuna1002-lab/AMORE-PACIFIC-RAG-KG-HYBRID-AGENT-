@@ -96,6 +96,11 @@ from .relations import InferenceResult, InsightType
 # 로거 설정
 logger = logging.getLogger(__name__)
 
+# 결론 dict 중 InferenceResult의 전용 필드로 옮기는 키. 나머지는 InferenceResult.conclusion.
+_MAPPED_CONCLUSION_KEYS = frozenset(
+    {"insight", "recommendation", "related_entities", "metadata", "confidence_modifier"}
+)
+
 
 @dataclass
 class RuleCondition:
@@ -199,6 +204,13 @@ class InferenceRule:
                     "priority": self.priority,
                     "tags": self.tags,
                     **conclusion_data.get("metadata", {}),
+                },
+                # position·market_structure·risk 같은 결론 값은 예전에 여기서 버려졌다 —
+                # 추론 카드의 value가 결론 대신 metadata의 market_type을 쓰던 원인
+                conclusion={
+                    key: value
+                    for key, value in conclusion_data.items()
+                    if key not in _MAPPED_CONCLUSION_KEYS
                 },
             )
         except Exception as e:
@@ -549,6 +561,11 @@ class OntologyReasoner:
     # 히스토리 관리
     # =========================================================================
 
+    def record_inference(self, context: dict[str, Any], results: list[InferenceResult]) -> None:
+        """``infer`` 밖에서 규칙을 판정한 호출자(계약 래퍼 ``evaluate_all`` 경로)가
+        추론 통계(``get_inference_stats``)에 결과를 남긴다."""
+        self._record_inference(context, results)
+
     def _record_inference(self, context: dict[str, Any], results: list[InferenceResult]) -> None:
         """추론 히스토리 기록"""
         record = {
@@ -658,15 +675,29 @@ def condition(name: str, description: str) -> Callable[[Callable], RuleCondition
 # =========================================================================
 
 
+def _present(ctx: dict, key: str) -> float | None:
+    """결측(키 없음 또는 None)이면 None을 돌려준다.
+
+    exporter가 미계산 필드를 None으로 방출하므로, 조건은 결측을 0으로 보지 말고
+    스킵해야 한다. 과거에는 streak_days=7 같은 상수가 규칙을 상시 트리거했다 (§6.5).
+    """
+    value = ctx.get(key)
+    return None if value is None else value
+
+
 class StandardConditions:
-    """자주 사용되는 표준 조건들"""
+    """자주 사용되는 표준 조건들
+
+    결측값 규칙: 지표가 없으면(None) 조건은 False다. 결측을 0으로 대체하면
+    "데이터 없음"이 "값이 0"으로 둔갑해 규칙이 잘못 발화한다.
+    """
 
     @staticmethod
     def sos_above(threshold: float) -> RuleCondition:
         """SoS가 임계값 이상"""
         return RuleCondition(
             name=f"sos_above_{threshold}",
-            check=lambda ctx: ctx.get("sos", 0) >= threshold,
+            check=lambda ctx: (v := _present(ctx, "sos")) is not None and v >= threshold,
             description=f"SoS >= {threshold * 100:.0f}%",
         )
 
@@ -675,7 +706,7 @@ class StandardConditions:
         """SoS가 임계값 이하"""
         return RuleCondition(
             name=f"sos_below_{threshold}",
-            check=lambda ctx: ctx.get("sos", 0) < threshold,
+            check=lambda ctx: (v := _present(ctx, "sos")) is not None and v < threshold,
             description=f"SoS < {threshold * 100:.0f}%",
         )
 
@@ -684,7 +715,7 @@ class StandardConditions:
         """HHI가 임계값 이상 (집중 시장)"""
         return RuleCondition(
             name=f"hhi_above_{threshold}",
-            check=lambda ctx: ctx.get("hhi", 0) >= threshold,
+            check=lambda ctx: (v := _present(ctx, "hhi")) is not None and v >= threshold,
             description=f"HHI >= {threshold} (집중 시장)",
         )
 
@@ -693,7 +724,7 @@ class StandardConditions:
         """HHI가 임계값 이하 (분산 시장)"""
         return RuleCondition(
             name=f"hhi_below_{threshold}",
-            check=lambda ctx: ctx.get("hhi", 0) < threshold,
+            check=lambda ctx: (v := _present(ctx, "hhi")) is not None and v < threshold,
             description=f"HHI < {threshold} (분산 시장)",
         )
 
@@ -702,7 +733,7 @@ class StandardConditions:
         """CPI가 임계값 이상 (프리미엄)"""
         return RuleCondition(
             name=f"cpi_above_{threshold}",
-            check=lambda ctx: ctx.get("cpi", 100) > threshold,
+            check=lambda ctx: (v := _present(ctx, "cpi")) is not None and v > threshold,
             description=f"CPI > {threshold} (프리미엄 포지션)",
         )
 
@@ -711,7 +742,7 @@ class StandardConditions:
         """CPI가 임계값 이하 (가성비)"""
         return RuleCondition(
             name=f"cpi_below_{threshold}",
-            check=lambda ctx: ctx.get("cpi", 100) < threshold,
+            check=lambda ctx: (v := _present(ctx, "cpi")) is not None and v < threshold,
             description=f"CPI < {threshold} (가성비 포지션)",
         )
 
@@ -720,7 +751,7 @@ class StandardConditions:
         """평점 갭이 음수 (경쟁 열위)"""
         return RuleCondition(
             name="rating_gap_negative",
-            check=lambda ctx: ctx.get("rating_gap", 0) < 0,
+            check=lambda ctx: (v := _present(ctx, "rating_gap")) is not None and v < 0,
             description="평점 갭 < 0 (경쟁사 대비 열위)",
         )
 
@@ -729,7 +760,7 @@ class StandardConditions:
         """평점 갭이 양수 (경쟁 우위)"""
         return RuleCondition(
             name="rating_gap_positive",
-            check=lambda ctx: ctx.get("rating_gap", 0) > 0,
+            check=lambda ctx: (v := _present(ctx, "rating_gap")) is not None and v > 0,
             description="평점 갭 > 0 (경쟁사 대비 우위)",
         )
 
@@ -747,7 +778,7 @@ class StandardConditions:
         """Churn Rate가 높음"""
         return RuleCondition(
             name=f"churn_rate_high_{threshold}",
-            check=lambda ctx: ctx.get("churn_rate", 0) > threshold,
+            check=lambda ctx: (v := _present(ctx, "churn_rate")) is not None and v > threshold,
             description=f"Churn Rate > {threshold * 100:.0f}%",
         )
 
@@ -756,7 +787,7 @@ class StandardConditions:
         """연속 체류일이 N일 이상"""
         return RuleCondition(
             name=f"streak_above_{days}",
-            check=lambda ctx: ctx.get("streak_days", 0) >= days,
+            check=lambda ctx: (v := _present(ctx, "streak_days")) is not None and v >= days,
             description=f"Top N 연속 체류 >= {days}일",
         )
 
@@ -765,7 +796,7 @@ class StandardConditions:
         """순위 상승 추세"""
         return RuleCondition(
             name="rank_improving",
-            check=lambda ctx: (ctx.get("rank_change_7d") or 0) < 0,
+            check=lambda ctx: (v := _present(ctx, "rank_change_7d")) is not None and v < 0,
             description="7일간 순위 상승 (음수 = 상승)",
         )
 
@@ -774,7 +805,7 @@ class StandardConditions:
         """순위 하락 추세"""
         return RuleCondition(
             name="rank_declining",
-            check=lambda ctx: (ctx.get("rank_change_7d") or 0) > 0,
+            check=lambda ctx: (v := _present(ctx, "rank_change_7d")) is not None and v > 0,
             description="7일간 순위 하락 (양수 = 하락)",
         )
 
