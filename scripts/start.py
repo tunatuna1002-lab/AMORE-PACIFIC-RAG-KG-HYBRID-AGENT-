@@ -38,12 +38,33 @@ def _build_chroma_index() -> None:
         logger.exception("Chroma 인덱스 빌드 실패 — 서버는 계속 시작합니다.")
 
 
+def _load_ontology_or_exit() -> None:
+    """온톨로지 원본을 시작 시 한 번 로드해 형식 오류를 조기에 드러낸다 (설계 OE10) [2026-09 사후].
+
+    원본(`config/ontology/*` + `config/category_hierarchy.json`)은 이미지에 코드와 함께
+    들어간다. 형식 오류가 있으면 첫 질의가 아니라 배포 시점에 실패하도록, 로그를 남기고
+    0이 아닌 코드로 종료한다. 성공하면 ``get_ontology()`` 캐시가 채워진다.
+    """
+    try:
+        from src.ontology.ontology import get_ontology
+
+        onto = get_ontology()
+    except Exception:
+        logger.exception("온톨로지 원본 로드 실패 — 서버를 시작하지 않습니다.")
+        sys.exit(1)
+    print(
+        f"Ontology loaded: version={onto.version} as_of={onto.as_of} "
+        f"classes={onto.class_count} brands={onto.brand_count}"
+    )
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Railway에서 제공하는 PORT 환경변수 사용 (기본값 8001)
     port = int(os.environ.get("PORT", 8001))
 
+    _load_ontology_or_exit()
     _build_chroma_index()
 
     print(f"Starting server on port {port}...")
