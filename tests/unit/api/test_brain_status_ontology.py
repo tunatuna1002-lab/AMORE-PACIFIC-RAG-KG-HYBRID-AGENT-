@@ -45,7 +45,9 @@ async def _status() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_status_exposes_ontology_from_source() -> None:
+async def test_status_exposes_ontology_from_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    # OA-10: 저장소 JSON 기본값이 ON으로 바뀌었으므로 OFF 기대치는 env로 명시한다.
+    monkeypatch.setenv("FF_ONTOLOGY_USE_CLASS_REASONING", "false")
     payload = await _status()
     onto = get_ontology()
 
@@ -54,9 +56,17 @@ async def test_status_exposes_ontology_from_source() -> None:
     assert payload["ontology"]["as_of"] == onto.as_of
     assert payload["ontology"]["class_count"] == onto.class_count > 0
     assert payload["ontology"]["brand_count"] == onto.brand_count > 0
-    # 저장소 기본값: 클래스 추론 OFF, KG 쓰기 검증 warn
+    # KG 쓰기 검증 저장소 기본값: warn
     assert payload["ontology"]["use_class_reasoning"] is False
     assert payload["ontology"]["kg_write_validation"] == "warn"
+
+
+@pytest.mark.asyncio
+async def test_status_reflects_repository_default_on() -> None:
+    """OA-10: env·직접 오버라이드가 없으면 저장소 JSON 기본값(ON)을 그대로 노출한다."""
+    payload = await _status()
+
+    assert payload["ontology"]["use_class_reasoning"] is True
 
 
 @pytest.mark.asyncio

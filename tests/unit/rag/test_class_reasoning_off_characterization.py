@@ -21,14 +21,10 @@ def expected() -> dict:
 
 
 @pytest.mark.parametrize("name", sorted(QUERIES))
-@pytest.mark.parametrize("env_value", [None, "false"])
-async def test_flag_off_output_matches_pre_o3_snapshot(
-    tmp_path, monkeypatch, expected, name, env_value
-):
-    if env_value is None:
-        monkeypatch.delenv("FF_ONTOLOGY_USE_CLASS_REASONING", raising=False)
-    else:
-        monkeypatch.setenv("FF_ONTOLOGY_USE_CLASS_REASONING", env_value)
+async def test_flag_off_output_matches_pre_o3_snapshot(tmp_path, monkeypatch, expected, name):
+    # OA-10: 저장소 JSON 기본값이 ON으로 바뀌었으므로(env 미설정 시 더는 OFF가 아님) OFF는
+    # 반드시 env로 명시한다 — 저장소 JSON 기본값에 기대지 않는다.
+    monkeypatch.setenv("FF_ONTOLOGY_USE_CLASS_REASONING", "false")
     retriever = make_ontology_retriever(tmp_path)
 
     ctx = await retriever.retrieve(QUERIES[name])

@@ -236,11 +236,12 @@ class TestClassReasoningFlag:
         monkeypatch.setenv("FF_ONTOLOGY_USE_CLASS_REASONING", "false")
         assert FeatureFlags(config_path=path).use_class_reasoning() is False
 
-    def test_repository_config_default_off(self, monkeypatch) -> None:
+    def test_repository_config_default_on(self, monkeypatch) -> None:
+        """OA-10: O7 측정 후 저장소 JSON 기본값을 ON으로 전환 — 코드 레벨 기본값(키 없을 때 False)은 그대로."""
         monkeypatch.delenv("FF_ONTOLOGY_USE_CLASS_REASONING", raising=False)
         config = Path(__file__).resolve().parents[3] / "config" / "feature_flags.json"
-        assert FeatureFlags(config_path=config).use_class_reasoning() is False
-        assert json.loads(config.read_text())["ontology"]["use_class_reasoning"] is False
+        assert FeatureFlags(config_path=config).use_class_reasoning() is True
+        assert json.loads(config.read_text())["ontology"]["use_class_reasoning"] is True
 
 
 class TestKGWriteValidationMode:

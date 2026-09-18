@@ -9,7 +9,7 @@
     "enabled": true
   },
   "ontology": {
-    "use_class_reasoning": false
+    "use_class_reasoning": true
   },
   "kg": {
     "enabled": true,
