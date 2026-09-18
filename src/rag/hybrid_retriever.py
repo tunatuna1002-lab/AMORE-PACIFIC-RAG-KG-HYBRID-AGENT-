@@ -100,6 +100,10 @@ from src.ontology.rule_contracts import evaluate_rules_on_cards
 from .evidence_adapters import EvidenceAdapter
 from .evidence_assembly import EvidenceBundle, assemble_evidence, build_rule_input_cards
 from .evidence_renderer import render_for_prompt
+from .ontology_context import MAX_EXPANDED_BRANDS, STATIC_BRAND_PREDICATES
+from .ontology_context import apply_cap as apply_expansion_cap
+from .ontology_context import plan_query as plan_ontology_query
+from .ontology_context import static_fact as ontology_static_fact
 from .query_enhancer import QueryEnhancer
 from .relevance_grader import RelevanceGrader
 from .retriever import DocumentRetriever
@@ -126,6 +130,41 @@ _REST_EDGE_PRIORITY = {
     "hasHHI": 3,
     "hasPosition": 4,
 }
+
+# 플래그 ontology.use_class_reasoning ON (트랙 O3): 정식 술어 이름과 정적 정의 술어를 쓴다
+_REST_EDGE_PRIORITY_CANONICAL = {
+    "ownedByGroup": 0,
+    "hasSegment": 0,
+    "originatesFrom": 0,
+    "acquiredIn": 0,
+    "ownsBrand": 0,
+    "hasSoS": 1,
+    "rankedIn": 2,
+    "hasHHI": 3,
+    "hasPricePosition": 4,
+    "siblingBrand": 5,
+}
+_PRIORITY_PREDS = frozenset(
+    {"hasSoS", "hasHHI", "rankedIn", "competesWith", "hasPosition", "ownedBy"}
+)
+# ON: 정적 정의 술어를 버리지 않는다 (검토 보고서 §3.1). hasPosition은 읽을 때 나뉜다.
+_PRIORITY_PREDS_CANONICAL = frozenset(
+    {
+        "hasSoS",
+        "hasHHI",
+        "hasPricePosition",
+        "rankedIn",
+        "competesWith",
+        "ownedByGroup",
+        "ownsBrand",
+        "siblingBrand",
+        "hasSegment",
+        "originatesFrom",
+        "acquiredIn",
+    }
+)
+# 온톨로지 카드를 프롬프트에 더할 때의 상한 (관계 종류 상한 20과 별도 — O3 카드 수 가드)
+ONTOLOGY_PROMPT_MAX = 24
 
 
 def _dedupe_edges(edges: list[dict]) -> list[dict]:
@@ -545,19 +584,47 @@ class HybridRetriever:
 
             flags = FeatureFlags.get_instance()
 
+            # 1.8 온톨로지 질의 해석 (플래그 ontology.use_class_reasoning, 기본 OFF, 트랙 O3).
+            #     OFF면 아래 모든 단계가 O3 이전과 같은 인자로 호출된다 (특성화 테스트로 고정).
+            ontology_plan = None
+            onto = None
+            adapter = self.evidence_adapter
+            if flags.use_class_reasoning():
+                try:
+                    onto, ontology_plan = await self._plan_ontology(entities)
+                    adapter = self._canonical_adapter(onto)
+                except Exception as e:
+                    logger.warning("온톨로지 질의 해석 실패 — 기존 경로로 계속", exc_info=True)
+                    self._record_degraded(degraded, "ontology_plan", e)
+                    onto, ontology_plan, adapter = None, None, self.evidence_adapter
+
             # 2. 지식 그래프에서 사실 조회 (ablation no-kg: FF_ONTOLOGY_USE_ONTOLOGY_KG=false)
             if flags.use_ontology_kg():
-                ontology_facts = self._query_knowledge_graph(entities, degraded=degraded)
+                if ontology_plan is not None:
+                    ontology_facts = self._query_knowledge_graph(
+                        entities, degraded=degraded, ontology_plan=ontology_plan, ontology=onto
+                    )
+                else:
+                    ontology_facts = self._query_knowledge_graph(entities, degraded=degraded)
             else:
                 logger.info("KG query disabled by feature flag (use_ontology_kg=false)")
                 ontology_facts = []
+            if ontology_plan is not None and not flags.use_ontology_kg():
+                # 정적 정의 사실은 온톨로지 원본에서 오므로 KG 조회 스위치와 무관하다
+                static = self._ontology_static_fact(onto, ontology_plan, degraded)
+                ontology_facts = [static] if static else []
             context.ontology_facts = ontology_facts
 
             # 2.5 크롤 DB 수치 사실 (ablation no-db-metrics: FF_RETRIEVER_USE_DB_METRIC_FACTS=false)
             # 수치 질문의 근거는 KG·문서가 아니라 SQLite 스냅샷이다 (사이클 10 §2).
             if flags.use_db_metric_facts():
                 try:
-                    context.metric_facts = await self.metric_facts_provider.collect(entities)
+                    if ontology_plan is not None:
+                        context.metric_facts = await self._collect_metric_facts_expanded(
+                            entities, ontology_plan, onto
+                        )
+                    else:
+                        context.metric_facts = await self.metric_facts_provider.collect(entities)
                 except Exception as e:
                     logger.warning("DB 지표 사실 조회 실패", exc_info=True)
                     context.metric_facts = []
@@ -567,7 +634,7 @@ class HybridRetriever:
             input_cards = build_rule_input_cards(
                 metric_facts=context.metric_facts,
                 ontology_facts=context.ontology_facts,
-                adapter=self.evidence_adapter,
+                adapter=adapter,
                 degraded=degraded,
             )
 
@@ -575,7 +642,16 @@ class HybridRetriever:
             #    둘 다 false면 규칙을 판정하지 않는다 — 이름과 달리 "규칙 추론 off" 스위치)
             rule_evaluation: dict[str, Any] | None = None
             if flags.use_unified_reasoner() or flags.use_owl_reasoner():
-                inferences, rule_evaluation = self._evaluate_rules(entities, input_cards)
+                if ontology_plan is not None:
+                    # 포함 확장(OE3): 하위 카테고리 조합도 판정한다 (카드는 자기 카테고리 그대로)
+                    inferences, rule_evaluation = self._evaluate_rules(
+                        entities,
+                        input_cards,
+                        adapter=adapter,
+                        extra_categories=ontology_plan.descendant_categories,
+                    )
+                else:
+                    inferences, rule_evaluation = self._evaluate_rules(entities, input_cards)
             else:
                 logger.info("Ontology inference disabled by feature flags")
                 inferences = []
@@ -590,12 +666,18 @@ class HybridRetriever:
 
             expanded_query = self._expand_query(search_query, inferences, entities)
             entity_rerank: dict[str, Any] = {}
+            # 포함 확장(OE3, ON): 문서 태그 가산점 대상 카테고리에 하위 카테고리를 더한다
+            search_entities = (
+                self._scope_entities(entities, ontology_plan)
+                if ontology_plan is not None
+                else entities
+            )
             rag_results, search_method = await self._hybrid_search(
                 expanded_query,
                 top_k=intent_top_k,
                 doc_type_filter=doc_type_filter,
                 degraded=degraded,
-                entities=entities,
+                entities=search_entities,
                 rerank_stats=entity_rerank,
             )
 
@@ -606,7 +688,7 @@ class HybridRetriever:
                     top_k=intent_top_k,
                     doc_type_filter=None,  # 전체 문서에서 검색
                     degraded=degraded,
-                    entities=entities,
+                    entities=search_entities,
                     rerank_stats=entity_rerank,
                 )
                 # 중복 제거하며 추가 (BM25 결과는 최상위 id가 없어 청크 id로 비교)
@@ -683,9 +765,19 @@ class HybridRetriever:
 
             # 5.9. 증거 카드 조립·선별 (최종 ontology_facts·inferences·rag_chunks + DB 수치).
             #      추론 근거 카드가 사실 상한으로 잘렸으면 입력 카드에서 되살린다
-            evidence_bundle = self._assemble_evidence(
-                context, degraded=degraded, input_cards=input_cards
-            )
+            if ontology_plan is not None:
+                evidence_bundle = self._assemble_evidence(
+                    context,
+                    degraded=degraded,
+                    input_cards=input_cards,
+                    adapter=adapter,
+                    ontology_plan=ontology_plan,
+                    ontology=onto,
+                )
+            else:
+                evidence_bundle = self._assemble_evidence(
+                    context, degraded=degraded, input_cards=input_cards
+                )
 
             # 6. 통합 컨텍스트 생성 (프롬프트 카드만 렌더링)
             context.combined_context = self._combine_contexts(context, include_explanations)
@@ -717,6 +809,10 @@ class HybridRetriever:
             }
             if rule_evaluation is not None:  # 추론 off면 키가 없다 (판정하지 않았다)
                 context.metadata["rule_evaluation"] = rule_evaluation
+            if ontology_plan is not None:  # 플래그 OFF면 키가 없다 (O7 카드 수 비교용)
+                context.metadata["ontology"] = self._ontology_trace(
+                    context, ontology_plan, onto, evidence_bundle
+                )
 
         except Exception as e:
             logger.error(f"Hybrid retrieval failed: {e}")
@@ -959,6 +1055,8 @@ class HybridRetriever:
         self,
         entities: dict[str, list[str]],
         degraded: list[dict[str, Any]] | None = None,
+        ontology_plan: Any | None = None,
+        ontology: Any | None = None,
     ) -> list[dict[str, Any]]:
         """
         지식 그래프에서 관련 사실 조회
@@ -966,11 +1064,29 @@ class HybridRetriever:
         Args:
             entities: 추출된 엔티티
             degraded: 선택 기능 실패 기록 대상 (호출자가 소유한 리스트, 공유 상태 아님)
+            ontology_plan: 플래그 ``ontology.use_class_reasoning`` ON일 때의 질의 해석
+                (``ontology_context.OntologyPlan``). None이면 O3 이전 동작 그대로다. 주면
+                (1) KG 술어를 읽을 때 정식화하고(``ownedBy`` → ``ownedByGroup``, ``hasPosition`` →
+                ``hasSoS``·``hasHHI``·``hasPricePosition``), (2) 정적 정의 술어를 버리지 않되
+                등록부 브랜드의 것은 등록부 카드가 대신하며, (3) 하위 카테고리도 조회 범위에
+                넣고(OE3), (4) 끝에 정적 사실(``ontology_static``)을 붙인다.
+            ontology: ``ontology_plan``을 만든 ``Ontology``.
 
         Returns:
             사실 리스트
         """
         facts = []
+        canonical = ontology_plan is not None and ontology is not None
+        scope_categories: set[str] = (
+            {c.lower() for c in ontology_plan.scope_categories} if canonical else set()
+        )
+        expanded_names: set[str] = set()
+        if canonical:
+            for bid in [*ontology_plan.mentioned_brands, *ontology_plan.expanded_brands]:
+                expanded_names.add(bid.lower())
+                name = ontology.brand_name(bid)
+                if name:
+                    expanded_names.add(name.lower())
 
         # 브랜드 관련 사실
         for brand in entities.get("brands", []):
@@ -1042,16 +1158,12 @@ class HybridRetriever:
                 edge_relations = []
                 for variant in subject_variants:
                     edge_relations += list(self.kg.query(subject=variant))
-                priority_preds = {
-                    "hasSoS",
-                    "hasHHI",
-                    "rankedIn",
-                    "competesWith",
-                    "hasPosition",
-                    "ownedBy",
-                }
+                priority_preds = _PRIORITY_PREDS_CANONICAL if canonical else _PRIORITY_PREDS
                 query_categories = {c.lower() for c in entities.get("categories", [])}
                 query_brands = {b.lower() for b in entities.get("brands", [])}
+                if canonical:
+                    query_categories |= scope_categories
+                    query_brands |= expanded_names
                 query_products = {p.lower() for p in entities.get("products", [])}
                 relevant, competes, rest = [], [], []
                 top_products: list[tuple[int, str, str]] = []  # (rank, title, category)
@@ -1065,8 +1177,19 @@ class HybridRetriever:
                     # 골드/KG 표기는 camelCase — original_predicate는 hasSoS처럼
                     # 의미가 더 구체적인 camelCase일 때만 우선한다
                     pred = orig if orig and "_" not in orig and not orig.isupper() else enum_pred
-                    # 시드 온톨로지 표기 정합화 (ownedByGroup → ownedBy)
-                    pred = {"ownedByGroup": "ownedBy"}.get(pred, pred)
+                    if canonical:
+                        # 읽을 때 정식화 (O3): 별칭 → 정식 이름, hasPosition은 원 술어로 분리
+                        pred = ontology.resolve_kg_predicate(enum_pred, orig) or pred
+                        if (
+                            pred in STATIC_BRAND_PREDICATES
+                            and ontology.normalize_brand(str(rel.subject)) is not None
+                        ):
+                            # 등록부 브랜드의 정적 사실(그룹·세그먼트·원산지·인수·자매)은
+                            # 등록부 카드(ontology_static)가 한 번만 싣는다 — KG 사본과 중복 방지
+                            continue
+                    else:
+                        # 시드 온톨로지 표기 정합화 (ownedByGroup → ownedBy)
+                        pred = {"ownedByGroup": "ownedBy"}.get(pred, pred)
                     if pred == "hasProduct":
                         # 상위 랭크 제품은 제품명 슬러그 엣지로 방출 (ASIN은 조회 불가 표기)
                         title = rel.properties.get("title", "")
@@ -1121,7 +1244,8 @@ class HybridRetriever:
                 # (소유관계 > 점유율 > 랭킹 > 집중도 > 가격 포지션).
                 # 상한 12개는 유지한다 — recall 게이트를 "엣지 전량 방출"로 우회하지
                 # 않기 위한 정밀도 가드 (kg_edge_precision으로 감시).
-                rest.sort(key=lambda e: _REST_EDGE_PRIORITY.get(e["predicate"], 9))
+                rest_priority = _REST_EDGE_PRIORITY_CANONICAL if canonical else _REST_EDGE_PRIORITY
+                rest.sort(key=lambda e: rest_priority.get(e["predicate"], 9))
                 metric_edges = _dedupe_edges(relevant + product_edges + rest + competes[:3])[:12]
                 if metric_edges:
                     facts.append(
@@ -1181,6 +1305,24 @@ class HybridRetriever:
             except Exception as e:
                 logger.warning("카테고리 계층 조회 실패", exc_info=True)
                 self._record_degraded(degraded, "kg_category_hierarchy", e)
+
+        # 카테고리 포함 확장 (OE3, ON): 하위 카테고리의 브랜드 순위 소속도 조회 범위에 넣는다.
+        # 사실은 하위 카테고리 자신을 entity로 둔다 — 상위 카테고리로 옮기지 않는다.
+        if canonical:
+            for category in ontology_plan.descendant_categories:
+                category_brands = self.kg.get_category_brands(category)
+                if category_brands:
+                    facts.append(
+                        {
+                            "type": "category_brands",
+                            "entity": category,
+                            "data": {
+                                "brand_count": len(category_brands),
+                                "top_brands": category_brands[:5],
+                                "scope_of": list(ontology_plan.categories),
+                            },
+                        }
+                    )
 
         # 감성 관련 사실 조회
         sentiment_clusters = entities.get("sentiment_clusters", [])
@@ -1243,10 +1385,143 @@ class HybridRetriever:
                         logger.warning("감성 클러스터 제품 조회 실패", exc_info=True)
                         self._record_degraded(degraded, "kg_sentiment_cluster_products", e)
 
+        if canonical:
+            static = self._ontology_static_fact(ontology, ontology_plan, degraded)
+            if static:
+                facts.append(static)
         return facts
 
+    # ------------------------------------------------------------------
+    # 온톨로지 질의 경로 (트랙 O3, 플래그 ontology.use_class_reasoning) [2026-09 사후]
+    # ------------------------------------------------------------------
+
+    async def _plan_ontology(self, entities: dict[str, Any]) -> tuple[Any, Any]:
+        """엔티티 → (Ontology, OntologyPlan). 전개 상한 순위는 크롤 DB 등장 → KG 크롤 관계
+        등장 → 이름 순이다 (결정적)."""
+        from src.ontology.ontology import get_ontology
+
+        onto = get_ontology()
+        plan = plan_ontology_query(onto, entities)
+        if not plan.candidates:
+            return onto, apply_expansion_cap(plan)
+
+        present: set[str] = set()
+        present_fn = getattr(self.metric_facts_provider, "present_brands", None)
+        if callable(present_fn):
+            try:
+                present = set(await present_fn(plan.scope_categories or None))
+            except Exception:
+                logger.debug("present_brands lookup failed", exc_info=True)
+
+        def rank_key(bid: str) -> tuple[int, int, str]:
+            name = onto.brand_name(bid) or bid
+            in_db = name.lower() in present or bid in present
+            in_kg = False
+            for variant in dict.fromkeys((name, name.lower(), bid)):
+                try:
+                    if self.kg.get_brand_products(variant):
+                        in_kg = True
+                        break
+                except Exception:
+                    continue
+            return (0 if in_db else 1, 0 if in_kg else 1, name.lower())
+
+        return onto, apply_expansion_cap(plan, rank_key)
+
+    def _canonical_adapter(self, onto: Any) -> EvidenceAdapter:
+        """정식 술어 모드 어댑터 (질의마다 고른다 — 플래그가 질의마다 평가되므로)."""
+        cached = getattr(self, "_canonical_adapter_cache", None)
+        if cached is None or cached.ontology is not onto:
+            cached = EvidenceAdapter(
+                brand_normalizer=self.evidence_adapter._brand,
+                category_normalizer=self.evidence_adapter._category,
+                ontology=onto,
+            )
+            self._canonical_adapter_cache = cached
+        return cached
+
+    def _ontology_static_fact(
+        self, onto: Any, plan: Any, degraded: list[dict[str, Any]] | None
+    ) -> dict[str, Any] | None:
+        try:
+            return ontology_static_fact(onto, plan)
+        except Exception as e:
+            logger.warning("온톨로지 정적 사실 생성 실패", exc_info=True)
+            self._record_degraded(degraded, "ontology_static_facts", e)
+            return None
+
+    @staticmethod
+    def _metric_brands(entities: dict[str, Any], plan: Any, onto: Any) -> list[str]:
+        """수치 조회 브랜드: 질의 브랜드(그룹 표기·가짜 브랜드 제외) + 전개 브랜드 이름."""
+        brands: list[str] = []
+        for raw in entities.get("brands") or []:
+            if not raw:
+                continue
+            bid = onto.normalize_brand(raw)
+            if bid is None and onto.normalize_group(raw) is not None:
+                continue  # 그룹은 브랜드가 아니다 — 소속 브랜드로 전개했다
+            if bid is not None and onto.is_placeholder(bid):
+                continue
+            brands.append(str(raw))
+        for bid in plan.expanded_brands:
+            brands.append(onto.brand_name(bid) or bid)
+        return list(dict.fromkeys(brands))
+
+    async def _collect_metric_facts_expanded(
+        self, entities: dict[str, Any], plan: Any, onto: Any
+    ) -> list[dict[str, Any]]:
+        """ON: 그룹 전개 브랜드까지(상한 12) + 하위 카테고리 조회 범위로 DB 수치를 모은다.
+
+        브랜드 3개 상한은 전개가 있을 때만 올린다. 수치 사실은 자기 카테고리 그대로다(OE3).
+        """
+        metric_entities = dict(entities)
+        metric_entities["brands"] = self._metric_brands(entities, plan, onto)
+        kwargs: dict[str, Any] = {}
+        if plan.expanded_brands:
+            kwargs["max_brands"] = min(MAX_EXPANDED_BRANDS, len(metric_entities["brands"]))
+        if plan.descendant_categories:
+            kwargs["scope_categories"] = list(plan.descendant_categories)
+        return await self.metric_facts_provider.collect(metric_entities, **kwargs)
+
+    @staticmethod
+    def _scope_entities(entities: dict[str, Any], plan: Any) -> dict[str, Any]:
+        """카테고리에 하위 카테고리를 더한 엔티티 사본 (문서 태그 가산점용, OE3)."""
+        scoped = dict(entities)
+        scoped["categories"] = list(
+            dict.fromkeys([*(entities.get("categories") or []), *plan.descendant_categories])
+        )
+        return scoped
+
+    def _ontology_trace(
+        self, context: HybridContext, plan: Any, onto: Any, bundle: EvidenceBundle
+    ) -> dict[str, Any]:
+        """질의 1건의 온톨로지 추적 (O7이 프롬프트 증가를 잰다: 기준 ≈70장/질의)."""
+        from .evidence_adapters import ONTOLOGY_SOURCE
+
+        onto_cards = [c for c in context.evidence if c.source == ONTOLOGY_SOURCE]
+        prompt_onto = [c for c in context.prompt_evidence if c.source == ONTOLOGY_SOURCE]
+        by_predicate: dict[str, int] = {}
+        for card in onto_cards:
+            by_predicate[card.predicate] = by_predicate.get(card.predicate, 0) + 1
+        return {
+            "enabled": True,
+            "version": onto.version,
+            "as_of": onto.as_of,
+            **plan.summary(),
+            "ontology_cards": len(onto_cards),
+            "prompt_ontology_cards": len(prompt_onto),
+            "ontology_cards_by_predicate": by_predicate,
+            "metric_facts_count": len(context.metric_facts),
+            "evidence_count": len(context.evidence),
+            "prompt_evidence_count": len(context.prompt_evidence),
+        }
+
     def _evaluate_rules(
-        self, entities: dict[str, list[str]], cards: list[Evidence]
+        self,
+        entities: dict[str, list[str]],
+        cards: list[Evidence],
+        adapter: EvidenceAdapter | None = None,
+        extra_categories: list[str] | None = None,
     ) -> tuple[list[InferenceResult], dict[str, Any]]:
         """증거 카드로 규칙을 판정한다 (설계 E3, 트랙 3-B).
 
@@ -1255,17 +1530,26 @@ class HybridRetriever:
         입력은 카드뿐이다 — 대시보드 JSON(current_metrics)·KG 수치 엣지를 읽지 않고,
         ``OntologyReasoner._enrich_context``(호출자 값을 KG 조회로 덮어쓴다)도 거치지 않는다.
 
+        ``adapter``·``extra_categories``는 플래그 ``ontology.use_class_reasoning`` ON에서만 온다
+        (정식 술어 모드 정규화, 카테고리 포함 확장의 하위 카테고리 — OE3, 트랙 O3).
+
         Returns:
             (발화 결과 — ``evidence["derived_from"]``에 근거 카드 id, ``metadata["rule_evaluation"]``)
         """
-        brands = [
-            self.evidence_adapter.normalize_brand(str(b)) for b in entities.get("brands") or [] if b
-        ]
+        adapter = adapter or self.evidence_adapter
+        brands = [adapter.normalize_brand(str(b)) for b in entities.get("brands") or [] if b]
         categories = [
-            self.evidence_adapter.normalize_category(str(c))
-            for c in entities.get("categories") or []
-            if c
+            adapter.normalize_category(str(c)) for c in entities.get("categories") or [] if c
         ]
+        if extra_categories:
+            # 하위 카테고리는 DB 수치 카드가 있는 것만 — 조합 상한(MAX_RULE_CATEGORIES)을 빈
+            # 카테고리(body_skincare 등 크롤 대상 아님)가 차지하지 않게
+            metric_cards = [c for c in cards if c.kind.value == "metric"]
+            carded = {c.object for c in metric_cards} | {c.subject for c in metric_cards}
+            for category in extra_categories:
+                normalized = adapter.normalize_category(str(category))
+                if normalized not in categories and normalized in carded:
+                    categories.append(normalized)
         run = evaluate_rules_on_cards(self.reasoner.rules_by_priority, cards, brands, categories)
         inferences = run.fired_results()
         summary = run.summary()
@@ -1453,7 +1737,14 @@ class HybridRetriever:
 
         weighted_scores = {}
 
-        # 1. Ontology facts 점수 계산
+        # 1. Ontology facts 점수 계산. 온톨로지 정적 사실(``ontology_static``, 플래그 ON에서만)은
+        #    KG 사실 상한에서 빼고 뒤에 붙인다 — 상한이 다른 KG 사실을 밀어내지 않고, 정적
+        #    사실도 잘리지 않게 (트랙 O3). OFF면 이 목록이 비어 기존 동작과 같다.
+        static_facts = [f for f in context.ontology_facts if f.get("type") == "ontology_static"]
+        if static_facts:
+            context.ontology_facts = [
+                f for f in context.ontology_facts if f.get("type") != "ontology_static"
+            ]
         if context.ontology_facts:
             scored_facts = []
             for fact in context.ontology_facts:
@@ -1477,6 +1768,8 @@ class HybridRetriever:
             weighted_scores["ontology_facts"] = [
                 f.get("_weighted_score", 0) for f in context.ontology_facts
             ]
+        if static_facts:
+            context.ontology_facts = [*context.ontology_facts, *static_facts]
 
         # 2. RAG chunks 점수 계산
         if context.rag_chunks:
@@ -1703,6 +1996,9 @@ class HybridRetriever:
         context: HybridContext,
         degraded: list[dict[str, Any]] | None = None,
         input_cards: list[Evidence] | None = None,
+        adapter: EvidenceAdapter | None = None,
+        ontology_plan: Any | None = None,
+        ontology: Any | None = None,
     ) -> EvidenceBundle:
         """최종 검색 결과를 증거 카드로 바꿔 ``context.evidence``·``prompt_evidence``에 담는다.
 
@@ -1712,21 +2008,61 @@ class HybridRetriever:
         - ``input_cards``: 추론 전에 만든 규칙 입력 카드. 추론 근거 카드가 최종 사실에서 다시
           만들어지지 않으면(사실 상한) 여기서 가져온다.
         - 어댑터 실패는 ``degraded``에 기록하고 나머지 종류는 계속 만든다 (0-B).
+        - ``ontology_plan``(플래그 ON, 트랙 O3): 전개 브랜드도 질의 브랜드로 보고 수치 카드를
+          정렬하며, 온톨로지 카드(``ontology:registry``)는 관계 종류 상한과 별도로
+          ``ONTOLOGY_PROMPT_MAX``장까지 프롬프트에 싣는다 — 기존 관계 카드를 밀어내지 않는다.
         """
+        entities = context.entities
+        if ontology_plan is not None and ontology is not None:
+            entities = dict(context.entities)
+            entities["brands"] = list(
+                dict.fromkeys(
+                    [
+                        *(context.entities.get("brands") or []),
+                        *(ontology.brand_name(b) or b for b in ontology_plan.expanded_brands),
+                    ]
+                )
+            )
         bundle = assemble_evidence(
-            entities=context.entities,
+            entities=entities,
             metric_facts=context.metric_facts,
             ontology_facts=context.ontology_facts,
             inferences=context.inferences,
             rag_chunks=context.rag_chunks,
-            adapter=self.evidence_adapter,
+            adapter=adapter or self.evidence_adapter,
             input_cards=input_cards or (),
         )
+        if ontology_plan is not None:
+            bundle.prompt_evidence = self._with_ontology_cards(
+                bundle.evidence, bundle.prompt_evidence
+            )
         context.evidence = bundle.evidence
         context.prompt_evidence = bundle.prompt_evidence
         if degraded is not None:
             degraded.extend(bundle.degraded)
         return bundle
+
+    @staticmethod
+    def _with_ontology_cards(evidence: list[Evidence], prompt: list[Evidence]) -> list[Evidence]:
+        """프롬프트 카드에 빠진 온톨로지 카드를 관계 카드 뒤에 끼운다 (상한 별도, 순서 결정적)."""
+        from src.domain.entities.evidence import EvidenceKind
+
+        from .evidence_adapters import ONTOLOGY_SOURCE
+
+        present = {card.id for card in prompt}
+        already = sum(1 for card in prompt if card.source == ONTOLOGY_SOURCE)
+        room = max(0, ONTOLOGY_PROMPT_MAX - already)
+        missing = [
+            card for card in evidence if card.source == ONTOLOGY_SOURCE and card.id not in present
+        ][:room]
+        if not missing:
+            return prompt
+        kinds_before = (EvidenceKind.METRIC, EvidenceKind.RELATION)
+        insert_at = 0
+        for index, card in enumerate(prompt):
+            if card.kind in kinds_before:
+                insert_at = index + 1
+        return [*prompt[:insert_at], *missing, *prompt[insert_at:]]
 
     def _combine_contexts(self, context: HybridContext, include_explanations: bool = True) -> str:
         """답변 프롬프트용 컨텍스트 = 프롬프트 카드 렌더링 (설계 E1).

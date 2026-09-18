@@ -38,6 +38,9 @@ AS_OF_ENV = "AMORE_DATA_AS_OF"
 
 MAX_CATEGORIES = 3
 MAX_BRANDS = 3
+# 카테고리 포함 확장(트랙 O3, OE3)으로 더하는 하위 카테고리 상한. 모니터링 카테고리는 5개라
+# beauty(L0) 질의의 하위(skin_care·lip_care·lip_makeup·face_powder)가 모두 들어가는 값.
+MAX_SCOPE_CATEGORIES = 4
 TOP_BRANDS = 5
 TOP_PRODUCTS = 5
 BRAND_PRODUCTS = 3
@@ -81,9 +84,26 @@ class MetricFactsProvider:
 
         return Path(get_sqlite_storage().db_path)
 
-    async def collect(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
-        """엔티티에 해당하는 수치 사실 목록. 엔티티가 없거나 DB가 없으면 빈 리스트."""
-        brands = [b for b in (entities.get("brands") or []) if b][:MAX_BRANDS]
+    async def collect(
+        self,
+        entities: dict[str, list[str]],
+        *,
+        max_brands: int | None = None,
+        scope_categories: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """엔티티에 해당하는 수치 사실 목록. 엔티티가 없거나 DB가 없으면 빈 리스트.
+
+        Args:
+            entities: ``brands``·``categories``.
+            max_brands: 브랜드 상한. 기본 ``MAX_BRANDS``(3). 온톨로지 그룹 전개(트랙 O3)만
+                ``MAX_EXPANDED_BRANDS``(12)까지 올린다.
+            scope_categories: 카테고리 포함 확장(OE3)으로 조회 범위에 더할 하위 카테고리.
+                이 날짜 ``market_metrics``에 있는 것만 ``MAX_SCOPE_CATEGORIES``개까지 질의
+                카테고리 뒤에 붙인다. 각 사실은 **자기 카테고리 그대로** 싣는다 — 상위
+                카테고리로 합산·환산하지 않는다.
+        """
+        limit = MAX_BRANDS if max_brands is None else max_brands
+        brands = [b for b in (entities.get("brands") or []) if b][:limit]
         categories = [c for c in (entities.get("categories") or []) if c]
         if not brands and not categories:
             return []
@@ -97,7 +117,49 @@ class MetricFactsProvider:
 
         async with aiosqlite.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
             conn.row_factory = aiosqlite.Row
-            return await self._collect(conn, brands, categories)
+            extra = await self._scope_categories(conn, categories, scope_categories or [])
+            return await self._collect(conn, brands, categories, extra)
+
+    async def present_brands(self, categories: list[str] | None = None) -> set[str]:
+        """최신(``as_of`` 이하) ``brand_metrics`` 스냅샷에 등장한 브랜드(소문자).
+
+        온톨로지 전개 상한(트랙 O3)에서 "크롤 DB에 있는 브랜드 먼저" 순위를 정하는 데 쓴다.
+        ``categories``를 주면 그 카테고리에 한정한다. DB가 없으면 빈 집합.
+        """
+        db_path = self._resolve_db_path()
+        if not db_path.exists():
+            return set()
+
+        import aiosqlite
+
+        async with aiosqlite.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+            conn.row_factory = aiosqlite.Row
+            date = await self._latest(conn, "brand_metrics")
+            if not date:
+                return set()
+            query = "SELECT DISTINCT LOWER(brand) AS b FROM brand_metrics WHERE snapshot_date = ?"
+            params: list[Any] = [date]
+            if categories:
+                query += f" AND category_id IN ({','.join('?' * len(categories))})"
+                params += list(categories)
+            cursor = await conn.execute(query, params)
+            return {row["b"] for row in await cursor.fetchall() if row["b"]}
+
+    async def _scope_categories(
+        self, conn: Any, categories: list[str], scope: list[str]
+    ) -> list[str]:
+        """포함 확장 카테고리 중 이 날짜 시장 지표가 있는 것 (질의 카테고리 제외, 상한)."""
+        wanted = [c for c in scope if c and c not in categories]
+        if not wanted:
+            return []
+        date = await self._latest(conn, "market_metrics")
+        if not date:
+            return []
+        cursor = await conn.execute(
+            "SELECT DISTINCT category_id FROM market_metrics WHERE snapshot_date = ?", (date,)
+        )
+        present = {row["category_id"] for row in await cursor.fetchall()}
+        return [c for c in wanted if c in present][:MAX_SCOPE_CATEGORIES]
 
     async def _latest(self, conn: Any, table: str) -> str | None:
         assert table in _TABLES  # 테이블명은 고정 목록에서만 온다
@@ -111,7 +173,11 @@ class MetricFactsProvider:
         return row[0] if row and row[0] else None
 
     async def _collect(
-        self, conn: Any, brands: list[str], categories: list[str]
+        self,
+        conn: Any,
+        brands: list[str],
+        categories: list[str],
+        scope_extra: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         bm_date = await self._latest(conn, "brand_metrics")
         mm_date = await self._latest(conn, "market_metrics")
@@ -132,7 +198,8 @@ class MetricFactsProvider:
             categories = [row["category_id"] for row in await cursor.fetchall()]
 
         facts: list[dict[str, Any]] = []
-        for category in categories[:MAX_CATEGORIES]:
+        # 포함 확장 카테고리(OE3)는 질의 카테고리 뒤에 붙는다 — 사실은 자기 카테고리로 남는다
+        for category in [*categories[:MAX_CATEGORIES], *(scope_extra or [])]:
             if mm_date:
                 facts.extend(await self._market_fact(conn, category, mm_date))
             if bm_date:
