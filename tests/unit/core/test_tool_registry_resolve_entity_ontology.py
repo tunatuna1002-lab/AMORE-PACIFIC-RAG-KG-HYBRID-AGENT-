@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from src.core.tool_registry import ToolRegistry
+from src.core.tool_registry import ToolRegistry, tool_evidence
 from src.infrastructure.feature_flags import FeatureFlags
 from src.rag.hybrid_retriever import HybridRetriever
 from src.rag.metric_facts import AS_OF_ENV, MetricFactsProvider
@@ -96,6 +96,63 @@ async def test_resolve_entity_flag_off_is_unchanged(tmp_path):
     got = await _run_all(tmp_path)
     for text in TEXTS:
         assert _dump(got[text]) == _dump(expected[text]), text
+
+
+# ── ON: 등록부 id·클래스 소속 ────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_on_attaches_registry_id_and_classes(tmp_path, monkeypatch):
+    _flag_on(monkeypatch)
+    result = await _registry(tmp_path).execute("resolve_entity", {"text": "라네즈 립케어 HHI"})
+    assert result.success, result.error
+    cards = {c.metadata["entity_type"]: c for c in tool_evidence(result)}
+    brand = cards["brand"].metadata
+    assert brand["canonical_id"] == "laneige"  # canonical 표기는 그대로
+    assert brand["registry_id"] == "laneige"
+    assert brand["registry"] == "ontology:registry"
+    assert {"Brand", "AmorepacificBrand", "KBeautyBrand", "PremiumBrand"} <= set(brand["classes"])
+    assert brand["group"] == "amorepacific"
+    assert cards["category"].metadata["registry_id"] == "lip_care"
+    assert result.data["entities"]["brand_ids"] == ["laneige"]
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_on_recognizes_registry_only_brand(tmp_path, monkeypatch):
+    _flag_on(monkeypatch)
+    result = await _registry(tmp_path).execute(
+        "resolve_entity", {"text": "IT Cosmetics Face Powder CPI"}
+    )
+    brand_cards = [c for c in tool_evidence(result) if c.metadata["entity_type"] == "brand"]
+    assert [c.metadata["canonical_id"] for c in brand_cards] == ["it cosmetics"]
+    assert brand_cards[0].metadata["registry_id"] == "it_cosmetics"
+    # 등록부에 그룹이 없는 브랜드: 소속 클래스는 Brand뿐 (추정으로 채우지 않는다)
+    assert brand_cards[0].metadata["classes"] == ["Brand"]
+    assert brand_cards[0].metadata["group"] is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_on_group_and_class_cards(tmp_path, monkeypatch):
+    _flag_on(monkeypatch)
+    result = await _registry(tmp_path).execute(
+        "resolve_entity", {"text": "아모레퍼시픽 브랜드들 중 K-Beauty 브랜드"}
+    )
+    cards = tool_evidence(result)
+    by_kind = {(c.metadata["entity_type"], c.metadata["canonical_id"]): c for c in cards}
+    group = by_kind[("group", "amorepacific")].metadata
+    assert "laneige" in group["members"] and "cosrx" in group["members"]
+    ap_class = by_kind[("class", "AmorepacificBrand")].metadata
+    assert "sulwhasoo" in ap_class["instances"]
+    assert ("class", "KBeautyBrand") in by_kind
+    assert result.data["entities"]["groups"] == ["amorepacific"]
+    assert result.data["entities"]["classes"] == ["AmorepacificBrand", "KBeautyBrand"]
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_on_drops_placeholder_brands(tmp_path, monkeypatch):
+    _flag_on(monkeypatch)
+    result = await _registry(tmp_path).execute("resolve_entity", {"text": "unknown chi fresh"})
+    assert not [c for c in tool_evidence(result) if c.metadata["entity_type"] == "brand"]
 
 
 if __name__ == "__main__" and "--regen" in sys.argv:
