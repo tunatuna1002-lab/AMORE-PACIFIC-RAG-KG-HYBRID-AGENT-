@@ -290,7 +290,7 @@ flowchart TD
 
 **[2026-09-18 사후] 트랙 4 — OWL 검색 전략 자체를 삭제, 도구 레지스트리 통합** (`docs/experiments/evidence_pipeline_2026-09.md` 4단계). 위 표의 "OWL 전략 생성"·"ReAct 도구 3종"은 이후 다시 바뀌었다:
 
-- **OWL 검색 전략 삭제**: `OWLRetrievalStrategy`·`create_owl_strategy`·플래그 `retriever.use_owl_strategy`가 코드에서 사라졌다(결정 S4-1, 커밋 `eb5dff2`·`f604c13`·`167ec1b`·`b59beab`). 위에서 "연결, 플래그 기본 OFF"라고 적은 전략 자체가 더는 존재하지 않는다 — "플래그를 켜면 동작하는 미완성 기능"에서 "설계상 없는 기능"으로 바뀌었다. OWL은 이제 카테고리 계층 어휘로만 쓰이고(`src/ontology/owl_reasoner.py`), 온톨로지 신호(엔티티·카테고리 일치)는 legacy 검색 경로(Dense+BM25 RRF) 결과 위의 재정렬 가산점으로 흡수했다(트랙 4-B). 같은 커밋에서 호출처가 없던 `unified_reasoner.py`·`llm_orchestrator.py`(603줄)·`query_processor.py`·SPARQL 계층(`kg_query.py`)도 함께 삭제했다(소스 −2,237줄, 테스트 포함 −5,741줄).
+- **OWL 검색 전략 삭제**: `OWLRetrievalStrategy`·`create_owl_strategy`·플래그 `retriever.use_owl_strategy`가 코드에서 사라졌다(결정 S4-1, 커밋 `eb5dff2`·`f604c13`·`167ec1b`·`b59beab`). 위에서 "연결, 플래그 기본 OFF"라고 적은 전략 자체가 더는 존재하지 않는다 — "플래그를 켜면 동작하는 미완성 기능"에서 "설계상 없는 기능"으로 바뀌었다. OWL은 이제 카테고리 계층 어휘로만 쓰이고(`src/ontology/owl_reasoner.py`), 온톨로지 신호(엔티티·카테고리 일치)는 legacy 검색 경로(Dense+BM25 RRF) 결과 위의 재정렬 가산점으로 흡수했다(트랙 4-B). **[2026-09 사후 정정, 트랙 O6]** "OWL은 카테고리 계층 어휘로만 쓰인다"는 사실과 달랐다. 카테고리 계층은 `config/category_hierarchy.json`을 `kg_updater.load_category_hierarchy()`가 읽어 KG에 넣으며 OWL과 무관하다. `owl_reasoner.py`·`ontology_knowledge_graph.py`·`cosmetics_ontology.owl`은 서비스 호출처 0건으로 삭제됐다(호출처 확인표 `docs/experiments/ontology_activation_O6_section.md`). 같은 커밋에서 호출처가 없던 `unified_reasoner.py`·`llm_orchestrator.py`(603줄)·`query_processor.py`·SPARQL 계층(`kg_query.py`)도 함께 삭제했다(소스 −2,237줄, 테스트 포함 −5,741줄).
 - **ReAct 전용 도구 3종 폐지**: `query_data`·`query_knowledge_graph`·`calculate_metrics`(읽기 전용 실행기 3종)는 DecisionMaker와 완전히 같은 단일 레지스트리 5종(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, 모두 증거 카드 반환)으로 교체됐다(트랙 4-A, 커밋 `bdfb187`~`6140254`, `src/core/tool_registry.py`). DecisionMaker 자신도 `{"tool", "tool_params"}` JSON을 텍스트에서 잘라내던 방식에서 OpenAI 네이티브 function calling(`tools=`, `tool_choice="auto"`)으로 바뀌었다. 대시보드 JSON 전용 도구, ReAct 전용 3종, 소비처가 사라진 `src/core/tools.py`는 모두 삭제됐다.
 - 게이트: 전체 테스트 `6140254`에서 5,901 passed, 엔티티 연결 질의 문서 0건 문항이 0으로 해소(위 문단의 124/130 결함 해소). 통합 시험지 231문항 1회 측정에서 종합 점수 0.676→0.682(차이 없음), L2 개념 Recall 0.634→0.669(+0.035, 차이 있음). 단일 실행이라 판정 임계는 이전 3회 측정 폭을 빌려 썼다(한계는 실험 문서에 명시).
 
@@ -302,14 +302,14 @@ flowchart TD
 - 6단계(④다단계+②관계 54문항, 구성별 3회): ReAct를 켜도(`agents.use_react_agent`) 신뢰도 HIGH가 먼저 걸러 ReAct는 5문항에서만 돌았다. HIGH 관문을 우회한 측정(30문항 ReAct)에서는 토큰 F1이 오르지만(+0.034) ReAct가 답한 문항의 관련성이 떨어지고(−0.046) 비용 +46%·지연 +13%였다. 원인: 토큰 예산 12,000 소진 후 강제 답변 73/90, 카드 인용 누락 33/90, 탐색 미완. **판정: ReAct 기본 OFF 유지.** 답변 수치 검증기는 annotate(기록만) 유지 — enforce 대상 수치의 87~88%가 카드에 있거나 카드 값에서 계산된 값이었다.
 - 따라서 2026-09-18 기준 정확한 표현은 여전히 "LLM 도구 선택 1단계가 포함된 RAG 파이프라인. ReAct 루프는 연결·측정됐으나 켜기 조건을 충족하지 못해 기본 비활성"이다.
 
-> 정확한 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인". "자율 에이전트"·"ReAct 자기성찰"은 구현 코드는 있으나 서비스 경로에서 동작하지 않는다. `chat.py:154-158, 226`의 docstring("모든 판단을 LLM이 수행", "ReAct + OWL 지원")은 코드와 다르다. **[2026-09 사후]** 실제 분기와 플래그 기본값에 맞게 고쳤다(`26cd8e6`). 2026-09 이후 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인. ReAct 루프는 연결돼 있으나 기본 비활성." **[2026-09-18 사후 추가 정정]** "OWL 검색 전략은 연결돼 있으나 기본 비활성"이라는 표현은 더 이상 맞지 않는다 — 그 전략 자체가 삭제됐다. "OWL은 카테고리 계층 어휘로만 쓰고, 검색 전략이 아니다"로 쓸 것.
+> 정확한 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인". "자율 에이전트"·"ReAct 자기성찰"은 구현 코드는 있으나 서비스 경로에서 동작하지 않는다. `chat.py:154-158, 226`의 docstring("모든 판단을 LLM이 수행", "ReAct + OWL 지원")은 코드와 다르다. **[2026-09 사후]** 실제 분기와 플래그 기본값에 맞게 고쳤다(`26cd8e6`). 2026-09 이후 표현: "LLM 라우팅 1단계가 포함된 고정 RAG 파이프라인. ReAct 루프는 연결돼 있으나 기본 비활성." **[2026-09-18 사후 추가 정정]** "OWL 검색 전략은 연결돼 있으나 기본 비활성"이라는 표현은 더 이상 맞지 않는다 — 그 전략 자체가 삭제됐다. ~~"OWL은 카테고리 계층 어휘로만 쓰고, 검색 전략이 아니다"로 쓸 것.~~ **[2026-09 사후 정정, 트랙 O6]** "OWL은 카테고리 계층 어휘로만 쓰인다"는 사실과 달랐다. 카테고리 계층은 `config/category_hierarchy.json`을 `kg_updater.load_category_hierarchy()`가 읽어 KG에 넣으며 OWL과 무관하다. `owl_reasoner.py`·`ontology_knowledge_graph.py`·`cosmetics_ontology.owl`은 서비스 호출처 0건으로 삭제됐다(호출처 확인표 `docs/experiments/ontology_activation_O6_section.md`). 쓸 표현: "온톨로지 원본은 JSON(`config/ontology/`) + Python 폐포 로더(`src/ontology/ontology.py`)이고, OWL은 개발 전용 Pellet 교차 검증(`scripts/check_ontology_owl.py`)에만 쓴다. 질의 경로 사용은 플래그 `ontology.use_class_reasoning` 뒤에 있으며 기본 OFF(효과는 O7 측정 전)."
 
 ### 3.4 사용하지 않는 코드·계획 단계 기능
 
 | 대상 | 판정 | 근거 |
 |---|---|---|
 | `src/core/react_agent.py` (ReAct, IRCoT, multi-hop) | [미연결] → **[2026-09 사후] [연결, 플래그 기본 OFF]** → **[2026-09-18 사후]** DecisionMaker와 같은 `tool_registry` 5종 공유(트랙 4-A) | §3.3 |
-| `OWLRetrievalStrategy`, `Container.get_unified_retriever` | [미연결] → **[2026-09 사후] 전략은 [연결, 플래그 기본 OFF], 검색 필터 결함 있음** → **[2026-09-18 사후] 전략 자체 삭제**(`OWLRetrievalStrategy`·`create_owl_strategy`·플래그 `retriever.use_owl_strategy`, 트랙 4-C, 커밋 `eb5dff2` 등). OWL은 카테고리 계층 어휘로만 남음. `Container.get_unified_retriever` 호출처 0건 문제는 미해결로 남음(§9.9.1) | §3.3 |
+| `OWLRetrievalStrategy`, `Container.get_unified_retriever` | [미연결] → **[2026-09 사후] 전략은 [연결, 플래그 기본 OFF], 검색 필터 결함 있음** → **[2026-09-18 사후] 전략 자체 삭제**(`OWLRetrievalStrategy`·`create_owl_strategy`·플래그 `retriever.use_owl_strategy`, 트랙 4-C, 커밋 `eb5dff2` 등). OWL은 카테고리 계층 어휘로만 남음(**[2026-09 사후 정정]** 사실과 달랐음 — OWL 모듈 자체가 O6에서 삭제, 카테고리 계층은 `config/category_hierarchy.json`). `Container.get_unified_retriever` 호출처 0건 문제는 미해결로 남음(§9.9.1) | §3.3 |
 | `src/ontology/unified_reasoner.py` | [미연결] → **[2026-09-18 사후] 파일 삭제**(트랙 4-C, 호출처 0건 죽은 코드) | 인스턴스화 0건이었다. 플래그 `use_unified_reasoner`는 이름과 달리 실제로는 `OntologyReasoner` on/off로만 쓰인다(`hybrid_retriever.py:577`) — 삭제된 파일과 동명이 아니라 혼동 주의 |
 | SPARQL (`src/ontology/kg_query.py:499, 771`) | [미연결] → **[2026-09-18 사후] 삭제**(트랙 4-C, SPARQL 계층 전체 제거) | 호출 0건이었다 |
 | CrossEncoder reranker, RelevanceGrader | [구현, 플래그 OFF] | `config/feature_flags.json:4` `"use_reranker": false` |
@@ -338,7 +338,7 @@ flowchart TD
 | **SQLite** `data/amore_data.db` | 9개 테이블. `raw_data`는 `UNIQUE(snapshot_date, category_id, rank)` — `sqlite_storage.py:41-210` | `storage_agent.py:115-137`, `scripts/daily_crawl.py:160-167`, 지표는 `sqlite_storage.py:571, 629` | exporter primary(`dashboard_exporter.py:131-134`), `src/rag/metric_facts.py:81`, data·analytics·export 라우트 | 파일 `04f8c3c` 01-20, 순위 이중 저장 `35fcc91` 01-21 |
 | **ChromaDB** `data/chroma/` | 컬렉션 `amore_docs`. MD 14종(지표 가이드 4, 시장·전략 7, IR 분기보고서 3) — `retriever.py:132-430` | `_index_documents` 증분 색인(`retriever.py:897-946`), OpenAI 임베딩 | `_vector_search`(`:1102`) + BM25(`:1207`) + RRF(`:1280-1312`) | `aa131e6`부터 |
 | **KG JSON** `data/knowledge_graph.json` | 트리플(subject, predicate, object, properties, confidence, source, 시각) | 실질 기록자는 daily crawl의 `dashboard_exporter.py:1521-1542`(`KGEnricher`) + `kg_updater.py:584`(브랜드 시드) | `hybrid_retriever.py:_query_knowledge_graph(812)`, `kg_query.py` | `aa131e6`부터 |
-| **OWL** `src/ontology/cosmetics_ontology.owl` | Class 23, ObjectProperty 13, DatatypeProperty 20, SWRL 블록. 정적 파일 | — | `OWLRetrievalStrategy`([미연결]) | `06f5ea4` 01-23 |
+| **OWL** `src/ontology/cosmetics_ontology.owl` | Class 23, ObjectProperty 13, DatatypeProperty 20, SWRL 블록. 정적 파일 | — | `OWLRetrievalStrategy`([미연결]) | `06f5ea4` 01-23. **[2026-09 사후]** 파일 삭제(81행 `<` 미이스케이프로 어떤 도구로도 로드 불가였음, 트랙 O6). 대체 원본: `config/ontology/schema.json`·`brands.json` |
 | **dashboard_data.json** | 대시보드·챗 도구용 파생 캐시 | `export_dashboard_data`(`dashboard_exporter.py:139-194`) | `GET /api/data`, 조회 도구 5종 | `aa131e6`부터, SQLite 우선은 `0671bae` |
 | OpenAI 호스티드 벡터스토어 | **없음** | — | — | `b2a4d2e`는 임베딩 모델만 교체 |
 
@@ -409,7 +409,7 @@ flowchart TD
 1. `should_retrieve` — 정규식 게이트(`:401`)
 2. 의도 분류 + 의도별 검색 설정(`:478-485`)
 3. **엔티티 링킹** — `EntityLinker.extract_entities`(`src/rag/entity_linker.py:542`). 사전 = CATEGORY_MAP(`:177`) + `config/entities.json`. spaCy는 끔(`hybrid_retriever.py:248`)
-4. **KG 사실 조회** — `_query_knowledge_graph`(`:812-1090`): 브랜드 정보, 제품, 경쟁사, 지표 엣지(상한 12), 카테고리 브랜드 등. 플래그 `use_ontology_kg`
+4. **KG 사실 조회** — `_query_knowledge_graph`(`:812-1090`): 브랜드 정보, 제품, 경쟁사, 지표 엣지(상한 12), 카테고리 브랜드 등. 플래그 `use_ontology_kg`(**[2026-09 사후]** 이름을 `kg.enabled`로 바로잡음, 옛 이름은 별칭)
 5. DB 지표 — `metric_facts_provider.collect`(`:526-531`, `3fce8e8`에서 추가)
 6. **규칙 추론** — `_build_inference_context`(`:1091`) → `reasoner.infer`(`:537-541`)
 7. 추론 결과·엔티티로 쿼리 확장(`:547`) → ChromaDB dense + BM25 → RRF
@@ -658,7 +658,7 @@ flowchart TD
 | 주장 | 문제 | 대안 |
 |---|---|---|
 | "ReAct 에이전트가 복잡한 질문을 자기성찰로 처리한다" | 서비스 경로 [미연결](§3.3). 처음부터 import 경로 오류. **[2026-09 사후]** 연결은 수리했으나 기본 OFF이고, 켜고 측정한 평가에서 발동 0건 | "ReAct 루프를 구현했으나 공모전 당시 서비스 경로에 연결되지 않았고, 사후 분석(2026-09)에서 찾아 연결했지만 효과가 확인되지 않아 기본 비활성으로 두었다" 또는 언급하지 않기 |
-| "OWL 온톨로지 추론으로 검색한다" | OWL 전략 [미연결]. 실제 추론은 Python 규칙 엔진. **[2026-09 사후]** 연결 후 측정에서 필터 결함으로 124/130문항 문서 0건, 기본 OFF. **[2026-09-18 사후]** 전략 자체를 삭제했다 — 이제 OWL은 카테고리 계층 어휘로만 쓰이고 검색에 관여하지 않는다 | "규칙 기반 추론기(37개 규칙, 증거 카드 입력)를 검색 컨텍스트에 연결했다. OWL 스키마는 카테고리 계층 검증에 쓴다" — 2026-09-17 측정 시점(규칙 추론 0건)과 2026-09-18 재작업 이후(발화 0.568, 정답 일치율 0.779, 단 judge 종합 점수는 규칙 off가 더 높음)를 구분해서 쓸 것(§5.5) |
+| "OWL 온톨로지 추론으로 검색한다" | OWL 전략 [미연결]. 실제 추론은 Python 규칙 엔진. **[2026-09 사후]** 연결 후 측정에서 필터 결함으로 124/130문항 문서 0건, 기본 OFF. **[2026-09-18 사후]** 전략 자체를 삭제했다 — 이제 OWL은 카테고리 계층 어휘로만 쓰이고 검색에 관여하지 않는다. **[2026-09 사후 정정, O6]** "카테고리 계층 어휘"도 사실과 달랐다 — OWL 모듈은 삭제됐고 카테고리 계층은 `config/category_hierarchy.json` | "규칙 기반 추론기(37개 규칙, 증거 카드 입력)를 검색 컨텍스트에 연결했다. 온톨로지 원본은 JSON + Python 폐포 로더이고, OWL은 개발용 Pellet 교차 검증에만 쓴다. 질의 경로의 온톨로지 클래스 추론은 플래그 뒤(기본 OFF, 효과 미측정)" ([2026-09 사후] 옛 권장 문구 "OWL 스키마는 카테고리 계층 검증에 쓴다"는 폐기) — 2026-09-17 측정 시점(규칙 추론 0건)과 2026-09-18 재작업 이후(발화 0.568, 정답 일치율 0.779, 단 judge 종합 점수는 규칙 off가 더 높음)를 구분해서 쓸 것(§5.5) |
 | "자율 AI 에이전트", "LLM이 모든 판단을 수행" | LLM 선택 지점은 단발 도구 선택 1곳 | "LLM 라우팅이 포함된 RAG 파이프라인" |
 | "KG·온톨로지로 부족한 데이터를 보완했다 / 성능을 높였다" | 데이터 양은 늘지 않았고 비교 실험상 효과는 노이즈 범위(§5.5). **[2026-09 사후]** 재실험에서 KG off 시 근거성 하락은 있으나 일부는 채점 효과, 정답성 지표는 차이 없음, 규칙 추론은 추론 0건. **[2026-09-18 사후]** 규칙 추론 0건은 그 뒤 해소됐다(발화 0.568, 정답 일치율 0.779) — 단 같은 측정에서 judge 종합 점수는 규칙 off가 더 높았다(§5.5) | "같은 데이터를 관계 구조로 재표현하고 개념을 정규화했다" + (쓴다면) "사후 실험에서 KG 사실이 답변을 검색 근거에 더 붙게 하는 정황을 확인했으나 정답성 개선은 확인되지 않았다. 규칙 추론은 이후 재작업에서 실제로 발화하고 규칙 판단 정답률을 올리는 것을 확인했지만, 전체 답변 품질(judge 종합 점수)에는 되레 불리했다" |
 | "Google Sheets에서 SQLite로 교체했다" | 병행 + 동기화 | §4.2 |

@@ -230,3 +230,15 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - **수치 검증기 인용 파싱 결함**: `[M-a], [M-b]`처럼 쉼표로 떨어진 인용 괄호는 첫 id만 인용으로 연결한다(`[M-a][M-b]`, `[M-a, M-b]`는 정상). mismatch의 25~43%가 이것이다. enforce의 선행 조건.
 - **수치 검증기 계산값 처리**: 100 기준 지수의 환산(CPI 111.1 → "11.1% 높음"), 카드 3개 이상의 합, 반올림("3만 7천여"), 규칙 임계값("HHI < 0.15"), 제품명 속 숫자("96%")가 mismatch로 잡힌다. enforce의 선행 조건.
 - **평가 측정**: 3회 측정에서 토큰 F1 노이즈 기준 0.01이 A/A 폭(+0.011 전체, +0.024 multihop)보다 좁다 — 분산이 큰 소수 문항 때문. 그림자 토큰(`route_trace.react_shadow.token_usage`)은 평가 리포트 비용 집계에 연결돼 있지 않다(리포트의 l5 비용에 그림자 비용이 섞인다). multihop·relation 시험지에는 `rule_gold`가 없어 규칙 일치율을 잴 수 없다.
+
+### 9.10 온톨로지 작동 작업(O0~O7, 2026-09-18) 중 남긴 항목
+> 근거: `docs/plans/ontology-activation-plan-2026-09-18.md`, 결정표 `docs/plans/ontology-activation-decisions-2026-09.md`, 실험 기록 `docs/experiments/ontology_activation_2026-09.md`. 트랙 O6에서 기록만 했다.
+
+- (해소 — O6) OWL 모듈(`owl_reasoner.py`·`ontology_knowledge_graph.py`·`cosmetics_ontology.owl`·`scripts/migrate_kg_to_ontology.py`) 삭제, owlready2는 `requirements-dev.txt`로 이동. 호출처 확인표는 `docs/experiments/ontology_activation_O6_section.md`.
+- **스크레이퍼 브랜드 오귀속**: `src/tools/scrapers/amazon_scraper.py`가 일부 제품의 브랜드를 잘못 붙인다(가짜 브랜드 `unknown`·`fresh`·`chi` 등이 KG에 들어오는 원인). 매일 크롤에 영향을 주므로 계획 범위 밖으로 두었고, 조회 쪽에서 `is_placeholder` 브랜드만 거른다(O2).
+- **`dashboard_exporter`가 `as_of`를 넘겨야 `kg.write_validation=enforce`로 올릴 수 있다.** 지금은 날짜 없는 수치 엣지(hasSoS·hasHHI·hasPricePosition)가 매일 쓰여 enforce에서 막힌다(결정 OA-7·OA-8).
+- **`kg_updater.load_brand_ownership`이 인수 연도로 `"True"`를 쓴다.** 설정 값이 불리언 `True`이면 `isinstance(True, int)`가 참이라 `str(True)`="True"가 되고, 소문자 `"true"`만 거르는 조건을 통과한다(`src/ontology/kg_updater.py` 인수 연도 처리부).
+- **`config/entities.json`의 별칭 "로드"(rhode)가 "로드맵" 같은 단어에 오탐한다.** 부분 문자열 매칭이라 한국어 일반어와 겹친다.
+- **(선택) Docker 다단계 빌드에서 Pellet 검증**: JDK 25 단계에서 `scripts/check_ontology_owl.py`만 돌리고 런타임 이미지에는 Java를 넣지 않는 방식(설계 OE10). Dockerfile 변경은 사용자 승인 필요. 지금은 배포 전 로컬에서 수동 실행.
+- **운영에서 매일 Pellet 실행(크롤 후 OWL 재분류)은 이번 계획 범위 밖.** 필요해지면 JRE 25 추가(+100~200MB)와 Railway 메모리·빌드 시간을 측정한 뒤 따로 결정한다(OE10).
+- CI(`.github/workflows/test.yml`)는 `requirements.txt`만 설치하므로 owlready2가 없어 `tests/unit/ontology/test_ontology_owl_check.py`가 skip된다. CI에서도 돌리려면 `requirements-dev.txt` 설치와 Java 25가 필요하다.
