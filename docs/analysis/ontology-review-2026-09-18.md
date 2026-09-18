@@ -45,6 +45,9 @@
 - **Pellet: 실패한다.** owlready2 0.50에 든 Apache Jena가 Java 25용(class file 69)으로 컴파일돼 있어 Java 8에서 `UnsupportedClassVersionError`가 난다. Pellet을 쓰려면 JDK 25 이상이 필요하다.
 - **`src/ontology/cosmetics_ontology.owl`은 읽기부터 실패한다.** 81행 `Strong competitor (15% < SoS ≤ 30%)`의 `<`가 XML에서 이스케이프(`&lt;`)되지 않아 RDF/XML 파싱 오류가 난다. 이 파일은 도입(`06f5ea4`) 이후 어떤 도구로도 로드할 수 없는 상태였다.
 - 배포 이미지(`python:3.11-slim`)에는 여전히 Java가 없다. 로컬에서 추론이 된다고 서비스 경로에서 쓸 수 있는 것은 아니다.
+- **JDK 25 설치 후(Temurin 25.0.4.1, 기본 `java`) 재시험** — 임시 예제 온톨로지:
+  - **Pellet: 동작한다(0.4초).** 그룹 소속 분류(laneige·cosrx)와 SWRL 숫자 비교 규칙(`sos > 0.30 → DominantBrand`, medicube)을 모두 추론했다.
+  - **HermiT: 분류는 동작, SWRL 비교 연산은 실패.** 같은 예제에 `greaterThan` 규칙을 넣으면 오류가 나고, 규칙을 빼면 정상 분류한다. HermiT가 SWRL 내장 연산(builtin)을 지원하지 않기 때문이다. `cosmetics_ontology.owl`의 SWRL 규칙 3개는 `greaterThan`·`lessThan`·`lessThanOrEqual`을 쓰므로 Pellet이 필요하다.
 
 ### 2.2 결정 이력 **[조사]**
 
