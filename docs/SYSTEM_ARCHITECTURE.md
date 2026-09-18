@@ -193,7 +193,7 @@ AlertAgent → Email/Telegram 알림 (순위 ±10, SoS 변동)
     ▼
 UnifiedBrain.process_query()
     │
-    ├── 복잡도 판단: "경쟁사", "위치", "분석" → Complex!
+    ├── 홉 카운트 판단: `router.py`가 hops=2(경쟁사 조회+지표 조회) ≥ HOP_THRESHOLD(2) → ReAct 후보  # [2026-09 사후] 키워드 판단에서 홉 카운트 라우터로 교체, `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제 실행
     │
     ▼
 ReActAgent (Self-Reflection Loop, max 5회 — `max_iterations` 기본값, [post-2026-09] 정정)
@@ -265,7 +265,17 @@ Response:
 | `verification_pipeline.py` | 응답 검증 | Claim 추출 → 사실 검증 |
 | `cache.py` | TTL 기반 캐싱 | 5분 TTL, 자동 만료 |
 
-**UnifiedBrain - 복잡도 판단 기준:**
+**UnifiedBrain - ReAct 활성화 기준 [2026-09 사후: 키워드 판단 → 홉 카운트 라우터로 교체]**
+
+`src/core/router.py`가 질문을 단계(stage)로 분해해 `hops = len(stages)`를 세고,
+`hops >= HOP_THRESHOLD(2)`면 ReAct 후보로 표시한다. 실제로 ReAct 루프를 타는지는
+플래그 `agents.use_react_agent`(기본 OFF)에 달려 있다 — OFF면 판정만 `route_trace`에
+남기고 기존 경로로 응답한다(OFF 상태에서 `agents.react_shadow_mode`가 켜져 있으면
+그림자 실행만 한다).
+
+<details>
+<summary>Original text (kept for history, describes the pre-rework keyword-based activation)</summary>
+
 ```
 Simple → HybridChatbotAgent 직접 처리
 Complex → ReActAgent 활성화
@@ -273,6 +283,8 @@ Complex → ReActAgent 활성화
   ├── 멀티 엔티티 질문 (3+ 브랜드/카테고리)
   └── 컨텍스트 부족 (추가 조회 필요)
 ```
+
+</details>
 
 ### 4.2 Agent Layer - 전문 에이전트 (`src/agents/`)
 
