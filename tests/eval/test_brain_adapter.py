@@ -170,6 +170,7 @@ async def test_react_observations_become_prompt_evidence_cards(flags):
         result = await adapter.chat(question)
 
     assert result["query_type"] == "react"
+    assert result["route_trace"]["route"] == "react"
     assert result["response"] == "답"
     trace = result["hybrid_context"]
     # 옛 dict 삽입은 더 이상 없다 — observation은 증거 카드로만 실린다 (트랙 2-C)
@@ -177,6 +178,66 @@ async def test_react_observations_become_prompt_evidence_cards(flags):
     observation_cards = [c for c in trace.prompt_evidence if c.kind == EvidenceKind.OBSERVATION]
     assert [c.subject for c in observation_cards] == ["query_knowledge_graph"]
     assert "LANEIGE" in observation_cards[0].text
+
+
+@pytest.mark.asyncio
+async def test_shadow_react_does_not_leak_into_prompt_evidence_or_query_type(flags, monkeypatch):
+    """섀도 모드(버그 재현): ReAct는 기록용으로만 돌고 답은 파이프라인이 낸다.
+
+    route_trace.route == "direct"인데도 react_steps가 채워지는 경우, 어댑터가
+    (1) observation 카드를 prompt_evidence에 얹거나 (2) query_type을 "react"로 덮어쓰면
+    judge가 답변이 실제로 보지 않은 근거로 채점하게 된다. 둘 다 일어나면 안 된다.
+    """
+    flags(react=False)
+    monkeypatch.setenv("FF_AGENTS_REACT_SHADOW_MODE", "true")
+    FeatureFlags.reset_instance()
+    adapter = await _adapter()
+    brain = adapter.brain
+    # 홉 2개 이상(관계+판정)인 질문 — HopRouter가 use_react=True로 판정해 섀도가 돈다
+    question = "LANEIGE 경쟁사와 비교해서 점유율이 왜 달라졌는지 분석해줘"
+
+    from tests.unit.core.react_fc_fixtures import reply
+
+    llm = AsyncMock(
+        side_effect=[
+            reply(
+                {
+                    "thought": "경쟁사 확인",
+                    "action": "query_knowledge_graph",
+                    "action_input": {"entity": "LANEIGE", "relation": "competitors"},
+                }
+            ),
+            reply({"thought": "끝", "action": "final_answer", "action_input": {"answer": "답"}}),
+            reply({"quality_score": 0.8, "needs_improvement": False}),
+        ]
+    )
+    thin = HybridContext(query=question, entities={"brands": ["laneige"]})
+    pipeline_response = Response(text="파이프라인 답", confidence_score=0.9, query_type="direct")
+
+    with (
+        patch.object(brain._context_gatherer.retriever, "retrieve", AsyncMock(return_value=thin)),
+        patch("src.core.react_agent.acompletion", llm),
+        patch.object(
+            brain._query_graph._confidence_assessor,
+            "should_skip_llm_decision",
+            return_value=True,
+        ),
+        patch.object(
+            brain._response_pipeline, "generate", AsyncMock(return_value=pipeline_response)
+        ),
+    ):
+        await adapter.initialize()
+        result = await adapter.chat(question)
+
+    # 전제: 섀도 ReAct가 실제로 돌았다 (route는 direct인데 react_steps가 있어야 버그가 재현된다)
+    assert result["route_trace"]["route"] == "direct"
+    assert result["route_trace"]["react_shadow"]["ran"] is True
+
+    assert result["response"] == "파이프라인 답"
+    assert result["query_type"] == "direct"
+    trace = result["hybrid_context"]
+    observation_cards = [c for c in trace.prompt_evidence if c.kind == EvidenceKind.OBSERVATION]
+    assert observation_cards == []
 
 
 @pytest.mark.asyncio
