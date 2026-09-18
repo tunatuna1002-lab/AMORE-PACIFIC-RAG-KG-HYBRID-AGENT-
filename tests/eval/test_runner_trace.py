@@ -66,3 +66,85 @@ class TestTraceConcurrencySafety:
 def test_normalize_edge_node():
     assert _normalize_edge_node("LANEIGE") == "laneige"
     assert _normalize_edge_node("Burt's Bees") == "burts_bees"
+
+
+class TestL3TraceOntologyStatic:
+    """[2026-09 사후] O0 후속: L3 엣지 추출이 ontology_static 카드(트랙 O3, 플래그
+    ontology.use_class_reasoning ON)도 metric_edges처럼 담는지."""
+
+    def test_extracts_edges_from_ontology_static_fact(self):
+        runner = _bare_runner()
+        ctx = SimpleNamespace(
+            entities={},
+            ontology_facts=[
+                {
+                    "type": "ontology_static",
+                    "entity": "cosrx",
+                    "data": {
+                        "edges": [
+                            {
+                                "subject": "cosrx",
+                                "predicate": "ownedByGroup",
+                                "object": "amorepacific",
+                            },
+                            {"subject": "cosrx", "predicate": "hasSegment", "object": "Premium"},
+                        ],
+                        "as_of": "2026-08-31",
+                        "version": "1",
+                    },
+                }
+            ],
+            inferences=[],
+        )
+        trace = runner._extract_l3_trace({}, ctx)
+        assert "cosrx -ownedByGroup-> amorepacific" in trace.kg_edges_found
+        assert "cosrx -hasSegment-> premium" in trace.kg_edges_found
+
+    def test_ontology_static_edge_without_object_is_skipped(self):
+        """expansionTruncated 등 object가 없는 카드는 엣지가 아니라 건너뛴다."""
+        runner = _bare_runner()
+        ctx = SimpleNamespace(
+            entities={},
+            ontology_facts=[
+                {
+                    "type": "ontology_static",
+                    "entity": "query",
+                    "data": {
+                        "edges": [
+                            {
+                                "subject": "amorepacific",
+                                "predicate": "expansionTruncated",
+                                "object": None,
+                                "count": 3,
+                            }
+                        ],
+                        "as_of": "2026-08-31",
+                        "version": "1",
+                    },
+                }
+            ],
+            inferences=[],
+        )
+        trace = runner._extract_l3_trace({}, ctx)
+        assert trace.kg_edges_found == []
+
+    def test_off_flag_trace_unaffected_no_ontology_static_fact(self):
+        """플래그 OFF에서는 ontology_static 카드가 애초에 생기지 않으므로 metric_edges만 그대로."""
+        runner = _bare_runner()
+        ctx = SimpleNamespace(
+            entities={},
+            ontology_facts=[
+                {
+                    "type": "metric_edges",
+                    "entity": "cosrx",
+                    "data": {
+                        "edges": [
+                            {"subject": "cosrx", "predicate": "ownedBy", "object": "amorepacific"}
+                        ]
+                    },
+                }
+            ],
+            inferences=[],
+        )
+        trace = runner._extract_l3_trace({}, ctx)
+        assert trace.kg_edges_found == ["cosrx -ownedBy-> amorepacific"]
