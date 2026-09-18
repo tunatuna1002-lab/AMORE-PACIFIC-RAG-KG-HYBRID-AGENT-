@@ -157,6 +157,12 @@ class ReportGenerator:
         for key, value in (
             ("l3_kg_edge_recall_gold_only", ontology_metrics["l3"]["kg_edge_recall_gold_only"]),
             (
+                # [2026-09 사후] O0-추가: 술어 별칭(ownedBy↔ownedByGroup)·브랜드/그룹 표기를
+                # 온톨로지 로더로 정식화한 뒤의 같은 지표. eval/metrics/l3_kg.py 참고.
+                "l3_kg_edge_recall_gold_only_canonical",
+                ontology_metrics["l3"]["kg_edge_recall_gold_only_canonical"],
+            ),
+            (
                 "l4_rule_constraint_violation_rate",
                 ontology_metrics["l4"]["rule_constraint_violation_rate"],
             ),
@@ -543,6 +549,10 @@ class ReportGenerator:
         )
         for key, label in (
             ("l3_kg_edge_recall_gold_only", "| L3 | KG Edge Recall (gold-edge items) |"),
+            (
+                "l3_kg_edge_recall_gold_only_canonical",
+                "| L3 | KG Edge Recall (gold-edge items, canonical) |",
+            ),
             ("l4_rule_constraint_violation_rate", "| L4 | Rule Constraint Violation |"),
             ("l4_typed_consistency_rate", "| L4 | Typed Consistency |"),
         ):

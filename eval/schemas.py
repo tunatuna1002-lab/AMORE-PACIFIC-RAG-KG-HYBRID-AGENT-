@@ -478,6 +478,24 @@ class L3Metrics(BaseModel):
         default_factory=dict,
         description="골드 술어별 {'matched': m, 'total': t} (골드 표기 그대로, 별칭 정규화 없음)",
     )
+    # [2026-09 사후] O0-추가(O0 후속): 위 raw 필드는 그대로 두고, 술어 별칭(ownedBy↔
+    # ownedByGroup)·브랜드/그룹 표기(대소문자·등록부 정식 이름)를 온톨로지 로더로 맞춘 뒤
+    # 다시 잰 값. 국가처럼 등록부에 정규화 함수가 없는 값은 별칭 처리하지 않고 원문 그대로
+    # 비교한다(korea vs south_korea는 계속 다른 값으로 센다) — eval/metrics/l3_kg.py 참고.
+    kg_edge_recall_gold_only_canonical: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="술어·브랜드/그룹 표기를 정식화한 뒤의 골드 엣지 recall (없으면 None)",
+    )
+    gold_edge_count_canonical: int = Field(
+        default=0, description="정식화 후 골드 엣지 수 (별칭 병합으로 raw보다 작을 수 있음)"
+    )
+    gold_edge_matched_canonical: int = Field(default=0, description="정식화 후 일치한 골드 엣지 수")
+    edge_recall_by_predicate_canonical: dict[str, dict[str, int]] = Field(
+        default_factory=dict,
+        description="정식 술어별 {'matched': m, 'total': t} (ownedBy·ownedByGroup 등 병합)",
+    )
 
 
 class L4Metrics(BaseModel):

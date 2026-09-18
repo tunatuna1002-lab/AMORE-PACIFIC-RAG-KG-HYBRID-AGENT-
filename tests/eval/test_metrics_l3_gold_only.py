@@ -44,6 +44,36 @@ class TestGoldOnlyRecall:
         }
 
 
+class TestCanonicalPredicateRecall:
+    """[2026-09 사후] O0-추가: 술어 별칭(ownedBy↔ownedByGroup)·브랜드/그룹 표기를
+    온톨로지 로더로 맞춘 뒤 다시 잰 recall. raw 필드는 그대로 비교 대상으로 남는다."""
+
+    def test_alias_predicate_and_case_are_merged(self):
+        # 골드는 ownedByGroup·대문자 COSRX, 방출은 ownedBy(별칭)·소문자 cosrx — raw는 놓치지만
+        # canonical은 같은 엣지로 본다
+        gold = GoldEvidence(kg_edges=["COSRX -ownedByGroup-> AMOREPACIFIC"])
+        trace = _trace(["cosrx -ownedBy-> amorepacific"])
+        m = L3KGMetrics().compute(trace, gold)
+        assert m.edge_recall_by_predicate == {"ownedByGroup": {"matched": 0, "total": 1}}
+        assert m.kg_edge_recall_gold_only == 0.0
+        assert m.edge_recall_by_predicate_canonical == {"ownedByGroup": {"matched": 1, "total": 1}}
+        assert m.kg_edge_recall_gold_only_canonical == 1.0
+        assert (m.gold_edge_count_canonical, m.gold_edge_matched_canonical) == (1, 1)
+
+    def test_country_values_are_not_aliased(self):
+        # 등록부에 나라 정규화가 없으므로 korea와 south_korea는 canonical에서도 다른 값이다
+        gold = GoldEvidence(kg_edges=["laneige -originatesFrom-> south_korea"])
+        trace = _trace(["laneige -originatesFrom-> korea"])
+        m = L3KGMetrics().compute(trace, gold)
+        assert m.kg_edge_recall_gold_only_canonical == 0.0
+
+    def test_no_gold_edge_canonical_is_none(self):
+        m = L3KGMetrics().compute(_trace([]), GoldEvidence(kg_edges=[]))
+        assert m.kg_edge_recall_gold_only_canonical is None
+        assert m.gold_edge_count_canonical == 0
+        assert m.edge_recall_by_predicate_canonical == {}
+
+
 class TestAggregate:
     def test_macro_micro_and_predicate_totals(self):
         calc = L3KGMetrics()
@@ -67,8 +97,17 @@ class TestAggregate:
             "recall": 0.5,
         }
         assert agg["recall_by_predicate"]["hasSegment"]["recall"] == 0.0
+        # 이 픽스처는 이미 정식 표기(competesWith·hasSegment는 별칭이 없다)라 canonical == raw
+        assert agg["gold_edge_items_canonical"] == 2
+        assert agg["kg_edge_recall_gold_only_canonical"] == 0.25
+        assert agg["recall_by_predicate_canonical"]["competesWith"] == {
+            "matched": 1,
+            "total": 2,
+            "recall": 0.5,
+        }
 
     def test_empty(self):
         agg = aggregate_l3_extended([])
         assert agg["kg_edge_recall_gold_only"] is None
         assert agg["kg_edge_recall_all"] is None
+        assert agg["kg_edge_recall_gold_only_canonical"] is None
