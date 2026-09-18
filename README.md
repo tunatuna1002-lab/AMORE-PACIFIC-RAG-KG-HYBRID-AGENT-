@@ -128,7 +128,7 @@ Amazon Bestsellers (Top 100 × 5 categories)
 - **API**: `POST /api/v4/chat` (스트리밍: `POST /api/v4/chat/stream`)
 - RAG + KG + Ontology 통합 컨텍스트
 - 신뢰도 MEDIUM/LOW일 때 LLM이 조회 도구 1개 또는 직접 답변을 선택
-- ReAct 루프(복잡한 질문): `agents.use_react_agent` 플래그로만 켜짐, 기본 OFF. 활성 여부는 `/api/v4/brain/status`의 `components`
+- ReAct 루프(복잡한 질문): `agents.use_react_agent` 플래그로만 켜짐, 기본 OFF. 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3). 활성 여부는 `/api/v4/brain/status`의 `components`
 - 다중 소스 출처 추출 및 참고자료 표시 (크롤링 데이터·KG·온톨로지 추론·RAG 문서·외부 신호 등 10종)
 
 ### 3.4 IR-Style 리포트 생성 (NEW)

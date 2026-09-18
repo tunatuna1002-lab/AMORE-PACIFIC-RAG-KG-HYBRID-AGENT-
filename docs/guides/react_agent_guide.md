@@ -11,7 +11,7 @@
 > - **활성화**: "분석/비교/왜" 같은 키워드 기반 복잡도 판단이 아니라, 홉 카운트 라우터
 >   (`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)가 먼저 판단하고 플래그
 >   `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제로 ReAct 경로를 탄다(OFF 상태에서는
->   `agents.react_shadow_mode`로 그림자 실행만 가능).
+>   `agents.react_shadow_mode`로 그림자 실행만 가능). 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3).
 > - **호출 방식**: 프롬프트에 JSON을 요구해 직접 파싱하던 방식에서 네이티브 function
 >   calling(`tools=`/`tool_choice="auto"`)으로 바뀌었다.
 > - **반복·예산**: `max_iterations` 기본값은 3이 아니라 5이며, 질문당 토큰 예산

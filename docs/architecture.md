@@ -180,7 +180,7 @@ The decision maker determines whether to answer directly or invoke specialized t
 
 - **File**: `src/core/react_agent.py`
 - **Loop**: Thought → Action(네이티브 function calling, `tools=`/`tool_choice="auto"`) → Observation → Self-Reflection (기본 `max_iterations=5`)
-- **Activation**: 키워드 기반 자동 트리거가 아니라 ① 홉 카운트 라우터(`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)가 먼저 판단하고 ② 플래그 `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제로 ReAct 경로를 탄다. OFF 상태에서는 `agents.react_shadow_mode`(기본 OFF)로 그림자 실행만 가능하다.
+- **Activation**: 키워드 기반 자동 트리거가 아니라 ① 홉 카운트 라우터(`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)가 먼저 판단하고 ② 플래그 `agents.use_react_agent`(기본 OFF)가 켜져 있어야 실제로 ReAct 경로를 탄다. OFF 상태에서는 `agents.react_shadow_mode`(기본 OFF)로 그림자 실행만 가능하다. 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3).
 - **Tools**: ReAct 전용 도구 3종·대시보드 JSON 도구 5종은 폐지되었다. 지금은 DecisionMaker와 공유하는 5종 레지스트리(`resolve_entity`·`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, `src/core/tool_registry.py`)만 호출하고, 결과는 증거 카드로 돌아온다.
 - **Token budget**: 질문당 기본 12,000 토큰(`DEFAULT_TOKEN_BUDGET`), 초과 시 `ReActResult.budget_exceeded=True`
 

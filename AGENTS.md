@@ -139,7 +139,7 @@ ALERT_RECIPIENTS=...
 
 - **Lip Care vs Lip Makeup**: Different categories (Skin Care vs Makeup hierarchy)
 - **KG Backup**: Auto 7-day rolling in `data/backups/kg/`
-- **ReAct activation**: Only when `agents.use_react_agent` is on; then MEDIUM/LOW-confidence complex queries (analysis keywords, context gaps) route to it. Check `/api/v4/brain/status` → `components`
+- **ReAct activation**: Only when `agents.use_react_agent` is on; then MEDIUM/LOW-confidence queries that the hop-count router (`src/core/router.py`) judges as 2+ hops route to it. HIGH confidence always answers via the pipeline unless the measurement flag `agents.react_bypass_confidence` (default OFF) is on. [post-2026-09-18] Stage-6 comparison kept all three ReAct flags OFF (decision S6-3 in `docs/plans/evidence-react-ontology-decisions-2026-09.md`). Check `/api/v4/brain/status` → `components`
 - **Embedding cache**: MD5-keyed FIFO (max 1000). No measured cost reduction on record
 - **AWS WAF**: Stealth context + exponential backoff in scraper
 

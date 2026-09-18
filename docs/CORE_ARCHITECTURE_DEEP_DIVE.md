@@ -687,7 +687,7 @@ async def process_query(self, query, session_id=None, current_metrics=None, skip
 
 ReAct 진입 여부는 이제 홉 카운트 라우터(`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)와
 플래그 `agents.use_react_agent`(기본 OFF)가 그래프 안에서 판단한다 — 브레인 메서드가
-직접 분기하지 않는다.
+직접 분기하지 않는다. 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3).
 
 <details>
 <summary>Original text (kept for history — describes brain.py methods removed in the 2026-09 rework; process_query no longer branches this way)</summary>

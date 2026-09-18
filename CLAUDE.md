@@ -496,11 +496,11 @@ class MyWorkflow:
 | DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 |
 | Orchestrator | `src/core/orchestrator.py` | BatchWorkflow 하위 호환 래퍼 |
 | UnifiedBrain | `src/core/brain.py` | 스케줄러 + 질의 처리(QueryGraph). ReAct 활성 여부는 `/api/v4/brain/status`의 `components`(OWL 검색 전략은 [2026-09 사후] 삭제되어 더는 이 필드에 없음) |
-| ReActAgent | `src/core/react_agent.py` | Thought-Action 루프(최대 5회). 플래그 `agents.use_react_agent` 기본 OFF. [2026-09 사후] DecisionMaker와 같은 `tool_registry`(5종)를 공유 |
+| ReActAgent | `src/core/react_agent.py` | Thought-Action 루프(최대 5회). 플래그 `agents.use_react_agent` 기본 OFF. [2026-09 사후] DecisionMaker와 같은 `tool_registry`(5종)를 공유. 진입은 신뢰도 MEDIUM/LOW + 홉 2 이상(`agents.react_bypass_confidence`로 HIGH 관문 우회 가능, 기본 OFF). [2026-09-18 사후] 6단계 비교에서 켜기 조건 미충족 → OFF 유지(결정 S6-3) |
 | ToolRegistry | `src/core/tool_registry.py` | DecisionMaker·ReAct 공용 도구 5종(resolve_entity·kg_neighbors·get_metrics·apply_rules·search_docs), 증거 카드 반환. [2026-09 사후] |
 | DecisionMaker | `src/core/decision_maker.py` | 신뢰도 MEDIUM/LOW일 때 도구 선택. [2026-09 사후] JSON 파싱 → 네이티브 function calling(`tools=`, `tool_choice="auto"`) |
 | ConfidenceAssessor | `src/core/confidence.py` | 증거 적합도 기반 신뢰도 점수(엔티티 충족도 0.60 + 카드 종류 충족 0.40, 검색 분포는 ±0.05 동점 가르기). 임계값 HIGH 0.95 / MEDIUM 0.61 / LOW 0.60. [2026-09 사후] 트랙 5-B |
-| NumericVerifier | `src/core/numeric_verifier.py` | 답변 수치 ↔ 인용 카드 대조. 플래그 `response.numeric_verification_mode` 기본 `annotate`(기록만, 답변은 바꾸지 않음). [2026-09 사후] |
+| NumericVerifier | `src/core/numeric_verifier.py` | 답변 수치 ↔ 인용 카드 대조. 플래그 `response.numeric_verification_mode` 기본 `annotate`(기록만, 답변은 바꾸지 않음). [2026-09 사후]. [2026-09-18 사후] enforce는 기본값으로 올리지 않음 — 불일치로 잡힌 수치의 87~88%가 카드에 있거나 카드 값에서 계산된 값(결정 S6-4) |
 | BatchWorkflow | `src/application/workflows/batch_workflow.py` | 배치 워크플로우 (=Orchestrator) |
 | HybridChatbot | `src/agents/hybrid_chatbot_agent.py` | AI 챗봇 |
 | HybridInsight | `src/agents/hybrid_insight_agent.py` | 인사이트 생성 |

@@ -271,7 +271,7 @@ Response:
 `hops >= HOP_THRESHOLD(2)`면 ReAct 후보로 표시한다. 실제로 ReAct 루프를 타는지는
 플래그 `agents.use_react_agent`(기본 OFF)에 달려 있다 — OFF면 판정만 `route_trace`에
 남기고 기존 경로로 응답한다(OFF 상태에서 `agents.react_shadow_mode`가 켜져 있으면
-그림자 실행만 한다).
+그림자 실행만 한다). 단, 신뢰도가 HIGH면 홉 수와 무관하게 파이프라인이 답한다 — ReAct는 신뢰도 MEDIUM/LOW + 2홉 이상일 때만 탄다(측정용 플래그 `agents.react_bypass_confidence`, 기본 OFF, 로 이 관문을 건너뛸 수 있다). [2026-09-18 사후] 6단계 비교 결과 세 플래그 모두 기본 OFF 유지(`docs/plans/evidence-react-ontology-decisions-2026-09.md` S6-3).
 
 <details>
 <summary>Original text (kept for history, describes the pre-rework keyword-based activation)</summary>
