@@ -9,9 +9,15 @@ Intent-Based Configuration:
     document-type filters per intent category.
 
 2026-09: OWL 검색 전략(`OWLRetrievalStrategy`·`create_owl_strategy`·`RetrievalStrategy`
-프로토콜)과 플래그 `retriever.use_owl_strategy`를 삭제했다. OWL은 검색 전략이 아니라
-어휘(카테고리 계층·일관성 검사)로만 쓴다 — 온톨로지 신호는 legacy 경로의 재순위 보너스로
-표현한다. `src/ontology/owl_reasoner.py`는 어휘 용도로 남아 있다.
+프로토콜)과 플래그 `retriever.use_owl_strategy`를 삭제했다. 온톨로지 신호(엔티티·카테고리
+일치)는 legacy 경로의 재순위 보너스로 표현한다.
+
+[2026-09 사후 정정, 트랙 O6] 예전 문구 "OWL은 어휘(카테고리 계층·일관성 검사)로만 쓴다"는
+사실과 달랐다. 카테고리 계층은 `config/category_hierarchy.json`에서 온다. 온톨로지 원본은
+JSON(`config/ontology/`) + 로더 `src/ontology/ontology.py`(런타임은 Python 폐포, Pellet 교차
+검증은 개발 전용 `scripts/check_ontology_owl.py`)이고, `owl_reasoner.py`는 삭제됐다(서비스
+호출처 0건). 질의 경로 사용은 `src/rag/ontology_context.py`, 플래그 `ontology.use_class_reasoning`
+(기본 OFF, 효과는 O7 측정 전).
 """
 
 from __future__ import annotations

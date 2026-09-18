@@ -37,7 +37,7 @@
 | Scraping | Playwright, playwright-stealth, browserforge, fake-useragent |
 | Storage | SQLite (aiosqlite), Google Sheets API |
 | RAG | ChromaDB + OpenAI `text-embedding-3-small` 임베딩 + BM25/RRF (reranker 플래그 기본 OFF) |
-| Ontology | owlready2, Rule-based Reasoner. rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) — `requirements.txt` 의존성 정리 후보로 `docs/dev/FUTURE_WORK.md`에 기록 |
+| Ontology | JSON 원본(`config/ontology/`) + Python 폐포 로더(`src/ontology/ontology.py`), Rule-based Reasoner. [2026-09 사후] OWL 모듈(`owl_reasoner.py`·`ontology_knowledge_graph.py`·`cosmetics_ontology.owl`)은 삭제(서비스 호출처 0건, 트랙 O6). owlready2는 개발 전용(`requirements-dev.txt`, OWL 내보내기·Pellet 교차 검증 스크립트용). rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) — `requirements.txt` 의존성 정리 후보로 `docs/dev/FUTURE_WORK.md`에 기록 |
 | NLP | spaCy (NER/Entity Linking) |
 | Data | pandas, numpy, matplotlib |
 | Test | pytest, pytest-asyncio, pytest-cov |
@@ -65,7 +65,7 @@
 | GET | `/api/data` | 대시보드 데이터 JSON | - |
 | POST | `/api/v4/chat` | AI 챗봇 (권장, 스트리밍: `/api/v4/chat/stream`) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
-| GET | `/api/v4/brain/status` | 스케줄러 상태 | - |
+| GET | `/api/v4/brain/status` | 스케줄러 상태 + `ontology`(버전·기준일·클래스 수·브랜드 수·플래그, [2026-09 사후]) | - |
 | GET | `/dashboard` | 대시보드 UI (HTML) | - |
 
 ---
@@ -137,6 +137,7 @@
 │   │   ├── reranker.py           # 재순위화 (플래그 `retriever.use_reranker` 기본 OFF)
 │   │   ├── entity_linker.py      # 엔티티 링킹
 │   │   ├── entity_tags.py        # 색인 태그 기반 재정렬 가산점, [2026-09 사후]
+│   │   ├── ontology_context.py   # 질의 경로 온톨로지 추론(그룹·클래스 전개·정적 사실 카드), 플래그 `ontology.use_class_reasoning` 기본 OFF, [2026-09 사후]
 │   │   ├── chunker.py            # 문서 청킹
 │   │   ├── query_rewriter.py     # 쿼리 리라이팅
 │   │   ├── context_builder.py    # 컨텍스트 빌더
@@ -144,14 +145,14 @@
 │   │
 │   ├── ontology/                 # Knowledge Graph & 추론
 │   │   ├── knowledge_graph.py    # Triple Store (JSON 기반)
-│   │   ├── ontology_knowledge_graph.py
+│   │   ├── ontology.py           # 온톨로지 로더: JSON 원본 → Python 폐포(클래스·그룹·등록부·술어 명세), [2026-09 사후]
+│   │   ├── kg_write_validation.py # KG 쓰기 검증(플래그 `kg.write_validation` 기본 warn), [2026-09 사후]
 │   │   ├── reasoner.py           # 규칙 기반 추론 엔진
 │   │   ├── rule_contracts.py     # 규칙이 증거 카드를 입력으로 받는 계약, [2026-09 사후]
-│   │   ├── owl_reasoner.py       # OWL 추론 — [2026-09 사후] 검색 전략에서 빠지고 카테고리 계층 어휘로만 사용
 │   │   ├── kg_enricher.py        # KG 보강
 │   │   ├── kg_query.py           # KG 쿼리
 │   │   ├── kg_updater.py         # KG 업데이트
-│   │   ├── schema.py             # 온톨로지 스키마
+│   │   ├── schema.py             # 데이터 모델 스키마 (Pydantic)
 │   │   ├── category_service.py   # 카테고리 서비스
 │   │   ├── sentiment_service.py  # 감성 분석 서비스
 │   │   └── rules/                # 비즈니스 규칙
@@ -265,8 +266,9 @@
 │       └── llm_client.py
 │
 ├── config/                       # 설정 파일
+│   ├── ontology/                 # 온톨로지 원본: schema.json(클래스·술어) + brands.json(브랜드 등록부), [2026-09 사후]
 │   ├── thresholds.json           # 시스템 설정 + 카테고리 URL
-│   ├── category_hierarchy.json   # Amazon 카테고리 트리
+│   ├── category_hierarchy.json   # Amazon 카테고리 트리 (온톨로지 로더도 카테고리 계층 원본으로 참조)
 │   ├── tracked_competitors.json
 │   ├── brands.json               # 브랜드 매핑
 │   ├── asin_brand_mapping.json
@@ -495,7 +497,7 @@ class MyWorkflow:
 |------|------|------|
 | DashboardAPI | `src/api/dashboard_api.py` | FastAPI 메인 서버 |
 | Orchestrator | `src/core/orchestrator.py` | BatchWorkflow 하위 호환 래퍼 |
-| UnifiedBrain | `src/core/brain.py` | 스케줄러 + 질의 처리(QueryGraph). ReAct 활성 여부는 `/api/v4/brain/status`의 `components`(OWL 검색 전략은 [2026-09 사후] 삭제되어 더는 이 필드에 없음) |
+| UnifiedBrain | `src/core/brain.py` | 스케줄러 + 질의 처리(QueryGraph). ReAct 활성 여부는 `/api/v4/brain/status`의 `components`(OWL 검색 전략은 [2026-09 사후] 삭제되어 더는 이 필드에 없음). 온톨로지 상태는 같은 응답의 `ontology`([2026-09 사후] OE10) |
 | ReActAgent | `src/core/react_agent.py` | Thought-Action 루프(최대 5회). 플래그 `agents.use_react_agent` 기본 OFF. [2026-09 사후] DecisionMaker와 같은 `tool_registry`(5종)를 공유. 진입은 신뢰도 MEDIUM/LOW + 홉 2 이상(`agents.react_bypass_confidence`로 HIGH 관문 우회 가능, 기본 OFF). [2026-09-18 사후] 6단계 비교에서 켜기 조건 미충족 → OFF 유지(결정 S6-3) |
 | ToolRegistry | `src/core/tool_registry.py` | DecisionMaker·ReAct 공용 도구 5종(resolve_entity·kg_neighbors·get_metrics·apply_rules·search_docs), 증거 카드 반환. [2026-09 사후] |
 | DecisionMaker | `src/core/decision_maker.py` | 신뢰도 MEDIUM/LOW일 때 도구 선택. [2026-09 사후] JSON 파싱 → 네이티브 function calling(`tools=`, `tool_choice="auto"`) |
@@ -509,14 +511,15 @@ class MyWorkflow:
 | SourceProvider | `src/agents/source_provider.py` | 출처 추출 및 포매팅 |
 | ExternalSignalManager | `src/agents/external_signal_manager.py` | 외부 신호 수집 관리 |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG 통합 검색 |
-| RetrievalStrategy | `src/rag/retrieval_strategy.py` | 인텐트별 검색 설정(`IntentRetrievalConfig`). [2026-09 사후] OWL 검색 전략(`OWLRetrievalStrategy`·`create_owl_strategy`)과 플래그 `retriever.use_owl_strategy`는 삭제 — OWL은 검색 전략이 아니라 카테고리 계층 어휘로만 쓰고, 온톨로지 신호는 legacy 검색 경로의 재정렬 가산점으로 표현 |
+| RetrievalStrategy | `src/rag/retrieval_strategy.py` | 인텐트별 검색 설정(`IntentRetrievalConfig`). [2026-09 사후] OWL 검색 전략(`OWLRetrievalStrategy`·`create_owl_strategy`)과 플래그 `retriever.use_owl_strategy`는 삭제 — 온톨로지 신호는 legacy 검색 경로의 재정렬 가산점으로 표현. [2026-09 사후 정정] 예전 문구 "OWL은 카테고리 계층 어휘로만 사용"은 사실과 달랐다: 카테고리 계층은 `config/category_hierarchy.json`에서 온다 |
 | ConfidenceFusion | `src/rag/confidence_fusion.py` | 다중 소스 신뢰도 융합 엔진 |
 | Retriever | `src/rag/retriever.py` | 문서 검색 + 임베딩 캐시 |
 | EmbeddingCache | `src/rag/embedding_cache.py` | 임베딩 캐시 (InMemory/SQLite) |
-| KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON) |
+| KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store (JSON). 쓰기 검증은 `kg_write_validation.py`(플래그 `kg.write_validation`, 기본 `warn` = 로그만) [2026-09 사후] |
+| Ontology | `src/ontology/ontology.py` | [2026-09 사후] 온톨로지 단일 원본 로더. 원본은 JSON(`config/ontology/schema.json`·`brands.json`) + 카테고리 계층(`config/category_hierarchy.json`). 런타임 추론은 Python 폐포만(Java 없음). OWL 내보내기·Pellet 교차 검증은 개발 전용(`scripts/export_ontology_owl.py`·`scripts/check_ontology_owl.py`, owlready2는 `requirements-dev.txt`). 질의 경로 사용은 `src/rag/ontology_context.py`, 플래그 `ontology.use_class_reasoning` 기본 OFF(O7 측정 전, 효과 미측정). 옛 `owl_reasoner.py`·`ontology_knowledge_graph.py`는 삭제(서비스 호출처 0건, 트랙 O6) |
 | OntologyReasoner | `src/ontology/reasoner.py` | 검색 경로에서 쓰는 규칙 기반 추론 엔진. [2026-09 사후] 입력을 증거 카드로 받도록 재작업(`rule_contracts.py`). 호출처 0건이던 `src/ontology/unified_reasoner.py`는 삭제됨(트랙 4-C) |
 | PromptRegistry | `prompts/registry.py` | 프롬프트 중앙 관리 |
-| FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default) |
+| FeatureFlags | `src/infrastructure/feature_flags.py` | Feature flag 시스템 (ENV > JSON > default). [2026-09 사후] 이름 바로잡기: 규칙 추론 on/off `reasoner.enabled`(옛 `reasoner.use_owl_reasoner` — OWL과 무관했음), KG 조회 on/off `kg.enabled`(옛 `ontology.use_ontology_kg`). 옛 JSON 키·ENV(`FF_REASONER_USE_OWL_REASONER`·`FF_ONTOLOGY_USE_ONTOLOGY_KG`)는 별칭으로 계속 동작(1회 경고). 우선순위 ENV 새 > ENV 옛 > JSON 새 > JSON 옛 > 기본 |
 | MetricCalculator | `src/tools/calculators/metric_calculator.py` | SoS, HHI, CPI |
 | AmazonScraper | `src/tools/scrapers/amazon_scraper.py` | Playwright 크롤러 |
 | KGBackup | `src/tools/utilities/kg_backup.py` | KG 백업 (7일 롤링) |

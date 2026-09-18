@@ -2,7 +2,9 @@
 
 ## OVERVIEW
 
-Triple store knowledge graph with rule-based and OWL reasoning for brand/product/category relationships.
+Triple store knowledge graph with rule-based reasoning, plus an ontology loader (JSON source → Python closure) for brand/product/category relationships.
+
+[post-2026-09, track O6] `owl_reasoner.py`, `ontology_knowledge_graph.py` and `cosmetics_ontology.owl` were deleted (0 service callers). The earlier claim "OWL is used as category-hierarchy vocabulary" was wrong — the category hierarchy comes from `config/category_hierarchy.json`.
 
 ## KEY MODULES
 
@@ -10,14 +12,15 @@ Triple store knowledge graph with rule-based and OWL reasoning for brand/product
 |--------|------|------|
 | KnowledgeGraph | `knowledge_graph.py` | In-memory triple store + JSON persistence |
 | Reasoner | `reasoner.py` | Rule-based forward-chaining inference |
-| OWLReasoner | `owl_reasoner.py` | OWL 2 reasoning via owlready2 |
+| Ontology | `ontology.py` | Ontology loader: `config/ontology/schema.json` + `brands.json` + `config/category_hierarchy.json` → Python closure (subClassOf, inverseOf, symmetric, group membership). `get_ontology()` caches one instance |
+| KG write validation | `kg_write_validation.py` | Validates triples on write against the ontology; flag `kg.write_validation` (default `warn` = log only) |
 
 ## REASONING APPROACHES
 
 | Approach | Class | When to Use |
 |----------|-------|-------------|
 | Rule-based | Reasoner | Fast inference, known patterns |
-| OWL | OWLReasoner | Complex ontology queries, class hierarchies |
+| Ontology closure | `Ontology` (`ontology.py`) | Class membership, group/segment/origin lookups, category ancestors/descendants. Query-path use (`src/rag/ontology_context.py`) is behind `ontology.use_class_reasoning` (default OFF) |
 
 ## DATA MODEL
 
@@ -48,17 +51,15 @@ InferenceResult(conclusion, evidence, confidence, recommendation)
 
 QueryIntentDetector filters applicable rules by query intent.
 
-## OWL CLASSES
+## ONTOLOGY SOURCE
 
-- `Brand`: name, origin, segment
-- `Product`: name, brand, category, price
-- `Category`: name, parent, level
-
-Reasoners: Pellet (default), HermiT (fallback)
+- Classes, predicates and the brand registry live in `config/ontology/` (JSON). Categories are referenced from `config/category_hierarchy.json`, not copied.
+- Runtime reasoning is the Python closure only — no Java, no external reasoner.
+- OWL export (`scripts/export_ontology_owl.py`) and Pellet consistency/cross-check (`scripts/check_ontology_owl.py`, Java 25+) are dev-only; owlready2 is in `requirements-dev.txt`.
 
 ## ANTI-PATTERNS
 
 - **NEVER** modify KG without triggering backup check
 - **NEVER** add triples without entity_metadata update
-- **NEVER** use OWL reasoner for simple lookups (too slow)
+- **NEVER** call Java/an OWL reasoner from the service query path (dev scripts only)
 - **NEVER** bypass importance scores for eviction

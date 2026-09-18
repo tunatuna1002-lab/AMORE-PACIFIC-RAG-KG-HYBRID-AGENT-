@@ -1,12 +1,13 @@
 """
 Entity Linker Integration Example
 ==================================
-EntityLinker를 HybridRetriever 및 OWLReasoner와 통합하는 예제
+EntityLinker를 HybridRetriever 및 규칙 추론기(OntologyReasoner)와 통합하는 예제
+([2026-09 사후] OWLReasoner는 삭제됨, 트랙 O6)
 
 ## 통합 시나리오
 1. EntityLinker로 쿼리에서 엔티티 추출 및 온톨로지 링크
 2. 링크된 엔티티를 HybridRetriever에 전달
-3. OWLReasoner에서 형식 추론 실행
+3. OntologyReasoner로 규칙 추론 실행
 4. 통합 컨텍스트 생성
 """
 
