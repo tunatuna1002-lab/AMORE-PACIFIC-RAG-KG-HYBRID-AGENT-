@@ -257,9 +257,10 @@ class TestShadowModeWiring:
         data_path.write_text('{"brand": {"competitors": []}}', encoding="utf-8")
         monkeypatch.setenv("DASHBOARD_DATA_PATH", str(data_path))
 
-        def _set(*, react: bool, shadow: bool) -> None:
+        def _set(*, react: bool, shadow: bool, bypass: bool = False) -> None:
             monkeypatch.setenv("FF_AGENTS_USE_REACT_AGENT", "true" if react else "false")
             monkeypatch.setenv("FF_AGENTS_REACT_SHADOW_MODE", "true" if shadow else "false")
+            monkeypatch.setenv("FF_AGENTS_REACT_BYPASS_CONFIDENCE", "true" if bypass else "false")
             FeatureFlags.reset_instance()
 
         yield _set
@@ -294,6 +295,28 @@ class TestShadowModeWiring:
 
         assert brain._react_agent is None
         assert brain._react_mode == "off"
+
+    @pytest.mark.asyncio
+    async def test_bypass_flag_wired_into_brain_status_and_query_graph(self, flags):
+        """agents.react_bypass_confidence 플래그가 Brain 상태·QueryGraph까지 전달되는지 (트랙 6)"""
+        flags(react=True, shadow=False, bypass=True)
+        brain = await self._brain()
+
+        assert brain._react_bypass_confidence is True
+        status = brain.get_component_status()["react_agent"]
+        assert status["react_bypass_confidence"] is True
+
+        query_graph = brain._ensure_query_graph()
+        assert query_graph._react_bypass_confidence is True
+
+    @pytest.mark.asyncio
+    async def test_bypass_flag_defaults_to_false(self, flags):
+        flags(react=True, shadow=False, bypass=False)
+        brain = await self._brain()
+
+        assert brain._react_bypass_confidence is False
+        status = brain.get_component_status()["react_agent"]
+        assert status["react_bypass_confidence"] is False
 
     @pytest.mark.asyncio
     async def test_shadow_run_records_react_without_changing_the_answer(self, flags):

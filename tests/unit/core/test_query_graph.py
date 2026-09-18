@@ -322,6 +322,99 @@ class TestQueryGraphRouting:
         state.confidence_level = ConfidenceLevel.MEDIUM
         assert graph._route_after_confidence(state) == "decide"
 
+    # -------------------------------------------------------------------
+    # react_bypass_confidence 플래그 (트랙 6)
+    #
+    # 기본 동작: HIGH 신뢰도면 홉 라우터를 보지 않고 바로 generate_response로 간다.
+    # 플래그가 True이고 react 모드가 "on"이며 라우터가 2홉 이상(use_react)이라고
+    # 판단하면, HIGH 신뢰도라도 react로 보낸다 — 측정용 opt-in 변형.
+    # -------------------------------------------------------------------
+
+    def test_route_high_confidence_bypass_react_when_flag_and_use_react(self, mock_components):
+        """HIGH + react_bypass_confidence=True + react ON + 2홉 이상 → react"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=2, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="on",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "react"
+
+    def test_route_high_confidence_flag_off_still_direct(self, mock_components):
+        """같은 조건이라도 react_bypass_confidence=False(기본)면 기존처럼 generate_response"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=2, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="on",
+            react_bypass_confidence=False,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "generate_response"
+
+    def test_route_high_confidence_bypass_flag_but_shadow_mode_stays_direct(self, mock_components):
+        """플래그 True라도 react_mode가 shadow면 react로 가지 않는다"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=2, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="shadow",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "generate_response"
+
+    def test_route_high_confidence_bypass_flag_one_hop_stays_direct(self, mock_components):
+        """플래그 True + react ON이라도 1홉이면 generate_response"""
+        from src.core.router import RouteDecision
+
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = True
+        mock_components["confidence_assessor"].should_request_clarification.return_value = False
+        router = MagicMock()
+        router.analyze.return_value = RouteDecision(hops=1, stages=(), reason="t", basis="rules")
+        graph = QueryGraph(
+            **mock_components,
+            router=router,
+            react_mode="on",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+        assert graph._route_after_confidence(state) == "generate_response"
+
+    def test_route_unknown_confidence_bypass_flag_still_clarification(self, mock_components):
+        """UNKNOWN은 플래그·react 모드와 무관하게 항상 clarification"""
+        mock_components["confidence_assessor"].should_skip_llm_decision.return_value = False
+        mock_components["confidence_assessor"].should_request_clarification.return_value = True
+        graph = QueryGraph(
+            **mock_components,
+            react_mode="on",
+            react_bypass_confidence=True,
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.UNKNOWN
+        assert graph._route_after_confidence(state) == "clarification"
+
     def test_route_after_decide_needs_tool(self, graph):
         state = QueryState(query="test")
         state.decision = Decision(

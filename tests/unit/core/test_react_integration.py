@@ -91,20 +91,37 @@ class TestReActIntegration:
         assert "stream" in inspect.getsource(QueryGraph.run)
 
     def test_high_confidence_skips_react(self):
-        """HIGH 신뢰도에서는 ReAct를 건너뛰는지 확인
+        """HIGH 신뢰도 + 기본 플래그(react_bypass_confidence=False)에서는 ReAct를 건너뛴다
 
         HIGH 신뢰도 → direct response (ReAct 불필요)
         (3.1: 라우팅 로직이 QueryGraph._route_after_confidence로 이동)
+        (트랙 6: ``agents.react_bypass_confidence`` 플래그로 이 우선순위를 opt-in으로
+        뒤집을 수 있게 됐다 — 기본값 False에서는 이 동작이 그대로 유지된다)
         """
+        from unittest.mock import MagicMock
+
+        from src.core.graph_state import QueryState
+        from src.core.models import ConfidenceLevel
         from src.core.query_graph import QueryGraph
 
-        source = inspect.getsource(QueryGraph._route_after_confidence)
-        # HIGH confidence path (should_skip_llm_decision) should come before ReAct check
-        high_pos = source.find("should_skip_llm_decision")
-        react_pos = source.find("_router_decision")
-        if high_pos >= 0 and react_pos >= 0:
-            # HIGH confidence check should appear before ReAct
-            assert high_pos < react_pos, "HIGH confidence should be checked before ReAct"
+        confidence_assessor = MagicMock()
+        confidence_assessor.should_request_clarification.return_value = False
+        confidence_assessor.should_skip_llm_decision.return_value = True
+
+        graph = QueryGraph(
+            cache=None,
+            context_gatherer=None,
+            confidence_assessor=confidence_assessor,
+            decision_maker=None,
+            tool_coordinator=None,
+            response_pipeline=None,
+            react_agent=MagicMock(),
+            react_mode="on",
+        )
+        state = QueryState(query="test")
+        state.confidence_level = ConfidenceLevel.HIGH
+
+        assert graph._route_after_confidence(state) == "generate_response"
 
 
 def _state(query: str):

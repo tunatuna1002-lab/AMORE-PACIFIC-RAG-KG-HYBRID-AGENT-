@@ -92,9 +92,9 @@ class TestFeatureFlagsENVOverride:
         for truthy in ("true", "True", "TRUE", "1", "yes", "on"):
             monkeypatch.setenv("FF_CACHE_USE_SQLITE_EMBEDDING_CACHE", truthy)
             flags = FeatureFlags(config_path=flags_config)
-            assert flags.get_flag("cache", "use_sqlite_embedding_cache") is True, (
-                f"Failed for {truthy}"
-            )
+            assert (
+                flags.get_flag("cache", "use_sqlite_embedding_cache") is True
+            ), f"Failed for {truthy}"
 
     def test_env_accepts_various_falsy(
         self, flags_config: Path, monkeypatch: pytest.MonkeyPatch
@@ -102,14 +102,21 @@ class TestFeatureFlagsENVOverride:
         for falsy in ("false", "False", "FALSE", "0", "no", "off", ""):
             monkeypatch.setenv("FF_CACHE_USE_SQLITE_EMBEDDING_CACHE", falsy)
             flags = FeatureFlags(config_path=flags_config)
-            assert flags.get_flag("cache", "use_sqlite_embedding_cache") is False, (
-                f"Failed for {falsy}"
-            )
+            assert (
+                flags.get_flag("cache", "use_sqlite_embedding_cache") is False
+            ), f"Failed for {falsy}"
 
     def test_env_overrides_default(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("FF_NEW_SECTION_NEW_KEY", "true")
         flags = FeatureFlags(config_path=tmp_path / "missing.json")
         assert flags.get_flag("new_section", "new_key", default=False) is True
+
+    def test_react_bypass_confidence_env_override(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("FF_AGENTS_REACT_BYPASS_CONFIDENCE", "true")
+        flags = FeatureFlags(config_path=tmp_path / "missing.json")
+        assert flags.react_bypass_confidence() is True
 
 
 class TestFeatureFlagsReload:
@@ -148,6 +155,7 @@ class TestFeatureFlagsConvenienceMethods:
         # Defaults defined in each convenience method
         # 2026-09: ReAct는 수리 후 평가 확인 전까지 기본 OFF (결정 D1)
         assert flags.use_react_agent() is False
+        assert flags.react_bypass_confidence() is False  # default False
         assert flags.use_unified_reasoner() is True  # default True
         assert flags.use_owl_reasoner() is True  # default True
         assert flags.use_ontology_kg() is True  # default True
