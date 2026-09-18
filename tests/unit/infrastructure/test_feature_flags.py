@@ -221,6 +221,77 @@ class TestNumericVerificationMode:
         )
 
 
+class TestClassReasoningFlag:
+    """ontology.use_class_reasoning (트랙 O3, 설계 OE7): 기본 OFF."""
+
+    def test_default_off(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_ONTOLOGY_USE_CLASS_REASONING", raising=False)
+        assert FeatureFlags(config_path=tmp_path / "missing.json").use_class_reasoning() is False
+
+    def test_json_and_env(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_ONTOLOGY_USE_CLASS_REASONING", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"ontology": {"use_class_reasoning": True}}))
+        assert FeatureFlags(config_path=path).use_class_reasoning() is True
+        monkeypatch.setenv("FF_ONTOLOGY_USE_CLASS_REASONING", "false")
+        assert FeatureFlags(config_path=path).use_class_reasoning() is False
+
+    def test_repository_config_default_off(self, monkeypatch) -> None:
+        monkeypatch.delenv("FF_ONTOLOGY_USE_CLASS_REASONING", raising=False)
+        config = Path(__file__).resolve().parents[3] / "config" / "feature_flags.json"
+        assert FeatureFlags(config_path=config).use_class_reasoning() is False
+        assert json.loads(config.read_text())["ontology"]["use_class_reasoning"] is False
+
+
+class TestKGWriteValidationMode:
+    """kg.write_validation: off | warn | enforce (기본 warn, 결정 OA-7)."""
+
+    def test_default_is_warn(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_KG_WRITE_VALIDATION", raising=False)
+        flags = FeatureFlags(config_path=tmp_path / "missing.json")
+        assert flags.kg_write_validation_mode() == "warn"
+
+    def test_json_value(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_KG_WRITE_VALIDATION", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"kg": {"write_validation": "enforce"}}))
+        assert FeatureFlags(config_path=path).kg_write_validation_mode() == "enforce"
+
+    def test_env_overrides_json(self, tmp_path: Path, monkeypatch) -> None:
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"kg": {"write_validation": "enforce"}}))
+        monkeypatch.setenv("FF_KG_WRITE_VALIDATION", " OFF ")
+        assert FeatureFlags(config_path=path).kg_write_validation_mode() == "off"
+
+    def test_invalid_env_falls_back_to_warn(self, tmp_path: Path, monkeypatch, caplog) -> None:
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"kg": {"write_validation": "enforce"}}))
+        monkeypatch.setenv("FF_KG_WRITE_VALIDATION", "strict")
+        with caplog.at_level("WARNING", logger="src.infrastructure.feature_flags"):
+            assert FeatureFlags(config_path=path).kg_write_validation_mode() == "warn"
+        assert "FF_KG_WRITE_VALIDATION" in caplog.text
+
+    def test_invalid_json_falls_back_to_warn(self, tmp_path: Path, monkeypatch, caplog) -> None:
+        monkeypatch.delenv("FF_KG_WRITE_VALIDATION", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"kg": {"write_validation": True}}))
+        with caplog.at_level("WARNING", logger="src.infrastructure.feature_flags"):
+            assert FeatureFlags(config_path=path).kg_write_validation_mode() == "warn"
+        assert "kg.write_validation" in caplog.text
+
+    def test_malformed_section_uses_default(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("FF_KG_WRITE_VALIDATION", raising=False)
+        path = tmp_path / "flags.json"
+        path.write_text(json.dumps({"kg": "enforce"}))
+        assert FeatureFlags(config_path=path).kg_write_validation_mode() == "warn"
+
+    def test_repository_config_default(self, monkeypatch) -> None:
+        monkeypatch.delenv("FF_KG_WRITE_VALIDATION", raising=False)
+        config = Path(__file__).resolve().parents[3] / "config" / "feature_flags.json"
+        assert FeatureFlags(config_path=config).kg_write_validation_mode() == "warn"
+        assert json.loads(config.read_text())["kg"]["write_validation"] == "warn"
+
+
 class TestFeatureFlagsSingleton:
     """Test singleton pattern."""
 

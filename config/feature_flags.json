@@ -9,7 +9,11 @@
     "use_owl_reasoner": true
   },
   "ontology": {
-    "use_ontology_kg": true
+    "use_ontology_kg": true,
+    "use_class_reasoning": false
+  },
+  "kg": {
+    "write_validation": "warn"
   },
   "cache": {
     "use_sqlite_embedding_cache": false

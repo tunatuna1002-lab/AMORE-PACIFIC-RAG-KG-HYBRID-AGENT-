@@ -175,6 +175,35 @@ class FeatureFlags:
         """Whether to fetch external signals (Tavily, RSS, Reddit) per query."""
         return self.get_flag("agents", "use_external_signals", default=True)
 
+    def use_class_reasoning(self) -> bool:
+        """질의 경로의 온톨로지 클래스 추론 (트랙 O3·O2, 설계 OE7) [2026-09 사후].
+
+        켜면 그룹·클래스 전개, 정적 정의 사실 카드(그룹·세그먼트·원산지·자매·인수 연도),
+        닫힌 세계 부정 카드, 읽을 때 술어 정식화, 카테고리 포함 조회 범위 확장이 동작한다.
+        기본 OFF — O7 측정으로 켤지 정한다. OFF면 출력이 이전과 같다.
+        """
+        return self.get_flag("ontology", "use_class_reasoning", default=False)
+
+    def _string_mode(
+        self, section: str, key: str, env_name: str, allowed: tuple[str, ...], default: str
+    ) -> str:
+        """문자열 플래그 공용 해석: ENV > JSON > 기본. 알 수 없는 값은 경고 후 기본값."""
+        raw = os.environ.get(env_name)
+        source = env_name
+        if raw is None:
+            section_config = self._config.get(section)
+            raw = section_config.get(key) if isinstance(section_config, dict) else None
+            source = f"config {section}.{key}"
+        if raw is None:
+            return default
+        mode = str(raw).strip().lower()
+        if mode in allowed:
+            return mode
+        logger.warning(
+            "Invalid %s.%s value %r from %s; using %r", section, key, raw, source, default
+        )
+        return default
+
     def numeric_verification_mode(self) -> str:
         """답변 수치 검증 모드 (설계 E8): ``off`` | ``annotate`` | ``enforce``.
 
@@ -183,23 +212,24 @@ class FeatureFlags:
         > 기본 ``annotate``. 알 수 없는 값은 경고를 남기고 기본값으로 둔다 — annotate는 답변을
         바꾸지 않는다. 기본값은 리드가 annotate로 효과를 측정한 뒤 정한다.
         """
-        default = "annotate"
-        env_name = "FF_RESPONSE_NUMERIC_VERIFICATION_MODE"
-        raw = os.environ.get(env_name)
-        source = env_name
-        if raw is None:
-            section = self._config.get("response")
-            raw = section.get("numeric_verification_mode") if isinstance(section, dict) else None
-            source = "config response.numeric_verification_mode"
-        if raw is None:
-            return default
-        mode = str(raw).strip().lower()
-        if mode in ("off", "annotate", "enforce"):
-            return mode
-        logger.warning(
-            "Invalid numeric verification mode %r from %s; using %r", raw, source, default
+        return self._string_mode(
+            "response",
+            "numeric_verification_mode",
+            "FF_RESPONSE_NUMERIC_VERIFICATION_MODE",
+            ("off", "annotate", "enforce"),
+            "annotate",
         )
-        return default
+
+    def kg_write_validation_mode(self) -> str:
+        """KG 쓰기 검증 모드 (결정 OA-7): ``off`` | ``warn`` | ``enforce`` [2026-09 사후].
+
+        ENV ``FF_KG_WRITE_VALIDATION`` > JSON ``kg.write_validation`` > 기본 ``warn``.
+        ``warn``은 위반을 로그로만 남기고 저장 내용을 바꾸지 않는다(OE6). 알 수 없는 값은
+        경고를 남기고 ``warn``으로 둔다.
+        """
+        return self._string_mode(
+            "kg", "write_validation", "FF_KG_WRITE_VALIDATION", ("off", "warn", "enforce"), "warn"
+        )
 
     # ── Singleton access ─────────────────────────────────────────────
 
