@@ -2030,8 +2030,14 @@ class TestAblationFlagGating:
 
     @pytest.mark.asyncio
     async def test_no_kg_flag_skips_kg_query(self, retriever, monkeypatch):
-        """FF_ONTOLOGY_USE_ONTOLOGY_KG=false면 KG 조회가 생략되어야 함"""
+        """FF_ONTOLOGY_USE_ONTOLOGY_KG=false면 KG 조회가 생략되어야 함.
+
+        OA-10: ``ontology.use_class_reasoning`` 저장소 기본값이 ON이 되면서, ON일 때는
+        정적 정의 사실이 KG 조회와 무관하게 채워진다(의도된 동작, hybrid_retriever.py 참고).
+        이 테스트는 KG 플래그 게이팅만 검증하므로 클래스 추론은 명시적으로 꺼둔다.
+        """
         monkeypatch.setenv("FF_ONTOLOGY_USE_ONTOLOGY_KG", "false")
+        monkeypatch.setenv("FF_ONTOLOGY_USE_CLASS_REASONING", "false")
 
         with patch.object(retriever, "_query_knowledge_graph") as kg_spy:
             context = await retriever.retrieve("LANEIGE SoS 분석해줘", current_metrics={})

@@ -34,7 +34,6 @@ entities = linker.link("LANEIGE Lip Care 경쟁력 분석해줘")
 
 ## 통합
 - EntityExtractor (hybrid_retriever.py)와 호환
-- OWLReasoner 통합 지원
 - KnowledgeGraph 연동
 """
 
@@ -76,6 +75,175 @@ def product_name_slugs(title: str, brand: str) -> list[str]:
             if slug not in slugs:
                 slugs.append(slug)
     return slugs
+
+
+# =========================================================================
+# 온톨로지 등록부 연결 (트랙 O2, 결정 OA-6) — 플래그 `ontology.use_class_reasoning`
+# =========================================================================
+# 플래그가 꺼져 있으면 아래 코드는 전혀 쓰이지 않는다(출력이 O2 이전과 같다 — 특성화 테스트
+# `tests/unit/rag/test_entity_linker_characterization.py`).
+
+CLASS_REASONING_SECTION = "ontology"
+CLASS_REASONING_KEY = "use_class_reasoning"
+
+# 등록부에만 있는 별칭 중 일반 단어·짧은 표기라 오탐이 큰 것. 등록부 사전에서 뺀다.
+# (기존 사전 config/entities.json·KNOWN_BRANDS에 있던 표기 — elf·boj·eos·로드 등 — 는 그대로 둔다.)
+#   려: 한 글자라 "성공하려면"·"고려"에 걸린다 (골든 4문항 실측)
+#   ap: "AP 그룹"은 그룹을 가리키는 경우가 많다 → 그룹 구문표에서 처리한다
+#   essence: "Snail Mucin 96% Essence" 같은 제품 유형 단어 (골든 1문항)
+#   median·matrix·verb·dove: 일반 영어 단어
+AMBIGUOUS_REGISTRY_KEYS: frozenset[str] = frozenset(
+    {"려", "ap", "essence", "median", "matrix", "verb", "dove"}
+)
+
+# 클래스 언급 구문표. 영어 세그먼트 단어는 등록부 세그먼트 라벨(`Luxury`·`Premium`…)에서
+# 가져오고, 여기에는 한국어 표현만 적는다. 세그먼트 클래스는 "럭셔리 브랜드"처럼 뒤에
+# 브랜드·라인 류 단어가 올 때만 인식한다 ("프리미엄화 트렌드"·"가격 프리미엄" 오탐 방지).
+_SEGMENT_SUFFIX = r"\s*(?:브랜드|라인|세그먼트|계열|티어|brands?\b|segments?\b|tiers?\b|lines?\b)"
+_SEGMENT_CLASS_TERMS: dict[str, tuple[str, ...]] = {
+    "LuxuryBrand": ("럭셔리", "하이엔드", "high-end", "high end"),
+    "PremiumBrand": ("프리미엄",),
+    "MidTierBrand": ("중가", "미드", "중저가", "mid-tier", "mid tier", "mid-range"),
+    "AffordableBrand": ("저가", "중저가", "affordable", "budget"),
+    "MassBrand": ("매스", "대중", "mass-market", "mass market"),
+}
+_KBEAUTY_PATTERN = re.compile(
+    r"k[\s\-]?beauty|k[\s\-]?뷰티|케이\s?뷰티|한국\s?(?:브랜드|화장품|코스메틱)"
+    r"|korean\s+(?:brands?|beauty|cosmetics)"
+)
+_SIBLING_PATTERN = re.compile(
+    r"같은\s*(?:그룹|계열|회사)|자매\s*브랜드|sister\s+brands?|sibling\s+brands?|same\s+group"
+)
+# 그룹 언급 뒤에 오면 "그 그룹의 브랜드 집합"(AmorepacificBrand 류)을 가리키는 단어
+_GROUP_CLASS_CUE = (
+    r"(?:브랜드들|브랜드\s*중|브랜드\s*전체|브랜드\s*목록|브랜드\s*포트폴리오|포트폴리오|소속|산하"
+    r"|계열|소유한\s*브랜드|(?:owned\s+)?brands\b|portfolio)"
+)
+# "AP 그룹"·"AP 계열"·"AP 브랜드" — 등록부에서 AP는 브랜드 `Amore Pacific`의 별칭이지만
+# 이 구문에서는 그룹이다.
+_AP_GROUP_PATTERN = re.compile(r"(?<![a-z0-9])ap\s*(?:그룹|계열|group|브랜드)")
+
+
+def class_reasoning_enabled() -> bool:
+    """플래그 `ontology.use_class_reasoning` (기본 OFF). 호출마다 읽는다 — 테스트가 env로 바꾼다."""
+    try:
+        from src.infrastructure.feature_flags import FeatureFlags
+
+        return bool(
+            FeatureFlags.get_instance().get_flag(
+                CLASS_REASONING_SECTION, CLASS_REASONING_KEY, default=False
+            )
+        )
+    except Exception:
+        logger.debug("feature flag read failed; class reasoning OFF", exc_info=True)
+        return False
+
+
+@dataclass(frozen=True)
+class _RegistryLexicon:
+    """등록부에서 만든 인식 사전 (정규화 키 기준)."""
+
+    brand_keys: dict[str, str]  # normalize_key(표기) → 브랜드 id (가짜·모호 표기 제외)
+    group_keys: dict[str, str]  # normalize_key(표기) → 그룹 id
+    # 그룹 id → 그 그룹 소속 클래스 (예: amorepacific → AmorepacificBrand)
+    group_class: dict[str, str]
+    group_class_pattern: re.Pattern[str] | None
+    segment_patterns: tuple[tuple[str, re.Pattern[str]], ...]  # (클래스, 패턴)
+    kbeauty_class: str | None
+
+
+_lexicon_cache: tuple[Any, _RegistryLexicon] | None = None
+
+
+def _registry_lexicon() -> tuple[Any, _RegistryLexicon]:
+    """(Ontology, 사전). 같은 Ontology 객체면 다시 만들지 않는다."""
+    global _lexicon_cache
+    from src.ontology.ontology import get_ontology
+
+    onto = get_ontology()
+    if _lexicon_cache is not None and _lexicon_cache[0] is onto:
+        return _lexicon_cache
+    _lexicon_cache = (onto, _build_registry_lexicon(onto))
+    return _lexicon_cache
+
+
+def _build_registry_lexicon(onto: Any) -> _RegistryLexicon:
+    import json
+
+    from src.ontology.ontology import DEFAULT_ONTOLOGY_DIR, normalize_key
+
+    # 로더에는 별칭 목록을 돌려주는 공개 API가 없어 원본의 표기를 읽고, 각 표기가 로더에서
+    # 같은 id로 정규화되는지 확인한 것만 쓴다.
+    registry = json.loads((DEFAULT_ONTOLOGY_DIR / "brands.json").read_text(encoding="utf-8"))
+    brand_keys: dict[str, str] = {}
+    for entry in registry.get("brands") or []:
+        for text in (entry.get("id"), entry.get("name"), *(entry.get("aliases") or [])):
+            if not text:
+                continue
+            bid = onto.normalize_brand(str(text))
+            key = normalize_key(str(text))
+            if not bid or not key or onto.is_placeholder(bid):
+                continue
+            if key in AMBIGUOUS_REGISTRY_KEYS:
+                continue
+            brand_keys.setdefault(key, bid)
+
+    group_keys: dict[str, str] = {}
+    group_texts: dict[str, set[str]] = {}
+    for group in registry.get("groups") or []:
+        for text in (group.get("id"), group.get("name"), *(group.get("aliases") or [])):
+            gid = onto.normalize_group(str(text)) if text else None
+            if gid:
+                group_keys.setdefault(normalize_key(str(text)), gid)
+                group_texts.setdefault(gid, set()).add(str(text).lower())
+
+    # 그룹 → 정의 클래스 (defined_by ownedByGroup = gid)
+    classes = set(onto.classes)
+    group_class: dict[str, str] = {}
+    segment_label_class: dict[str, str] = {}
+    kbeauty_class: str | None = None
+    for cls in onto.classes:
+        spec = onto.class_spec(cls)
+        if spec.defined_by is None:
+            continue
+        predicate, value = spec.defined_by
+        if predicate == "ownedByGroup":
+            group_class[value] = cls
+        elif predicate == "hasSegment":
+            label = onto.label_of(value)
+            if label:
+                segment_label_class[label.lower()] = cls
+        elif predicate == "originatesFrom" and value == "south_korea":
+            kbeauty_class = cls
+
+    group_class_pattern = None
+    alts = sorted(
+        {t for texts in group_texts.values() for t in texts} | {"ap"}, key=len, reverse=True
+    )
+    if alts:
+        alt = "|".join(re.escape(a) for a in alts)
+        group_class_pattern = re.compile(
+            rf"(?<![a-z0-9])(?:{alt})(?![a-z0-9])\s*(?:그룹|group)?\s*(?:이|가|의|에서)?\s*"
+            rf"{_GROUP_CLASS_CUE}"
+        )
+
+    segment_patterns: list[tuple[str, re.Pattern[str]]] = []
+    for cls, terms in _SEGMENT_CLASS_TERMS.items():
+        if cls not in classes:
+            continue
+        words = set(terms)
+        words.update(label for label, c in segment_label_class.items() if c == cls)
+        alt = "|".join(re.escape(w) for w in sorted(words, key=len, reverse=True))
+        segment_patterns.append((cls, re.compile(rf"(?<![a-z0-9])(?:{alt}){_SEGMENT_SUFFIX}")))
+
+    return _RegistryLexicon(
+        brand_keys=brand_keys,
+        group_keys=group_keys,
+        group_class=group_class,
+        group_class_pattern=group_class_pattern,
+        segment_patterns=tuple(segment_patterns),
+        kbeauty_class=kbeauty_class if kbeauty_class in classes else None,
+    )
 
 
 @dataclass
@@ -312,15 +480,13 @@ class EntityLinker:
     _config_loaded_at: float | None = None
     _CONFIG_TTL_SECONDS: int = 300
 
-    def __init__(self, knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True):
+    def __init__(self, knowledge_graph=None, use_spacy: bool = True):
         """
         Args:
             knowledge_graph: KnowledgeGraph 인스턴스 (개념 검증용)
-            owl_reasoner: OWLReasoner 인스턴스 (온톨로지 쿼리용)
             use_spacy: spaCy NER 사용 여부
         """
         self.kg = knowledge_graph
-        self.owl_reasoner = owl_reasoner
         self.use_spacy = use_spacy and SPACY_AVAILABLE
 
         # spaCy 모델 로드
@@ -393,7 +559,54 @@ class EntityLinker:
             elif confidence >= 0.7:
                 self._stats["fuzzy_matches"] += 1
 
+        if class_reasoning_enabled() and (not entity_types or "brand" in entity_types):
+            linked_entities = self._link_registry_brands(text, linked_entities)
+
         return linked_entities
+
+    def _link_registry_brands(
+        self, text: str, linked_entities: list[LinkedEntity]
+    ) -> list[LinkedEntity]:
+        """플래그 ON: 브랜드 엔티티에 등록부 id를 달고, 가짜 브랜드를 빼고, 기존 단어사전에
+        없던 등록부 브랜드를 덧붙인다 (신뢰도 1.0, 위치 정보 없음)."""
+        try:
+            onto, lexicon = _registry_lexicon()
+        except Exception:
+            logger.warning("ontology registry unavailable; class reasoning skipped", exc_info=True)
+            return linked_entities
+        from src.ontology.ontology import normalize_key
+
+        kept: list[LinkedEntity] = []
+        seen: set[str] = set()
+        for entity in linked_entities:
+            if entity.entity_type == "brand":
+                bid = onto.normalize_brand(entity.concept_label) or onto.normalize_brand(
+                    entity.text
+                )
+                if bid and onto.is_placeholder(bid):
+                    continue
+                if bid:
+                    entity.context = {**entity.context, "registry_id": bid}
+                    seen.add(bid)
+            kept.append(entity)
+
+        text_norm = normalize_key(text)
+        for key, bid in lexicon.brand_keys.items():
+            if bid in seen or not self._mentions(text_norm, key):
+                continue
+            seen.add(bid)
+            name = onto.brand_name(bid) or bid
+            kept.append(
+                LinkedEntity(
+                    text=name,
+                    entity_type="brand",
+                    concept_uri=f"{self.ONTOLOGY_BASE}Brand/{name.replace(' ', '_')}",
+                    concept_label=name,
+                    confidence=1.0,
+                    context={"matched_key": key, "registry_id": bid, "source": "ontology"},
+                )
+            )
+        return kept
 
     # =========================================================================
     # Simple dict-format entity extraction (EntityExtractor compat)
@@ -642,7 +855,83 @@ class EntityLinker:
                 if cluster not in entities["sentiment_clusters"]:
                     entities["sentiment_clusters"].append(cluster)
 
+        if class_reasoning_enabled():
+            self._apply_ontology(query, entities, merged_brands)
+
         return entities
+
+    def _apply_ontology(
+        self, query: str, entities: dict[str, Any], merged_brands: dict[str, str]
+    ) -> None:
+        """플래그 ON: 등록부 사전으로 브랜드 보강 + 가짜 브랜드 제거 + 클래스·그룹 언급.
+
+        - ``brands``: 기존 결과를 그대로 두고(순서 유지) 등록부에서 새로 찾은 브랜드를 뒤에
+          붙인다. 표기는 기존 사전이 그 브랜드에 쓰던 문자열(예: ``e.l.f.``·``la roche-posay``),
+          기존 사전에 없던 브랜드는 등록부 이름 소문자(예: ``it cosmetics``·``charlotte tilbury``)
+          — KG·DB 브랜드 표기(소문자)와 같다.
+        - 가짜 브랜드(``unknown``·``fresh``·``chi``)는 어느 경로로 들어왔든 뺀다.
+        - ``brand_ids``: ``brands`` 중 등록부 브랜드의 id (같은 순서, 등록부 밖은 건너뜀).
+        - ``classes``·``groups``·``relations_hint``: 클래스·그룹 언급.
+        """
+        try:
+            onto, lexicon = _registry_lexicon()
+        except Exception:
+            logger.warning("ontology registry unavailable; class reasoning skipped", exc_info=True)
+            return
+        from src.ontology.ontology import normalize_key
+
+        query_norm = normalize_key(query)
+        query_lower = query.lower()
+
+        # 기존 사전 표기 → 등록부 id (기존 브랜드는 같은 문자열로 내보낸다)
+        existing_by_id: dict[str, str] = {}
+        for key, value in merged_brands.items():
+            bid = onto.normalize_brand(key)
+            if bid:
+                existing_by_id.setdefault(bid, value)
+
+        brands: list[str] = entities["brands"]
+        for key, bid in lexicon.brand_keys.items():
+            if not self._mentions(query_norm, key):
+                continue
+            surface = existing_by_id.get(bid) or (onto.brand_name(bid) or bid).lower()
+            if surface not in brands:
+                brands.append(surface)
+
+        brands[:] = [b for b in brands if not onto.is_placeholder(str(b))]
+
+        brand_ids: list[str] = []
+        for b in brands:
+            bid = onto.normalize_brand(str(b))
+            if bid and bid not in brand_ids:
+                brand_ids.append(bid)
+        entities["brand_ids"] = brand_ids
+
+        groups: list[str] = []
+        for key, gid in lexicon.group_keys.items():
+            if self._mentions(query_norm, key) and gid not in groups:
+                groups.append(gid)
+        ap_group = onto.normalize_group("amorepacific")
+        if ap_group and _AP_GROUP_PATTERN.search(query_lower) and ap_group not in groups:
+            groups.append(ap_group)
+
+        classes: list[str] = []
+        if lexicon.group_class_pattern is not None and lexicon.group_class_pattern.search(
+            query_lower
+        ):
+            for gid in groups:
+                cls = lexicon.group_class.get(gid)
+                if cls and cls not in classes:
+                    classes.append(cls)
+        if lexicon.kbeauty_class and _KBEAUTY_PATTERN.search(query_lower):
+            classes.append(lexicon.kbeauty_class)
+        for cls, pattern in lexicon.segment_patterns:
+            if pattern.search(query_lower) and cls not in classes:
+                classes.append(cls)
+
+        entities["classes"] = classes
+        entities["groups"] = groups
+        entities["relations_hint"] = ["sibling"] if _SIBLING_PATTERN.search(query_lower) else []
 
     @staticmethod
     def _mentions(query_lower: str, key: str) -> bool:
@@ -1149,15 +1438,12 @@ class EntityLinker:
 _linker_instance: EntityLinker | None = None
 
 
-def get_entity_linker(
-    knowledge_graph=None, owl_reasoner=None, use_spacy: bool = True
-) -> EntityLinker:
+def get_entity_linker(knowledge_graph=None, use_spacy: bool = True) -> EntityLinker:
     """
     EntityLinker 싱글톤 인스턴스 반환
 
     Args:
         knowledge_graph: KnowledgeGraph 인스턴스
-        owl_reasoner: OWLReasoner 인스턴스
         use_spacy: spaCy 사용 여부
 
     Returns:
@@ -1165,7 +1451,5 @@ def get_entity_linker(
     """
     global _linker_instance
     if _linker_instance is None:
-        _linker_instance = EntityLinker(
-            knowledge_graph=knowledge_graph, owl_reasoner=owl_reasoner, use_spacy=use_spacy
-        )
+        _linker_instance = EntityLinker(knowledge_graph=knowledge_graph, use_spacy=use_spacy)
     return _linker_instance

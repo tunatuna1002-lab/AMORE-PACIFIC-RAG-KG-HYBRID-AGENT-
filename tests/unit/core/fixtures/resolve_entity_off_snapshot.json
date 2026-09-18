@@ -1,0 +1,270 @@
+{
+ "COSRX 코스알엑스 SoS": {
+  "entities": {
+   "brands": [
+    "cosrx"
+   ],
+   "categories": [],
+   "indicators": [
+    "sos"
+   ],
+   "products": []
+  },
+  "evidence": [
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-63eddd",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "cosrx",
+     "entity_type": "brand",
+     "surface": "COSRX 코스알엑스 SoS"
+    },
+    "object": "brand",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "cosrx",
+    "text": "'COSRX 코스알엑스 SoS' → brand cosrx",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-0f5d8a",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "sos",
+     "entity_type": "indicator",
+     "surface": "COSRX 코스알엑스 SoS"
+    },
+    "object": "indicator",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "sos",
+    "text": "'COSRX 코스알엑스 SoS' → indicator sos",
+    "unit": null,
+    "value": null
+   }
+  ]
+ },
+ "IT Cosmetics Face Powder CPI": {
+  "entities": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "cpi"
+   ],
+   "products": []
+  },
+  "evidence": [
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-61b1d7",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "face_powder",
+     "entity_type": "category",
+     "surface": "IT Cosmetics Face Powder CPI"
+    },
+    "object": "category",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "face_powder",
+    "text": "'IT Cosmetics Face Powder CPI' → category face_powder",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-3a9d4d",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "cpi",
+     "entity_type": "indicator",
+     "surface": "IT Cosmetics Face Powder CPI"
+    },
+    "object": "indicator",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "cpi",
+    "text": "'IT Cosmetics Face Powder CPI' → indicator cpi",
+    "unit": null,
+    "value": null
+   }
+  ]
+ },
+ "Lip Sleeping Mask 순위": {
+  "entities": {
+   "brands": [],
+   "categories": [],
+   "indicators": [
+    "ranking"
+   ],
+   "products": []
+  },
+  "evidence": [
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-3fe4b8",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "ranking",
+     "entity_type": "indicator",
+     "surface": "Lip Sleeping Mask 순위"
+    },
+    "object": "indicator",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "ranking",
+    "text": "'Lip Sleeping Mask 순위' → indicator ranking",
+    "unit": null,
+    "value": null
+   }
+  ]
+ },
+ "unknown chi fresh": {
+  "entities": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": []
+  },
+  "evidence": [],
+  "message": "표기에서 알려진 브랜드·카테고리·제품·지표를 찾지 못했습니다."
+ },
+ "라네즈 립케어 HHI": {
+  "entities": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [
+    "hhi"
+   ],
+   "products": []
+  },
+  "evidence": [
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-86ee97",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "laneige",
+     "entity_type": "brand",
+     "surface": "라네즈 립케어 HHI"
+    },
+    "object": "brand",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "laneige",
+    "text": "'라네즈 립케어 HHI' → brand laneige",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-87e87a",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "lip_care",
+     "entity_type": "category",
+     "surface": "라네즈 립케어 HHI"
+    },
+    "object": "category",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "lip_care",
+    "text": "'라네즈 립케어 HHI' → category lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-18e3a1",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "hhi",
+     "entity_type": "indicator",
+     "surface": "라네즈 립케어 HHI"
+    },
+    "object": "indicator",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "hhi",
+    "text": "'라네즈 립케어 HHI' → indicator hhi",
+    "unit": null,
+    "value": null
+   }
+  ]
+ },
+ "아모레퍼시픽 브랜드": {
+  "entities": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": []
+  },
+  "evidence": [
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "O-e57f5c",
+    "kind": "observation",
+    "metadata": {
+     "canonical_id": "amorepacific",
+     "entity_type": "brand",
+     "surface": "아모레퍼시픽 브랜드"
+    },
+    "object": "brand",
+    "predicate": "resolvedAs",
+    "source": "tool:resolve_entity",
+    "subject": "amorepacific",
+    "text": "'아모레퍼시픽 브랜드' → brand amorepacific",
+    "unit": null,
+    "value": null
+   }
+  ]
+ },
+ "오늘 날씨": {
+  "entities": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": []
+  },
+  "evidence": [],
+  "message": "표기에서 알려진 브랜드·카테고리·제품·지표를 찾지 못했습니다."
+ }
+}

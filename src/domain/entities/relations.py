@@ -135,6 +135,13 @@ class RelationType(str, Enum):
     # Brand → Position: 시장 포지션
     HAS_POSITION = "hasPosition"
 
+    # [2026-09 사후] 트랙 O5: hasPosition을 original_predicate로 나눈 정식 술어
+    # (config/ontology/schema.json). kg.write_validation=enforce 쓰기와
+    # scripts/migrate_kg_ontology.py가 저장한 KG를 읽으려면 enum 값이 있어야 한다.
+    HAS_SOS = "hasSoS"  # Brand → Category (sos_pct, as_of)
+    HAS_HHI = "hasHHI"  # Category → 값 (hhi, as_of)
+    HAS_PRICE_POSITION = "hasPricePosition"  # Brand → budget|mid_range|premium (as_of)
+
     # =========================================================================
     # 7. 감성/리뷰 관계 (Sentiment Relations)
     # =========================================================================

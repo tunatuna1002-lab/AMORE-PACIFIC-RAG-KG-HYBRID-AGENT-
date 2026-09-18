@@ -60,7 +60,7 @@ uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8001
 |---------|------|
 | **RAG** | ChromaDB 벡터 검색 + Embedding 캐시 (hit-rate 계측 내장) |
 | **Knowledge Graph** | 브랜드-제품-카테고리 관계 Triple Store (로컬 3,500 트리플, 2026-09-17 실측. 크롤 파생 2,479 + 수작업 시드 1,000 + 시스템 21) |
-| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개(증거 카드 입력, [2026-09 사후]) + OWL 스키마 (owlready2, 카테고리 계층 어휘로만 사용). OWL 검색 전략(`OWLRetrievalStrategy`)은 [2026-09 사후] 삭제됨 |
+| **Ontology 추론** | 규칙 기반 비즈니스 규칙 37개(증거 카드 입력, [2026-09 사후]) + 온톨로지 원본 JSON(`config/ontology/`, 클래스·술어·브랜드 등록부) + Python 폐포 로더(`src/ontology/ontology.py`). 질의 경로 사용은 온톨로지(클래스·그룹·세그먼트·원산지) 기반 질의 확장·정적 사실 카드이고, 플래그 `ontology.use_class_reasoning` 뒤에 있다. [2026-09-18 사후] 측정 후 **기본 ON**(`config/feature_flags.json`). 54문항(multihop+relation) 3회 OFF→ON: 종합 0.692→0.745, L3 골드 엣지 recall(canonical) 0.301→0.582, 근거성 0.867→0.968. rule 42문항 규칙 정답 일치율 0.781→0.906. 대가로 프롬프트 카드가 평균 58.1→69.9장, 파이프라인 비용이 +9% 늘었다(`docs/experiments/ontology_activation_2026-09.md` §O7). 런타임 추론은 Python 폐포만 쓰고 Java를 부르지 않는다. KG 쓰기 검증 `kg.write_validation`은 기본 `warn`(로그만). 규칙 추론·KG 조회 플래그 이름은 `reasoner.enabled`·`kg.enabled`로 바로잡았다(옛 이름은 별칭). [2026-09 사후 정정] 예전 문구 "OWL 스키마, 카테고리 계층 어휘로만 사용"은 사실과 달랐다 — 카테고리 계층은 `config/category_hierarchy.json`에서 오며, OWL 모듈(`owl_reasoner.py` 등)은 서비스에 연결된 적이 없어 삭제됐다. OWL은 개발용 내보내기·Pellet 교차 검증(`scripts/check_ontology_owl.py`)에만 쓴다 |
 | **ReAct Agent** | 복잡한 질문 Thought-Action 루프 (최대 5회, DecisionMaker와 같은 도구 레지스트리 5종 사용, [2026-09 사후]). 플래그 `agents.use_react_agent` 기본 OFF |
 | **크롤링 데이터** | 실시간 Amazon 베스트셀러 (매일 22:00 KST) |
 
@@ -75,7 +75,7 @@ Amazon Bestsellers (Top 100 × 5 categories)
          ↓
     StorageAgent (Google Sheets + SQLite 병행 저장)
          ↓
-    KnowledgeGraph + 규칙 기반 추론 (OWL은 검색 전략이 아닌 카테고리 계층 어휘, [2026-09 사후])
+    KnowledgeGraph + 규칙 기반 추론 + 온톨로지 로더(JSON 원본, 질의 확장은 플래그 기본 ON, [2026-09-18 사후])
          ↓
     HybridRetriever (RAG + KG + DB 지표 + 규칙 추론)
          ↓
@@ -101,6 +101,7 @@ Amazon Bestsellers (Top 100 × 5 categories)
 | UnifiedBrain | `src/core/brain.py` | 자율 스케줄러 + ReAct 통합 |
 | ReActAgent | `src/core/react_agent.py` | 복잡한 질문 자기반성 루프 |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple Store |
+| Ontology | `src/ontology/ontology.py` | 온톨로지 원본(JSON) 로더 + Python 폐포 ([2026-09 사후]) |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG + Ontology 통합 |
 | ReportGenerator | `src/tools/report_generator.py` | IR-Style DOCX/PPTX 리포트 |
 
@@ -187,7 +188,7 @@ python scripts/test_report_generator.py
 | **Backend** | Python 3.11+, FastAPI, Uvicorn |
 | **LLM** | OpenAI GPT-4.1-mini (via LiteLLM) |
 | **RAG** | ChromaDB (OpenAI text-embedding-3-small) + BM25/RRF (rank-bm25) + Self-RAG 게이트. 리랭킹은 구현돼 있으나 플래그 `use_reranker` 기본 OFF |
-| **Ontology** | owlready2 (OWL DL, 카테고리 계층 어휘), Rule-based Reasoner. rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) |
+| **Ontology** | JSON 원본 + Python 폐포 로더, Rule-based Reasoner. owlready2는 [2026-09 사후] 개발 전용(`requirements-dev.txt`, OWL 내보내기·Pellet 교차 검증, 폐포와 불일치 0). rdflib(SPARQL) 계층은 [2026-09 사후] 삭제(호출처 0건) |
 | **크롤링** | Playwright, playwright-stealth, browserforge |
 | **리포트** | python-docx, python-pptx |
 | **데이터** | SQLite(읽기 정본) + Google Sheets(병행 저장, Sheets→SQLite 동기화), Pandas |
@@ -206,7 +207,7 @@ python scripts/test_report_generator.py
 | POST | `/api/v4/chat` | AI 챗봇 (스트리밍: `/api/v4/chat/stream`) | API Key |
 | POST | `/api/chat` | AI 챗봇 v1 (RAG) | API Key |
 | POST | `/api/crawl/start` | 크롤링 시작 | API Key |
-| GET | `/api/v4/brain/status` | 스케줄러 상태 + ReAct 활성 여부(`components`, [2026-09 사후] OWL 검색 전략 삭제로 이 필드에서 제외) | - |
+| GET | `/api/v4/brain/status` | 스케줄러 상태 + ReAct 활성 여부(`components`, [2026-09 사후] OWL 검색 전략 삭제로 이 필드에서 제외) + `ontology`(버전·기준일·클래스 수·브랜드 수·플래그, [2026-09 사후]) | - |
 | POST | `/api/export/docx` | DOCX 리포트 생성 | - |
 | POST | `/api/export/pptx` | PPTX 리포트 생성 | - |
 

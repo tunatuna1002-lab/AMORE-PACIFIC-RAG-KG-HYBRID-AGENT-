@@ -187,7 +187,12 @@ class EvalRunner:
                 l1 = self.l1_metrics.compute(trace.l1_entity_linking, trace.l4_ontology, item.gold)
                 l2 = self.l2_metrics.compute(trace.l2_doc_retrieval, item.gold)
                 l3 = self.l3_metrics.compute(trace.l3_kg_query, item.gold)
-                l4 = self.l4_metrics.compute(trace.l4_ontology, trace.l3_kg_query, item.gold)
+                l4 = self.l4_metrics.compute(
+                    trace.l4_ontology,
+                    trace.l3_kg_query,
+                    item.gold,
+                    rule_evaluation=trace.rule_evaluation,
+                )
 
                 # L5 metrics (with optional judge)
                 context = self._build_context_string(trace)
@@ -588,9 +593,15 @@ class EvalRunner:
                             edge = f"{path[i]} -hasSubcategory-> {path[i + 1]}"
                             if edge not in kg_edges:
                                 kg_edges.append(edge)
-                    elif fact_type == "metric_edges":
-                        # kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등
+                    elif fact_type in ("metric_edges", "ontology_static"):
+                        # metric_edges: kg_enricher가 저장한 hasSoS·rankedIn·competesWith 등
+                        # ontology_static [2026-09 사후 O3]: 플래그 ontology.use_class_reasoning
+                        # ON일 때만 생기는 정적 정의 카드(src/rag/ontology_context.py:static_fact) —
+                        # ownedByGroup·hasSegment·originatesFrom·acquiredIn·siblingBrand 등.
+                        # object가 없는 카드(예: expansionTruncated)는 엣지가 아니라 건너뛴다.
                         for e in data.get("edges", []):
+                            if e.get("object") is None:
+                                continue
                             edge = (
                                 f"{_normalize_edge_node(e.get('subject', ''))} "
                                 f"-{e.get('predicate', '')}-> "

@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any
 
 from eval.metrics.aggregator import FAIL_REASONS
+from eval.metrics.l3_kg import aggregate_l3_extended
+from eval.metrics.l4_ontology import aggregate_l4_extended
 from eval.schemas import AggregateMetrics, EvalConfig, EvalReport, ItemResult
 
 logger = logging.getLogger(__name__)
@@ -147,6 +149,28 @@ class ReportGenerator:
         # 규칙 추론 발동 분포 (l4_ontology.inferences, v1/v4 공통)
         rule_fired_items, rule_inference_total = self._compute_rule_distribution(results)
 
+        # [2026-09 사후] O0-A: 골드 엣지 있는 문항만의 L3·술어별 recall, 새 L4 지표
+        ontology_metrics = {
+            "l3": aggregate_l3_extended([r.l3 for r in results]),
+            "l4": aggregate_l4_extended([r.l4 for r in results]),
+        }
+        for key, value in (
+            ("l3_kg_edge_recall_gold_only", ontology_metrics["l3"]["kg_edge_recall_gold_only"]),
+            (
+                # [2026-09 사후] O0-추가: 술어 별칭(ownedBy↔ownedByGroup)·브랜드/그룹 표기를
+                # 온톨로지 로더로 정식화한 뒤의 같은 지표. eval/metrics/l3_kg.py 참고.
+                "l3_kg_edge_recall_gold_only_canonical",
+                ontology_metrics["l3"]["kg_edge_recall_gold_only_canonical"],
+            ),
+            (
+                "l4_rule_constraint_violation_rate",
+                ontology_metrics["l4"]["rule_constraint_violation_rate"],
+            ),
+            ("l4_typed_consistency_rate", ontology_metrics["l4"]["typed_consistency_rate"]),
+        ):
+            if value is not None:
+                by_layer[key] = value
+
         # 규칙 정답 일치 관측 (트랙 3-C) — rule_gold가 있는 문항만 대상
         rule_agreement_rate, rule_agreement_items = self._compute_rule_agreement_rate(results)
         non_fire_reason_top = self._compute_non_fire_reasons(results)
@@ -205,6 +229,7 @@ class ReportGenerator:
             rule_agreement_rate=rule_agreement_rate,
             rule_agreement_items=rule_agreement_items,
             non_fire_reason_top=non_fire_reason_top,
+            ontology_metrics=ontology_metrics,
             numeric_verification_items=nv_items,
             numeric_verification_counts=nv_counts,
             numeric_verification_skipped=nv_skipped,
@@ -522,6 +547,17 @@ class ReportGenerator:
         lines.append(
             f"| L4 | Type Consistency | {by_layer.get('l4_type_consistency_rate', 0):.3f} |"
         )
+        for key, label in (
+            ("l3_kg_edge_recall_gold_only", "| L3 | KG Edge Recall (gold-edge items) |"),
+            (
+                "l3_kg_edge_recall_gold_only_canonical",
+                "| L3 | KG Edge Recall (gold-edge items, canonical) |",
+            ),
+            ("l4_rule_constraint_violation_rate", "| L4 | Rule Constraint Violation |"),
+            ("l4_typed_consistency_rate", "| L4 | Typed Consistency |"),
+        ):
+            if key in by_layer:
+                lines.append(f"{label} {by_layer[key]:.3f} |")
         lines.append(f"| L5 | Answer F1 | {by_layer.get('l5_answer_f1', 0):.3f} |")
         lines.append(f"| L5 | Groundedness | {by_layer.get('l5_groundedness', 0):.3f} |")
         if by_layer.get("l5_numeric_accuracy_items", 0):

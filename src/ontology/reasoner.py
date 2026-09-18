@@ -102,6 +102,37 @@ _MAPPED_CONCLUSION_KEYS = frozenset(
 )
 
 
+def _clean_related_entities(entities: Any) -> list[Any]:
+    """related_entities에서 빈/공백 문자열과 가짜(placeholder) 브랜드를 제거한다.
+
+    규칙 결론(price_rules.py 등)은 ``ctx.get("asin", "")``·``ctx.get("brand", "")``처럼
+    컨텍스트에 값이 없을 때 빈 문자열로 기본값을 채운다 — ``asin``은
+    ``build_rule_context``가 아예 채우지 않고(rule_contracts.py ASIN 참고), 브랜드 없는
+    질의(조합 (None, category))에서는 ``brand``도 없다. eval L4
+    ``related_entity_invalid``가 이 빈 문자열을 위반으로 잡는다(O7 §3).
+    문자열이 아닌 항목(예 None)은 그대로 둔다 — 이 필터는 빈/공백 문자열과 등록부
+    placeholder 브랜드만 겨냥한다. 발화 규칙·결론(insight·recommendation 등)은 바꾸지 않는다.
+    """
+    if not entities:
+        return []
+    try:
+        from .ontology import get_ontology
+
+        is_placeholder = get_ontology().is_placeholder
+    except Exception:  # 온톨로지 원본 로드 실패 — 빈 문자열만 걸러내고 계속한다
+        is_placeholder = None
+
+    cleaned: list[Any] = []
+    for entity in entities:
+        if isinstance(entity, str):
+            if not entity.strip():
+                continue
+            if is_placeholder is not None and is_placeholder(entity):
+                continue
+        cleaned.append(entity)
+    return cleaned
+
+
 @dataclass
 class RuleCondition:
     """
@@ -198,7 +229,9 @@ class InferenceRule:
                     },
                 },
                 recommendation=conclusion_data.get("recommendation"),
-                related_entities=conclusion_data.get("related_entities", []),
+                related_entities=_clean_related_entities(
+                    conclusion_data.get("related_entities", [])
+                ),
                 metadata={
                     "rule_description": self.description,
                     "priority": self.priority,

@@ -20,7 +20,7 @@
 - **하나의 레지스트리만 쓴다.** DecisionMaker(function calling)·ToolCoordinator·ReAct
   실행기(``react_tools.ReActToolExecutor``)가 모두 이 객체를 본다. 예전 대시보드 JSON 도구
   5종(get_brand_status 등)은 제거됐다 — 날짜 없는 캐시 JSON이라 수치 근거가 될 수 없었다.
-- **ablation 플래그를 검색 경로와 똑같이 따른다**: KG(ontology.use_ontology_kg)·DB 수치
+- **ablation 플래그를 검색 경로와 똑같이 따른다**: KG(kg.enabled, 옛 이름 ontology.use_ontology_kg)·DB 수치
   (retriever.use_db_metric_facts)·규칙(reasoner.*)이 꺼지면 해당 도구를 목록에서 뺀다.
   끄고 평가할 때 도구 경로로 우회되면 ablation 수치가 오염된다.
 
@@ -272,6 +272,56 @@ def tool_evidence(result: Any) -> list[Evidence]:
     return cards
 
 
+def _resolve_ontology() -> Any | None:
+    """resolve_entity용 등록부. 플래그 `ontology.use_class_reasoning` OFF이거나 로드 실패면 None
+    (그때 결과는 O2 이전과 같다 — 결정 OA-6)."""
+    from src.rag.entity_linker import class_reasoning_enabled
+
+    if not class_reasoning_enabled():
+        return None
+    try:
+        from src.ontology.ontology import get_ontology
+
+        return get_ontology()
+    except Exception:
+        logger.warning("ontology registry unavailable for resolve_entity", exc_info=True)
+        return None
+
+
+def _registry_metadata(ontology: Any, kind: str, canonical: str) -> dict[str, Any]:
+    """판정 카드에 붙일 등록부 정보: 등록부 id와 클래스 소속(폐포 후). 등록부 밖이면
+    ``registry_id`` None — OE4에 따라 "알 수 없음"이다."""
+    if kind == "brand":
+        bid = ontology.normalize_brand(canonical)
+        if bid is None:
+            return {"registry_id": None, "registry": "ontology:registry"}
+        return {
+            "registry_id": bid,
+            "registry": "ontology:registry",
+            "classes": list(ontology.types_of(bid)),
+            "group": ontology.group_of(bid),
+            "is_placeholder": ontology.is_placeholder(bid),
+        }
+    if kind == "category":
+        cid = ontology.normalize_category(canonical)
+        return {"registry_id": cid, "registry": "ontology:registry"}
+    if kind == "group":
+        gid = ontology.normalize_group(canonical)
+        return {
+            "registry_id": gid,
+            "registry": "ontology:registry",
+            "members": list(ontology.brands_in_group(gid)) if gid else [],
+        }
+    if kind == "class":
+        known = canonical in ontology.classes
+        return {
+            "registry_id": canonical if known else None,
+            "registry": "ontology:registry",
+            "instances": list(ontology.instances_of(canonical)) if known else [],
+        }
+    return {}
+
+
 @dataclass
 class ToolOutput:
     """도구 하나의 결과: 카드 + 메타데이터."""
@@ -321,11 +371,11 @@ class ToolRegistry:
         """ablation 플래그가 끈 하위 시스템의 도구는 내놓지 않는다 (검색 경로와 동일 기준)."""
         flags = self._flags()
         if name == TOOL_KG_NEIGHBORS:
-            return bool(flags.use_ontology_kg())
+            return bool(flags.kg_enabled())
         if name == TOOL_GET_METRICS:
             return bool(flags.use_db_metric_facts())
         if name == TOOL_APPLY_RULES:
-            return bool(flags.use_unified_reasoner() or flags.use_owl_reasoner())
+            return bool(flags.use_unified_reasoner() or flags.reasoner_enabled())
         return True
 
     def get_available_tools(self) -> list[str]:
@@ -406,7 +456,7 @@ class ToolRegistry:
         return await self._retriever.metric_facts_provider.collect(entities)
 
     def _kg_facts(self, entities: dict[str, list[str]]) -> list[dict[str, Any]]:
-        if not self._flags().use_ontology_kg():
+        if not self._flags().kg_enabled():
             return []
         return self._retriever._query_knowledge_graph(entities)
 
@@ -435,6 +485,15 @@ class ToolRegistry:
                 if item not in resolved:
                     resolved.append(item)
 
+        ontology = _resolve_ontology()
+        if ontology is not None:
+            # 플래그 ON: 그룹·클래스 언급도 판정 대상이다 (id는 등록부 id·스키마 클래스 이름)
+            for kind, key in (("group", "groups"), ("class", "classes")):
+                for value in extracted.get(key) or []:
+                    item = (kind, str(value))
+                    if item not in resolved:
+                        resolved.append(item)
+
         # 어휘 판정은 "도구가 관찰한 사실"이다 — 카드 하나가 표기 하나의 canonical id를 말한다.
         # (검색·KG 사실이 아니므로 relation 카드로 만들지 않는다.)
         cards = [
@@ -445,7 +504,12 @@ class ToolRegistry:
                 object=kind,
                 source=f"tool:{TOOL_RESOLVE_ENTITY}",
                 text=f"'{text}' → {kind} {canonical}",
-                metadata={"entity_type": kind, "canonical_id": canonical, "surface": text},
+                metadata={
+                    "entity_type": kind,
+                    "canonical_id": canonical,
+                    "surface": text,
+                    **(_registry_metadata(ontology, kind, canonical) if ontology else {}),
+                },
             )
             for kind, canonical in resolved
         ]
@@ -457,6 +521,14 @@ class ToolRegistry:
                 "indicators": [c for k, c in resolved if k == "indicator"],
             }
         }
+        if ontology is not None:
+            meta["entities"]["groups"] = [c for k, c in resolved if k == "group"]
+            meta["entities"]["classes"] = [c for k, c in resolved if k == "class"]
+            meta["entities"]["brand_ids"] = [
+                bid
+                for bid in (ontology.normalize_brand(c) for k, c in resolved if k == "brand")
+                if bid
+            ]
         if not cards:
             meta["message"] = "표기에서 알려진 브랜드·카테고리·제품·지표를 찾지 못했습니다."
         return ToolOutput(cards=cards, meta=meta)

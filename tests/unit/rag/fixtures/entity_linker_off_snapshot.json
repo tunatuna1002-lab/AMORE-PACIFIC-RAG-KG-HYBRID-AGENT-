@@ -1,0 +1,2744 @@
+{
+ "extract_entities": {
+  "2026-08-31 기준 Almay는 Face Powder에서 규칙 price_quality_mismatch(CPI > 110 그리고 평점 갭 < 0)의 '가격-품질 불일치' 상태인가요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "cpi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 COVERGIRL는 Face Powder에서 규칙 market_dominance_fragmented(SoS ≥ 15% 그리고 HHI < 0.15)의 '분산 시장 지배자' 포지션에 해당하나요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "sos",
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Charlotte Tilbury는 Face Powder에서 규칙 premium_price_position(CPI > 150 그리고 평점 갭 ≥ 0)의 '프리미엄 성공' 포지션에 해당하나요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "cpi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Face Powder 1위 제품(Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeup)은 규칙 premium_defense_success(가격이 카테고리 평균가보다 20% 초과 비싸고 Top 10 이내) 조건에 해당하나요?": {
+   "brands": [
+    "maybelline"
+   ],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Face Powder 2위 제품(L'Oreal Paris Infallible Blur-fection Longwear Loose Setti)은 규칙 premium_defense_success(가격이 카테고리 평균가보다 20% 초과 비싸고 Top 10 이내) 조건에 해당하나요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Face Powder SoS 1위 브랜드의 최고 순위 제품은 무엇이고 가격은 얼마인가요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "sos",
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Face Powder Top 100에 제품이 있는 아모레퍼시픽 그룹 브랜드 중 가장 높은 순위의 제품을 가진 브랜드와 그 순위는?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 IT Cosmetics는 Face Powder에서 규칙 price_quality_mismatch(CPI > 110 그리고 평점 갭 < 0)의 '가격-품질 불일치' 상태인가요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "cpi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Jouer는 Face Powder에서 규칙 price_quality_mismatch(CPI > 110 그리고 평점 갭 < 0)의 '가격-품질 불일치' 상태인가요?": {
+   "brands": [],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "cpi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 LANEIGE 제품의 평균 순위가 가장 좋은 카테고리에서 SoS 1위 브랜드와 그 SoS는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "sos",
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 LANEIGE 제품이 Top 100에 있는 카테고리 중 시장 집중도(HHI)가 가장 높은 카테고리와 그 HHI는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Lip Care 카테고리는 규칙 엔진 기준 분산 시장(HHI < 0.15)인가요?": {
+   "brands": [],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 Skin Care SoS 1위 브랜드의 최고 순위 제품은 무엇이고 가격은 얼마인가요?": {
+   "brands": [],
+   "categories": [
+    "skin_care"
+   ],
+   "indicators": [
+    "sos",
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 eos는 Lip Care에서 규칙 market_dominance_fragmented(SoS ≥ 15% 그리고 HHI < 0.15)의 '분산 시장 지배자' 포지션에 해당하나요?": {
+   "brands": [
+    "eos"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [
+    "sos",
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "2026-08-31 기준 innisfree 제품이 Top 100에 있는 카테고리에서 SoS 1위 브랜드와 그 SoS는?": {
+   "brands": [
+    "innisfree"
+   ],
+   "categories": [],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "AESTURA의 모회사(소속 그룹)는 어디인가요?": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Amore Pacific 라인과 AP 그룹 비교": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Amorepacific brands in Skin Care": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [
+    "skin_care"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Aquaphor와 LANEIGE의 Lip Care 경쟁 관계는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "B0LIPXYZ01 제품 리뷰 텍스처 향 가성비": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": [
+    "B0LIPXYZ01"
+   ],
+   "sentiment_clusters": [
+    "Pricing",
+    "Sensory",
+    "sentiment_general"
+   ],
+   "sentiments": [
+    "가성비",
+    "향",
+    "텍스처",
+    "리뷰"
+   ],
+   "time_range": []
+  },
+  "Burt's Bees, L'Oreal, Mise-en-scène, B.Ready": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "COSRX가 잘 팔리는 이유와 카테고리 집중도는?": {
+   "brands": [
+    "cosrx"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "COSRX는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.": {
+   "brands": [
+    "cosrx",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "COSRX와 같은 그룹에 속한 브랜드(COSRX 포함) 중 2026-08-31 Face Powder Top 100에 제품이 있는 브랜드는 몇 개인가요?": {
+   "brands": [
+    "cosrx"
+   ],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "COSRX의 가장 인기 있는 제품의 카테고리와 해당 카테고리 SoS는?": {
+   "brands": [
+    "cosrx"
+   ],
+   "categories": [],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "COSRX의 모회사(소속 그룹)는 어디인가요?": {
+   "brands": [
+    "cosrx"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "ChapStick의 Lip Care 시장 위치와 LANEIGE와의 차별점은?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "ETUDE의 모회사(소속 그룹)는 어디인가요?": {
+   "brands": [
+    "etude"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "HERA의 모회사(소속 그룹)는 어디인가요?": {
+   "brands": [
+    "hera"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "IOPE, primera, 설화수, 한율 매출은?": {
+   "brands": [
+    "sulwhasoo"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "IT Cosmetics와 Jouer, Almay, Charlotte Tilbury, COVERGIRL 가격 비교": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "K-Beauty 1위 브랜드의 주력 카테고리 HHI는?": {
+   "brands": [],
+   "categories": [
+    "beauty"
+   ],
+   "indicators": [
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "K-Beauty 브랜드 중 Amazon US에서 가장 강한 브랜드는?": {
+   "brands": [],
+   "categories": [
+    "beauty"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "K-Beauty 브랜드 중 SoS 1위는?": {
+   "brands": [],
+   "categories": [
+    "beauty"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "K뷰티 한국 브랜드 트렌드": {
+   "brands": [],
+   "categories": [
+    "beauty"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Cream Skin Toner의 경쟁 제품과 가격 비교": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [
+    "skin_care"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Lip Care 점유율이 높은 이유는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Lip Glowy Balm 주요 경쟁 제품은?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Lip Sleeping Mask와 같은 카테고리 경쟁사의 평균 가격은?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Neo Cushion 경쟁사와 순위는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Neo Cushion이 속한 카테고리의 K-Beauty 브랜드 SoS 합계는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [
+    "beauty"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE Water Bank 라인 제품 구성은?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE 브랜드의 모회사와 해당 기업의 다른 브랜드 Amazon 현황은?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE 제품이 속한 카테고리의 HHI는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE 카테고리에서 1위 브랜드의 SoS와 LANEIGE의 격차는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE가 Skin Care에서 COSRX 수준의 SoS를 달성하려면?": {
+   "brands": [
+    "laneige",
+    "cosrx"
+   ],
+   "categories": [
+    "skin_care"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE가 가장 강한 카테고리의 시장집중도는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "hhi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE가 경쟁이 가장 심한 카테고리는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE가 아모레퍼시픽 포트폴리오에서 차지하는 위치는?": {
+   "brands": [
+    "laneige",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE와 Beauty of Joseon는 같은 그룹에 속한 자매 브랜드인가요?": {
+   "brands": [
+    "laneige",
+    "beauty of joseon"
+   ],
+   "categories": [
+    "beauty"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE와 Sulwhasoo는 같은 그룹에 속한 자매 브랜드인가요?": {
+   "brands": [
+    "laneige",
+    "sulwhasoo"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE와 TIRTIR는 같은 그룹에 속한 자매 브랜드인가요?": {
+   "brands": [
+    "laneige",
+    "tirtir"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE와 innisfree는 같은 그룹에 속한 자매 브랜드인가요?": {
+   "brands": [
+    "laneige",
+    "innisfree"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE와 같은 그룹의 자매 브랜드는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE의 가장 비싼 제품과 그 제품이 속한 카테고리 평균 가격 대비 CPI는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "cpi"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "LANEIGE의 대표 제품이 속한 카테고리에서 1위 브랜드는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "La Roche-Posay vs la roche posay vs LRP": {
+   "brands": [
+    "la roche-posay"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Lip Sleeping Mask 3위 제품 순위는? rank 3": {
+   "brands": [],
+   "categories": [],
+   "indicators": [
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Lip Sleeping Mask의 리뷰 수가 SoS에 기여하는 경로는?": {
+   "brands": [],
+   "categories": [],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [
+    "sentiment_general"
+   ],
+   "sentiments": [
+    "리뷰"
+   ],
+   "time_range": []
+  },
+  "NYX와 LANEIGE의 Lip Makeup 시장 경쟁 관계는?": {
+   "brands": [
+    "laneige",
+    "nyx"
+   ],
+   "categories": [
+    "lip_makeup"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Sulwhasoo와 같은 그룹에 속한 브랜드(Sulwhasoo 포함) 중 2026-08-31 Lip Makeup Top 100에 제품이 있는 브랜드는 몇 개인가요?": {
+   "brands": [
+    "sulwhasoo"
+   ],
+   "categories": [
+    "lip_makeup"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "Sulwhasoo의 모회사(소속 그룹)는 어디인가요?": {
+   "brands": [
+    "sulwhasoo"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "TIRTIR가 Face Powder에서 LANEIGE보다 SoS가 높은 이유는?": {
+   "brands": [
+    "laneige",
+    "tirtir"
+   ],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "TIRTIR는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.": {
+   "brands": [
+    "tirtir",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "chi와 ryo, boj, eos, opi, verb, matrix 언급": {
+   "brands": [
+    "beauty of joseon",
+    "eos"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "e.l.f. 와 ELF, elf 비교": {
+   "brands": [
+    "e.l.f."
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "eos의 Lip Care 전략과 LANEIGE와의 관계는?": {
+   "brands": [
+    "laneige",
+    "eos"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "fresh unknown 브랜드 순위": {
+   "brands": [],
+   "categories": [],
+   "indicators": [
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "innisfree는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.": {
+   "brands": [
+    "innisfree",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "share of shelf 기준으로 shelf 전체를 보면?": {
+   "brands": [],
+   "categories": [],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "고려해야 할 어려운 점은 로드맵에 있다": {
+   "brands": [
+    "rhode"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "럭셔리 브랜드와 프리미엄 브랜드, 매스 브랜드 비교": {
+   "brands": [],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 그룹 브랜드 COSRX의 원산지(출신 국가)는 어디인가요?": {
+   "brands": [
+    "cosrx",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 그룹 브랜드 TATA HARPER의 원산지(출신 국가)는 어디인가요?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 그룹 소속 브랜드 중 2026-08-31 Face Powder Top 100에 제품이 있는 브랜드와 각 브랜드의 SoS는?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [
+    "face_powder"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 그룹 소속 브랜드 중 2026-08-31 Lip Makeup Top 100에 제품이 있는 브랜드와 각 브랜드의 SoS는?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [
+    "lip_makeup"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 그룹이 소유한 브랜드로 등록된 브랜드는 몇 개인가요?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 브랜드 포트폴리오에서 AESTURA의 세그먼트는 무엇인가요?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 브랜드 포트폴리오에서 COSRX의 세그먼트는 무엇인가요?": {
+   "brands": [
+    "cosrx",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 브랜드 포트폴리오에서 ETUDE의 세그먼트는 무엇인가요?": {
+   "brands": [
+    "etude",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 브랜드 포트폴리오에서 Sulwhasoo의 세그먼트는 무엇인가요?": {
+   "brands": [
+    "sulwhasoo",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 브랜드들의 Lip Care 순위는?": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [
+    "ranking"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 포트폴리오에서 LANEIGE와 같은 세그먼트에 속한 브랜드는?": {
+   "brands": [
+    "laneige",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽 포트폴리오에서 Sulwhasoo와 같은 세그먼트에 속한 브랜드는?": {
+   "brands": [
+    "sulwhasoo",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "아모레퍼시픽이 COSRX를 인수한 연도는?": {
+   "brands": [
+    "cosrx",
+    "amorepacific"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "중저가 브랜드의 Lip Makeup 점유율": {
+   "brands": [],
+   "categories": [
+    "lip_makeup"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "최근 30일 HHI 변동성 급변": {
+   "brands": [],
+   "categories": [],
+   "indicators": [
+    "hhi",
+    "rank_volatility",
+    "rank_shock"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": [
+    "30days"
+   ]
+  }
+ },
+ "extract_entities_with_kg": {
+  "Hydrating Lip Oil 제품 리뷰": {
+   "brands": [
+    "unknown"
+   ],
+   "categories": [],
+   "indicators": [],
+   "products": [
+    "hydrating_lip_oil",
+    "hydrating_lip"
+   ],
+   "sentiment_clusters": [
+    "Hydration",
+    "sentiment_general"
+   ],
+   "sentiments": [
+    "hydrating",
+    "리뷰"
+   ],
+   "time_range": []
+  },
+  "Lip Sleeping Mask 3위 제품 순위는?": {
+   "brands": [
+    "laneige"
+   ],
+   "categories": [],
+   "indicators": [
+    "ranking"
+   ],
+   "products": [
+    "lip_sleeping_mask",
+    "lip_sleeping"
+   ],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "lip care 3위 제품은 뭐야": {
+   "brands": [],
+   "categories": [
+    "lip_care"
+   ],
+   "indicators": [],
+   "products": [
+    "B0LSM00001"
+   ],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  }
+ },
+ "link": {
+  "2026-08-31 기준 Almay는 Face Powder에서 규칙 price_quality_mismatch(CPI > 110 그리고 평점 갭 < 0)의 '가격-품질 불일치' 상태인가요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 32,
+     "matched_key": "face powder",
+     "start": 21
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Category Price Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/cpi",
+    "confidence": 1.0,
+    "context": {
+     "end": 64,
+     "matched_key": "cpi",
+     "start": 61
+    },
+    "entity_type": "metric",
+    "text": "CPI"
+   }
+  ],
+  "2026-08-31 기준 COVERGIRL는 Face Powder에서 규칙 market_dominance_fragmented(SoS ≥ 15% 그리고 HHI < 0.15)의 '분산 시장 지배자' 포지션에 해당하나요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 36,
+     "matched_key": "face powder",
+     "start": 25
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 73,
+     "matched_key": "sos",
+     "start": 70
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   },
+   {
+    "concept_label": "Herfindahl-Hirschman Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/hhi",
+    "confidence": 1.0,
+    "context": {
+     "end": 87,
+     "matched_key": "hhi",
+     "start": 84
+    },
+    "entity_type": "metric",
+    "text": "HHI"
+   }
+  ],
+  "2026-08-31 기준 Charlotte Tilbury는 Face Powder에서 규칙 premium_price_position(CPI > 150 그리고 평점 갭 ≥ 0)의 '프리미엄 성공' 포지션에 해당하나요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 44,
+     "matched_key": "face powder",
+     "start": 33
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Category Price Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/cpi",
+    "confidence": 1.0,
+    "context": {
+     "end": 76,
+     "matched_key": "cpi",
+     "start": 73
+    },
+    "entity_type": "metric",
+    "text": "CPI"
+   }
+  ],
+  "2026-08-31 기준 Face Powder 1위 제품(Maybelline Fit Me Matte + Poreless Pressed Face Powder Makeup)은 규칙 premium_defense_success(가격이 카테고리 평균가보다 20% 초과 비싸고 Top 10 이내) 조건에 해당하나요?": [
+   {
+    "concept_label": "Maybelline",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Maybelline",
+    "confidence": 1.0,
+    "context": {
+     "end": 42,
+     "matched_key": "maybelline",
+     "start": 32
+    },
+    "entity_type": "brand",
+    "text": "Maybelline"
+   },
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 25,
+     "matched_key": "face powder",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 86,
+     "matched_key": "face powder",
+     "start": 75
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   }
+  ],
+  "2026-08-31 기준 Face Powder 2위 제품(L'Oreal Paris Infallible Blur-fection Longwear Loose Setti)은 규칙 premium_defense_success(가격이 카테고리 평균가보다 20% 초과 비싸고 Top 10 이내) 조건에 해당하나요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 25,
+     "matched_key": "face powder",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   }
+  ],
+  "2026-08-31 기준 Face Powder SoS 1위 브랜드의 최고 순위 제품은 무엇이고 가격은 얼마인가요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 25,
+     "matched_key": "face powder",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 29,
+     "matched_key": "sos",
+     "start": 26
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   }
+  ],
+  "2026-08-31 기준 Face Powder Top 100에 제품이 있는 아모레퍼시픽 그룹 브랜드 중 가장 높은 순위의 제품을 가진 브랜드와 그 순위는?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 25,
+     "matched_key": "face powder",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   }
+  ],
+  "2026-08-31 기준 IT Cosmetics는 Face Powder에서 규칙 price_quality_mismatch(CPI > 110 그리고 평점 갭 < 0)의 '가격-품질 불일치' 상태인가요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 39,
+     "matched_key": "face powder",
+     "start": 28
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Category Price Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/cpi",
+    "confidence": 1.0,
+    "context": {
+     "end": 71,
+     "matched_key": "cpi",
+     "start": 68
+    },
+    "entity_type": "metric",
+    "text": "CPI"
+   }
+  ],
+  "2026-08-31 기준 Jouer는 Face Powder에서 규칙 price_quality_mismatch(CPI > 110 그리고 평점 갭 < 0)의 '가격-품질 불일치' 상태인가요?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 32,
+     "matched_key": "face powder",
+     "start": 21
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   },
+   {
+    "concept_label": "Category Price Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/cpi",
+    "confidence": 1.0,
+    "context": {
+     "end": 64,
+     "matched_key": "cpi",
+     "start": 61
+    },
+    "entity_type": "metric",
+    "text": "CPI"
+   }
+  ],
+  "2026-08-31 기준 LANEIGE 제품의 평균 순위가 가장 좋은 카테고리에서 SoS 1위 브랜드와 그 SoS는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 21,
+     "matched_key": "laneige",
+     "start": 14
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 49,
+     "matched_key": "sos",
+     "start": 46
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   }
+  ],
+  "2026-08-31 기준 LANEIGE 제품이 Top 100에 있는 카테고리 중 시장 집중도(HHI)가 가장 높은 카테고리와 그 HHI는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 21,
+     "matched_key": "laneige",
+     "start": 14
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Herfindahl-Hirschman Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/hhi",
+    "confidence": 1.0,
+    "context": {
+     "end": 55,
+     "matched_key": "hhi",
+     "start": 52
+    },
+    "entity_type": "metric",
+    "text": "HHI"
+   }
+  ],
+  "2026-08-31 기준 Lip Care 카테고리는 규칙 엔진 기준 분산 시장(HHI < 0.15)인가요?": [
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 22,
+     "matched_key": "lip care",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   },
+   {
+    "concept_label": "Herfindahl-Hirschman Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/hhi",
+    "confidence": 1.0,
+    "context": {
+     "end": 47,
+     "matched_key": "hhi",
+     "start": 44
+    },
+    "entity_type": "metric",
+    "text": "HHI"
+   }
+  ],
+  "2026-08-31 기준 Skin Care SoS 1위 브랜드의 최고 순위 제품은 무엇이고 가격은 얼마인가요?": [
+   {
+    "concept_label": "Skin Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/skin_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 23,
+     "matched_key": "skin care",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Skin Care"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 27,
+     "matched_key": "sos",
+     "start": 24
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   }
+  ],
+  "2026-08-31 기준 eos는 Lip Care에서 규칙 market_dominance_fragmented(SoS ≥ 15% 그리고 HHI < 0.15)의 '분산 시장 지배자' 포지션에 해당하나요?": [
+   {
+    "concept_label": "eos",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/eos",
+    "confidence": 1.0,
+    "context": {
+     "end": 17,
+     "matched_key": "eos",
+     "start": 14
+    },
+    "entity_type": "brand",
+    "text": "eos"
+   },
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 27,
+     "matched_key": "lip care",
+     "start": 19
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 64,
+     "matched_key": "sos",
+     "start": 61
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   },
+   {
+    "concept_label": "Herfindahl-Hirschman Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/hhi",
+    "confidence": 1.0,
+    "context": {
+     "end": 78,
+     "matched_key": "hhi",
+     "start": 75
+    },
+    "entity_type": "metric",
+    "text": "HHI"
+   }
+  ],
+  "2026-08-31 기준 innisfree 제품이 Top 100에 있는 카테고리에서 SoS 1위 브랜드와 그 SoS는?": [
+   {
+    "concept_label": "Innisfree",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Innisfree",
+    "confidence": 1.0,
+    "context": {
+     "end": 23,
+     "matched_key": "innisfree",
+     "start": 14
+    },
+    "entity_type": "brand",
+    "text": "innisfree"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 50,
+     "matched_key": "sos",
+     "start": 47
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   }
+  ],
+  "AESTURA의 모회사(소속 그룹)는 어디인가요?": [],
+  "Amore Pacific 라인과 AP 그룹 비교": [],
+  "Amorepacific brands in Skin Care": [
+   {
+    "concept_label": "Skin Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/skin_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 32,
+     "matched_key": "skin care",
+     "start": 23
+    },
+    "entity_type": "category",
+    "text": "Skin Care"
+   }
+  ],
+  "Aquaphor와 LANEIGE의 Lip Care 경쟁 관계는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 17,
+     "matched_key": "laneige",
+     "start": 10
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 27,
+     "matched_key": "lip care",
+     "start": 19
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   }
+  ],
+  "B0LIPXYZ01 제품 리뷰 텍스처 향 가성비": [
+   {
+    "concept_label": "B0LIPXYZ01",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Product/B0LIPXYZ01",
+    "confidence": 1.0,
+    "context": {
+     "end": 10,
+     "format": "asin",
+     "start": 0
+    },
+    "entity_type": "product",
+    "text": "B0LIPXYZ01"
+   }
+  ],
+  "Burt's Bees, L'Oreal, Mise-en-scène, B.Ready": [],
+  "COSRX가 잘 팔리는 이유와 카테고리 집중도는?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 5,
+     "matched_key": "cosrx",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "COSRX는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 5,
+     "matched_key": "cosrx",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "COSRX와 같은 그룹에 속한 브랜드(COSRX 포함) 중 2026-08-31 Face Powder Top 100에 제품이 있는 브랜드는 몇 개인가요?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 5,
+     "matched_key": "cosrx",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   },
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 26,
+     "matched_key": "cosrx",
+     "start": 21
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   },
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 55,
+     "matched_key": "face powder",
+     "start": 44
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   }
+  ],
+  "COSRX의 가장 인기 있는 제품의 카테고리와 해당 카테고리 SoS는?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 5,
+     "matched_key": "cosrx",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "COSRX의 모회사(소속 그룹)는 어디인가요?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 5,
+     "matched_key": "cosrx",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "ChapStick의 Lip Care 시장 위치와 LANEIGE와의 차별점은?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 34,
+     "matched_key": "laneige",
+     "start": 27
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 19,
+     "matched_key": "lip care",
+     "start": 11
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   }
+  ],
+  "ETUDE의 모회사(소속 그룹)는 어디인가요?": [
+   {
+    "concept_label": "ETUDE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/ETUDE",
+    "confidence": 1.0,
+    "context": {
+     "end": 5,
+     "matched_key": "etude",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "ETUDE"
+   }
+  ],
+  "HERA의 모회사(소속 그룹)는 어디인가요?": [
+   {
+    "concept_label": "HERA",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/HERA",
+    "confidence": 1.0,
+    "context": {
+     "end": 4,
+     "matched_key": "hera",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "HERA"
+   }
+  ],
+  "IOPE, primera, 설화수, 한율 매출은?": [
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 18,
+     "matched_key": "설화수",
+     "start": 15
+    },
+    "entity_type": "brand",
+    "text": "설화수"
+   }
+  ],
+  "IT Cosmetics와 Jouer, Almay, Charlotte Tilbury, COVERGIRL 가격 비교": [],
+  "K-Beauty 1위 브랜드의 주력 카테고리 HHI는?": [
+   {
+    "concept_label": "Beauty & Personal Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/beauty",
+    "confidence": 1.0,
+    "context": {
+     "end": 8,
+     "matched_key": "beauty",
+     "start": 2
+    },
+    "entity_type": "category",
+    "text": "Beauty"
+   }
+  ],
+  "K-Beauty 브랜드 중 Amazon US에서 가장 강한 브랜드는?": [
+   {
+    "concept_label": "Beauty & Personal Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/beauty",
+    "confidence": 1.0,
+    "context": {
+     "end": 8,
+     "matched_key": "beauty",
+     "start": 2
+    },
+    "entity_type": "category",
+    "text": "Beauty"
+   }
+  ],
+  "K-Beauty 브랜드 중 SoS 1위는?": [
+   {
+    "concept_label": "Beauty & Personal Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/beauty",
+    "confidence": 1.0,
+    "context": {
+     "end": 8,
+     "matched_key": "beauty",
+     "start": 2
+    },
+    "entity_type": "category",
+    "text": "Beauty"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 18,
+     "matched_key": "sos",
+     "start": 15
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   }
+  ],
+  "K뷰티 한국 브랜드 트렌드": [
+   {
+    "concept_label": "Beauty & Personal Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/beauty",
+    "confidence": 1.0,
+    "context": {
+     "end": 3,
+     "matched_key": "뷰티",
+     "start": 1
+    },
+    "entity_type": "category",
+    "text": "뷰티"
+   }
+  ],
+  "LANEIGE Cream Skin Toner의 경쟁 제품과 가격 비교": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE Lip Care 점유율이 높은 이유는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 16,
+     "matched_key": "lip care",
+     "start": 8
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   }
+  ],
+  "LANEIGE Lip Glowy Balm 주요 경쟁 제품은?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Glow",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Trend/Glow",
+    "confidence": 1.0,
+    "context": {
+     "end": 16,
+     "matched_key": "glow",
+     "start": 12
+    },
+    "entity_type": "trend",
+    "text": "Glow"
+   }
+  ],
+  "LANEIGE Lip Sleeping Mask와 같은 카테고리 경쟁사의 평균 가격은?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE Neo Cushion 경쟁사와 순위는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE Neo Cushion이 속한 카테고리의 K-Beauty 브랜드 SoS 합계는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Beauty & Personal Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/beauty",
+    "confidence": 1.0,
+    "context": {
+     "end": 38,
+     "matched_key": "beauty",
+     "start": 32
+    },
+    "entity_type": "category",
+    "text": "Beauty"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 46,
+     "matched_key": "sos",
+     "start": 43
+    },
+    "entity_type": "metric",
+    "text": "SoS"
+   }
+  ],
+  "LANEIGE Water Bank 라인 제품 구성은?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE 브랜드의 모회사와 해당 기업의 다른 브랜드 Amazon 현황은?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE 제품이 속한 카테고리의 HHI는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE 카테고리에서 1위 브랜드의 SoS와 LANEIGE의 격차는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 35,
+     "matched_key": "laneige",
+     "start": 28
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE가 Skin Care에서 COSRX 수준의 SoS를 달성하려면?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 26,
+     "matched_key": "cosrx",
+     "start": 21
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   },
+   {
+    "concept_label": "Skin Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/skin_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 18,
+     "matched_key": "skin care",
+     "start": 9
+    },
+    "entity_type": "category",
+    "text": "Skin Care"
+   }
+  ],
+  "LANEIGE가 가장 강한 카테고리의 시장집중도는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE가 경쟁이 가장 심한 카테고리는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE가 아모레퍼시픽 포트폴리오에서 차지하는 위치는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE와 Beauty of Joseon는 같은 그룹에 속한 자매 브랜드인가요?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Beauty of Joseon",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Beauty_of_Joseon",
+    "confidence": 1.0,
+    "context": {
+     "end": 25,
+     "matched_key": "beauty of joseon",
+     "start": 9
+    },
+    "entity_type": "brand",
+    "text": "Beauty of Joseon"
+   },
+   {
+    "concept_label": "Beauty & Personal Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/beauty",
+    "confidence": 1.0,
+    "context": {
+     "end": 15,
+     "matched_key": "beauty",
+     "start": 9
+    },
+    "entity_type": "category",
+    "text": "Beauty"
+   }
+  ],
+  "LANEIGE와 Sulwhasoo는 같은 그룹에 속한 자매 브랜드인가요?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 18,
+     "matched_key": "sulwhasoo",
+     "start": 9
+    },
+    "entity_type": "brand",
+    "text": "Sulwhasoo"
+   }
+  ],
+  "LANEIGE와 TIRTIR는 같은 그룹에 속한 자매 브랜드인가요?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "TIRTIR",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/TIRTIR",
+    "confidence": 1.0,
+    "context": {
+     "end": 15,
+     "matched_key": "tirtir",
+     "start": 9
+    },
+    "entity_type": "brand",
+    "text": "TIRTIR"
+   }
+  ],
+  "LANEIGE와 innisfree는 같은 그룹에 속한 자매 브랜드인가요?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "Innisfree",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Innisfree",
+    "confidence": 1.0,
+    "context": {
+     "end": 18,
+     "matched_key": "innisfree",
+     "start": 9
+    },
+    "entity_type": "brand",
+    "text": "innisfree"
+   }
+  ],
+  "LANEIGE와 같은 그룹의 자매 브랜드는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE의 가장 비싼 제품과 그 제품이 속한 카테고리 평균 가격 대비 CPI는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "LANEIGE의 대표 제품이 속한 카테고리에서 1위 브랜드는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 7,
+     "matched_key": "laneige",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "La Roche-Posay vs la roche posay vs LRP": [
+   {
+    "concept_label": "La Roche-Posay",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/La_Roche-Posay",
+    "confidence": 1.0,
+    "context": {
+     "end": 14,
+     "matched_key": "la roche-posay",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "La Roche-Posay"
+   }
+  ],
+  "Lip Sleeping Mask 3위 제품 순위는? rank 3": [],
+  "Lip Sleeping Mask의 리뷰 수가 SoS에 기여하는 경로는?": [],
+  "NYX와 LANEIGE의 Lip Makeup 시장 경쟁 관계는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 12,
+     "matched_key": "laneige",
+     "start": 5
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "NYX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/NYX",
+    "confidence": 1.0,
+    "context": {
+     "end": 3,
+     "matched_key": "nyx",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "NYX"
+   },
+   {
+    "concept_label": "Lip Makeup",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_makeup",
+    "confidence": 1.0,
+    "context": {
+     "end": 24,
+     "matched_key": "lip makeup",
+     "start": 14
+    },
+    "entity_type": "category",
+    "text": "Lip Makeup"
+   }
+  ],
+  "Sulwhasoo와 같은 그룹에 속한 브랜드(Sulwhasoo 포함) 중 2026-08-31 Lip Makeup Top 100에 제품이 있는 브랜드는 몇 개인가요?": [
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 9,
+     "matched_key": "sulwhasoo",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "Sulwhasoo"
+   },
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 34,
+     "matched_key": "sulwhasoo",
+     "start": 25
+    },
+    "entity_type": "brand",
+    "text": "Sulwhasoo"
+   },
+   {
+    "concept_label": "Lip Makeup",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_makeup",
+    "confidence": 1.0,
+    "context": {
+     "end": 62,
+     "matched_key": "lip makeup",
+     "start": 52
+    },
+    "entity_type": "category",
+    "text": "Lip Makeup"
+   }
+  ],
+  "Sulwhasoo의 모회사(소속 그룹)는 어디인가요?": [
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 9,
+     "matched_key": "sulwhasoo",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "Sulwhasoo"
+   }
+  ],
+  "TIRTIR가 Face Powder에서 LANEIGE보다 SoS가 높은 이유는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 29,
+     "matched_key": "laneige",
+     "start": 22
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "TIRTIR",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/TIRTIR",
+    "confidence": 1.0,
+    "context": {
+     "end": 6,
+     "matched_key": "tirtir",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "TIRTIR"
+   },
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 19,
+     "matched_key": "face powder",
+     "start": 8
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   }
+  ],
+  "TIRTIR는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.": [
+   {
+    "concept_label": "TIRTIR",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/TIRTIR",
+    "confidence": 1.0,
+    "context": {
+     "end": 6,
+     "matched_key": "tirtir",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "TIRTIR"
+   }
+  ],
+  "chi와 ryo, boj, eos, opi, verb, matrix 언급": [
+   {
+    "concept_label": "eos",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/eos",
+    "confidence": 1.0,
+    "context": {
+     "end": 18,
+     "matched_key": "eos",
+     "start": 15
+    },
+    "entity_type": "brand",
+    "text": "eos"
+   }
+  ],
+  "e.l.f. 와 ELF, elf 비교": [
+   {
+    "concept_label": "e.l.f.",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/e.l.f.",
+    "confidence": 1.0,
+    "context": {
+     "end": 6,
+     "matched_key": "e.l.f.",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "e.l.f."
+   }
+  ],
+  "eos의 Lip Care 전략과 LANEIGE와의 관계는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 25,
+     "matched_key": "laneige",
+     "start": 18
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   },
+   {
+    "concept_label": "eos",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/eos",
+    "confidence": 1.0,
+    "context": {
+     "end": 3,
+     "matched_key": "eos",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "eos"
+   },
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 13,
+     "matched_key": "lip care",
+     "start": 5
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   }
+  ],
+  "fresh unknown 브랜드 순위": [],
+  "innisfree는 아모레퍼시픽 그룹 소속 브랜드인가요? 규칙 brand_ownership_verification 기준으로 판정해 주세요.": [
+   {
+    "concept_label": "Innisfree",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Innisfree",
+    "confidence": 1.0,
+    "context": {
+     "end": 9,
+     "matched_key": "innisfree",
+     "start": 0
+    },
+    "entity_type": "brand",
+    "text": "innisfree"
+   }
+  ],
+  "share of shelf 기준으로 shelf 전체를 보면?": [
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 14,
+     "matched_key": "share of shelf",
+     "start": 0
+    },
+    "entity_type": "metric",
+    "text": "share of shelf"
+   }
+  ],
+  "고려해야 할 어려운 점은 로드맵에 있다": [],
+  "럭셔리 브랜드와 프리미엄 브랜드, 매스 브랜드 비교": [],
+  "아모레퍼시픽 그룹 브랜드 COSRX의 원산지(출신 국가)는 어디인가요?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 19,
+     "matched_key": "cosrx",
+     "start": 14
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "아모레퍼시픽 그룹 브랜드 TATA HARPER의 원산지(출신 국가)는 어디인가요?": [],
+  "아모레퍼시픽 그룹 소속 브랜드 중 2026-08-31 Face Powder Top 100에 제품이 있는 브랜드와 각 브랜드의 SoS는?": [
+   {
+    "concept_label": "Face Powder",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/face_powder",
+    "confidence": 1.0,
+    "context": {
+     "end": 41,
+     "matched_key": "face powder",
+     "start": 30
+    },
+    "entity_type": "category",
+    "text": "Face Powder"
+   }
+  ],
+  "아모레퍼시픽 그룹 소속 브랜드 중 2026-08-31 Lip Makeup Top 100에 제품이 있는 브랜드와 각 브랜드의 SoS는?": [
+   {
+    "concept_label": "Lip Makeup",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_makeup",
+    "confidence": 1.0,
+    "context": {
+     "end": 40,
+     "matched_key": "lip makeup",
+     "start": 30
+    },
+    "entity_type": "category",
+    "text": "Lip Makeup"
+   }
+  ],
+  "아모레퍼시픽 그룹이 소유한 브랜드로 등록된 브랜드는 몇 개인가요?": [],
+  "아모레퍼시픽 브랜드 포트폴리오에서 AESTURA의 세그먼트는 무엇인가요?": [],
+  "아모레퍼시픽 브랜드 포트폴리오에서 COSRX의 세그먼트는 무엇인가요?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 24,
+     "matched_key": "cosrx",
+     "start": 19
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "아모레퍼시픽 브랜드 포트폴리오에서 ETUDE의 세그먼트는 무엇인가요?": [
+   {
+    "concept_label": "ETUDE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/ETUDE",
+    "confidence": 1.0,
+    "context": {
+     "end": 24,
+     "matched_key": "etude",
+     "start": 19
+    },
+    "entity_type": "brand",
+    "text": "ETUDE"
+   }
+  ],
+  "아모레퍼시픽 브랜드 포트폴리오에서 Sulwhasoo의 세그먼트는 무엇인가요?": [
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 28,
+     "matched_key": "sulwhasoo",
+     "start": 19
+    },
+    "entity_type": "brand",
+    "text": "Sulwhasoo"
+   }
+  ],
+  "아모레퍼시픽 브랜드들의 Lip Care 순위는?": [
+   {
+    "concept_label": "Lip Care",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_care",
+    "confidence": 1.0,
+    "context": {
+     "end": 21,
+     "matched_key": "lip care",
+     "start": 13
+    },
+    "entity_type": "category",
+    "text": "Lip Care"
+   }
+  ],
+  "아모레퍼시픽 포트폴리오에서 LANEIGE와 같은 세그먼트에 속한 브랜드는?": [
+   {
+    "concept_label": "LANEIGE",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/LANEIGE",
+    "confidence": 1.0,
+    "context": {
+     "end": 22,
+     "matched_key": "laneige",
+     "start": 15
+    },
+    "entity_type": "brand",
+    "text": "LANEIGE"
+   }
+  ],
+  "아모레퍼시픽 포트폴리오에서 Sulwhasoo와 같은 세그먼트에 속한 브랜드는?": [
+   {
+    "concept_label": "Sulwhasoo",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/Sulwhasoo",
+    "confidence": 1.0,
+    "context": {
+     "end": 24,
+     "matched_key": "sulwhasoo",
+     "start": 15
+    },
+    "entity_type": "brand",
+    "text": "Sulwhasoo"
+   }
+  ],
+  "아모레퍼시픽이 COSRX를 인수한 연도는?": [
+   {
+    "concept_label": "COSRX",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Brand/COSRX",
+    "confidence": 1.0,
+    "context": {
+     "end": 13,
+     "matched_key": "cosrx",
+     "start": 8
+    },
+    "entity_type": "brand",
+    "text": "COSRX"
+   }
+  ],
+  "중저가 브랜드의 Lip Makeup 점유율": [
+   {
+    "concept_label": "Lip Makeup",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Category/lip_makeup",
+    "confidence": 1.0,
+    "context": {
+     "end": 19,
+     "matched_key": "lip makeup",
+     "start": 9
+    },
+    "entity_type": "category",
+    "text": "Lip Makeup"
+   },
+   {
+    "concept_label": "Share of Shelf",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/sos",
+    "confidence": 1.0,
+    "context": {
+     "end": 23,
+     "matched_key": "점유율",
+     "start": 20
+    },
+    "entity_type": "metric",
+    "text": "점유율"
+   }
+  ],
+  "최근 30일 HHI 변동성 급변": [
+   {
+    "concept_label": "Herfindahl-Hirschman Index",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/hhi",
+    "confidence": 1.0,
+    "context": {
+     "end": 10,
+     "matched_key": "hhi",
+     "start": 7
+    },
+    "entity_type": "metric",
+    "text": "HHI"
+   },
+   {
+    "concept_label": "Rank Volatility",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/rank_volatility",
+    "confidence": 1.0,
+    "context": {
+     "end": 14,
+     "matched_key": "변동성",
+     "start": 11
+    },
+    "entity_type": "metric",
+    "text": "변동성"
+   },
+   {
+    "concept_label": "Rank Shock",
+    "concept_uri": "http://amorepacific.com/ontology/amore_brand.owl#Metric/rank_shock",
+    "confidence": 1.0,
+    "context": {
+     "end": 17,
+     "matched_key": "급변",
+     "start": 15
+    },
+    "entity_type": "metric",
+    "text": "급변"
+   }
+  ]
+ }
+}

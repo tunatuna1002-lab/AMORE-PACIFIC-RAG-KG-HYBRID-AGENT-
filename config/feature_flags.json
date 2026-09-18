@@ -6,10 +6,14 @@
   },
   "reasoner": {
     "use_unified_reasoner": true,
-    "use_owl_reasoner": true
+    "enabled": true
   },
   "ontology": {
-    "use_ontology_kg": true
+    "use_class_reasoning": true
+  },
+  "kg": {
+    "enabled": true,
+    "write_validation": "warn"
   },
   "cache": {
     "use_sqlite_embedding_cache": false

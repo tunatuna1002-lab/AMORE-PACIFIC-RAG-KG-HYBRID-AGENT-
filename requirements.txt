@@ -72,8 +72,8 @@ feedparser>=6.0.0
 # True RAG - Re-ranking
 sentence-transformers>=2.2.0
 
-# True Ontology - OWL/RDF
-owlready2>=0.45
+# True Ontology - RDF
+# owlready2는 [2026-09 사후] requirements-dev.txt로 이동(런타임 import 0건, 트랙 O6)
 rdflib>=7.0.0
 
 # Entity Linking - NER

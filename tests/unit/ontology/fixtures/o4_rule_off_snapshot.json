@@ -1,0 +1,4364 @@
+{
+ "brand_only": {
+  "evaluations": [
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-1fc92d",
+     "M-cb6f3a"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "cpi": "85.0",
+     "rating_gap": "0.1"
+    },
+    "reason": [
+     "conditions_not_met:cpi_above_110",
+     "conditions_not_met:rating_gap_negative"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:has_rank_shock",
+     "missing_input:churn_rate"
+    ],
+    "result": null,
+    "rule": "market_disruption",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'skin_care'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'skin_care'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:sos_change",
+     "missing_input:competitor_count"
+    ],
+    "result": null,
+    "rule": "competitive_pressure",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:rank_change_7d",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "rank_decline_alert",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:discount_periods",
+     "missing_input:rank_improvements"
+    ],
+    "result": null,
+    "rule": "discount_dependent",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:price_stable",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "viral_effect",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:price",
+     "missing_input:category_avg_price",
+     "missing_input:rank"
+    ],
+    "result": null,
+    "rule": "premium_defense_success",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_tags",
+     "missing_input:competitor_sentiment_tags"
+    ],
+    "result": null,
+    "rule": "sentiment_value_advantage",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:ir_americas_yoy",
+     "missing_input:sos_change"
+    ],
+    "result": null,
+    "rule": "ir_americas_revenue_correlation",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ir_prev_qtr_growth",
+     "missing_input:ir_current_qtr_growth"
+    ],
+    "result": null,
+    "rule": "ir_growth_slowdown_warning",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:hhi",
+     "missing_input:competitor_count"
+    ],
+    "result": null,
+    "rule": "fragmented_market_competition",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:streak_days",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "stable_growth",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:trend_keywords"
+    ],
+    "result": null,
+    "rule": "trend_alignment_opportunity",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-1fc92d",
+     "M-cb6f3a"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "cpi": "85.0",
+     "rating_gap": "0.1"
+    },
+    "reason": [
+     "conditions_not_met:cpi_above_150"
+    ],
+    "result": null,
+    "rule": "premium_price_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:badge",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "bestseller_badge_effect",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:product_history"
+    ],
+    "result": null,
+    "rule": "high_discount_dependency_score",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_strength_hydration",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_effectiveness_strong",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_positive",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ir_consecutive_growth_quarters"
+    ],
+    "result": null,
+    "rule": "ir_growth_momentum",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ir_campaign_mentioned",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "ir_brand_campaign_effect",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:avg_rank"
+    ],
+    "result": null,
+    "rule": "strong_avg_rank",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:current_rank",
+     "missing_input:streak_days",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "top10_stability",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'skin_care'",
+     "is_target": "False",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-cb6f3a"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False",
+     "rating_gap": "0.1"
+    },
+    "reason": [
+     "conditions_not_met:is_target"
+    ],
+    "result": null,
+    "rule": "strong_rating_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-1fc92d",
+     "M-cb6f3a"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'cosrx'",
+     "cpi": "85.0",
+     "rating_gap": "0.1"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'cpi': 85.0, 'rating_gap': 0.1, 'brand': 'cosrx', 'category': 'skin_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-1fc92d', 'M-cb6f3a']), ('satisfied_conditions', ['cpi_below_90', 'rating_gap_positive'])]",
+     "insight": "카테고리 평균 대비 저렴한 가격(CPI: 85)과 높은 평점 경쟁력으로 강한 가성비 포지션을 확보하고 있습니다.",
+     "metadata": "{'rule_description': '낮은 CPI와 높은 평점은 강한 가성비 포지션을 나타냄', 'priority': 6, 'tags': ['price', 'value', 'positive'], 'cpi': 85.0, 'rating_gap': 0.1}"
+    },
+    "rule": "value_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_weakness_packaging",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_usability_strength",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_gap_sensory",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_mixed",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:rating_trend",
+     "missing_input:review_count"
+    ],
+    "result": null,
+    "rule": "rating_momentum_positive",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'cosrx'",
+     "parent_group": "'amorepacific'"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'parent_group': 'amorepacific', 'brand': 'cosrx'}), ('derived_from', ['R-81ed58']), ('satisfied_conditions', ['brand_in_amorepacific'])]",
+     "insight": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+     "metadata": "{'rule_description': '브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)', 'priority': 5, 'tags': ['brand', 'ownership', 'verification'], 'parent_group': 'AMOREPACIFIC', 'country_of_origin': 'Korea', 'acquired': None, 'segment': None, 'evidence': ['config/brands.json', 'IR Reports']}"
+    },
+    "rule": "brand_ownership_verification",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "hhi": "0.08",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:sos_above_0.15"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "hhi": "0.08",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:sos_above_0.2",
+     "conditions_not_met:hhi_above_0.25"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-c6b21a",
+     "M-fac89d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "cpi": "160.0",
+     "rating_gap": "0.2"
+    },
+    "reason": [
+     "conditions_not_met:rating_gap_negative"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'lip_care'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'lip_care'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "hhi": "0.08",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:hhi_above_0.25"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:discount_periods",
+     "missing_input:rank_improvements"
+    ],
+    "result": null,
+    "rule": "discount_dependent",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:price_stable",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "viral_effect",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:price",
+     "missing_input:category_avg_price",
+     "missing_input:rank"
+    ],
+    "result": null,
+    "rule": "premium_defense_success",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_tags",
+     "missing_input:competitor_sentiment_tags"
+    ],
+    "result": null,
+    "rule": "sentiment_value_advantage",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:ir_americas_yoy",
+     "missing_input:sos_change"
+    ],
+    "result": null,
+    "rule": "ir_americas_revenue_correlation",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ir_prev_qtr_growth",
+     "missing_input:ir_current_qtr_growth"
+    ],
+    "result": null,
+    "rule": "ir_growth_slowdown_warning",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925"
+    ],
+    "fired": false,
+    "inputs": {
+     "hhi": "0.08"
+    },
+    "reason": [
+     "missing_input:competitor_count"
+    ],
+    "result": null,
+    "rule": "fragmented_market_competition",
+    "scope": [
+     null,
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:streak_days",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "stable_growth",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:trend_keywords"
+    ],
+    "result": null,
+    "rule": "trend_alignment_opportunity",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-c6b21a",
+     "M-fac89d"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'laneige'",
+     "cpi": "160.0",
+     "rating_gap": "0.2"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'cpi': 160.0, 'rating_gap': 0.2, 'brand': 'laneige', 'category': 'lip_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-c6b21a', 'M-fac89d']), ('satisfied_conditions', ['cpi_above_150', 'good_rating'])]",
+     "insight": "CPI 160의 프리미엄 가격 포지션에서 평점 경쟁력을 유지하고 있어 성공적인 프리미엄 전략을 수행 중입니다.",
+     "metadata": "{'rule_description': '높은 CPI와 높은 평점은 성공적인 프리미엄 포지셔닝을 나타냄', 'priority': 7, 'tags': ['price', 'premium', 'positive'], 'cpi': 160.0, 'rating_gap': 0.2}"
+    },
+    "rule": "premium_price_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:badge",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "bestseller_badge_effect",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:product_history"
+    ],
+    "result": null,
+    "rule": "high_discount_dependency_score",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_strength_hydration",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_effectiveness_strong",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_positive",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ir_consecutive_growth_quarters"
+    ],
+    "result": null,
+    "rule": "ir_growth_momentum",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ir_campaign_mentioned",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "ir_brand_campaign_effect",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-0d107f"
+    ],
+    "fired": true,
+    "inputs": {
+     "avg_rank": "12.0",
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'avg_rank': 12.0, 'is_target': True, 'brand': 'laneige', 'category': 'lip_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-0d107f']), ('satisfied_conditions', ['low_avg_rank', 'is_target'])]",
+     "insight": "laneige의 평균 순위 12.0위는 경쟁사 대비 우수한 전반적 포지션을 나타냅니다.",
+     "metadata": "{'rule_description': '경쟁사 대비 낮은 평균 순위는 전반적 경쟁력 우위를 나타냄', 'priority': 6, 'tags': ['rank', 'position', 'positive'], 'avg_rank': 12.0}"
+    },
+    "rule": "strong_avg_rank",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:current_rank",
+     "missing_input:streak_days",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "top10_stability",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'lip_care'",
+     "hhi": "0.08",
+     "is_target": "True",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:low_target_presence"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-fac89d"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True",
+     "rating_gap": "0.2"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'rating_gap': 0.2, 'is_target': True, 'brand': 'laneige', 'category': 'lip_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-fac89d']), ('satisfied_conditions', ['rating_advantage', 'is_target'])]",
+     "insight": "경쟁사 대비 평점 우위(갭: +0.20)를 보이고 있어 제품 품질 및 고객 만족도에서 경쟁 우위를 확보하고 있습니다.",
+     "metadata": "{'rule_description': '경쟁사 대비 높은 평점은 제품 품질 우위를 나타냄', 'priority': 6, 'tags': ['rating', 'quality', 'positive'], 'rating_gap': 0.2}"
+    },
+    "rule": "strong_rating_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-c6b21a",
+     "M-fac89d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "cpi": "160.0",
+     "rating_gap": "0.2"
+    },
+    "reason": [
+     "conditions_not_met:cpi_below_90"
+    ],
+    "result": null,
+    "rule": "value_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_weakness_packaging",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_usability_strength",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_gap_sensory",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_mixed",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "R-f189d7"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'laneige'",
+     "parent_group": "'amorepacific'"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'parent_group': 'amorepacific', 'brand': 'laneige'}), ('derived_from', ['R-f189d7']), ('satisfied_conditions', ['brand_in_amorepacific'])]",
+     "insight": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+     "metadata": "{'rule_description': '브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)', 'priority': 5, 'tags': ['brand', 'ownership', 'verification'], 'parent_group': 'AMOREPACIFIC', 'country_of_origin': 'Korea', 'acquired': None, 'segment': None, 'evidence': ['config/brands.json', 'IR Reports']}"
+    },
+    "rule": "brand_ownership_verification",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sos",
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sos",
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:hhi",
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:discount_periods",
+     "missing_input:rank_improvements"
+    ],
+    "result": null,
+    "rule": "discount_dependent",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:price_stable",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "viral_effect",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:price",
+     "missing_input:category_avg_price",
+     "missing_input:rank"
+    ],
+    "result": null,
+    "rule": "premium_defense_success",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sentiment_tags",
+     "missing_input:competitor_sentiment_tags"
+    ],
+    "result": null,
+    "rule": "sentiment_value_advantage",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:ir_americas_yoy",
+     "missing_input:sos_change"
+    ],
+    "result": null,
+    "rule": "ir_americas_revenue_correlation",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:ir_prev_qtr_growth",
+     "missing_input:ir_current_qtr_growth"
+    ],
+    "result": null,
+    "rule": "ir_growth_slowdown_warning",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:streak_days",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "stable_growth",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:trend_keywords"
+    ],
+    "result": null,
+    "rule": "trend_alignment_opportunity",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "premium_price_position",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:badge",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "bestseller_badge_effect",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:product_history"
+    ],
+    "result": null,
+    "rule": "high_discount_dependency_score",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_strength_hydration",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_effectiveness_strong",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_positive",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:ir_consecutive_growth_quarters"
+    ],
+    "result": null,
+    "rule": "ir_growth_momentum",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:ir_campaign_mentioned",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "ir_brand_campaign_effect",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:avg_rank"
+    ],
+    "result": null,
+    "rule": "strong_avg_rank",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:current_rank",
+     "missing_input:streak_days",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "top10_stability",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:hhi",
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "strong_rating_position",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "value_position",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_weakness_packaging",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_usability_strength",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_gap_sensory",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_mixed",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "tirtir",
+     null
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'tirtir'"
+    },
+    "reason": [
+     "missing_input:parent_group"
+    ],
+    "result": null,
+    "rule": "brand_ownership_verification",
+    "scope": [
+     "tirtir",
+     null
+    ]
+   }
+  ],
+  "summary": {
+   "combinations": [
+    [
+     "cosrx",
+     "skin_care"
+    ],
+    [
+     "laneige",
+     "lip_care"
+    ],
+    [
+     "tirtir",
+     null
+    ]
+   ],
+   "evaluated": 102,
+   "fired": [
+    "value_position",
+    "brand_ownership_verification",
+    "premium_price_position",
+    "strong_avg_rank",
+    "strong_rating_position"
+   ],
+   "non_fire_counts_by_kind": {
+    "conditions_not_met": 9,
+    "missing_input": 87
+   },
+   "non_fire_top": [
+    [
+     "missing_input:sentiment_clusters",
+     15
+    ],
+    [
+     "missing_input:rank_change_7d",
+     13
+    ],
+    [
+     "missing_input:hhi",
+     9
+    ],
+    [
+     "missing_input:ai_summary",
+     6
+    ],
+    [
+     "missing_input:competitor_sentiment_clusters",
+     6
+    ],
+    [
+     "missing_input:current_rank",
+     6
+    ],
+    [
+     "missing_input:streak_days",
+     6
+    ],
+    [
+     "missing_input:rank_volatility",
+     4
+    ],
+    [
+     "missing_input:rating_gap",
+     4
+    ],
+    [
+     "missing_input:sos",
+     4
+    ]
+   ]
+  }
+ },
+ "predicates": [
+  "acquiredIn",
+  "avg_rating_gap",
+  "brand_avg_rank",
+  "cpi",
+  "hasSegment",
+  "hhi",
+  "originatesFrom",
+  "ownedBy",
+  "product_count",
+  "sos",
+  "sos_rank"
+ ],
+ "with_category": {
+  "evaluations": [
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "hhi": "0.08",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:sos_above_0.15"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "hhi": "0.08",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:sos_above_0.2",
+     "conditions_not_met:hhi_above_0.25"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-c6b21a",
+     "M-fac89d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "cpi": "160.0",
+     "rating_gap": "0.2"
+    },
+    "reason": [
+     "conditions_not_met:rating_gap_negative"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:has_rank_shock",
+     "missing_input:churn_rate"
+    ],
+    "result": null,
+    "rule": "market_disruption",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'lip_care'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'lip_care'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "hhi": "0.08",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:hhi_above_0.25"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:sos_change",
+     "missing_input:competitor_count"
+    ],
+    "result": null,
+    "rule": "competitive_pressure",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:rank_change_7d",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "rank_decline_alert",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:discount_periods",
+     "missing_input:rank_improvements"
+    ],
+    "result": null,
+    "rule": "discount_dependent",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:price_stable",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "viral_effect",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:price",
+     "missing_input:category_avg_price",
+     "missing_input:rank"
+    ],
+    "result": null,
+    "rule": "premium_defense_success",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_tags",
+     "missing_input:competitor_sentiment_tags"
+    ],
+    "result": null,
+    "rule": "sentiment_value_advantage",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:ir_americas_yoy",
+     "missing_input:sos_change"
+    ],
+    "result": null,
+    "rule": "ir_americas_revenue_correlation",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ir_prev_qtr_growth",
+     "missing_input:ir_current_qtr_growth"
+    ],
+    "result": null,
+    "rule": "ir_growth_slowdown_warning",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925"
+    ],
+    "fired": false,
+    "inputs": {
+     "hhi": "0.08"
+    },
+    "reason": [
+     "missing_input:competitor_count"
+    ],
+    "result": null,
+    "rule": "fragmented_market_competition",
+    "scope": [
+     null,
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:streak_days",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "stable_growth",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:trend_keywords"
+    ],
+    "result": null,
+    "rule": "trend_alignment_opportunity",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-c6b21a",
+     "M-fac89d"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'laneige'",
+     "cpi": "160.0",
+     "rating_gap": "0.2"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'cpi': 160.0, 'rating_gap': 0.2, 'brand': 'laneige', 'category': 'lip_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-c6b21a', 'M-fac89d']), ('satisfied_conditions', ['cpi_above_150', 'good_rating'])]",
+     "insight": "CPI 160의 프리미엄 가격 포지션에서 평점 경쟁력을 유지하고 있어 성공적인 프리미엄 전략을 수행 중입니다.",
+     "metadata": "{'rule_description': '높은 CPI와 높은 평점은 성공적인 프리미엄 포지셔닝을 나타냄', 'priority': 7, 'tags': ['price', 'premium', 'positive'], 'cpi': 160.0, 'rating_gap': 0.2}"
+    },
+    "rule": "premium_price_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:badge",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "bestseller_badge_effect",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:product_history"
+    ],
+    "result": null,
+    "rule": "high_discount_dependency_score",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_strength_hydration",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_effectiveness_strong",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_positive",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ir_consecutive_growth_quarters"
+    ],
+    "result": null,
+    "rule": "ir_growth_momentum",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ir_campaign_mentioned",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "ir_brand_campaign_effect",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-0d107f"
+    ],
+    "fired": true,
+    "inputs": {
+     "avg_rank": "12.0",
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'avg_rank': 12.0, 'is_target': True, 'brand': 'laneige', 'category': 'lip_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-0d107f']), ('satisfied_conditions', ['low_avg_rank', 'is_target'])]",
+     "insight": "laneige의 평균 순위 12.0위는 경쟁사 대비 우수한 전반적 포지션을 나타냅니다.",
+     "metadata": "{'rule_description': '경쟁사 대비 낮은 평균 순위는 전반적 경쟁력 우위를 나타냄', 'priority': 6, 'tags': ['rank', 'position', 'positive'], 'avg_rank': 12.0}"
+    },
+    "rule": "strong_avg_rank",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:current_rank",
+     "missing_input:streak_days",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "top10_stability",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925",
+     "M-722f9d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'lip_care'",
+     "hhi": "0.08",
+     "is_target": "True",
+     "sos": "0.06"
+    },
+    "reason": [
+     "conditions_not_met:low_target_presence"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-fac89d"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True",
+     "rating_gap": "0.2"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'rating_gap': 0.2, 'is_target': True, 'brand': 'laneige', 'category': 'lip_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-fac89d']), ('satisfied_conditions', ['rating_advantage', 'is_target'])]",
+     "insight": "경쟁사 대비 평점 우위(갭: +0.20)를 보이고 있어 제품 품질 및 고객 만족도에서 경쟁 우위를 확보하고 있습니다.",
+     "metadata": "{'rule_description': '경쟁사 대비 높은 평점은 제품 품질 우위를 나타냄', 'priority': 6, 'tags': ['rating', 'quality', 'positive'], 'rating_gap': 0.2}"
+    },
+    "rule": "strong_rating_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-c6b21a",
+     "M-fac89d"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "cpi": "160.0",
+     "rating_gap": "0.2"
+    },
+    "reason": [
+     "conditions_not_met:cpi_below_90"
+    ],
+    "result": null,
+    "rule": "value_position",
+    "scope": [
+     "laneige",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_weakness_packaging",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_usability_strength",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_gap_sensory",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_mixed",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:rating_trend",
+     "missing_input:review_count"
+    ],
+    "result": null,
+    "rule": "rating_momentum_positive",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "lip_care"
+    ],
+    "derived_from": [
+     "R-f189d7"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'laneige'",
+     "parent_group": "'amorepacific'"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'parent_group': 'amorepacific', 'brand': 'laneige'}), ('derived_from', ['R-f189d7']), ('satisfied_conditions', ['brand_in_amorepacific'])]",
+     "insight": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+     "metadata": "{'rule_description': '브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)', 'priority': 5, 'tags': ['brand', 'ownership', 'verification'], 'parent_group': 'AMOREPACIFIC', 'country_of_origin': 'Korea', 'acquired': None, 'segment': None, 'evidence': ['config/brands.json', 'IR Reports']}"
+    },
+    "rule": "brand_ownership_verification",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sos",
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:sos",
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'skin_care'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "laneige",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'skin_care'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "laneige",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:hhi",
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {},
+    "reason": [
+     "missing_input:hhi",
+     "missing_input:competitor_count"
+    ],
+    "result": null,
+    "rule": "fragmented_market_competition",
+    "scope": [
+     null,
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "premium_price_position",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:avg_rank"
+    ],
+    "result": null,
+    "rule": "strong_avg_rank",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "category": "'skin_care'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:hhi",
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "laneige",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'",
+     "is_target": "True"
+    },
+    "reason": [
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "strong_rating_position",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "laneige",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'laneige'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "value_position",
+    "scope": [
+     "laneige",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "hhi": "0.08"
+    },
+    "reason": [
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "cosrx",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "hhi": "0.08"
+    },
+    "reason": [
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "cosrx",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'lip_care'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "cosrx",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'lip_care'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "cosrx",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "hhi": "0.08"
+    },
+    "reason": [
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "cosrx",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:discount_periods",
+     "missing_input:rank_improvements"
+    ],
+    "result": null,
+    "rule": "discount_dependent",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:price_stable",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "viral_effect",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:price",
+     "missing_input:category_avg_price",
+     "missing_input:rank"
+    ],
+    "result": null,
+    "rule": "premium_defense_success",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_tags",
+     "missing_input:competitor_sentiment_tags"
+    ],
+    "result": null,
+    "rule": "sentiment_value_advantage",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:ir_americas_yoy",
+     "missing_input:sos_change"
+    ],
+    "result": null,
+    "rule": "ir_americas_revenue_correlation",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ir_prev_qtr_growth",
+     "missing_input:ir_current_qtr_growth"
+    ],
+    "result": null,
+    "rule": "ir_growth_slowdown_warning",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:streak_days",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "stable_growth",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:trend_keywords"
+    ],
+    "result": null,
+    "rule": "trend_alignment_opportunity",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "premium_price_position",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:badge",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "bestseller_badge_effect",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:product_history"
+    ],
+    "result": null,
+    "rule": "high_discount_dependency_score",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_strength_hydration",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_effectiveness_strong",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_positive",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ir_consecutive_growth_quarters"
+    ],
+    "result": null,
+    "rule": "ir_growth_momentum",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ir_campaign_mentioned",
+     "missing_input:rank_change_7d"
+    ],
+    "result": null,
+    "rule": "ir_brand_campaign_effect",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:avg_rank"
+    ],
+    "result": null,
+    "rule": "strong_avg_rank",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:current_rank",
+     "missing_input:streak_days",
+     "missing_input:rank_volatility"
+    ],
+    "result": null,
+    "rule": "top10_stability",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [
+     "M-394925"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'lip_care'",
+     "hhi": "0.08",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:sos"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "cosrx",
+     "lip_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "strong_rating_position",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:cpi",
+     "missing_input:rating_gap"
+    ],
+    "result": null,
+    "rule": "value_position",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_weakness_packaging",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_usability_strength",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:sentiment_clusters",
+     "missing_input:competitor_sentiment_clusters"
+    ],
+    "result": null,
+    "rule": "sentiment_gap_sensory",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'"
+    },
+    "reason": [
+     "missing_input:ai_summary"
+    ],
+    "result": null,
+    "rule": "customer_perception_mixed",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "lip_care"
+    ],
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'cosrx'",
+     "parent_group": "'amorepacific'"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'parent_group': 'amorepacific', 'brand': 'cosrx'}), ('derived_from', ['R-81ed58']), ('satisfied_conditions', ['brand_in_amorepacific'])]",
+     "insight": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+     "metadata": "{'rule_description': '브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)', 'priority': 5, 'tags': ['brand', 'ownership', 'verification'], 'parent_group': 'AMOREPACIFIC', 'country_of_origin': 'Korea', 'acquired': None, 'segment': None, 'evidence': ['config/brands.json', 'IR Reports']}"
+    },
+    "rule": "brand_ownership_verification",
+    "scope": [
+     "cosrx",
+     null
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_fragmented",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "market_dominance_concentrated",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-1fc92d",
+     "M-cb6f3a"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "cpi": "85.0",
+     "rating_gap": "0.1"
+    },
+    "reason": [
+     "conditions_not_met:cpi_above_110",
+     "conditions_not_met:rating_gap_negative"
+    ],
+    "result": null,
+    "rule": "price_quality_mismatch",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'skin_care'",
+     "is_target": "False"
+    },
+    "reason": [
+     "missing_input:current_rank"
+    ],
+    "result": null,
+    "rule": "top3_achievement",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'skin_care'"
+    },
+    "reason": [
+     "missing_input:ir_mentions_prime_day",
+     "missing_input:rank_change_during_event"
+    ],
+    "result": null,
+    "rule": "ir_prime_day_impact",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "challenger_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-1fc92d",
+     "M-cb6f3a"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "cpi": "85.0",
+     "rating_gap": "0.1"
+    },
+    "reason": [
+     "conditions_not_met:cpi_above_150"
+    ],
+    "result": null,
+    "rule": "premium_price_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-e4eb51"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "category": "'skin_care'",
+     "is_target": "False",
+     "sos": "0.03"
+    },
+    "reason": [
+     "missing_input:hhi"
+    ],
+    "result": null,
+    "rule": "category_entry_opportunity",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-cb6f3a"
+    ],
+    "fired": false,
+    "inputs": {
+     "brand": "'cosrx'",
+     "is_target": "False",
+     "rating_gap": "0.1"
+    },
+    "reason": [
+     "conditions_not_met:is_target"
+    ],
+    "result": null,
+    "rule": "strong_rating_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   },
+   {
+    "combination": [
+     "cosrx",
+     "skin_care"
+    ],
+    "derived_from": [
+     "M-1fc92d",
+     "M-cb6f3a"
+    ],
+    "fired": true,
+    "inputs": {
+     "brand": "'cosrx'",
+     "cpi": "85.0",
+     "rating_gap": "0.1"
+    },
+    "reason": [],
+    "result": {
+     "evidence": "[('context_snapshot', {'cpi': 85.0, 'rating_gap': 0.1, 'brand': 'cosrx', 'category': 'skin_care', 'as_of': '2026-08-31'}), ('derived_from', ['M-1fc92d', 'M-cb6f3a']), ('satisfied_conditions', ['cpi_below_90', 'rating_gap_positive'])]",
+     "insight": "카테고리 평균 대비 저렴한 가격(CPI: 85)과 높은 평점 경쟁력으로 강한 가성비 포지션을 확보하고 있습니다.",
+     "metadata": "{'rule_description': '낮은 CPI와 높은 평점은 강한 가성비 포지션을 나타냄', 'priority': 6, 'tags': ['price', 'value', 'positive'], 'cpi': 85.0, 'rating_gap': 0.1}"
+    },
+    "rule": "value_position",
+    "scope": [
+     "cosrx",
+     "skin_care"
+    ]
+   }
+  ],
+  "summary": {
+   "combinations": [
+    [
+     "laneige",
+     "lip_care"
+    ],
+    [
+     "laneige",
+     "skin_care"
+    ],
+    [
+     "cosrx",
+     "lip_care"
+    ],
+    [
+     "cosrx",
+     "skin_care"
+    ]
+   ],
+   "evaluated": 91,
+   "fired": [
+    "premium_price_position",
+    "strong_avg_rank",
+    "strong_rating_position",
+    "brand_ownership_verification",
+    "value_position"
+   ],
+   "non_fire_counts_by_kind": {
+    "conditions_not_met": 9,
+    "missing_input": 76
+   },
+   "non_fire_top": [
+    [
+     "missing_input:sentiment_clusters",
+     10
+    ],
+    [
+     "missing_input:hhi",
+     9
+    ],
+    [
+     "missing_input:rank_change_7d",
+     9
+    ],
+    [
+     "missing_input:rating_gap",
+     8
+    ],
+    [
+     "missing_input:sos",
+     8
+    ],
+    [
+     "missing_input:cpi",
+     6
+    ],
+    [
+     "missing_input:current_rank",
+     6
+    ],
+    [
+     "missing_input:ai_summary",
+     4
+    ],
+    [
+     "missing_input:competitor_sentiment_clusters",
+     4
+    ],
+    [
+     "missing_input:ir_mentions_prime_day",
+     4
+    ]
+   ]
+  }
+ }
+}

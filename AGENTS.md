@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on Amazon US. Daily crawling, KPI analysis (SoS/HHI/CPI), and a hybrid RAG+KG+rule-reasoning chatbot with one LLM tool-selection step (DecisionMaker, native function calling). ReAct loop is wired behind a feature flag that defaults to OFF (`agents.use_react_agent`); it shares the same 5-tool registry (`src/core/tool_registry.py`) as DecisionMaker. [post-2026-09] The OWL retrieval strategy was deleted (dead code, 0 callers) — OWL now serves only as category-hierarchy vocabulary, not a retrieval path.
+AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on Amazon US. Daily crawling, KPI analysis (SoS/HHI/CPI), and a hybrid RAG+KG+rule-reasoning chatbot with one LLM tool-selection step (DecisionMaker, native function calling). ReAct loop is wired behind a feature flag that defaults to OFF (`agents.use_react_agent`); it shares the same 5-tool registry (`src/core/tool_registry.py`) as DecisionMaker. [post-2026-09] The OWL retrieval strategy was deleted (dead code, 0 callers). [post-2026-09 correction, track O6] The earlier line "OWL now serves only as category-hierarchy vocabulary" was wrong: the category hierarchy comes from `config/category_hierarchy.json`, and the OWL modules (`owl_reasoner.py`, `ontology_knowledge_graph.py`, `cosmetics_ontology.owl`) were never wired into the service and have been deleted. The ontology is now a JSON source (`config/ontology/`) loaded by `src/ontology/ontology.py` (Python closure at runtime; Pellet cross-check is dev-only via `scripts/check_ontology_owl.py`). Query-path use (`src/rag/ontology_context.py`: ontology-based query expansion over classes, groups, segments and origin, plus static fact cards) is behind `ontology.use_class_reasoning`. [post-2026-09-18, decision OA-10] After the O7 measurement it defaults to ON in `config/feature_flags.json` (code default stays False). 54 items (multihop+relation), 3 runs, OFF→ON: composite 0.692→0.745, L3 gold-edge canonical recall 0.301→0.582, groundedness 0.867→0.968; rule 42 items rule agreement 0.781→0.906. Cost: prompt cards 58.1→69.9 per query (near the ~70 limit), pipeline cost +9% (`docs/experiments/ontology_activation_2026-09.md` §O7). Pellet cross-check against the Python closure: 0 mismatches. KG write validation `kg.write_validation` defaults to `warn` (log only). Flags renamed: `reasoner.enabled` (was `reasoner.use_owl_reasoner`), `kg.enabled` (was `ontology.use_ontology_kg`); old names still work as aliases.
 
 ## STRUCTURE
 
@@ -19,7 +19,7 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 │   ├── core/             # Brain, ReAct, scheduler, orchestration
 │   ├── agents/           # AI agents (chatbot, insight, crawler, alert)
 │   ├── rag/              # RAG + hybrid retrieval + entity linking
-│   ├── ontology/         # KG triple store + OWL reasoner
+│   ├── ontology/         # KG triple store + rule reasoner + ontology loader (JSON source)
 │   ├── tools/            # Scrapers, collectors, utilities
 │   ├── domain/           # Clean Architecture Layer 1 (entities, interfaces)
 │   ├── application/      # Clean Architecture Layer 2 (workflows)
@@ -60,6 +60,7 @@ AMOREPACIFIC RAG-KG Hybrid Agent for monitoring LANEIGE brand competitiveness on
 | ReActAgent | `src/core/react_agent.py` | Thought-Action-Observation loop (max 5), flag `agents.use_react_agent` (default OFF) |
 | HybridRetriever | `src/rag/hybrid_retriever.py` | RAG + KG + Ontology context |
 | KnowledgeGraph | `src/ontology/knowledge_graph.py` | Triple store + persistence |
+| Ontology | `src/ontology/ontology.py` | [post-2026-09] Ontology loader: JSON source (`config/ontology/`) + category hierarchy → Python closure |
 | HybridChatbotAgent | `src/agents/hybrid_chatbot_agent.py` | AI chatbot |
 | AmazonScraper | `src/tools/scrapers/amazon_scraper.py` | Playwright + stealth |
 | BatchWorkflow | `src/application/workflows/batch_workflow.py` | Daily crawl pipeline |

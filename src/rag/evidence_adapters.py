@@ -49,12 +49,33 @@ _TEXT_SUMMARY_CHARS = 120
 
 # 날짜 버전 없이 저장된 KG 수치 엣지 술어 (E2·F12). hybrid_retriever가 original_predicate를
 # 우선해 hasSoS·hasHHI로 노출하고, 가격 포지션은 hasPosition으로 노출한다.
-KG_NUMERIC_PREDICATES: frozenset[str] = frozenset({"hasSoS", "hasHHI", "hasPosition", "hasRank"})
+KG_NUMERIC_PREDICATES: frozenset[str] = frozenset(
+    {"hasSoS", "hasHHI", "hasPosition", "hasRank", "hasPricePosition"}
+)
 
 KG_SOURCE = "kg"
 EXCLUDED_NUMERIC = "kg_numeric_undated"
 EXCLUDED_METADATA = "kg_entity_metadata_undated"
 EXCLUDED_PLACEHOLDER = "placeholder_entity"
+
+# 온톨로지 정적 사실 카드 (트랙 O3, ``src/rag/ontology_context.py``) [2026-09 사후]
+ONTOLOGY_SOURCE = "ontology:registry"
+
+# 정식 술어 모드(플래그 ``ontology.use_class_reasoning``)에서 엔티티 메타데이터 중 카드로 싣는
+# 정적 정의 키 → 정식 술어 (OE5). 그 밖의 키(sos·avg_rank 등 날짜 없는 수치)는 계속 뺀다.
+_STATIC_METADATA_KEYS: dict[str, str] = {
+    "group": "ownedByGroup",
+    "parent_group": "ownedByGroup",
+    "segment": "hasSegment",
+    "origin": "originatesFrom",
+    "country_of_origin": "originatesFrom",
+    "acquired": "acquiredIn",
+}
+# 정식 술어 모드에서 이름을 바꾸는 술어 (브랜드 정적 술어의 별칭만). 카테고리 계층
+# (parentCategory·hasSubcategory)은 프롬프트 우선순위 어휘라 그대로 둔다.
+_CANONICAL_TARGETS: frozenset[str] = frozenset(
+    {"ownedByGroup", "ownsBrand", "siblingBrand", "hasSegment", "originatesFrom", "acquiredIn"}
+)
 
 # 브랜드 추출에 실패한 제품을 kg_enricher가 묶어 둔 자리표시자 (운영 KG 주어 254개).
 # "unknown competesWith laneige"는 어떤 브랜드에 대한 사실도 아니다.
@@ -71,6 +92,11 @@ _ROLE_RAW = "raw"  # 감성 태그·트렌드 키워드처럼 어휘 그대로 �
 _PREDICATE_ROLES: dict[str, tuple[str, str]] = {
     "ownedBy": (_ROLE_BRAND, _ROLE_ENTITY),
     "ownedByGroup": (_ROLE_BRAND, _ROLE_ENTITY),
+    "ownsBrand": (_ROLE_ENTITY, _ROLE_BRAND),
+    "siblingBrand": (_ROLE_BRAND, _ROLE_BRAND),
+    "hasSegment": (_ROLE_BRAND, _ROLE_ENTITY),
+    "originatesFrom": (_ROLE_BRAND, _ROLE_ENTITY),
+    "acquiredIn": (_ROLE_BRAND, _ROLE_RAW),
     "rankedIn": (_ROLE_BRAND, _ROLE_CATEGORY),
     "competesWith": (_ROLE_BRAND, _ROLE_BRAND),
     "directCompetitor": (_ROLE_BRAND, _ROLE_BRAND),
@@ -228,15 +254,53 @@ class EvidenceAdapter:
     Args:
         brand_normalizer: 브랜드 표기 → canonical id. 기본은 EntityLinker 단어사전.
         category_normalizer: 카테고리 표기 → category_id. 기본은 EntityLinker 단어사전.
+        ontology: 주면 **정식 술어 모드**다 (플래그 ``ontology.use_class_reasoning`` ON일 때
+            ``HybridRetriever``가 질의마다 고른다, 트랙 O3). 브랜드·카테고리는 등록부 id를 먼저
+            쓰고(모르면 위 정규화), 브랜드 정적 술어 별칭은 정식 이름(``ownedBy`` →
+            ``ownedByGroup``)으로 바꾸며, 등록부의 가짜 브랜드(``unknown``·``fresh``·``chi``)는
+            브랜드 자리에서 자리표시자로 뺀다. 엔티티 메타데이터는 정적 정의 키만 카드로 싣는다
+            (OE5). None이면 기존 동작 그대로다.
     """
 
     def __init__(
         self,
         brand_normalizer: Normalizer | None = None,
         category_normalizer: Normalizer | None = None,
+        ontology: Any | None = None,
     ) -> None:
-        self._brand = brand_normalizer or default_brand_normalizer
-        self._category = category_normalizer or default_category_normalizer
+        base_brand = brand_normalizer or default_brand_normalizer
+        base_category = category_normalizer or default_category_normalizer
+        self.ontology = ontology
+        if ontology is None:
+            self._brand = base_brand
+            self._category = base_category
+        else:
+            self._brand = lambda name: ontology.normalize_brand(name) or base_brand(name)
+            self._category = lambda name: ontology.normalize_category(name) or base_category(name)
+
+    @property
+    def canonical(self) -> bool:
+        """정식 술어 모드인가 (온톨로지를 받았는가)."""
+        return self.ontology is not None
+
+    def canonical_predicate(self, predicate: str) -> str:
+        """KG 술어 표기 → 카드 술어.
+
+        기존 모드: 시드 표기 ``ownedByGroup``을 ``ownedBy``로 맞춘다(O3 이전 동작).
+        정식 술어 모드: 브랜드 정적 술어의 별칭을 정식 이름으로(``ownedBy`` → ``ownedByGroup``).
+        """
+        if self.ontology is None:
+            return {"ownedByGroup": "ownedBy"}.get(predicate, predicate)
+        canonical = self.ontology.canonical_predicate(predicate)
+        return canonical if canonical in _CANONICAL_TARGETS else predicate
+
+    def is_placeholder_brand(self, canonical_name: str | None) -> bool:
+        """정식 술어 모드에서 등록부 가짜 브랜드인가."""
+        return (
+            canonical_name is not None
+            and self.ontology is not None
+            and bool(self.ontology.is_placeholder(canonical_name))
+        )
 
     # ------------------------------------------------------------------
     # 정규화
@@ -658,8 +722,7 @@ class _RelationBuilder:
         metadata: dict[str, Any] | None = None,
         categories: Iterable[str] = (),
     ) -> None:
-        pred = _pred_value(predicate)
-        pred = {"ownedByGroup": "ownedBy"}.get(pred, pred)
+        pred = self.adapter.canonical_predicate(_pred_value(predicate))
         if pred in KG_NUMERIC_PREDICATES:
             self.exclude(fact_type, subject, pred, obj, EXCLUDED_NUMERIC)
             return
@@ -668,7 +731,9 @@ class _RelationBuilder:
         canonical_object = (
             self.adapter._normalize(obj, object_role) if obj not in (None, "") else None
         )
-        if canonical_subject in PLACEHOLDER_ENTITIES or canonical_object in PLACEHOLDER_ENTITIES:
+        if self._placeholder(canonical_subject, subject_role) or self._placeholder(
+            canonical_object, object_role
+        ):
             self.exclude(fact_type, subject, pred, obj, EXCLUDED_PLACEHOLDER)
             return
         key = (canonical_subject, pred, canonical_object)
@@ -691,6 +756,83 @@ class _RelationBuilder:
                 normalized = self.adapter.normalize_category(str(category))
                 if normalized not in pending["categories"]:
                     pending["categories"].append(normalized)
+
+    def _placeholder(self, canonical: str | None, role: str) -> bool:
+        if canonical in PLACEHOLDER_ENTITIES:
+            return True
+        # 정식 술어 모드: 등록부 가짜 브랜드는 브랜드 자리에서만 뺀다 ("fresh"는 일반 단어다)
+        return role == _ROLE_BRAND and self.adapter.is_placeholder_brand(canonical)
+
+    def ontology_card(self, edge: dict[str, Any], as_of: str | None, version: str | None) -> None:
+        """온톨로지 정적 사실 1건 → relation 카드 (출처 ``ontology:registry``, OE4·OE5).
+
+        주어·목적어는 이미 등록부 id라 다시 정규화하지 않는다. 표시는 등록부 이름·라벨.
+        """
+        subject, predicate, obj = edge.get("subject"), edge.get("predicate"), edge.get("object")
+        if not subject or not predicate:
+            return
+        onto = self.adapter.ontology
+        meta: dict[str, Any] = {"fact_type": "ontology_static"}
+        if version:
+            meta["ontology_version"] = version
+
+        def label(iid: Any) -> str:
+            if onto is not None:
+                name = onto.brand_name(str(iid)) or onto.label_of(str(iid))
+                if name:
+                    return str(name)
+            return str(iid)
+
+        shown_subject = label(subject)
+        shown_object = label(obj) if obj is not None else ""
+        if shown_subject != subject:
+            meta["display_name"] = shown_subject
+        if obj is not None and shown_object != obj:
+            meta["object_display_name"] = shown_object
+        value: EvidenceValue = None
+        if predicate == "notOwnedByGroup":
+            meta["closed_world"] = True
+            text = (
+                f"{shown_subject} notOwnedByGroup {shown_object} — 브랜드 등록부에 {shown_subject}의 "
+                f"소속 그룹이 {shown_object}로 적혀 있지 않다 (등록부 안에서만 닫힌 세계로 판정)"
+            )
+        elif predicate == "notSiblingBrand":
+            meta["closed_world"] = True
+            text = (
+                f"{shown_subject} notSiblingBrand {shown_object} — 브랜드 등록부 기준 같은 그룹 "
+                f"소속이 아니다 (등록부 안에서만 닫힌 세계로 판정)"
+            )
+        elif predicate == "groupMembershipUnknown":
+            meta["unknown"] = True
+            text = (
+                f"{shown_subject}: 브랜드 등록부에 없어 {shown_object} 소속 여부를 알 수 없다 "
+                f"(아니라고 단정하지 않는다)"
+            )
+        elif predicate == "expansionTruncated":
+            dropped = [label(b) for b in edge.get("dropped") or []]
+            value = int(edge.get("count") or len(dropped))
+            meta["dropped"] = list(edge.get("dropped") or [])
+            meta["kept"] = list(edge.get("kept") or [])
+            text = (
+                f"{shown_subject} 소속 브랜드 전개를 상한으로 잘랐다: 수치 조회에서 {value}개 제외 "
+                f"({', '.join(dropped)})"
+            )
+        else:
+            text = " ".join(part for part in (shown_subject, predicate, shown_object) if part)
+        self.cards.add(
+            Evidence.create(
+                kind=EvidenceKind.RELATION,
+                subject=str(subject),
+                predicate=str(predicate),
+                object=str(obj) if obj is not None else None,
+                value=value,
+                as_of=as_of or None,
+                source=ONTOLOGY_SOURCE,
+                confidence=1.0,
+                text=text,
+                metadata=meta,
+            )
+        )
 
     def result(self) -> KGEvidenceResult:
         for subject, predicate, obj in self._order:
@@ -731,8 +873,14 @@ class _RelationBuilder:
 def _kg_brand_info(b: _RelationBuilder, entity: Any, data: Any) -> None:
     # entity_metadata: {"type", "sos", "avg_rank", "product_count", "is_target", ...}
     # (dashboard_exporter.py·brain.py·kg_updater.py가 대시보드 JSON에서 날짜 없이 기록)
+    # 정식 술어 모드(O3)에서는 정적 정의 키(그룹·세그먼트·원산지·인수 연도)만 관계 카드로
+    # 싣는다 — 날짜 없는 제외 규칙은 수치에만 적용한다 (OE5).
     for key, value in (data or {}).items():
-        b.exclude("brand_info", entity, key, value, EXCLUDED_METADATA)
+        static = _STATIC_METADATA_KEYS.get(str(key)) if b.adapter.canonical else None
+        if static and isinstance(value, str | int) and not isinstance(value, bool) and value != "":
+            b.relation(entity, static, value, "brand_info")
+        else:
+            b.exclude("brand_info", entity, key, value, EXCLUDED_METADATA)
 
 
 def _kg_brand_products(b: _RelationBuilder, entity: Any, data: Any) -> None:
@@ -851,7 +999,16 @@ def _kg_sentiment_products(b: _RelationBuilder, entity: Any, data: Any) -> None:
         b.relation(asin, "hasSentiment", tag, "sentiment_products", metadata=meta)
 
 
+def _kg_ontology_static(b: _RelationBuilder, entity: Any, data: Any) -> None:
+    # {"edges": [{"subject", "predicate", "object", ...}], "as_of", "version"} —
+    # src/rag/ontology_context.py:static_fact (플래그 ontology.use_class_reasoning ON에서만 생긴다)
+    data = data or {}
+    for edge in data.get("edges") or []:
+        b.ontology_card(edge, data.get("as_of"), data.get("version"))
+
+
 _KG_HANDLERS: dict[str, Callable[[_RelationBuilder, Any, Any], None]] = {
+    "ontology_static": _kg_ontology_static,
     "brand_info": _kg_brand_info,
     "brand_products": _kg_brand_products,
     "competitors": _kg_competitors,

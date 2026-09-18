@@ -265,26 +265,9 @@ for ent in entities:
         print(f"{ent.concept_label}: {len(products)} products")
 ```
 
-### OWLReasoner 통합
+### OWLReasoner 통합 (삭제됨)
 
-```python
-from src.rag.entity_linker import EntityLinker
-from src.ontology.owl_reasoner import OWLReasoner
-
-owl = OWLReasoner()
-linker = EntityLinker(owl_reasoner=owl)
-
-# URI를 사용한 SPARQL 쿼리 구성
-entities = linker.link("LANEIGE vs COSRX 비교")
-
-brand_uris = [e.concept_uri for e in entities if e.entity_type == "brand"]
-
-if len(brand_uris) >= 2:
-    # SPARQL-like 쿼리
-    print(f"SELECT ?relation WHERE {{")
-    print(f"  <{brand_uris[0]}> ?relation <{brand_uris[1]}> .")
-    print(f"}}")
-```
+[2026-09 사후, 트랙 O6] `src/ontology/owl_reasoner.py`는 서비스 호출처 0건으로 삭제됐고, `EntityLinker`의 `owl_reasoner` 인자(저장만 하고 쓰지 않던 인자)도 제거됐다. 온톨로지 조회는 `src/ontology/ontology.py`의 `get_ontology()`를 쓴다. 아래 URI(`amore_brand.owl#...`)는 연결기가 만드는 식별 문자열일 뿐, OWL 파일을 로드하지 않는다.
 
 ---
 
@@ -292,13 +275,12 @@ if len(brand_uris) >= 2:
 
 ### EntityLinker
 
-#### `__init__(knowledge_graph=None, owl_reasoner=None, use_spacy=True)`
+#### `__init__(knowledge_graph=None, use_spacy=True)`
 
 Entity Linker 인스턴스 생성
 
 **Parameters:**
 - `knowledge_graph` (KnowledgeGraph, optional): 지식 그래프 인스턴스
-- `owl_reasoner` (OWLReasoner, optional): OWL 추론기 인스턴스
 - `use_spacy` (bool, default=True): spaCy NER 사용 여부
 
 #### `link(text, entity_types=None, min_confidence=0.5) -> List[LinkedEntity]`

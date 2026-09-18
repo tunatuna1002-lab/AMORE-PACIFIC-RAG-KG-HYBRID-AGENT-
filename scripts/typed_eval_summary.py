@@ -37,6 +37,13 @@ TRACKED = [
     ("pass_count", "통과 수", 5.0),
     ("l2_context_recall_concept", "L2 개념 Recall", 0.01),
     ("l3_kg_edge_recall", "L3 엣지 Recall", 0.01),
+    # [2026-09 사후] O0-추가: by_layer에는 이미 있었지만(eval/report.py) 여기 TRACKED에는
+    # 빠져 있던 O0-A·O0 후속 필드 — 골드 엣지 있는 문항만의 recall(raw·canonical)과 L4
+    # 새 지표. 값이 없는 리포트(구형)는 기존 로직대로 "—"로 표시된다.
+    ("l3_kg_edge_recall_gold_only", "L3 엣지 Recall(골드 엣지 문항)", 0.01),
+    ("l3_kg_edge_recall_gold_only_canonical", "L3 엣지 Recall(골드 엣지 문항, canonical)", 0.01),
+    ("l4_rule_constraint_violation_rate", "L4 규칙 제약 위반율", 0.05),
+    ("l4_typed_consistency_rate", "L4 타입 일관성", 0.05),
     ("l5_groundedness", "L5 근거성", 0.03),
     ("l5_relevance", "L5 관련성", 0.03),
     ("l5_answer_f1", "L5 토큰 F1", 0.01),

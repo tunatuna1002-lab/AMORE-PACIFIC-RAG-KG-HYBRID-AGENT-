@@ -1,0 +1,7653 @@
+{
+ "group": {
+  "combined_context": "[DB 수치]\n[M-dc4632] face_powder HHI 0.0527 (2026-08-31, sqlite:market_metrics)\n[M-a4cd2c] face_powder Top100 평균가 $17.70 (2026-08-31, sqlite:market_metrics)\n[M-27fd61] amorepacific face_powder Top100 진입 없음 (2026-08-31, sqlite:brand_metrics)\n[M-478fe5] Maybelline face_powder SoS 12% (2026-08-31, sqlite:brand_metrics)\n[M-4e32d4] TIRTIR face_powder SoS 3% (2026-08-31, sqlite:brand_metrics)\n[M-718e3d] LANEIGE face_powder SoS 2% (2026-08-31, sqlite:brand_metrics)\n[M-8106ee] ETUDE face_powder SoS 1% (2026-08-31, sqlite:brand_metrics)\n[M-7d0a5d] innisfree face_powder SoS 1% (2026-08-31, sqlite:brand_metrics)\n[M-97695a] LANEIGE Neo Blurring Powder face_powder BSR 순위 9위 (2026-08-31, sqlite:raw_data)\n[M-88f31a] LANEIGE Neo Blurring Powder face_powder 가격 $25.00 (2026-08-31, sqlite:raw_data)\n[M-08d6f2] LANEIGE Neo Blurring Powder face_powder 평점 4.4/5 (2026-08-31, sqlite:raw_data)\n[M-5e32f6] LANEIGE Neo Blurring Powder face_powder 리뷰 수 1,200 (2026-08-31, sqlite:raw_data)\n[M-10245f] TIRTIR Mask Fit Powder face_powder BSR 순위 12위 (2026-08-31, sqlite:raw_data)\n[M-08ea7b] TIRTIR Mask Fit Powder face_powder 가격 $18.00 (2026-08-31, sqlite:raw_data)\n[M-d91c8e] TIRTIR Mask Fit Powder face_powder 평점 4.3/5 (2026-08-31, sqlite:raw_data)\n[M-414529] TIRTIR Mask Fit Powder face_powder 리뷰 수 900 (2026-08-31, sqlite:raw_data)\n[M-be26de] Maybelline face_powder Top100 제품 수 12 (2026-08-31, sqlite:brand_metrics)\n[M-26876c] Maybelline face_powder SoS 브랜드 순위 1위 (2026-08-31, sqlite:brand_metrics)\n[M-fe0281] TIRTIR face_powder Top100 제품 수 3 (2026-08-31, sqlite:brand_metrics)\n[M-899ea2] TIRTIR face_powder SoS 브랜드 순위 2위 (2026-08-31, sqlite:brand_metrics)\n[M-ec5b4f] LANEIGE face_powder Top100 제품 수 2 (2026-08-31, sqlite:brand_metrics)\n[M-34bb95] LANEIGE face_powder SoS 브랜드 순위 3위 (2026-08-31, sqlite:brand_metrics)\n[M-02d3c5] ETUDE face_powder Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-d729b5] ETUDE face_powder SoS 브랜드 순위 4위 (2026-08-31, sqlite:brand_metrics)\n[M-ae4007] innisfree face_powder Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-76b410] innisfree face_powder SoS 브랜드 순위 4위 (2026-08-31, sqlite:brand_metrics)\n\n[관계]\n[R-12fdb1] face_powder parentCategory face_makeup (kg)\n[R-fff087] face_makeup parentCategory makeup (kg)\n[R-32c53a] makeup parentCategory beauty (kg)\n\n[문서]\n[D-abf114] HHI 해석 가이드 (rag:metric_guide)\n  # HHI 해석\n  HHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.\n[D-851583] SoS 대응 플레이북 (rag:playbook)\n  # SoS 대응\n  SoS가 낮은 카테고리는 진입 전략을 검토한다.",
+  "entities": {
+   "brands": [
+    "amorepacific"
+   ],
+   "categories": [
+    "face_powder"
+   ],
+   "concepts": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-dc4632",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder HHI 0.0527",
+    "unit": "index_0_1",
+    "value": 0.0527
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-a4cd2c",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder Top100 평균가 $17.70",
+    "unit": "usd",
+    "value": 17.7
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-27fd61",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "amorepacific",
+    "text": "amorepacific face_powder Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-478fe5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 12%",
+    "unit": "ratio",
+    "value": 0.12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4e32d4",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 3%",
+    "unit": "ratio",
+    "value": 0.03
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-718e3d",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 2%",
+    "unit": "ratio",
+    "value": 0.02
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-8106ee",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-7d0a5d",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-97695a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder BSR 순위 9위",
+    "unit": "rank",
+    "value": 9
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-88f31a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 가격 $25.00",
+    "unit": "usd",
+    "value": 25.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08d6f2",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 평점 4.4/5",
+    "unit": "rating_5",
+    "value": 4.4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-5e32f6",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 리뷰 수 1,200",
+    "unit": "count",
+    "value": 1200
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-10245f",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder BSR 순위 12위",
+    "unit": "rank",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08ea7b",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 가격 $18.00",
+    "unit": "usd",
+    "value": 18.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d91c8e",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 평점 4.3/5",
+    "unit": "rating_5",
+    "value": 4.3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-414529",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 리뷰 수 900",
+    "unit": "count",
+    "value": 900
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-be26de",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder Top100 제품 수 12",
+    "unit": "count",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-26876c",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-fe0281",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder Top100 제품 수 3",
+    "unit": "count",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-899ea2",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ec5b4f",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder Top100 제품 수 2",
+    "unit": "count",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-34bb95",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 브랜드 순위 3위",
+    "unit": "rank",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-02d3c5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d729b5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ae4007",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-76b410",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-12fdb1",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Face Powder"
+    },
+    "object": "face_makeup",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "face_powder",
+    "text": "face_powder parentCategory face_makeup",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-fff087",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Face Makeup"
+    },
+    "object": "makeup",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "face_makeup",
+    "text": "face_makeup parentCategory makeup",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-32c53a",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Makeup"
+    },
+    "object": "beauty",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "makeup",
+    "text": "makeup parentCategory beauty",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "inferences": [],
+  "metadata": {
+   "bm25_available": false,
+   "degraded": [],
+   "doc_type_filter": null,
+   "entity_rerank": {
+    "bonus_candidates": 0,
+    "bonus_chunks": 0,
+    "candidates": 2,
+    "query_targets": {
+     "brands": [
+      "amorepacific"
+     ],
+     "categories": [
+      "face_powder"
+     ]
+    },
+    "tagged_candidates": 0,
+    "weights": {
+     "brands": 0.001,
+     "categories": 0.001
+    }
+   },
+   "evidence_count": 31,
+   "evidence_excluded": 0,
+   "evidence_excluded_by_reason": {},
+   "inferences_count": 0,
+   "intent_strategy": "vector-heavy/general",
+   "intent_weights": {
+    "inference": 0.2,
+    "kg": 0.3,
+    "rag": 0.5
+   },
+   "ontology_facts_count": 1,
+   "prompt_evidence_count": 31,
+   "query_expanded": false,
+   "query_intent": "general",
+   "rag_chunks_count": 2,
+   "rule_evaluation": {
+    "combinations": [
+     [
+      "amorepacific",
+      "face_powder"
+     ]
+    ],
+    "evaluated": 37,
+    "fired": [],
+    "non_fire_counts_by_kind": {
+     "missing_input": 37
+    },
+    "non_fire_top": [
+     [
+      "missing_input:rank_change_7d",
+      5
+     ],
+     [
+      "missing_input:sentiment_clusters",
+      5
+     ],
+     [
+      "missing_input:rating_gap",
+      4
+     ],
+     [
+      "missing_input:sos",
+      4
+     ],
+     [
+      "missing_input:cpi",
+      3
+     ],
+     [
+      "missing_input:ai_summary",
+      2
+     ],
+     [
+      "missing_input:competitor_count",
+      2
+     ],
+     [
+      "missing_input:competitor_sentiment_clusters",
+      2
+     ],
+     [
+      "missing_input:current_rank",
+      2
+     ],
+     [
+      "missing_input:rank_volatility",
+      2
+     ]
+    ]
+   },
+   "search_method": "dense_only",
+   "selfrag_confidence": 0.8
+  },
+  "metric_facts": [
+   {
+    "category": "face_powder",
+    "category_avg_price": 17.7,
+    "hhi": 0.0527,
+    "snapshot_date": "2026-08-31",
+    "type": "category_market"
+   },
+   {
+    "brands": [
+     {
+      "brand": "Maybelline",
+      "product_count": 12,
+      "sos": 12.0
+     },
+     {
+      "brand": "TIRTIR",
+      "product_count": 3,
+      "sos": 3.0
+     },
+     {
+      "brand": "LANEIGE",
+      "product_count": 2,
+      "sos": 2.0
+     },
+     {
+      "brand": "ETUDE",
+      "product_count": 1,
+      "sos": 1.0
+     },
+     {
+      "brand": "innisfree",
+      "product_count": 1,
+      "sos": 1.0
+     }
+    ],
+    "category": "face_powder",
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_brands"
+   },
+   {
+    "brand": "amorepacific",
+    "category": "face_powder",
+    "present": false,
+    "snapshot_date": "2026-08-31",
+    "type": "brand_share"
+   },
+   {
+    "category": "face_powder",
+    "products": [
+     {
+      "brand": "LANEIGE",
+      "name": "LANEIGE Neo Blurring Powder",
+      "price": 25.0,
+      "rank": 9,
+      "rating": 4.4,
+      "reviews_count": 1200
+     },
+     {
+      "brand": "TIRTIR",
+      "name": "TIRTIR Mask Fit Powder",
+      "price": 18.0,
+      "rank": 12,
+      "rating": 4.3,
+      "reviews_count": 900
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_products"
+   }
+  ],
+  "ontology_facts": [
+   {
+    "_weighted_score": 0.24,
+    "data": {
+     "ancestors": [
+      {
+       "id": "face_makeup",
+       "level": 2,
+       "name": "Face Makeup"
+      },
+      {
+       "id": "makeup",
+       "level": 1,
+       "name": "Makeup"
+      },
+      {
+       "id": "beauty",
+       "level": 0,
+       "name": "Beauty & Personal Care"
+      }
+     ],
+     "descendants": [],
+     "level": 3,
+     "name": "Face Powder",
+     "path": [
+      "beauty",
+      "makeup",
+      "face_makeup",
+      "face_powder"
+     ]
+    },
+    "entity": "face_powder",
+    "type": "category_hierarchy"
+   }
+  ],
+  "prompt_evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-dc4632",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder HHI 0.0527",
+    "unit": "index_0_1",
+    "value": 0.0527
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-a4cd2c",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder Top100 평균가 $17.70",
+    "unit": "usd",
+    "value": 17.7
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-27fd61",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "amorepacific",
+    "text": "amorepacific face_powder Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-478fe5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 12%",
+    "unit": "ratio",
+    "value": 0.12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4e32d4",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 3%",
+    "unit": "ratio",
+    "value": 0.03
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-718e3d",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 2%",
+    "unit": "ratio",
+    "value": 0.02
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-8106ee",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-7d0a5d",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-97695a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder BSR 순위 9위",
+    "unit": "rank",
+    "value": 9
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-88f31a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 가격 $25.00",
+    "unit": "usd",
+    "value": 25.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08d6f2",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 평점 4.4/5",
+    "unit": "rating_5",
+    "value": 4.4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-5e32f6",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 리뷰 수 1,200",
+    "unit": "count",
+    "value": 1200
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-10245f",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder BSR 순위 12위",
+    "unit": "rank",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08ea7b",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 가격 $18.00",
+    "unit": "usd",
+    "value": 18.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d91c8e",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 평점 4.3/5",
+    "unit": "rating_5",
+    "value": 4.3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-414529",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 리뷰 수 900",
+    "unit": "count",
+    "value": 900
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-be26de",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder Top100 제품 수 12",
+    "unit": "count",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-26876c",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-fe0281",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder Top100 제품 수 3",
+    "unit": "count",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-899ea2",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ec5b4f",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder Top100 제품 수 2",
+    "unit": "count",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-34bb95",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 브랜드 순위 3위",
+    "unit": "rank",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-02d3c5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d729b5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ae4007",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-76b410",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-12fdb1",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Face Powder"
+    },
+    "object": "face_makeup",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "face_powder",
+    "text": "face_powder parentCategory face_makeup",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-fff087",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Face Makeup"
+    },
+    "object": "makeup",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "face_makeup",
+    "text": "face_makeup parentCategory makeup",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-32c53a",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Makeup"
+    },
+    "object": "beauty",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "makeup",
+    "text": "makeup parentCategory beauty",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "query": "아모레퍼시픽 그룹 소속 브랜드 중 Face Powder Top 100에 제품이 있는 브랜드는?",
+  "rag_chunks": [
+   {
+    "_weighted_score": 0.36400000000000005,
+    "content": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "metric_guide_hhi_0",
+    "metadata": {
+     "doc_id": "metric_guide",
+     "doc_type": "metric_guide",
+     "title": "HHI 해석 가이드"
+    },
+    "score": 0.91
+   },
+   {
+    "_weighted_score": 0.324,
+    "content": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "playbook_sos_1",
+    "metadata": {
+     "doc_id": "playbook",
+     "doc_type": "playbook",
+     "title": "SoS 대응 플레이북"
+    },
+    "score": 0.72
+   }
+  ]
+ },
+ "inclusion": {
+  "combined_context": "[DB 수치]\n[M-78fd5f] skin_care HHI 0.0670 (2026-08-31, sqlite:market_metrics)\n[M-64c1b5] skin_care Top100 평균가 $21.00 (2026-08-31, sqlite:market_metrics)\n[M-0b2f3b] COSRX skin_care SoS 1.04% (2026-08-31, sqlite:brand_metrics)\n[M-835caa] COSRX skin_care Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-59016a] COSRX skin_care SoS 브랜드 순위 2위 (2026-08-31, sqlite:brand_metrics)\n[M-06703c] laneige skin_care Top100 진입 없음 (2026-08-31, sqlite:brand_metrics)\n[M-2ad382] medicube skin_care SoS 13.54% (2026-08-31, sqlite:brand_metrics)\n[M-650da0] COSRX Snail Mucin skin_care BSR 순위 99위 (2026-08-31, sqlite:raw_data)\n[M-0febd0] COSRX Snail Mucin skin_care 가격 $17.00 (2026-08-31, sqlite:raw_data)\n[M-160bd9] COSRX Snail Mucin skin_care 평점 4.6/5 (2026-08-31, sqlite:raw_data)\n[M-c42761] COSRX Snail Mucin skin_care 리뷰 수 106,338 (2026-08-31, sqlite:raw_data)\n[M-c54c94] medicube skin_care Top100 제품 수 13 (2026-08-31, sqlite:brand_metrics)\n[M-4004bf] medicube skin_care SoS 브랜드 순위 1위 (2026-08-31, sqlite:brand_metrics)\n\n[관계]\n[R-f189d7] LANEIGE ownedBy AMOREPACIFIC (kg)\n[R-81ed58] COSRX ownedBy AMOREPACIFIC (kg)\n[R-e290ad] skin_care parentCategory beauty (kg)\n[R-88e6ff] skin_care hasSubcategory lip_care (kg)\n[R-792fc5] skin_care hasSubcategory face_skincare (kg)\n[R-47d46f] skin_care hasSubcategory body_skincare (kg)\n[R-52b2bd] skin_care hasSubcategory eyes_skincare (kg)\n[R-5381ca] laneige rankedIn lip_care (kg)\n[R-c62989] laneige competesWith tirtir [카테고리: face_powder] (kg)\n[R-bb13e5] laneige hasProduct B0LSM00001 (kg)\n[R-8da9fa] B0LSM00001 belongsToCategory lip_care (kg)\n[R-93e318] laneige hasProduct lip_sleeping_mask (kg)\n[R-4271d9] laneige hasProduct lip_sleeping (kg)\n[R-e7b92f] lip_sleeping_mask belongsToCategory lip_care (kg)\n\n[규칙 추론]\n[I-1e4df5] laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. (rule:brand_ownership_verification; 근거: R-f189d7)\n  권장: 그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.\n[I-399603] cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. (rule:brand_ownership_verification; 근거: R-81ed58)\n  권장: 그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.\n\n[문서]\n[D-abf114] HHI 해석 가이드 (rag:metric_guide)\n  # HHI 해석\n  HHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.\n[D-851583] SoS 대응 플레이북 (rag:playbook)\n  # SoS 대응\n  SoS가 낮은 카테고리는 진입 전략을 검토한다.",
+  "entities": {
+   "brands": [
+    "laneige",
+    "cosrx"
+   ],
+   "categories": [
+    "skin_care"
+   ],
+   "concepts": [
+    "sos"
+   ],
+   "indicators": [
+    "sos"
+   ],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-78fd5f",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care HHI 0.0670",
+    "unit": "index_0_1",
+    "value": 0.067
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-64c1b5",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care Top100 평균가 $21.00",
+    "unit": "usd",
+    "value": 21.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0b2f3b",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 1.04%",
+    "unit": "ratio",
+    "value": 0.0104
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-835caa",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-59016a",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-06703c",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "laneige skin_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-2ad382",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 13.54%",
+    "unit": "ratio",
+    "value": 0.1354
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-650da0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care BSR 순위 99위",
+    "unit": "rank",
+    "value": 99
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0febd0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 가격 $17.00",
+    "unit": "usd",
+    "value": 17.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-160bd9",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c42761",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 리뷰 수 106,338",
+    "unit": "count",
+    "value": 106338
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c54c94",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care Top100 제품 수 13",
+    "unit": "count",
+    "value": 13
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4004bf",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-f189d7",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "LANEIGE",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "LANEIGE ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-81ed58",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "COSRX",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "COSRX ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-e290ad",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Skin Care"
+    },
+    "object": "beauty",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care parentCategory beauty",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-88e6ff",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "lip_care",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-792fc5",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "face_skincare",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory face_skincare",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-47d46f",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "body_skincare",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory body_skincare",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-52b2bd",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "eyes_skincare",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory eyes_skincare",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-5381ca",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige rankedIn lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-c62989",
+    "kind": "relation",
+    "metadata": {
+     "categories": [
+      "face_powder"
+     ],
+     "fact_type": "competitors"
+    },
+    "object": "tirtir",
+    "predicate": "competesWith",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige competesWith tirtir [카테고리: face_powder]",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-bb13e5",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "B0LSM00001",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct B0LSM00001",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-8da9fa",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "B0LSM00001",
+    "text": "B0LSM00001 belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-93e318",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping_mask",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping_mask",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-4271d9",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-e7b92f",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "lip_sleeping_mask",
+    "text": "lip_sleeping_mask belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-f189d7"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-1e4df5",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "laneige",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "laneige",
+    "text": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-399603",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "cosrx",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "cosrx",
+    "text": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "inferences": [
+   {
+    "conclusion": {
+     "confidence": 1.0,
+     "verification": "brand_ownership"
+    },
+    "confidence": 1.0,
+    "evidence": {
+     "context_snapshot": {
+      "brand": "laneige",
+      "parent_group": "amorepacific"
+     },
+     "derived_from": [
+      "R-f189d7"
+     ],
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "insight": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+    "insight_type": "market_position",
+    "metadata": {
+     "acquired": null,
+     "country_of_origin": "Korea",
+     "evidence": [
+      "config/brands.json",
+      "IR Reports"
+     ],
+     "parent_group": "AMOREPACIFIC",
+     "priority": 5,
+     "rule_description": "브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)",
+     "segment": null,
+     "tags": [
+      "brand",
+      "ownership",
+      "verification"
+     ]
+    },
+    "recommendation": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "related_entities": [
+     "laneige",
+     "AMOREPACIFIC"
+    ],
+    "rule_name": "brand_ownership_verification"
+   },
+   {
+    "conclusion": {
+     "confidence": 1.0,
+     "verification": "brand_ownership"
+    },
+    "confidence": 1.0,
+    "evidence": {
+     "context_snapshot": {
+      "brand": "cosrx",
+      "parent_group": "amorepacific"
+     },
+     "derived_from": [
+      "R-81ed58"
+     ],
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "insight": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+    "insight_type": "market_position",
+    "metadata": {
+     "acquired": null,
+     "country_of_origin": "Korea",
+     "evidence": [
+      "config/brands.json",
+      "IR Reports"
+     ],
+     "parent_group": "AMOREPACIFIC",
+     "priority": 5,
+     "rule_description": "브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)",
+     "segment": null,
+     "tags": [
+      "brand",
+      "ownership",
+      "verification"
+     ]
+    },
+    "recommendation": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "related_entities": [
+     "cosrx",
+     "AMOREPACIFIC"
+    ],
+    "rule_name": "brand_ownership_verification"
+   }
+  ],
+  "metadata": {
+   "bm25_available": false,
+   "degraded": [],
+   "doc_type_filter": [
+    "metric_guide",
+    "playbook"
+   ],
+   "entity_rerank": {
+    "bonus_candidates": 0,
+    "bonus_chunks": 0,
+    "candidates": 4,
+    "query_targets": {
+     "brands": [
+      "cosrx",
+      "laneige"
+     ],
+     "categories": [
+      "skin_care"
+     ]
+    },
+    "tagged_candidates": 0,
+    "weights": {
+     "brands": 0.001,
+     "categories": 0.001
+    }
+   },
+   "evidence_count": 31,
+   "evidence_excluded": 2,
+   "evidence_excluded_by_reason": {
+    "kg_numeric_undated": 2
+   },
+   "inferences_count": 2,
+   "intent_strategy": "balanced/metric",
+   "intent_weights": {
+    "inference": 0.2,
+    "kg": 0.4,
+    "rag": 0.4
+   },
+   "ontology_facts_count": 6,
+   "prompt_evidence_count": 31,
+   "query_expanded": true,
+   "query_intent": "metric",
+   "rag_chunks_count": 2,
+   "rule_evaluation": {
+    "combinations": [
+     [
+      "laneige",
+      "skin_care"
+     ],
+     [
+      "cosrx",
+      "skin_care"
+     ]
+    ],
+    "evaluated": 73,
+    "fired": [
+     "brand_ownership_verification"
+    ],
+    "non_fire_counts_by_kind": {
+     "conditions_not_met": 7,
+     "missing_input": 64
+    },
+    "non_fire_top": [
+     [
+      "missing_input:sentiment_clusters",
+      10
+     ],
+     [
+      "missing_input:rank_change_7d",
+      9
+     ],
+     [
+      "missing_input:rating_gap",
+      8
+     ],
+     [
+      "missing_input:cpi",
+      6
+     ],
+     [
+      "missing_input:ai_summary",
+      4
+     ],
+     [
+      "missing_input:competitor_sentiment_clusters",
+      4
+     ],
+     [
+      "missing_input:sos",
+      4
+     ],
+     [
+      "missing_input:sos_change",
+      4
+     ],
+     [
+      "missing_input:streak_days",
+      4
+     ],
+     [
+      "missing_input:rank_volatility",
+      3
+     ]
+    ]
+   },
+   "search_method": "dense_only",
+   "selfrag_confidence": 1.0
+  },
+  "metric_facts": [
+   {
+    "category": "skin_care",
+    "category_avg_price": 21.0,
+    "hhi": 0.067,
+    "snapshot_date": "2026-08-31",
+    "type": "category_market"
+   },
+   {
+    "brands": [
+     {
+      "brand": "medicube",
+      "product_count": 13,
+      "sos": 13.54
+     },
+     {
+      "brand": "COSRX",
+      "product_count": 1,
+      "sos": 1.04
+     }
+    ],
+    "category": "skin_care",
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_brands"
+   },
+   {
+    "brand": "laneige",
+    "category": "skin_care",
+    "present": false,
+    "snapshot_date": "2026-08-31",
+    "type": "brand_share"
+   },
+   {
+    "brand": "COSRX",
+    "brand_rank": 2,
+    "category": "skin_care",
+    "present": true,
+    "product_count": 1,
+    "snapshot_date": "2026-08-31",
+    "sos": 1.04,
+    "type": "brand_share"
+   },
+   {
+    "category": "skin_care",
+    "products": [
+     {
+      "brand": "COSRX",
+      "name": "COSRX Snail Mucin",
+      "price": 17.0,
+      "rank": 99,
+      "rating": 4.6,
+      "reviews_count": 106338
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_products"
+   },
+   {
+    "brand": "COSRX",
+    "category": "skin_care",
+    "products": [
+     {
+      "brand": "COSRX",
+      "name": "COSRX Snail Mucin",
+      "price": 17.0,
+      "rank": 99,
+      "rating": 4.6,
+      "reviews_count": 106338
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "brand_products"
+   }
+  ],
+  "ontology_facts": [
+   {
+    "_weighted_score": 0.4,
+    "data": [
+     {
+      "brand": "tirtir",
+      "category": "face_powder",
+      "type": "competesWith"
+     }
+    ],
+    "entity": "laneige",
+    "type": "competitors"
+   },
+   {
+    "_weighted_score": 0.4,
+    "data": {
+     "incoming": [],
+     "outgoing": [
+      [
+       "competesWith",
+       "tirtir"
+      ]
+     ]
+    },
+    "entity": "laneige",
+    "type": "competitor_network"
+   },
+   {
+    "_weighted_score": 0.32000000000000006,
+    "data": {
+     "ancestors": [
+      {
+       "id": "beauty",
+       "level": 0,
+       "name": "Beauty & Personal Care"
+      }
+     ],
+     "descendants": [
+      {
+       "id": "lip_care",
+       "level": 2,
+       "name": "Lip Care"
+      },
+      {
+       "id": "face_skincare",
+       "level": 2,
+       "name": "Face"
+      },
+      {
+       "id": "body_skincare",
+       "level": 2,
+       "name": "Body"
+      },
+      {
+       "id": "eyes_skincare",
+       "level": 2,
+       "name": "Eyes"
+      }
+     ],
+     "level": 1,
+     "name": "Skin Care",
+     "path": [
+      "beauty",
+      "skin_care"
+     ]
+    },
+    "entity": "skin_care",
+    "type": "category_hierarchy"
+   },
+   {
+    "_weighted_score": 0.24,
+    "data": {
+     "product_count": 1,
+     "products": [
+      {
+       "asin": "B0LSM00001",
+       "category": "lip_care",
+       "name": "",
+       "rank": 7,
+       "title": "LANEIGE Lip Sleeping Mask"
+      }
+     ]
+    },
+    "entity": "laneige",
+    "type": "brand_products"
+   },
+   {
+    "_weighted_score": 0.24,
+    "data": {
+     "edges": [
+      {
+       "object": "lip_sleeping_mask",
+       "predicate": "hasProduct",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_sleeping",
+       "predicate": "hasProduct",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_care",
+       "predicate": "belongsToCategory",
+       "subject": "lip_sleeping_mask"
+      },
+      {
+       "object": "AMOREPACIFIC",
+       "predicate": "ownedBy",
+       "subject": "LANEIGE"
+      },
+      {
+       "object": "lip_care",
+       "predicate": "hasSoS",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_care",
+       "predicate": "rankedIn",
+       "subject": "laneige"
+      },
+      {
+       "object": "premium",
+       "predicate": "hasPosition",
+       "subject": "laneige"
+      },
+      {
+       "object": "tirtir",
+       "predicate": "competesWith",
+       "subject": "laneige"
+      }
+     ]
+    },
+    "entity": "laneige",
+    "type": "metric_edges"
+   }
+  ],
+  "prompt_evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-78fd5f",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care HHI 0.0670",
+    "unit": "index_0_1",
+    "value": 0.067
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-64c1b5",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care Top100 평균가 $21.00",
+    "unit": "usd",
+    "value": 21.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0b2f3b",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 1.04%",
+    "unit": "ratio",
+    "value": 0.0104
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-835caa",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-59016a",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-06703c",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "laneige skin_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-2ad382",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 13.54%",
+    "unit": "ratio",
+    "value": 0.1354
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-650da0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care BSR 순위 99위",
+    "unit": "rank",
+    "value": 99
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0febd0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 가격 $17.00",
+    "unit": "usd",
+    "value": 17.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-160bd9",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c42761",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 리뷰 수 106,338",
+    "unit": "count",
+    "value": 106338
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c54c94",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care Top100 제품 수 13",
+    "unit": "count",
+    "value": 13
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4004bf",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-f189d7",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "LANEIGE",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "LANEIGE ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-81ed58",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "COSRX",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "COSRX ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-e290ad",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy",
+     "name": "Skin Care"
+    },
+    "object": "beauty",
+    "predicate": "parentCategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care parentCategory beauty",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-88e6ff",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "lip_care",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-792fc5",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "face_skincare",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory face_skincare",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-47d46f",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "body_skincare",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory body_skincare",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-52b2bd",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "category_hierarchy"
+    },
+    "object": "eyes_skincare",
+    "predicate": "hasSubcategory",
+    "source": "kg",
+    "subject": "skin_care",
+    "text": "skin_care hasSubcategory eyes_skincare",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-5381ca",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige rankedIn lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-c62989",
+    "kind": "relation",
+    "metadata": {
+     "categories": [
+      "face_powder"
+     ],
+     "fact_type": "competitors"
+    },
+    "object": "tirtir",
+    "predicate": "competesWith",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige competesWith tirtir [카테고리: face_powder]",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-bb13e5",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "B0LSM00001",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct B0LSM00001",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-8da9fa",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "B0LSM00001",
+    "text": "B0LSM00001 belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-93e318",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping_mask",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping_mask",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-4271d9",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-e7b92f",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "lip_sleeping_mask",
+    "text": "lip_sleeping_mask belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-f189d7"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-1e4df5",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "laneige",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "laneige",
+    "text": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-399603",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "cosrx",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "cosrx",
+    "text": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "query": "LANEIGE가 Skin Care에서 COSRX 수준의 SoS를 달성하려면?",
+  "rag_chunks": [
+   {
+    "_weighted_score": 0.29120000000000007,
+    "content": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "metric_guide_hhi_0",
+    "metadata": {
+     "doc_id": "metric_guide",
+     "doc_type": "metric_guide",
+     "title": "HHI 해석 가이드"
+    },
+    "score": 0.91
+   },
+   {
+    "_weighted_score": 0.2592,
+    "content": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "playbook_sos_1",
+    "metadata": {
+     "doc_id": "playbook",
+     "doc_type": "playbook",
+     "title": "SoS 대응 플레이북"
+    },
+    "score": 0.72
+   }
+  ]
+ },
+ "negative": {
+  "combined_context": "[DB 수치]\n[M-dc4632] face_powder HHI 0.0527 (2026-08-31, sqlite:market_metrics)\n[M-a4cd2c] face_powder Top100 평균가 $17.70 (2026-08-31, sqlite:market_metrics)\n[M-4dcfa7] lip_care HHI 0.0681 (2026-08-31, sqlite:market_metrics)\n[M-e37e13] lip_care Top100 평균가 $14.20 (2026-08-31, sqlite:market_metrics)\n[M-4e32d4] TIRTIR face_powder SoS 3% (2026-08-31, sqlite:brand_metrics)\n[M-fe0281] TIRTIR face_powder Top100 제품 수 3 (2026-08-31, sqlite:brand_metrics)\n[M-899ea2] TIRTIR face_powder SoS 브랜드 순위 2위 (2026-08-31, sqlite:brand_metrics)\n[M-718e3d] LANEIGE face_powder SoS 2% (2026-08-31, sqlite:brand_metrics)\n[M-ec5b4f] LANEIGE face_powder Top100 제품 수 2 (2026-08-31, sqlite:brand_metrics)\n[M-34bb95] LANEIGE face_powder SoS 브랜드 순위 3위 (2026-08-31, sqlite:brand_metrics)\n[M-dce503] LANEIGE lip_care SoS 2% (2026-08-31, sqlite:brand_metrics)\n[M-a081dc] LANEIGE lip_care Top100 제품 수 2 (2026-08-31, sqlite:brand_metrics)\n[M-4401f3] LANEIGE lip_care SoS 브랜드 순위 2위 (2026-08-31, sqlite:brand_metrics)\n[M-e67f66] tirtir lip_care Top100 진입 없음 (2026-08-31, sqlite:brand_metrics)\n[M-478fe5] Maybelline face_powder SoS 12% (2026-08-31, sqlite:brand_metrics)\n[M-8106ee] ETUDE face_powder SoS 1% (2026-08-31, sqlite:brand_metrics)\n[M-7d0a5d] innisfree face_powder SoS 1% (2026-08-31, sqlite:brand_metrics)\n[M-cc4a9f] eos lip_care SoS 9% (2026-08-31, sqlite:brand_metrics)\n[M-97695a] LANEIGE Neo Blurring Powder face_powder BSR 순위 9위 (2026-08-31, sqlite:raw_data)\n[M-88f31a] LANEIGE Neo Blurring Powder face_powder 가격 $25.00 (2026-08-31, sqlite:raw_data)\n[M-08d6f2] LANEIGE Neo Blurring Powder face_powder 평점 4.4/5 (2026-08-31, sqlite:raw_data)\n[M-5e32f6] LANEIGE Neo Blurring Powder face_powder 리뷰 수 1,200 (2026-08-31, sqlite:raw_data)\n[M-10245f] TIRTIR Mask Fit Powder face_powder BSR 순위 12위 (2026-08-31, sqlite:raw_data)\n[M-08ea7b] TIRTIR Mask Fit Powder face_powder 가격 $18.00 (2026-08-31, sqlite:raw_data)\n[M-d91c8e] TIRTIR Mask Fit Powder face_powder 평점 4.3/5 (2026-08-31, sqlite:raw_data)\n[M-414529] TIRTIR Mask Fit Powder face_powder 리뷰 수 900 (2026-08-31, sqlite:raw_data)\n[M-fadf7e] LANEIGE Lip Sleeping Mask lip_care BSR 순위 7위 (2026-08-31, sqlite:raw_data)\n[M-159499] LANEIGE Lip Sleeping Mask lip_care 가격 $21.60 (2026-08-31, sqlite:raw_data)\n[M-90a39d] LANEIGE Lip Sleeping Mask lip_care 평점 4.6/5 (2026-08-31, sqlite:raw_data)\n[M-54bbc1] LANEIGE Lip Sleeping Mask lip_care 리뷰 수 37,356 (2026-08-31, sqlite:raw_data)\n[M-be26de] Maybelline face_powder Top100 제품 수 12 (2026-08-31, sqlite:brand_metrics)\n[M-26876c] Maybelline face_powder SoS 브랜드 순위 1위 (2026-08-31, sqlite:brand_metrics)\n[M-02d3c5] ETUDE face_powder Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-d729b5] ETUDE face_powder SoS 브랜드 순위 4위 (2026-08-31, sqlite:brand_metrics)\n[M-ae4007] innisfree face_powder Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-76b410] innisfree face_powder SoS 브랜드 순위 4위 (2026-08-31, sqlite:brand_metrics)\n[M-b73367] eos lip_care Top100 제품 수 9 (2026-08-31, sqlite:brand_metrics)\n[M-b9ed58] eos lip_care SoS 브랜드 순위 1위 (2026-08-31, sqlite:brand_metrics)\n\n[관계]\n[R-f189d7] LANEIGE ownedBy AMOREPACIFIC (kg)\n[R-5381ca] laneige rankedIn lip_care (kg)\n[R-c62989] laneige competesWith tirtir [카테고리: face_powder] (kg)\n[R-bb13e5] laneige hasProduct B0LSM00001 (kg)\n[R-8da9fa] B0LSM00001 belongsToCategory lip_care (kg)\n[R-93e318] laneige hasProduct lip_sleeping_mask (kg)\n[R-4271d9] laneige hasProduct lip_sleeping (kg)\n[R-e7b92f] lip_sleeping_mask belongsToCategory lip_care (kg)\n\n[규칙 추론]\n[I-1e4df5] laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. (rule:brand_ownership_verification; 근거: R-f189d7)\n  권장: 그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.\n[I-47deab] 평균보다 41% 높은 가격에도 Top 10 유지 (2026-08-31, rule:premium_defense_success; 근거: M-88f31a, M-97695a, M-a4cd2c)\n  권장: 프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.\n[I-db3f25] 평균보다 52% 높은 가격에도 Top 10 유지 (2026-08-31, rule:premium_defense_success; 근거: M-159499, M-e37e13, M-fadf7e)\n  권장: 프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.\n[I-d51953] face_powder는 분산된 시장 구조(HHI: 0.053)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다. (2026-08-31, rule:category_entry_opportunity; 근거: M-718e3d, M-dc4632)\n  권장: 카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.\n[I-78c3de] lip_care는 분산된 시장 구조(HHI: 0.068)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다. (2026-08-31, rule:category_entry_opportunity; 근거: M-4dcfa7, M-dce503)\n  권장: 카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.\n\n[문서]\n[D-abf114] HHI 해석 가이드 (rag:metric_guide)\n  # HHI 해석\n  HHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.\n[D-851583] SoS 대응 플레이북 (rag:playbook)\n  # SoS 대응\n  SoS가 낮은 카테고리는 진입 전략을 검토한다.",
+  "entities": {
+   "brands": [
+    "laneige",
+    "tirtir"
+   ],
+   "categories": [],
+   "concepts": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-dc4632",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder HHI 0.0527",
+    "unit": "index_0_1",
+    "value": 0.0527
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-a4cd2c",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder Top100 평균가 $17.70",
+    "unit": "usd",
+    "value": 17.7
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4dcfa7",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "lip_care",
+    "text": "lip_care HHI 0.0681",
+    "unit": "index_0_1",
+    "value": 0.0681
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-e37e13",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "lip_care",
+    "text": "lip_care Top100 평균가 $14.20",
+    "unit": "usd",
+    "value": 14.2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4e32d4",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 3%",
+    "unit": "ratio",
+    "value": 0.03
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-fe0281",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder Top100 제품 수 3",
+    "unit": "count",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-899ea2",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-718e3d",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 2%",
+    "unit": "ratio",
+    "value": 0.02
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ec5b4f",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder Top100 제품 수 2",
+    "unit": "count",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-34bb95",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 브랜드 순위 3위",
+    "unit": "rank",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-dce503",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE lip_care SoS 2%",
+    "unit": "ratio",
+    "value": 0.02
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-a081dc",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE lip_care Top100 제품 수 2",
+    "unit": "count",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4401f3",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE lip_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-e67f66",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "tirtir lip_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-478fe5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 12%",
+    "unit": "ratio",
+    "value": 0.12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-8106ee",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-7d0a5d",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-cc4a9f",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "eos",
+    "text": "eos lip_care SoS 9%",
+    "unit": "ratio",
+    "value": 0.09
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-97695a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder BSR 순위 9위",
+    "unit": "rank",
+    "value": 9
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-88f31a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 가격 $25.00",
+    "unit": "usd",
+    "value": 25.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08d6f2",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 평점 4.4/5",
+    "unit": "rating_5",
+    "value": 4.4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-5e32f6",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 리뷰 수 1,200",
+    "unit": "count",
+    "value": 1200
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-10245f",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder BSR 순위 12위",
+    "unit": "rank",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08ea7b",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 가격 $18.00",
+    "unit": "usd",
+    "value": 18.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d91c8e",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 평점 4.3/5",
+    "unit": "rating_5",
+    "value": 4.3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-414529",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 리뷰 수 900",
+    "unit": "count",
+    "value": 900
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-fadf7e",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care BSR 순위 7위",
+    "unit": "rank",
+    "value": 7
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-159499",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care 가격 $21.60",
+    "unit": "usd",
+    "value": 21.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-90a39d",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-54bbc1",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care 리뷰 수 37,356",
+    "unit": "count",
+    "value": 37356
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-be26de",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder Top100 제품 수 12",
+    "unit": "count",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-26876c",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-02d3c5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d729b5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ae4007",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-76b410",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-b73367",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "eos",
+    "text": "eos lip_care Top100 제품 수 9",
+    "unit": "count",
+    "value": 9
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-b9ed58",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "eos",
+    "text": "eos lip_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-f189d7",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "LANEIGE",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "LANEIGE ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-5381ca",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige rankedIn lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-c62989",
+    "kind": "relation",
+    "metadata": {
+     "categories": [
+      "face_powder"
+     ],
+     "fact_type": "competitors"
+    },
+    "object": "tirtir",
+    "predicate": "competesWith",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige competesWith tirtir [카테고리: face_powder]",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-bb13e5",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "B0LSM00001",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct B0LSM00001",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-8da9fa",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "B0LSM00001",
+    "text": "B0LSM00001 belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-93e318",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping_mask",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping_mask",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-4271d9",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-e7b92f",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "lip_sleeping_mask",
+    "text": "lip_sleeping_mask belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-f189d7"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-1e4df5",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "laneige",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "laneige",
+    "text": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.9,
+    "derived_from": [
+     "M-88f31a",
+     "M-97695a",
+     "M-a4cd2c"
+    ],
+    "detail": "프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.",
+    "id": "I-47deab",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "price_position",
+     "related_entities": [
+      "laneige"
+     ],
+     "rule_name": "premium_defense_success",
+     "satisfied_conditions": [
+      "has_price_data",
+      "premium_price",
+      "good_rank"
+     ]
+    },
+    "object": "face_powder",
+    "predicate": "price_position",
+    "source": "rule:premium_defense_success",
+    "subject": "laneige",
+    "text": "평균보다 41% 높은 가격에도 Top 10 유지",
+    "unit": null,
+    "value": "premium_defender"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.9,
+    "derived_from": [
+     "M-159499",
+     "M-e37e13",
+     "M-fadf7e"
+    ],
+    "detail": "프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.",
+    "id": "I-db3f25",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "price_position",
+     "related_entities": [
+      "laneige"
+     ],
+     "rule_name": "premium_defense_success",
+     "satisfied_conditions": [
+      "has_price_data",
+      "premium_price",
+      "good_rank"
+     ]
+    },
+    "object": "lip_care",
+    "predicate": "price_position",
+    "source": "rule:premium_defense_success",
+    "subject": "laneige",
+    "text": "평균보다 52% 높은 가격에도 Top 10 유지",
+    "unit": null,
+    "value": "premium_defender"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.7,
+    "derived_from": [
+     "M-718e3d",
+     "M-dc4632"
+    ],
+    "detail": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+    "id": "I-d51953",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "entry_opportunity",
+     "related_entities": [
+      "face_powder"
+     ],
+     "rule_name": "category_entry_opportunity",
+     "satisfied_conditions": [
+      "hhi_below_0.15",
+      "low_target_presence",
+      "is_target"
+     ]
+    },
+    "object": "face_powder",
+    "predicate": "entry_opportunity",
+    "source": "rule:category_entry_opportunity",
+    "subject": "laneige",
+    "text": "face_powder는 분산된 시장 구조(HHI: 0.053)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다.",
+    "unit": null,
+    "value": "category_entry"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.7,
+    "derived_from": [
+     "M-4dcfa7",
+     "M-dce503"
+    ],
+    "detail": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+    "id": "I-78c3de",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "entry_opportunity",
+     "related_entities": [
+      "lip_care"
+     ],
+     "rule_name": "category_entry_opportunity",
+     "satisfied_conditions": [
+      "hhi_below_0.15",
+      "low_target_presence",
+      "is_target"
+     ]
+    },
+    "object": "lip_care",
+    "predicate": "entry_opportunity",
+    "source": "rule:category_entry_opportunity",
+    "subject": "laneige",
+    "text": "lip_care는 분산된 시장 구조(HHI: 0.068)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다.",
+    "unit": null,
+    "value": "category_entry"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "inferences": [
+   {
+    "conclusion": {
+     "confidence": 1.0,
+     "verification": "brand_ownership"
+    },
+    "confidence": 1.0,
+    "evidence": {
+     "context_snapshot": {
+      "brand": "laneige",
+      "parent_group": "amorepacific"
+     },
+     "derived_from": [
+      "R-f189d7"
+     ],
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "insight": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+    "insight_type": "market_position",
+    "metadata": {
+     "acquired": null,
+     "country_of_origin": "Korea",
+     "evidence": [
+      "config/brands.json",
+      "IR Reports"
+     ],
+     "parent_group": "AMOREPACIFIC",
+     "priority": 5,
+     "rule_description": "브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)",
+     "segment": null,
+     "tags": [
+      "brand",
+      "ownership",
+      "verification"
+     ]
+    },
+    "recommendation": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "related_entities": [
+     "laneige",
+     "AMOREPACIFIC"
+    ],
+    "rule_name": "brand_ownership_verification"
+   },
+   {
+    "conclusion": {
+     "position": "premium_defender",
+     "tag": "프리미엄 방어",
+     "tag_color": "gold"
+    },
+    "confidence": 0.9,
+    "evidence": {
+     "context_snapshot": {
+      "as_of": "2026-08-31",
+      "brand": "laneige",
+      "category": "face_powder",
+      "category_avg_price": 17.7,
+      "price": 25.0,
+      "rank": 9
+     },
+     "derived_from": [
+      "M-88f31a",
+      "M-97695a",
+      "M-a4cd2c"
+     ],
+     "satisfied_conditions": [
+      "has_price_data",
+      "premium_price",
+      "good_rank"
+     ]
+    },
+    "insight": "평균보다 41% 높은 가격에도 Top 10 유지",
+    "insight_type": "price_position",
+    "metadata": {
+     "index": 90,
+     "insight": "평균보다 41% 높은 가격에도 Top 10 유지",
+     "interpretation": "강력한 프리미엄 방어",
+     "priority": 8,
+     "rule_description": "높은 가격에서도 상위권 순위 유지는 강한 브랜드 파워",
+     "tags": [
+      "price",
+      "premium",
+      "defense",
+      "positive"
+     ]
+    },
+    "recommendation": "프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.",
+    "related_entities": [
+     "laneige"
+    ],
+    "rule_name": "premium_defense_success"
+   },
+   {
+    "conclusion": {
+     "position": "premium_defender",
+     "tag": "프리미엄 방어",
+     "tag_color": "gold"
+    },
+    "confidence": 0.9,
+    "evidence": {
+     "context_snapshot": {
+      "as_of": "2026-08-31",
+      "brand": "laneige",
+      "category": "lip_care",
+      "category_avg_price": 14.2,
+      "price": 21.6,
+      "rank": 7
+     },
+     "derived_from": [
+      "M-159499",
+      "M-e37e13",
+      "M-fadf7e"
+     ],
+     "satisfied_conditions": [
+      "has_price_data",
+      "premium_price",
+      "good_rank"
+     ]
+    },
+    "insight": "평균보다 52% 높은 가격에도 Top 10 유지",
+    "insight_type": "price_position",
+    "metadata": {
+     "index": 90,
+     "insight": "평균보다 52% 높은 가격에도 Top 10 유지",
+     "interpretation": "강력한 프리미엄 방어",
+     "priority": 8,
+     "rule_description": "높은 가격에서도 상위권 순위 유지는 강한 브랜드 파워",
+     "tags": [
+      "price",
+      "premium",
+      "defense",
+      "positive"
+     ]
+    },
+    "recommendation": "프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.",
+    "related_entities": [
+     "laneige"
+    ],
+    "rule_name": "premium_defense_success"
+   },
+   {
+    "conclusion": {
+     "opportunity": "category_entry"
+    },
+    "confidence": 0.7,
+    "evidence": {
+     "context_snapshot": {
+      "as_of": "2026-08-31",
+      "brand": "laneige",
+      "category": "face_powder",
+      "hhi": 0.0527,
+      "is_target": true,
+      "sos": 0.02
+     },
+     "derived_from": [
+      "M-718e3d",
+      "M-dc4632"
+     ],
+     "satisfied_conditions": [
+      "hhi_below_0.15",
+      "low_target_presence",
+      "is_target"
+     ]
+    },
+    "insight": "face_powder는 분산된 시장 구조(HHI: 0.053)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다.",
+    "insight_type": "entry_opportunity",
+    "metadata": {
+     "category": "face_powder",
+     "current_sos": 0.02,
+     "hhi": 0.0527,
+     "priority": 6,
+     "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+     "tags": [
+      "opportunity",
+      "expansion",
+      "positive"
+     ]
+    },
+    "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+    "related_entities": [
+     "face_powder"
+    ],
+    "rule_name": "category_entry_opportunity"
+   },
+   {
+    "conclusion": {
+     "opportunity": "category_entry"
+    },
+    "confidence": 0.7,
+    "evidence": {
+     "context_snapshot": {
+      "as_of": "2026-08-31",
+      "brand": "laneige",
+      "category": "lip_care",
+      "hhi": 0.0681,
+      "is_target": true,
+      "sos": 0.02
+     },
+     "derived_from": [
+      "M-4dcfa7",
+      "M-dce503"
+     ],
+     "satisfied_conditions": [
+      "hhi_below_0.15",
+      "low_target_presence",
+      "is_target"
+     ]
+    },
+    "insight": "lip_care는 분산된 시장 구조(HHI: 0.068)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다.",
+    "insight_type": "entry_opportunity",
+    "metadata": {
+     "category": "lip_care",
+     "current_sos": 0.02,
+     "hhi": 0.0681,
+     "priority": 6,
+     "rule_description": "분산 시장에서 타겟 브랜드 부재는 진입 기회를 나타냄",
+     "tags": [
+      "opportunity",
+      "expansion",
+      "positive"
+     ]
+    },
+    "recommendation": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+    "related_entities": [
+     "lip_care"
+    ],
+    "rule_name": "category_entry_opportunity"
+   }
+  ],
+  "metadata": {
+   "bm25_available": false,
+   "degraded": [],
+   "doc_type_filter": null,
+   "entity_rerank": {
+    "bonus_candidates": 0,
+    "bonus_chunks": 0,
+    "candidates": 2,
+    "query_targets": {
+     "brands": [
+      "laneige",
+      "tirtir"
+     ]
+    },
+    "tagged_candidates": 0,
+    "weights": {
+     "brands": 0.001,
+     "categories": 0.001
+    }
+   },
+   "evidence_count": 53,
+   "evidence_excluded": 2,
+   "evidence_excluded_by_reason": {
+    "kg_numeric_undated": 2
+   },
+   "inferences_count": 5,
+   "intent_strategy": "vector-heavy/general",
+   "intent_weights": {
+    "inference": 0.2,
+    "kg": 0.3,
+    "rag": 0.5
+   },
+   "ontology_facts_count": 6,
+   "prompt_evidence_count": 53,
+   "query_expanded": true,
+   "query_intent": "general",
+   "rag_chunks_count": 2,
+   "rule_evaluation": {
+    "combinations": [
+     [
+      "laneige",
+      "face_powder"
+     ],
+     [
+      "laneige",
+      "lip_care"
+     ],
+     [
+      "tirtir",
+      "face_powder"
+     ]
+    ],
+    "evaluated": 83,
+    "fired": [
+     "premium_defense_success",
+     "category_entry_opportunity",
+     "brand_ownership_verification"
+    ],
+    "non_fire_counts_by_kind": {
+     "conditions_not_met": 16,
+     "missing_input": 62
+    },
+    "non_fire_top": [
+     [
+      "missing_input:sentiment_clusters",
+      10
+     ],
+     [
+      "missing_input:rank_change_7d",
+      9
+     ],
+     [
+      "missing_input:rating_gap",
+      8
+     ],
+     [
+      "conditions_not_met:hhi_above_0.25",
+      6
+     ],
+     [
+      "missing_input:cpi",
+      6
+     ],
+     [
+      "missing_input:streak_days",
+      5
+     ],
+     [
+      "missing_input:ai_summary",
+      4
+     ],
+     [
+      "missing_input:competitor_sentiment_clusters",
+      4
+     ],
+     [
+      "missing_input:rank_volatility",
+      4
+     ],
+     [
+      "missing_input:sos_change",
+      4
+     ]
+    ]
+   },
+   "search_method": "dense_only",
+   "selfrag_confidence": 1.0
+  },
+  "metric_facts": [
+   {
+    "category": "face_powder",
+    "category_avg_price": 17.7,
+    "hhi": 0.0527,
+    "snapshot_date": "2026-08-31",
+    "type": "category_market"
+   },
+   {
+    "brands": [
+     {
+      "brand": "Maybelline",
+      "product_count": 12,
+      "sos": 12.0
+     },
+     {
+      "brand": "TIRTIR",
+      "product_count": 3,
+      "sos": 3.0
+     },
+     {
+      "brand": "LANEIGE",
+      "product_count": 2,
+      "sos": 2.0
+     },
+     {
+      "brand": "ETUDE",
+      "product_count": 1,
+      "sos": 1.0
+     },
+     {
+      "brand": "innisfree",
+      "product_count": 1,
+      "sos": 1.0
+     }
+    ],
+    "category": "face_powder",
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_brands"
+   },
+   {
+    "brand": "LANEIGE",
+    "brand_rank": 3,
+    "category": "face_powder",
+    "present": true,
+    "product_count": 2,
+    "snapshot_date": "2026-08-31",
+    "sos": 2.0,
+    "type": "brand_share"
+   },
+   {
+    "brand": "TIRTIR",
+    "brand_rank": 2,
+    "category": "face_powder",
+    "present": true,
+    "product_count": 3,
+    "snapshot_date": "2026-08-31",
+    "sos": 3.0,
+    "type": "brand_share"
+   },
+   {
+    "category": "face_powder",
+    "products": [
+     {
+      "brand": "LANEIGE",
+      "name": "LANEIGE Neo Blurring Powder",
+      "price": 25.0,
+      "rank": 9,
+      "rating": 4.4,
+      "reviews_count": 1200
+     },
+     {
+      "brand": "TIRTIR",
+      "name": "TIRTIR Mask Fit Powder",
+      "price": 18.0,
+      "rank": 12,
+      "rating": 4.3,
+      "reviews_count": 900
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_products"
+   },
+   {
+    "brand": "LANEIGE",
+    "category": "face_powder",
+    "products": [
+     {
+      "brand": "LANEIGE",
+      "name": "LANEIGE Neo Blurring Powder",
+      "price": 25.0,
+      "rank": 9,
+      "rating": 4.4,
+      "reviews_count": 1200
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "brand_products"
+   },
+   {
+    "brand": "TIRTIR",
+    "category": "face_powder",
+    "products": [
+     {
+      "brand": "TIRTIR",
+      "name": "TIRTIR Mask Fit Powder",
+      "price": 18.0,
+      "rank": 12,
+      "rating": 4.3,
+      "reviews_count": 900
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "brand_products"
+   },
+   {
+    "category": "lip_care",
+    "category_avg_price": 14.2,
+    "hhi": 0.0681,
+    "snapshot_date": "2026-08-31",
+    "type": "category_market"
+   },
+   {
+    "brands": [
+     {
+      "brand": "eos",
+      "product_count": 9,
+      "sos": 9.0
+     },
+     {
+      "brand": "LANEIGE",
+      "product_count": 2,
+      "sos": 2.0
+     }
+    ],
+    "category": "lip_care",
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_brands"
+   },
+   {
+    "brand": "LANEIGE",
+    "brand_rank": 2,
+    "category": "lip_care",
+    "present": true,
+    "product_count": 2,
+    "snapshot_date": "2026-08-31",
+    "sos": 2.0,
+    "type": "brand_share"
+   },
+   {
+    "brand": "tirtir",
+    "category": "lip_care",
+    "present": false,
+    "snapshot_date": "2026-08-31",
+    "type": "brand_share"
+   },
+   {
+    "category": "lip_care",
+    "products": [
+     {
+      "brand": "LANEIGE",
+      "name": "LANEIGE Lip Sleeping Mask",
+      "price": 21.6,
+      "rank": 7,
+      "rating": 4.6,
+      "reviews_count": 37356
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_products"
+   },
+   {
+    "brand": "LANEIGE",
+    "category": "lip_care",
+    "products": [
+     {
+      "brand": "LANEIGE",
+      "name": "LANEIGE Lip Sleeping Mask",
+      "price": 21.6,
+      "rank": 7,
+      "rating": 4.6,
+      "reviews_count": 37356
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "brand_products"
+   }
+  ],
+  "ontology_facts": [
+   {
+    "_weighted_score": 0.3,
+    "data": [
+     {
+      "brand": "tirtir",
+      "category": "face_powder",
+      "type": "competesWith"
+     }
+    ],
+    "entity": "laneige",
+    "type": "competitors"
+   },
+   {
+    "_weighted_score": 0.3,
+    "data": {
+     "incoming": [],
+     "outgoing": [
+      [
+       "competesWith",
+       "tirtir"
+      ]
+     ]
+    },
+    "entity": "laneige",
+    "type": "competitor_network"
+   },
+   {
+    "_weighted_score": 0.3,
+    "data": {
+     "incoming": [
+      [
+       "competesWith",
+       "laneige"
+      ]
+     ],
+     "outgoing": []
+    },
+    "entity": "tirtir",
+    "type": "competitor_network"
+   },
+   {
+    "_weighted_score": 0.18,
+    "data": {
+     "product_count": 1,
+     "products": [
+      {
+       "asin": "B0LSM00001",
+       "category": "lip_care",
+       "name": "",
+       "rank": 7,
+       "title": "LANEIGE Lip Sleeping Mask"
+      }
+     ]
+    },
+    "entity": "laneige",
+    "type": "brand_products"
+   },
+   {
+    "_weighted_score": 0.18,
+    "data": {
+     "edges": [
+      {
+       "object": "tirtir",
+       "predicate": "competesWith",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_sleeping_mask",
+       "predicate": "hasProduct",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_sleeping",
+       "predicate": "hasProduct",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_care",
+       "predicate": "belongsToCategory",
+       "subject": "lip_sleeping_mask"
+      },
+      {
+       "object": "AMOREPACIFIC",
+       "predicate": "ownedBy",
+       "subject": "LANEIGE"
+      },
+      {
+       "object": "lip_care",
+       "predicate": "hasSoS",
+       "subject": "laneige"
+      },
+      {
+       "object": "lip_care",
+       "predicate": "rankedIn",
+       "subject": "laneige"
+      },
+      {
+       "object": "premium",
+       "predicate": "hasPosition",
+       "subject": "laneige"
+      }
+     ]
+    },
+    "entity": "laneige",
+    "type": "metric_edges"
+   }
+  ],
+  "prompt_evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-dc4632",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder HHI 0.0527",
+    "unit": "index_0_1",
+    "value": 0.0527
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-a4cd2c",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "face_powder",
+    "text": "face_powder Top100 평균가 $17.70",
+    "unit": "usd",
+    "value": 17.7
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4dcfa7",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "lip_care",
+    "text": "lip_care HHI 0.0681",
+    "unit": "index_0_1",
+    "value": 0.0681
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-e37e13",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "lip_care",
+    "text": "lip_care Top100 평균가 $14.20",
+    "unit": "usd",
+    "value": 14.2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4e32d4",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 3%",
+    "unit": "ratio",
+    "value": 0.03
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-fe0281",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder Top100 제품 수 3",
+    "unit": "count",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-899ea2",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "TIRTIR face_powder SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-718e3d",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 2%",
+    "unit": "ratio",
+    "value": 0.02
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ec5b4f",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder Top100 제품 수 2",
+    "unit": "count",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-34bb95",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE face_powder SoS 브랜드 순위 3위",
+    "unit": "rank",
+    "value": 3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-dce503",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE lip_care SoS 2%",
+    "unit": "ratio",
+    "value": 0.02
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-a081dc",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE lip_care Top100 제품 수 2",
+    "unit": "count",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4401f3",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "laneige",
+    "text": "LANEIGE lip_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-e67f66",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "tirtir",
+    "text": "tirtir lip_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-478fe5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 12%",
+    "unit": "ratio",
+    "value": 0.12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-8106ee",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-7d0a5d",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 1%",
+    "unit": "ratio",
+    "value": 0.01
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-cc4a9f",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "eos",
+    "text": "eos lip_care SoS 9%",
+    "unit": "ratio",
+    "value": 0.09
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-97695a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder BSR 순위 9위",
+    "unit": "rank",
+    "value": 9
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-88f31a",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 가격 $25.00",
+    "unit": "usd",
+    "value": 25.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08d6f2",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 평점 4.4/5",
+    "unit": "rating_5",
+    "value": 4.4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-5e32f6",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Neo Blurring Powder",
+    "text": "LANEIGE Neo Blurring Powder face_powder 리뷰 수 1,200",
+    "unit": "count",
+    "value": 1200
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-10245f",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder BSR 순위 12위",
+    "unit": "rank",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-08ea7b",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 가격 $18.00",
+    "unit": "usd",
+    "value": 18.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d91c8e",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 평점 4.3/5",
+    "unit": "rating_5",
+    "value": 4.3
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-414529",
+    "kind": "metric",
+    "metadata": {
+     "brand": "tirtir",
+     "brand_display_name": "TIRTIR"
+    },
+    "object": "face_powder",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "TIRTIR Mask Fit Powder",
+    "text": "TIRTIR Mask Fit Powder face_powder 리뷰 수 900",
+    "unit": "count",
+    "value": 900
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-fadf7e",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care BSR 순위 7위",
+    "unit": "rank",
+    "value": 7
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-159499",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care 가격 $21.60",
+    "unit": "usd",
+    "value": 21.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-90a39d",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-54bbc1",
+    "kind": "metric",
+    "metadata": {
+     "brand": "laneige",
+     "brand_display_name": "LANEIGE"
+    },
+    "object": "lip_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "LANEIGE Lip Sleeping Mask",
+    "text": "LANEIGE Lip Sleeping Mask lip_care 리뷰 수 37,356",
+    "unit": "count",
+    "value": 37356
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-be26de",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder Top100 제품 수 12",
+    "unit": "count",
+    "value": 12
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-26876c",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "Maybelline"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "maybelline",
+    "text": "Maybelline face_powder SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-02d3c5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-d729b5",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "ETUDE"
+    },
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "etude",
+    "text": "ETUDE face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-ae4007",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-76b410",
+    "kind": "metric",
+    "metadata": {},
+    "object": "face_powder",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "innisfree",
+    "text": "innisfree face_powder SoS 브랜드 순위 4위",
+    "unit": "rank",
+    "value": 4
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-b73367",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "eos",
+    "text": "eos lip_care Top100 제품 수 9",
+    "unit": "count",
+    "value": 9
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-b9ed58",
+    "kind": "metric",
+    "metadata": {},
+    "object": "lip_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "eos",
+    "text": "eos lip_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-f189d7",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "LANEIGE",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "LANEIGE ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-5381ca",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige rankedIn lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-c62989",
+    "kind": "relation",
+    "metadata": {
+     "categories": [
+      "face_powder"
+     ],
+     "fact_type": "competitors"
+    },
+    "object": "tirtir",
+    "predicate": "competesWith",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige competesWith tirtir [카테고리: face_powder]",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-bb13e5",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "B0LSM00001",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct B0LSM00001",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-8da9fa",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "brand_products",
+     "title": "LANEIGE Lip Sleeping Mask"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "B0LSM00001",
+    "text": "B0LSM00001 belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-93e318",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping_mask",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping_mask",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-4271d9",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_sleeping",
+    "predicate": "hasProduct",
+    "source": "kg",
+    "subject": "laneige",
+    "text": "laneige hasProduct lip_sleeping",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-e7b92f",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "lip_care",
+    "predicate": "belongsToCategory",
+    "source": "kg",
+    "subject": "lip_sleeping_mask",
+    "text": "lip_sleeping_mask belongsToCategory lip_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-f189d7"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-1e4df5",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "laneige",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "laneige",
+    "text": "laneige는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.9,
+    "derived_from": [
+     "M-88f31a",
+     "M-97695a",
+     "M-a4cd2c"
+    ],
+    "detail": "프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.",
+    "id": "I-47deab",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "price_position",
+     "related_entities": [
+      "laneige"
+     ],
+     "rule_name": "premium_defense_success",
+     "satisfied_conditions": [
+      "has_price_data",
+      "premium_price",
+      "good_rank"
+     ]
+    },
+    "object": "face_powder",
+    "predicate": "price_position",
+    "source": "rule:premium_defense_success",
+    "subject": "laneige",
+    "text": "평균보다 41% 높은 가격에도 Top 10 유지",
+    "unit": null,
+    "value": "premium_defender"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.9,
+    "derived_from": [
+     "M-159499",
+     "M-e37e13",
+     "M-fadf7e"
+    ],
+    "detail": "프리미엄 브랜드 가치를 마케팅에 적극 활용하세요.",
+    "id": "I-db3f25",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "price_position",
+     "related_entities": [
+      "laneige"
+     ],
+     "rule_name": "premium_defense_success",
+     "satisfied_conditions": [
+      "has_price_data",
+      "premium_price",
+      "good_rank"
+     ]
+    },
+    "object": "lip_care",
+    "predicate": "price_position",
+    "source": "rule:premium_defense_success",
+    "subject": "laneige",
+    "text": "평균보다 52% 높은 가격에도 Top 10 유지",
+    "unit": null,
+    "value": "premium_defender"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.7,
+    "derived_from": [
+     "M-718e3d",
+     "M-dc4632"
+    ],
+    "detail": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+    "id": "I-d51953",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "entry_opportunity",
+     "related_entities": [
+      "face_powder"
+     ],
+     "rule_name": "category_entry_opportunity",
+     "satisfied_conditions": [
+      "hhi_below_0.15",
+      "low_target_presence",
+      "is_target"
+     ]
+    },
+    "object": "face_powder",
+    "predicate": "entry_opportunity",
+    "source": "rule:category_entry_opportunity",
+    "subject": "laneige",
+    "text": "face_powder는 분산된 시장 구조(HHI: 0.053)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다.",
+    "unit": null,
+    "value": "category_entry"
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 0.7,
+    "derived_from": [
+     "M-4dcfa7",
+     "M-dce503"
+    ],
+    "detail": "카테고리 트렌드 및 소비자 니즈 분석 후 제품 라인업 확장 검토. 기존 강점 활용 가능한 인접 카테고리 우선 고려.",
+    "id": "I-78c3de",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "entry_opportunity",
+     "related_entities": [
+      "lip_care"
+     ],
+     "rule_name": "category_entry_opportunity",
+     "satisfied_conditions": [
+      "hhi_below_0.15",
+      "low_target_presence",
+      "is_target"
+     ]
+    },
+    "object": "lip_care",
+    "predicate": "entry_opportunity",
+    "source": "rule:category_entry_opportunity",
+    "subject": "laneige",
+    "text": "lip_care는 분산된 시장 구조(HHI: 0.068)로 현재 laneige의 존재감이 낮아(2.0%) 진입 확대 기회가 있을 수 있습니다.",
+    "unit": null,
+    "value": "category_entry"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "query": "LANEIGE와 TIRTIR는 같은 그룹에 속한 자매 브랜드인가요?",
+  "rag_chunks": [
+   {
+    "_weighted_score": 0.36400000000000005,
+    "content": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "metric_guide_hhi_0",
+    "metadata": {
+     "doc_id": "metric_guide",
+     "doc_type": "metric_guide",
+     "title": "HHI 해석 가이드"
+    },
+    "score": 0.91
+   },
+   {
+    "_weighted_score": 0.324,
+    "content": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "playbook_sos_1",
+    "metadata": {
+     "doc_id": "playbook",
+     "doc_type": "playbook",
+     "title": "SoS 대응 플레이북"
+    },
+    "score": 0.72
+   }
+  ]
+ },
+ "origin": {
+  "combined_context": "[DB 수치]\n[M-78fd5f] skin_care HHI 0.0670 (2026-08-31, sqlite:market_metrics)\n[M-64c1b5] skin_care Top100 평균가 $21.00 (2026-08-31, sqlite:market_metrics)\n[M-0b2f3b] COSRX skin_care SoS 1.04% (2026-08-31, sqlite:brand_metrics)\n[M-835caa] COSRX skin_care Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-59016a] COSRX skin_care SoS 브랜드 순위 2위 (2026-08-31, sqlite:brand_metrics)\n[M-bb1db3] amorepacific skin_care Top100 진입 없음 (2026-08-31, sqlite:brand_metrics)\n[M-2ad382] medicube skin_care SoS 13.54% (2026-08-31, sqlite:brand_metrics)\n[M-650da0] COSRX Snail Mucin skin_care BSR 순위 99위 (2026-08-31, sqlite:raw_data)\n[M-0febd0] COSRX Snail Mucin skin_care 가격 $17.00 (2026-08-31, sqlite:raw_data)\n[M-160bd9] COSRX Snail Mucin skin_care 평점 4.6/5 (2026-08-31, sqlite:raw_data)\n[M-c42761] COSRX Snail Mucin skin_care 리뷰 수 106,338 (2026-08-31, sqlite:raw_data)\n[M-c54c94] medicube skin_care Top100 제품 수 13 (2026-08-31, sqlite:brand_metrics)\n[M-4004bf] medicube skin_care SoS 브랜드 순위 1위 (2026-08-31, sqlite:brand_metrics)\n\n[관계]\n[R-81ed58] COSRX ownedBy AMOREPACIFIC (kg)\n[R-278079] cosrx rankedIn skin_care (kg)\n\n[규칙 추론]\n[I-399603] cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. (rule:brand_ownership_verification; 근거: R-81ed58)\n  권장: 그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.\n\n[문서]\n[D-abf114] HHI 해석 가이드 (rag:metric_guide)\n  # HHI 해석\n  HHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.\n[D-851583] SoS 대응 플레이북 (rag:playbook)\n  # SoS 대응\n  SoS가 낮은 카테고리는 진입 전략을 검토한다.",
+  "entities": {
+   "brands": [
+    "cosrx",
+    "amorepacific"
+   ],
+   "categories": [],
+   "concepts": [],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-78fd5f",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care HHI 0.0670",
+    "unit": "index_0_1",
+    "value": 0.067
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-64c1b5",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care Top100 평균가 $21.00",
+    "unit": "usd",
+    "value": 21.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0b2f3b",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 1.04%",
+    "unit": "ratio",
+    "value": 0.0104
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-835caa",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-59016a",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-bb1db3",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "amorepacific",
+    "text": "amorepacific skin_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-2ad382",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 13.54%",
+    "unit": "ratio",
+    "value": 0.1354
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-650da0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care BSR 순위 99위",
+    "unit": "rank",
+    "value": 99
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0febd0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 가격 $17.00",
+    "unit": "usd",
+    "value": 17.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-160bd9",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c42761",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 리뷰 수 106,338",
+    "unit": "count",
+    "value": 106338
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c54c94",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care Top100 제품 수 13",
+    "unit": "count",
+    "value": 13
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4004bf",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-81ed58",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "COSRX",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "COSRX ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-278079",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "skin_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "cosrx rankedIn skin_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-399603",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "cosrx",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "cosrx",
+    "text": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "inferences": [
+   {
+    "conclusion": {
+     "confidence": 1.0,
+     "verification": "brand_ownership"
+    },
+    "confidence": 1.0,
+    "evidence": {
+     "context_snapshot": {
+      "brand": "cosrx",
+      "parent_group": "amorepacific"
+     },
+     "derived_from": [
+      "R-81ed58"
+     ],
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "insight": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+    "insight_type": "market_position",
+    "metadata": {
+     "acquired": null,
+     "country_of_origin": "Korea",
+     "evidence": [
+      "config/brands.json",
+      "IR Reports"
+     ],
+     "parent_group": "AMOREPACIFIC",
+     "priority": 5,
+     "rule_description": "브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)",
+     "segment": null,
+     "tags": [
+      "brand",
+      "ownership",
+      "verification"
+     ]
+    },
+    "recommendation": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "related_entities": [
+     "cosrx",
+     "AMOREPACIFIC"
+    ],
+    "rule_name": "brand_ownership_verification"
+   }
+  ],
+  "metadata": {
+   "bm25_available": false,
+   "degraded": [],
+   "doc_type_filter": null,
+   "entity_rerank": {
+    "bonus_candidates": 0,
+    "bonus_chunks": 0,
+    "candidates": 2,
+    "query_targets": {
+     "brands": [
+      "amorepacific",
+      "cosrx"
+     ]
+    },
+    "tagged_candidates": 0,
+    "weights": {
+     "brands": 0.001,
+     "categories": 0.001
+    }
+   },
+   "evidence_count": 18,
+   "evidence_excluded": 0,
+   "evidence_excluded_by_reason": {},
+   "inferences_count": 1,
+   "intent_strategy": "vector-heavy/general",
+   "intent_weights": {
+    "inference": 0.2,
+    "kg": 0.3,
+    "rag": 0.5
+   },
+   "ontology_facts_count": 1,
+   "prompt_evidence_count": 18,
+   "query_expanded": true,
+   "query_intent": "general",
+   "rag_chunks_count": 2,
+   "rule_evaluation": {
+    "combinations": [
+     [
+      "cosrx",
+      "skin_care"
+     ],
+     [
+      "amorepacific",
+      null
+     ]
+    ],
+    "evaluated": 71,
+    "fired": [
+     "brand_ownership_verification"
+    ],
+    "non_fire_counts_by_kind": {
+     "conditions_not_met": 6,
+     "missing_input": 64
+    },
+    "non_fire_top": [
+     [
+      "missing_input:sentiment_clusters",
+      10
+     ],
+     [
+      "missing_input:rank_change_7d",
+      9
+     ],
+     [
+      "missing_input:rating_gap",
+      8
+     ],
+     [
+      "missing_input:cpi",
+      6
+     ],
+     [
+      "missing_input:hhi",
+      5
+     ],
+     [
+      "missing_input:ai_summary",
+      4
+     ],
+     [
+      "missing_input:competitor_sentiment_clusters",
+      4
+     ],
+     [
+      "missing_input:sos",
+      4
+     ],
+     [
+      "missing_input:streak_days",
+      4
+     ],
+     [
+      "missing_input:competitor_count",
+      3
+     ]
+    ]
+   },
+   "search_method": "dense_only",
+   "selfrag_confidence": 1.0
+  },
+  "metric_facts": [
+   {
+    "category": "skin_care",
+    "category_avg_price": 21.0,
+    "hhi": 0.067,
+    "snapshot_date": "2026-08-31",
+    "type": "category_market"
+   },
+   {
+    "brands": [
+     {
+      "brand": "medicube",
+      "product_count": 13,
+      "sos": 13.54
+     },
+     {
+      "brand": "COSRX",
+      "product_count": 1,
+      "sos": 1.04
+     }
+    ],
+    "category": "skin_care",
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_brands"
+   },
+   {
+    "brand": "COSRX",
+    "brand_rank": 2,
+    "category": "skin_care",
+    "present": true,
+    "product_count": 1,
+    "snapshot_date": "2026-08-31",
+    "sos": 1.04,
+    "type": "brand_share"
+   },
+   {
+    "brand": "amorepacific",
+    "category": "skin_care",
+    "present": false,
+    "snapshot_date": "2026-08-31",
+    "type": "brand_share"
+   },
+   {
+    "category": "skin_care",
+    "products": [
+     {
+      "brand": "COSRX",
+      "name": "COSRX Snail Mucin",
+      "price": 17.0,
+      "rank": 99,
+      "rating": 4.6,
+      "reviews_count": 106338
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_products"
+   },
+   {
+    "brand": "COSRX",
+    "category": "skin_care",
+    "products": [
+     {
+      "brand": "COSRX",
+      "name": "COSRX Snail Mucin",
+      "price": 17.0,
+      "rank": 99,
+      "rating": 4.6,
+      "reviews_count": 106338
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "brand_products"
+   }
+  ],
+  "ontology_facts": [
+   {
+    "_weighted_score": 0.18,
+    "data": {
+     "edges": [
+      {
+       "object": "AMOREPACIFIC",
+       "predicate": "ownedBy",
+       "subject": "COSRX"
+      },
+      {
+       "object": "skin_care",
+       "predicate": "rankedIn",
+       "subject": "cosrx"
+      }
+     ]
+    },
+    "entity": "cosrx",
+    "type": "metric_edges"
+   }
+  ],
+  "prompt_evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-78fd5f",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care HHI 0.0670",
+    "unit": "index_0_1",
+    "value": 0.067
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-64c1b5",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care Top100 평균가 $21.00",
+    "unit": "usd",
+    "value": 21.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0b2f3b",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 1.04%",
+    "unit": "ratio",
+    "value": 0.0104
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-835caa",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-59016a",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-bb1db3",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "amorepacific",
+    "text": "amorepacific skin_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-2ad382",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 13.54%",
+    "unit": "ratio",
+    "value": 0.1354
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-650da0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care BSR 순위 99위",
+    "unit": "rank",
+    "value": 99
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0febd0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 가격 $17.00",
+    "unit": "usd",
+    "value": 17.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-160bd9",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c42761",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 리뷰 수 106,338",
+    "unit": "count",
+    "value": 106338
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c54c94",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care Top100 제품 수 13",
+    "unit": "count",
+    "value": 13
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4004bf",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-81ed58",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "COSRX",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "COSRX ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-278079",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "skin_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "cosrx rankedIn skin_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-399603",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "cosrx",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "cosrx",
+    "text": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "query": "아모레퍼시픽 그룹 브랜드 COSRX의 원산지(출신 국가)는 어디인가요?",
+  "rag_chunks": [
+   {
+    "_weighted_score": 0.36400000000000005,
+    "content": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "metric_guide_hhi_0",
+    "metadata": {
+     "doc_id": "metric_guide",
+     "doc_type": "metric_guide",
+     "title": "HHI 해석 가이드"
+    },
+    "score": 0.91
+   },
+   {
+    "_weighted_score": 0.324,
+    "content": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "playbook_sos_1",
+    "metadata": {
+     "doc_id": "playbook",
+     "doc_type": "playbook",
+     "title": "SoS 대응 플레이북"
+    },
+    "score": 0.72
+   }
+  ]
+ },
+ "segment": {
+  "combined_context": "[DB 수치]\n[M-78fd5f] skin_care HHI 0.0670 (2026-08-31, sqlite:market_metrics)\n[M-64c1b5] skin_care Top100 평균가 $21.00 (2026-08-31, sqlite:market_metrics)\n[M-0b2f3b] COSRX skin_care SoS 1.04% (2026-08-31, sqlite:brand_metrics)\n[M-835caa] COSRX skin_care Top100 제품 수 1 (2026-08-31, sqlite:brand_metrics)\n[M-59016a] COSRX skin_care SoS 브랜드 순위 2위 (2026-08-31, sqlite:brand_metrics)\n[M-bb1db3] amorepacific skin_care Top100 진입 없음 (2026-08-31, sqlite:brand_metrics)\n[M-2ad382] medicube skin_care SoS 13.54% (2026-08-31, sqlite:brand_metrics)\n[M-650da0] COSRX Snail Mucin skin_care BSR 순위 99위 (2026-08-31, sqlite:raw_data)\n[M-0febd0] COSRX Snail Mucin skin_care 가격 $17.00 (2026-08-31, sqlite:raw_data)\n[M-160bd9] COSRX Snail Mucin skin_care 평점 4.6/5 (2026-08-31, sqlite:raw_data)\n[M-c42761] COSRX Snail Mucin skin_care 리뷰 수 106,338 (2026-08-31, sqlite:raw_data)\n[M-c54c94] medicube skin_care Top100 제품 수 13 (2026-08-31, sqlite:brand_metrics)\n[M-4004bf] medicube skin_care SoS 브랜드 순위 1위 (2026-08-31, sqlite:brand_metrics)\n\n[관계]\n[R-81ed58] COSRX ownedBy AMOREPACIFIC (kg)\n[R-278079] cosrx rankedIn skin_care (kg)\n\n[규칙 추론]\n[I-399603] cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. (rule:brand_ownership_verification; 근거: R-81ed58)\n  권장: 그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.\n\n[문서]\n[D-abf114] HHI 해석 가이드 (rag:metric_guide)\n  # HHI 해석\n  HHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.\n[D-851583] SoS 대응 플레이북 (rag:playbook)\n  # SoS 대응\n  SoS가 낮은 카테고리는 진입 전략을 검토한다.",
+  "entities": {
+   "brands": [
+    "cosrx",
+    "amorepacific"
+   ],
+   "categories": [],
+   "concepts": [
+    "definition"
+   ],
+   "indicators": [],
+   "products": [],
+   "sentiment_clusters": [],
+   "sentiments": [],
+   "time_range": []
+  },
+  "evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-78fd5f",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care HHI 0.0670",
+    "unit": "index_0_1",
+    "value": 0.067
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-64c1b5",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care Top100 평균가 $21.00",
+    "unit": "usd",
+    "value": 21.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0b2f3b",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 1.04%",
+    "unit": "ratio",
+    "value": 0.0104
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-835caa",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-59016a",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-bb1db3",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "amorepacific",
+    "text": "amorepacific skin_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-2ad382",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 13.54%",
+    "unit": "ratio",
+    "value": 0.1354
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-650da0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care BSR 순위 99위",
+    "unit": "rank",
+    "value": 99
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0febd0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 가격 $17.00",
+    "unit": "usd",
+    "value": 17.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-160bd9",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c42761",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 리뷰 수 106,338",
+    "unit": "count",
+    "value": 106338
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c54c94",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care Top100 제품 수 13",
+    "unit": "count",
+    "value": 13
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4004bf",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-81ed58",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "COSRX",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "COSRX ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-278079",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "skin_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "cosrx rankedIn skin_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-399603",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "cosrx",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "cosrx",
+    "text": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "inferences": [
+   {
+    "conclusion": {
+     "confidence": 1.0,
+     "verification": "brand_ownership"
+    },
+    "confidence": 1.0,
+    "evidence": {
+     "context_snapshot": {
+      "brand": "cosrx",
+      "parent_group": "amorepacific"
+     },
+     "derived_from": [
+      "R-81ed58"
+     ],
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "insight": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea. ",
+    "insight_type": "market_position",
+    "metadata": {
+     "acquired": null,
+     "country_of_origin": "Korea",
+     "evidence": [
+      "config/brands.json",
+      "IR Reports"
+     ],
+     "parent_group": "AMOREPACIFIC",
+     "priority": 5,
+     "rule_description": "브랜드 소유권 검증 (COSRX = 한국 브랜드, 아모레퍼시픽 소속)",
+     "segment": null,
+     "tags": [
+      "brand",
+      "ownership",
+      "verification"
+     ]
+    },
+    "recommendation": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "related_entities": [
+     "cosrx",
+     "AMOREPACIFIC"
+    ],
+    "rule_name": "brand_ownership_verification"
+   }
+  ],
+  "metadata": {
+   "bm25_available": false,
+   "degraded": [],
+   "doc_type_filter": [
+    "metric_guide",
+    "playbook"
+   ],
+   "entity_rerank": {
+    "bonus_candidates": 0,
+    "bonus_chunks": 0,
+    "candidates": 4,
+    "query_targets": {
+     "brands": [
+      "amorepacific",
+      "cosrx"
+     ]
+    },
+    "tagged_candidates": 0,
+    "weights": {
+     "brands": 0.001,
+     "categories": 0.001
+    }
+   },
+   "evidence_count": 18,
+   "evidence_excluded": 0,
+   "evidence_excluded_by_reason": {},
+   "inferences_count": 1,
+   "intent_strategy": "vector-heavy/definition",
+   "intent_weights": {
+    "inference": 0.2,
+    "kg": 0.2,
+    "rag": 0.6
+   },
+   "ontology_facts_count": 1,
+   "prompt_evidence_count": 18,
+   "query_expanded": true,
+   "query_intent": "metric",
+   "rag_chunks_count": 2,
+   "rule_evaluation": {
+    "combinations": [
+     [
+      "cosrx",
+      "skin_care"
+     ],
+     [
+      "amorepacific",
+      null
+     ]
+    ],
+    "evaluated": 71,
+    "fired": [
+     "brand_ownership_verification"
+    ],
+    "non_fire_counts_by_kind": {
+     "conditions_not_met": 6,
+     "missing_input": 64
+    },
+    "non_fire_top": [
+     [
+      "missing_input:sentiment_clusters",
+      10
+     ],
+     [
+      "missing_input:rank_change_7d",
+      9
+     ],
+     [
+      "missing_input:rating_gap",
+      8
+     ],
+     [
+      "missing_input:cpi",
+      6
+     ],
+     [
+      "missing_input:hhi",
+      5
+     ],
+     [
+      "missing_input:ai_summary",
+      4
+     ],
+     [
+      "missing_input:competitor_sentiment_clusters",
+      4
+     ],
+     [
+      "missing_input:sos",
+      4
+     ],
+     [
+      "missing_input:streak_days",
+      4
+     ],
+     [
+      "missing_input:competitor_count",
+      3
+     ]
+    ]
+   },
+   "search_method": "dense_only",
+   "selfrag_confidence": 1.0
+  },
+  "metric_facts": [
+   {
+    "category": "skin_care",
+    "category_avg_price": 21.0,
+    "hhi": 0.067,
+    "snapshot_date": "2026-08-31",
+    "type": "category_market"
+   },
+   {
+    "brands": [
+     {
+      "brand": "medicube",
+      "product_count": 13,
+      "sos": 13.54
+     },
+     {
+      "brand": "COSRX",
+      "product_count": 1,
+      "sos": 1.04
+     }
+    ],
+    "category": "skin_care",
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_brands"
+   },
+   {
+    "brand": "COSRX",
+    "brand_rank": 2,
+    "category": "skin_care",
+    "present": true,
+    "product_count": 1,
+    "snapshot_date": "2026-08-31",
+    "sos": 1.04,
+    "type": "brand_share"
+   },
+   {
+    "brand": "amorepacific",
+    "category": "skin_care",
+    "present": false,
+    "snapshot_date": "2026-08-31",
+    "type": "brand_share"
+   },
+   {
+    "category": "skin_care",
+    "products": [
+     {
+      "brand": "COSRX",
+      "name": "COSRX Snail Mucin",
+      "price": 17.0,
+      "rank": 99,
+      "rating": 4.6,
+      "reviews_count": 106338
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "category_top_products"
+   },
+   {
+    "brand": "COSRX",
+    "category": "skin_care",
+    "products": [
+     {
+      "brand": "COSRX",
+      "name": "COSRX Snail Mucin",
+      "price": 17.0,
+      "rank": 99,
+      "rating": 4.6,
+      "reviews_count": 106338
+     }
+    ],
+    "snapshot_date": "2026-08-31",
+    "type": "brand_products"
+   }
+  ],
+  "ontology_facts": [
+   {
+    "_weighted_score": 0.12,
+    "data": {
+     "edges": [
+      {
+       "object": "AMOREPACIFIC",
+       "predicate": "ownedBy",
+       "subject": "COSRX"
+      },
+      {
+       "object": "skin_care",
+       "predicate": "rankedIn",
+       "subject": "cosrx"
+      }
+     ]
+    },
+    "entity": "cosrx",
+    "type": "metric_edges"
+   }
+  ],
+  "prompt_evidence": [
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-78fd5f",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "hhi",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care HHI 0.0670",
+    "unit": "index_0_1",
+    "value": 0.067
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-64c1b5",
+    "kind": "metric",
+    "metadata": {},
+    "object": null,
+    "predicate": "avg_price",
+    "source": "sqlite:market_metrics",
+    "subject": "skin_care",
+    "text": "skin_care Top100 평균가 $21.00",
+    "unit": "usd",
+    "value": 21.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0b2f3b",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 1.04%",
+    "unit": "ratio",
+    "value": 0.0104
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-835caa",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care Top100 제품 수 1",
+    "unit": "count",
+    "value": 1
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-59016a",
+    "kind": "metric",
+    "metadata": {
+     "display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "cosrx",
+    "text": "COSRX skin_care SoS 브랜드 순위 2위",
+    "unit": "rank",
+    "value": 2
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-bb1db3",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "present_in_top100",
+    "source": "sqlite:brand_metrics",
+    "subject": "amorepacific",
+    "text": "amorepacific skin_care Top100 진입 없음",
+    "unit": "boolean",
+    "value": false
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-2ad382",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 13.54%",
+    "unit": "ratio",
+    "value": 0.1354
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-650da0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "bsr_rank",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care BSR 순위 99위",
+    "unit": "rank",
+    "value": 99
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-0febd0",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "price",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 가격 $17.00",
+    "unit": "usd",
+    "value": 17.0
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-160bd9",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "rating",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 평점 4.6/5",
+    "unit": "rating_5",
+    "value": 4.6
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c42761",
+    "kind": "metric",
+    "metadata": {
+     "brand": "cosrx",
+     "brand_display_name": "COSRX"
+    },
+    "object": "skin_care",
+    "predicate": "reviews_count",
+    "source": "sqlite:raw_data",
+    "subject": "COSRX Snail Mucin",
+    "text": "COSRX Snail Mucin skin_care 리뷰 수 106,338",
+    "unit": "count",
+    "value": 106338
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-c54c94",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "product_count",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care Top100 제품 수 13",
+    "unit": "count",
+    "value": 13
+   },
+   {
+    "as_of": "2026-08-31",
+    "confidence": 1.0,
+    "derived_from": [],
+    "detail": null,
+    "id": "M-4004bf",
+    "kind": "metric",
+    "metadata": {},
+    "object": "skin_care",
+    "predicate": "sos_rank",
+    "source": "sqlite:brand_metrics",
+    "subject": "medicube",
+    "text": "medicube skin_care SoS 브랜드 순위 1위",
+    "unit": "rank",
+    "value": 1
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-81ed58",
+    "kind": "relation",
+    "metadata": {
+     "display_name": "COSRX",
+     "fact_type": "metric_edges",
+     "object_display_name": "AMOREPACIFIC"
+    },
+    "object": "amorepacific",
+    "predicate": "ownedBy",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "COSRX ownedBy AMOREPACIFIC",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": null,
+    "id": "R-278079",
+    "kind": "relation",
+    "metadata": {
+     "fact_type": "metric_edges"
+    },
+    "object": "skin_care",
+    "predicate": "rankedIn",
+    "source": "kg",
+    "subject": "cosrx",
+    "text": "cosrx rankedIn skin_care",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": 1.0,
+    "derived_from": [
+     "R-81ed58"
+    ],
+    "detail": "그룹 시너지 활용 및 자매 브랜드와의 협력 전략 검토.",
+    "id": "I-399603",
+    "kind": "inference",
+    "metadata": {
+     "insight_type": "market_position",
+     "related_entities": [
+      "cosrx",
+      "AMOREPACIFIC"
+     ],
+     "rule_name": "brand_ownership_verification",
+     "satisfied_conditions": [
+      "brand_in_amorepacific"
+     ]
+    },
+    "object": null,
+    "predicate": "market_position",
+    "source": "rule:brand_ownership_verification",
+    "subject": "cosrx",
+    "text": "cosrx는 아모레퍼시픽 그룹 소속 브랜드입니다. 원산지: Korea.",
+    "unit": null,
+    "value": "brand_ownership"
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "D-abf114",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "metric_guide_hhi_0",
+     "doc_type": "metric_guide",
+     "id_basis": "chunk:metric_guide_hhi_0",
+     "score": 0.91,
+     "title": "HHI 해석 가이드"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:metric_guide",
+    "subject": "metric_guide",
+    "text": "HHI 해석 가이드",
+    "unit": null,
+    "value": null
+   },
+   {
+    "as_of": null,
+    "confidence": null,
+    "derived_from": [],
+    "detail": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "D-851583",
+    "kind": "document",
+    "metadata": {
+     "chunk_id": "playbook_sos_1",
+     "doc_type": "playbook",
+     "id_basis": "chunk:playbook_sos_1",
+     "score": 0.72,
+     "title": "SoS 대응 플레이북"
+    },
+    "object": null,
+    "predicate": "states",
+    "source": "rag:playbook",
+    "subject": "playbook",
+    "text": "SoS 대응 플레이북",
+    "unit": null,
+    "value": null
+   }
+  ],
+  "query": "아모레퍼시픽 브랜드 포트폴리오에서 COSRX의 세그먼트는 무엇인가요?",
+  "rag_chunks": [
+   {
+    "_weighted_score": 0.4368000000000001,
+    "content": "# HHI 해석\nHHI는 시장 집중도 지표다. 0.15 미만이면 분산 시장으로 본다.",
+    "id": "metric_guide_hhi_0",
+    "metadata": {
+     "doc_id": "metric_guide",
+     "doc_type": "metric_guide",
+     "title": "HHI 해석 가이드"
+    },
+    "score": 0.91
+   },
+   {
+    "_weighted_score": 0.3888,
+    "content": "# SoS 대응\nSoS가 낮은 카테고리는 진입 전략을 검토한다.",
+    "id": "playbook_sos_1",
+    "metadata": {
+     "doc_id": "playbook",
+     "doc_type": "playbook",
+     "title": "SoS 대응 플레이북"
+    },
+    "score": 0.72
+   }
+  ]
+ }
+}

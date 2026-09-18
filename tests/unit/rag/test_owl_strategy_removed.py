@@ -6,8 +6,9 @@ E3 결론: OWL은 검색 전략이 아니다. `OWLRetrievalStrategy`·`create_ow
 되살아나면 이 테스트가 잡는다.
 
 유지되는 것: `IntentRetrievalConfig`/`get_intent_retrieval_config`(hybrid_retriever·
-container가 사용), `reasoner.*` 플래그(규칙 추론 on/off), `src/ontology/owl_reasoner.py`
-(어휘 용도).
+container가 사용), `reasoner.*` 플래그(규칙 추론 on/off).
+[2026-09 사후, O6] `src/ontology/owl_reasoner.py`·`ontology_knowledge_graph.py`도 삭제했다
+(서비스 호출처 0건, 결정 OA-1 — 온톨로지 원본은 `config/ontology/` + `src/ontology/ontology.py`).
 """
 
 import inspect
@@ -39,10 +40,20 @@ class TestDeletedSymbols:
         assert config.top_k == 8
         assert rag_pkg.IntentRetrievalConfig is retrieval_strategy.IntentRetrievalConfig
 
-    def test_owl_reasoner_module_is_kept_as_vocabulary(self) -> None:
-        from src.ontology.owl_reasoner import OWLReasoner
+    @pytest.mark.parametrize(
+        "module", ["src.ontology.owl_reasoner", "src.ontology.ontology_knowledge_graph"]
+    )
+    def test_owl_modules_are_deleted(self, module: str) -> None:
+        import importlib
 
-        assert OWLReasoner is not None
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module(module)
+
+    def test_ontology_package_no_longer_exports_okg(self) -> None:
+        import src.ontology as ontology_pkg
+
+        assert not hasattr(ontology_pkg, "OntologyKnowledgeGraph")
+        assert "OntologyKnowledgeGraph" not in ontology_pkg.__all__
 
 
 class TestHybridRetrieverHasNoStrategyHook:

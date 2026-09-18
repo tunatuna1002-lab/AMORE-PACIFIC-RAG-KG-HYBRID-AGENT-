@@ -3,6 +3,7 @@ Brain Routes - UnifiedBrain API endpoints
 """
 
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -10,6 +11,34 @@ from src.api.dependencies import limiter, load_dashboard_data, verify_api_key
 from src.core.brain import BrainMode, get_initialized_brain
 
 router = APIRouter(prefix="/api/v4/brain", tags=["brain"])
+
+
+def _ontology_status() -> dict[str, Any]:
+    """온톨로지 원본·플래그 상태 (설계 OE10) [2026-09 사후].
+
+    원본(`config/ontology/` + `config/category_hierarchy.json`)을 ``get_ontology()``로 읽는다
+    (프로세스당 1회 로드·캐시). 로드 실패는 상태 조회를 깨뜨리지 않고 ``error``로 싣는다.
+    """
+    from src.infrastructure.feature_flags import FeatureFlags
+
+    flags = FeatureFlags.get_instance()
+    status: dict[str, Any] = {
+        "use_class_reasoning": flags.use_class_reasoning(),
+        "kg_write_validation": flags.kg_write_validation_mode(),
+    }
+    try:
+        from src.ontology.ontology import get_ontology
+
+        onto = get_ontology()
+        status.update(
+            version=onto.version,
+            as_of=onto.as_of,
+            class_count=onto.class_count,
+            brand_count=onto.brand_count,
+        )
+    except Exception as e:
+        status.update(version=None, as_of=None, class_count=None, brand_count=None, error=str(e))
+    return status
 
 
 @router.get("/status")
@@ -24,6 +53,8 @@ async def get_brain_status(request: Request):
         - pending_tasks: 대기 중 태스크
         - stats: 통계
         - components: 선택 컴포넌트(react_agent)의 플래그·활성·오류
+        - ontology: 온톨로지 버전·기준일·클래스 수·등록부 브랜드 수·플래그 상태
+          ([2026-09 사후] OE10)
     """
     try:
         brain = await get_initialized_brain()
@@ -50,6 +81,7 @@ async def get_brain_status(request: Request):
             "stats": brain.get_stats(),
             "components": brain.get_component_status(),
             "index_status": index_status,
+            "ontology": _ontology_status(),
             "initialized": True,
         }
     except Exception as e:
@@ -58,6 +90,7 @@ async def get_brain_status(request: Request):
             "scheduler_running": False,
             "pending_tasks": 0,
             "stats": {},
+            "ontology": _ontology_status(),
             "initialized": False,
             "error": str(e),
         }
