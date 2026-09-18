@@ -184,7 +184,9 @@ class BrainEvalAdapter:
     # ── 호출 ─────────────────────────────────────────────────────────
 
     @staticmethod
-    def _build_trace(query: str, holder: dict[str, Any]) -> V4RetrievalTrace:
+    def _build_trace(
+        query: str, holder: dict[str, Any], *, react_answered: bool = True
+    ) -> V4RetrievalTrace:
         ctx = holder.get("hybrid_context")
         unified = holder.get("unified")
         if ctx is not None:
@@ -229,10 +231,11 @@ class BrainEvalAdapter:
                     seen_ids.add(card.id)
                     trace.prompt_evidence.append(card)
 
-        # ReAct 도구 관찰도 답변의 근거다 — judge 근거성 컨텍스트에 싣는다.
-        # observation 카드로 만들어 prompt_evidence에 싣는다(검색이 만든 evidence와는
-        # 별개 출처이므로 evidence 전체 집합에는 넣지 않는다).
-        if holder.get("react_steps"):
+        # ReAct 도구 관찰도 답변의 근거다 — 단, ReAct가 실제로 답을 낸 경우에만.
+        # 섀도 모드(agents.react_shadow_mode)는 답변은 파이프라인이 내고 ReAct는 기록만
+        # 남기므로, 여기서 관찰 카드를 얹으면 답변이 보지 않은 근거가 judge 컨텍스트에
+        # 섞인다 — react_answered(=route_trace.route == "react")일 때만 싣는다.
+        if react_answered and holder.get("react_steps"):
             adapter = EvidenceAdapter()
             for step in holder["react_steps"]:
                 if not step.get("observation") or not step.get("action"):
@@ -262,20 +265,23 @@ class BrainEvalAdapter:
         finally:
             _CURRENT_REQUEST.reset(token)
 
-        react_used = bool(holder.get("react_steps"))
+        # QueryGraph._finalize_route_trace(31040bf)가 남기는 문항별 경로 관측.
+        # v1(HybridChatbotAgent) 경로는 이 키를 채우지 않는다 — v4 전용.
+        route_trace = (response.metadata or {}).get("route_trace")
+        # ReAct가 실제로 답을 냈는지 — 섀도 모드는 ReAct가 돌아도 route가 "react"가 아니다
+        # (트랙 5-C). react_steps 존재만으로 판단하면 섀도 기록이 답변으로 둔갑한다.
+        react_answered = bool(route_trace) and route_trace.get("route") == "react"
         return {
             "response": response.text,
             "confidence": response.confidence_score,
-            "query_type": "react" if react_used else response.query_type,
+            "query_type": "react" if react_answered else response.query_type,
             "sources": [],
             "citations": [],
             "tools_called": list(response.tools_called or []),
             "is_fallback": response.is_fallback,
-            "hybrid_context": self._build_trace(question, holder),
+            "hybrid_context": self._build_trace(question, holder, react_answered=react_answered),
             "llm_usage": dict(holder["usage"]),
-            # QueryGraph._finalize_route_trace(31040bf)가 남기는 문항별 경로 관측.
-            # v1(HybridChatbotAgent) 경로는 이 키를 채우지 않는다 — v4 전용.
-            "route_trace": (response.metadata or {}).get("route_trace"),
+            "route_trace": route_trace,
             # ResponsePipeline(트랙 2-D)이 남기는 답변 수치 검증 결과. 플래그 off면 없음.
             "numeric_verification": (response.metadata or {}).get("numeric_verification"),
         }
