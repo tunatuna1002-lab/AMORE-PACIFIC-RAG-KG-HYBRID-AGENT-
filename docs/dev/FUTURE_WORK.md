@@ -218,3 +218,15 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - (해소 — 2026-09-18 문서 갱신 트랙) OWL 검색 전략·`llm_orchestrator`·`query_processor`·`unified_reasoner`·SPARQL 계층 삭제 후 남은 문서 표기: `CLAUDE.md`(모듈 표·디렉터리 트리), `README.md`(rdflib SPARQL·`use_owl_strategy`), `src/core/AGENTS.md`(QueryProcessor), `AGENTS.md`(루트), `src/rag/AGENTS.md`, `docs/architecture.md`·`docs/SYSTEM_ARCHITECTURE.md`를 코드 기준으로 고쳤다. **확인 결과**: `src/core/tools.py`는 이미 삭제돼 존재하지 않고, `src/core/confidence.py`에는 `llm_orchestrator.py`를 언급하는 주석이 없었다(grep 0건) — 이 항목의 원래 서술은 그 시점에도 부정확했을 수 있다. `src/rag/AGENTS.md`는 이미 갱신돼 있어 손대지 않았다.
 - (트랙 4-C, 2026-09-18) SPARQL 계층 삭제로 `rdflib`를 import하는 `src/` 코드가 없어졌다(`requirements.txt`의 의존성 정리 후보).
 - (2026-09-18, 문서 갱신 트랙 이어서) `docs/architecture.md`·`docs/CORE_ARCHITECTURE_DEEP_DIVE.md`·`docs/guides/react_agent_guide.md`·`docs/SYSTEM_ARCHITECTURE.md`·`docs/architecture/LLM_ORCHESTRATOR_DESIGN.md`(삭제 배너 추가)의 삭제 모듈·도구·활성화 서술만 고쳤다. 이전부터 낡은 서술이 남은 부분: `docs/architecture.md`의 신뢰도 점수 공식(2.5절, OWL 가산점 방식 — 실제로는 `confidence.py`가 엔티티 충족도 0.60+카드 종류 충족 0.40 적합도 식으로 재작성됨, 트랙 5-B)과 DecisionMaker MODE_PROMPTS 설명(2.6절, 실제로는 네이티브 function calling), `docs/CORE_ARCHITECTURE_DEEP_DIVE.md`의 TrueHybridRetriever 절(5.4, 그런 파일명 없음)과 같은 신뢰도 공식 서술, `docs/guides/react_agent_guide.md`의 모델 기본값·성능 최적화 예시(`gpt-4o-mini`/`gpt-4o` 등, 코드 기준 미확인) — 삭제 모듈 참조만 고침(2026-09-18).
+
+#### 9.9.2 6단계(ReAct 비교·E8 판정)에서 발견한 항목 (2026-09-18)
+> 근거: `docs/experiments/evidence_pipeline_2026-09.md` 6단계, 결정 S6-2~S6-5. 6단계에서는 고치지 않았다.
+
+- **ReAct 진입이 신뢰도 관문 뒤에 있다.** `QueryGraph._route_after_confidence`가 HIGH를 홉 판정보다 먼저 봐서, 라우터가 2홉 이상으로 본 30문항 중 25문항이 ReAct를 건너뛴다. 신뢰도 변별력은 증거 선별(질의마다 카드 ~70장, 233문항 중 184문항이 충족도 만점)을 좁히기 전에는 오르지 않는다(5단계 게이트 미충족 항목과 같은 원인). 측정용 우회 플래그 `agents.react_bypass_confidence`(기본 OFF)가 있다.
+- **ReAct 토큰 예산 12,000이 실제 사용량보다 작다.** 그림자 88회 평균 20,438토큰(85/88 초과), (d) 90회 중 73회가 예산 소진 후 강제 답변. 원인은 컨텍스트 요약이 매 단계 프롬프트에 다시 실려 한 단계가 ~7천 토큰이 되는 것. 예산을 올리기 전에 요약 크기부터 줄일 것.
+- **ReAct 답은 카드 인용이 자주 빠지고(33/90) 수치 검증을 받지 않는다.** ReAct 경로(지금은 `QueryGraph._node_react`)는 `ResponsePipeline`을 거치지 않는다(9.9.1의 같은 항목이 경로 이름만 바뀐 채 유효).
+- **ReAct 도구 선택**: "같은 그룹 브랜드" 질문(mh005·mh006·lg158)에서 `kg_neighbors`만 반복하다 예산에 닿는다. 그룹 소속 브랜드를 한 번에 펼치는 도구 인자나 예시가 없다.
+- **그림자 모드가 동기로 돈다.** 답변 뒤에 같은 요청 안에서 ReAct를 기다려 지연 +67%. 운영에서 쓰려면 백그라운드 실행이 필요하다.
+- **수치 검증기 인용 파싱 결함**: `[M-a], [M-b]`처럼 쉼표로 떨어진 인용 괄호는 첫 id만 인용으로 연결한다(`[M-a][M-b]`, `[M-a, M-b]`는 정상). mismatch의 25~43%가 이것이다. enforce의 선행 조건.
+- **수치 검증기 계산값 처리**: 100 기준 지수의 환산(CPI 111.1 → "11.1% 높음"), 카드 3개 이상의 합, 반올림("3만 7천여"), 규칙 임계값("HHI < 0.15"), 제품명 속 숫자("96%")가 mismatch로 잡힌다. enforce의 선행 조건.
+- **평가 측정**: 3회 측정에서 토큰 F1 노이즈 기준 0.01이 A/A 폭(+0.011 전체, +0.024 multihop)보다 좁다 — 분산이 큰 소수 문항 때문. 그림자 토큰(`route_trace.react_shadow.token_usage`)은 평가 리포트 비용 집계에 연결돼 있지 않다(리포트의 l5 비용에 그림자 비용이 섞인다). multihop·relation 시험지에는 `rule_gold`가 없어 규칙 일치율을 잴 수 없다.
