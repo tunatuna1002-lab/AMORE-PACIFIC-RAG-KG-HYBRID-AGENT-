@@ -251,6 +251,10 @@ def check_triple(
     for message in onto.validate_triple(subject_c, canonical, obj_c, props):
         codes.add(_classify(message))
     codes.discard("outside_ontology")
+    if "placeholder_brand" in codes:
+        # PlaceholderBrand는 Brand와 서로소라 같은 개체가 도메인/범위 위반으로도 잡힌다.
+        # 한 원인을 두 번 세지 않도록 가짜 브랜드 사유만 남긴다.
+        codes -= {"domain_violation", "range_violation"}
     return sorted(codes)
 
 
