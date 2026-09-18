@@ -235,6 +235,7 @@ class TestIntegrityCheckWiring:
 
     def test_route_is_registered(self):
         from src.api.app_factory import create_app
+        from tests.unit.api.route_utils import collect_app_paths
 
-        paths = {route.path for route in create_app().routes}
+        paths = collect_app_paths(create_app())
         assert "/api/health/integrity" in paths

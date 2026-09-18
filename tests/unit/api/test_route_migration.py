@@ -8,6 +8,8 @@ dashboard_api.py 엔드포인트가 src/api/routes/로 올바르게 이전되었
 
 import importlib
 
+from tests.unit.api.route_utils import collect_app_paths
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -26,7 +28,7 @@ def _get_app_paths() -> list[str]:
     """dashboard_api.py의 app에 등록된 모든 경로를 추출."""
     from src.api.dashboard_api import app
 
-    return [route.path for route in app.routes if hasattr(route, "path")]
+    return sorted(collect_app_paths(app))
 
 
 # ---------------------------------------------------------------------------
@@ -245,5 +247,5 @@ class TestAppBootstrap:
         """app에 최소 20개 라우트가 등록되어 있는지."""
         from src.api.dashboard_api import app
 
-        route_paths = [r.path for r in app.routes if hasattr(r, "path")]
+        route_paths = sorted(collect_app_paths(app))
         assert len(route_paths) >= 20, f"Only {len(route_paths)} routes found"
