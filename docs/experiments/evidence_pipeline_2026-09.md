@@ -413,3 +413,4 @@ enforce는 mismatch·unknown_card 수치를 "확인되지 않음"으로 바꾼�
 - 인프라 실패: (a) run2, (b) run1·run2, (c) run1 — 네 건 모두 `lg155`, judge 60초 시간 초과 3회(알려진 항목).
 - 운영 `data/` 무변경: 모든 실행 전후 KG `876ea40f`, Chroma 358(`runs.log`).
 - 비용: 스모크 $0.12 + 본측정 리포트 $5.412 × 1.1 ≈ **$5.95** → 누적 ≈ **$26.1**(경보선 $32 미만, 축소 없음).
+- 최종 전체 테스트(`9d2e565`, 원본 저장소, 10:1x): **6,013 passed / 7 skipped / 0 failed**, 커버리지 69.09%. 실행 전후 `data/` 146개 파일 sha256 비교에서 `data/chroma/chroma.sqlite3`만 달라졌다 — 읽기 전용으로 연 내용 테이블 20개는 동결 스냅샷과 동일하고 Chroma 내부 잠금 테이블 `acquire_write`(스냅샷 233행, 현재 234행)만 다르며 `amore_docs`=358(S3-2와 같은 현상).
