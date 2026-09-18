@@ -222,6 +222,7 @@ class UnifiedBrain:
         # 홉 수 라우터 — LLM 폴백 캐시를 공유하려고 Brain 수명 동안 하나만 둔다
         self._router = HopRouter()
         self._react_mode = REACT_MODE_OFF
+        self._react_bypass_confidence = False
 
         # Market Intelligence Engine (lazy init)
         self._market_intelligence: MarketIntelligenceEngine | None = None
@@ -429,9 +430,16 @@ class UnifiedBrain:
         self._react_mode = (
             REACT_MODE_ON if use_react else (REACT_MODE_SHADOW if shadow else REACT_MODE_OFF)
         )
+        self._react_bypass_confidence = bool(flags.react_bypass_confidence())
 
         status = self._component_status["react_agent"]
-        status.update(enabled=use_react, active=False, error=None, mode=self._react_mode)
+        status.update(
+            enabled=use_react,
+            active=False,
+            error=None,
+            mode=self._react_mode,
+            react_bypass_confidence=self._react_bypass_confidence,
+        )
         self._react_agent = None
         if not (use_react or shadow):
             return
@@ -521,6 +529,7 @@ class UnifiedBrain:
                 react_agent=self._react_agent,
                 router=self._router,
                 react_mode=self._react_mode,
+                react_bypass_confidence=self._react_bypass_confidence,
             )
         return self._query_graph
 

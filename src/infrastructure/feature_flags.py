@@ -111,6 +111,15 @@ class FeatureFlags:
         """
         return self.get_flag("agents", "react_shadow_mode", default=False)
 
+    def react_bypass_confidence(self) -> bool:
+        """HIGH 신뢰도에서도 홉 라우터가 2홉 이상이라고 보면 ReAct로 보낼지 여부.
+
+        ``use_react_agent``가 ON이어야 실제로 우회한다(react_mode가 "on"일 때만 의미가
+        있다) — 대부분 질문이 HIGH로 판정돼 ReAct가 거의 실행되지 않는 문제를 측정하기
+        위한 opt-in 변형이다. 섀도 모드에는 영향 없음. 기본 OFF (트랙 6).
+        """
+        return self.get_flag("agents", "react_bypass_confidence", default=False)
+
     def use_router_llm_fallback(self) -> bool:
         """홉 수 라우터가 규칙으로 판정하지 못한 질문을 LLM에게 물어볼지 여부.
 

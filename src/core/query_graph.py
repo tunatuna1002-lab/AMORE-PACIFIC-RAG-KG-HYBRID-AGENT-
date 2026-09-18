@@ -94,6 +94,7 @@ class QueryGraph:
         react_agent: Any | None = None,
         router: HopRouter | None = None,
         react_mode: str | None = None,
+        react_bypass_confidence: bool = False,
     ):
         self._cache = cache
         self._context_gatherer = context_gatherer
@@ -105,6 +106,8 @@ class QueryGraph:
         self._router = router or HopRouter()
         # 모드를 주지 않으면 에이전트가 있을 때 "on" — 기존 호출부(테스트 포함)의 동작 유지
         self._react_mode = react_mode or (REACT_MODE_ON if react_agent else REACT_MODE_OFF)
+        # HIGH 신뢰도라도 홉 라우터가 2홉 이상이면 react로 보낼지 (트랙 6, 기본 False)
+        self._react_bypass_confidence = react_bypass_confidence
 
     # =========================================================================
     # Node Methods — each takes QueryState, returns QueryState
@@ -434,16 +437,29 @@ class QueryGraph:
         """신뢰도 → (MEDIUM/LOW면) 홉 수 기반 라우팅
 
         Returns:
-            "generate_response": HIGH confidence - 직접 응답
             "clarification": UNKNOWN - 명확화 요청
-            "react": MEDIUM/LOW + 2홉 이상 - ReAct 모드 (react_mode == "on"일 때만)
+            "react": react_bypass_confidence=True + react ON + 2홉 이상이면 HIGH도 포함
+                     (트랙 6), 그 외에는 MEDIUM/LOW + 2홉 이상 (react_mode == "on"일 때만)
+            "generate_response": HIGH confidence - 직접 응답
             "decide": MEDIUM/LOW + 1홉 - DecisionMaker
         """
-        if self._confidence_assessor.should_skip_llm_decision(state.confidence_level):
-            return "generate_response"
-
         if self._confidence_assessor.should_request_clarification(state.confidence_level):
             return "clarification"
+
+        # HIGH 신뢰도라도 홉 라우터가 2홉 이상이면 react로 보낸다 (opt-in, 트랙 6).
+        # UNKNOWN은 위에서 이미 걸러졌으니 여기서부터는 HIGH/MEDIUM/LOW뿐이다.
+        if (
+            self._react_bypass_confidence
+            and self._react_mode == REACT_MODE_ON
+            and self._react_agent
+        ):
+            decision = self._router_decision(state)
+            state.metadata["is_complex"] = decision.use_react
+            if decision.use_react:
+                return "react"
+
+        if self._confidence_assessor.should_skip_llm_decision(state.confidence_level):
+            return "generate_response"
 
         decision = self._router_decision(state)
 

@@ -70,6 +70,7 @@ class TestBrainInitializationWiring:
             "active": True,
             "error": None,
             "mode": "on",
+            "react_bypass_confidence": False,
         }
 
     @pytest.mark.asyncio
@@ -111,6 +112,7 @@ class TestBrainInitializationWiring:
             "active": False,
             "error": None,
             "mode": "off",
+            "react_bypass_confidence": False,
         }
 
     def test_default_config_keeps_react_off(self, monkeypatch):
