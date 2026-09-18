@@ -598,8 +598,8 @@ class HybridRetriever:
                     self._record_degraded(degraded, "ontology_plan", e)
                     onto, ontology_plan, adapter = None, None, self.evidence_adapter
 
-            # 2. 지식 그래프에서 사실 조회 (ablation no-kg: FF_ONTOLOGY_USE_ONTOLOGY_KG=false)
-            if flags.use_ontology_kg():
+            # 2. 지식 그래프에서 사실 조회 (ablation no-kg: FF_KG_ENABLED=false, 옛 FF_ONTOLOGY_USE_ONTOLOGY_KG)
+            if flags.kg_enabled():
                 if ontology_plan is not None:
                     ontology_facts = self._query_knowledge_graph(
                         entities, degraded=degraded, ontology_plan=ontology_plan, ontology=onto
@@ -607,9 +607,9 @@ class HybridRetriever:
                 else:
                     ontology_facts = self._query_knowledge_graph(entities, degraded=degraded)
             else:
-                logger.info("KG query disabled by feature flag (use_ontology_kg=false)")
+                logger.info("KG query disabled by feature flag (kg.enabled=false)")
                 ontology_facts = []
-            if ontology_plan is not None and not flags.use_ontology_kg():
+            if ontology_plan is not None and not flags.kg_enabled():
                 # 정적 정의 사실은 온톨로지 원본에서 오므로 KG 조회 스위치와 무관하다
                 static = self._ontology_static_fact(onto, ontology_plan, degraded)
                 ontology_facts = [static] if static else []
@@ -641,7 +641,7 @@ class HybridRetriever:
             # 4. 규칙 추론: 카드 → 계약 입력 → 판정 (ablation no-ontology: reasoner 플래그
             #    둘 다 false면 규칙을 판정하지 않는다 — 이름과 달리 "규칙 추론 off" 스위치)
             rule_evaluation: dict[str, Any] | None = None
-            if flags.use_unified_reasoner() or flags.use_owl_reasoner():
+            if flags.use_unified_reasoner() or flags.reasoner_enabled():
                 if ontology_plan is not None:
                     # 포함 확장(OE3): 하위 카테고리 조합도 판정한다 (카드는 자기 카테고리 그대로)
                     inferences, rule_evaluation = self._evaluate_rules(

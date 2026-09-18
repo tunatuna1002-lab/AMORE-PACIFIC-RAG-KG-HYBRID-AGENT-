@@ -25,6 +25,18 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# 옛 플래그 이름이 쓰였을 때 경고를 프로세스당 한 번만 남기기 위한 기록 (OE7)
+_warned_aliases: set[str] = set()
+
+
+def _warn_deprecated_alias(old_name: str, new_name: str) -> None:
+    if old_name in _warned_aliases:
+        return
+    _warned_aliases.add(old_name)
+    logger.warning(
+        "Feature flag %s is deprecated; use %s instead (kept as alias, OE7)", old_name, new_name
+    )
+
 
 class FeatureFlags:
     """Thread-safe feature flag reader with ENV > JSON > default precedence."""
@@ -128,20 +140,68 @@ class FeatureFlags:
         """
         return self.get_flag("router", "use_llm_fallback", default=False)
 
-    # 아래 두 플래그는 이름과 달리 `HybridRetriever.retrieve`의 규칙 추론 on/off 스위치다
-    # (둘 다 false여야 규칙 판정을 건너뛴다 — 평가 ablation `no-ontology`가 쓰는 스위치).
+    def _aliased_flag(
+        self,
+        section: str,
+        key: str,
+        old_section: str,
+        old_key: str,
+        default: bool,
+    ) -> bool:
+        """새 이름 + 옛 이름(하위 호환 별칭) 불리언 플래그 (설계 OE7) [2026-09 사후].
+
+        우선순위: ENV 새 이름 > ENV 옛 이름 > JSON 새 이름 > JSON 옛 이름 > 기본값.
+        ENV가 JSON보다 앞선다는 일반 규칙을 지키므로, 평가 스크립트가 옛 ENV
+        (예: ``FF_REASONER_USE_OWL_REASONER=false``)를 주면 JSON의 새 키보다 우선한다.
+        옛 이름이 실제로 쓰이면 프로세스당 1회 deprecation 경고를 남긴다.
+        """
+        env_new = f"FF_{section.upper()}_{key.upper()}"
+        env_old = f"FF_{old_section.upper()}_{old_key.upper()}"
+        if (raw := os.environ.get(env_new)) is not None:
+            return raw.lower() in ("true", "1", "yes", "on")
+        if (raw := os.environ.get(env_old)) is not None:
+            _warn_deprecated_alias(env_old, env_new)
+            return raw.lower() in ("true", "1", "yes", "on")
+        new_section_config = self._config.get(section, {})
+        if isinstance(new_section_config, dict) and key in new_section_config:
+            return bool(new_section_config[key])
+        old_section_config = self._config.get(old_section, {})
+        if isinstance(old_section_config, dict) and old_key in old_section_config:
+            _warn_deprecated_alias(f"{old_section}.{old_key}", f"{section}.{key}")
+            return bool(old_section_config[old_key])
+        return default
+
+    # 규칙 추론 on/off: `HybridRetriever.retrieve`·도구 `apply_rules`는
+    # ``use_unified_reasoner() or reasoner_enabled()``일 때 규칙 판정을 한다
+    # (둘 다 false여야 건너뜀 — 평가 ablation `no-ontology`가 쓰는 스위치).
 
     def use_unified_reasoner(self) -> bool:
         """Whether to run unified/rule-based inference during retrieval (ablation: no-ontology)."""
         return self.get_flag("reasoner", "use_unified_reasoner", default=True)
 
+    def reasoner_enabled(self) -> bool:
+        """규칙 추론(Python 규칙 엔진) on/off — ``reasoner.enabled`` [2026-09 사후, OE7].
+
+        옛 이름 ``reasoner.use_owl_reasoner``(ENV ``FF_REASONER_USE_OWL_REASONER``)는 OWL과
+        무관했다. 하위 호환 별칭으로 계속 읽고 경고를 남긴다. 기본 True.
+        """
+        return self._aliased_flag("reasoner", "enabled", "reasoner", "use_owl_reasoner", True)
+
     def use_owl_reasoner(self) -> bool:
-        """Whether to enable OWL-based reasoning (requires owlready2; ablation: no-ontology)."""
-        return self.get_flag("reasoner", "use_owl_reasoner", default=True)
+        """Deprecated: ``reasoner_enabled()``의 옛 이름. OWL과 무관하다."""
+        return self.reasoner_enabled()
+
+    def kg_enabled(self) -> bool:
+        """KG 사실 조회 on/off — ``kg.enabled`` [2026-09 사후, OE7] (ablation: no-kg).
+
+        옛 이름 ``ontology.use_ontology_kg``(ENV ``FF_ONTOLOGY_USE_ONTOLOGY_KG``)는 삭제된
+        ``OntologyKnowledgeGraph``가 아니라 일반 KG 조회 스위치였다. 별칭으로 계속 읽는다.
+        """
+        return self._aliased_flag("kg", "enabled", "ontology", "use_ontology_kg", True)
 
     def use_ontology_kg(self) -> bool:
-        """Whether to query the Knowledge Graph during retrieval (ablation: no-kg)."""
-        return self.get_flag("ontology", "use_ontology_kg", default=True)
+        """Deprecated: ``kg_enabled()``의 옛 이름."""
+        return self.kg_enabled()
 
     def use_db_metric_facts(self) -> bool:
         """Whether to attach crawl-DB metric facts (SoS/HHI/rank/price) to retrieval context.
