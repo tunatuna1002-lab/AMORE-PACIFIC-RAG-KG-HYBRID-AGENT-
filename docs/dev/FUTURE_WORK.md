@@ -179,7 +179,7 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - L2 임베딩(`src/rag/retriever.py`의 openai 직접 호출)과 v4 질의 확장(`DocumentRetriever.expand_query`)의 토큰·비용이 어느 리포트에도 집계되지 않는다(장부는 ×1.1로 보정).
 - judge 호출 시간 초과(60초×3회)가 동시 실행 중 특정 시간대에 몰려 문항이 채점에서 빠진다(2단계 run2 `lg161`, run3 `lg155`). 재시도 간격(backoff) 없음.
 - 골든 문서의 CPI 정의(<1.0 비율)와 코드 CPI(100 기준)가 다르다(lg043, lg056).
-- 골든 엣지는 `ownedBy`인데 KG 술어는 `ownedByGroup`이라 엣지 Recall이 낮게 나올 수 있다(미검증).
+- (해소 — 2026-09-18 온톨로지 작업 O0·O7) 골든 엣지는 `ownedBy`인데 KG 술어는 `ownedByGroup`이라 엣지 Recall이 낮게 나올 수 있다(미검증). → 확인했다. 술어를 정식 이름으로 맞춘 canonical recall 필드를 따로 두었고(`eval/metrics/l3_kg.py`), 기존 raw 필드는 그대로다. 54문항 `ownedByGroup` canonical recall은 플래그 OFF 0.424, ON 0.909다. 남은 골드 레거시 표기(lg102·lg158)는 9.10에 적었다.
 
 **데이터 파이프라인**
 - 2026-08-31 지표 테이블(`brand_metrics`·`market_metrics`, 08-30 18:06 UTC 계산)이 같은 날짜 `raw_data`(08-31 13:03 UTC 교체)와 다른 크롤 상태로 계산됐다(예: lip_care HHI 0.0681 vs raw 0.0637, lip_makeup 21/21 브랜드 SoS 불일치). 지표 재계산 시점 결함.
@@ -190,9 +190,9 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - 2026-08-31 lip_care SoS가 정수값(제품 수 기반)이다. 다른 날짜·카테고리와 계산 방식 일관성 확인 필요.
 
 **KG·온톨로지**
-- KG 수치 엣지 359개(`hasSoS` 169, price position 124, `hasHHI` 66)가 전부 날짜가 없다. lip_care `hasHHI`는 값이 15개이고 0~10000 스케일이 섞여 있다. 검색 증거에서는 제외했지만(E2) 정리·버전 부여는 하지 않았다.
-- KG 주어 대소문자가 술어마다 다르다(`competesWith` 주어 `laneige`, `ownedByGroup` 주어 `LANEIGE`).
-- KG `TATA HARPER acquiredIn='True'`.
+- KG 수치 엣지 359개(`hasSoS` 169, price position 124, `hasHHI` 66)가 전부 날짜가 없다. lip_care `hasHHI`는 값이 15개이고 0~10000 스케일이 섞여 있다. 검색 증거에서는 제외했지만(E2) 정리·버전 부여는 하지 않았다. [2026-09-18 온톨로지 O5] 평가 스냅샷 마이그레이션 후에도 333건(`hasSoS` 151·`hasPricePosition` 116·`hasHHI` 66)이 날짜 없이 남는다. 날짜를 지어내지 않기로 했다(OA-8). 9.10 참고.
+- (부분 해소 — 2026-09-18 온톨로지 O3·O5) KG 주어 대소문자가 술어마다 다르다(`competesWith` 주어 `laneige`, `ownedByGroup` 주어 `LANEIGE`). → 질의 경로는 ON에서 읽을 때 정식화한다(O3). 평가 스냅샷 사본은 마이그레이션으로 비정식 브랜드 1,029 → 0이 됐다(O5). **운영 KG에는 적용하지 않았다**(OA-11, 효과 없음). 매일 크롤은 기본 `warn`에서 예전 표기를 계속 쓴다.
+- (부분 해소 — 2026-09-18 온톨로지 O5) KG `TATA HARPER acquiredIn='True'`. → 마이그레이션이 이 트리플을 지우고, `kg.write_validation=enforce`는 막는다. 원인인 `kg_updater` 버그는 그대로다(9.10).
 - `KnowledgeGraph()` 기본 생성이 로드 중 자동 저장으로 KG 파일을 다시 쓴다(0-F의 근본 원인). 테스트는 `persist_path`·`auto_save=False`로 격리했지만 생성자 동작 자체는 그대로다.
 - 규칙 37개 중 입력을 공급할 수 없는 규칙: sentiment 8개 전부, IR 5개, 이력(기간 비교)이 필요한 규칙.
 
@@ -203,7 +203,7 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - 1-A가 시험지에서 뺀 23문항은 `gold_source=domain_expectation`(추정 골드)이라 정답 채점이 불가하다 — 골드 보강 필요.
 
 #### 9.9.1 트랙 3-B·2-D·4-B에서 추가로 발견한 항목 (2026-09-18)
-- 엔티티 추출기가 골든 문항의 브랜드 일부를 인식하지 못한다(IT Cosmetics, Jouer, Almay, Charlotte Tilbury, COVERGIRL). Lip Care 질문에서 nivea를 과다 추출한다. 규칙 판단 정답 일치율이 오프라인 측정에서 25/32인데, 골드 브랜드를 직접 넣으면 29/32로 오른다 — 즉 남은 격차의 대부분이 이 결함이다.
+- (브랜드 인식은 해소 — 2026-09-18 온톨로지 O2, 플래그 `ontology.use_class_reasoning` ON에서만. nivea 과다 추출은 남음) 엔티티 추출기가 골든 문항의 브랜드 일부를 인식하지 못한다(IT Cosmetics, Jouer, Almay, Charlotte Tilbury, COVERGIRL). → 등록부 사전으로 인식한다. 골든 273개 질문에서 새 오탐 0건, 오프라인 규칙 일치율 25/32 → 29/32(골드 엔티티 상한과 같음), LLM 측정 rule 42문항 일치율 0.781 → 0.906(§O7). Lip Care 질문에서 nivea를 과다 추출한다(KG 제품 슬러그 역링크 경로, O2와 무관). 규칙 판단 정답 일치율이 오프라인 측정에서 25/32인데, 골드 브랜드를 직접 넣으면 29/32로 오른다 — 즉 남은 격차의 대부분이 이 결함이다.
 - `HybridRetriever.retrieve`가 마지막에 `context.metadata`를 새로 할당해 `weighted_scores`·`fusion` 메타데이터를 지운다.
 - 프롬프트에 싣는 추론 카드는 신뢰도 상위 5개라, 질문이 겨냥한 규칙이 발화했는데도 프롬프트에서 빠질 수 있다.
 - `dashboard_exporter`는 여전히 `reasoner.infer`와 대시보드 JSON 컨텍스트를 쓴다(v4 검색 경로만 카드 입력으로 바뀜).
@@ -232,9 +232,35 @@ SQLite 영속화는 `BatchWorkflow`의 `STORE_METRICS` 스텝이 담당한다.
 - **평가 측정**: 3회 측정에서 토큰 F1 노이즈 기준 0.01이 A/A 폭(+0.011 전체, +0.024 multihop)보다 좁다 — 분산이 큰 소수 문항 때문. 그림자 토큰(`route_trace.react_shadow.token_usage`)은 평가 리포트 비용 집계에 연결돼 있지 않다(리포트의 l5 비용에 그림자 비용이 섞인다). multihop·relation 시험지에는 `rule_gold`가 없어 규칙 일치율을 잴 수 없다.
 
 ### 9.10 온톨로지 작동 작업(O0~O7, 2026-09-18) 중 남긴 항목
-> 근거: `docs/plans/ontology-activation-plan-2026-09-18.md`, 결정표 `docs/plans/ontology-activation-decisions-2026-09.md`, 실험 기록 `docs/experiments/ontology_activation_2026-09.md`. 트랙 O6에서 기록만 했다.
+> 근거: `docs/plans/ontology-activation-plan-2026-09-18.md`, 결정표 `docs/plans/ontology-activation-decisions-2026-09.md`, 실험 기록 `docs/experiments/ontology_activation_2026-09.md`. 트랙 O6에서 처음 적었고, §7 마무리(2026-09-18)에서 O7 결과로 보탰다.
 
-- (해소 — O6) OWL 모듈(`owl_reasoner.py`·`ontology_knowledge_graph.py`·`cosmetics_ontology.owl`·`scripts/migrate_kg_to_ontology.py`) 삭제, owlready2는 `requirements-dev.txt`로 이동. 호출처 확인표는 `docs/experiments/ontology_activation_O6_section.md`.
+**검토 보고서(`docs/analysis/ontology-review-2026-09-18.md`) 항목 중 해소된 것**
+
+- (해소 — O6) OWL 모듈(`owl_reasoner.py`·`ontology_knowledge_graph.py`·`cosmetics_ontology.owl`·`scripts/migrate_kg_to_ontology.py`) 삭제, owlready2는 `requirements-dev.txt`로 이동. 호출처 확인표는 실험 기록 §O6-1.
+- (부분 해소 — O1·O2) 브랜드 어휘가 5곳 이상에 흩어져 있던 문제(검토 보고서 §3.1). 브랜드 등록부 `config/ontology/brands.json`과 로더 `src/ontology/ontology.py`가 온톨로지의 단일 원본이 됐다(Pellet 교차 검증 불일치 0, 결정 OA-5). 연결기는 플래그 ON에서 등록부 사전을 **더해** 쓴다. 기존 `config/entities.json`·연결기 사전은 그대로 남아 있다("기존 인식은 잃지 않는다" 원칙).
+- (해소 — O3, 플래그 ON) 그룹을 소속 브랜드로 전개하지 않던 문제, 세그먼트·원산지 술어가 `priority_preds`에서 버려지던 문제(§3.1). 54문항 canonical recall: `ownedByGroup` 0.424 → 0.909, `hasSegment` 0 → 0.429, `originatesFrom` 0 → 0.500, `siblingBrand` 0 → 1.000(§O7).
+- (해소 — O3, 플래그 ON) 자매 브랜드 부정 판정(rl015·rl016, §3.4). 등록부를 닫힌 세계로 보고 `notOwnedByGroup`·`notSiblingBrand` 카드를 낸다. negative 부분집합 종합 0.744 → 0.849.
+- (해소 — O0) L4 지표가 0.0/1.0으로 고정돼 있던 문제, L3 recall이 골드 엣지 없는 문항 때문에 부풀던 문제(§4). 새 필드(`rule_constraint_violation_rate`·`typed_consistency_rate`·`kg_edge_recall_gold_only`·canonical 필드)를 더했다. 기존 필드와 게이트는 그대로다.
+- (해소 — O4) 소유 검증 규칙이 KG에 있는 원산지·세그먼트·인수 정보를 "입력 없음"으로 보던 문제(§3.3). 등록부 카드에서 읽는다(플래그 ON).
+- (해소 — O5 이후) 실험 기록 §O5 4절 3항: `hasPricePosition`이 이제 `evidence_adapters.KG_NUMERIC_PREDICATES`와 `hybrid_retriever`의 정식 술어 우선순위에 모두 들어 있다(코드 확인).
+- (해소 — `3421ef8`) ON에서 새로 발화한 가격 규칙의 `related_entities`에 빈 문자열이 들어가 L4 규칙 위반율이 0.116 → 0.228로 오르던 결함(OA-13). 오프라인 재채점 0.228 → 0.0. 수리 뒤 코드로 LLM 재측정은 하지 않았다.
+
+**새로 남긴 항목 (O7, 2026-09-18)**
+
+- **프롬프트 카드 수가 한계선 ~70장에 닿았다(OA-12).** 플래그 ON에서 54문항 평균 58.1 → 69.9장, 70장 초과 문항 25~26 → 32~33개(54문항), 102 → 131개(233문항). segment 부분집합은 34.5 → 72.2장. 파이프라인 비용 +9%, 프롬프트 토큰 +417/문항(54). 카드 상한·선별(증거 선별 좁히기, 9.9.2 첫 항목과 같은 원인)을 조정해야 한다.
+- **골드 어휘 불일치 (기록만, 골드는 고치지 않음 — 사용자 결정 필요).**
+  - lg102·lg158 골드가 레거시 술어 `ownedBy`를 쓴다. 플래그 ON은 정식 이름 `ownedByGroup`으로 내므로 raw L3에서 잃는다(canonical은 잃지 않는다). 종합 점수는 raw L3를 쓴다.
+  - rl011 골드가 `cosrx -originatesFrom-> korea`인데 등록부 국가 id는 `south_korea`다. canonical에서도 맞지 않는다(나라 정규화 함수 없음). 그래서 `originatesFrom` recall이 1/2에서 멈춘다.
+- **lg158: 그룹과 소속 브랜드를 함께 언급하면 전개하지 않는다.** "LANEIGE 모회사와 해당 기업의 다른 브랜드" 질문은 LANEIGE가 함께 나와 "그룹만 언급" 조건(`ontology_context`)을 채우지 못한다. 답변이 "다른 브랜드 현황은 데이터에 없음"이라고 한다. 54문항 중 ON에서 3회 모두 떨어진 유일한 문항이다((b) −0.133).
+- **`kg.write_validation=enforce` 선행 조건(OA-7·OA-8).** ① `dashboard_exporter.py`와 `scripts/enrich_kg_from_crawl.py`가 `enrich_and_store(...)`에 `as_of`를 넘겨야 한다(아래 기존 항목). ② 평가 스냅샷 기준 날짜 없는 수치 엣지 333건(`hasSoS` 151·`hasPricePosition` 116·`hasHHI` 66)은 크롤 날짜와 함께 다시 쓰거나 그날 DB에서 다시 계산해야 한다. ③ 운영 KG 마이그레이션을 적용한다면 enforce를 같이 켜야 KG가 다시 섞이지 않는다. 다만 O7에서 마이그레이션 효과가 없어 적용은 권하지 않는다(OA-11).
+- **CI가 `requirements-dev.txt`를 설치하지 않는다.** `.github/workflows/test.yml`은 `requirements.txt`만 설치하므로 Pellet 교차 검증 테스트(`tests/unit/ontology/test_ontology_owl_check.py`)가 skip된다(아래 기존 항목과 같다).
+- **`is_target` 일반화 안 함(§O4).** "AP 그룹 브랜드"·"K-Beauty 브랜드" 클래스로 넓히면 rule 골드 32문항 중 15문항의 발화 규칙 집합이 바뀐다. rule 골드가 LANEIGE 기준이라 골드를 다시 정의하기 전에는 하지 않는다.
+- **날짜 없는 수치 엣지 333건**(위 enforce 항목 ②). 증거 계층은 이 엣지를 증거 카드에서 뺀다.
+- **233문항 1회 측정에서 판정을 보류한 것**: 유형 외 문항 수치 정확도 0.139 → 0.056(−0.083, 수치 채점 문항 소수). 반복 측정이 없다.
+- **`3421ef8`·기본값 전환 이후 코드로 LLM 평가를 다시 돌리지 않았다.** L4는 오프라인 재채점만 했다.
+
+**O6에서 남긴 항목**
+
 - **스크레이퍼 브랜드 오귀속**: `src/tools/scrapers/amazon_scraper.py`가 일부 제품의 브랜드를 잘못 붙인다(가짜 브랜드 `unknown`·`fresh`·`chi` 등이 KG에 들어오는 원인). 매일 크롤에 영향을 주므로 계획 범위 밖으로 두었고, 조회 쪽에서 `is_placeholder` 브랜드만 거른다(O2).
 - **`dashboard_exporter`가 `as_of`를 넘겨야 `kg.write_validation=enforce`로 올릴 수 있다.** 지금은 날짜 없는 수치 엣지(hasSoS·hasHHI·hasPricePosition)가 매일 쓰여 enforce에서 막힌다(결정 OA-7·OA-8).
 - **`kg_updater.load_brand_ownership`이 인수 연도로 `"True"`를 쓴다.** 설정 값이 불리언 `True`이면 `isinstance(True, int)`가 참이라 `str(True)`="True"가 되고, 소문자 `"true"`만 거르는 조건을 통과한다(`src/ontology/kg_updater.py` 인수 연도 처리부).
