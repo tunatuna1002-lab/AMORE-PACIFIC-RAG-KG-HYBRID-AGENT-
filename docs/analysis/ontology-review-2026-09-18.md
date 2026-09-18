@@ -38,6 +38,14 @@
    - 속성 이름도 `competsWith`(오타), `competitorOf`로 갈린다.
 6. **카테고리 계층은 OWL이 아니다** **[확인]**: 계층은 `config/category_hierarchy.json`을 `kg_updater.load_category_hierarchy()`가 읽어 메모리 KG에 넣는다. 그러므로 CLAUDE.md·AGENTS.md·포트폴리오 문서의 "OWL은 카테고리 계층 어휘로만 사용"은 **사실과 다르다**(작동 계획서 O6에서 정정).
 
+### 2.1-추가. Java 설치 후 재확인 (2026-09-18, 사용자가 Java 설치) **[확인]**
+
+- 설치된 Java: `1.8.0_503`(Java 8). `.venv`의 Python은 **3.14.3**이다(CLAUDE.md의 3.13.7과 다름).
+- **HermiT: 동작한다.** 임시 예제 온톨로지(`AmorepacificBrand ≡ Brand ⊓ ownedBy value amorepacific`)에서 laneige·cosrx를 자동 분류하고 elf는 뺐다.
+- **Pellet: 실패한다.** owlready2 0.50에 든 Apache Jena가 Java 25용(class file 69)으로 컴파일돼 있어 Java 8에서 `UnsupportedClassVersionError`가 난다. Pellet을 쓰려면 JDK 25 이상이 필요하다.
+- **`src/ontology/cosmetics_ontology.owl`은 읽기부터 실패한다.** 81행 `Strong competitor (15% < SoS ≤ 30%)`의 `<`가 XML에서 이스케이프(`&lt;`)되지 않아 RDF/XML 파싱 오류가 난다. 이 파일은 도입(`06f5ea4`) 이후 어떤 도구로도 로드할 수 없는 상태였다.
+- 배포 이미지(`python:3.11-slim`)에는 여전히 Java가 없다. 로컬에서 추론이 된다고 서비스 경로에서 쓸 수 있는 것은 아니다.
+
 ### 2.2 결정 이력 **[조사]**
 
 | 날짜 | 커밋·결정 | 내용 |
