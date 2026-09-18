@@ -666,9 +666,31 @@ if max_score - min_score > 0.3:
 
 ## 6. 에이전트 통합 레이어
 
-### 6.1 UnifiedBrain (오케스트레이터)
+### 6.1 UnifiedBrain (오케스트레이터) — [2026-09 사후] 질의 처리 경로 변경
 
-모든 에이전트를 통합 조율하는 최상위 컨트롤러입니다.
+`process_query()`는 더 이상 `_is_complex_query`·`_process_with_react`·`_generate_response`
+같은 자체 분기 메서드를 갖지 않는다(모두 삭제됨). 대신 `src/core/query_graph.py`의
+`QueryGraph` 그래프 하나를 실행하고, 그래프의 노드(가드 → 캐시 → 컨텍스트 → 신뢰도 →
+도구 → 생성)가 분기를 전담한다. `process_query`와 `process_query_stream`은 **같은
+QueryGraph**를 실행한다 — 스트리밍판이 분기 로직을 따로 복제하지 않는다.
+
+```python
+async def process_query(self, query, session_id=None, current_metrics=None, skip_cache=False):
+    ...
+    if not self._initialized:
+        await self.initialize()
+
+    state = self._new_query_state(query, session_id, current_metrics, skip_cache)
+    await self._ensure_query_graph().run(state)
+    return self._finalize_query(state, query, start_time)
+```
+
+ReAct 진입 여부는 이제 홉 카운트 라우터(`src/core/router.py`, `hops >= HOP_THRESHOLD(2)`)와
+플래그 `agents.use_react_agent`(기본 OFF)가 그래프 안에서 판단한다 — 브레인 메서드가
+직접 분기하지 않는다.
+
+<details>
+<summary>Original text (kept for history — describes brain.py methods removed in the 2026-09 rework; process_query no longer branches this way)</summary>
 
 ```python
 async def process_query(self, query, session_id, current_metrics):
@@ -698,7 +720,7 @@ async def process_query(self, query, session_id, current_metrics):
     return response
 ```
 
-### 6.2 모드 선택 매트릭스
+### 6.2 모드 선택 매트릭스 (원문, 참고용)
 
 | 조건 | 모드 | 설명 |
 |------|------|------|
@@ -706,7 +728,7 @@ async def process_query(self, query, session_id, current_metrics):
 | 단순 쿼리 | **Direct** | DecisionMaker → 도구 실행 → 응답 |
 | 복잡 쿼리 | **ReAct** | 다단계 추론 루프 (최대 3회) |
 
-### 6.3 복잡도 판단 휴리스틱
+### 6.3 복잡도 판단 휴리스틱 (원문, 참고용 — `_is_complex_query`는 삭제됨)
 
 ```python
 def _is_complex_query(self, query, context):
@@ -732,7 +754,25 @@ def _is_complex_query(self, query, context):
 | "순위 하락 **원인**과 개선 **전략**은?" | ReAct | "원인" + "전략" + 다단계 |
 | "SoS가 뭐야?" | Direct | 정의 질문 |
 
-### 6.4 ReAct Self-Reflection Loop
+</details>
+
+### 6.4 ReAct Self-Reflection Loop — [2026-09 사후] 도구 목록·루프 갱신
+
+**Thought → Action(네이티브 function calling) → Observation → Self-Reflection** 루프를
+실행하며, 기본 `max_iterations=5`다. 허용된 액션은 도구 5종(`resolve_entity`·
+`kg_neighbors`·`get_metrics`·`apply_rules`·`search_docs`, `src/core/tool_registry.py`) +
+루프 제어 2종(`final_answer`·`refine_search`)뿐이다. 아래 원문의 `query_data`·
+`query_knowledge_graph`·`calculate_metrics` 같은 액션명은 더 이상 존재하지 않는다.
+
+```python
+# src/core/react_agent.py
+ALLOWED_ACTIONS: frozenset[str] = frozenset(
+    {*TOOL_NAMES, FINAL_ANSWER_ACTION, REFINE_SEARCH_ACTION}
+)
+```
+
+<details>
+<summary>Original text (kept for history — action names below no longer exist)</summary>
 
 복잡한 쿼리에 대해 **Thought → Action → Observation → Reflection** 루프를 실행합니다.
 
@@ -791,6 +831,8 @@ ALLOWED_ACTIONS = frozenset({
     "final_answer",            # 최종 답변
 })
 ```
+
+</details>
 
 ### 6.5 HybridChatbotAgent (챗봇)
 
@@ -883,7 +925,7 @@ Layer 1: Amazon 성과
 ```
 Step 1: UnifiedBrain.process_query()
   ├─ 캐시 미스 확인
-  └─ 복잡도 판단: "분석" 키워드 → ReAct 모드
+  └─ 홉 카운트 판단(router.py, hops>=2) + agents.use_react_agent 플래그 → ReAct 모드  # [2026-09 사후] 키워드 판단에서 교체
 
 Step 2: EntityExtractor.extract()
   ├─ brands: ["laneige"]
@@ -907,11 +949,11 @@ Step 5: RAG 문서 검색 (Playbook + Metric Guide 우선)
   ├─ "아마존 랭킹 급등 원인 역추적 보고서.md" (score: 0.82)
   └─ "K-Beauty 미국 트렌드.md" (score: 0.75)
 
-Step 6: ReAct Loop (3회 반복)
+Step 6: ReAct Loop (3회 반복, 도구명은 [2026-09 사후] 5종 레지스트리 기준으로 정정)
   ├─ Thought 1: "경쟁사 대비 포지션 확인 필요"
-  │   Action: query_knowledge_graph → 경쟁사 SoS 데이터
+  │   Action: kg_neighbors → 경쟁사 SoS 데이터
   ├─ Thought 2: "시계열 트렌드 확인"
-  │   Action: calculate_metrics → 최근 4주 추이
+  │   Action: get_metrics → 최근 4주 추이
   └─ Thought 3: "종합 분석 완료"
       Action: final_answer
 
