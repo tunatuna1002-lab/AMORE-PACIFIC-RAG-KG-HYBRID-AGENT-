@@ -489,7 +489,7 @@ def kg_consistency(triples: list[dict[str, Any]], registry: EntityTypeRegistry) 
             if node_type is None:
                 untyped += 1
                 continue
-            if node_type not in allowed:
+            if node_type not in allowed and not (registry.alt_types(node) & allowed):
                 kind = f"{pred}:{role}={node_type}"
                 domain_range[kind] += 1
                 examples.setdefault(

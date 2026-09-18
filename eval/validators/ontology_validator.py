@@ -101,10 +101,13 @@ class EntityTypeRegistry:
         types: dict[str, str],
         groups: dict[str, str] | None = None,
         ontology: Any | None = None,
+        alt_types: dict[str, set[str]] | None = None,
     ):
         self._types = dict(types)
         self._groups = dict(groups or {})
         self._ontology = ontology
+        # 같은 철자가 두 타입으로 쓰이는 경우의 보조 타입 (예: 'makeup' = 카테고리이자 세그먼트)
+        self._alt_types = {k: set(v) for k, v in (alt_types or {}).items()}
 
     @classmethod
     def from_config(cls, config_dir: Path | str | None = None) -> "EntityTypeRegistry":
@@ -112,6 +115,7 @@ class EntityTypeRegistry:
         config_dir = Path(config_dir) if config_dir else _REPO_ROOT / "config"
         types: dict[str, str] = {}
         groups: dict[str, str] = {}
+        alt_types: dict[str, set[str]] = {}
 
         def put(name: Any, entity_type: str) -> None:
             for variant in _key_variants(name):
@@ -179,6 +183,8 @@ class EntityTypeRegistry:
                 node_ids.append(info["amazon_node_id"])
             for node_id in node_ids:
                 for variant in _key_variants(node_id):
+                    if types.get(variant) == "segment":
+                        alt_types.setdefault(variant, set()).add("segment")
                     if types.get(variant) in (None, "segment"):
                         types[variant] = "category"
 
@@ -189,7 +195,7 @@ class EntityTypeRegistry:
             # 'fresh' 노드는 제목 오인이다 — 검토 보고서 §3.2).
             for variant in _key_variants(placeholder):
                 types[variant] = "placeholder"
-        return cls(types, groups, ontology=_load_ontology())
+        return cls(types, groups, ontology=_load_ontology(), alt_types=alt_types)
 
     def type_of(self, entity: Any) -> tuple[str | None, str | None]:
         """(타입, 출처) — 출처는 'ontology' | 'registry' | 'pattern'. 모르면 (None, None)."""
@@ -208,6 +214,13 @@ class EntityTypeRegistry:
         if _ASIN_RE.match(str(entity).strip()):
             return "product", "pattern"
         return None, None
+
+    def alt_types(self, entity: Any) -> set[str]:
+        """주 타입 말고도 이 이름이 가질 수 있는 타입 (없으면 빈 집합)."""
+        for variant in _key_variants(entity):
+            if variant in self._alt_types:
+                return set(self._alt_types[variant])
+        return set()
 
     def group_of(self, brand: Any) -> str | None:
         """브랜드의 소속 그룹(정규화 키). 모르면 None."""
@@ -657,7 +670,9 @@ class OntologyValidator:
                 return
             result["checks"] += 1
             result["sources"][source] += 1
-            if entity_type in allowed:
+            if entity_type in allowed or (
+                source != "gold" and registry.alt_types(entity) & allowed
+            ):
                 result["consistent"] += 1
                 return
             result["violations"] += 1

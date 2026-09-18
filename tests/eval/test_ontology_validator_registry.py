@@ -41,12 +41,24 @@ class TestRealConfigRegistry:
         assert reg.type_of("Premium")[0] == "segment"
         # 'Makeup'은 brands.json 세그먼트이기도 하지만 카테고리 ID가 우선한다
         assert reg.type_of("makeup")[0] == "category"
+        assert EntityTypeRegistry.from_config().alt_types("Makeup") == {"segment"}
         assert reg.type_of("unknown")[0] == "placeholder"
         assert reg.type_of("fresh")[0] == "placeholder"
         assert reg.type_of("B0BZGRCBY4") == ("product", "pattern")
         assert reg.type_of("nivea") == (None, None)  # 등록부에 없다 — 검사 불가
         assert reg.group_of("cosrx") == "amorepacific"
         assert reg.group_of("tirtir") is None
+
+    def test_segment_name_shadowed_by_category_still_satisfies_has_segment(self):
+        from eval.validators.ontology_validator import OntologyValidator
+
+        base = EntityTypeRegistry.from_config()
+        reg = EntityTypeRegistry(base._types, base._groups, alt_types=base._alt_types)
+        result = OntologyValidator().check_trace_types(
+            ["espoir -hasSegment-> Makeup"], [], registry=reg
+        )
+        assert result["violations"] == 0
+        assert result["checks"] == 2
 
 
 class TestOntologyPrecedence:
