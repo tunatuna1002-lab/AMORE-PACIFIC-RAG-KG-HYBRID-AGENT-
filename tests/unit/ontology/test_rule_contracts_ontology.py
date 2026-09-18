@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from src.domain.entities.evidence import Evidence
-from src.ontology.rule_contracts import evaluate_rules_on_cards
+from src.ontology.rule_contracts import build_rule_context, evaluate_rules_on_cards
 from src.ontology.rules import ALL_BUSINESS_RULES
 from src.rag.evidence_adapters import EvidenceAdapter
 
@@ -134,6 +134,161 @@ class TestFlagOffCharacterization:
         expected = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
 
         assert off_fingerprint() == expected
+
+
+# ---------------------------------------------------------------------------
+# 플래그 ON 카드: 정식 술어 + 등록부 정적 사실
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def onto():
+    from src.ontology.ontology import get_ontology
+
+    return get_ontology()
+
+
+@pytest.fixture(scope="module")
+def on_adapter(onto) -> EvidenceAdapter:
+    return EvidenceAdapter(ontology=onto)
+
+
+def _registry_cards(onto, adapter: EvidenceAdapter, brands: list[str]) -> list[Evidence]:
+    from src.rag.ontology_context import plan_query, static_fact
+
+    fact = static_fact(onto, plan_query(onto, {"brands": brands}))
+    assert fact is not None
+    return adapter.from_kg_facts([fact]).cards
+
+
+class TestParentGroupAcceptsCanonicalPredicate:
+    def test_on_kg_edge_is_read_as_owned_by_group(self, on_adapter):
+        cards = on_adapter.from_kg_facts(
+            [
+                {
+                    "type": "metric_edges",
+                    "entity": "laneige",
+                    "data": {
+                        "edges": [
+                            {"subject": "LANEIGE", "predicate": "ownedBy", "object": "AMOREPACIFIC"}
+                        ]
+                    },
+                }
+            ]
+        ).cards
+        assert [c.predicate for c in cards] == ["ownedByGroup"]  # ON 어댑터의 정식화
+
+        context, card_ids = build_rule_context(cards, "laneige", None)
+
+        assert context["parent_group"] == "amorepacific"
+        assert card_ids["parent_group"] == (cards[0].id,)
+
+    def test_registry_group_card_fills_parent_group(self, onto, on_adapter):
+        cards = _registry_cards(onto, on_adapter, ["COSRX"])
+        group = [c for c in cards if c.predicate == "ownedByGroup"]
+        assert group and group[0].source == "ontology:registry"
+
+        context, card_ids = build_rule_context(cards, "cosrx", None)
+
+        assert context["parent_group"] == "amorepacific"
+        assert card_ids["parent_group"] == (group[0].id,)
+
+
+class TestOwnershipProfileInputs:
+    def test_registry_profile_fills_origin_segment_acquired(self, onto, on_adapter):
+        cards = _registry_cards(onto, on_adapter, ["COSRX"])
+        by_pred = {c.predicate: c for c in cards}
+
+        context, card_ids = build_rule_context(cards, "cosrx", None)
+
+        assert context["country_of_origin"] == "South Korea"  # 등록부 라벨 (id south_korea)
+        assert context["segment"] == "K-Beauty"
+        assert context["acquired"] == "2024"
+        assert card_ids["country_of_origin"] == (by_pred["originatesFrom"].id,)
+        assert card_ids["segment"] == (by_pred["hasSegment"].id,)
+        assert card_ids["acquired"] == (by_pred["acquiredIn"].id,)
+
+    def test_ownership_rule_reports_registry_profile(self, onto, on_adapter):
+        cards = _registry_cards(onto, on_adapter, ["COSRX"])
+
+        run = evaluate_rules_on_cards(RULES_BY_PRIORITY, cards, ["cosrx"], [])
+        (result,) = [
+            r for r in run.fired_results() if r.rule_name == "brand_ownership_verification"
+        ]
+
+        assert result.metadata["country_of_origin"] == "South Korea"
+        assert result.metadata["segment"] == "K-Beauty"
+        assert result.metadata["acquired"] == "2024"
+        assert "인수 연도: 2024" in result.insight
+        assert sorted(result.evidence["derived_from"]) == sorted(
+            c.id
+            for c in cards
+            if c.predicate in {"ownedByGroup", "originatesFrom", "hasSegment", "acquiredIn"}
+        )
+
+    def test_unknown_origin_stays_missing(self, onto, on_adapter):
+        # IOPE: 등록부에 원산지가 없다(KG의 "Korea"는 kg_updater 기본값 — 결정 OA-5)
+        cards = _registry_cards(onto, on_adapter, ["IOPE"])
+
+        context, _ = build_rule_context(cards, "iope", None)
+
+        assert context["parent_group"] == "amorepacific"
+        assert "country_of_origin" not in context
+        assert context["segment"] == "Luxury"
+
+    def test_kg_profile_edges_are_not_profile_inputs(self, on_adapter):
+        # KG 정적 트리플(출처 kg)은 원산지·세그먼트·인수 입력이 아니다 — 등록부 카드만 읽는다
+        cards = on_adapter.from_kg_facts(
+            [
+                {
+                    "type": "metric_edges",
+                    "entity": "somebrand",
+                    "data": {
+                        "edges": [
+                            {"subject": "somebrand", "predicate": "originatesFrom", "object": "X"},
+                            {"subject": "somebrand", "predicate": "hasSegment", "object": "Y"},
+                            {"subject": "somebrand", "predicate": "acquiredIn", "object": "1999"},
+                        ]
+                    },
+                }
+            ]
+        ).cards
+        assert len(cards) == 3
+
+        context, _ = build_rule_context(cards, "somebrand", None)
+
+        assert not {"country_of_origin", "segment", "acquired"} & set(context)
+
+    def test_registry_brand_without_group_does_not_fire(self, onto, on_adapter):
+        # rg032 (TIRTIR): 등록부에 그룹이 없다 → parent_group 결측, 프로필만으로 발화하지 않는다
+        cards = _registry_cards(onto, on_adapter, ["TIRTIR"])
+
+        run = evaluate_rules_on_cards(RULES_BY_PRIORITY, cards, ["tirtir"], [])
+        (evaluation,) = [
+            e.evaluation
+            for e in run.evaluations
+            if e.evaluation.rule_name == "brand_ownership_verification"
+        ]
+
+        assert not evaluation.fired
+        assert evaluation.non_fire_reason.labels() == ["missing_input:parent_group"]
+
+
+class TestPriceRulesDoNotReadSegment:
+    @pytest.mark.parametrize("rule_name", ["value_position", "premium_price_position"])
+    def test_price_rule_inputs_unchanged(self, rule_name):
+        # 두 가격 규칙의 조건·결론은 cpi·rating_gap·brand·asin만 읽는다 — 세그먼트·티어를 쓰는
+        # 로직이 없어 입력으로 연결하지 않는다 (의미를 만들지 않는다)
+        from src.ontology.rule_contracts import RULE_CONTRACTS
+
+        assert "segment" not in RULE_CONTRACTS[rule_name].input_names
+
+
+def test_registry_source_matches_adapter():
+    from src.ontology.rule_contracts import REGISTRY_SOURCE
+    from src.rag.evidence_adapters import ONTOLOGY_SOURCE
+
+    assert REGISTRY_SOURCE == ONTOLOGY_SOURCE
 
 
 if __name__ == "__main__":  # 스냅샷 재생성 (O4 변경 전 코드에서만 실행할 것)

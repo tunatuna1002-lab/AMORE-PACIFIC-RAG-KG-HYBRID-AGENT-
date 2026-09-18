@@ -39,6 +39,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
+from functools import lru_cache
 from typing import Any
 
 from src.domain.entities.evidence import Evidence, EvidenceKind, EvidenceUnit
@@ -96,6 +97,7 @@ class Reduce(str, Enum):
     VALUE = "value"  # 카드 하나의 value
     MIN_VALUE = "min_value"  # 여러 카드 value 중 최솟값 (최고 순위)
     OBJECT = "object"  # 카드 하나의 object
+    OBJECT_LABEL = "object_label"  # 카드 하나의 object 표시 이름 (없으면 object)
     OBJECTS = "objects"  # object 목록
     COUNT = "count"  # 서로 다른 object 수
     OBJECTS_BY_CLUSTER = "objects_by_cluster"  # metadata["cluster"]별 object 목록
@@ -114,6 +116,10 @@ class EvidenceBinding:
         object_role: 카드 목적어의 역할. 목적어가 없으면 None.
         reduce: 매칭 카드에서 값을 만드는 방법.
         extra_predicates: 같은 의미로 함께 찾는 술어.
+        ontology_aliases: True면 온톨로지 술어 별칭도 같은 술어로 본다
+            (``get_ontology().canonical_predicate``가 같은 정식 이름을 내는 술어 — 예
+            ``ownedBy``·``ownedByGroup``). 트랙 O4 [2026-09 사후].
+        sources: 비어 있지 않으면 카드 ``source``가 이 중 하나일 때만 맞다.
     """
 
     kind: EvidenceKind
@@ -123,18 +129,42 @@ class EvidenceBinding:
     object_role: str | None = None
     reduce: Reduce = Reduce.VALUE
     extra_predicates: tuple[str, ...] = ()
+    ontology_aliases: bool = False
+    sources: tuple[str, ...] = ()
 
     @property
     def predicates(self) -> tuple[str, ...]:
         return (self.predicate, *self.extra_predicates)
 
+    def _predicate_matches(self, predicate: str) -> bool:
+        if predicate in self.predicates:
+            return True
+        if not self.ontology_aliases:
+            return False
+        canonical = _canonical_predicate(predicate)
+        return canonical is not None and canonical in {
+            _canonical_predicate(p) for p in self.predicates
+        }
+
     def matches(self, card: Evidence) -> bool:
-        """종류·술어·단위가 맞는 카드인가 (주어·목적어 역할 판정은 조립기 몫)."""
+        """종류·술어·단위·출처가 맞는 카드인가 (주어·목적어 역할 판정은 조립기 몫)."""
         return (
             card.kind is self.kind
-            and card.predicate in self.predicates
+            and self._predicate_matches(card.predicate)
             and (self.unit is None or card.unit == self.unit)
+            and (not self.sources or card.source in self.sources)
         )
+
+
+@lru_cache(maxsize=256)
+def _canonical_predicate(name: str) -> str | None:
+    """온톨로지 정식 술어 이름. 온톨로지를 못 읽으면 None (별칭 확장 없이 기존 이름만 쓴다)."""
+    try:
+        from .ontology import get_ontology
+
+        return get_ontology().canonical_predicate(name)
+    except Exception:  # 원본 형식 오류 등 — 규칙 판정은 기존 술어 이름으로 계속한다
+        return None
 
 
 @dataclass(frozen=True)
@@ -418,6 +448,11 @@ IS_TARGET = InputSpec(
     InputType.BOOLEAN,
     None,
     derivation="brand == 'laneige' (타겟 브랜드)",
+    note=(
+        "트랙 O4 [2026-09 사후] 검토: '질의가 겨냥한 브랜드'로 일반화하지 않는다 — 오프라인 "
+        "rule 32문항에서 일반화하면 골드 문항 15개의 발화 규칙이 바뀐다(예: rg006 medicube "
+        "top3_achievement, rg028 l'oreal strong_avg_rank). rule 골드는 LANEIGE 기준이다"
+    ),
 )
 ASIN = InputSpec(
     "asin",
@@ -713,16 +748,61 @@ PARENT_GROUP = InputSpec(
     "parent_group",
     InputType.STRING,
     None,
-    binding=EvidenceBinding(_R, "ownedBy", None, Role.BRAND, Role.ENTITY, Reduce.OBJECT),
+    binding=EvidenceBinding(
+        _R, "ownedBy", None, Role.BRAND, Role.ENTITY, Reduce.OBJECT, ontology_aliases=True
+    ),
     note=(
         "카드 object(소문자 canonical 'amorepacific')를 그대로 넣는다 — 규칙이 casefold로 "
-        "비교한다(트랙 3-B에서 대소문자 구분 비교 결함 수정)"
+        "비교한다(트랙 3-B에서 대소문자 구분 비교 결함 수정). 술어는 레거시 ownedBy와 "
+        "온톨로지 정식 이름 ownedByGroup(플래그 ontology.use_class_reasoning ON 카드) 모두 — "
+        "OFF 어댑터는 ownedByGroup을 ownedBy로 바꾸므로 OFF 판정은 같다(트랙 O4)"
     ),
 )
-_GAP_BRAND_PROFILE = "표시용 — 전용 카드 변환 규칙 없음(어댑터 술어 역할 미등록, 미검증)"
-COUNTRY_OF_ORIGIN = InputSpec("country_of_origin", InputType.STRING, None, gap=_GAP_BRAND_PROFILE)
-ACQUIRED = InputSpec("acquired", InputType.ANY, None, gap=_GAP_BRAND_PROFILE)
-SEGMENT = InputSpec("segment", InputType.STRING, None, gap=_GAP_BRAND_PROFILE)
+
+# 등록부 정적 사실 카드의 출처 (= ``src/rag/evidence_adapters.ONTOLOGY_SOURCE``, 트랙 O3).
+# 원산지·세그먼트·인수 입력은 이 카드만 읽는다: KG의 AP 브랜드 원산지 "Korea"는
+# kg_updater 기본값이라 원본 진술이 아니다(결정 OA-5). 이 카드는 플래그 ON에서만 생긴다.
+REGISTRY_SOURCE = "ontology:registry"
+
+
+def _registry_profile(predicate: str, object_role: str) -> EvidenceBinding:
+    return EvidenceBinding(
+        _R,
+        predicate,
+        None,
+        Role.BRAND,
+        object_role,
+        Reduce.OBJECT_LABEL,
+        ontology_aliases=True,
+        sources=(REGISTRY_SOURCE,),
+    )
+
+
+_REGISTRY_PROFILE_NOTE = (
+    "등록부 표시 이름(카드 metadata.object_display_name, 없으면 object)을 넣는다 — 규칙은 "
+    "결론 문장·metadata에만 쓴다(조건 없음). 등록부에 값이 없으면 결측"
+)
+COUNTRY_OF_ORIGIN = InputSpec(
+    "country_of_origin",
+    InputType.STRING,
+    None,
+    binding=_registry_profile("originatesFrom", Role.ENTITY),
+    note=_REGISTRY_PROFILE_NOTE + ". 결측이면 규칙 결론이 기본값 'Korea'를 쓴다(규칙 몫)",
+)
+ACQUIRED = InputSpec(
+    "acquired",
+    InputType.ANY,
+    None,
+    binding=_registry_profile("acquiredIn", Role.RAW),
+    note=_REGISTRY_PROFILE_NOTE + ". 카드 object는 연도 문자열('2024')",
+)
+SEGMENT = InputSpec(
+    "segment",
+    InputType.STRING,
+    None,
+    binding=_registry_profile("hasSegment", Role.ENTITY),
+    note=_REGISTRY_PROFILE_NOTE,
+)
 EVIDENCE_SOURCES = InputSpec(
     "evidence", InputType.STRING_LIST, None, gap="공급원 없음 — 규칙 기본값을 쓴다"
 )
@@ -974,6 +1054,12 @@ def _reduce(spec: InputSpec, cards: list[Evidence]) -> tuple[Any, list[Evidence]
             return None, []
         card = _latest_first(with_object)
         return card.object, [card]
+    if reduce is Reduce.OBJECT_LABEL:
+        with_object = [c for c in cards if c.object is not None]
+        if not with_object:
+            return None, []
+        card = _latest_first(with_object)
+        return card.metadata.get("object_display_name") or card.object, [card]
     if reduce in (Reduce.OBJECTS, Reduce.COUNT):
         with_object = [c for c in cards if c.object is not None]
         objects = _unique(c.object for c in with_object)
@@ -1261,6 +1347,7 @@ __all__ = [
     "MAX_RULE_BRANDS",
     "MAX_RULE_CATEGORIES",
     "NON_FIRE_TOP_LIMIT",
+    "REGISTRY_SOURCE",
     "RULE_CONTRACTS",
     "TARGET_BRAND",
     "CardRuleEvaluation",
