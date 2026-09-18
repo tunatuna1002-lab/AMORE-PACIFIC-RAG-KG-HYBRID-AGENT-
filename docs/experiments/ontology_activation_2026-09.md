@@ -1079,3 +1079,8 @@ ON 3회가 모두 OFF 3회의 최솟값보다 낮은 문항은 lg158뿐이다((b
 - CI가 `requirements-dev.txt`를 설치하지 않아 Pellet 교차 검증 테스트가 skip된다.
 - `is_target` 일반화는 하지 않았다(§O4, rule 골드 15문항의 발화 집합이 바뀜).
 - `3421ef8` 이후 코드로 LLM 재측정은 하지 않았다(L4는 오프라인 재채점만). 유형 외 문항 수치 정확도 −0.083(233문항, 1회)은 판정 보류다.
+
+### 최종 전체 테스트 재실행 (리드, 2026-09-18 17:04, `280ae3b` — related_entities 수리·기본 ON 전환 이후) [2026-09 사후]
+
+- `.venv/bin/python -m pytest tests/ -q --no-cov`: **6,361 passed, 8 skipped, 0 failed**.
+- 운영 `data/` sha256 전후 비교: `data/chroma/chroma.sqlite3` 하나만 달라짐. 이번에는 실행 전 사본을 떠 표 단위로 비교했고, 달라진 표는 Chroma 내부 잠금 표 `acquire_write`(235→236행)뿐이다. 임베딩·메타데이터·컬렉션 표는 동일(알려진 현상 S3-2와 같음).
