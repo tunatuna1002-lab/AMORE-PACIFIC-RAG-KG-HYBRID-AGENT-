@@ -175,6 +175,82 @@ class TestInferenceRule:
         assert result.metadata["tags"] == ["pricing"]
         assert "rule_description" in result.metadata
 
+    # ---------------------------------------------------------------
+    # related_entities 정리 (O7 §3: 빈 문자열·placeholder 브랜드 제거)
+    # ---------------------------------------------------------------
+
+    def test_apply_drops_empty_string_related_entities(self):
+        """ctx.get('asin', '')처럼 결측 입력의 기본값 ''는 결과에 남지 않는다."""
+        rule = InferenceRule(
+            name="empty_entity_rule",
+            description="empty entity test",
+            conditions=[_make_condition()],
+            conclusion=lambda ctx: {
+                "insight": "x",
+                "related_entities": [ctx.get("asin", ""), ctx.get("brand", "")],
+            },
+            insight_type=InsightType.PRICE_POSITION,
+        )
+        result = rule.apply({"brand": "almay"})
+        assert result.related_entities == ["almay"]
+
+    def test_apply_drops_whitespace_only_related_entities(self):
+        rule = InferenceRule(
+            name="ws_entity_rule",
+            description="whitespace entity test",
+            conditions=[_make_condition()],
+            conclusion=lambda ctx: {"insight": "x", "related_entities": ["  ", "almay"]},
+            insight_type=InsightType.PRICE_POSITION,
+        )
+        result = rule.apply({})
+        assert result.related_entities == ["almay"]
+
+    def test_apply_drops_placeholder_brand_related_entities(self):
+        """등록부 placeholder 브랜드(예: 'unknown')는 related_entities에서 제거된다."""
+        rule = InferenceRule(
+            name="placeholder_entity_rule",
+            description="placeholder entity test",
+            conditions=[_make_condition()],
+            conclusion=lambda ctx: {"insight": "x", "related_entities": ["unknown", "almay"]},
+            insight_type=InsightType.PRICE_POSITION,
+        )
+        result = rule.apply({})
+        assert result.related_entities == ["almay"]
+
+    def test_apply_keeps_non_string_related_entities(self):
+        """문자열이 아닌 항목(None 등)은 이 필터가 손대지 않는다 — 발화·결론 불변."""
+        rule = InferenceRule(
+            name="non_string_entity_rule",
+            description="non-string entity test",
+            conditions=[_make_condition()],
+            conclusion=lambda ctx: {"insight": "x", "related_entities": [None, "almay"]},
+            insight_type=InsightType.PRICE_POSITION,
+        )
+        result = rule.apply({})
+        assert result.related_entities == [None, "almay"]
+
+    def test_apply_related_entities_real_trace_fixture(self):
+        """실측 트레이스(o7r-on-run1/report.json rg020, value_position)를 그대로 재현한다.
+
+        수정 전 related_entities == ["", "almay"] (asin 미충족 → ctx.get("asin", "")).
+        수정 후에는 빈 문자열만 빠지고 발화·insight·결론은 그대로다.
+        """
+        from src.ontology.rules.price_rules import RULE_VALUE_POSITION
+
+        ctx = {
+            "cpi": 70.5,
+            "rating_gap": 0.219,
+            "brand": "almay",
+            "category": "face_powder",
+            "as_of": "2026-08-31",
+        }
+        result = RULE_VALUE_POSITION.apply(ctx)
+        assert result is not None
+        assert result.rule_name == "value_position"
+        assert result.related_entities == ["almay"]
+        assert "" not in result.related_entities
+        assert result.conclusion == {"position": "value_leader"}
+
 
 # =========================================================================
 # OntologyReasoner — Rule Management
