@@ -97,10 +97,9 @@ class DocumentRetriever:
     # 설정 파일 경로
     CONFIG_PATH = "config/thresholds.json"
 
-    # 검색 결과 캐시 (maxsize=100, TTL=5분)
-    _search_cache: dict[str, Any] = {}
-    _cache_timestamps: dict[str, float] = {}
-    _CACHE_TTL = None  # 설정에서 로드
+    # 검색 결과 캐시 TTL (설정에서 로드). 캐시 자체는 인스턴스 속성이다(__init__) —
+    # 클래스 속성이면 persist_dir·코퍼스가 다른 검색기끼리 결과가 섞인다
+    _CACHE_TTL = None
 
     @classmethod
     def _load_config(cls) -> dict:
@@ -458,6 +457,10 @@ class DocumentRetriever:
         self.collection = None
         self._persist_dir: str | None = None
         self._initialized = False
+
+        # 검색 결과 캐시 (TTL은 get_cache_ttl)
+        self._search_cache: dict[str, Any] = {}
+        self._cache_timestamps: dict[str, float] = {}
 
         # 새 기능 플래그
         self.use_semantic_chunking = use_semantic_chunking

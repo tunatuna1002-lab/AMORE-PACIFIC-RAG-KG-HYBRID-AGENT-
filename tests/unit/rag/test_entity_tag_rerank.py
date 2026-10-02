@@ -54,22 +54,14 @@ def _fake_embeddings(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
-def _clear_search_cache() -> None:
-    """검색 캐시는 클래스 속성(인스턴스·코퍼스와 무관) — 같은 질의를 두 번 쓰기 전에 비운다."""
-    DocumentRetriever._search_cache.clear()
-    DocumentRetriever._cache_timestamps.clear()
+def _clear_search_cache(doc_retriever: DocumentRetriever) -> None:
+    """같은 검색기로 같은 질의를 두 번 쓰기 전에 인스턴스 검색 캐시를 비운다."""
+    doc_retriever._search_cache.clear()
+    doc_retriever._cache_timestamps.clear()
 
 
 def _patch_embed():
     return patch.object(DocumentRetriever, "_embed_texts", AsyncMock(side_effect=_fake_embeddings))
-
-
-@pytest.fixture(autouse=True)
-def _isolated_search_cache():
-    """DocumentRetriever 검색 캐시는 클래스 속성이라 테스트 간에 새지 않게 비운다."""
-    _clear_search_cache()
-    yield
-    _clear_search_cache()
 
 
 @pytest.fixture()
@@ -319,7 +311,7 @@ class TestHybridRetrieverEntityBonus:
 
         with _patch_embed():
             baseline, method0 = await hybrid._hybrid_search(QUERY, top_k=TOP_K)
-            _clear_search_cache()
+            _clear_search_cache(doc_retriever)
             stats: dict[str, Any] = {}
             boosted, method1 = await hybrid._hybrid_search(
                 QUERY, top_k=TOP_K, entities=entities, rerank_stats=stats
@@ -358,7 +350,7 @@ class TestHybridRetrieverEntityBonus:
 
         with _patch_embed():
             baseline, _ = await hybrid._hybrid_search(QUERY, top_k=TOP_K)
-            _clear_search_cache()
+            _clear_search_cache(doc_retriever)
             stats: dict[str, Any] = {}
             with_entities, _ = await hybrid._hybrid_search(
                 QUERY, top_k=TOP_K, entities=entities, rerank_stats=stats

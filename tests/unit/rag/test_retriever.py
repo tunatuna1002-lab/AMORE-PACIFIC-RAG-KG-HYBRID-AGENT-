@@ -101,9 +101,15 @@ class TestEmbeddingCache:
 class TestSearchCache:
     """검색 결과 TTL 캐시"""
 
-    def test_class_level_cache_is_dict(self):
-        assert isinstance(DocumentRetriever._search_cache, dict)
-        assert isinstance(DocumentRetriever._cache_timestamps, dict)
+    def test_cache_is_per_instance(self):
+        """캐시는 인스턴스마다 따로다 — 색인(persist_dir)·코퍼스가 다른 검색기끼리 섞이지 않는다."""
+        a = DocumentRetriever(docs_path="/tmp/fake_a")
+        b = DocumentRetriever(docs_path="/tmp/fake_b")
+        a._search_cache["k"] = ["from a"]
+        a._cache_timestamps["k"] = time.time()
+        assert isinstance(b._search_cache, dict) and isinstance(b._cache_timestamps, dict)
+        assert "k" not in b._search_cache
+        assert b._is_cache_valid("k") is False
 
     def test_cache_ttl_returns_int(self):
         ttl = DocumentRetriever.get_cache_ttl()
