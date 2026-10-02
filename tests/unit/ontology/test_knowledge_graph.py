@@ -656,6 +656,33 @@ class TestKnowledgeGraphAutoSave:
             assert kg._save_batch_count == 0
             assert persist_path.exists()
 
+    def test_load_does_not_rewrite_file(self, monkeypatch):
+        """auto_save=True여도 로드 중 add_relation이 파일을 다시 쓰지 않는다 (FUTURE_WORK 9.9)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            persist_path = Path(tmpdir) / "kg.json"
+            src = KnowledgeGraph(persist_path=str(persist_path), auto_load=False, auto_save=False)
+            for i in range(KnowledgeGraph.DEFAULT_SAVE_BATCH_THRESHOLD * 2 + 1):
+                src.add_relation(Relation(f"Brand{i}", RelationType.HAS_PRODUCT, f"P{i}"))
+            src.set_entity_metadata("Brand0", {"type": "brand"})
+            src.save(force=True)
+            before = persist_path.read_bytes()
+
+            saves: list[object] = []
+            original_save = KnowledgeGraph.save
+
+            def counting_save(self, *args, **kwargs):
+                saves.append(args)
+                return original_save(self, *args, **kwargs)
+
+            monkeypatch.setattr(KnowledgeGraph, "save", counting_save)
+            kg = KnowledgeGraph(persist_path=str(persist_path), auto_load=True, auto_save=True)
+
+            assert saves == []
+            assert persist_path.read_bytes() == before
+            assert kg.auto_save is True
+            assert kg._save_batch_count == 0
+            assert kg.get_entity_metadata("Brand0") == {"type": "brand"}
+
     def test_auto_save_disabled(self):
         """Test auto-save can be disabled"""
         with tempfile.TemporaryDirectory() as tmpdir:
