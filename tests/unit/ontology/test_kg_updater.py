@@ -882,6 +882,37 @@ class TestLoadBrandOwnership:
         assert len(rels) == 1
         assert rels[0].object == "2024"
 
+    def test_acquired_true_without_year_writes_no_acquired_in(self, kg, tmp_path):
+        """acquired: true(연도 미상)는 ACQUIRED_IN을 만들지 않는다 — "True"가 연도로 들어가던 버그"""
+        path = tmp_path / "brands.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "amorepacific_brands": [
+                        {
+                            "name": "TATA HARPER",
+                            "segment": "Clean Beauty",
+                            "category": "Skincare",
+                            "acquired": True,
+                            "country": "USA",
+                        },
+                        {
+                            "name": "COSRX",
+                            "segment": "K-Beauty",
+                            "category": "Skincare",
+                            "acquired": "2024",
+                            "country": "Korea",
+                        },
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        kg.load_brand_ownership(str(path))
+        assert kg.query(subject="TATA HARPER", predicate=RelationType.ACQUIRED_IN) == []
+        cosrx = kg.query(subject="COSRX", predicate=RelationType.ACQUIRED_IN)
+        assert [r.object for r in cosrx] == ["2024"]
+
     def test_non_acquired_brand(self, kg, brands_config_file):
         """비인수 브랜드는 ACQUIRED_IN 없음"""
         kg.load_brand_ownership(brands_config_file)
