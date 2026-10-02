@@ -196,6 +196,14 @@ class TestHybridSearch:
         mock_doc_retriever.reciprocal_rank_fusion.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_hybrid_search_passes_doc_type_filter_to_bm25(
+        self, hybrid_retriever, mock_doc_retriever
+    ):
+        """인텐트 문서유형 필터가 dense뿐 아니라 BM25에도 걸린다."""
+        await hybrid_retriever._hybrid_search("LANEIGE 분석", top_k=5, doc_type_filter=["playbook"])
+        assert mock_doc_retriever.search_bm25.call_args.kwargs["doc_type_filter"] == ["playbook"]
+
+    @pytest.mark.asyncio
     async def test_hybrid_search_dense_only_fallback(self, mock_kg, mock_reasoner):
         """When BM25 is NOT available, should fall back to dense-only."""
         from src.rag.hybrid_retriever import HybridRetriever

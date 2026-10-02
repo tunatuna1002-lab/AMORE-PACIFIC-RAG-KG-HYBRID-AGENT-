@@ -970,7 +970,9 @@ class HybridRetriever:
         bm25_results = []
         if hasattr(self.doc_retriever, "search_bm25"):
             try:
-                bm25_results = self.doc_retriever.search_bm25(query, top_k=top_k)
+                bm25_results = self.doc_retriever.search_bm25(
+                    query, top_k=top_k, doc_type_filter=doc_type_filter
+                )
             except Exception as e:
                 logger.debug(f"BM25 search failed in _hybrid_search: {e}")
                 self._record_degraded(degraded, "bm25_search", e)

@@ -1417,12 +1417,15 @@ Do not include any explanation."""
         sorted_ids = sorted(score_map, key=lambda x: score_map[x], reverse=True)
         return [result_map[rid] for rid in sorted_ids]
 
-    def search_bm25(self, query: str, top_k: int = 10) -> list[dict]:
+    def search_bm25(
+        self, query: str, top_k: int = 10, doc_type_filter: list[str] | None = None
+    ) -> list[dict]:
         """
         BM25 sparse retrieval (synchronous public API).
 
         Returns list of dicts with keys: content, score, metadata, source.
-        Scores are normalized to 0-1 range.
+        Scores are normalized to 0-1 range. ``doc_type_filter``는 dense 검색(``search``)과
+        같은 의미로 청크 ``doc_type``에 적용한다.
         """
         if not BM25_AVAILABLE:
             return []
@@ -1444,6 +1447,8 @@ Do not include any explanation."""
                 continue
             chunk = self._chunk_index.get(chunk_id)
             if chunk is None:
+                continue
+            if doc_type_filter and chunk.get("doc_type") not in doc_type_filter:
                 continue
             scored.append(
                 {

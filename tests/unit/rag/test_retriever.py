@@ -963,6 +963,19 @@ class TestSearchBM25:
         if len(results) >= 2:
             assert results[0]["score"] >= results[1]["score"]
 
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_applies_doc_type_filter(self):
+        """doc_type_filter를 dense 검색과 똑같이 적용한다 (FUTURE_WORK 9.9.1)"""
+        r = self._make_retriever_with_chunks()
+        unfiltered = r.search_bm25("LANEIGE mask ANUA toner", top_k=10)
+        assert {res["metadata"]["doc_type"] for res in unfiltered} != {"intelligence"}
+
+        results = r.search_bm25(
+            "LANEIGE mask ANUA toner", top_k=10, doc_type_filter=["intelligence"]
+        )
+        assert results
+        assert {res["metadata"]["doc_type"] for res in results} == {"intelligence"}
+
     def test_search_bm25_unavailable(self):
         """BM25 라이브러리 없을 때 빈 결과"""
         r = self._make_retriever_with_chunks()
