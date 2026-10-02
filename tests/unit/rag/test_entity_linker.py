@@ -382,6 +382,30 @@ class TestBrandMatchingPrecision:
         result = linker.extract_entities("라네즈의 점유율은?")
         assert any("laneige" in b.lower() for b in result["brands"])
 
+    @pytest.mark.parametrize(
+        ("query", "brand"),
+        [
+            ("2026년 로드맵을 알려줘", "rhode"),  # '로드'(rhode) ⊂ 로드맵
+            ("피닉스 같은 신규 브랜드", "nyx"),  # '닉스'(nyx) ⊂ 피닉스
+        ],
+    )
+    def test_short_korean_alias_inside_word_does_not_match(self, linker, query, brand):
+        """2음절 이하 한글 별칭은 다른 단어의 일부일 때 브랜드로 잡지 않는다."""
+        assert brand not in linker.extract_entities(query)["brands"]
+
+    @pytest.mark.parametrize(
+        ("query", "brand"),
+        [
+            ("로드 립 트리트먼트 순위", "rhode"),
+            ("로드의 가격은?", "rhode"),
+            ("헤라와 미샤 비교", "hera"),
+            ("미샤제품 순위", "missha"),
+            ("닉스(NYX) 순위", "nyx"),
+        ],
+    )
+    def test_short_korean_alias_with_particle_or_boundary_matches(self, linker, query, brand):
+        assert brand in linker.extract_entities(query)["brands"]
+
 
 class TestProductNameBackLink:
     def test_product_name_links_brand_and_product(self, linker):

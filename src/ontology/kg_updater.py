@@ -692,8 +692,15 @@ class KGUpdaterMixin:
 
             # 인수 브랜드 추가 정보
             if acquired:
-                acquired_year = str(acquired) if isinstance(acquired, int) else acquired
-                if acquired_year and acquired_year != "true":
+                # bool은 int의 하위 타입이라 먼저 거른다 — `acquired: true`(연도 미상)가
+                # str(True)="True"로 연도 자리에 들어가던 결함
+                if isinstance(acquired, bool):
+                    acquired_year = ""
+                elif isinstance(acquired, int):
+                    acquired_year = str(acquired)
+                else:
+                    acquired_year = str(acquired).strip()
+                if acquired_year and acquired_year.lower() not in ("true", "false"):
                     rel_acquired = Relation(
                         subject=brand_name,
                         predicate=RelationType.ACQUIRED_IN,

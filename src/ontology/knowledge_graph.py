@@ -614,6 +614,10 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
             version = data.get("version", "1.0")
             logger.info(f"Loading KnowledgeGraph v{version} from {self.persist_path}")
 
+            # 로드 중에는 자동 저장도 멈춘다 — 배치 임계값마다 save()가 돌면 파일을 읽는
+            # 도중에 entity_metadata 없이 일부 트리플만으로 다시 쓰게 된다
+            auto_save = self.auto_save
+            self.auto_save = False
             self._write_validation_suspended = True
             try:
                 for triple_dict in data.get("triples", []):
@@ -621,6 +625,8 @@ class KnowledgeGraph(KGQueryMixin, KGUpdaterMixin, KGIRIMixin):
                     self.add_relation(relation)
             finally:
                 self._write_validation_suspended = False
+                self.auto_save = auto_save
+                self._save_batch_count = 0
 
             self.entity_metadata = data.get("entity_metadata", {})
             self._dirty = False  # 로드 직후에는 dirty 아님

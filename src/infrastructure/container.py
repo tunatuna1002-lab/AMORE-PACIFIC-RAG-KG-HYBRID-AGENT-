@@ -138,34 +138,6 @@ class Container:
         return cls._instances["hybrid_retriever"]
 
     @classmethod
-    def get_unified_retriever(cls, docs_path: str = "./docs"):
-        """
-        HybridRetriever 싱글톤 반환.
-
-        이전 UnifiedRetriever facade를 대체합니다.
-
-        Args:
-            docs_path: 문서 디렉토리 경로
-
-        Returns:
-            HybridRetriever 인스턴스 (retrieve_unified() 지원)
-        """
-        if "unified_retriever" in cls._overrides:
-            return cls._overrides["unified_retriever"]
-
-        if "unified_retriever" not in cls._instances:
-            from src.rag.hybrid_retriever import HybridRetriever
-
-            cls._instances["unified_retriever"] = HybridRetriever(
-                knowledge_graph=cls.get_knowledge_graph(),
-                reasoner=cls.get_reasoner(),
-                doc_retriever=cls.get_document_retriever(),
-                auto_init_rules=True,
-            )
-
-        return cls._instances["unified_retriever"]
-
-    @classmethod
     def get_category_service(cls):
         """
         CategoryService 싱글톤 반환

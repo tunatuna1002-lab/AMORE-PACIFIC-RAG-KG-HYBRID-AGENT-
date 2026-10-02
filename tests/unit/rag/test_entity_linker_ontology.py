@@ -111,6 +111,7 @@ def test_case_and_symbol_variants_resolve_to_one_brand(linker):
     [
         "LANEIGE가 Face Makeup 시장에서 성공하려면?",  # '려'(RYO 한글 별칭)
         "고려해야 할 요소는?",
+        "2026년 로드맵을 알려줘",  # '로드'(rhode 한글 별칭) ⊂ 로드맵
         "COSRX Snail Mucin 96% Essence 순위는?",  # essence
         "median price in Lip Care",
         "competitive matrix of lip brands",
@@ -131,6 +132,7 @@ def test_short_or_common_aliases_do_not_false_positive(linker, query):
         "chi",
         "boj",
         "amore pacific",
+        "rhode",
     } & set(entities["brands"]), entities["brands"]
 
 

@@ -101,9 +101,15 @@ class TestEmbeddingCache:
 class TestSearchCache:
     """검색 결과 TTL 캐시"""
 
-    def test_class_level_cache_is_dict(self):
-        assert isinstance(DocumentRetriever._search_cache, dict)
-        assert isinstance(DocumentRetriever._cache_timestamps, dict)
+    def test_cache_is_per_instance(self):
+        """캐시는 인스턴스마다 따로다 — 색인(persist_dir)·코퍼스가 다른 검색기끼리 섞이지 않는다."""
+        a = DocumentRetriever(docs_path="/tmp/fake_a")
+        b = DocumentRetriever(docs_path="/tmp/fake_b")
+        a._search_cache["k"] = ["from a"]
+        a._cache_timestamps["k"] = time.time()
+        assert isinstance(b._search_cache, dict) and isinstance(b._cache_timestamps, dict)
+        assert "k" not in b._search_cache
+        assert b._is_cache_valid("k") is False
 
     def test_cache_ttl_returns_int(self):
         ttl = DocumentRetriever.get_cache_ttl()
@@ -956,6 +962,19 @@ class TestSearchBM25:
         results = r.search_bm25("LANEIGE Lip Sleeping", top_k=3)
         if len(results) >= 2:
             assert results[0]["score"] >= results[1]["score"]
+
+    @pytest.mark.skipif(not BM25_AVAILABLE, reason="rank_bm25 not installed")
+    def test_search_bm25_applies_doc_type_filter(self):
+        """doc_type_filter를 dense 검색과 똑같이 적용한다 (FUTURE_WORK 9.9.1)"""
+        r = self._make_retriever_with_chunks()
+        unfiltered = r.search_bm25("LANEIGE mask ANUA toner", top_k=10)
+        assert {res["metadata"]["doc_type"] for res in unfiltered} != {"intelligence"}
+
+        results = r.search_bm25(
+            "LANEIGE mask ANUA toner", top_k=10, doc_type_filter=["intelligence"]
+        )
+        assert results
+        assert {res["metadata"]["doc_type"] for res in results} == {"intelligence"}
 
     def test_search_bm25_unavailable(self):
         """BM25 라이브러리 없을 때 빈 결과"""

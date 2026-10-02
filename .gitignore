@@ -113,3 +113,18 @@ portfolio_output/
 .claude/worktrees/
 ablation_output*/
 .omx/
+
+# macOS/iCloud 동기화 충돌 사본 ("파일 2.py", "파일 3.md" 등)
+* [2-9]
+* [2-9].*
+.coverage *
+
+# 개인 도구 설정 (Codex 훅, .claude/skills와 같은 Railway 스킬 사본)
+.agents/
+.codex/
+
+# 지원서·포트폴리오 개인 자료 (공개 저장소에 올리지 않음)
+portfolio_evidence/
+portfolio_evidence.zip
+docs/portfolio/hanwha-life-tech-*
+docs/portfolio/kakaobank_*

@@ -152,9 +152,22 @@ def flag_off(monkeypatch):
     FeatureFlags.reset_instance()
 
 
+# 스냅샷 기록 뒤 의도적으로 고친 OFF 출력 (스냅샷 파일은 O2 이전 기록 그대로 둔다).
+# 2026-10: 짧은 한글 별칭 경계 조건 — "로드맵"의 '로드'가 rhode로 잡히던 오탐 수정.
+INTENTIONAL_FIXES: dict[str, dict[str, Any]] = {
+    "extract_entities": {
+        "고려해야 할 어려운 점은 로드맵에 있다": {"brands": []},
+    },
+}
+
+
 @pytest.fixture(scope="module")
 def snapshot() -> dict[str, Any]:
-    return json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    data = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    for section, fixes in INTENTIONAL_FIXES.items():
+        for query, fields in fixes.items():
+            data[section][query].update(fields)
+    return data
 
 
 def test_snapshot_covers_enough_queries(snapshot):

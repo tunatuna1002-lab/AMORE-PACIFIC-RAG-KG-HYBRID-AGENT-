@@ -28,10 +28,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      # Pellet 교차 검증 테스트(tests/unit/ontology/test_ontology_owl_check.py)는 Java 25 이상 필요
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt -r requirements-dev.txt
           pip install pytest pytest-asyncio pytest-cov pytest-timeout
 
       - name: Install Playwright browsers

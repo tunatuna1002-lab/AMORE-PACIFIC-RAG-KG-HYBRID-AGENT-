@@ -705,10 +705,12 @@ def lg091(db: DB) -> Result:
         """,
         (db.as_of,),
     )
+    # Python 3.11 호환: f-string 안에서 바깥 따옴표를 다시 쓰지 않도록 먼저 만든다
+    ranks = ", ".join(f"{r['rank']}위" for r in rows)
     return Result(
         answer=(
             f"{db.as_of} 스냅샷의 Lip Care Top 100에는 LANEIGE Lip Sleeping Mask가 "
-            f"{len(rows)}개 항목({', '.join(f'{r["rank"]}위' for r in rows)}) 올라 있습니다. "
+            f"{len(rows)}개 항목({ranks}) 올라 있습니다. "
             "향별로 분리된 리스팅은 이 스냅샷에서 확인되지 않아, 향별 순위 비교는 "
             "현재 수집 범위로는 답할 수 없습니다."
         ),

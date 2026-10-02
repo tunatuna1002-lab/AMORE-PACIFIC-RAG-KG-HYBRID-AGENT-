@@ -782,31 +782,34 @@ class HybridRetriever:
             # 6. 통합 컨텍스트 생성 (프롬프트 카드만 렌더링)
             context.combined_context = self._combine_contexts(context, include_explanations)
 
-            # 메타데이터
-            context.metadata = {
-                "retrieval_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
-                "ontology_facts_count": len(ontology_facts),
-                "inferences_count": len(inferences),
-                "rag_chunks_count": len(rag_results),
-                "query_expanded": expanded_query != query,
-                "query_intent": query_intent.value,
-                "doc_type_filter": doc_type_filter,
-                "intent_strategy": intent_config.description,
-                "intent_weights": intent_config.weights,
-                "search_method": search_method,
-                # 엔티티 태그 재정렬: 질의 대상·후보/태그된 후보/보너스 후보 수·최종 보너스 청크 수
-                "entity_rerank": entity_rerank,
-                "selfrag_confidence": selfrag_confidence,
-                "bm25_available": self._bm25_actually_available(),
-                "evidence_count": len(context.evidence),
-                "prompt_evidence_count": len(context.prompt_evidence),
-                # 어댑터가 증거에서 뺀 KG 항목 수 (날짜 없는 수치 엣지·엔티티 메타데이터 등, E2)
-                "evidence_excluded": len(evidence_bundle.excluded),
-                "evidence_excluded_by_reason": evidence_bundle.excluded_by_reason,
-                # 선택 기능(비핵심) 실패 목록 — 이 재할당이 위에서 누적된 degraded를
-                # 지우지 않도록 여기서 함께 포함한다 (F3)
-                "degraded": degraded,
-            }
+            # 메타데이터 — 앞 단계(_weighted_merge의 weighted_scores·fusion)가 남긴 키를
+            # 지우지 않도록 재할당하지 않고 합친다
+            context.metadata.update(
+                {
+                    "retrieval_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
+                    "ontology_facts_count": len(ontology_facts),
+                    "inferences_count": len(inferences),
+                    "rag_chunks_count": len(rag_results),
+                    "query_expanded": expanded_query != query,
+                    "query_intent": query_intent.value,
+                    "doc_type_filter": doc_type_filter,
+                    "intent_strategy": intent_config.description,
+                    "intent_weights": intent_config.weights,
+                    "search_method": search_method,
+                    # 엔티티 태그 재정렬: 질의 대상·후보/태그된 후보/보너스 후보 수·최종 보너스 청크 수
+                    "entity_rerank": entity_rerank,
+                    "selfrag_confidence": selfrag_confidence,
+                    "bm25_available": self._bm25_actually_available(),
+                    "evidence_count": len(context.evidence),
+                    "prompt_evidence_count": len(context.prompt_evidence),
+                    # 어댑터가 증거에서 뺀 KG 항목 수 (날짜 없는 수치 엣지·엔티티 메타데이터 등, E2)
+                    "evidence_excluded": len(evidence_bundle.excluded),
+                    "evidence_excluded_by_reason": evidence_bundle.excluded_by_reason,
+                    # 선택 기능(비핵심) 실패 목록 — 이 재할당이 위에서 누적된 degraded를
+                    # 지우지 않도록 여기서 함께 포함한다 (F3)
+                    "degraded": degraded,
+                }
+            )
             if rule_evaluation is not None:  # 추론 off면 키가 없다 (판정하지 않았다)
                 context.metadata["rule_evaluation"] = rule_evaluation
             if ontology_plan is not None:  # 플래그 OFF면 키가 없다 (O7 카드 수 비교용)
@@ -967,7 +970,9 @@ class HybridRetriever:
         bm25_results = []
         if hasattr(self.doc_retriever, "search_bm25"):
             try:
-                bm25_results = self.doc_retriever.search_bm25(query, top_k=top_k)
+                bm25_results = self.doc_retriever.search_bm25(
+                    query, top_k=top_k, doc_type_filter=doc_type_filter
+                )
             except Exception as e:
                 logger.debug(f"BM25 search failed in _hybrid_search: {e}")
                 self._record_degraded(degraded, "bm25_search", e)

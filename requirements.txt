@@ -72,9 +72,9 @@ feedparser>=6.0.0
 # True RAG - Re-ranking
 sentence-transformers>=2.2.0
 
-# True Ontology - RDF
+# Ontology: JSON 원본 + Python 폐포(src/ontology/ontology.py) — 런타임 외부 의존성 없음
 # owlready2는 [2026-09 사후] requirements-dev.txt로 이동(런타임 import 0건, 트랙 O6)
-rdflib>=7.0.0
+# rdflib는 [2026-10] 삭제(SPARQL 계층 삭제 후 import 0건)
 
 # Entity Linking - NER
 spacy>=3.7.0

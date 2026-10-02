@@ -96,6 +96,53 @@ AMBIGUOUS_REGISTRY_KEYS: frozenset[str] = frozenset(
     {"려", "ap", "essence", "median", "matrix", "verb", "dove"}
 )
 
+# 짧은 한글 브랜드 별칭(2음절 이하)의 경계 조건. "로드"(rhode)가 "로드맵"에, "닉스"(nyx)가
+# "피닉스"에 잡히던 오탐을 막는다. 앞에 한글이 붙으면 다른 단어의 일부로 보고, 뒤에 붙은
+# 한글은 조사이거나 "제품"·"브랜드" 같은 말로 시작할 때만 허용한다.
+_SHORT_HANGUL_KEY = re.compile(r"[가-힣]{1,2}")
+_HANGUL_RUN = re.compile(r"[가-힣]*")
+_KO_PARTICLES: frozenset[str] = frozenset(
+    {
+        "은",
+        "는",
+        "이",
+        "가",
+        "을",
+        "를",
+        "의",
+        "에",
+        "와",
+        "과",
+        "도",
+        "만",
+        "로",
+        "으로",
+        "에서",
+        "에게",
+        "보다",
+        "처럼",
+        "랑",
+        "이랑",
+        "하고",
+        "까지",
+        "부터",
+        "나",
+        "이나",
+        "이다",
+        "이고",
+        "이며",
+        "인",
+        "였",
+        "였다",
+        "에는",
+        "에서는",
+        "와의",
+        "과의",
+        "보다는",
+    }
+)
+_KO_NOUN_SUFFIXES: tuple[str, ...] = ("제품", "브랜드", "대비", "라인", "매출", "순위", "가격")
+
 # 클래스 언급 구문표. 영어 세그먼트 단어는 등록부 세그먼트 라벨(`Luxury`·`Premium`…)에서
 # 가져오고, 여기에는 한국어 표현만 적는다. 세그먼트 클래스는 "럭셔리 브랜드"처럼 뒤에
 # 브랜드·라인 류 단어가 올 때만 인식한다 ("프리미엄화 트렌드"·"가격 프리미엄" 오탐 방지).
@@ -592,7 +639,7 @@ class EntityLinker:
 
         text_norm = normalize_key(text)
         for key, bid in lexicon.brand_keys.items():
-            if bid in seen or not self._mentions(text_norm, key):
+            if bid in seen or not self._mentions_brand(text_norm, key):
                 continue
             seen.add(bid)
             name = onto.brand_name(bid) or bid
@@ -788,7 +835,7 @@ class EntityLinker:
         # 브랜드 추출 (class-level + config 통합)
         merged_brands = self._get_merged_brands()
         for brand_key, normalized in merged_brands.items():
-            if not self._mentions(query_lower, brand_key):
+            if not self._mentions_brand(query_lower, brand_key):
                 continue
             if normalized not in entities["brands"]:
                 entities["brands"].append(normalized)
@@ -892,7 +939,7 @@ class EntityLinker:
 
         brands: list[str] = entities["brands"]
         for key, bid in lexicon.brand_keys.items():
-            if not self._mentions(query_norm, key):
+            if not self._mentions_brand(query_norm, key):
                 continue
             surface = existing_by_id.get(bid) or (onto.brand_name(bid) or bid).lower()
             if surface not in brands:
@@ -946,6 +993,20 @@ class EntityLinker:
         if re.fullmatch(r"[a-z0-9.\-' ]+", key):
             return re.search(rf"(?<![a-z0-9]){re.escape(key)}(?![a-z0-9])", query_lower) is not None
         return key in query_lower
+
+    @classmethod
+    def _mentions_brand(cls, query_lower: str, key: str) -> bool:
+        """브랜드 별칭 포함 여부 — ``_mentions``에 짧은 한글 별칭 경계 조건을 더한다."""
+        if not _SHORT_HANGUL_KEY.fullmatch(key):
+            return cls._mentions(query_lower, key)
+        for match in re.finditer(re.escape(key), query_lower):
+            start, end = match.span()
+            if start > 0 and "가" <= query_lower[start - 1] <= "힣":
+                continue
+            tail = _HANGUL_RUN.match(query_lower, end).group(0)
+            if not tail or tail in _KO_PARTICLES or tail.startswith(_KO_NOUN_SUFFIXES):
+                return True
+        return False
 
     def _get_product_slug_index(self, knowledge_graph: Any) -> dict[str, tuple[str, str]]:
         """KG의 hasProduct 타이틀 → {제품 슬러그: (브랜드, 카테고리)} 인덱스.

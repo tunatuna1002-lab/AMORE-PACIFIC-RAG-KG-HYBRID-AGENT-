@@ -97,10 +97,9 @@ class DocumentRetriever:
     # 설정 파일 경로
     CONFIG_PATH = "config/thresholds.json"
 
-    # 검색 결과 캐시 (maxsize=100, TTL=5분)
-    _search_cache: dict[str, Any] = {}
-    _cache_timestamps: dict[str, float] = {}
-    _CACHE_TTL = None  # 설정에서 로드
+    # 검색 결과 캐시 TTL (설정에서 로드). 캐시 자체는 인스턴스 속성이다(__init__) —
+    # 클래스 속성이면 persist_dir·코퍼스가 다른 검색기끼리 결과가 섞인다
+    _CACHE_TTL = None
 
     @classmethod
     def _load_config(cls) -> dict:
@@ -458,6 +457,10 @@ class DocumentRetriever:
         self.collection = None
         self._persist_dir: str | None = None
         self._initialized = False
+
+        # 검색 결과 캐시 (TTL은 get_cache_ttl)
+        self._search_cache: dict[str, Any] = {}
+        self._cache_timestamps: dict[str, float] = {}
 
         # 새 기능 플래그
         self.use_semantic_chunking = use_semantic_chunking
@@ -1414,12 +1417,15 @@ Do not include any explanation."""
         sorted_ids = sorted(score_map, key=lambda x: score_map[x], reverse=True)
         return [result_map[rid] for rid in sorted_ids]
 
-    def search_bm25(self, query: str, top_k: int = 10) -> list[dict]:
+    def search_bm25(
+        self, query: str, top_k: int = 10, doc_type_filter: list[str] | None = None
+    ) -> list[dict]:
         """
         BM25 sparse retrieval (synchronous public API).
 
         Returns list of dicts with keys: content, score, metadata, source.
-        Scores are normalized to 0-1 range.
+        Scores are normalized to 0-1 range. ``doc_type_filter``는 dense 검색(``search``)과
+        같은 의미로 청크 ``doc_type``에 적용한다.
         """
         if not BM25_AVAILABLE:
             return []
@@ -1441,6 +1447,8 @@ Do not include any explanation."""
                 continue
             chunk = self._chunk_index.get(chunk_id)
             if chunk is None:
+                continue
+            if doc_type_filter and chunk.get("doc_type") not in doc_type_filter:
                 continue
             scored.append(
                 {
