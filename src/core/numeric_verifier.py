@@ -10,9 +10,9 @@ LLM·IO 없는 순수 함수다. ``ResponsePipeline``이 생성 직후 그 답�
 ----
 1. 문장 분리: 줄바꿈과 ``. ! ?`` 뒤 공백에서 자른다. 단, 공백 뒤가 인용 괄호면 자르지
    않는다("…입니다. [M-xxxxxx]"의 인용은 앞 문장 것이다).
-2. 인용 추출: ``[M-xxxxxx]``, 연속 괄호 ``[M-a][D-b]``/``[M-a] [D-b]``, 괄호 안 목록
-   ``[ M-a, D-b ]``. id 접두사 R/M/D/I/O, hex 6~40자리. 공백만 사이에 둔 괄호들은 한
-   묶음이다.
+2. 인용 추출: ``[M-xxxxxx]``, 연속 괄호 ``[M-a][D-b]``/``[M-a] [D-b]``/``[M-a], [D-b]``,
+   괄호 안 목록 ``[ M-a, D-b ]``. id 접두사 R/M/D/I/O, hex 6~40자리. 공백·쉼표만 사이에
+   둔 괄호들은 한 묶음이다.
 3. 수치 추출: ``NUMBER_PATTERN``으로 퍼센트·달러·순위·개수·평점·일반 수를 찾되, 먼저
    ``EXCLUSION_PATTERNS``(날짜·연도·분기·Top N·기간·목록 번호·카드 id 등)를 가린다.
    한국어·영어 표기를 모두 다룬다(``18.0%``/``18 percent``, ``9위``/``9th``/``#9``,
@@ -105,6 +105,8 @@ _FLOAT_EPS = 1e-9
 _ID = r"[RMDIO]-[0-9a-fA-F]{6,40}(?![0-9a-fA-F])"
 _CITATION_GROUP = re.compile(rf"\[\s*({_ID}(?:[\s,，;/·]+{_ID})*)\s*[,，]?\s*\]")
 _ID_IN_GROUP = re.compile(_ID)
+# 인접한 인용 괄호 사이에 허용하는 구분자 (공백·쉼표만)
+_CLUSTER_GAP = re.compile(r"[\s,，、]*")
 
 # 문장 경계: 줄바꿈, 또는 . ! ? 뒤 공백 (뒤가 인용 괄호면 경계가 아니다)
 _SENTENCE_BREAK = re.compile(r"\n+|(?<=[.!?。])[ \t]+(?!\[\s*[RMDIO]-)")
@@ -428,11 +430,14 @@ def _sentence_spans(answer: str) -> list[tuple[int, int]]:
 
 
 def _citation_clusters(sentence: str) -> list[tuple[int, int, tuple[str, ...]]]:
-    """공백만 사이에 둔 인용 괄호를 한 묶음으로: (시작, 끝, ids)."""
+    """공백·쉼표만 사이에 둔 인용 괄호를 한 묶음으로: (시작, 끝, ids).
+
+    ``[M-a][M-b]``·``[M-a] [M-b]``·``[M-a], [M-b]``는 모두 한 묶음이다.
+    """
     clusters: list[tuple[int, int, list[str]]] = []
     for group in _CITATION_GROUP.finditer(sentence):
         ids = [_normalize_id(m.group(0)) for m in _ID_IN_GROUP.finditer(group.group(1))]
-        if clusters and not sentence[clusters[-1][1] : group.start()].strip():
+        if clusters and _CLUSTER_GAP.fullmatch(sentence[clusters[-1][1] : group.start()]):
             clusters[-1] = (clusters[-1][0], group.end(), clusters[-1][2] + ids)
         else:
             clusters.append((group.start(), group.end(), ids))

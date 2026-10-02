@@ -501,6 +501,23 @@ class TestMultipleCitations:
             ("4.57/5", "verified", (RATING.id,)),
         ]
 
+    def test_comma_separated_brackets_form_one_cluster(self):
+        # "[M-a], [M-b]" 형태: 쉼표로 떨어진 괄호도 한 인용 묶음 (FUTURE_WORK 9.9.2)
+        answer = f"LANEIGE는 9위, 리뷰 12,345건입니다 [{SOS_RANK.id}], [{REVIEWS.id}]."
+        result = verify_numeric_claims(answer, EDGE_CARDS)
+        assert [(c.text, c.status.value, c.cited_ids) for c in result.claims] == [
+            ("9위", "verified", (SOS_RANK.id, REVIEWS.id)),
+            ("12,345건", "verified", (SOS_RANK.id, REVIEWS.id)),
+        ]
+
+    def test_brackets_separated_by_text_stay_separate(self):
+        answer = f"9위입니다 [{SOS_RANK.id}] 그리고 리뷰는 12,345건 [{REVIEWS.id}]"
+        result = verify_numeric_claims(answer, EDGE_CARDS)
+        assert [(c.text, c.cited_ids) for c in result.claims] == [
+            ("9위", (SOS_RANK.id,)),
+            ("12,345건", (REVIEWS.id,)),
+        ]
+
     def test_unknown_id_in_cluster_with_wrong_number(self):
         answer = f"가격 $30 [{PRICE.id}][M-ffffff]"
         claim = verify_numeric_claims(answer, EDGE_CARDS).claims[0]
