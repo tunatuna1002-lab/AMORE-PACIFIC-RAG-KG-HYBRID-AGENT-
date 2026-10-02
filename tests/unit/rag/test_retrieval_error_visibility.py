@@ -153,6 +153,24 @@ class TestOptionalFeatureFailureVisibility:
         assert isinstance(context.metadata.get("degraded"), list)
         assert len(context.metadata["degraded"]) >= 1
 
+    async def test_weighted_merge_metadata_survives_final_metadata(self, tmp_path):
+        """_weighted_merge가 남긴 weighted_scores·fusion을 retrieve() 끝에서 지우지 않는다."""
+        kg = _real_kg(tmp_path)
+        reasoner = OntologyReasoner(kg)
+        retriever = HybridRetriever(
+            knowledge_graph=kg,
+            reasoner=reasoner,
+            doc_retriever=_EmptyDocRetriever(),
+            auto_init_rules=True,
+        )
+
+        context = await retriever.retrieve(QUERY)
+
+        assert "retrieval_error" not in context.metadata
+        assert "weighted_scores" in context.metadata
+        assert "fusion" in context.metadata
+        assert "retrieval_time_ms" in context.metadata
+
     async def test_no_failures_means_empty_degraded_list(self, tmp_path):
         """실패가 전혀 없으면 degraded는 빈 리스트로 존재한다 (키 자체는 항상 있음)."""
         kg = _real_kg(tmp_path)

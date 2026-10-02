@@ -202,11 +202,14 @@ def make_ontology_retriever(tmp_path: Path) -> HybridRetriever:
 
 
 _VOLATILE_METADATA = ("retrieval_time_ms",)
+# 스냅샷(0b56e4b) 당시에는 retrieve() 끝의 metadata 재할당이 지워서 보이지 않던 키.
+# 2026-10 재할당을 update로 바꾼 뒤 남게 됐다 — 검색 결과 자체와는 무관한 추적 정보
+_METADATA_ADDED_AFTER_SNAPSHOT = ("weighted_scores", "fusion")
 
 
 def snapshot_of(ctx: Any) -> dict[str, Any]:
-    """``HybridContext`` → 비교용 JSON (실행 시간 제외)."""
+    """``HybridContext`` → 비교용 JSON (실행 시간·스냅샷 이후 추가된 추적 키 제외)."""
     data = json.loads(json.dumps(ctx.to_dict(), ensure_ascii=False, sort_keys=True, default=str))
-    for key in _VOLATILE_METADATA:
+    for key in (*_VOLATILE_METADATA, *_METADATA_ADDED_AFTER_SNAPSHOT):
         data.get("metadata", {}).pop(key, None)
     return data
